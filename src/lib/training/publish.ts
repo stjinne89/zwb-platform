@@ -13,6 +13,7 @@ import {
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
+import { getClub } from "@/lib/club";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -484,6 +485,7 @@ async function pushOneWorkout(
   conn: IntervalsAuth,
   riderFtp: number | null,
 ): Promise<PushOutcome> {
+  const clubTexts = (await getClub()).texts;
   try {
     const { data: fresh } = await admin
       .from("training_workouts")
@@ -504,9 +506,9 @@ async function pushOneWorkout(
       id: workout.intervals_event_id,
       externalId,
       startDateLocal: String(workout.scheduled_at).slice(0, 16),
-      // Met "ZWBeter Worden" ervoor, zodat hij in Zwift en op de fietscomputer
+      // Met de naam van de trainingsmodule ervoor, zodat hij in Zwift en op de fietscomputer
       // herkenbaar is tussen workouts uit andere bronnen.
-      name: intervalsWorkoutName(workout.title),
+      name: intervalsWorkoutName(workout.title, clubTexts.modules.training),
       description: [
         intervalsText,
         describeWithMethodLabel(workout.description, methodLabelOf(workout.method_label)),

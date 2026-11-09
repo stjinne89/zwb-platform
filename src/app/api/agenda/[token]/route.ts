@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { buildIcsCalendar } from "@/lib/calendar/ics";
 import { loadCalendarFeed } from "@/lib/calendar/feed";
 import { calendarFeedTokenFromPath } from "@/lib/calendar/feed-token";
+import { getClub } from "@/lib/club";
 
 // Het agenda-abonnement (migr. 0236). Google Agenda, Outlook en Apple Agenda
 // halen deze link zelf op, zonder sessie; het token in het pad is de sleutel.
@@ -20,6 +21,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ token: string }> },
 ) {
+  const clubTexts = (await getClub()).texts;
   const token = calendarFeedTokenFromPath((await params).token);
   if (!token) return new NextResponse("Not found", { status: 404 });
 
@@ -49,7 +51,7 @@ export async function GET(
       .eq("token", token);
   }
 
-  return new NextResponse(buildIcsCalendar({ name: "ZWB", items }), {
+  return new NextResponse(buildIcsCalendar({ name: clubTexts.shortName, items }), {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": 'inline; filename="zwb.ics"',

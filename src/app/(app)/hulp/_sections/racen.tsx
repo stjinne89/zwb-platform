@@ -4,7 +4,7 @@ import {
   Mountain,
   Trophy,
 } from "lucide-react";
-import { ClubShortName, MemberNoun, ModuleName } from "@/components/club-texts-provider";
+import { ClubShortName, ClubText, MemberNoun, ModuleName } from "@/components/club-texts-provider";
 import { RACE_TERMS } from "@/lib/zrl-analysis/terms";
 
 export function RacenHelp() {
@@ -17,9 +17,9 @@ export function RacenHelp() {
         <header className="flex items-start gap-2">
           <Trophy className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <h2 className="font-semibold">ZWBeter racen</h2>
+            <h2 className="font-semibold"><ClubText text="{beter} racen" /></h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Na een Zwift-race zie je onder ZWBeter racen eerst tips voor
+              Na een Zwift-race zie je onder <ClubText text="{beter} racen" /> eerst tips voor
               jezelf, en daaronder de details. Bij een ZRL-race is dat hoe je
               ploeg reed: de plaats in de groep, per renner het vermogen en de
               segmenten, en in een ploegentijdrit waar de ploeg tijd won of

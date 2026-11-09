@@ -8,6 +8,7 @@ import {
   type EventLinkKind,
 } from "@/lib/events/race-links";
 import { saveEventLinks } from "../_actions";
+import { ClubText } from "@/components/club-texts-provider";
 
 type Draft = { kind: EventLinkKind; label: string; url: string };
 
@@ -63,7 +64,7 @@ export function LinkEditor({
               >
                 {EVENT_LINK_KINDS.map((kind) => (
                   <option key={kind} value={kind}>
-                    {EVENT_LINK_KIND_LABELS[kind]}
+                    <ClubText text={EVENT_LINK_KIND_LABELS[kind]} />
                   </option>
                 ))}
               </select>

@@ -59,11 +59,7 @@ export function SyncResultsButton() {
               (total, source) => total + source.rosterSynced,
               0,
             );
-            const setupText =
-              res.summary.teamsCreated || res.summary.sourcesCreated
-                ? `${res.summary.teamsCreated} teams aangemaakt, ${res.summary.sourcesCreated} bronnen gekoppeld, `
-                : "";
-            const resultText = `${setupText}${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} teamleden`;
+            const resultText = `${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} teamleden`;
             setState({
               kind: failed > 0 || ladderProblems.length > 0 ? "error" : skipped > 0 ? "notice" : "success",
               details,

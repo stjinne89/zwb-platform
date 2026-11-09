@@ -84,7 +84,7 @@ describe("mergeLinks", () => {
         { id: "e", kind: "recon", label: "Recon 2", url: "https://youtube.com/2" },
       ],
     );
-    expect(merged.map((link) => link.label)).toEqual(["Recon 1", "Recon 2", "ZWB-website"]);
+    expect(merged.map((link) => link.label)).toEqual(["Recon 1", "Recon 2", "{kort}-website"]);
   });
 });
 

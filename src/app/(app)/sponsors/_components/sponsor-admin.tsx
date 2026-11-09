@@ -10,13 +10,15 @@ import {
   updateSponsor,
   uploadSponsorLogo,
 } from "../_actions";
+import { useClubTexts } from "@/components/club-texts-provider";
+import { fillClubText } from "@/lib/club-texts";
 
 const TIER_LABELS: Record<string, string> = {
   hoofd: "Hoofdsponsor",
   sub: "Sub-sponsor",
   team: "Team sponsor",
   web: "Web sponsor",
-  vriend: "Vriend van ZWB",
+  vriend: "Vriend van {kort}",
 };
 
 export type SponsorAdminRow = {
@@ -33,6 +35,7 @@ export type SponsorAdminRow = {
 };
 
 export function SponsorAdmin({ sponsors }: { sponsors: SponsorAdminRow[] }) {
+  const clubTexts = useClubTexts();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
 
@@ -91,7 +94,7 @@ export function SponsorAdmin({ sponsors }: { sponsors: SponsorAdminRow[] }) {
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {TIER_LABELS[sponsor.tier]} · sortering {sponsor.display_order}
+                    {fillClubText(TIER_LABELS[sponsor.tier] ?? "", clubTexts)} · sortering {sponsor.display_order}
                   </p>
                 </div>
               </div>
@@ -136,6 +139,7 @@ function SponsorForm({
   sponsor?: SponsorAdminRow;
   onDone: () => void;
 }) {
+  const clubTexts = useClubTexts();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +179,7 @@ function SponsorForm({
             defaultValue={sponsor?.tier ?? "team"}
             className="w-full rounded-md border bg-background px-2 py-1 text-sm"
           >
-            {Object.entries(TIER_LABELS).map(([value, label]) => (
+            {Object.entries(TIER_LABELS).map(([value, rawLabel]) => ({ value, label: fillClubText(rawLabel, clubTexts) })).map(({ value, label }) => (
               <option key={value} value={value}>
                 {label}
               </option>

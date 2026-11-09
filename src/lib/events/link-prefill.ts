@@ -20,6 +20,7 @@ import { assertSafeUrl } from "@/lib/net/safe-fetch";
 import { amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { isSrcName } from "@/lib/src/feed";
 import type { ZwiftEventInfo } from "@/lib/events/zwift-route";
+import { getClub } from "@/lib/club";
 
 export type EventPrefill = {
   source: "zwift" | "mywhoosh" | "web";
@@ -362,7 +363,12 @@ export function prefillFromHtml(html: string, pageUrl: string): EventPrefill {
 
 // --- Ophalen -------------------------------------------------------------
 
-const USER_AGENT = "Mozilla/5.0 (compatible; ZWB-Platform/1.0; +https://zwbcycling.nl)";
+/** Korte clubnaam en website van de club, zoals bij ZWB: "ZWB-Platform/1.0; +https://zwbcycling.nl". */
+async function userAgent(): Promise<string> {
+  const club = await getClub();
+  const site = club.settings.websiteUrl ? `; +${club.settings.websiteUrl}` : "";
+  return `Mozilla/5.0 (compatible; ${club.texts.shortName}-Platform/1.0${site})`;
+}
 
 /**
  * GET met SSRF-controle op elke hop: safeFetch toetst alleen de eerste URL, en
@@ -375,7 +381,7 @@ export async function fetchWithCheckedRedirects(raw: string, accept: string): Pr
     const response = await fetch(url, {
       cache: "no-store",
       redirect: "manual",
-      headers: { "user-agent": USER_AGENT, accept, "accept-language": "nl,en;q=0.8" },
+      headers: { "user-agent": await userAgent(), accept, "accept-language": "nl,en;q=0.8" },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     const location = response.headers.get("location");

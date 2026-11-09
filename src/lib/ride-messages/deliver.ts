@@ -14,7 +14,7 @@ import {
 } from "@/lib/telegram/bot";
 
 /** Vaste tekst van het testbericht dat een lid zichzelf stuurt. */
-export const TEST_RIDE_MESSAGE = "Testbericht van ZWB. Zie je dit, dan werkt het.";
+export const testRideMessage = (club: string) => `Testbericht van ${club}. Zie je dit, dan werkt het.`;
 
 export type RsvpRow = { profile_id: string; status: string };
 

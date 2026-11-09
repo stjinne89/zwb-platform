@@ -19,11 +19,13 @@ import {
   type GoalTargetRow,
 } from "@/lib/training/goal-forecast";
 import { GoalForecastCard } from "../../doelen/_components/goal-forecast-card";
+import { fillClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function TrainerGoalsPage({ searchParams }: SearchParamsProp) {
+  const defaultPrompt = await fillClub(defaultTrainingPrompt());
   const context = await trainerContext(searchParams);
   if (!context.ok) {
     return (
@@ -126,7 +128,7 @@ export default async function TrainerGoalsPage({ searchParams }: SearchParamsPro
               <AiDraftForm
                 athleteId={athleteId}
                 goalId={goal.id}
-                defaultPrompt={defaultTrainingPrompt()}
+                defaultPrompt={defaultPrompt}
                 canUseAi={canUseAi}
                 canGenerateAi={canGenerateAi}
                 initialGenerationId={pending?.id}

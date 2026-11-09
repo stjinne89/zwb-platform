@@ -31,6 +31,7 @@ import { amsterdamHour } from "@/lib/greeting";
 import { onePlanPerProfile } from "@/lib/training/active-plan";
 import { refreshEventWorkouts } from "@/lib/training/events";
 import { reconcileZrlReservations } from "@/lib/training/zrl-reservation";
+import { getClub } from "@/lib/club";
 
 /**
  * Hoe lang een voorstel blijft staan. Daarna is het achterhaald: het ging over
@@ -447,6 +448,7 @@ async function finishStaleGenerations(
 }
 
 export async function POST(request: Request) {
+  const clubTexts = (await getClub()).texts;
   const auth = checkCronSecret(request, "TRAINING_ADAPTATION_SECRET");
   if (!auth.ok) {
     return Response.json({ ok: false, error: auth.message }, { status: 401 });
@@ -646,7 +648,7 @@ export async function POST(request: Request) {
           .order("scheduled_at", { ascending: true });
 
         const input: TrainingAiInput = {
-          athleteName: profile.display_name ?? "ZWB-lid",
+          athleteName: profile.display_name ?? `${clubTexts.shortName}-lid`,
           goal: {
             title: goal.title,
             type: goal.goal_type,

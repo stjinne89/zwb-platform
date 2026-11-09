@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { ModuleName } from "@/components/club-texts-provider";
+import { ClubText, ModuleName } from "@/components/club-texts-provider";
 
 // De tegels van het dashboard: wat jij vandaag en deze week doet, in de kleur
 // van hun soort (kleurbeleid in globals.css). Elke tegel is een link. Puur
@@ -143,7 +143,7 @@ function WorkoutTile({
       className={`tg-tile ${workout.today ? "tg-vandaag" : "tg-zwbeter"} ${className}`}
     >
       <span className="tg-tile-small">
-        ZWBeter trainen · {workout.when}
+        <ClubText text="{beter} trainen · " />{workout.when}
         {position ? ` · ${position}` : ""}
       </span>
       <span className="mt-0.5 line-clamp-2 text-[2rem] font-light leading-[1.05] tracking-tight">

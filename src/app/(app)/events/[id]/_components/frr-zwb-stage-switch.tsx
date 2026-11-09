@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FrrZwbStandingsList } from "@/components/frr-zwb-standings-list";
 import type { ZwbStageView } from "@/lib/frr/zwb-stage-views";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 type Source = "official" | "provisional";
 
@@ -35,7 +36,7 @@ export function FrrZwbStageSwitch({
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        ZWB in het klassement · na etappe {view.stage}
+        <ClubShortName /> in het klassement · na etappe {view.stage}
       </h2>
       <div className="flex flex-wrap items-center gap-2">
         {views.map((row) => (

@@ -40,6 +40,7 @@ import { ZONE_COLOR, ZONE_LABEL, type EventZone } from "./zone";
 import { haversineKm, pickRoutePoint, raceTotalKm } from "@/lib/live/route-progress";
 import type { DivIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((m) => m.MapContainer),
@@ -88,7 +89,7 @@ export type EventLiveSession = {
 function sourceLabel(source: EventLiveSource) {
   if (source === "garmin") return "Garmin live";
   if (source === "wahoo") return "Wahoo live";
-  return "ZWB live";
+  return <><ClubShortName /> live</>;
 }
 
 export type EventLivePosition = {

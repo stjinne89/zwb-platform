@@ -29,10 +29,13 @@ import { RankingCard } from "./_components/ranking-card";
 import { StravaSyncButton } from "@/components/strava-sync-button";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { StatsTabs } from "../_components/stats-tabs";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-export const metadata = { title: "ZWB Rankings" };
+export async function generateMetadata() {
+  return { title: `${(await getClub()).texts.shortName} Rankings` };
+}
 
 type ProfileRef = {
   display_name: string | null;
@@ -132,6 +135,7 @@ export default async function RankingsPage({
 }: {
   searchParams: Promise<{ week?: string | string[] }>;
 }) {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
 
   const showPrevious = (await searchParams).week === "vorige";
@@ -174,7 +178,7 @@ export default async function RankingsPage({
   const names = new Map(
     ((profiles ?? []) as Array<{ id: string; display_name: string | null }>).map((row) => [
       row.id,
-      row.display_name?.trim() || "ZWB'er",
+      row.display_name?.trim() || clubTexts.memberNoun,
     ]),
   );
 
@@ -187,8 +191,8 @@ export default async function RankingsPage({
     <div className="space-y-8">
       <PageHeader
         className="tg-repeats-nav"
-        eyebrow="ZWB Stats"
-        title="ZWB Rankings"
+        eyebrow={`${clubTexts.shortName} Stats`}
+        title={`${clubTexts.shortName} Rankings`}
         actions={
         // Ritten binnenhalen (koppelen, syncen, importeren) staat op het
         // dashboard, bij de ritten zelf. Hier gaat het alleen nog over badges.
@@ -224,7 +228,7 @@ export default async function RankingsPage({
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          title="ZWB kilometers"
+          title={`${clubTexts.shortName} kilometers`}
           value={formatKm(total("distanceM"))}
           detail={`${scores.length} actieve renners ${weekLabel}`}
           icon={Route}
@@ -261,7 +265,7 @@ export default async function RankingsPage({
               label: view.label,
               entries: view.entries.map((entry) => ({
                 ...entry,
-                name: names.get(entry.profileId) ?? "ZWB'er",
+                name: names.get(entry.profileId) ?? clubTexts.memberNoun,
               })),
             }))}
             viewerId={user?.id ?? null}
@@ -298,7 +302,7 @@ export default async function RankingsPage({
                       </p>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">
                         <MemberLink id={award.profile_id}>
-                          {awardProfile(award)?.display_name ?? "ZWB'er"}
+                          {awardProfile(award)?.display_name ?? clubTexts.memberNoun}
                         </MemberLink>
                       </p>
                       <p className="text-xs text-muted-foreground">

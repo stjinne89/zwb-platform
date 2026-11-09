@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import { normalizeTeamName } from "@/lib/ladder";
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
+import { getClub } from "@/lib/club";
 
 export const CLUB_LADDER_SUMMARY_URL = "https://ladder.cycleracing.club/summary";
 
@@ -212,10 +213,11 @@ export function parseClubLadderSummary(html: string, now = new Date()): ClubLadd
 }
 
 export async function fetchClubLadderSummary(): Promise<ClubLadderSummary> {
+  const clubShort = (await getClub()).texts.shortName;
   await assertSafeUrl(CLUB_LADDER_SUMMARY_URL);
   const headers: Record<string, string> = {
     Accept: "text/html,application/xhtml+xml",
-    "User-Agent": "ZWB Platform Club Ladder comparison",
+    "User-Agent": `${clubShort} Platform Club Ladder comparison`,
     Referer: "https://ladder.cycleracing.club/",
   };
   // Geen LADDER_COOKIE: ingelogd stuurt /summary door naar het persoonlijke

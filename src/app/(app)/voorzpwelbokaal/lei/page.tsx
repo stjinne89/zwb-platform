@@ -3,8 +3,11 @@ import { currentSeason, loadStandings, requireBokaalMember } from "@/lib/bokaal/
 import { formatBalls } from "@/lib/bokaal/rules";
 import { cn } from "@/lib/utils";
 import styles from "@/components/bokaal/bokaal.module.css";
+import { moduleName } from "@/lib/club";
 
-export const metadata = { title: "De lei · voorZpWelBokaal" };
+export async function generateMetadata() {
+  return { title: `De lei · ${await moduleName("voorspelspel")}` };
+}
 export const dynamic = "force-dynamic";
 
 export default async function LeiPage() {

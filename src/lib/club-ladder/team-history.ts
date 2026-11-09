@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
 import { LadderLoginError } from "./fixture-page";
 import type { ClubLadderResult } from "./summary";
+import { getClub } from "@/lib/club";
 
 const TEAM_RESULTS_URL = "https://ladder.cycleracing.club/matchlist/results/";
 
@@ -89,12 +90,13 @@ export function recentRacedResults(results: ClubLadderResult[], limit = TEAM_HIS
 }
 
 export async function fetchLadderTeamResults(team: string, cookie: string): Promise<ClubLadderResult[]> {
+  const clubShort = (await getClub()).texts.shortName;
   const url = `${TEAM_RESULTS_URL}${encodeURIComponent(team)}`;
   await assertSafeUrl(url);
   const res = await fetch(url, {
     headers: {
       Accept: "text/html,application/xhtml+xml",
-      "User-Agent": "ZWB Platform Club Ladder comparison",
+      "User-Agent": `${clubShort} Platform Club Ladder comparison`,
       Referer: "https://ladder.cycleracing.club/",
       Cookie: cookie,
     },

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteTrainingPlan } from "../../_actions";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 export function DeleteTrainingPlanButton({
   planId,
@@ -13,6 +14,7 @@ export function DeleteTrainingPlanButton({
   planId: string;
   title: string;
 }) {
+  const clubTexts = useClubTexts();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function DeleteTrainingPlanButton({
         onClick={() => {
           if (
             !confirm(
-              `Schema "${title}" verwijderen? Dit verwijdert het schema en de workouts uit ZWB. Eventuele gepubliceerde workouts in intervals.icu blijven daar staan.`,
+              `Schema "${title}" verwijderen? Dit verwijdert het schema en de workouts uit ${clubTexts.shortName}. Eventuele gepubliceerde workouts in intervals.icu blijven daar staan.`,
             )
           ) {
             return;

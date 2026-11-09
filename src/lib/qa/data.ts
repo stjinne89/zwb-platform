@@ -57,12 +57,13 @@ function nameOf(ref: NameRef): string | null {
 export function toQaItem(
   row: QuestionRow,
   viewerId: string | null,
-  alsoAskedIds: ReadonlySet<string> = new Set(),
+  alsoAskedIds: ReadonlySet<string>,
+  fallbackName: string,
 ): QaItem {
   return {
     id: row.id,
     askerId: row.profile_id,
-    askerName: nameOf(row.asker) ?? "ZWB'er",
+    askerName: nameOf(row.asker) ?? fallbackName,
     body: row.body,
     visibility: row.visibility,
     answer: row.answer,

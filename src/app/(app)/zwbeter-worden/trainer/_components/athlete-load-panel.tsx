@@ -14,6 +14,7 @@ import {
   recoveryPillClass,
   recoveryStateLabel,
 } from "../../_components/ui";
+import { ClubShortName, ClubText } from "@/components/club-texts-provider";
 
 export function AthleteLoadPanel({
   loadPoints,
@@ -102,7 +103,7 @@ export function AthleteLoadPanel({
                     }
                     hint={
                       recovery.summary.readinessSource === "afgeleid"
-                        ? "berekend door ZWB"
+                        ? <>berekend door <ClubShortName /></>
                         : undefined
                     }
                   />
@@ -135,13 +136,13 @@ export function AthleteLoadPanel({
 
           <div className={`rounded-md p-3 ${advice.block}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium">ZWBeterWorden</p>
+              <p className="text-sm font-medium"><ClubText text="{adviesnaam}" /></p>
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${advice.pill}`}>
                 {advice.level > 0 ? `Niveau ${advice.level}/5` : "—"}
               </span>
             </div>
             <p className="mt-2 text-sm font-semibold">{advice.title}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{advice.description}</p>
+            <p className="mt-1 text-xs text-muted-foreground"><ClubText text={advice.description} /></p>
           </div>
         </div>
       </div>

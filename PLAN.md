@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Dashboard: zelf kiezen wat je ziet, fitheid in een tegel (2026-11-09):
+   gepusht naar `main` (`07ceea93`), migratie `0318` toegepast** (versie
+   `20261109131357`, op verzoek van de eigenaar). Open: na de deploy op het
+   profiel onder Dashboard iets uitvinken en het dashboard bekijken. Zie de ronde
+   "Dashboard: zelf kiezen wat je ziet".
+
 0. **ZWBeter racen: races per lid, ook buiten de kalender (2026-11-09):
    gepusht naar `main` (`9a5f13d5`), migratie `0317` toegepast** (versie
    `20261109130648`, op verzoek van de eigenaar, vóór de push). Privacytekst
@@ -46,13 +52,30 @@ gaat stabiliteit voor nieuwe features.
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
+0. **Generieke versie, fase 5: schone installatie (2026-11-09): gepusht naar
+   main** (`49f0bd31`). Geen migratie. Baseline en seed in `supabase/baseline/`,
+   handleiding in [docs/installatie.md](docs/installatie.md). Alleen getest op
+   PGlite; de echte proef is fase 7. Zie de ronde "fase 5: schone installatie".
+
+0. **Generieke versie, fase 4: clubherkenning (2026-11-09): gepusht naar
+   `main` (`5b50f06a`), migratie `0320` toegepast** (versie `20261109135410`,
+   op verzoek van de eigenaar, vóór de push). Open: na de deploy de volgende
+   eventscan, een ZRL-live of ZWB DS en de Instagram-sync nalopen. Zie de ronde
+   "fase 4: clubherkenning".
+
 0. **Generieke versie, fase 3 deel 1 en 2: clubnaam, modulenamen, hulp,
    privacy en voorwaarden (2026-11-09): gepusht naar `main` (deel 1
    `c8ed7cb3`, deel 2 `fdbdbd91`).** Geen
    migratie. Lokaal gecontroleerd dat manifest, titels, deelkaart, `/privacy` en
-   `/voorwaarden` voor ZWB gelijk zijn aan de live site. Deel 3 (de overige
-   "ZWB"-teksten, woordspelingen, enkelvouden) volgt. Zie de rondes "Generieke
-   versie, fase 3 deel 1" en "deel 2".
+   `/voorwaarden` voor ZWB gelijk zijn aan de live site. Zie de rondes
+   "Generieke versie, fase 3 deel 1" en "deel 2".
+   **Deel 3a** (de clubwoorden in schermen, meldingen en AI-prompts) en
+   **deel 3b** (eigen woorden, appnaam, user agents, neutrale kennisbanken)
+   zijn op 2026-11-09 op verzoek van de eigenaar ("Apply and push") naar
+   `main` gepusht. Migratie `0319` is vooraf toegepast; ZWB heeft de zes
+   woorden. Open: na de deploy de schermen van ZWB nalopen (tabs, ZWBeter
+   Worden, prijzenkast, hulp) en de eerste Strava-samenvatting bekijken. Zie de
+   rondes "fase 3 deel 3a" en "deel 3b".
 
 0. **Inloglinks bestand tegen mailscanners (2026-11-09): gepusht naar `main`
    (`d48dd9c9`), samen met de bevestigingsmail-ronde.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
@@ -12008,6 +12031,540 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Generieke versie, fase 5: schone installatie
+
+**2026-11-09, commit `49f0bd31`.** Op verzoek van de eigenaar ("ga maar
+verder", na fase 4), met
+vier keuzes vooraf. Geen migratie. Nieuwe devDependency
+`@electric-sql/pglite-tools@0.4.8` (pg_dump; precies de versie bij PGlite
+0.5.8).
+
+Doel: een nieuwe club kan een leeg Supabase-project vullen zonder de 322
+migraties van ZWB en zonder ZWB-data. ZWB zelf verandert niets.
+
+Wat er is:
+
+- **Baseline en seed** (keuze eigenaar: "Baseline + seed"), in
+  `supabase/baseline/`:
+  - `0320_baseline.sql`: het schema na `0320`, met pg_dump uit een PGlite waarop
+    alle migraties zijn afgespeeld. Wat pg_dump met `--schema=public` niet
+    meeneemt, schrijft `scripts/build-baseline.mjs` er zelf bij: de rechten, de
+    buckets en storage-policies, de trigger op `auth.users` en de
+    realtimetabellen;
+  - `0320_seed.sql`: de startinhoud (keuze eigenaar: "Generieke inhoud mee").
+    Eruit: het ledenroster uit `0005` (93 namen met Zwift-ID), teams en
+    bronnen, sponsors, releasenotes en het auditlog. De clubrij heet "Club",
+    zonder eigen woorden of herkenning, en de modules hebben geen eigen naam.
+    De drie badges "in een ZWB-week" zeggen "in een week". Het script stopt
+    als er nog "ZWB" of "zwbcycling" in de seed staat.
+- **Rechten expliciet.** Supabase geeft `anon`, `authenticated` en
+  `service_role` vanzelf alles op een nieuw object in public. De migraties
+  nemen dat op plekken terug (bijvoorbeeld `execute` op functies). Een gewone
+  dump zou die intrekkingen kwijtraken; daarom trekt de baseline eerst alles in
+  en geeft dan precies de rechten van na `0320` terug. De stub doet de
+  standaardrechten van Supabase na, zodat de afgespeelde rechten kloppen.
+- **De stub** (`scripts/baseline/stub.mjs`): rollen, auth, storage, de
+  realtimepublicatie en `uuid-ossp` in het schema extensions, zoals op
+  Supabase. Hij deelt ook `schemaFingerprint()` met de test.
+- **`tests/unit/baseline.test.ts`** speelt beide routes af (alle migraties, en
+  baseline + seed + de migraties na `0320`) en vergelijkt kolommen,
+  constraints, indexen, functies, views, policies, RLS, triggers, rechten,
+  buckets en realtime. Ook: geen ZWB-data in de seed, een neutrale clubrij, de
+  startinhoud compleet en een profiel bij een aanmelding. Duurt ongeveer 6
+  seconden.
+- **De eerste beheerder**: één SQL-regel in de handleiding (keuze eigenaar:
+  "SQL-regel in handleiding"), geen automatische beheerder.
+- **De handleiding** `docs/installatie.md`: database, Netlify en env, de
+  eerste beheerder, de club inrichten met SQL tot fase 6, de koppelingen (met
+  verwijzingen naar de runbook) en de regels voor nieuwe migraties.
+
+**Gecontroleerd tegen productie** (alleen lezen, met de Supabase-connector):
+het afgespeelde schema telt evenveel tabellen (205), functies (85), policies
+(338 in public, 22 in storage), triggers (63), indexen (518) en realtimetabellen
+(4), met dezelfde namen. Eén verschil: productie heeft een kolom
+`external_event_participants.screenshot_path` en een bucket
+`event-scan-screenshots` die geen migratie aanmaakt en geen code gebruikt. Een
+oude handmatige wijziging; niet opgelost, staat in de handleiding (§8).
+
+**Bewust niet:**
+
+- **Het migratiescript voor meerdere installaties** (keuze eigenaar: "Bij fase
+  7"). Er is nog geen tweede installatie om het op te testen. De handleiding
+  geeft tot dan een `psql`-lus.
+- **Het `zwiftladies`-filter in `claim_roster_entry`**: het zet de
+  vrouwendivisie als een rosternaam "zwiftladies" bevat. Bij een andere club
+  gebeurt dat nooit, dus het doet daar niets. Een filter op de teaminstelling
+  zou ZWB raken, en dat was niet gevraagd.
+- **`event_links.kind = 'zwb'`** en tabel- en functienamen met zwb: interne
+  sleutels; het label is sinds 3a `{kort}-website`.
+- **`supabase/config.toml` en een lokale Supabase**: er is geen Docker.
+
+**Niet meer waar:** het ontwerp (§2.4) zei dat er geen baseline is en dat geen
+test alle migraties afspeelt, en (§10) dat niet lokaal te testen is of alle
+migraties op een leeg project aflopen en of de dubbele nummers botsen. Op
+PGlite lopen alle 322 migraties af, ook 0066, 0067, 0172 en 0173 dubbel. Die
+zinnen zijn aangepast.
+
+Lokaal: `tsc` en eslint zijn schoon. De volledige suite: 4172 groen, 19
+overgeslagen. Vijf bestanden met PGlite-migratietests (`club-theme`,
+`gps-times-flag`, `rls-initplan-migration`,
+`training-plan-status-cleanup-migration`, `admin-areas`) liepen vast op een
+time-out onder belasting; los gedraaid zijn ze groen (65 tests).
+`omnium-live` heeft `.env.local` nodig.
+
+**Niet bekeken:**
+
+- de baseline op een echt leeg Supabase-project (Postgres 17; PGlite is 18).
+  De dump bevat niets wat alleen in 18 bestaat (gezocht op onder meer
+  `NOT ENFORCED`, `\restrict` en statistieken), maar dat is geen proef;
+- de handleiding van begin tot eind: dat is fase 7.
+
+### Gebouwd — Generieke versie, fase 4: clubherkenning
+
+**2026-11-09.** Commit `5b50f06a` (lokaal). Op verzoek van de eigenaar ("ga maar door", na fase 3), met
+drie keuzes vooraf (zie onder). Migratie `0320` (`club_recognition`) is op
+2026-11-09 vóór de push op productie toegepast (versie `20261109135410`, op
+verzoek van de eigenaar: "Apply and push"); daarna gaf `club_settings` voor ZWB
+de markers zwb, zwift belgie en zwift belgium en de tag ZWB. Niet lokaal te
+testen.
+
+Doel: wat de app als "van de club" herkent (eigen events, renners, uitslagen,
+teams en social) komt uit de club en niet uit de code. Voor ZWB verandert er
+niets.
+
+Wat er is:
+
+- **Twee kolommen (`0320`).** Leeg geeft de korte naam
+  (`lib/club-recognition.ts`, `getClub().recognition`).
+
+  | Kolom | Bij ZWB | Waarvoor |
+  |---|---|---|
+  | `event_markers` | zwb, zwift belgie, zwift belgium | de eventscan: eigen events in titel of serie |
+  | `team_tag` | ZWB | de teamtag in een Zwift-naam ("[ZWB]"): ZRL-live, ZWB DS en de uitslagscraper |
+
+  - De env `ZWB_EVENT_MARKERS` gaat voor (keuze eigenaar: "Env blijft
+    voorrang"). Zo verandert er niets als hij op Netlify een eigen waarde
+    heeft.
+  - Het Zwift-club-ID blijft een env-waarde (Netlify secrets-scan, zie het
+    ontwerp §4).
+- **Waar ze gelden:**
+  - `detectZwbMatchStatus(candidate, markers)`; de eventscan geeft de markers
+    van de club mee;
+  - `hasClubTag(name, tag)` (was `hasZwbTag`) en `pickSubgroup(…, tag)` in
+    ZRL-live en ZWB DS;
+  - de uitslagscraper: een regel die de club als los woord noemt
+    (`mentionsClub`, was de regex `ZWB_MENTION`). `scrapeEventResults` en
+    `scrapeEventLiveTiming` krijgen de tag mee, omdat `scrape.ts` ook in een
+    client-component terechtkomt en dus geen `lib/club` mag lezen.
+- **Teams alleen uit de database** (keuze eigenaar: "Seeds en fallback weg").
+  De teamsync legde bij elke run de zeven ZWB-teams en hun WTRL- en
+  ladderbronnen aan als ze ontbraken; op productie stonden ze er allemaal al.
+  Weg zijn de seeds, het uitschakelen van de oude bronnen "ZRL B" en "ZRL C"
+  (stonden al uit) en de vaste WTRL-fallback voor "ZWB Cycling B1" (2025/26
+  Round 4). Een nieuwe club maakt zijn eigen teams. De melding "x teams
+  aangemaakt" in de syncknop is weg. Het gelijkstellen van "ZWB Cycling B1"
+  en "ZWB B1" volgt de clubnaam en de korte naam.
+- **SRC:** het standaardteam heet `<korte naam> SRC` (`srcDefaultTeamName`).
+- **Social** uit `club_settings` (de waarden stonden er al sinds `0313`):
+  - Instagram: het profiel (`instagramProfileUrl`), de controle dat de token
+    bij het clubaccount hoort, en de titels "Instagram-post van <clubnaam>";
+    de dashboardstrip krijgt het profiel als prop. De token blijft env;
+  - YouTube: de syncknop zonder handle neemt `youtube_handle`; zonder kanaal
+    zegt hij "Geen YouTube-kanaal ingesteld.".
+- De beschrijving bij een gepubliceerd scanevent zegt
+  "<korte naam>-deelnemers".
+
+**Bewust niet:**
+
+- **De podcast-RSS** blijft de env `PODCAST_RSS_URL` (keuze eigenaar: "Env
+  laten"). Hij werkt al per installatie.
+- **Het logo bij een link naar zwbcycling.nl** (`race-links.ts`): dat is het
+  logo van die site, net als dat van Zwift of Strava. Voor een andere club
+  raakt het niets.
+- **Tabel- en functienamen** met zwb (`zwb_ds_rider_states`,
+  `claim_zwb_ds_budget`) en de cachesleutels: intern, voor de baseline van
+  fase 5.
+- **Strava-app, Zwift-serviceaccount, Telegram-bot en crons** zijn per
+  installatie apart (ontwerp §2.3); dat hoort bij de installatiehandleiding
+  van fase 5.
+- Een scherm om de herkenning te bewerken: dat is de inrichtingsmodule (fase 6).
+
+**Niet meer waar:** het ontwerp (§2.3) noemt `SRC_DEFAULT_TEAM_NAME`,
+`ZWB_MENTION` en de ZWB-teams in `team-results/sync.ts`; die zijn weg. De
+fase-3-rij in het ontwerp noemde `0318` als migratie; dat is `0319`.
+
+Lokaal: `tsc`, eslint en `next build` (met de echte env) zijn schoon. In de
+volledige suite faalden zes tests onder belasting; los gedraaid zijn ze groen,
+behalve `omnium-live`, dat `.env.local` nodig heeft. `club-recognition.test.ts`
+dekt de volgorde env > kolom > korte naam, de los-woordtest met regex-tekens,
+de teamtag en de eventmarkers voor ZWB en een testclub. De tests van
+`pickSubgroup` en de SRC-inschrijving geven de tag en de korte naam nu mee.
+
+**Niet bekeken:**
+
+- een echte eventscan, ZRL-live, ZWB DS, uitslagscrape en Instagram-sync na de
+  wijziging;
+- het gedrag vóór en na `0320` op productie.
+
+### Gebouwd — Generieke versie, fase 3 deel 3b: eigen woorden, appnaam en neutrale kennisbanken
+
+**2026-11-09.** Op verzoek van de eigenaar ("Yes, start 3b"), na de keuzes van
+dezelfde dag (zie het bovenste punt van de actieve volgorde). Migratie `0319`
+(`club_words`) is op 2026-11-09 vóór de push op productie toegepast (versie
+`0319_club_words`); daarna gaf `club_settings` voor ZWB ZWBasis, ZWBeterWorden,
+ZWBal, ZWBallen, ZWBeker en ZWBeter. Niet lokaal te testen. Zonder de kolommen
+valt een installatie terug op de neutrale woorden.
+
+Wat er is:
+
+- **Eigen woorden (`0319`).** `club_settings` krijgt zes kolommen. Elke lege
+  kolom geeft een neutraal woord.
+
+  | Kolom | Bij ZWB | Neutraal |
+  |---|---|---|
+  | `app_name` | ZWBasis | `<korte naam>-app` |
+  | `advice_name` | ZWBeterWorden | Dagadvies |
+  | `currency_noun` | ZWBal | bal |
+  | `currency_noun_plural` | ZWBallen | ballen |
+  | `cup_noun` | ZWBeker | beker |
+  | `better_word` | ZWBeter | Beter |
+
+  - De migratie vult de ZWB-waarden alleen in als de korte naam "ZWB" is, en
+    alleen in lege kolommen.
+  - Een scherm om ze te bewerken komt er niet: dat hoort bij de
+    inrichtingsmodule (fase 6), net als de naam en het lidwoord.
+- **Tokens.** `ClubTexts.words` (`buildClubWords()` in `lib/club-texts.ts`) en
+  zeven nieuwe tokens: `{app}`, `{adviesnaam}`, `{advies}`, `{bal}`, `{ballen}`,
+  `{beker}` en `{beter}`.
+  - `{advies}` is "ZWBeterWorden-advies" of "dagadvies".
+  - Met een hoofdletter (`{Beker}`) begint het woord met een hoofdletter, voor
+    titels.
+  - `fillClubText` herkent nu elk `{woord}` en laat een onbekend woord staan.
+- **Waar ze staan:**
+  - het dagadvies in de hulp, op het herstelkaartje, in het trainerpaneel, in
+    de ledenlijst en in de lege-staattekst van `zwbeterworden.ts`. Die laatste
+    wordt gevuld op het dashboard, het herstelkaartje en het trainerpaneel;
+  - de ballen in de hulp, de briefjes, het bord en de privacyverklaring;
+  - de beker in de prijzenkast, de bekerpagina en de voordracht (titels via
+    `generateMetadata`), de pushmeldingen, het verhaalformulier, het beheer
+    van het clubverhaal, de hulp en de privacyverklaring;
+  - de appnaam in de prompt van de app-updates;
+  - het beter-woord ("ZWBeter X") in de tabbalk en de kop van ZWBeter Worden,
+    de tegels Vandaag en weekoverzicht, de trainingsmeldingen en
+    -statuskaartjes, de racepagina's (titels via `generateMetadata`), het
+    Strava-profielblok, de privacyverklaring en de hulp (koppen,
+    zoektitels, ZWBriljant, kennis en racen). De kop van het Strava-blok is
+    `summaryHeader(woord)` in het nieuwe `strava-summary-header.ts`; het
+    opruimen herkent de kop van de club, die van ZWB en de oude kop van vóór
+    2026-10-25. Het hulpvoorbeeld bouwt de kop in de browser
+    (`StravaSummaryExample`).
+- **Zonder keuze, voor ZWB gelijk:**
+  - de notitie bij het event-blok ("Clubevent uit de ZWB-kalender") neemt de
+    korte naam (`EventWorkoutOptions.clubShortName`);
+  - de eventsoort "ZWB Omnium" is `{m:omnium}`, gevuld in de kalender, het
+    eventscherm, de ritverslagen, de programma's en de agenda-feed;
+  - de rechtenlabels van ZWBgame en "naar ZWB publiceren" dragen tokens; het
+    rechtenscherm vult ze in;
+  - de terugval van het eigen team in ZWBgame (het spel geeft nu zelf de korte
+    naam mee) en die van `analysePersonalRace` (hoe een lid heet);
+  - de workout-titel in intervals.icu volgt de modulenaam van training
+    (`intervalsWorkoutName(title, brand)`), en de oude ZWB-naam wordt er nog
+    steeds afgehaald;
+  - de steen in de Strava-samenvatting en het voorbeeld in de hulp volgen de
+    modulenaam van rennersniveau;
+  - het contactadres op de sponsorpagina komt uit de club.
+- **User agents** nemen de korte clubnaam, en waar een website in stond die
+  van de club. Bij ZWB komt daar precies de oude tekst uit, ook bij
+  cyclingflash ("ZWB-platform voorZpWelBokaal (clubspel)"). Het gaat om:
+  - Club Ladder (5 plekken);
+  - FRR;
+  - de healthcheck;
+  - het eetdagboek en Allerhande;
+  - WhatsApp, RSS, de teamuitslagen, LiveTrack en het voorinvullen van links.
+
+  De browser-UA's voor Zwift en de uitslagscraper hadden geen clubnaam.
+- **Kennisbanken en protocollen**, voor iedereen, ook voor ZWB: "ZWB" is "de
+  app" geworden in 42 zinnen en typecommentaren. Dat gebeurde in de training-,
+  kracht-, race-, voeding- en materiaalbibliotheek en in de protocollen.
+
+**Gevonden en meegenomen:** het rechtenscherm (`/beheer/rechten`) toonde sinds
+3a de rolomschrijving met een rauw `{kort}`. De rolomschrijvingen kregen in 3a
+tokens, maar dit scherm vulde ze niet in. Dat is hersteld.
+
+**Open punten, dezelfde dag beslist** ("Eerst de open punten"; commit `bea87141`, lokaal):
+
+- **"ZWBeter X"** werd het zesde eigen woord, `better_word`, neutraal "Beter"
+  (zie hierboven). `club-texts-render.test.ts` laat niets meer door; de
+  uitzondering `NOT_YET` is weg.
+- **Stroeve kennisbankzinnen.** De eigenaar koos uit de voorstellen alleen
+  "is een eigen keuze.":
+  - `protocols/training.ts` (hittesessie, twee keer): "…de app als sessie
+    telt, is een eigen keuze." Geen "van ZWB" en geen "van de app" meer;
+  - "is een afleiding van ZWB" (`nutrition/library.ts` en
+    `protocols/nutrition.ts`) en "de ZWB-workouts" (`training-library.ts`)
+    blijven op "ZWB" staan. Het voorstel ("een eigen afleiding", "de workouts
+    van de app") is niet gekozen;
+  - de twee zinnen in `protocols/training.ts` met "de app" waarvoor "een eigen
+    vertaling" werd voorgesteld, blijven "de app".
+
+**Bewust niet:**
+
+- **Drie kennisbankzinnen** houden "ZWB" (zie hierboven). Een andere club
+  ziet daar dus nog ZWB, tot er een zin is die de eigenaar wil.
+- **De modulenaam "ZWBeter Worden"** in `nav-config.ts` en de standaardnaam
+  in `WORKOUT_TITLE_BRAND` blijven: de eerste is de naam van de module (die
+  komt uit `club_modules`), de tweede is de terugval en het oude voorvoegsel
+  dat er nog af moet.
+- **"durability in ZWBriljant"** in het durability-protocol: een modulenaam in
+  kennistekst, die nergens wordt ingevuld. Die blijft staan.
+- **De weekawards ("ZWB-week")**: de getoonde tekst staat in de tabel `badges`
+  (seed in `0011` en `0277`), niet in de code. Dat is de generieke seed van
+  fase 5.
+- **Het adres in de LiveTrack-UA** (`zwb-platform.netlify.app`) is dat van de
+  installatie: fase 5.
+
+**Niet meer waar:** de keuzelijst bovenaan noemde "één nieuw veld"; het zijn zes
+kolommen. Hij noemde ook de awards onder "zonder keuze"; die staan in de
+database en zijn niet aangepast.
+
+Lokaal: `tsc` en eslint zijn schoon op de geraakte bestanden. Na de open punten
+faalt in de volledige suite alleen `omnium-live` (4173 tests groen). Bij de
+eerste ronde faalden ook tests onder belasting:
+
+- `club-theme`, `modules`, `rls-initplan`, `training-plan-status-cleanup` en
+  `intervals-ride-sync` lopen onder belasting in een time-out. Los gedraaid
+  zijn ze groen.
+- `omnium-live` heeft `.env.local` nodig.
+
+`club-texts-tokens.test.ts` dekt:
+
+- de nieuwe woorden voor ZWB en voor een testclub, en de hoofdletter;
+- het beter-woord en de Strava-kop (ook in `strava-summary.test.ts`: een blok
+  met de kop van een andere club en het oude ZWB-blok worden opgeruimd);
+- de eventsoort en de rechtenlabels;
+- de workout-titel met een andere naam (ook met regex-tekens).
+
+Elke gewijzigde regel met "ZWB" is met de ZWB-waarden ingevuld en vergeleken met
+de oude regel; buiten de kennisbanken is alles voor ZWB gelijk.
+
+`next build` met de echte env slaagt. De eerste poging faalde: `lib/ladder.ts`
+komt via `club-ladder/rules.ts` ook in de browser terecht en mag dus geen
+`lib/club` (server-only) importeren. De clubnaam voor die user agent is daarom
+een parameter, die `teams/_actions.ts` meegeeft.
+
+**Migratienummer en samenvoegen.** De migratie heette eerst `0316`. Bij het
+samenvoegen met `origin/main` bleken `0316` en `0317` al vergeven door andere
+sessies (en op productie toegepast), dus hij is hernummerd naar `0318`, en
+bij de push opnieuw, naar `0319`, omdat de dashboardkeuze `0318` intussen had
+genomen
+(`49929c7f`, merge `dfe8fccc`). Conflicten in `training-status.tsx`,
+`claude.ts`, `training/ai.ts` en dit plan zijn met beide kanten opgelost.
+
+**Niet bekeken:**
+
+- de schermen in de browser;
+- echte user agents tegen de sites;
+- het gedrag vóór en na `0319` op productie.
+
+### Gebouwd — Generieke versie, fase 3 deel 3a: clubwoorden in schermen, meldingen en AI-prompts
+
+**2026-11-09.** Op verzoek van de eigenaar ("ga maar verder"), na deel 1 en 2.
+Geen migratie. Deel 3 bleek te groot en te gemengd voor één ronde. Daarom
+splitsen we het in tweeën:
+
+- **3a (deze ronde):** de korte naam, de volledige naam en het woord voor een
+  lid, die al in `club_settings` staan. Ook de modulenamen die deel 1 miste.
+- **3b (later):** de stukken die een nieuw clubveld of een keuze van de
+  eigenaar vragen.
+
+Doel: een andere club ziet in schermen, meldingen en AI-antwoorden zijn eigen
+naam, en ZWB ziet precies dezelfde tekst. Het gaat om 119 bestanden. Het aantal
+regels met "ZWB" in `src` daalt van 956 naar 792, en het aantal bestanden van
+407 naar 349.
+
+Wat er is:
+
+- **Schermen.** De volgende onderdelen gebruiken nu `getClub().texts` op de
+  server of `useClubTexts()` en de clubcomponenten in de client:
+  - eyebrows, koppen, terugknoppen, lege staten en foutmeldingen in dashboard,
+    events, live, stats en rankings, ZWBriljant, segmenten, ritverslagen,
+    clubverhaal, verjaardagen, sponsors, voorZpWelBokaal, ZWBgame, de trainer
+    en ZWBeter Worden;
+  - beheer: event-scan, FRR-kalender, SRC, koppelingen, ZRL-import en Strava.
+
+  Waar een functie een terugvalnaam nodig heeft ("ZWB-lid", "ZWB'er"), krijgt
+  hij die als argument mee: `toQaItem`, `shapeChatMessage`,
+  `comparisonRidersFromRows`, `activityProfile`, `relationName`, de
+  chatroute en `testRideMessage(club)`.
+- **Tekst als data.** Vaste lijsten krijgen tokens, die op het moment van tonen
+  worden ingevuld met `fillClubText()` of `<ClubText />`. Dat zijn:
+  - de sponsorniveaus;
+  - de tabs van ZWBriljant en de gemiddelde stenen;
+  - de omschrijvingen van de communityrollen;
+  - de racelink "{kort}-website";
+  - de meldingen bij ontbrekende koppelingen (`integrations/notices.ts`).
+- **Meldingen buiten de app.** De Telegram-teksten, de testrit-melding, de
+  inkomende mail, de dagelijkse aanpassingen, awards en mijlpalen, de bokaal en
+  de ZWBekers-meldingen nemen de naam uit de club. De ICS-agenda gebruikt de
+  korte naam in `X-WR-CALNAME` en `PRODID`.
+- **AI-prompts.** De prompts dragen tokens in de code (`{club}`, `{kort}`,
+  `{m:…}`), zodat er geen clubnaam vastzit. Ze worden centraal gevuld op het
+  moment van verzenden:
+  - `runClaude` vult het systeemdeel;
+  - `fetchOpenAiResponse` en de pacing-aanroep vullen `instructions` via
+    `withClubInstructions()` (`lib/club.ts`, naast `fillClub()`);
+  - de doelenpagina van de trainer vult de standaardprompt die in de editor
+    staat.
+
+  Geraakt:
+  - pacing (`pacing/prompt.ts`);
+  - de coachchat, met de systeemprompt en de kop van de kennisbank;
+  - de weekreview;
+  - de workoutgenerator (`training/workouts.ts`);
+  - de automatische app-updates.
+- **Tests.**
+  - `club-texts-tokens.test.ts` vult de koppelingsmeldingen en de pacingprompt
+    voor een testclub in en faalt bij een overgebleven "ZWB" of token.
+  - `vitest.config.ts` heeft nu een alias voor `server-only`
+    (`tests/unit/stubs/server-only.ts`). Zonder die alias faalde elke suite die
+    via `lib/club` importeert met "Cannot find package 'server-only'".
+
+**Let op:** `training_ai_generations.prompt_text` logt de prompt zoals hij in de
+code staat, dus mét tokens. Die kolom wordt nergens getoond; voor wie hem uitleest
+staat `{kort}` daar voor de clubnaam.
+
+**Bewust niet (deel 3b):** deze stukken vragen een nieuw clubveld of een keuze
+van de eigenaar.
+
+- **De woordspelingen:**
+  - ZWBeter X;
+  - het ZWBeterWorden-advies en de niveauteksten in `zwbeterworden.ts`;
+  - ZWBallen en ZWBal;
+  - ZWBasis;
+  - de ZWB-week-awards.
+
+  Een andere club heeft geen vervanging. Er moet een eigen veld komen of een
+  neutrale vorm worden gekozen.
+- **Het enkelvoud ZWBeker.**
+- **De kennisbanken:** `training-library`, de protocollen, voeding en materiaal.
+- **`EVENT_BLOCK_NOTE`** en de zwift-match-notitie.
+- **Twee terugvallen:** die van `analysePersonalRace` en de clubpool van
+  ZWBgame.
+- **`WORKOUT_TITLE_BRAND` en de Strava-samenvatting**, inclusief de regel in
+  `workouts.ts` die zegt dat "ZWBeter Worden" niet in de titel mag.
+- **`EVENT_TYPES` en de labels van de rechten.**
+- **De user agents.** Die blijven bewust staan: de UA voor cyclingflash is
+  gemeten en komt langs Cloudflare. Een nieuwe naam hoort bij de vraag hoe het
+  product heet.
+
+**Niet in fase 3:**
+
+- **Fase 4:** de teamnamen in `team-results/sync`, `ZWB_MENTION`, het
+  standaardteam van SRC, de Instagram- en YouTube-teksten en de
+  ZWB-herkenning.
+- **Eigen inhoud van ZWB:** `/verhaal`, `/brochure`, de hoofdstukken van het
+  clubverhaal en het ontwerp-voorbeeld.
+
+**Niet meer waar:** de ronde van deel 1 noemt drie delen, met een deel 3 voor "de overige teksten". Dat deel 3 is nu gesplitst in 3a en 3b.
+
+**Gevonden bij de controle:**
+
+- De overlay van het omnium toonde na een eerste omzetting "ZWB OMNIUM" via de
+  korte naam. Hij gebruikt nu de modulenaam in hoofdletters.
+- `gps-label.tsx` en `bokaal/shell.tsx` hadden `"use client"` nodig voor de
+  hook.
+
+Lokaal: `tsc` en eslint zijn schoon op de geraakte bestanden. De volledige suite
+is groen, op deze tests na:
+
+- `admin-areas` (0206) en `club-theme` (0314) lopen onder belasting in een
+  time-out. Los gedraaid zijn ze groen.
+- `omnium-live` heeft `.env.local` nodig.
+
+`next build` slaagt met de echte env.
+
+**Vergeleken met de live site:**
+
+- Gelijk: `/login`, `/omnium`, `/omnium/rules`, `/voorwaarden` en de kop van
+  het omnium.
+- `/privacy` verschilt alleen in de naam van de AI-dienst, die uit de env komt.
+- Elke gewijzigde regel die eerst "ZWB" bevatte, is met de ZWB-waarden
+  ingevuld en vergeleken met de oude regel. Dat waren 165 hunks; 21 weken na
+  normaliseren af, en die zijn met de hand nagelopen. Alle 21 zijn voor ZWB
+  gelijk; het verschil zit in de vorm (JSX of een sjabloonstring), niet in de
+  tekst.
+
+**Niet bekeken:**
+
+- de schermen achter de login in de browser;
+- echte Telegram-berichten en AI-antwoorden;
+- een club met andere namen (kan niet op productie). Voor de meldingen en de
+  pacingprompt dekt de nieuwe test dat.
+
+### Gebouwd — Dashboard: zelf kiezen wat je ziet
+
+**2026-11-09.** Commit `07ceea93`, op 2026-11-09 op verzoek van de eigenaar
+naar `main` gepusht. Migratie `0318_dashboard_hidden.sql` dezelfde dag met de
+Supabase-connector toegepast (versie `20261109131357`); daarna stond de kolom
+`dashboard_hidden` (jsonb, standaard `[]`, niet null) in productie. Lokaal niet
+te testen (geen Docker of Supabase-config). Eerst als `0317` geschreven; main had
+dat nummer intussen voor `0317_zwift_race_events.sql`.
+
+**Waarom.** De eigenaar: een lid dat niet met ZWBeter traint, wil de
+trainingstegels misschien niet zien. Zo iemand zag de core-tegel en het
+weekoverzicht, en met een intervals.icu-koppeling (vaak alleen voor de ritten)
+ook het advies en de fitheidscijfers. Daarnaast: Fitness, Vorm en Herstel
+kunnen samen in een tegel.
+
+**Wat er is.**
+- **Profiel, bij het potlood:** een blok "Dashboard" tussen Gezin en
+  Zichtbaarheid, met een vinkje per onderdeel in vier groepen (Training,
+  Fitheid, Events, Club). Het register staat in `lib/dashboard-parts.ts`:
+  sleutel, groep, naam (vast of de clubnaam van een module) en de modules
+  waarvan er minstens een aan moet staan. Een onderdeel van een uitgezette
+  module wordt niet aangeboden.
+- **Opslag:** `profile_stats_tiles.dashboard_hidden` (jsonb-lijst van
+  verborgen sleutels), in de tabel van 0241 die alleen het lid zelf leest en
+  schrijft. Standaard staat alles aan; een nieuw onderdeel verschijnt vanzelf,
+  onbekende sleutels vallen weg (`parseDashboardHidden`). `updateProfile`
+  slaat op: wat het formulier aanbood en niet aangevinkt is. Zolang 0318 er niet
+  is, blokkeert alleen iets verbergen het opslaan (zoals het gezin bij 0259);
+  het profiel en het dashboard lezen dan niets verborgen.
+- **Dashboard:** `show(onderdeel)` naast `on(module)`. De keuze komt mee in de
+  grote `Promise.all`-ronde, dus geen extra oversteek naar de database. Wat
+  verborgen is, rendert niet, en de trage delen achter een Suspense (advies en
+  fitheid bij intervals.icu, core, races, teams, bekers, FRR, SRC, onderhoud,
+  clubstats) vragen dan niets op. Ook de ZWBriljant-snapshot, de teamstand en,
+  als beide eventgroepen weg zijn, wie er live rijdt, worden overgeslagen. De
+  kleine vragen in de grote ronde (nieuws, polls, badges, trainingen) lopen nog
+  mee: daarvoor zou de keuze eerst binnen moeten zijn, en dat kost een oversteek.
+- **Niet te verbergen:** de Zwift-ID- en gewichtmelding (die gaan over standen
+  en teams) en het blok met je ritten en de Strava-sync (knoppen en import;
+  `/hulp` linkt naar `#strava-sync`).
+- **Een fitheidstegel:** `FitnessStatus` toont Fitness (CTL), Vorm (TSB) en
+  Herstel onder elkaar in een tegel (`FitnessTile`), met de waarde rechts. Geen
+  veegrij: de drie lees je samen (voorgesteld, eigenaar akkoord). Mijn fitheid is
+  nu twee tegels, op de telefoon naast elkaar in een rij.
+- `/hulp` (Profiel en ledenlijst) legt het blok uit; de privacyverklaring noemt
+  bij de profielgegevens dat de app onthoudt welke onderdelen je verborgen hebt.
+  Geen nieuwe toestemming: het is een voorkeur van jezelf, alleen voor jou
+  zichtbaar.
+
+**Bewust niet gebouwd.** Geen eigen volgorde per lid: iedereen hetzelfde
+dashboard houdt hulp geven eenvoudig. Geen schakelaar "Ik train niet met
+ZWBeter": de losse vinkjes doen hetzelfde en zijn duidelijker. Geen instelling
+op het dashboard zelf (zoals "Tegels aanpassen" bij Stats): een plek is genoeg.
+
+**Getest.** `tsc` en ESLint schoon; `tests/unit/dashboard-parts.test.ts`
+(sleutels, aanbod per module) groen, net als `design-places` en `stats-tiles`.
+De fitheidstegel bekeken op `/ontwerp-voorbeeld?scherm=vandaag` op 375 px.
+**Niet lokaal te controleren:** het profielblok en het opslaan
+(vraagt een ingelogde sessie), en het dashboard met verborgen onderdelen.
+
+**Gezien, niet opgelost.** Op de telefoon valt "punten" in de ZWBriljant-tegel
+deels buiten de tegel bij vier cijfers (al zo voor deze ronde; nu de tegel
+naast de fitheidstegel staat, valt het meer op).
+
 ### Gebouwd — ZWBeter racen: races per lid, ook buiten de kalender
 
 **2026-11-09.** Vraag van de eigenaar: "Bij ZWBeter racen zie ik niet alle races
@@ -12221,7 +12778,8 @@ tegelrij (`TileRow`, `grid-flow-row-dense`); een lege groep verdwijnt.
   kleine regel zegt "1 van 2".
 - **Advies en cijfers apart.** `TrainingStatus` is gesplitst in
   `TrainingAdvice` (de brede advies-tegel, bij Mijn training) en
-  `FitnessStatus` (de drie cijfertegels, bij Mijn fitheid). Ze delen één
+  `FitnessStatus` (de drie cijfertegels, bij Mijn fitheid; sinds de ronde
+  "Dashboard: zelf kiezen wat je ziet" een tegel). Ze delen één
   ophaalronde bij intervals.icu via React `cache`, met de losse waarden als
   sleutel. De skeletten met de oude sectiekop zijn weg; beide wachten zonder
   plaatshouder, zoals de andere tegels.

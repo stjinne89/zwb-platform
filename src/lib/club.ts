@@ -11,7 +11,8 @@ import {
   type ModuleKey,
 } from "@/lib/modules";
 import { resolveFont, resolvePalette, type ClubFont, type ClubPalette } from "@/lib/club-theme";
-import { buildClubTexts, type ClubTexts } from "@/lib/club-texts";
+import { buildClubTexts, fillClubText, type ClubTexts } from "@/lib/club-texts";
+import { buildClubRecognition, type ClubRecognition } from "@/lib/club-recognition";
 
 // De instellingen van deze installatie (0313): naam, contact en welke modules
 // aan staan. Fase 1 van de generieke versie (docs/multi-club-ontwerp.md).
@@ -40,6 +41,16 @@ export type ClubSettings = {
   /** Logo en beeldmerk (0315) als publieke URL, of null: de vaste ZWB-bestanden. */
   logoUrl: string | null;
   markUrl: string | null;
+  /** Eigen woorden (0319), of null: het neutrale woord (lib/club-texts.ts). */
+  appName: string | null;
+  adviceName: string | null;
+  currencyNoun: string | null;
+  currencyNounPlural: string | null;
+  cupNoun: string | null;
+  betterWord: string | null;
+  /** Clubherkenning (0320), of null: de korte naam (lib/club-recognition.ts). */
+  eventMarkers: string[] | null;
+  teamTag: string | null;
 };
 
 type ClubRow = {
@@ -66,6 +77,14 @@ export const EMPTY_CLUB_SETTINGS: ClubSettings = {
   font: null,
   logoUrl: null,
   markUrl: null,
+  appName: null,
+  adviceName: null,
+  currencyNoun: null,
+  currencyNounPlural: null,
+  cupNoun: null,
+  betterWord: null,
+  eventMarkers: null,
+  teamTag: null,
 };
 
 const loadClubRows = unstable_cache(
@@ -108,6 +127,14 @@ const loadClubRows = unstable_cache(
             font: resolveFont(s.font as string | null | undefined),
             logoUrl: (s.logo_url as string | null) ?? null,
             markUrl: (s.mark_url as string | null) ?? null,
+            appName: (s.app_name as string | null | undefined) ?? null,
+            adviceName: (s.advice_name as string | null | undefined) ?? null,
+            currencyNoun: (s.currency_noun as string | null | undefined) ?? null,
+            currencyNounPlural: (s.currency_noun_plural as string | null | undefined) ?? null,
+            cupNoun: (s.cup_noun as string | null | undefined) ?? null,
+            betterWord: (s.better_word as string | null | undefined) ?? null,
+            eventMarkers: (s.event_markers as string[] | null | undefined) ?? null,
+            teamTag: (s.team_tag as string | null | undefined) ?? null,
           }
         : null,
       modules: (modules.data ?? []).map((m) => ({
@@ -117,9 +144,22 @@ const loadClubRows = unstable_cache(
       })),
     };
   },
-  ["club-settings", "v3"],
+  ["club-settings", "v5"],
   { revalidate: 60 * 60, tags: [CLUB_TAG] },
 );
+
+/** Vult de clubwoorden in een vaste tekst in (AI-prompts, meldingen). */
+export async function fillClub(text: string): Promise<string> {
+  return fillClubText(text, (await getClub()).texts);
+}
+
+/** Vult de clubwoorden in de instructies van een OpenAI-verzoek in. */
+export async function withClubInstructions(init: RequestInit): Promise<RequestInit> {
+  if (typeof init.body !== "string") return init;
+  const body = JSON.parse(init.body) as { instructions?: unknown };
+  if (typeof body.instructions !== "string") return init;
+  return { ...init, body: JSON.stringify({ ...body, instructions: await fillClub(body.instructions) }) };
+}
 
 export type Club = {
   settings: ClubSettings;
@@ -134,6 +174,8 @@ export type Club = {
   moduleLabel: (key: ModuleKey) => string;
   /** Clubnaam en modulenamen in één, ook voor client components (fase 3). */
   texts: ClubTexts;
+  /** Waaraan de app eigen events, renners en uitslagen herkent (fase 4). */
+  recognition: ClubRecognition;
 };
 
 export function buildClub(row: ClubRow | null): Club {
@@ -151,6 +193,12 @@ export function buildClub(row: ClubRow | null): Club {
     allowsPath: (pathname) => pathAllowed(pathname, disabled),
     moduleLabel,
     texts: buildClubTexts(settings, moduleLabel, disabled),
+    recognition: buildClubRecognition({
+      shortName: settings.shortName,
+      eventMarkers: settings.eventMarkers,
+      teamTag: settings.teamTag,
+      envMarkers: process.env.ZWB_EVENT_MARKERS,
+    }),
   };
 }
 

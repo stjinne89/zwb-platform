@@ -25,7 +25,7 @@ describe("toQaItem", () => {
         asker: [{ display_name: "Lid" }],
         answerer: { display_name: "Bestuurder" },
       }),
-      "lid",
+      "lid", new Set(), "ZWB'er",
     );
     expect(item).toMatchObject({ askerName: "Lid", answererName: "Bestuurder", mine: true });
   });
@@ -33,10 +33,10 @@ describe("toQaItem", () => {
   it("valt terug als een naam ontbreekt, en noemt geen naam als wie antwoordde vertrok", () => {
     const item = toQaItem(
       row({ asker: null, answer: "Ja", answered_at: "2026-10-19T12:00:00Z", answerer: { display_name: "Oud" } }),
-      "ander",
+      "ander", new Set(), "ZWB'er",
     );
     expect(item).toMatchObject({ askerName: "ZWB'er", answererName: null, mine: false });
-    expect(toQaItem(row({}), null).mine).toBe(false);
+    expect(toQaItem(row({}), null, new Set(), "ZWB'er").mine).toBe(false);
   });
 });
 
@@ -47,7 +47,7 @@ describe("splitQuestions", () => {
       row({ id: "open-oud", created_at: "2026-10-18T09:00:00Z" }),
       row({ id: "antwoord-oud", answer: "a", answered_at: "2026-10-18T12:00:00Z" }),
       row({ id: "antwoord-nieuw", answer: "b", answered_at: "2026-10-19T12:00:00Z" }),
-    ].map((r) => toQaItem(r, null));
+    ].map((r) => toQaItem(r, null, new Set(), "ZWB'er"));
     const { open, answered } = splitQuestions(items);
     expect(open.map((item) => item.id)).toEqual(["open-oud", "open-nieuw"]);
     expect(answered.map((item) => item.id)).toEqual(["antwoord-nieuw", "antwoord-oud"]);
@@ -59,7 +59,7 @@ describe("splitQuestions", () => {
       row({ id: "faq-1x", answer: "a", answered_at: answeredAt, faq_at: answeredAt, asked_count: 1 }),
       row({ id: "faq-4x", answer: "b", answered_at: answeredAt, faq_at: answeredAt, asked_count: 4 }),
       row({ id: "gewoon", answer: "c", answered_at: answeredAt }),
-    ].map((r) => toQaItem(r, null));
+    ].map((r) => toQaItem(r, null, new Set(), "ZWB'er"));
     const { faq, answered } = splitQuestions(items);
     expect(faq.map((item) => item.id)).toEqual(["faq-4x", "faq-1x"]);
     expect(answered.map((item) => item.id)).toEqual(["gewoon"]);
@@ -68,8 +68,8 @@ describe("splitQuestions", () => {
 
 describe("Ik ook", () => {
   it("telt minstens de vrager, ook zonder 0258, en weet wat de kijker tikte", () => {
-    expect(toQaItem(row({}), null)).toMatchObject({ askedCount: 1, faq: false, alsoAsked: false });
-    expect(toQaItem(row({ asked_count: 3 }), "ander", new Set(["q1"]))).toMatchObject({
+    expect(toQaItem(row({}), null, new Set(), "ZWB'er")).toMatchObject({ askedCount: 1, faq: false, alsoAsked: false });
+    expect(toQaItem(row({ asked_count: 3 }), "ander", new Set(["q1"]), "ZWB'er")).toMatchObject({
       askedCount: 3,
       alsoAsked: true,
     });

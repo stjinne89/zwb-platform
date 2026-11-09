@@ -3,9 +3,13 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { loadBeker, loadFormOptions, requireBekerMember } from "@/lib/zwbekers/server";
 import { NominationForm, type FormInitial } from "../_components/nomination-form";
 import { ModuleName } from "@/components/club-texts-provider";
+import { getClub } from "@/lib/club";
+import { fillClubText } from "@/lib/club-texts";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "ZWBeker voordragen" };
+export async function generateMetadata() {
+  return { title: fillClubText("{Beker} voordragen", (await getClub()).texts) };
+}
 
 /**
  * Een nieuwe voordracht, leeg of als kopie van een beker die je mag zien

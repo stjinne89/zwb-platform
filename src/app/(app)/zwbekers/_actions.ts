@@ -28,6 +28,7 @@ import {
   reviewNomination,
   updateNomination,
 } from "@/lib/zwbekers/server";
+import { getClub } from "@/lib/club";
 
 // Acties van ZWBekers (0286). De tabellen hebben geen schrijfpolicies: alles
 // gaat hier langs, na de checks in lib/zwbekers. Pushmeldingen noemen nooit het
@@ -67,6 +68,7 @@ async function notify(work: () => Promise<unknown>) {
 }
 
 export async function submitNomination(input: unknown): Promise<Reply<{ id: string }>> {
+  const clubTexts = (await getClub()).texts;
   return run(async () => {
     const { member } = await requireBekerMember();
     const nomination = parseNomination(input, amsterdamDayKey());
@@ -78,7 +80,7 @@ export async function submitNomination(input: unknown): Promise<Reply<{ id: stri
       await sendNotificationToMembers(
         "on_zwbeker_nomination",
         {
-          title: "Nieuwe voordracht voor een ZWBeker",
+          title: `Nieuwe voordracht voor een ${clubTexts.words.beker}`,
           body: `${member.name} draagt een prestatie voor.`,
           url: "/beheer/zwbekers",
           tag: `zwbeker-${bekerId}`,
@@ -113,6 +115,7 @@ export async function withdrawBeker(bekerId: string): Promise<Reply> {
 }
 
 export async function reviewBeker(bekerId: string, decision: "toegekend" | "afgewezen", note: string): Promise<Reply> {
+  const clubTexts = (await getClub()).texts;
   return run(async () => {
     const { member, canReview } = await requireBekerMember();
     if (!canReview) throw new NominationError("Alleen het bestuur keurt voordrachten.");
@@ -126,7 +129,7 @@ export async function reviewBeker(bekerId: string, decision: "toegekend" | "afge
       if (choice === "toegekend") {
         await sendNotificationToMembers(
           "on_zwbeker_awarded",
-          { title: "Je hebt een ZWBeker!", body: `“${result.title}” staat in de prijzenkast.`, url, tag: `zwbeker-${target}` },
+          { title: `Je hebt een ${clubTexts.words.beker}!`, body: `“${result.title}” staat in de prijzenkast.`, url, tag: `zwbeker-${target}` },
           { profileIds: result.winnerIds },
         );
       }

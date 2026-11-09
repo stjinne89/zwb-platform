@@ -2,13 +2,7 @@ import Link from "next/link";
 import { BackLink } from "@/components/app-ui";
 import { formatPrivacyVersion } from "@/lib/privacy";
 import { aiProcessorName } from "@/lib/ai/settings";
-import {
-  ClubContactLink,
-  ClubName,
-  ClubShortName,
-  MemberNoun,
-  ModuleName,
-} from "@/components/club-texts-provider";
+import { ClubContactLink, ClubName, ClubShortName, ClubText, MemberNoun, ModuleName } from "@/components/club-texts-provider";
 import { getClub } from "@/lib/club";
 
 export async function generateMetadata() {
@@ -93,7 +87,7 @@ export default function PrivacyPage() {
           <li id="voorzpwelbokaal" className="scroll-mt-20">
             <strong><ModuleName module="voorspelspel" />:</strong> alleen als je zelf op Meedoen tikt.
             Dan bewaren we per seizoen dat je meedoet, je inzetten (renner, soort
-            inzet, quotering en aantal ZWBallen) en je antwoorden op de
+            inzet, quotering en aantal <ClubText text="{ballen}" />) en je antwoorden op de
             bonusvragen. Clubleden zien op de lei je naam met je saldo, hoeveel
             ballen er nog openstaan en hoeveel inzetten raak waren. Je inzetten en
             antwoorden zien andere leden pas vanaf de start van die wedstrijd. De
@@ -105,7 +99,9 @@ export default function PrivacyPage() {
           <li>
             <strong>Account- en profielgegevens:</strong> naam, e-mailadres,
             profielfoto, regio, ZRL-categorie, Zwift-/Strava-ID, FTP en gewicht
-            (voor zover je die invult), biografie en zichtbaarheids­voorkeuren.
+            (voor zover je die invult), biografie en zichtbaarheids­voorkeuren,
+            en welke onderdelen je op je dashboard verborgen hebt (alleen voor
+            jezelf zichtbaar).
             Je fietsen (naam, merk en model, afstand en foto) zien andere leden op
             je profiel, behalve de fietsen die je daar verbergt. Zet je je
             publieke profiel aan, dan zien bezoekers daarvan ze ook. Vink je
@@ -149,7 +145,7 @@ export default function PrivacyPage() {
             ploegleider kan de link intrekken.
           </li>
           <li id="racen" className="scroll-mt-20">
-            <strong>Analyse van Zwift-races (ZWBeter racen):</strong> na een
+            <strong><ClubText text="Analyse van Zwift-races ({beter} racen):" /></strong> na een
             ZRL-race bewaren we uit de uitslag en de segmentresultaten van Zwift
             per renner ook het gemiddelde vermogen, het gewicht, het soort
             vermogensmeter, het beste vermogen over 15 seconden en 1, 5 en 20
@@ -541,7 +537,7 @@ export default function PrivacyPage() {
             corelogboek en clubritten, je <ModuleName module="rennersniveau" />-steen (klasse, punten en
             het onderdeel waar je het meest wint, uit je bewaarde weeksteen), en of je het
             overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je
-            steen niet met leden deelt. Gebruik je ZWBeter voor je training, dan
+            steen niet met leden deelt. Gebruik je <ClubText text="{beter}" /> voor je training, dan
             gaat die samenvatting zonder je naam en zonder je steen naar {AI} om het oordeel van
             de coach te schrijven, samen met je beschikbaarheid, trainingen en
             events van de week erna. Het staat in je data-export en verdwijnt
@@ -618,7 +614,7 @@ export default function PrivacyPage() {
             met hooguit zes foto&apos;s insturen voor het verhaal van <ClubShortName /> op{" "}
             <Link href="/verhaal" className="underline">/verhaal</Link>. We bewaren de
             titel, de hoofdstukken met hun tekst en gekozen scène, het jaar, een
-            eventuele ZWBeker, de
+            eventuele <ClubText text="{beker}" />, de
             foto&apos;s met onderschrift, wie het schreef en wat het bestuur
             besloot, met een eventuele notitie. Zolang het bestuur het nog niet
             plaatste, zien alleen jij en wie verhalen plaatst het. Een geplaatst

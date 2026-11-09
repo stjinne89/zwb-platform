@@ -15,6 +15,7 @@ import {
   type StoryInput,
   type StoryStatus,
 } from "./story";
+import { getClub } from "@/lib/club";
 
 // Clubverhaal op de server (0288). Ingestuurde verhalen lezen gaat met de sessie
 // van het lid, zodat RLS beslist: alleen wie schreef en wie plaatst. Wat
@@ -110,6 +111,7 @@ async function details(rows: Row[], photoLimit = PHOTOS_MAX): Promise<StoryDetai
 
 /** Ingelogd en goedgekeurd, met de privacyverklaring getekend; anders een zin voor het scherm. */
 export async function requireStoryMember() {
+  const clubTexts = (await getClub()).texts;
   const client = await createClient();
   const access = await getCurrentUserAccess(client);
   const user = access.user;
@@ -119,7 +121,7 @@ export async function requireStoryMember() {
     .select("id, display_name, is_approved, privacy_accepted_version")
     .eq("id", user.id)
     .single();
-  if (!member?.is_approved) throw new StoryError("Alleen goedgekeurde ZWB-leden sturen verhalen in.");
+  if (!member?.is_approved) throw new StoryError(`Alleen goedgekeurde ${clubTexts.shortName}-leden sturen verhalen in.`);
   if (!privacyConsentIsCurrent(member.privacy_accepted_version)) {
     throw new StoryError("Bevestig eerst de privacyverklaring.");
   }

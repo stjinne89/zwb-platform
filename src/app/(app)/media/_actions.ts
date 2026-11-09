@@ -15,10 +15,9 @@ import {
   INSTAGRAM_TAG_SOURCE,
   syncInstagramToMedia,
 } from "@/lib/instagram-sync";
+import { getClub } from "@/lib/club";
 
 const KINDS = MEDIA_KINDS.map((k) => k.value);
-
-const ZWB_YOUTUBE_HANDLE = "zwbcycling";
 
 function optionalUrl(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -176,9 +175,12 @@ export async function deleteMediaItem(id: string) {
   return { ok: true as const };
 }
 
-export async function syncYouTubeChannel(handle: string = ZWB_YOUTUBE_HANDLE) {
+export async function syncYouTubeChannel(handle?: string) {
+  // Zonder handle het kanaal van de club (club_settings.youtube_handle).
+  const channel = handle?.trim() || (await getClub()).settings.youtubeHandle?.trim();
+  if (!channel) return { ok: false as const, error: "Geen YouTube-kanaal ingesteld." };
   try {
-    return await syncYouTubeChannelInner(handle);
+    return await syncYouTubeChannelInner(channel);
   } catch (err) {
     console.error("[syncYouTubeChannel] uncaught error:", err);
     return {

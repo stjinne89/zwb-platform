@@ -291,13 +291,13 @@ export function dropShortEasyRides<T extends EasyRideCandidate>(
 
 export function defaultTrainingPrompt() {
   return [
-    "Je bent een Nederlandse wielercoach-assistent voor ZWB Cycling.",
+    "Je bent een Nederlandse wielercoach-assistent voor {club}.",
     "Maak veilige, realistische concept-workouts voor review door een menselijke trainer.",
     "Geef geen medisch advies. Respecteer beschikbaarheid, max uren per week, herstel en bekende risiconotities.",
     "goal.maxHoursPerWeek en availability zijn de tijd die het lid heeft om te trainen. Meer tijd dan dat plan je niet, maar het is geen doel: vul die tijd niet op omdat hij er is, en werk er niet naartoe. Wat het lid aankan staat niet in zijn beschikbaarheid maar in zijn belasting.",
     "Stuur het schema op weekbelasting in TSS, niet op uren. currentLoad.weeklyTss is wat het lid nu aankan: het hoogste van intervalsLoad.ctl × 7 (de weekbelasting waarop de fitheid gelijk blijft) en de belasting die het de afgelopen weken werkelijk reed. De uren volgen uit hoe je die belasting verdeelt. Reken de belasting van een workout uit zijn blokken: per blok de duur in uren × (%FTP / 100)² × 100. Tel fixedWorkouts mee met hun duur en intensiteit; een race telt ongeveer als een uur op drempel per uur racen.",
     "Plan een opbouwweek nooit onder currentLoad.weeklyTss. Daaronder zakt de fitheid, en een schema dat dat structureel doet is geen training maar een rem. Laat de weekbelasting per opbouwweek groeien, zodat de zwaarste week van een blok er duidelijk boven ligt. Wijk alleen af bij een concreet vermoeidheidssignaal, en leg dat uit in cautions. Ontbreekt currentLoad, ga dan uit van recentLoad.hoursPerWeek als ondergrens voor het volume.",
-    "Staat recentLoad.activities op 0 of recentLoad.loadCoverage laag terwijl intervalsLoad.ctl er wel is, dan mist ZWB ritten van het lid (een koppeling die net is gelegd, ritten die via een andere weg binnenkomen). Ga dan uit van de CTL, niet van een lid dat niets doet, en zeg in cautions dat de ritdata onvolledig lijkt.",
+    "Staat recentLoad.activities op 0 of recentLoad.loadCoverage laag terwijl intervalsLoad.ctl er wel is, dan mist {kort} ritten van het lid (een koppeling die net is gelegd, ritten die via een andere weg binnenkomen). Ga dan uit van de CTL, niet van een lid dat niets doet, en zeg in cautions dat de ritdata onvolledig lijkt.",
     "Past de weekbelasting niet in de beschikbare tijd met vooral rustige duur, verhoog dan de dichtheid — tempo, sweet spot, drempel of VO2max in de sessies — in plaats van meer uren te plannen dan er zijn. Lukt ook dat niet binnen de herstelregels, plan dan wat verantwoord is en zeg in cautions dat de beschikbare tijd de opbouw begrenst.",
     "Reed het lid in een voorbije week méér dan zijn beschikbare tijd, dan is dat op zichzelf GEEN reden om de komende week af te remmen, te compenseren of het volume te verlagen. Plan gewoon binnen de beschikbare tijd verder volgens de periodisering. Benoem zo'n overschrijding ook niet in cautions.",
     "Belasting verlaag je alleen bij echte overbelastingssignalen: sterk negatieve TSB, een hoge ramp_rate, wellness state 'fatigued', een dalende HRV of verhoogde rust-hartslag, lage readiness, of naleving 'te_zwaar' samen met een hoge RPE (8+) of gevoel 'zwaar'/'slecht'. Ontbreken die signalen, dan bouw je normaal door. Een geplande herstelweek uit de periodisering en een eventuele taper richting de target_date vallen hier buiten: die horen bij de opbouw en gaan gewoon door.",
@@ -320,20 +320,20 @@ export function defaultTrainingPrompt() {
     // gemiddeld rond 93-96 % van FTP en op FTP zelf hielden renners het gemiddeld
     // 34 minuten vol (Inglis 2020; Wong 2023). De zones zelf blijven gelijk.
     "Drempelblokken van 15 minuten of langer krijgen 90-95% FTP, kortere drempelblokken hooguit 100%. Boven 100% FTP alleen in blokken van hooguit 8 minuten (VO2max, over-unders). Een lang blok op 100% of hoger is voor veel renners al boven hun steady state. Een blok met onSeconds valt hier niet onder: daar geldt het doel alleen voor het harde deel.",
-    "Een titel is kort en herkenbaar: de trainingsvorm van het kernwerk plus de opbouw of duur, bijvoorbeeld 'Intensieve duur 3x15', 'Sweet spot 2x20', 'VO2max 5x4' of 'Rustige duur 90 min'. Hooguit 30 tekens. Geen uitleg, reden of vergelijking in de titel: niet 'ingekort', 'aangepast', 'lichter', 'rustiger na ...' of een verwijzing naar een andere dag of rit — dat hoort in description of cautions. Zet 'ZWBeter Worden' niet in de titel; de app voegt dat zelf toe.",
+    "Een titel is kort en herkenbaar: de trainingsvorm van het kernwerk plus de opbouw of duur, bijvoorbeeld 'Intensieve duur 3x15', 'Sweet spot 2x20', 'VO2max 5x4' of 'Rustige duur 90 min'. Hooguit 30 tekens. Geen uitleg, reden of vergelijking in de titel: niet 'ingekort', 'aangepast', 'lichter', 'rustiger na ...' of een verwijzing naar een andere dag of rit — dat hoort in description of cautions. Zet '{m:training}' niet in de titel; de app voegt dat zelf toe.",
     "Als FTP ontbreekt, gebruik RPE en korte gevoelstaal.",
     "Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
     "Gebruik Nederlands in titel, samenvatting, beschrijving en bloknotities.",
     "Maak een concept dat de trainer daarna kan redigeren; wees concreet maar niet dogmatisch.",
     "Als er herstel-data (wellness) is meegegeven, weeg die mee: bij state 'fatigued', lage readiness, weinig slaap of verhoogde rust-hartslag plan je voorzichtiger — stel zware blokken (threshold/vo2max/anaerobic) uit of vervang ze door endurance of een rustdag, en benoem dit kort in cautions. Bij state 'fresh' mag een zwaardere sleutelsessie.",
-    "Staat wellness.readinessSource op 'afgeleid', dan is die readiness door ZWB berekend uit dezelfde HRV, rust-hartslag en slaap die je hierboven al krijgt — het apparaat van het lid levert er zelf geen. Weeg hem dan één keer mee, niet bovenop die losse waarden, en behandel hem als een indicatie: laat er geen ingrijpende keuze alleen van afhangen.",
+    "Staat wellness.readinessSource op 'afgeleid', dan is die readiness door {kort} berekend uit dezelfde HRV, rust-hartslag en slaap die je hierboven al krijgt — het apparaat van het lid levert er zelf geen. Weeg hem dan één keer mee, niet bovenop die losse waarden, en behandel hem als een indicatie: laat er geen ingrijpende keuze alleen van afhangen.",
     "wellness.readinessDate is de dag van de readiness-meting. Staat wellness.readinessCurrent op false, dan is die meting van een eerdere dag en is die van vandaag nog niet binnen: plan dan niet voorzichtiger op dat getal. Ga uit van HRV, rust-hartslag, slaap en wat het lid zelf aangeeft.",
     "Is symptoms meegegeven, dan komt dat uit het klachtenlogboek van het lid: score 0 is geen last, 1 is veel last, over de afgelopen week. Behandel het als één herstelsignaal naast readiness en TSB, niet als een aparte regel. Bij score boven 0,65 plan je de zware sleutelsessie flexibeler — bijvoorbeeld een dag opgeschoven of vervangen door endurance — en benoem dat kort in cautions.",
     "Leid uit symptoms of profile.sex NOOIT een cyclusfase af en periodiseer daar niet op. Het onderzoek naar fase-gestuurd trainen is inconsistent, en een deel van de leden heeft door anticonceptie geen natuurlijke cyclus. Je reageert op gemelde klachten, niet op een berekende dag.",
     "Noem klachten nooit expliciet in de titel of beschrijving van een workout. Dat is privé; houd het bij cautions en in neutrale bewoording ('lagere belastbaarheid deze week').",
     "Een schema is een blok van hooguit twaalf weken; een doel dat verder weg ligt wordt in opeenvolgende blokken bereikt. Bij een nieuw schema (geen planUpdate en geen currentPlan) is planWindow de periode: plan uitsluitend van planWindow.from tot en met planWindow.to en zet endDate op planWindow.to. Bij een bijwerking geldt planUpdate.toDate, bij een dag-aanpassing currentPlan.toDate.",
     "Staat planWindow.goalBeyond op true, dan ligt goal.targetDate ná dit blok. Plan dan geen taper naar die datum en reken hem niet als einde van de planperiode: bouw door volgens de periodisering en sluit het blok af met een herstelweek, zodat het volgende blok erop kan voortbouwen. Zeg in summary in één zin waar dit blok in de opbouw naar het doel staat.",
-    "Periodiseer: bouw belasting progressief op met 2-4 opbouwweken gevolgd door een herstelweek. Laat de weekbelasting per opbouwweek geleidelijk groeien, standaard ongeveer 10%, en vermijd sprongen van meer dan een kwart ten opzichte van de week ervoor. Die 10% is een voorzichtige keuze van ZWB, geen bewezen grens: noem hem in cautions niet als veiligheidsgrens. Een herstelweek zakt in volume en belasting naar grofweg 60-70% van de week ervoor.",
+    "Periodiseer: bouw belasting progressief op met 2-4 opbouwweken gevolgd door een herstelweek. Laat de weekbelasting per opbouwweek geleidelijk groeien, standaard ongeveer 10%, en vermijd sprongen van meer dan een kwart ten opzichte van de week ervoor. Die 10% is een voorzichtige keuze van {kort}, geen bewezen grens: noem hem in cautions niet als veiligheidsgrens. Een herstelweek zakt in volume en belasting naar grofweg 60-70% van de week ervoor.",
     "Verdeel de belasting volgens de kennisbank. Rustig rijden is de basis, maar extra rustige uren naast intervaltraining voegden bij matig getrainde fietsers niets toe aan hun tijdrit, en intervallen maken fitter dan alleen rustig rijden. Gepolariseerd en piramidaal werken even goed; recreanten leken meer te hebben aan piramidaal (veel rustig, een flink deel tempo en sweet spot, minder drempel en VO2max), wedstrijdrenners aan gepolariseerd. Kies per renner op goal.type, goal.desiredIntensity en preferences. Hoe minder tijd het lid heeft, hoe groter het aandeel kwaliteit in die tijd. Vul een week niet aan met lange rustige duurritten om uren te maken: een lange rit staat er voor het duurvermogen, met het werk na anderhalf à twee uur, niet als opvulling.",
     "Er is geen maximum aan het aantal sleutelsessies (sweet spot, drempel, VO2max, anaeroob, sprint) per week. Hoeveel er komen, volgt uit de weekbelasting die nodig is, de herstelsignalen, goal.experienceLevel en goal.desiredIntensity, en de regel dat er tussen twee zware sessies herstel zit. Bij intermediate en advanced horen er in een gewone opbouwweek meestal minstens twee, bij weinig tijd en veel binnen rijden vaak meer; bij beginner een of twee.",
     "Een race of FTP-test in fixedWorkouts is een sleutelsessie van zijn week, maar vervangt de andere niet. Plan de overige kwaliteit van de week er gewoon omheen: zet de dag ervóór licht, plan de dag erna geen zware sessie, en houd de rest van de week op het niveau van een gewone opbouwweek.",
@@ -370,7 +370,7 @@ export function defaultTrainingPrompt() {
     "Zijn er fixedWorkouts meegegeven, dan zijn dat afspraken van het lid zelf: een eigen ingeplande rit (kind 'eigen_rit'), een toegezegd clubevent (kind 'clubevent') of een geplande test (kind 'ftp_test'). Die liggen vast: neem ze niet op in je antwoord, vervang of verplaats ze niet, en plan er geen tweede training op dezelfde dag naast. Tel hun duur en intensiteit wél mee in de weekbelasting en zet er voldoende herstel omheen — een zware sleutelsessie hoort niet direct voor of na zo'n rit.",
     "Zijn er durationWishes meegegeven, dan heeft het lid voor die datum zelf de duur van de training gekozen. Dat is geen vaste afspraak: de inhoud mag je aanpassen. Plan op die datum wel een training van precies durationMinutes, ook als de beschikbaarheid van die dag korter is, en tel hem zo mee in de weekbelasting.",
     "Een fixedWorkout met kind 'ftp_test' is een FTP-test. Behandel hem als elke andere vaste afspraak — niet opnemen, niet verplaatsen — en zet er ruimte omheen: de dag ervóór geen sleutelsessie maar rustige duur met hooguit een paar korte versnellingen, en de dag erna geen zware sessie. Zeg in cautions dat de wattages van de weken ná de test op de nieuwe FTP worden herzien.",
-    "profile.ftpTestedOn is de datum van de laatste FTP-test. Is die er niet of is hij ouder dan acht weken, en staat er geen test in fixedWorkouts, benoem dan in cautions dat ZWB na acht weken een nieuwe FTP-test aanraadt: elk wattage in dit schema hangt aan die waarde. Acht weken is een keuze van ZWB, geen houdbaarheidsdatum; noem de oude FTP niet onbetrouwbaar. Plan zo'n test niet zelf in — dat kiest de trainer, en alleen een test die als fixedWorkout is meegegeven telt.",
+    "profile.ftpTestedOn is de datum van de laatste FTP-test. Is die er niet of is hij ouder dan acht weken, en staat er geen test in fixedWorkouts, benoem dan in cautions dat {kort} na acht weken een nieuwe FTP-test aanraadt: elk wattage in dit schema hangt aan die waarde. Acht weken is een keuze van {kort}, geen houdbaarheidsdatum; noem de oude FTP niet onbetrouwbaar. Plan zo'n test niet zelf in — dat kiest de trainer, en alleen een test die als fixedWorkout is meegegeven telt.",
     "Gebruik de naleving (compliance) indien meegegeven: dat is per geplande workout de werkelijk gereden belasting als percentage van de geplande, met een oordeel (te_licht, volgens_plan, te_zwaar, niet_gereden).",
     "Wijkt actualDate in compliance af van date, dan reed het lid die training op een andere dag. Dat is dezelfde training verschoven, geen extra training bovenop het schema.",
     "De velden athleteRpe, athleteFeel en athleteReport in compliance zijn feedback van het lid zelf. Weeg die mee naast de meetdata: een concrete terugkerende klacht of beperking mag de volgende opbouw bijsturen; trek uit één losse opmerking geen conclusie voor het hele schema.",
@@ -950,10 +950,24 @@ export function alignWorkoutIntensities(
   return { intensity: pct == null ? intensity : intensityFromPct(pct), blocks: aligned };
 }
 
-/** Staat in de naam van elke workout in intervals.icu, en zo ook in Zwift. */
+/**
+ * Staat in de naam van elke workout in intervals.icu, en zo ook in Zwift: de
+ * naam van de trainingsmodule bij de club. Dit is de ZWB-naam, als standaard en
+ * omdat oude titels hem dragen.
+ */
 export const WORKOUT_TITLE_BRAND = "ZWBeter Worden";
 
 const BRAND_PATTERN = /\bzw\s*beter\s*worden\b/gi;
+
+/** De merknaam uit een titel halen: de ZWB-naam, en die van de club zelf. */
+function withoutBrand(title: string, brand: string): string {
+  const stripped = title.replace(BRAND_PATTERN, " ");
+  const own = brand
+    .trim()
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\s+/g, "\\s*");
+  return own ? stripped.replace(new RegExp(own, "gi"), " ") : stripped;
+}
 
 /**
  * Woorden waarmee de AI uitlegt wat hij aan een workout veranderde: "ingekort",
@@ -970,8 +984,8 @@ const TITLE_MAX_LENGTH = 40;
  * (ingekort)" of "Tempo 3x10 – rustiger na zaterdag". Alleen voor AI-uitvoer:
  * een titel die een trainer zelf typt, blijft zoals hij is.
  */
-export function conciseWorkoutTitle(title: string): string {
-  const original = title.replace(BRAND_PATTERN, " ").replace(/\s+/g, " ").trim();
+export function conciseWorkoutTitle(title: string, brand = WORKOUT_TITLE_BRAND): string {
+  const original = withoutBrand(title, brand).replace(/\s+/g, " ").trim();
   let text = original
     .replace(/\([^)]*\)|\[[^\]]*\]/g, " ")
     .split(/\s+[-–—|]\s+|:\s+|,\s+/)[0]
@@ -990,15 +1004,14 @@ export function conciseWorkoutTitle(title: string): string {
  * De naam van een workout in intervals.icu. Daar gaat hij naar Zwift en de
  * fietscomputer, tussen workouts uit andere bronnen; vandaar de merknaam
  * vooraan, waar hij ook in een smalle lijst nog te lezen is. In ZWB zelf staat
- * hij er niet bij: daar is elke workout van ZWBeter Worden.
+ * hij er niet bij: daar is elke workout van de trainingsmodule.
  */
-export function intervalsWorkoutName(title: string): string {
-  const rest = title
-    .replace(BRAND_PATTERN, " ")
+export function intervalsWorkoutName(title: string, brand = WORKOUT_TITLE_BRAND): string {
+  const rest = withoutBrand(title, brand)
     .replace(/\s+/g, " ")
     .replace(/^[\s\-–—|:,·]+|[\s\-–—|:,·]+$/g, "")
     .trim();
-  return rest ? `${WORKOUT_TITLE_BRAND} - ${rest}` : WORKOUT_TITLE_BRAND;
+  return rest ? `${brand} - ${rest}` : brand;
 }
 
 // Bouwt een NATIVE intervals.icu workout_doc uit onze blokken. Dit is de bron

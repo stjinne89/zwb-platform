@@ -13,6 +13,8 @@ import { EmptyState, PageHeader } from "@/components/app-ui";
 import { DeleteRitverslagButton } from "./_components/delete-ritverslag-button";
 import { eventLabel } from "@/lib/event-types";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { getClub } from "@/lib/club";
+import { fillClubText } from "@/lib/club-texts";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +61,7 @@ function amsterdamDateKey(date: Date) {
 }
 
 export default async function RitverslagenPage() {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
   const user = await getRequestUser();
   if (!user) redirect("/login");
@@ -85,7 +88,7 @@ export default async function RitverslagenPage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          eyebrow="ZWB"
+          eyebrow={clubTexts.shortName}
           title="Ritverslagen"
         />
         <EmptyState>Nog geen voorbije events.</EmptyState>
@@ -182,7 +185,7 @@ export default async function RitverslagenPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ZWB"
+        eyebrow={clubTexts.shortName}
         title="Ritverslagen"
         description="Voorbije ritten met foto's en verslagen."
       />
@@ -241,7 +244,7 @@ export default async function RitverslagenPage() {
                 <div className="space-y-2 p-4">
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                      {eventLabel(event.type, event.kind)}
+                      {fillClubText(eventLabel(event.type, event.kind), clubTexts)}
                     </span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <Camera className="size-3.5" />

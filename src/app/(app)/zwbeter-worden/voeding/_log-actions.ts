@@ -22,6 +22,7 @@ import {
   todayKeyAmsterdam,
   type Viewer,
 } from "./_data";
+import { getClub } from "@/lib/club";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -398,6 +399,7 @@ export async function lookupRecipeBarcode(raw: string): Promise<BarcodeResult> {
 }
 
 async function findProduct(viewer: Viewer, barcode: string): Promise<BarcodeResult> {
+  const clubShort = (await getClub()).texts.shortName;
   const { data: known } = await viewer.supabase
     .from("nutrition_products")
     .select("barcode, name, brand, quantity_unit, carbs_g, protein_g, serving_g")
@@ -425,7 +427,7 @@ async function findProduct(viewer: Viewer, barcode: string): Promise<BarcodeResu
     const res = await fetch(
       `https://world.openfoodfacts.org/api/v2/product/${barcode}.json?fields=product_name,product_name_nl,brands,nutriments,serving_quantity,serving_quantity_unit`,
       // Open Food Facts vraagt om een herkenbare afzender.
-      { headers: { "User-Agent": "ZWB-Platform/1.0 (eetdagboek)" }, signal: controller.signal },
+      { headers: { "User-Agent": `${clubShort}-Platform/1.0 (eetdagboek)` }, signal: controller.signal },
     );
     if (res.status === 404) return { ok: false, error: "Dit product staat niet in Open Food Facts." };
     if (!res.ok) return { ok: false, error: "Open Food Facts is nu niet bereikbaar." };

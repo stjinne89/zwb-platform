@@ -3,7 +3,7 @@ import { Gem } from "lucide-react";
 import { FACET_WEIGHTS, LEVELS, powerAnchors } from "@/lib/briljant/norms";
 import { FACETS, FACET_LABELS, FACET_MEASURES } from "@/lib/briljant/score";
 import { HelpVideoLink } from "./help-video";
-import { ClubShortName, ModuleName } from "@/components/club-texts-provider";
+import { ClubShortName, ClubText, ModuleName } from "@/components/club-texts-provider";
 
 const pct = (value: number) => `${(value * 100).toLocaleString("nl-NL", { maximumFractionDigits: 1 })}%`;
 const wkg = (value: number) => value.toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -36,7 +36,7 @@ export function BriljantHelp() {
           </p>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
             <li>
-              <strong className="text-foreground">intervals.icu koppelen</strong> in ZWBeter. Daaruit komen sprint,
+              <strong className="text-foreground">intervals.icu koppelen</strong> in <ClubText text="{beter}" />. Daaruit komen sprint,
               anaeroob, VO2max, drempel, fitheid en je hele historie voor de datumkiezer.
             </li>
             <li>
@@ -59,7 +59,7 @@ export function BriljantHelp() {
               <Link href="/zwbeter-worden/protocollen/durability-test" className="underline underline-offset-2">
                 Protocollen
               </Link>
-              : 1000 kJ op duurtempo en daarna 20 minuten voluit. Met een schema plant ZWBeter hem in; zonder schema
+              : 1000 kJ op duurtempo en daarna 20 minuten voluit. Met een schema plant <ClubText text="{beter}" /> hem in; zonder schema
               vink je hem af op de dag dat je hem reed. De uitslag geldt 90 dagen.
             </li>
             <li>
@@ -82,7 +82,7 @@ export function BriljantHelp() {
               je consistentie; zonder ritgegevens kost die je 20% van je score.
             </li>
             <li>
-              <strong className="text-foreground">Een schema in ZWBeter.</strong> Dan meet consistentie tegen je
+              <strong className="text-foreground"><ClubText text="Een schema in {beter}." /></strong> Dan meet consistentie tegen je
               geplande uren; zonder schema tegen je eigen gebruikelijke weekuren.
             </li>
           </ol>

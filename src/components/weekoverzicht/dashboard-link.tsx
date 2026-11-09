@@ -5,6 +5,7 @@
 
 import Link from "next/link";
 import { addDays, isoWeekNumber, reviewPeriod } from "@/lib/weekly-review/period";
+import { ClubText } from "@/components/club-texts-provider";
 
 const MONTHS = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
 
@@ -21,7 +22,7 @@ export function WeekReviewDashboardLink() {
 
   return (
     <Link href="/weekoverzicht" className="tg-tile tg-zwbeter">
-      <span className="tg-tile-small">ZWBeter · weekoverzicht</span>
+      <span className="tg-tile-small"><ClubText text="{beter} · weekoverzicht" /></span>
       <span className="tg-tile-title mt-0.5">Week {week}</span>
       <span className="tg-tile-num text-[1.25rem]">{range}</span>
     </Link>

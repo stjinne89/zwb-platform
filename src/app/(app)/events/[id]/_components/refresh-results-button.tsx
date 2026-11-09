@@ -4,8 +4,10 @@ import { useState, useTransition } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { refreshEventResults } from "../_actions";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 export function RefreshResultsButton({ eventId }: { eventId: string }) {
+  const clubTexts = useClubTexts();
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
@@ -19,8 +21,8 @@ export function RefreshResultsButton({ eventId }: { eventId: string }) {
         setIsError(false);
         setMsg(
           res.count === 0
-            ? "Geen ZWB'ers gevonden in de uitslag."
-            : `${res.count} ZWB'er${res.count === 1 ? "" : "s"} gevonden.`,
+            ? `Geen ${clubTexts.memberNounPlural} gevonden in de uitslag.`
+            : `${res.count} ${res.count === 1 ? clubTexts.memberNoun : clubTexts.memberNounPlural} gevonden.`,
         );
       } else {
         setIsError(true);

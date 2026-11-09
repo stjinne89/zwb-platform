@@ -18,6 +18,8 @@ import {
 } from "@/lib/training/events";
 import { intensityLabel } from "@/lib/training/workouts";
 import type { IcsItem } from "@/lib/calendar/ics";
+import { getClub } from "@/lib/club";
+import { fillClubText } from "@/lib/club-texts";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -54,6 +56,8 @@ export function feedItems(
   events: FeedEvent[],
   workouts: FeedWorkout[],
   siteUrl: string,
+  /** Vult de clubwoorden in, zoals de modulenaam in het omnium-label. */
+  fill: (text: string) => string = (text) => text,
 ): IcsItem[] {
   const site = siteUrl.replace(/\/+$/, "");
   const eventIds = new Set(events.map((event) => event.id));
@@ -64,7 +68,7 @@ export function feedItems(
     const url = `${site}/events/${event.id}`;
     const size = eventRouteSize(event);
     const facts = [
-      eventLabel(event.type, event.kind),
+      fill(eventLabel(event.type, event.kind)),
       formatNumber(size.distanceKm, "km"),
       formatNumber(size.elevationM, "hm"),
     ].filter(Boolean);
@@ -150,5 +154,6 @@ export async function loadCalendarFeed(
     String(a.start_at).localeCompare(String(b.start_at)),
   );
 
-  return feedItems(events, (workouts.data ?? []) as FeedWorkout[], siteUrl);
+  const clubTexts = (await getClub()).texts;
+  return feedItems(events, (workouts.data ?? []) as FeedWorkout[], siteUrl, (text) => fillClubText(text, clubTexts));
 }

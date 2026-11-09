@@ -16,6 +16,7 @@ import {
 import type { SrcGender } from "@/lib/src/feed";
 import { SRC_MANAGERS } from "@/lib/src/access";
 import { ensureSrcMonthEntry } from "@/lib/src/auto-join";
+import { getClub } from "@/lib/club";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -188,6 +189,7 @@ export async function setSrcAvailability(sundayEventId: string, status: SrcAvail
     admin,
     user.id,
     srcMonthKey(sunday.src_sunday as string),
+    (await getClub()).texts.shortName,
   );
   if (!joined.ok) return { ok: false as const, error: joined.error };
   const entry = joined.entry;

@@ -9,6 +9,7 @@ import {
   mailCodeFromRecipients,
   verifySvixSignature,
 } from "@/lib/live/inbound-mail";
+import { getClub } from "@/lib/club";
 
 // Resend-webhook email.received: een LiveTrack-mail van Garmin of Wahoo aan
 // live-<code>@LIVE_INBOUND_DOMAIN. De code wijst de renner aan; de link in de
@@ -51,6 +52,7 @@ async function fetchReceivedEmail(emailId: string, apiKey: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const clubTexts = (await getClub()).texts;
   const secret = process.env.RESEND_INBOUND_WEBHOOK_SECRET?.trim();
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const domain = inboundDomain();
@@ -176,8 +178,8 @@ export async function POST(request: NextRequest) {
   await sendNotificationToMembers(
     "on_live_started",
     {
-      title: "ZWB'er is live",
-      body: `${displayName ?? "Een ZWB'er"} is live via ${PROVIDER_LABEL[link.provider]}.`,
+      title: `${clubTexts.memberNoun} is live`,
+      body: `${displayName ?? `Een ${clubTexts.memberNoun}`} is live via ${PROVIDER_LABEL[link.provider]}.`,
       url: "/live",
       tag: `live-${session.id}`,
     },

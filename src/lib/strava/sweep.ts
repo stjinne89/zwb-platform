@@ -22,6 +22,7 @@ import {
 } from "@/lib/strava/lifecycle";
 import { purgeStravaDataForProfile } from "@/lib/strava/retention";
 import { sendNotificationToMembers } from "@/lib/push/send";
+import { getClub } from "@/lib/club";
 
 type ConnectionRow = StravaConnection & {
   scope: string | null;
@@ -214,6 +215,7 @@ export async function applyInactivityPolicy(
     loginRule?: LoginRuleConfig | null;
   } = {},
 ): Promise<{ warned: number; revoked: number; errors: string[] }> {
+  const clubTexts = (await getClub()).texts;
   const inactiveMonths = Math.max(1, options.inactiveMonths ?? 12);
   const graceDays = Math.max(1, options.graceDays ?? 30);
   const limit = Math.max(1, options.limit ?? 50);
@@ -300,7 +302,7 @@ export async function applyInactivityPolicy(
           "on_strava_link_expiring",
           {
             title: "Je Strava-koppeling vervalt",
-            body: `Open ZWB binnen ${warnGraceDays} dagen om je Strava-koppeling te houden.`,
+            body: `Open ${clubTexts.shortName} binnen ${warnGraceDays} dagen om je Strava-koppeling te houden.`,
             url: "/profiel?weergave=bewerken#strava",
             tag: "strava-link-expiring",
           },

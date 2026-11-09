@@ -4,12 +4,13 @@ import {
   fetchInstagramStories,
   fetchInstagramTags,
   instagramCoverUrl,
+  instagramProfileUrl,
   resolveInstagramUserId,
-  ZWB_INSTAGRAM_URL,
   type InstagramMedia,
 } from "@/lib/instagram";
+import { getClub } from "@/lib/club";
 
-// Posts en stories van @zwb_cycling naar media_items. Posts blijven staan
+// Posts en stories van het clubaccount (club_settings.instagram_handle) naar media_items. Posts blijven staan
 // (source 'instagram'); stories (source 'instagram_story') bestaan alleen zolang
 // Instagram ze teruggeeft en worden daarna weer verwijderd. Posts van anderen
 // waarin de club is getagd (source 'instagram_tag') volgen wat Instagram
@@ -49,10 +50,13 @@ export async function syncInstagramToMedia(
   const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN?.trim();
   let userId = process.env.INSTAGRAM_USER_ID?.trim();
   if (!accessToken) return { ok: false, error: "Instagram ophalen is niet beschikbaar." };
+  const club = await getClub();
+  const handle = club.settings.instagramHandle;
+  const profileUrl = instagramProfileUrl(handle);
 
   let posts: InstagramMedia[];
   try {
-    userId = userId || (await resolveInstagramUserId(accessToken));
+    userId = userId || (await resolveInstagramUserId(accessToken, handle));
     posts = await fetchInstagramMedia({ accessToken, userId, limit: 12 });
   } catch (err) {
     // De melding van Meta zegt wat er mis is (verlopen token, verkeerd account).
@@ -110,7 +114,7 @@ export async function syncInstagramToMedia(
       kind: "instagram",
       title,
       body_md: body,
-      web_url: item.permalink ?? ZWB_INSTAGRAM_URL,
+      web_url: item.permalink ?? profileUrl,
       cover_url: instagramCoverUrl(item),
       published_at: item.timestamp
         ? new Date(item.timestamp).toISOString()
@@ -144,12 +148,12 @@ export async function syncInstagramToMedia(
     await upsert(
       "instagram",
       post,
-      firstLine ? firstLine.slice(0, 120) : "Instagram-post van ZWB Cycling",
+      firstLine ? firstLine.slice(0, 120) : `Instagram-post van ${club.texts.name}`,
       caption.slice(0, 1200) || null,
     );
   }
   for (const story of stories ?? []) {
-    await upsert(INSTAGRAM_STORY_SOURCE, story, "Instagram-story van ZWB Cycling", null);
+    await upsert(INSTAGRAM_STORY_SOURCE, story, `Instagram-story van ${club.texts.name}`, null);
   }
 
   // Getagde posts: de accountnaam is de titel. Wat een beheerder verborg, blijft

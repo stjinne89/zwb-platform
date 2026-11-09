@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { Share2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 export function ShareLiveButton({ eventId }: { eventId: string }) {
+  const clubTexts = useClubTexts();
   const [copied, setCopied] = useState(false);
 
   async function onShare() {
@@ -17,7 +19,7 @@ export function ShareLiveButton({ eventId }: { eventId: string }) {
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({
-          title: "ZWB live volgen",
+          title: `${clubTexts.shortName} live volgen`,
           text: "Volg ons live tijdens deze rit",
           url,
         });

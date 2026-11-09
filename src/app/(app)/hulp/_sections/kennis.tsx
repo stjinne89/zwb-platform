@@ -7,7 +7,7 @@ import {
   ListChecks,
   Utensils,
 } from "lucide-react";
-import { ClubShortName, ModuleName } from "@/components/club-texts-provider";
+import { ClubShortName, ClubText, ModuleName } from "@/components/club-texts-provider";
 
 export function KennisHelp() {
   return (
@@ -617,7 +617,7 @@ export function KennisHelp() {
         <header className="flex items-start gap-2">
           <Bike className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <h2 className="font-semibold">ZWBeter materiaal</h2>
+            <h2 className="font-semibold"><ClubText text="{beter} materiaal" /></h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Een kennisbank over materiaal en kleine winsten, een rekenaar die
               laat zien wat een verandering jou oplevert, en een houdingmeting met

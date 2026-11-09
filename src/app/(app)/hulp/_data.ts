@@ -50,6 +50,7 @@ export const GUIDES = [
       "Je profiel bepaalt wat andere leden mogen zien.",
       "Onder je naam op Profiel staat een schuifknop met drie standen: het potlood om je profiel te bewerken, de mensen voor hoe andere leden het zien en de wereldbol voor je deelbare profiel. Profiel opent in het midden.",
       "Onder Interesses kies je welke eventtypes je wilt zien op de kalender, en welke afstand en hoogtemeters je grens zijn.",
+      "Onder Dashboard vink je uit wat je op je dashboard niet wilt zien, zoals de trainingstegels als je niet met {m:training} traint. De volgorde blijft gelijk, en een nieuw onderdeel staat er vanzelf bij. De meldingen over je Zwift-ID en gewicht en het blok met je ritten en de Strava-sync blijven altijd staan.",
       "Badges blijven zichtbaar op je profiel en in de ledenlijst.",
       "Onder Mijn fietsen tonen we je fietsen uit Strava (naam + kilometers); zonder Strava voeg je een fiets handmatig toe. Je kiest per fiets of die zichtbaar is en zet er een foto bij.",
       "Bestuur of beheerders keuren nieuwe leden goed.",
@@ -224,7 +225,7 @@ export const GUIDES = [
       "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
       "Op zondagavond vanaf 18:00 opent je weekoverzicht: per scherm wat je die week deed (ritten, schema, belasting, vermogen, je {m:rennersniveau}-steen, teams, voeding en core, club), het oordeel van de coach, en als laatste je beschikbaarheid voor de week erna. Tik rechts voor verder, links voor terug, houd vast om te pauzeren. Wat je die week niet gebruikte, krijgt geen scherm. Reed je een ZRL-race met je team, dan toont het teamscherm je eigen race: je plek en punten tegenover de verwachting op je ZRS, je deel van de ploegpunten en waar je het meeste won of verloor; in een ploegentijdrit je W/kg naast de ploeg en of je bij de ploeg finishte. Daaronder de plaats van je ploeg.",
       "Op de laatste pagina van het weekoverzicht schuif je per dag je tijd; je ziet erbij voor welke events je al beschikbaar, opgesteld of aangemeld bent, en waar een event meer tijd vraagt dan je opgaf. Opslaan werkt je schema bij, net als op de schemapagina.",
-      "Het oordeel in het weekoverzicht schrijft de AI-coach als je ZWBeter voor je training gebruikt; anders is het een korte samenvatting uit vaste regels. De pop-up komt vanzelf tot en met woensdag; op het dashboard staat de hele week een ingang naar het overzicht van de laatst afgesloten week.",
+      "Het oordeel in het weekoverzicht schrijft de AI-coach als je {beter} voor je training gebruikt; anders is het een korte samenvatting uit vaste regels. De pop-up komt vanzelf tot en met woensdag; op het dashboard staat de hele week een ingang naar het overzicht van de laatst afgesloten week.",
       "Je trainer ziet bij een gereden training suggesties uit de uitvoering, en onder Races de tips uit je Zwift-races; hij beslist zelf wat hij je als feedback stuurt.",
     ],
   },
@@ -262,12 +263,12 @@ export const GUIDES = [
     icon: Trophy,
     title: "{m:voorspelspel}: wedden op het veldrijden",
     bullets: [
-      "Via Club → {m:voorspelspel} zet je ZWBallen in op de elitewedstrijden van dames en heren in het veldrijden. Tik op Meedoen; je begint het seizoen met 10 ZWBallen.",
+      "Via Club → {m:voorspelspel} zet je {ballen} in op de elitewedstrijden van dames en heren in het veldrijden. Tik op Meedoen; je begint het seizoen met 10 {ballen}.",
       "Op het bord staan per renner drie quoteringen: wint, podium (top 3) en top 10. Daaronder staan twee duels: wie van de twee eindigt hoger. Tik een quotering aan, kies met + en − hoeveel ballen erop gaan en tik Op de lei zetten. Een raak briefje betaalt inzet × quotering terug op je saldo; die winst kun je weer inzetten.",
       "Per wedstrijd zet je hoogstens 5 ballen in, dames en heren apart, ook als je saldo groter is. Met 10 ballen speel je dus beide wedstrijden voluit; staat je saldo lager, dan kies je.",
       "Je kunt inzetten en intrekken tot de start van die wedstrijd. Je quotering ligt vast op het moment dat je inzet, ook als het bord daarna nog verandert.",
       "De quotering komt uit de veldritrating van CyclingFlash. Elke renner krijgt een kracht e^(rating ÷ 35); de kans om te winnen is zijn kracht gedeeld door de som van alle krachten op de startlijst. Podium en top 10 komen uit 20.000 gesimuleerde koersen met dezelfde krachten, een duel is kracht A ÷ (kracht A + kracht B). De quotering is 1 ÷ kans, naar beneden afgerond op de ladder van een gokkantoor (1,05 · 1,10 · … · 33 · 50). Onder 1,05 staat er een streepje, boven 50 wordt het 50. Renners zonder rating rekenen met 600.",
-      "Per wedstrijd is er een bonusvraag met vaste antwoorden. Antwoorden kost niets; een goed antwoord levert 1 ZWBal op. Het platform kijkt hem na uit de uitslag.",
+      "Per wedstrijd is er een bonusvraag met vaste antwoorden. Antwoorden kost niets; een goed antwoord levert 1 {bal} op. Het platform kijkt hem na uit de uitslag.",
       "Niet gestart: je inzet komt terug. Opgegeven telt als niet gefinisht. In een duel waarin geen van beiden finisht, krijg je je inzet terug. Gaat een wedstrijd niet door, dan krijgt iedereen zijn inzet terug.",
       "Briefjes toont al je inzetten van dit seizoen met wat ze opleverden. Op de lei staat iedereen die meedoet, met saldo. Na de laatste wedstrijd van het seizoen wint het hoogste saldo. Sta je op nul, dan kom je terug via de bonusvragen.",
       "Met Stoppen onder je briefjes wis je je deelname van dit seizoen, met al je inzetten en antwoorden.",
@@ -285,10 +286,10 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/src", name: "Sunday Race Club", text: "Je SRC-team per maand en per zondag wie er kan, per categorie." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
   { href: "/stats/rankings", name: "{kort} Rankings", text: "De ranglijsten van deze en vorige week, de Hall of fame en het herberekenen van badges." },
-  { href: "/zwbeter-worden", name: "{m:training}", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
+  { href: "/zwbeter-worden", name: "{m:training}", text: "Schema's, AI-coach, je {advies}, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
-  { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden Zwift-races (ZRL, FRR, andere Zwift-races, ook buiten de kalender, of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu. Onder Racetips: tips van leden over racen in Zwift en buiten. Onder Kennisbank: tactiek in een Zwift-race, met bronnen." },
-  { href: "/zwbeter-worden/materiaal", name: "ZWBeter materiaal", text: "Kennisbank over materiaal en kleine winsten, met een rekenaar wat een verandering je oplevert, en je houding meten met de camera (bèta)." },
+  { href: "/zwbeter-worden/racen", name: "{beter} racen", text: "Je gereden Zwift-races (ZRL, FRR, andere Zwift-races, ook buiten de kalender, of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu. Onder Racetips: tips van leden over racen in Zwift en buiten. Onder Kennisbank: tactiek in een Zwift-race, met bronnen." },
+  { href: "/zwbeter-worden/materiaal", name: "{beter} materiaal", text: "Kennisbank over materiaal en kleine winsten, met een rekenaar wat een verandering je oplevert, en je houding meten met de camera (bèta)." },
   { href: "/mijn-garage", name: "Mijn garage", text: "Je fietsen en de slijtage van hun onderdelen, met een melding zodra er iets toe is aan vervanging." },
   { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de {kort}-ranglijst." },
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
@@ -301,7 +302,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
   { href: "/clubverhaal", name: "Clubverhaal", text: "Je anekdotes en verhalen met foto's voor het verhaal van {kort}." },
   { href: "/zwbekers", name: "{m:bekers}", text: "De prijzenkast van de club: per jaar een kast met bekers voor prestaties die aandacht verdienen." },
-  { href: "/voorzpwelbokaal", name: "{m:voorspelspel}", text: "Wedden met ZWBallen op het veldrijden: het bord, je briefjes en de lei." },
+  { href: "/voorzpwelbokaal", name: "{m:voorspelspel}", text: "Wedden met {ballen} op het veldrijden: het bord, je briefjes en de lei." },
   { href: "/profiel?weergave=bewerken", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
 ];
 
@@ -484,7 +485,7 @@ export const INTERVALS_RIDE_NOTES = [
   "Oudere ritten: importeer het archief dat Strava je mailt (Settings → Download or delete your account) in intervals.icu, of upload activities.csv hieronder.",
   "Wat via intervals.icu niet kan: kudos en de kilometers per fiets in Mijn garage. Badges, weekstanden, {m:blokkenjacht}, cols en je trainingsschema werken wel. Segment- en coltijden meet {kort} zelf uit het spoor; die staan met GPS in het klassement.",
   "Heb je nu Strava gekoppeld? Op je profiel kun je overstappen. Je Strava-ritten verdwijnen dan en komen terug via intervals.icu, voor zover ze daar staan. Zo komt er een Strava-plek vrij voor een ander lid.",
-  "Wil je Strava houden maar je ritten uit intervals.icu? Zet op je profiel bij Strava Ritten via intervals.icu aan. Strava blijft dan gekoppeld voor de ZWBeter-samenvatting in je beschrijving en de kilometers per fiets. Ritten die al van Strava kwamen, blijven staan. Zet je het weer uit, dan haalt Strava je ritten opnieuw op.",
+  "Wil je Strava houden maar je ritten uit intervals.icu? Zet op je profiel bij Strava Ritten via intervals.icu aan. Strava blijft dan gekoppeld voor de {beter}-samenvatting in je beschrijving en de kilometers per fiets. Ritten die al van Strava kwamen, blijven staan. Zet je het weer uit, dan haalt Strava je ritten opnieuw op.",
 ];
 
 export const ADMIN_GUIDES = [

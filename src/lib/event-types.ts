@@ -9,7 +9,8 @@ export const EVENT_TYPES = [
   { value: "zwift", label: "Zwift" },
   { value: "mywhoosh", label: "MyWhoosh" },
   { value: "src", label: "Sunday Race Club" },
-  { value: "omnium", label: "ZWB Omnium" },
+  // Het label draagt de modulenaam als token: vul in met fillClubText of <ClubText />.
+  { value: "omnium", label: "{m:omnium}" },
   { value: "overig", label: "Overig" },
 ] as const;
 

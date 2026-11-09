@@ -8,7 +8,12 @@
 // Wahoo's live-pagina bevat de status als data-attributen en het spoor als
 // FIT-data (zie fit-records.ts).
 
-const USER_AGENT = "ZWB-platform live (+https://zwb-platform.netlify.app)";
+import { getClub } from "@/lib/club";
+
+/** De korte clubnaam vooraan, zoals bij ZWB; het adres is dat van de installatie. */
+async function userAgent(): Promise<string> {
+  return `${(await getClub()).texts.shortName}-platform live (+https://zwb-platform.netlify.app)`;
+}
 const FETCH_TIMEOUT_MS = 6000;
 const GARMIN_ORIGIN = "https://livetrack.garmin.com";
 
@@ -212,7 +217,7 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}) {
     cache: "no-store",
     redirect: "follow",
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    headers: { "User-Agent": USER_AGENT, ...(init.headers ?? {}) },
+    headers: { "User-Agent": await userAgent(), ...(init.headers ?? {}) },
   });
 }
 

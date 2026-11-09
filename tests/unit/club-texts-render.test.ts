@@ -34,11 +34,6 @@ const pages: [string, ReactElement][] = [
   ...Object.entries(HELP_SECTIONS).map(([id, Section]): [string, ReactElement] => [id, createElement(Section)]),
 ];
 
-// Woordspelingen, het enkelvoud van ZWBekers en het voorbeeld van de
-// Strava-samenvatting hebben nog geen instelling; die volgen in fase 3 deel 3
-// (PLAN.md).
-const NOT_YET = /ZWBeter(?:Worden)?|ZWBallen|ZWBal\b|ZWBeker\b|💎 ZWBriljant/g;
-
 describe("fillClubText", () => {
   it("vult de clubwoorden in", () => {
     const texts = { ...neutral, memberNoun: "Kringer", memberNounPlural: "Kringers" };
@@ -66,7 +61,7 @@ describe("helpHrefModule", () => {
 
 describe("privacy, voorwaarden en hulp bij een andere club", () => {
   it.each(pages)("%s noemt ZWB niet", (_name, el) => {
-    const html = render(neutral, el).replace(NOT_YET, "");
+    const html = render(neutral, el);
     expect(html).not.toMatch(/ZWB|zwbcycling|voorZpWel/);
   });
 

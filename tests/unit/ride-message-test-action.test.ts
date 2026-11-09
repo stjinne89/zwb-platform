@@ -7,6 +7,9 @@ const rateLimitHit = vi.fn();
 const deliverRideMessage = vi.fn();
 
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+vi.mock("@/lib/club", () => ({
+  getClub: async () => ({ texts: { shortName: "ZWB", memberNoun: "ZWB'er" } }),
+}));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({}) }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
@@ -25,7 +28,8 @@ vi.mock("@/lib/ride-messages/deliver", async (importOriginal) => ({
 }));
 
 const { sendTestRideMessage } = await import("@/app/(app)/live/_actions");
-const { TEST_RIDE_MESSAGE } = await import("@/lib/ride-messages/deliver");
+const { testRideMessage } = await import("@/lib/ride-messages/deliver");
+const TEST_RIDE_MESSAGE = testRideMessage("ZWB");
 
 describe("sendTestRideMessage", () => {
   beforeEach(() => {

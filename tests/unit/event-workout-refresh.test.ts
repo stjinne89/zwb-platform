@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const pushed: string[] = [];
+// De notitie bij het blok noemt de korte clubnaam.
+vi.mock("@/lib/club", () => ({
+  getClub: async () => ({ texts: { shortName: "ZWB" } }),
+}));
 vi.mock("@/lib/training/publish", () => ({
   pushWorkoutToIntervals: vi.fn(async (_admin: unknown, id: string) => {
     pushed.push(id);
@@ -142,7 +146,7 @@ describe("refreshEventWorkouts", () => {
           event_id: event.id,
           duration_minutes: eventWorkoutDefaults(event).durationMinutes,
           intensity: "race",
-          structure_json: eventWorkoutBlocks(event),
+          structure_json: eventWorkoutBlocks(event, { clubShortName: "ZWB" }),
           intervals_event_id: "123",
           publish_status: "published",
         },
@@ -163,7 +167,7 @@ describe("refreshEventWorkouts", () => {
           event_id: event.id,
           duration_minutes: eventWorkoutDefaults(event).durationMinutes,
           intensity: "race",
-          structure_json: eventWorkoutBlocks(event),
+          structure_json: eventWorkoutBlocks(event, { clubShortName: "ZWB" }),
           intervals_event_id: "123",
           publish_status: "pending",
         },
@@ -221,7 +225,7 @@ describe("refreshEventWorkouts", () => {
           event_id: event.id,
           duration_minutes: eventWorkoutDefaults(event).durationMinutes,
           intensity: "race",
-          structure_json: eventWorkoutBlocks(event),
+          structure_json: eventWorkoutBlocks(event, { clubShortName: "ZWB" }),
           intervals_event_id: null,
           publish_status: "published",
         },

@@ -51,7 +51,7 @@ export function clubPool(roster: GameRider[], playerId: string, club: { name: st
   const mates = others.filter((r) => club?.memberIds.includes(r.id)).slice(0, TEAM_SIZE - 1);
   const ownIds = [playerId, ...mates.map((r) => r.id)];
   for (const rider of near(others.filter((r) => !ownIds.includes(r.id)))) { if (ownIds.length >= TEAM_SIZE) break; ownIds.push(rider.id); }
-  const own: LadderTeam = { id: OWN_TEAM, name: club?.name ?? "ZWB", riderIds: ownIds };
+  const own: LadderTeam = { id: OWN_TEAM, name: club?.name ?? "Club", riderIds: ownIds };
   return { own, others: near(others.filter((r) => !ownIds.includes(r.id))) };
 }
 /** Strongest team on top, you at the bottom. */

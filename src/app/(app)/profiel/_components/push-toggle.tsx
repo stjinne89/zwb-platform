@@ -9,7 +9,7 @@ import {
   savePushSubscription,
   updateNotificationPreferences,
 } from "../_actions/push";
-import { ModuleName } from "@/components/club-texts-provider";
+import { ClubText, ModuleName } from "@/components/club-texts-provider";
 
 type Props = {
   vapidPublicKey: string | null;
@@ -348,7 +348,7 @@ export function PushToggle({
             name="on_zwbeker_awarded"
             defaultChecked={initialPreferences.on_zwbeker_awarded}
           />
-          Ik win een ZWBeker, of mijn voordracht is beoordeeld
+          Ik win een <ClubText text="{beker}" />, of mijn voordracht is beoordeeld
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -388,7 +388,7 @@ export function PushToggle({
               name="on_zwbeker_nomination"
               defaultChecked={initialPreferences.on_zwbeker_nomination}
             />
-            Nieuwe voordracht voor een ZWBeker
+            Nieuwe voordracht voor een <ClubText text="{beker}" />
           </label>
         )}
         {canPlaceStories && (

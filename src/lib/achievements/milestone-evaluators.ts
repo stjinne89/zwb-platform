@@ -8,6 +8,7 @@
 
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { uniqueRides } from "@/lib/rides/unique-rides";
+import { getClub } from "@/lib/club";
 
 type Activity = {
   id: number;
@@ -1540,6 +1541,7 @@ export async function evaluateMilestonesForUser(
   supabase: any,
   profileId: string,
 ): Promise<{ awarded: number; skipped: number; errors: string[] }> {
+  const clubTexts = (await getClub()).texts;
   const codes = EVALUATORS.map((e) => e.code);
 
   const [{ data: badges }, acts, { data: existingAwards }] = await Promise.all([
@@ -1662,7 +1664,7 @@ export async function evaluateMilestonesForUser(
       await sendNotificationToMembers(
         "on_new_badge",
         {
-          title: "Nieuwe ZWB-achievements",
+          title: `Nieuwe ${clubTexts.shortName}-achievements`,
           body:
             awarded === 1
               ? "Je hebt een nieuwe achievement-badge behaald."

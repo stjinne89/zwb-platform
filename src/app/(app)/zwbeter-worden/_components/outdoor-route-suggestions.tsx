@@ -18,6 +18,7 @@ import {
 } from "../_actions";
 import { OutdoorRouteMap, routeColors } from "./outdoor-route-map";
 import { useClubColors } from "@/lib/use-club-colors";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 export type OutdoorRouteView = {
   id: string;
@@ -102,7 +103,7 @@ export function OutdoorRouteSuggestions({
           <Link href="/profiel?weergave=bewerken#vertrekpunten" className="underline hover:text-foreground">
             je profiel
           </Link>
-          , dan stelt ZWB hier rondjes voor.
+          , dan stelt <ClubShortName /> hier rondjes voor.
         </p>
       </div>
     );

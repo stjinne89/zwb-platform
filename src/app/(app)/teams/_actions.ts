@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { syncTeamResults } from "@/lib/team-results/sync";
 import { fetchLadderGraveyard, ladderCookie, normalizeTeamName } from "@/lib/ladder";
+import { getClub } from "@/lib/club";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 
 export async function syncResultsNow() {
@@ -57,7 +58,11 @@ export async function syncLadderGraveyard() {
 
   let result;
   try {
-    result = await fetchLadderGraveyard(cookie);
+    const club = await getClub();
+    result = await fetchLadderGraveyard(cookie, {
+      shortName: club.texts.shortName,
+      websiteUrl: club.settings.websiteUrl,
+    });
   } catch (err) {
     return {
       ok: false as const,

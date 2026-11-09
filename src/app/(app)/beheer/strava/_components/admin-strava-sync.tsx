@@ -12,6 +12,7 @@ import {
   revalidateAfterRecompute,
 } from "../_actions";
 import { useModuleName } from "@/components/club-texts-provider";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 export type SyncMember = {
   profileId: string;
@@ -329,7 +330,7 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
                 {member.missingWriteScope && (
                   <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
                     Lid moet opnieuw koppelen; zonder schrijfrecht komt er geen
-                    ZWB-samenvatting in de Strava-beschrijving.
+                    {" "}<ClubShortName />-samenvatting in de Strava-beschrijving.
                   </p>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground">

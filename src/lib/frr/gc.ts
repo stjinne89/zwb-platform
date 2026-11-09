@@ -24,6 +24,7 @@
 // een te kleine eGAP.
 
 import * as cheerio from "cheerio";
+import { getClub } from "@/lib/club";
 
 export const FRR_GC_PAGE_URL = "https://flammerougeracing.com/tour-results-gc/";
 export const FRR_AJAX_URL = "https://flammerougeracing.com/wp-admin/admin-ajax.php";
@@ -209,7 +210,8 @@ const MAX_ROWS = 20000;
 export async function fetchFrrGcRows(
   options: { deadline?: number } = {},
 ): Promise<FrrGcRow[]> {
-  const headers = { "user-agent": "ZWB-platform (clubsite ZWB Cycling)" };
+  const clubTexts = (await getClub()).texts;
+  const headers = { "user-agent": `${clubTexts.shortName}-platform (clubsite ${clubTexts.name})` };
   const page = await fetch(FRR_GC_PAGE_URL, {
     cache: "no-store",
     headers,

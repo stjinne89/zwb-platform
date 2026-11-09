@@ -13,6 +13,7 @@ import type {
   EventLiveSession,
   EventLivePosition,
 } from "@/app/(app)/events/[id]/_components/event-live-ticker";
+import { getClub } from "@/lib/club";
 
 const STALE_AFTER_MIN = 15;
 
@@ -58,6 +59,7 @@ export const fetchEventLiveSnapshot = cache(
 async function _fetchEventLiveSnapshot(
   eventId: string,
 ): Promise<EventLiveSnapshot> {
+  const clubTexts = (await getClub()).texts;
   const admin = createAdminClient();
 
   const { data: event } = await admin
@@ -130,7 +132,7 @@ async function _fetchEventLiveSnapshot(
     profileId: s.profile_id,
     profileName:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ((s.profiles as any)?.display_name as string) ?? "ZWB'er",
+      ((s.profiles as any)?.display_name as string) ?? clubTexts.memberNoun,
     source: (s.source ?? "manual") as EventLiveSession["source"],
     externalTrackUrl: s.external_track_url ?? null,
     startedAt: s.started_at,

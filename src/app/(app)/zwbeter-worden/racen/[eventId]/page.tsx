@@ -13,6 +13,8 @@ import { GapChart } from "../_components/gap-chart";
 import { Chip, OwnRide, Stat, TipList, dateLabel } from "../_components/race-parts";
 import { PersonalRaceView } from "../_components/personal-race";
 import { ExpectationStats, PointsSources, RaceTrendView, SegmentDepth, ZrsTrendView } from "../_components/race-depth";
+import { getClub } from "@/lib/club";
+import { fillClubText } from "@/lib/club-texts";
 
 type PageProps = { params: Promise<{ eventId: string }> };
 
@@ -21,7 +23,9 @@ export const dynamic = "force-dynamic";
 // bij Zwift (uitslag en segmenten, één voor één); de eigen rit komt van intervals.icu.
 export const maxDuration = 30;
 
-export const metadata: Metadata = { title: "ZWBeter racen" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: fillClubText("{beter} racen", (await getClub()).texts) };
+}
 
 function TeamSummary({ analysis }: { analysis: RaceAnalysis }) {
   const { team, rival } = analysis;

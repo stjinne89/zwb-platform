@@ -22,6 +22,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "../supabase/admin";
 import type { AiEffort } from "./settings";
+import { fillClub } from "@/lib/club";
 import { costUsd, tokensFromUsage, type AiMeter } from "./usage";
 
 export const CLAUDE_JOB_PREFIX = "aij_";
@@ -141,6 +142,8 @@ export async function runClaude(
   request: ClaudeRequest,
   feature: ClaudeFeature,
 ): Promise<{ text: string; usage: unknown; model: string }> {
+  // De prompts noemen de club met {club} en {kort} (lib/club-texts.ts).
+  const system = await fillClub(request.system);
   const stream = client().beta.messages.stream({
     model: request.model,
     max_tokens: 64_000,
@@ -154,8 +157,8 @@ export async function runClaude(
       ...(request.schema ? { format: { type: "json_schema", schema: claudeSchema(request.schema) as Record<string, unknown> } } : {}),
     },
     system: request.cacheSystem
-      ? [{ type: "text", text: request.system, cache_control: { type: "ephemeral" } }]
-      : request.system,
+      ? [{ type: "text", text: system, cache_control: { type: "ephemeral" } }]
+      : system,
     messages: [{ role: "user", content: request.user }],
   });
   const message = await stream.finalMessage();

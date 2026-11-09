@@ -21,6 +21,7 @@ import {
   type WorkoutBlock,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
+import { getClub } from "@/lib/club";
 
 // Het racetijdmodel staat in race-model.ts; hier doorgegeven voor bestaande imports.
 export { zwiftRaceModelMinutes, type ZwiftRaceKind };
@@ -303,7 +304,11 @@ function raceTarget(factor: number): string {
  * Zwift-race (race-pace.ts). Zonder geldt het clubmodel. Een ingestelde
  * koersduur of eindtijd gaat voor; die is voor iedereen gelijk.
  */
-export type EventWorkoutOptions = { racePace?: number };
+export type EventWorkoutOptions = {
+  racePace?: number;
+  /** De korte clubnaam voor de notitie bij het blok; zonder naam "club". */
+  clubShortName?: string;
+};
 
 export function eventWorkoutDefaults(
   event: ClubEventRow,
@@ -363,7 +368,7 @@ export function eventWorkoutBlocks(
         label: event.title,
         durationMinutes,
         target,
-        notes: EVENT_BLOCK_NOTE,
+        notes: eventBlockNote(options.clubShortName),
         intensity,
       },
     ],
@@ -371,7 +376,9 @@ export function eventWorkoutBlocks(
   );
 }
 
-const EVENT_BLOCK_NOTE = "Clubevent uit de ZWB-kalender.";
+function eventBlockNote(clubShortName = "club"): string {
+  return `Clubevent uit de ${clubShortName}-kalender.`;
+}
 
 /**
  * De persoonlijke racefactor van een lid, maar alleen opgehaald als er een
@@ -676,6 +683,7 @@ export async function applyEventBlock(
   eventId: string,
   wanted: boolean,
 ): Promise<{ inserted: boolean; removed: boolean; pushed: boolean }> {
+  const clubTexts = (await getClub()).texts;
   const unchanged = { inserted: false, removed: false, pushed: false };
 
   const { data: existing } = await admin
@@ -736,7 +744,7 @@ export async function applyEventBlock(
 
   const racePace = await racePaceFor(admin, profileId, [event]);
   const { durationMinutes, intensity } = eventWorkoutDefaults(event, { racePace });
-  const blocks = eventWorkoutBlocks(event, { racePace });
+  const blocks = eventWorkoutBlocks(event, { racePace, clubShortName: clubTexts.shortName });
   const slug = String(event.title)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -798,6 +806,7 @@ export async function refreshEventWorkouts(
   admin: Admin,
   options: { eventIds?: string[]; deadline?: number } = {},
 ): Promise<EventWorkoutRefresh> {
+  const clubTexts = (await getClub()).texts;
   const result: EventWorkoutRefresh = { updated: 0, pushed: 0, failed: 0 };
   const now = new Date();
 
@@ -862,7 +871,7 @@ export async function refreshEventWorkouts(
     );
     let publishStatus = workout.publish_status as string;
     if (current.length === 1) {
-      const options = { racePace: racePaces.get(workout.profile_id as string) ?? 1 };
+      const options = { racePace: racePaces.get(workout.profile_id as string) ?? 1, clubShortName: clubTexts.shortName };
       const blocks = eventWorkoutBlocks(event, options);
       const { durationMinutes, intensity } = eventWorkoutDefaults(event, options);
       const same =

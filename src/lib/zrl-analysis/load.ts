@@ -55,6 +55,7 @@ import {
 import { loadSegmentBests } from "@/lib/race-briefing/segment-bests";
 import { routeSegments } from "@/lib/zwift/route-segments";
 import { activityStartMs, pickRaceActivity, type ActivityWithStart } from "@/lib/zrl-analysis/activity";
+import { getClub } from "@/lib/club";
 
 type Access = Pick<CurrentUserAccess, "has">;
 
@@ -623,6 +624,7 @@ async function loadPersonal(
   supabase: SupabaseClient,
   calendar: CalendarRace | null,
 ): Promise<PersonalRaceOutcome> {
+  const clubTexts = (await getClub()).texts;
   const { data: profile } = await supabase.from("profiles").select("zwift_id, ftp_watts, weight_kg").eq("id", user.id).maybeSingle();
   const zwiftId = Number(profile?.zwift_id) || null;
   if (!zwiftId) return { status: "no-zwift-id" };
@@ -630,7 +632,7 @@ async function loadPersonal(
   const data = await loadZwiftRaceData(zwiftEventId, { keepDetailsOf: new Set([...names.keys(), zwiftId]), requireRider: zwiftId });
   if (!data) return { status: "not-riding" };
   const kind = raceKindOf(data.eventType ?? calendar?.zwiftEventType, calendar?.title ?? data.eventName);
-  const race = analysePersonalRace(data, zwiftId, names, kind);
+  const race = analysePersonalRace(data, zwiftId, names, kind, undefined, clubTexts.memberNoun);
   if (!race) return { status: "not-riding" };
   const subgroup = data.subgroups.find((s) => s.results.some((r) => r.profileId === zwiftId));
   const ftp = Number(profile?.ftp_watts) || null;

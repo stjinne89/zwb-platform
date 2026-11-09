@@ -79,6 +79,7 @@ import type { AiTrigger } from "@/lib/ai/usage";
 import { TARGET_TIME_GOAL_TYPES } from "@/lib/training/goal-target-types";
 import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
 import { changeReachSince, replanWindowEnd, type ChangeReach } from "@/lib/training/replan-window";
+import { getClub } from "@/lib/club";
 
 type TrainingDraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
 
@@ -364,6 +365,7 @@ async function buildTrainingInput(
    */
   horizonOverride?: string,
 ): Promise<TrainingAiInput> {
+  const clubTexts = (await getClub()).texts;
   const [{ data: profile }, { data: goal }, recent] = await Promise.all([
     admin
       .from("profiles")
@@ -436,7 +438,7 @@ async function buildTrainingInput(
   }
 
   return {
-    athleteName: profile.display_name ?? "ZWB-lid",
+    athleteName: profile.display_name ?? `${clubTexts.shortName}-lid`,
     goal: {
       title: goal.title,
       type: goal.goal_type,
@@ -531,6 +533,7 @@ export async function insertPlanWorkouts(
     keepDurationWishes?: boolean;
   } = {},
 ) {
+  const clubTexts = (await getClub()).texts;
   // Testdagen, dagen die het lid heeft vrijgemaakt, dagen waarop al een
   // training is gereden en dagen met een eigen rit of clubevent; zie
   // dropWorkoutsOnBlockedDays(). Gereden omdat een gereden training nooit wordt
@@ -613,7 +616,7 @@ export async function insertPlanWorkouts(
         ftpWatts,
       );
       const intensity = aligned.intensity;
-      let title = conciseWorkoutTitle(workout.title);
+      let title = conciseWorkoutTitle(workout.title, clubTexts.modules.training);
       let blocks = aligned.blocks;
       let durationMinutes = Math.min(480, Math.round(workout.durationMinutes));
       // Eén training per dag krijgt de wens; zette de AI er twee neer, dan
@@ -717,6 +720,7 @@ async function createPlanFromAiGeneration(
   >,
   planDraft: GeneratedTrainingPlan,
 ): Promise<string | null> {
+  const clubTexts = (await getClub()).texts;
   const { data: existingPlan, error: existingError } = await admin
     .from("training_plans")
     .select("id")
@@ -895,7 +899,7 @@ async function createPlanFromAiGeneration(
     {
       title: isAdaptation ? "Aangepast schema klaar" : "Nieuw trainingsconcept",
       body: autoPublished
-        ? "Je schema staat klaar in ZWB en intervals.icu."
+        ? `Je schema staat klaar in ${clubTexts.shortName} en intervals.icu.`
         : isAdaptation
           ? "Je aangepaste schema van vandaag staat klaar als concept."
           : "Je trainer heeft een nieuw conceptschema klaargezet.",
@@ -1023,6 +1027,7 @@ export async function generateAiDraftFromForm(formData: FormData): Promise<Train
 export async function startTodayAdjustmentDraft(
   formData: FormData,
 ): Promise<TrainingDraftResult> {
+  const clubTexts = (await getClub()).texts;
   try {
     const { user } = await currentUser();
     const admin = createAdminClient();
@@ -1109,7 +1114,7 @@ export async function startTodayAdjustmentDraft(
       ]);
 
     const input: TrainingAiInput = {
-      athleteName: profile.display_name ?? "ZWB-lid",
+      athleteName: profile.display_name ?? `${clubTexts.shortName}-lid`,
       goal: {
         title: goal?.title ?? "Lopend schema",
         type: goal?.goal_type ?? "base_fitness",

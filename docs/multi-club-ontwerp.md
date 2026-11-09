@@ -141,10 +141,10 @@ nagevraagd.
   (`0185`).
 - **Inhoud die generiek bruikbaar is**, maar in ZWB-toon: cols, workouts,
   mobiliteit, voeding en onderhoudstips. Die kan mee als startinhoud.
-- **Er is geen baseline.** Geen test speelt alle migraties af op een lege
-  database. Er is geen `seed.sql` en geen `config.toml`. De nummers 0066, 0067,
-  0172 en 0173 komen dubbel voor; of dat bij `db push` op een leeg project botst,
-  is niet getest.
+- **Baseline (fase 5).** `supabase/baseline/` heeft het schema na `0320` en een
+  generieke seed; `tests/unit/baseline.test.ts` speelt alle migraties af op
+  PGlite en vergelijkt. De nummers 0066, 0067, 0172 en 0173 komen dubbel voor;
+  op PGlite lopen ze op volgorde van bestandsnaam af. Er is geen `config.toml`.
 - **De eerste beheerder** wordt nu met de hand gezet (`profiles.is_admin`).
 
 ### 2.5 Huisstijl
@@ -379,9 +379,9 @@ die fasen niets merken; dat is tegelijk de test.
 |---|---|---|---|
 | 1. Fundament | `club_settings`, `club_modules`, `getClub()`, `src/lib/modules.ts`, gating in middleware, nav, beheer en crons; ZWB-waarden als seed | middel | ja |
 | 2. Huisstijl | deel 1 (gebouwd): 5 kleuren, afgeleide tokens in een runtime-`<style>`, manifest als route, `generateViewport`, `/beheer/huisstijl`. Deel 2 (gebouwd): logo en beeldmerk met gegenereerde iconen, een lijst van vier letters, kaarten lezen de clubkleuren, klassiek weg. Merkwerelden houden hun stijl; donker blijft afgeleid (keuzes eigenaar 2026-11-09) | groot | klein (`0314`, `0315`) |
-| 3. Teksten en namen | deel 1 (gebouwd): clubnaam en modulenamen via `getClub().texts` en `ClubTextsProvider` in metadata, manifest, menu, beheer en schermen; geen title-template. Deel 2 (gebouwd): hulp, privacy en voorwaarden met clubwoorden (`{club}`, `{m:…}` in data, componenten in JSX), contactadres uit de club, hulp van uitgezette modules weg. Deel 3: overige "ZWB"-teksten, AI-prompts, woordspelingen, enkelvouden en tekst die buiten de app landt | groot | nee |
-| 4. Clubherkenning | Zwift-club-ID, markers, teamtag, WTRL- en ladderteams, SRC- en Omnium-defaults, social naar instellingen; ZWB-teams uit de code naar de DB | middel | ja |
-| 5. Schone installatie | baseline-migratie, generieke seed, bootstrap van de eerste beheerder, installatiehandleiding, migratiescript voor meerdere projecten | groot | baseline |
+| 3. Teksten en namen | deel 1 (gebouwd): clubnaam en modulenamen via `getClub().texts` en `ClubTextsProvider` in metadata, manifest, menu, beheer en schermen; geen title-template. Deel 2 (gebouwd): hulp, privacy en voorwaarden met clubwoorden (`{club}`, `{m:…}` in data, componenten in JSX), contactadres uit de club, hulp van uitgezette modules weg. Deel 3a (gebouwd): korte naam, clubnaam en lidwoord in schermen, meldingen, Telegram, agenda en AI-prompts (tokens, bij verzenden ingevuld). Deel 3b (gebouwd, `0319`): eigen woorden per club (appnaam, dagadvies, betaalmiddel, beker, beter-woord), user agents met de korte naam, kennisbanken neutraal ("de app"), eventsoort, rechtenlabels en workout-titel. Drie kennisbankzinnen houden op verzoek "ZWB" | groot | klein (`0319`) |
+| 4. Clubherkenning | gebouwd (`0320`): eventmarkers en teamtag in `club_settings` (env `ZWB_EVENT_MARKERS` gaat voor), ZRL-live, ZWB DS en uitslagscraper volgen de tag, teams alleen uit de DB (seeds en WTRL-fallback weg), SRC-standaardteam met de korte naam, Instagram en YouTube uit de clubinstellingen. Zwift-club-ID en podcast-RSS blijven env | middel | ja |
+| 5. Schone installatie | gebouwd (geen migratie): baseline `0320` en generieke seed in `supabase/baseline/` (pg_dump uit PGlite, rechten expliciet), test die beide routes vergelijkt, eerste beheerder met één SQL-regel, [installatie.md](installatie.md). Het migratiescript voor meerdere projecten schuift naar fase 7 | groot | baseline |
 | 6. Inrichtingsmodule | `/inrichten` en `/beheer/inrichting`, de 7 stappen, live voorbeeld, hulpcategorie | middel | nee |
 | 7. Proefinstallatie | een testclub op een eigen Netlify-site en Supabase-project, de hele vragenlijst doorlopen, verschillen vastleggen | klein | – |
 
@@ -420,9 +420,10 @@ schrijft in wat fase 1 tot en met 4 uitlezen, en komt daarom pas daarna.
 Deze repo heeft geen Docker en geen `supabase/config.toml`. Daarom zijn niet
 lokaal te testen:
 
-- of alle migraties op een leeg project aflopen;
-- de botsing van de dubbele nummers;
-- de baseline.
+- de baseline op een echt Supabase-project (Postgres 17, met de echte auth,
+  storage en standaardrechten).
 
-PGlite kan het schema wel nabouwen; daar komt de baseline vandaan, net als bij
-CoachbyStijn. De echte proef is fase 7 op een leeg Supabase-project.
+Op PGlite (Postgres 18) met een Supabase-stub lopen alle migraties af, ook de
+dubbele nummers, en geven ze hetzelfde schema als de baseline
+(`tests/unit/baseline.test.ts`). De echte proef is fase 7 op een leeg
+Supabase-project.

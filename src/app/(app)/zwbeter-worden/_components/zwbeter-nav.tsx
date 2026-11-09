@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { pillarForPath, type PillarId } from "@/lib/zwbeter-pillars";
 import { cn } from "@/lib/utils";
 import { SectionNav, type SectionLink } from "./section-nav";
+import { ClubText, useClubTexts } from "@/components/club-texts-provider";
 
 export type PillarNav = {
   id: PillarId;
@@ -18,6 +19,7 @@ export type PillarNav = {
  * pijler, de pijlers staan als tegels, en daaronder de onderdelen van de
  * pijler waar je bent. */
 export function ZwbeterNav({ pillars, actions }: { pillars: PillarNav[]; actions?: ReactNode }) {
+  const clubTexts = useClubTexts();
   const activeId = pillarForPath(usePathname());
   const active = pillars.find((pillar) => pillar.id === activeId) ?? pillars[0];
   if (!active) return null;
@@ -25,12 +27,12 @@ export function ZwbeterNav({ pillars, actions }: { pillars: PillarNav[]; actions
   return (
     <div className="space-y-3">
       <header className="tg-repeats-nav flex flex-wrap items-end justify-end gap-3">
-        <h1 className="tg-display">ZWBeter {active.word}</h1>
+        <h1 className="tg-display"><ClubText text="{beter}" /> {active.word}</h1>
         {actions && <div>{actions}</div>}
       </header>
 
       <nav
-        aria-label="ZWBeter"
+        aria-label={clubTexts.words.beter}
         className={cn(
           "grid grid-cols-2 gap-2 [&>*:last-child:nth-child(odd)]:col-span-2 md:[&>*:last-child:nth-child(odd)]:col-span-1",
           // Zes pijlers voor een trainer, vijf voor de rest: altijd één rij.
@@ -44,7 +46,7 @@ export function ZwbeterNav({ pillars, actions }: { pillars: PillarNav[]; actions
             aria-current={pillar.id === active.id ? "page" : undefined}
             className="tg-pillar"
           >
-            <span className="tg-tile-small">ZWBeter</span>
+            <span className="tg-tile-small"><ClubText text="{beter}" /></span>
             <span className="tg-tile-title">{pillar.word}</span>
           </Link>
         ))}

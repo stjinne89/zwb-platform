@@ -18,6 +18,7 @@ import {
   type Nomination,
 } from "./nomination";
 import { moduleName } from "@/lib/club";
+import { getClub } from "@/lib/club";
 
 // ZWBekers op de server (0286). Lezen gaat met de sessie van het lid, zodat RLS
 // beslist wat iemand ziet: een voordracht alleen voor wie hem deed en wie keurt,
@@ -113,6 +114,7 @@ function summary(row: SummaryRow): BekerSummary {
 
 /** Ingelogd en goedgekeurd, met de privacyverklaring getekend; anders een zin voor het scherm. */
 export async function requireBekerMember() {
+  const clubTexts = (await getClub()).texts;
   const client = await createClient();
   const access = await getCurrentUserAccess(client);
   const user = access.user;
@@ -122,7 +124,7 @@ export async function requireBekerMember() {
     .select("id, display_name, is_approved, privacy_accepted_version")
     .eq("id", user.id)
     .single();
-  if (!member?.is_approved) throw new NominationError("Alleen goedgekeurde ZWB-leden zien de prijzenkast.");
+  if (!member?.is_approved) throw new NominationError(`Alleen goedgekeurde ${clubTexts.shortName}-leden zien de prijzenkast.`);
   if (!privacyConsentIsCurrent(member.privacy_accepted_version)) {
     throw new NominationError("Bevestig eerst de privacyverklaring.");
   }
@@ -343,6 +345,7 @@ async function stored(admin: Admin, id: string): Promise<StoredBeker> {
 
 /** Controleert winnaars, team, event en ZRL-ronde tegen de database; geeft de teamnaam terug. */
 async function checkReferences(admin: Admin, nomination: Nomination): Promise<string | null> {
+  const clubTexts = (await getClub()).texts;
   const [winners, team, event, raceWeek] = await Promise.all([
     admin.from("profiles").select("id").in("id", nomination.winners).eq("is_approved", true),
     nomination.teamId
@@ -362,7 +365,7 @@ async function checkReferences(admin: Admin, nomination: Nomination): Promise<st
       : Promise.resolve({ data: null }),
   ]);
   if ((winners.data ?? []).length !== nomination.winners.length) {
-    throw new NominationError("Kies alleen goedgekeurde ZWB-leden als winnaar.");
+    throw new NominationError(`Kies alleen goedgekeurde ${clubTexts.shortName}-leden als winnaar.`);
   }
   if (nomination.teamId && !team.data) throw new NominationError("Dat team bestaat niet meer.");
   if (nomination.eventId && !event.data) throw new NominationError("Dat event bestaat niet meer.");

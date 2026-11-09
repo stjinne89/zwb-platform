@@ -12,7 +12,8 @@ import type { BriljantView as View, FacetView, Win } from "@/lib/briljant/view";
 import type { SceneStone } from "./stone-scene";
 import { briljantSans, briljantSerif } from "./fonts";
 import styles from "./briljant.module.css";
-import { useModuleName } from "@/components/club-texts-provider";
+import { useClubTexts, useModuleName } from "@/components/club-texts-provider";
+import { fillClubText } from "@/lib/club-texts";
 
 const HallScene = dynamic(() => import("./hall-scene"), {
   ssr: false,
@@ -32,7 +33,7 @@ export type BriljantTab = "ik" | "zwb" | "vergelijken";
 
 const TABS: Array<{ key: BriljantTab; label: string }> = [
   { key: "ik", label: "Ik" },
-  { key: "zwb", label: "ZWB" },
+  { key: "zwb", label: "{kort}" },
   { key: "vergelijken", label: "Vergelijken" },
 ];
 
@@ -508,6 +509,7 @@ function PanelBody({
 }
 
 export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compare, lines, options, changes, wins, hall, sponsors, hidden }: Props) {
+  const clubTexts = useClubTexts();
   const labels = useRef(new Map<string, HTMLElement>());
   const moduleLabel = useModuleName("rennersniveau");
   const [failed, setFailed] = useState(false);
@@ -635,7 +637,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
               aria-current={tab === option.key ? "page" : undefined}
               onClick={() => go({ tab: option.key })}
             >
-              {option.label}
+              {fillClubText(option.label, clubTexts)}
             </button>
           ))}
         </nav>

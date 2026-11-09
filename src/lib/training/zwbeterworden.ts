@@ -167,7 +167,7 @@ export function zwbeterWordenAdvice(
       level: 0,
       title: "Nog geen advies",
       description:
-        "Deel je herstel-data (slaap/HRV) en koppel intervals.icu, dan verschijnt hier je ZWBeterWorden-advies.",
+        "Deel je herstel-data (slaap/HRV) en koppel intervals.icu, dan verschijnt hier je {advies}.",
       pill: "bg-muted text-muted-foreground",
       block: "border bg-background",
       ring: "",

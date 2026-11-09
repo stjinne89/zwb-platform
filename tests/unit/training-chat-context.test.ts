@@ -386,10 +386,10 @@ describe("uitkomst van 'dit raakt mijn schema'", () => {
       created_at: "2026-09-16T10:00:00Z",
       profiles: { display_name: "Jan" },
     };
-    expect(shapeChatMessage({ ...base, affects_plan: true, replan_result: "started" }).planNote).toBe(
+    expect(shapeChatMessage({ ...base, affects_plan: true, replan_result: "started" }, "ZWB'er").planNote).toBe(
       "Je schema wordt herzien.",
     );
-    expect(shapeChatMessage({ ...base, affects_plan: false, replan_result: null }).planNote).toBeNull();
+    expect(shapeChatMessage({ ...base, affects_plan: false, replan_result: null }, "ZWB'er").planNote).toBeNull();
   });
 
   it("noemt een AI-antwoord Coach, ook zonder profiel", () => {
@@ -403,7 +403,7 @@ describe("uitkomst van 'dit raakt mijn schema'", () => {
       replan_result: null,
       created_at: "2026-09-16T10:01:00Z",
       profiles: null,
-    });
+    }, "ZWB'er");
     expect(view.name).toBe("Coach");
     expect(view.authorId).toBeNull();
   });

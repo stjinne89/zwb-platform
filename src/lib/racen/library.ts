@@ -41,7 +41,7 @@ export type RacenArticle = {
   title: string;
   summary: string;
   points: string[];
-  /** Wat de bronnen níét laten zien, of wat een eigen keuze van ZWB is. */
+  /** Wat de bronnen níét laten zien, of wat een eigen keuze van de app is. */
   limits: string[];
   sources: KnowledgeSource[];
 };

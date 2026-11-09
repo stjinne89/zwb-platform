@@ -1,5 +1,7 @@
 import type { CommunityRole } from "@/lib/community-roles";
 
+// Label, omschrijving en categorie dragen clubwoorden als token ({kort},
+// {m:sleutel}); het rechtenscherm vult ze in.
 export const COMMUNITY_PERMISSIONS = [
   {
     id: "events.create",
@@ -158,7 +160,7 @@ export const COMMUNITY_PERMISSIONS = [
   {
     id: "training.publish_plans",
     label: "Trainingsschema's publiceren",
-    description: "Kan goedgekeurde schema's naar ZWB en intervals.icu publiceren.",
+    description: "Kan goedgekeurde schema's naar {kort} en intervals.icu publiceren.",
     category: "Training",
   },
   {
@@ -183,9 +185,9 @@ export const COMMUNITY_PERMISSIONS = [
   },
   {
     id: "zwbgame.manage",
-    label: "ZWBgame beheren",
-    description: "Kan renners uit het ZWBgame-peloton halen.",
-    category: "ZWBgame",
+    label: "{m:managerspel} beheren",
+    description: "Kan renners uit het {m:managerspel}-peloton halen.",
+    category: "{m:managerspel}",
   },
 ] as const;
 

@@ -85,6 +85,8 @@ export function analysePersonalRace(
    * ZRL-race in de terugblik telt zoals de ZRL (`data.format`).
    */
   format: ZrlScoringFormat = kind === "ttt" ? "ttt" : "scratch",
+  /** Naam voor een clubgenoot zonder bekende naam: hoe een lid heet. */
+  memberNoun = "lid",
 ): PersonalRace | null {
   const subgroup = data.subgroups.find((s) => s.results.some((r) => r.profileId === zwiftId));
   if (!subgroup) return null;
@@ -145,7 +147,7 @@ export function analysePersonalRace(
       .filter((r) => r.profileId === zwiftId || zwbNames.has(r.profileId))
       .map((r) => ({
         zwiftId: r.profileId,
-        name: name(r.profileId, s.entrants.find((e) => Number(e.zwiftId) === r.profileId)?.name || "ZWB'er"),
+        name: name(r.profileId, s.entrants.find((e) => Number(e.zwiftId) === r.profileId)?.name || memberNoun),
         subgroupLabel: s.label,
         rank: r.rank,
         of: done.length,

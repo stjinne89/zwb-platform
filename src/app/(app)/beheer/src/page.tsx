@@ -11,6 +11,7 @@ import { SrcTeamForm } from "./_components/team-form";
 import { LinkRiders, type SrcUnlinkedRider } from "./_components/link-riders";
 import { FindRider } from "./_components/find-rider";
 import { srcRecheckFrom } from "@/lib/src/results-sync";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,7 @@ function time(iso: string) {
 }
 
 export default async function SrcKalenderPage() {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) redirect("/login");
@@ -241,7 +243,7 @@ export default async function SrcKalenderPage() {
                       >
                         {genderLabel(race.gender)}
                         {event ? ` ${time(event.start_at)}` : null}
-                        {count ? ` · ${count} ZWB` : null}
+                        {count ? ` · ${count} ${clubTexts.shortName}` : null}
                         {race.participants ? ` · ${race.participants} ingeschreven` : null}
                         {race.results_status
                           ? ` · uitslag ${race.results_status === "official" ? "officieel" : "voorlopig"}`

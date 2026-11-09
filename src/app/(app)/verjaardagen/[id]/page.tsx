@@ -34,6 +34,7 @@ import {
   type BirthdayRide,
 } from "./_components/birthday-ride";
 import { BirthdayRsvpPicker } from "./_components/birthday-rsvp-buttons";
+import { getClub } from "@/lib/club";
 
 // Buiten de component zodat de purity-lint Date.now() niet als impure-in-render
 // markeert (zelfde patroon als de event-detailpagina).
@@ -41,11 +42,11 @@ function activeCutoffIso() {
   return new Date(Date.now() - 15 * 60 * 1000).toISOString();
 }
 
-function relationName(relation: unknown) {
+function relationName(relation: unknown, fallback: string) {
   const profile = Array.isArray(relation) ? relation[0] : relation;
   return (
     (profile as { display_name?: string | null } | null)?.display_name ??
-    "ZWB'er"
+    fallback
   );
 }
 
@@ -56,6 +57,7 @@ export default async function BirthdayPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ jaar?: string | string[] }>;
 }) {
+  const clubTexts = (await getClub()).texts;
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const supabase = await createClient();
   const {
@@ -128,7 +130,7 @@ export default async function BirthdayPage({
   const messages: BirthdayMessage[] = (messageRows ?? []).map((row) => ({
     id: row.id,
     authorProfileId: row.author_profile_id,
-    authorName: relationName(row.author),
+    authorName: relationName(row.author, clubTexts.memberNoun),
     body: row.body,
     createdAt: row.created_at,
   }));
@@ -143,7 +145,7 @@ export default async function BirthdayPage({
       id: row.id,
       url: data.signedUrl,
       uploaderProfileId: row.uploader_profile_id,
-      uploaderName: relationName(row.uploader),
+      uploaderName: relationName(row.uploader, clubTexts.memberNoun),
       createdAt: row.created_at,
     });
   }
@@ -217,7 +219,7 @@ export default async function BirthdayPage({
       if (!rsvpGroups[status]) continue;
       rsvpGroups[status].push({
         profileId: row.profile_id,
-        name: relationName(row.profiles),
+        name: relationName(row.profiles, clubTexts.memberNoun),
       });
       if (row.profile_id === user.id) myRsvp = status;
     }
@@ -257,7 +259,7 @@ export default async function BirthdayPage({
       id: s.id,
       profileId: s.profile_id,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      profileName: ((s.profiles as any)?.display_name as string) ?? "ZWB'er",
+      profileName: ((s.profiles as any)?.display_name as string) ?? clubTexts.memberNoun,
       source: (s.source ?? "manual") as EventLiveSession["source"],
       externalTrackUrl: s.external_track_url ?? null,
       startedAt: s.started_at,

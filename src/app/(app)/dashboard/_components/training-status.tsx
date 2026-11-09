@@ -6,6 +6,7 @@ import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestUser } from "@/lib/auth/request";
 import type { WellnessDevice } from "@/lib/training/wellness";
+import { ClubText } from "@/components/club-texts-provider";
 
 export type TrainingStatusConn = {
   api_key: string;
@@ -88,15 +89,16 @@ export async function TrainingAdvice(props: StatusArgs) {
   return (
     <Link href="/zwbeter-worden" className="tg-tile tg-zwbeter col-span-2">
       <span className="tg-tile-small">
-        ZWBeter trainen{advice.level > 0 ? ` · niveau ${advice.level}` : ""}
+        <ClubText text="{beter} trainen" />{advice.level > 0 ? ` · niveau ${advice.level}` : ""}
       </span>
       <span className="tg-tile-title mt-0.5">{advice.title}</span>
-      <span className="mt-1 text-sm opacity-90">{advice.description}</span>
+      <span className="mt-1 text-sm opacity-90"><ClubText text={advice.description} /></span>
     </Link>
   );
 }
 
-/** Fitness, vorm en herstel als losse tegels, voor de rij Mijn fitheid. */
+/** Fitness, vorm en herstel samen in een tegel, voor de rij Mijn fitheid: de
+ * drie lees je samen, dus geen veegrij (eigenaar akkoord, 2026-11-09). */
 export async function FitnessStatus(props: StatusArgs) {
   const { ctl, tsb, recoverySummary } = await statusFor(props);
   if (ctl == null && tsb == null && recoverySummary == null) return null;
@@ -118,11 +120,29 @@ export async function FitnessStatus(props: StatusArgs) {
           : "",
     },
   ];
-  return stats.map((stat) => (
-    <Link key={stat.label} href="/zwbeter-worden/belasting" className="tg-tile tg-zwbeter">
-      <span className="tg-tile-small">{stat.label}</span>
-      <span className="tg-tile-num">{stat.value}</span>
-      <span className="text-xs opacity-85">{stat.sub}</span>
+  return <FitnessTile stats={stats} />;
+}
+
+export type FitnessStat = { label: string; value: string; sub: string };
+
+/** De tegel zelf, zonder ophalen; ook op /ontwerp-voorbeeld. */
+export function FitnessTile({ stats }: { stats: FitnessStat[] }) {
+  return (
+    <Link href="/zwbeter-worden/belasting" className="tg-tile tg-zwbeter">
+      <span className="tg-tile-small">Fitheid</span>
+      <dl className="mt-auto grid gap-2 pt-2">
+        {stats.map((stat) => (
+          <div key={stat.label} className="flex items-end justify-between gap-2">
+            <dt className="min-w-0 leading-tight">
+              <span className="block text-[0.9375rem]">{stat.label}</span>
+              {stat.sub && <span className="block text-xs opacity-85">{stat.sub}</span>}
+            </dt>
+            <dd className="text-[1.75rem] font-light leading-none tracking-tight tabular-nums">
+              {stat.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
     </Link>
-  ));
+  );
 }

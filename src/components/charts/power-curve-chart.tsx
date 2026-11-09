@@ -12,6 +12,7 @@ import { logScale, linearScale } from "@/lib/charts/scale";
 import { MAX_SERIES, seriesColor } from "@/lib/charts/palette";
 import { matchFatigueCurve } from "@/lib/teams/fatigue-curves";
 import { riderTypeLabel } from "@/lib/teams/power-profile";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 export type PowerCurvePoint = {
   seconds: number;
@@ -114,6 +115,7 @@ export function PowerCurveChart({
   /** Verplicht zodra dezelfde grafiek twee keer op één pagina staat. */
   idSuffix?: string;
 }) {
+  const clubTexts = useClubTexts();
   const [comparisonIds, setComparisonIds] = useState<string[]>([MEDIAN_ID]);
   const [hoverSeconds, setHoverSeconds] = useState<number | null>(null);
   const [levelIndex, setLevelIndex] = useState(0);
@@ -170,7 +172,7 @@ export function PowerCurveChart({
           return value == null ? [] : [{ seconds, watts: value }];
         });
         return points.length
-          ? [{ id, name: `ZWB-mediaan (${levelRiders.length})${suffix}`, points, color }]
+          ? [{ id, name: `${clubTexts.shortName}-mediaan (${levelRiders.length})${suffix}`, points, color }]
           : [];
       }
       const rider = levelRiders.find((entry) => entry.id === id);
@@ -184,7 +186,7 @@ export function PowerCurveChart({
         },
       ];
     });
-  }, [afterKj, comparisonIds, levelRiders, metric]);
+  }, [afterKj, comparisonIds, levelRiders, metric, clubTexts.shortName]);
 
   function toggleComparison(id: string) {
     setComparisonIds((current) =>
@@ -258,7 +260,7 @@ export function PowerCurveChart({
           <p className="mb-1.5 text-sm">Vergelijk met (max. {MAX_SERIES})</p>
           <div className="flex flex-wrap gap-1.5">
             {[
-              { id: MEDIAN_ID, label: "ZWB-mediaan", available: levelRiders.length > 0 },
+              { id: MEDIAN_ID, label: `${clubTexts.shortName}-mediaan`, available: levelRiders.length > 0 },
               ...riders.map((rider) => ({
                 id: rider.id,
                 label: `${rider.name} - ${riderTypeLabel(rider.riderType)}`,
@@ -557,6 +559,7 @@ function PowerBenchmarks({
   afterKj: number;
   riders: ComparisonRider[];
 }) {
+  const clubTexts = useClubTexts();
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {BENCHMARK_SECONDS.flatMap((seconds) => {
@@ -583,7 +586,7 @@ function PowerBenchmarks({
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {percentile == null
-                ? "Geen ZWB-vergelijking"
+                ? `Geen ${clubTexts.shortName}-vergelijking`
                 : `Hoger dan ${percentile}% van ${clubValues.length} profiel${
                     clubValues.length === 1 ? "" : "en"
                   }`}

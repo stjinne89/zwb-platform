@@ -22,6 +22,8 @@ import { ClubCalendarButton, ScanButton } from "./_components/scan-button";
 import { IntegrationHealth } from "./_components/integration-health";
 import { adminAreaPermission } from "@/lib/admin-areas";
 import { getRequestAccess } from "@/lib/auth/request";
+import { ClubShortName } from "@/components/club-texts-provider";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -95,6 +97,7 @@ function firstParam(
 }
 
 export default async function EventScanPage({ searchParams }: PageProps) {
+  const clubTexts = (await getClub()).texts;
   const params = (await searchParams) ?? {};
   const scanStatus = firstParam(params, "scan");
   const scanFound = firstParam(params, "found");
@@ -154,7 +157,7 @@ export default async function EventScanPage({ searchParams }: PageProps) {
       <section className="flex flex-wrap items-center gap-2">
         <form action={followZwbMembersAction}>
           <Button type="submit" variant="outline" size="sm">
-            ZWB-leden volgen
+            <ClubShortName />-leden volgen
           </Button>
         </form>
         <form action={testZwiftClubConnection}>
@@ -207,7 +210,7 @@ export default async function EventScanPage({ searchParams }: PageProps) {
           {scanStatus === "ok" && (
             <p>
               Scan klaar: {scanFound ?? 0} gevonden, {scanSaved ?? 0} opgeslagen
-              {scanAuto ? `, ${scanAuto} automatisch als ZWB herkend` : ""}.
+              {scanAuto ? `, ${scanAuto} automatisch als ${clubTexts.shortName} herkend` : ""}.
             </p>
           )}
           {scanStatus === "empty" && <p>Scan klaar: geen events gevonden.</p>}
@@ -319,7 +322,7 @@ function CandidateItem({
         </p>
         {participants.length > 0 && (
           <p className="mt-1 text-sm">
-            <span className="font-medium">ZWB: </span>
+            <span className="font-medium"><ClubShortName />: </span>
             {participants
               .map((participant) =>
                 participant.category

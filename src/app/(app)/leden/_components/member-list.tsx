@@ -7,6 +7,7 @@ import { AchievementBadge } from "@/components/achievement-badge";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { Button } from "@/components/ui/button";
 import { RoleEditor } from "./role-editor";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 export type MemberAwardBadge = {
   id: string;
@@ -58,6 +59,7 @@ export function MemberList({
   canManageRoles: boolean;
   canGrantBoard: boolean;
 }) {
+  const clubTexts = useClubTexts();
   const [region, setRegion] = useState<string>("");
   const [zrlSet, setZrlSet] = useState<Set<string>>(() => new Set());
 
@@ -165,10 +167,10 @@ export function MemberList({
                   }`}
                   aria-label={
                     p.zwb
-                      ? `Bekijk profiel van ${p.display_name} — ZWBeterWorden: ${p.zwb.title}`
+                      ? `Bekijk profiel van ${p.display_name} — ${clubTexts.words.adviesnaam}: ${p.zwb.title}`
                       : `Bekijk profiel van ${p.display_name}`
                   }
-                  title={p.zwb ? `ZWBeterWorden: ${p.zwb.title}` : undefined}
+                  title={p.zwb ? `${clubTexts.words.adviesnaam}: ${p.zwb.title}` : undefined}
                 >
                   {p.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element

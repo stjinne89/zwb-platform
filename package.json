@@ -57,6 +57,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-tools": "0.4.8",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/mapbox__polyline": "^1.0.5",

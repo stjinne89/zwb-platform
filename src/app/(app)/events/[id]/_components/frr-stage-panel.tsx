@@ -25,6 +25,7 @@ import {
 import { FrrExcludeToggle } from "./frr-exclude";
 import { FrrFollowForm, FrrFollowToggle } from "./frr-follow";
 import { FrrZwbStageSwitch } from "./frr-zwb-stage-switch";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
 
@@ -221,7 +222,7 @@ export async function FrrStagePanel({
       {stageViews.length === 0 && zwbStandings.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            ZWB in het klassement{afterStage ? ` · na etappe ${afterStage}` : ""}
+            <ClubShortName /> in het klassement{afterStage ? ` · na etappe ${afterStage}` : ""}
           </h2>
           <FrrZwbStandingsList
             standings={zwbStandings}

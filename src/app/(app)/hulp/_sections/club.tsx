@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { GuideCards } from "./guide-cards";
 import { HelpVideoLink } from "./help-video";
-import { ClubShortName, ModuleName } from "@/components/club-texts-provider";
+import { ClubShortName, ClubText, ModuleName } from "@/components/club-texts-provider";
 
 export function ClubHelp() {
   return (
@@ -292,7 +292,7 @@ export function ClubHelp() {
               <strong className="text-foreground">Insturen.</strong> Kies
               Verhaal insturen onder Club &rarr; Clubverhaal, of Vertel jouw
               verhaal op /verhaal. Geef een titel en vertel je verhaal in een
-              of meer hoofdstukken (hooguit acht). Het jaar, een ZWBeker en
+              of meer hoofdstukken (hooguit acht). Het jaar, een <ClubText text="{beker}" /> en
               hooguit zes foto&apos;s met onderschrift zijn niet verplicht.
             </span>
           </li>
@@ -332,7 +332,7 @@ export function ClubHelp() {
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
               <strong className="text-foreground">Bij een beker.</strong> Kies
-              je een ZWBeker, dan linkt de beker naar je verhaal en het verhaal
+              je een <ClubText text="{beker}" />, dan linkt de beker naar je verhaal en het verhaal
               naar de beker. Bij een beker staat ook Vertel het verhaal.
             </span>
           </li>

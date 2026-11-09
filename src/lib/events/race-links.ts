@@ -11,7 +11,7 @@ export type EventLinkKind = (typeof EVENT_LINK_KINDS)[number];
 export const EVENT_LINK_KIND_LABELS: Record<EventLinkKind, string> = {
   recon: "Recon",
   zwiftinsider: "ZwiftInsider",
-  zwb: "ZWB-website",
+  zwb: "{kort}-website",
   overig: "Overig",
 };
 

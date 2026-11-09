@@ -37,13 +37,20 @@ function decodeEntities(s: string): string {
 
 export async function fetchLadderGraveyard(
   cookie: string,
+  /**
+   * Korte clubnaam en website voor de user agent. Als parameter, want dit
+   * bestand komt via club-ladder/rules ook in de browser (geen lib/club hier).
+   */
+  club: { shortName: string; websiteUrl: string | null },
 ): Promise<LadderGraveyardResult> {
+  const clubShort = club.shortName;
+  const clubSite = club.websiteUrl ? `; +${club.websiteUrl}` : "";
   const res = await fetch(GRAVEYARD_URL, {
     headers: {
       Cookie: cookie,
       Accept: "text/html,application/xhtml+xml",
       "User-Agent":
-        "Mozilla/5.0 (compatible; ZWB-Platform Ladder sync; +https://zwbcycling.nl)",
+        `Mozilla/5.0 (compatible; ${clubShort}-Platform Ladder sync${clubSite})`,
       Referer: "https://ladder.cycleracing.club/",
     },
     redirect: "manual",

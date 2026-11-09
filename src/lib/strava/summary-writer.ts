@@ -47,6 +47,7 @@ import {
   composeDescription,
   pickPlannedWorkout,
   stripZwbSummary,
+  summaryHeader,
   summaryHash,
   type BriljantSummary,
 } from "@/lib/training/strava-summary";
@@ -65,6 +66,7 @@ import {
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
+import { getClub } from "@/lib/club";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -162,6 +164,7 @@ export async function writeZwbSummariesForUser(
   accessToken: string,
   options: { maxWrites?: number; maxAgeHours?: number } = {},
 ): Promise<SummaryWriteResult> {
+  const clubTexts = (await getClub()).texts;
   const maxWrites = Math.max(0, options.maxWrites ?? 1);
   const since = summarySinceDate();
   if (maxWrites === 0 || !since) return EMPTY_RESULT;
@@ -330,6 +333,8 @@ export async function writeZwbSummariesForUser(
         )
       : null;
     const block = buildZwbSummaryBlock({
+      briljantName: clubTexts.modules.rennersniveau,
+      betterWord: clubTexts.words.beter,
       activityId: candidate.id,
       plannedTitle: matchedWorkout?.title ?? null,
       plannedIntensity: matchedWorkout?.intensity ?? null,
@@ -377,7 +382,11 @@ export async function writeZwbSummariesForUser(
       continue;
     }
 
-    const base = stripZwbSummary(detail.detail.description, existing?.summary_text);
+    const base = stripZwbSummary(
+      detail.detail.description,
+      existing?.summary_text,
+      summaryHeader(clubTexts.words.beter),
+    );
     const next = composeDescription(base, block);
     if (next === (detail.detail.description ?? "")) {
       // Staat er al goed. Claim bevestigen zonder Strava-call.

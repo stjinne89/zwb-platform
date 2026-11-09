@@ -4,6 +4,7 @@ import { storeLadderResults } from "@/lib/club-ladder/store";
 import { syncLadderFixtures, type LadderFixtureSyncResult } from "@/lib/club-ladder/fixture-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ladderCookie, normalizeTeamName } from "@/lib/ladder";
+import { getClub } from "@/lib/club";
 
 type SourceTeam = {
   name?: string | null;
@@ -79,88 +80,11 @@ type SyncSourceOutcome = {
 
 export type TeamResultsSyncSummary = {
   ok: boolean;
-  teamsCreated: number;
-  sourcesCreated: number;
   insertedOrUpdated: number;
   sources: SyncSourceOutcome[];
   /** Wedstrijden van de Club Ladder als event (0300); null zonder ladderbron. */
   ladderFixtures?: LadderFixtureSyncResult | { error: string } | null;
 };
-
-type TeamSeed = {
-  name: string;
-  type: "zrl" | "ladder" | "social" | "outdoor";
-  division: string | null;
-  description: string;
-};
-
-type SourceSeed = {
-  teamName: string;
-  provider: SourceRow["provider"];
-  sourceUrl: string;
-  matchName: string;
-};
-
-const WTRL_RESULTS_URL = "https://www.wtrl.racing/zwift-racing-league/results/";
-const CLUB_LADDER_URL = "https://ladder.cycleracing.club/summary";
-
-const DEFAULT_TEAM_SEEDS: TeamSeed[] = [
-  {
-    name: "ZRL B",
-    type: "zrl",
-    division: "B",
-    description: "ZWB ZRL B - race-categorie B",
-  },
-  {
-    name: "ZRL C",
-    type: "zrl",
-    division: "C",
-    description: "ZWB ZRL C - race-categorie C",
-  },
-  {
-    name: "ZRL Zwiftladies",
-    type: "zrl",
-    division: "Women",
-    description: "ZWB Zwiftladies in ZRL",
-  },
-  {
-    name: "ZWBeasts",
-    type: "ladder",
-    division: "Diamond-Ruby",
-    description: "ZWB Club Ladder team Diamond-Ruby",
-  },
-  {
-    name: "ZWBullets",
-    type: "ladder",
-    division: "Ruby-Sapphire",
-    description: "ZWB Club Ladder team Ruby-Sapphire",
-  },
-  {
-    name: "ZWBandits",
-    type: "ladder",
-    division: "Sapphire-Platinum",
-    description: "ZWB Club Ladder team Sapphire-Platinum",
-  },
-  {
-    // Heette ZWB Zwiftladies (tot 0295).
-    name: "ZWBeauties",
-    type: "ladder",
-    division: "Amethyst-Gold",
-    description: "ZWB Club Ladder team Amethyst-Gold",
-  },
-];
-
-const DEFAULT_SOURCE_SEEDS: SourceSeed[] = [
-  { teamName: "ZRL B", provider: "wtrl", sourceUrl: WTRL_RESULTS_URL, matchName: "ZWB Cycling B1" },
-  { teamName: "ZRL C", provider: "wtrl", sourceUrl: WTRL_RESULTS_URL, matchName: "ZWB Cycling C1" },
-  { teamName: "ZRL Zwiftladies", provider: "wtrl", sourceUrl: WTRL_RESULTS_URL, matchName: "ZWB Zwiftladies" },
-  { teamName: "ZWBeasts", provider: "club_ladder", sourceUrl: CLUB_LADDER_URL, matchName: "ZWBeasts" },
-  { teamName: "ZWBullets", provider: "club_ladder", sourceUrl: CLUB_LADDER_URL, matchName: "ZWBullets" },
-  { teamName: "ZWBandits", provider: "club_ladder", sourceUrl: CLUB_LADDER_URL, matchName: "ZWBandits" },
-  { teamName: "ZWBeauties", provider: "club_ladder", sourceUrl: CLUB_LADDER_URL, matchName: "ZWBeauties" },
-];
-
-const LEGACY_WTRL_SOURCE_NAMES = ["ZRL B", "ZRL C"];
 
 // WTRL verbiedt het aanroepen van hun endpoints van buiten wtrl.racing zonder
 // schriftelijke toestemming, en blokkeert de sync met HTTP 429. Tot er
@@ -180,128 +104,6 @@ function asQuery<T>(value: unknown) {
   return value as Promise<{ data: T | null; error: { message: string } | null }>;
 }
 
-function syncError(message: string, context: string) {
-  if (message.includes("team_result_sources") && message.includes("does not exist")) {
-    return new Error(
-      `${context}: tabel team_result_sources ontbreekt. Voer Supabase migratie 0009 uit.`,
-    );
-  }
-
-  if (message.toLowerCase().includes("row-level security")) {
-    return new Error(`${context}: Supabase RLS blokkeert deze actie. Sync als admin.`);
-  }
-
-  return new Error(`${context}: ${message}`);
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function findTeamByName(supabase: any, name: string) {
-  return await asQuery<{ id: string }>(
-    supabase.from("teams").select("id").ilike("name", name).limit(1).maybeSingle(),
-  );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function ensureDefaultTeamsAndSources(supabase: any) {
-  const teamIds = new Map<string, string>();
-  let teamsCreated = 0;
-  let sourcesCreated = 0;
-
-  for (const seed of DEFAULT_TEAM_SEEDS) {
-    const existing = await findTeamByName(supabase, seed.name);
-    if (existing.error) {
-      throw syncError(existing.error.message, `Team "${seed.name}" opzoeken`);
-    }
-
-    if (existing.data?.id) {
-      teamIds.set(seed.name, existing.data.id);
-      continue;
-    }
-
-    const inserted = await asQuery<{ id: string }>(
-      supabase
-        .from("teams")
-        .insert({
-          name: seed.name,
-          type: seed.type,
-          division: seed.division,
-          description: seed.description,
-        })
-        .select("id")
-        .single(),
-    );
-
-    if (inserted.error) {
-      throw syncError(inserted.error.message, `Team "${seed.name}" aanmaken`);
-    }
-    if (inserted.data?.id) {
-      teamIds.set(seed.name, inserted.data.id);
-      teamsCreated += 1;
-    }
-  }
-
-  for (const seed of DEFAULT_SOURCE_SEEDS) {
-    if (seed.provider === "wtrl" && !wtrlSyncEnabled()) continue;
-    const teamId = teamIds.get(seed.teamName);
-    if (!teamId) continue;
-
-    const existing = await asQuery<{ id: string }>(
-      supabase
-        .from("team_result_sources")
-        .select("id")
-        .eq("team_id", teamId)
-        .eq("provider", seed.provider)
-        .ilike("match_name", seed.matchName)
-        .limit(1)
-        .maybeSingle(),
-    );
-
-    if (existing.error) {
-      throw syncError(
-        existing.error.message,
-        `Bron "${seed.matchName}" voor "${seed.teamName}" opzoeken`,
-      );
-    }
-    if (existing.data?.id) continue;
-
-    const inserted = await asQuery<{ id: string }>(
-      supabase
-        .from("team_result_sources")
-        .insert({
-          team_id: teamId,
-          provider: seed.provider,
-          source_url: seed.sourceUrl,
-          match_name: seed.matchName,
-          enabled: true,
-        })
-        .select("id")
-        .single(),
-    );
-
-    if (inserted.error) {
-      throw syncError(
-        inserted.error.message,
-        `Bron "${seed.matchName}" voor "${seed.teamName}" koppelen`,
-      );
-    }
-    if (inserted.data?.id) sourcesCreated += 1;
-  }
-
-  const disableLegacy = await asQuery<unknown>(
-    supabase
-      .from("team_result_sources")
-      .update({ enabled: false })
-      .eq("provider", "wtrl")
-      .in("match_name", LEGACY_WTRL_SOURCE_NAMES),
-  );
-
-  if (disableLegacy.error) {
-    throw syncError(disableLegacy.error.message, "Verouderde WTRL-bronnen uitschakelen");
-  }
-
-  return { teamsCreated, sourcesCreated };
-}
-
 function normalize(value: string) {
   return value.trim().toLowerCase();
 }
@@ -310,10 +112,10 @@ function absoluteWtrlUrl(path: string) {
   return path.startsWith("http") ? path : `https://www.wtrl.racing${path}`;
 }
 
-function fetchHeaders(provider: SourceRow["provider"]): HeadersInit {
+function fetchHeaders(provider: SourceRow["provider"], clubShort: string): HeadersInit {
   const headers: Record<string, string> = {
     Accept: "application/json, text/html;q=0.9, */*;q=0.8",
-    "User-Agent": "ZWB Platform result sync",
+    "User-Agent": `${clubShort} Platform result sync`,
   };
 
   if (provider === "wtrl" && process.env.WTRL_COOKIE) {
@@ -333,7 +135,7 @@ async function fetchText(source: SourceRow, url = source.source_url) {
   await assertSafeUrl(url); // SSRF-bescherming: blokkeer interne/private adressen
   const res = await fetch(url, {
     cache: "no-store",
-    headers: fetchHeaders(source.provider),
+    headers: fetchHeaders(source.provider, (await getClub()).texts.shortName),
   });
 
   if (!res.ok) {
@@ -413,28 +215,6 @@ function wtrlClassString(competition: string, league: string, divisionCombined: 
   return `${competition.charAt(0)}${league}${division}${divnum}${competition.slice(-1)}`;
 }
 
-function knownWtrlCandidates(source: SourceRow): WtrlCandidate[] {
-  const match = normalize(source.match_name);
-
-  if (match === "zwb cycling b1") {
-    return [
-      {
-        competitionValue: "250",
-        competitionLabel: "2025/26 Round 4",
-        leagueValue: "350",
-        leagueLabel: "Regular",
-        divisionValue: "B1",
-        divisionLabel: "B1",
-        raceValue: "4",
-        raceLabel: "Race 4",
-        classStr: "2350B10",
-      },
-    ];
-  }
-
-  return [];
-}
-
 function rosterFromWtrlRow(
   source: SourceRow,
   row: Record<string, unknown>,
@@ -506,9 +286,10 @@ function resultFromWtrlRow(
   row: Record<string, unknown>,
   sourceUrl: string,
   fallbackRoundLabel: string,
+  club: ClubNames,
 ) {
   const teamName = stringValue(row, ["teamname", "d", "team", "name"]);
-  if (!teamName || !teamNameMatches(teamName, source.match_name)) {
+  if (!teamName || !teamNameMatches(teamName, source.match_name, club)) {
     return null;
   }
 
@@ -533,14 +314,19 @@ function resultFromWtrlRow(
   };
 }
 
-function teamNameMatches(candidate: string, expected: string) {
+/** De clubnaam en de korte naam, om "ZWB Cycling B1" en "ZWB B1" gelijk te zien. */
+type ClubNames = { name: string; shortName: string };
+
+function teamNameMatches(candidate: string, expected: string, club: ClubNames) {
   const a = normalize(candidate);
   const b = normalize(expected);
-  const aliases = new Set([
-    b,
-    b.replace(/^zwb cycling\s+/, "zwb "),
-    b.replace(/^zwb\s+/, "zwb cycling "),
-  ]);
+  const full = normalize(club.name);
+  const short = normalize(club.shortName);
+  const aliases = new Set([b]);
+  if (full && short && full !== short) {
+    if (b.startsWith(`${full} `)) aliases.add(`${short} ${b.slice(full.length + 1)}`);
+    else if (b.startsWith(`${short} `)) aliases.add(`${full} ${b.slice(short.length + 1)}`);
+  }
 
   return Array.from(aliases).some((alias) => a.includes(alias) || alias.includes(a));
 }
@@ -608,6 +394,7 @@ function likelyWtrlCandidates(
 }
 
 async function syncWtrlSource(source: SourceRow) {
+  const club = (await getClub()).texts;
   const results: ParsedResult[] = [];
   const configuredUrl = source.source_url;
 
@@ -620,7 +407,7 @@ async function syncWtrlSource(source: SourceRow) {
   if (configuredUrl.includes("/api/zrl/")) {
     const json = JSON.parse(await fetchText(source, configuredUrl));
     for (const row of parsePayloadRows(json.payload ?? json)) {
-      const parsed = resultFromWtrlRow(source, row, configuredUrl, "WTRL API");
+      const parsed = resultFromWtrlRow(source, row, configuredUrl, "WTRL API", club);
       if (parsed) results.push(parsed);
     }
     return results;
@@ -636,7 +423,6 @@ async function syncWtrlSource(source: SourceRow) {
 
   const seenCandidates = new Set<string>();
   const candidates = [
-    ...knownWtrlCandidates(source),
     ...likelyWtrlCandidates(competitions, source),
   ].filter((candidate) => {
     const key = `${candidate.classStr}:${candidate.raceValue}`;
@@ -654,7 +440,7 @@ async function syncWtrlSource(source: SourceRow) {
     const candidateResults: ParsedResult[] = [];
 
     for (const row of parsePayloadRows(json.payload ?? json)) {
-      const parsed = resultFromWtrlRow(source, row, leagueUrl, roundLabel);
+      const parsed = resultFromWtrlRow(source, row, leagueUrl, roundLabel, club);
       if (parsed) candidateResults.push(parsed);
     }
 
@@ -666,7 +452,7 @@ async function syncWtrlSource(source: SourceRow) {
       try {
         const raceJson = JSON.parse(await fetchText(source, resultUrl));
         for (const row of parsePayloadRows(raceJson.payload ?? raceJson)) {
-          const raceResult = resultFromWtrlRow(source, row, resultUrl, roundLabel);
+          const raceResult = resultFromWtrlRow(source, row, resultUrl, roundLabel, club);
           if (!raceResult?.rosterEntries?.length) continue;
 
           const target =
@@ -674,7 +460,7 @@ async function syncWtrlSource(source: SourceRow) {
               (result) =>
                 result.notes &&
                 raceResult.notes &&
-                teamNameMatches(result.notes, raceResult.notes),
+                teamNameMatches(result.notes, raceResult.notes, club),
             ) ?? candidateResults[0];
 
           target.rosterEntries = raceResult.rosterEntries;
@@ -1033,7 +819,6 @@ export async function syncTeamResults(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
 ): Promise<TeamResultsSyncSummary> {
-  const defaults = await ensureDefaultTeamsAndSources(supabase);
   const { data, error } = await supabase
     .from("team_result_sources")
     .select("id, team_id, provider, source_url, match_name, teams(name, type, division, is_graveyard)")
@@ -1129,8 +914,6 @@ export async function syncTeamResults(
 
   return {
     ok: outcomes.every((source) => !source.error),
-    teamsCreated: defaults.teamsCreated,
-    sourcesCreated: defaults.sourcesCreated,
     insertedOrUpdated,
     sources: outcomes,
     ladderFixtures,

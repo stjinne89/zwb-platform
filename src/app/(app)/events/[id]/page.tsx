@@ -99,6 +99,9 @@ import { TIP_COLUMNS, loadMembers, loadTopicCatalog, type TipRow } from "@/lib/z
 import { topicLabels } from "@/lib/zwbieb/topics";
 import { VanLeden } from "./_components/van-leden";
 import { eventRouteSize, eventRouteSizeLabel } from "@/lib/events/route-size";
+import { ClubShortName, MemberNoun } from "@/components/club-texts-provider";
+import { getClub } from "@/lib/club";
+import { fillClubText } from "@/lib/club-texts";
 
 type RsvpStatus = "yes" | "maybe" | "no";
 type TeamAvailabilityStatus = "available" | "maybe" | "unavailable";
@@ -239,6 +242,7 @@ export default async function EventDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const clubTexts = (await getClub()).texts;
   const { id } = await params;
   const supabase = await createClient();
 
@@ -806,7 +810,10 @@ export default async function EventDetailPage({
     ((linkRows ?? []) as Array<EventLinkRow & { event_id: string }>).filter(
       (row) => row.event_id === eventId,
     );
-  const ownLinks = mergeLinks(linksOf(event.id), linksOf(event.parent_event_id));
+  const ownLinks = mergeLinks(linksOf(event.id), linksOf(event.parent_event_id)).map((link) => ({
+    ...link,
+    label: fillClubText(link.label, clubTexts),
+  }));
   const raceLinks = [
     ...(event.type === "ladder" ? ladderRaceLinks(event, ownLinks) : []),
     ...ownLinks,
@@ -961,10 +968,10 @@ export default async function EventDetailPage({
 
   // Ritverslagen + reacties → genest profielnaam uitpakken.
   const nameOf = (rel: unknown): string => {
-    if (!rel) return "ZWB'er";
+    if (!rel) return clubTexts.memberNoun;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const single = Array.isArray(rel) ? (rel as any[])[0] : (rel as any);
-    return (single?.display_name as string) ?? "ZWB'er";
+    return (single?.display_name as string) ?? clubTexts.memberNoun;
   };
   const eventReports: EventReport[] = (
     (reportRows ?? []) as Array<{
@@ -1142,7 +1149,7 @@ export default async function EventDetailPage({
       id: s.id,
       profileId: s.profile_id,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      profileName: ((s.profiles as any)?.display_name as string) ?? "ZWB'er",
+      profileName: ((s.profiles as any)?.display_name as string) ?? clubTexts.memberNoun,
       source: (s.source ?? "manual") as EventLiveSession["source"],
       externalTrackUrl: s.external_track_url ?? null,
       startedAt: s.started_at,
@@ -1348,7 +1355,7 @@ export default async function EventDetailPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-              {eventLabel(event.type, event.kind)}
+              {fillClubText(eventLabel(event.type, event.kind), clubTexts)}
             </span>
             <ProgramBadges programs={programs} />
             {ladderTeam && (
@@ -1525,7 +1532,7 @@ export default async function EventDetailPage({
                     >
                       {slot.label}
                       {slot.zwb.length > 0 && (
-                        <span className="text-muted-foreground"> · {slot.zwb.length} ZWB</span>
+                        <span className="text-muted-foreground"> · {slot.zwb.length} <ClubShortName /></span>
                       )}
                     </Link>
                   ))}
@@ -1861,7 +1868,7 @@ export default async function EventDetailPage({
         <section className="space-y-3 rounded-lg border bg-card p-4">
           <header className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Uitslag — ZWB&apos;ers{" "}
+              Uitslag — <MemberNoun plural />{" "}
               {results.length > 0 && (
                 <span className="text-muted-foreground">({results.length})</span>
               )}
@@ -1920,7 +1927,7 @@ export default async function EventDetailPage({
                       )}
                       {r.matchedVia === "zwb_mention" && (
                         <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
-                          ZWB
+                          <ClubShortName />
                         </span>
                       )}
                       {r.isManual && (

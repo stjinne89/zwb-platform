@@ -108,7 +108,7 @@ export function buildIcsCalendar({ name, items, now = new Date() }: IcsCalendar)
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//ZWB//Agenda//NL",
+    `PRODID:-//${name}//Agenda//NL`,
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${escapeIcsText(name)}`,

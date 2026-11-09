@@ -12,6 +12,7 @@ import { WELLNESS_DEVICES } from "@/lib/training/wellness";
 import { EVENT_INTEREST_OPTIONS } from "@/lib/event-types";
 import { HOUSEHOLD_MAX, HOUSEHOLD_MOMENTS } from "@/lib/nutrition/shopping";
 import { syncPowerProfileFor } from "@/lib/teams/power-sync";
+import { isDashboardPartKey } from "@/lib/dashboard-parts";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
@@ -239,6 +240,26 @@ export async function updateProfile(formData: FormData) {
         .upsert({ profile_id: user.id, visible: false }, { onConflict: "profile_id" });
   if (briljantError) return { ok: false as const, error: briljantError.message };
 
+  // Dashboard: wat het formulier aanbood en niet aangevinkt is, is verborgen.
+  // Zolang 0318 er niet is, blokkeert alleen iets verbergen het opslaan.
+  const shown = new Set(formData.getAll("dashboard_show").map(String));
+  const dashboardHidden = [
+    ...new Set(formData.getAll("dashboard_offered").map(String).filter(isDashboardPartKey)),
+  ].filter((key) => !shown.has(key));
+  const { error: dashboardError } = await supabase
+    .from("profile_stats_tiles")
+    .upsert(
+      {
+        profile_id: user.id,
+        dashboard_hidden: dashboardHidden,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "profile_id" },
+    );
+  if (dashboardError && dashboardHidden.length > 0) {
+    return { ok: false as const, error: dashboardError.message };
+  }
+
   // Ander geslacht: de SRC-inschrijving van deze en komende maanden gaat mee
   // naar de heren- of damesrace. Mislukt dat, dan blijft het profiel opgeslagen.
   if ((before?.sex ?? null) !== sex) {
@@ -269,6 +290,7 @@ export async function updateProfile(formData: FormData) {
   }
 
   revalidatePath("/profiel");
+  revalidatePath("/dashboard");
   revalidatePath("/stats/zwbriljant");
   revalidatePath("/zwbeter-worden/voeding", "layout");
   revalidatePath("/leden");

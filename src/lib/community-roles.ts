@@ -51,13 +51,13 @@ export const COMMUNITY_ROLE_META: Record<CommunityRole, CommunityRoleMeta> = {
   paying_member: {
     label: "Betalend lid",
     shortLabel: "Betalend",
-    description: "Lid met betaalde ZWB-lidmaatschapsstatus.",
+    description: "Lid met betaalde {kort}-lidmaatschapsstatus.",
     className: "border-foreground/15 bg-card text-foreground",
   },
   community_member: {
     label: "Communitylid",
     shortLabel: "Community",
-    description: "Basisrol voor iedereen in de ZWB-community.",
+    description: "Basisrol voor iedereen in de {kort}-community.",
     className: "border-muted bg-muted text-muted-foreground",
   },
 };

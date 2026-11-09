@@ -38,6 +38,8 @@ import {
   amsterdamDateKey,
   nextBirthdayOccurrence,
 } from "@/lib/birthdays";
+import { getClub } from "@/lib/club";
+import { fillClubText } from "@/lib/club-texts";
 
 const HISTORY_DAYS = 365;
 // De kalender toont alleen vandaag en later; voorbije events worden alleen
@@ -100,6 +102,7 @@ export default async function KalenderPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const clubTexts = (await getClub()).texts;
   const params = await searchParams;
   const onlyForMe = params.voor === "mij";
   const excludedTypes = parseTypeFilter(params.zonder);
@@ -346,7 +349,7 @@ export default async function KalenderPage({
       axis: "type" as const,
       options: EVENT_TYPES.map((entry) => ({
         value: entry.value,
-        label: entry.label,
+        label: fillClubText(entry.label, clubTexts),
         count: typeCounts.get(entry.value) ?? 0,
         dot: eventTypeColor(entry.value),
       })).filter(present),
@@ -545,7 +548,7 @@ export default async function KalenderPage({
       color: eventColor(event.type),
       ...dayOf(new Date(event.start_at)),
       title: event.title,
-      sub: ["geweest", eventLabel(event.type, event.kind), event.location]
+      sub: ["geweest", fillClubText(eventLabel(event.type, event.kind), clubTexts), event.location]
         .filter(Boolean)
         .join(" · "),
     }));
@@ -578,7 +581,7 @@ export default async function KalenderPage({
         ...dayOf(new Date(event.start_at)),
         title: event.title,
         sub: [
-          eventLabel(event.type, event.kind),
+          fillClubText(eventLabel(event.type, event.kind), clubTexts),
           workoutByEvent.has(event.id)
             ? `jouw training${
                 workoutByEvent.get(event.id)?.duration_minutes

@@ -18,6 +18,7 @@ import {
   type ClubEntrant,
   type ClubEventResult,
 } from "@/lib/events/zwift-club";
+import { getClub } from "@/lib/club";
 
 export type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -192,6 +193,7 @@ export async function saveConfirmedZwiftCandidate(
 // minstens één ZWB'er zich op inschreef worden als bevestigd concept bewaard,
 // met de ingeschreven ZWB'ers als deelnemer (match op Zwift-ID).
 async function syncZwiftFeed(admin: AdminClient, deadline: number | null) {
+  const clubTexts = (await getClub()).texts;
   if (!zwiftClubConfigured()) return { events: 0, members: 0, note: null as string | null };
 
   const feed = await fetchFeedEvents();
@@ -225,7 +227,7 @@ async function syncZwiftFeed(admin: AdminClient, deadline: number | null) {
     events: savedEvents,
     members: totalMembers,
     note:
-      `Zwift-feedsync: ${savedEvents} events met ZWB-deelname, ${totalMembers} koppelingen.` +
+      `Zwift-feedsync: ${savedEvents} events met ${clubTexts.shortName}-deelname, ${totalMembers} koppelingen.` +
       (skipped > 0 ? ` ${skipped} events niet bekeken (tijdsbudget).` : ""),
   };
 }
@@ -248,6 +250,7 @@ async function saveScannedCandidates(
   let error: string | null = null;
   const scan = await scanExternalEvents();
   notes.push(...scan.notes);
+  const markers = (await getClub()).recognition.eventMarkers;
 
   const now = new Date().toISOString();
   // Alleen ZWB-relevante events bewaren: events die op een ZWB-marker matchen.
@@ -255,7 +258,7 @@ async function saveScannedCandidates(
     .filter(
       (candidate) =>
         allowedExternalUrl(candidate.externalUrl) &&
-        detectZwbMatchStatus(candidate) !== null,
+        detectZwbMatchStatus(candidate, markers) !== null,
     )
     .map((candidate) => ({
       source: candidate.source,
@@ -284,7 +287,7 @@ async function saveScannedCandidates(
         .map((candidate) => ({
           source: candidate.source,
           externalId: candidate.externalId,
-          status: detectZwbMatchStatus(candidate),
+          status: detectZwbMatchStatus(candidate, markers),
         }))
         .filter((detection) => detection.status !== null);
       for (const status of ["likely", "confirmed"] as const) {

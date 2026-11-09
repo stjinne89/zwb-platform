@@ -69,6 +69,7 @@ import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { getRequestUser } from "@/lib/auth/request";
 import { getClub } from "@/lib/club";
+import { instagramProfileUrl } from "@/lib/instagram";
 import { points as briljantPoints, positionFor as briljantPosition } from "@/lib/briljant/score";
 import { SCALE_VERSION as BRILJANT_SCALE } from "@/lib/briljant/norms";
 import { storedScore as briljantStoredScore } from "@/lib/briljant/compare";
@@ -87,6 +88,7 @@ import {
   type VandaagLiveEvent,
   type VandaagWorkout,
 } from "@/components/tegels/vandaag";
+import { parseDashboardHidden, type DashboardPartKey } from "@/lib/dashboard-parts";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { liveRidersLabel } from "@/lib/live/riders-label";
 import { loadWeightMissing } from "@/lib/teams/missing-weight";
@@ -97,6 +99,7 @@ import {
   type LiveRider,
   type RunningEvent,
 } from "@/lib/live/event-riders";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 const INSTAGRAM_NON_POST_SOURCES = [INSTAGRAM_STORY_SOURCE, INSTAGRAM_TAG_HIDDEN_SOURCE];
 
@@ -250,8 +253,8 @@ function singleProfileName(rel: ProfileRef | ProfileRef[] | null): string | null
   return single?.display_name ?? null;
 }
 
-function activityProfile(row: ClubActivityRow): string {
-  return singleProfileName(row.profiles) ?? "ZWB'er";
+function activityProfile(row: ClubActivityRow, fallback: string): string {
+  return singleProfileName(row.profiles) ?? fallback;
 }
 
 function toNumber(value: number | string | null | undefined): number {
@@ -406,6 +409,7 @@ async function loadLiveNow(
   supabase: Awaited<ReturnType<typeof createClient>>,
   viewerId: string,
 ): Promise<{ together: VandaagLive | null; events: VandaagLiveEvent[] }> {
+  const clubTexts = (await getClub()).texts;
   await refreshExternalLiveSessions({ detect: false });
   const now = Date.now();
   const cutoff = new Date(now - 15 * 60 * 1000).toISOString();
@@ -419,7 +423,7 @@ async function loadLiveNow(
   const byProfile = new Map<string, LiveRider>();
   for (const row of data ?? []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const name = ((row.profiles as any)?.display_name as string) ?? "ZWB'er";
+    const name = ((row.profiles as any)?.display_name as string) ?? clubTexts.memberNoun;
     const profileId = row.profile_id as string;
     if (!byProfile.has(profileId)) {
       byProfile.set(profileId, { profileId, name, sessionStartedAt: row.started_at as string });
@@ -484,6 +488,7 @@ export default async function DashboardPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const clubTexts = (await getClub()).texts;
   // De Strava-koppeling komt hier terug uit OAuth; de melding hoort dus ook
   // hier, bij de knop die het lid net gebruikte.
   const params = (await searchParams) ?? {};
@@ -498,6 +503,21 @@ export default async function DashboardPage({
   // blok zonder data valt hieronder vanzelf weg.
   const on = club.isEnabled;
   const skip = () => Promise.resolve({ data: null });
+  // Wat het lid op het profiel verborgen heeft (0318). Loopt mee met de grote
+  // ronde hieronder; zonder migratie of bij een fout is niets verborgen.
+  const hiddenPromise: Promise<Set<DashboardPartKey>> = user
+    ? Promise.resolve(
+        supabase
+          .from("profile_stats_tiles")
+          .select("dashboard_hidden")
+          .eq("profile_id", user.id)
+          .maybeSingle(),
+      ).then(
+        ({ data }) =>
+          parseDashboardHidden((data as { dashboard_hidden?: unknown } | null)?.dashboard_hidden),
+        () => new Set<DashboardPartKey>(),
+      )
+    : Promise.resolve(new Set<DashboardPartKey>());
   // Elke databasevraag is een oversteek (functies in Ohio, database in Ierland), dus
   // wat niet van elkaar afhangt, vertrekt tegelijk: de ritbron loopt mee met de
   // grote ronde hieronder in plaats van ervoor en erna.
@@ -506,8 +526,15 @@ export default async function DashboardPage({
     : Promise.resolve(null);
   // Wie er nu live rijdt, voor de tegel Samen fietsen. Loopt mee met de rest,
   // want Garmin en Wahoo eerst bijwerken kost een oversteek.
+  // Wie beide eventgroepen verborgen heeft, hoeft niet te weten wie er rijdt.
   const livePromise = (
-    user && on("samen_fietsen") ? loadLiveNow(supabase, user.id) : Promise.resolve(null)
+    user && on("samen_fietsen")
+      ? hiddenPromise.then((hidden) =>
+          hidden.has("mijn_events") && hidden.has("overige_events")
+            ? null
+            : loadLiveNow(supabase, user.id),
+        )
+      : Promise.resolve(null)
   ).catch(() => null);
 
   const nowIso = new Date().toISOString();
@@ -548,6 +575,7 @@ export default async function DashboardPage({
     { data: instagramRows },
     { data: zrlResultRows },
     needsWeight,
+    hidden,
   ] = await Promise.all([
     user
       ? supabase
@@ -662,7 +690,9 @@ export default async function DashboardPage({
       .order("computed_at", { ascending: false })
       .limit(40),
     user ? loadWeightMissing(supabase, user.id, { inTeam: true }) : Promise.resolve(false),
+    hiddenPromise,
   ]);
+  const show = (part: DashboardPartKey) => !hidden.has(part);
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
   // Live stories (hooguit 24 uur oud) eerst, dan de drie nieuwste posts: eigen
   // posts en posts van anderen waarin de club is getagd door elkaar, op datum.
@@ -804,7 +834,7 @@ export default async function DashboardPage({
   // paraplu zit, telt de subteams als eigen team (zelfde regel als MyRaces en de
   // kalender, migr. 0179). Geen eigen team met een uitslag: geen tegel.
   let tileStanding: TeamStandingWithTeam | null = null;
-  if (user && standings.length > 0) {
+  if (user && standings.length > 0 && show("mijn_events")) {
     const { data: memberRows } = await supabase
       .from("team_members")
       .select("team_id")
@@ -830,7 +860,7 @@ export default async function DashboardPage({
   // openen van de pagina of uit de wekelijkse job). Zonder snapshot of zonder
   // migratie 0265 geen tegel.
   let tileBriljant: VandaagBriljant | null = null;
-  if (user && on("rennersniveau")) {
+  if (user && on("rennersniveau") && show("briljant")) {
     const { data: snapshot } = await supabase
       .from("zwbriljant_snapshots")
       .select("facets, consistency")
@@ -882,23 +912,24 @@ export default async function DashboardPage({
       )}
       {needsWeight && <MissingWeightNotice />}
 
+      {/* Wat het lid op het profiel verborgen heeft, staat er niet (show). */}
       <TileRow label="Mijn training">
-        <WorkoutTiles workouts={workoutTiles} />
-        {showTraining && (
+        {show("training") && <WorkoutTiles workouts={workoutTiles} />}
+        {showTraining && show("training") && (
           <Suspense fallback={null}>
             <TrainingAdvice conn={conn} sex={sex} wellnessDevice={wellnessDevice} />
           </Suspense>
         )}
-        {on("training") && (
+        {on("training") && show("core") && (
           <Suspense fallback={null}>
             <CoreStatus />
           </Suspense>
         )}
-        {user && on("weekoverzicht") && <WeekReviewDashboardLink />}
+        {user && on("weekoverzicht") && show("weekoverzicht") && <WeekReviewDashboardLink />}
       </TileRow>
 
       <TileRow label="Mijn fitheid">
-        {showTraining && (
+        {showTraining && show("fitheid") && (
           <Suspense fallback={null}>
             <FitnessStatus conn={conn} sex={sex} wellnessDevice={wellnessDevice} />
           </Suspense>
@@ -906,82 +937,91 @@ export default async function DashboardPage({
         {tileBriljant && <BriljantTile briljant={tileBriljant} />}
       </TileRow>
 
-      <TileRow label="Mijn events">
-        {liveNow?.together?.mine && <LiveTogetherTile live={liveNow.together} />}
-        {(liveNow?.events ?? [])
-          .filter((event) => event.mine)
-          .map((event) => (
-            <LiveEventTile key={event.id} event={event} />
-          ))}
-        {user && on("teams") && (
-          <Suspense fallback={null}>
-            <MyRaces userId={user.id} />
-          </Suspense>
-        )}
-        {tileStanding && tileStanding.position && (
-          <StandingTile
-            standing={{
-              href: tileStanding.round_url ?? tileStanding.href,
-              team: tileStanding.team.name,
-              competition: tileStanding.competition,
-              position: tileStanding.position,
-              totalTeams: tileStanding.total_teams ?? null,
-            }}
-          />
-        )}
-        {user && on("teams") && (
-          <Suspense fallback={null}>
-            <MyTeams userId={user.id} />
-          </Suspense>
-        )}
-      </TileRow>
+      {show("mijn_events") && (
+        <TileRow label="Mijn events">
+          {liveNow?.together?.mine && <LiveTogetherTile live={liveNow.together} />}
+          {(liveNow?.events ?? [])
+            .filter((event) => event.mine)
+            .map((event) => (
+              <LiveEventTile key={event.id} event={event} />
+            ))}
+          {user && on("teams") && (
+            <Suspense fallback={null}>
+              <MyRaces userId={user.id} />
+            </Suspense>
+          )}
+          {tileStanding && tileStanding.position && (
+            <StandingTile
+              standing={{
+                href: tileStanding.round_url ?? tileStanding.href,
+                team: tileStanding.team.name,
+                competition: tileStanding.competition,
+                position: tileStanding.position,
+                totalTeams: tileStanding.total_teams ?? null,
+              }}
+            />
+          )}
+          {user && on("teams") && (
+            <Suspense fallback={null}>
+              <MyTeams userId={user.id} />
+            </Suspense>
+          )}
+        </TileRow>
+      )}
 
-      <TileRow label="Overige events">
-        {liveNow?.together && !liveNow.together.mine && (
-          <LiveTogetherTile live={liveNow.together} />
-        )}
-        {(liveNow?.events ?? [])
-          .filter((event) => !event.mine)
-          .map((event) => (
-            <LiveEventTile key={event.id} event={event} />
+      {show("overige_events") && (
+        <TileRow label="Overige events">
+          {liveNow?.together && !liveNow.together.mine && (
+            <LiveTogetherTile live={liveNow.together} />
+          )}
+          {(liveNow?.events ?? [])
+            .filter((event) => !event.mine)
+            .map((event) => (
+              <LiveEventTile key={event.id} event={event} />
+            ))}
+          {tileEvents.map((event) => (
+            <EventTile key={event.id} event={event} />
           ))}
-        {tileEvents.map((event) => (
-          <EventTile key={event.id} event={event} />
-        ))}
-      </TileRow>
+        </TileRow>
+      )}
 
       {/* Bekers van de afgelopen week, met een feestje als ze nieuw zijn. */}
-      {user && on("bekers") && (
+      {user && on("bekers") && show("bekers") && (
         <Suspense fallback={null}>
           <RecentBekers />
         </Suspense>
       )}
 
       {/* Q&A en de Instagram-posts van deze week. */}
-      <TileRow label="Club">
-        <Suspense fallback={null}>
-          <QaDashboard />
-        </Suspense>
-        <InstagramStrip
-          posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
-        />
-      </TileRow>
+      {show("club_tegels") && (
+        <TileRow label="Club">
+          <Suspense fallback={null}>
+            <QaDashboard />
+          </Suspense>
+          <InstagramStrip
+            posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
+            profileUrl={instagramProfileUrl(club.settings.instagramHandle)}
+          />
+        </TileRow>
+      )}
 
-      {user?.id && on("garage") && <MaintenanceStatus profileId={user.id} />}
+      {user?.id && on("garage") && show("onderhoud") && (
+        <MaintenanceStatus profileId={user.id} />
+      )}
 
-      {on("teams") && (
+      {on("teams") && show("standen") && (
         <Suspense fallback={null}>
           <FrrStandings userId={user?.id ?? null} />
         </Suspense>
       )}
 
-      {on("src") && (
+      {on("src") && show("standen") && (
         <Suspense fallback={null}>
           <SrcResults userId={user?.id ?? null} />
         </Suspense>
       )}
 
-      {mediaItems.length > 0 && (
+      {mediaItems.length > 0 && show("nieuws") && (
         <section>
           <SectionHeader
             icon={Newspaper}
@@ -1031,17 +1071,17 @@ export default async function DashboardPage({
         </section>
       )}
 
-      {awards.length > 0 && (
+      {awards.length > 0 && show("badges") && (
         <section>
           <SectionHeader
             icon={BadgeCheck}
             title="Nieuwste badges"
-            action={<InlineMoreLink href="/stats/rankings">ZWB Rankings</InlineMoreLink>}
+            action={<InlineMoreLink href="/stats/rankings"><ClubShortName /> Rankings</InlineMoreLink>}
           />
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {awards.map((award) => {
               const badge = awardBadge(award);
-              const profileName = singleProfileName(award.profiles) ?? "ZWB'er";
+              const profileName = singleProfileName(award.profiles) ?? clubTexts.memberNoun;
               return (
                 <li key={award.id}>
                   <Link
@@ -1141,7 +1181,7 @@ export default async function DashboardPage({
                 <ActivityRow activityId={activity.id}>
                   <div className="min-w-0">
                     <p className="truncate">
-                      <span className="font-medium">{activityProfile(activity)}</span>{" "}
+                      <span className="font-medium">{activityProfile(activity, clubTexts.memberNoun)}</span>{" "}
                       <span className="text-muted-foreground">-</span>{" "}
                       <span className="text-muted-foreground">
                         {activity.name ?? "Activiteit"}
@@ -1189,11 +1229,11 @@ export default async function DashboardPage({
         <StravaAttribution />
       </section>
 
-      {on("stats") && <ClubStats />}
+      {on("stats") && show("clubstats") && <ClubStats />}
 
       {/* Alleen tonen wat er is: een lege poll- of voordeelkaart duwde de rest
           omlaag zonder iets te zeggen. */}
-      {(polls.length > 0 || benefits.length > 0) && (
+      {(polls.length > 0 || benefits.length > 0) && show("polls") && (
         <div
           className={
             polls.length > 0 && benefits.length > 0 ? "grid gap-4 lg:grid-cols-2" : "grid gap-4"
@@ -1243,7 +1283,7 @@ export default async function DashboardPage({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{benefit.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {singleSponsorName(benefit.sponsors) ?? "ZWB Cycling"}
+                        {singleSponsorName(benefit.sponsors) ?? clubTexts.name}
                         {benefit.valid_until
                           ? ` - geldig t/m ${new Date(
                               benefit.valid_until,

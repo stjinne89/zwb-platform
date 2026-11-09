@@ -2,7 +2,7 @@
 // 2026-10-01). Wie op een zondag aanklikt of hij kan, wordt zo nodig vanzelf
 // ingeschreven voor die maand:
 //   - is er één SRC-team, dan bij dat team;
-//   - is er nog geen, dan komt er een standaardteam "ZWB SRC" (de MyWhoosh-
+//   - is er nog geen, dan komt er een standaardteam "<korte naam> SRC" (de MyWhoosh-
 //     teamnaam vult een beheerder later in op /beheer/src);
 //   - zijn er meer, dan moet het lid zelf kiezen op /src.
 // Heren of dames volgt het profiel (vrouw → dames, anders heren), de categorie
@@ -13,7 +13,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SrcGender } from "@/lib/src/feed";
 
-export const SRC_DEFAULT_TEAM_NAME = "ZWB SRC";
+/** Het standaardteam: de korte naam van de club met SRC erachter ("ZWB SRC"). */
+export function srcDefaultTeamName(clubShortName: string): string {
+  return `${clubShortName} SRC`;
+}
 
 export type SrcMonthEntry = { team_id: string; race: SrcGender };
 
@@ -26,6 +29,8 @@ export async function ensureSrcMonthEntry(
   admin: SupabaseClient,
   profileId: string,
   month: string,
+  /** De korte naam van de club, voor de naam van het standaardteam. */
+  clubShortName: string,
 ): Promise<{ ok: true; entry: SrcMonthEntry; joined: boolean } | { ok: false; error: string }> {
   const { data: known } = await admin
     .from("src_month_entries")
@@ -48,7 +53,7 @@ export async function ensureSrcMonthEntry(
   if (!teamId) {
     const { data: created, error } = await admin
       .from("teams")
-      .insert({ name: SRC_DEFAULT_TEAM_NAME, type: "src" })
+      .insert({ name: srcDefaultTeamName(clubShortName), type: "src" })
       .select("id")
       .single();
     if (error) return { ok: false, error: error.message };

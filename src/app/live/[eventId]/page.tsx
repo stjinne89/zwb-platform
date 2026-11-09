@@ -14,6 +14,7 @@ import type { EventZone } from "@/app/(app)/events/[id]/_components/zone";
 import { ZwbMark } from "@/components/zwb-logo";
 import { BackLink } from "@/components/app-ui";
 import { createClient } from "@/lib/supabase/server";
+import { ClubName, ClubShortName } from "@/components/club-texts-provider";
 
 type PageProps = {
   params: Promise<{ eventId: string }>;
@@ -257,7 +258,7 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
           <ZwbMark className="h-10 w-10" />
           <div>
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              ZWB Cycling · Live volgen
+              <ClubName /> · Live volgen
             </p>
             <h1 className="text-2xl font-semibold tracking-tight">
               {event.title}
@@ -336,7 +337,7 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
 
       <footer className="border-t pt-4 text-center text-xs text-muted-foreground">
         <Link href="/login" className="underline">
-          Log in op het ZWB-platform
+          Log in op het <ClubShortName />-platform
         </Link>{" "}
         voor het volledige event.
       </footer>

@@ -9,7 +9,7 @@ import { DEFAULT_DESIGN, type BekerDesign } from "@/lib/zwbekers/design";
 import { briljantSans, briljantSerif } from "@/components/briljant/fonts";
 import { BekerIcon } from "./beker-icon";
 import styles from "./zwbekers.module.css";
-import { useModuleName } from "@/components/club-texts-provider";
+import { useClubTexts, useModuleName } from "@/components/club-texts-provider";
 
 const CabinetScene = dynamic(() => import("./cabinet-scene"), {
   ssr: false,
@@ -40,6 +40,7 @@ type Props = {
 };
 
 export function KastView({ bekers, startId, sponsors, ownOpen, waiting }: Props) {
+  const clubTexts = useClubTexts();
   const labels = useRef(new Map<string, HTMLElement>());
   const moduleLabel = useModuleName("bekers");
   const [failed, setFailed] = useState(false);
@@ -117,8 +118,8 @@ export function KastView({ bekers, startId, sponsors, ownOpen, waiting }: Props)
 
         {empty ? (
           <div className={styles.empty}>
-            <BekerIcon design={{ ...DEFAULT_DESIGN, gravure: "ZWB" }} title="" />
-            <p>Wie verdient de eerste ZWBeker?</p>
+            <BekerIcon design={{ ...DEFAULT_DESIGN, gravure: clubTexts.shortName }} title="" />
+            <p>Wie verdient de eerste {clubTexts.words.beker}?</p>
           </div>
         ) : failed ? (
           <ul className={styles.shelf} role="list">

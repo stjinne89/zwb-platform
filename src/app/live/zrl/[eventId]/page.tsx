@@ -15,6 +15,7 @@ import { freezeZrlResultNow, saveZrlTeamAssignment } from "./_actions";
 import { zwiftDsConfigured } from "@/lib/events/zwift-club";
 import { DS_AFTER_MS } from "@/lib/ds/schedule";
 import { ModuleName } from "@/components/club-texts-provider";
+import { ClubName } from "@/components/club-texts-provider";
 
 type PageProps = {
   params: Promise<{ eventId: string }>;
@@ -72,7 +73,7 @@ function Header({ title }: { title: string }) {
     <header className="flex items-center gap-3">
       <ZwbMark className="h-10 w-10" />
       <div>
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">ZWB Cycling · ZRL live</p>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground"><ClubName /> · ZRL live</p>
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
       </div>
     </header>

@@ -10,6 +10,7 @@ import type { BonusQuestion } from "@/lib/bokaal/settle";
 import { boardName, CATEGORY_LABEL, formatBalls, formatOdd, MARKET_LABEL, PER_RACE, type Category, type Market } from "@/lib/bokaal/rules";
 import { BallRack, ChalkRing, ChalkUnderline } from "./shell";
 import styles from "./bokaal.module.css";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 export type BoardRace = {
   id: string;
@@ -49,6 +50,7 @@ export function BokaalBoard({
   balance: number;
   now: number;
 }) {
+  const clubTexts = useClubTexts();
   const router = useRouter();
   const [busy, startTransition] = useTransition();
   const [tab, setTab] = useState(races[0]?.id ?? "");
@@ -69,7 +71,7 @@ export function BokaalBoard({
 
   function roomFor(raceId: string): string | null {
     if (placedIn(raceId) + pendingIn(raceId) >= PER_RACE) return `Per wedstrijd zet je hoogstens ${PER_RACE} ballen in.`;
-    if (free < 1) return "Je hebt niet genoeg ZWBallen.";
+    if (free < 1) return `Je hebt niet genoeg ${clubTexts.words.ballen}.`;
     return null;
   }
 

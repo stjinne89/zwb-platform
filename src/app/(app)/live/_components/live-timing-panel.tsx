@@ -9,6 +9,7 @@ import type {
 } from "@/lib/event-results/scrape";
 import { Button } from "@/components/ui/button";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { MemberNoun, useClubTexts } from "@/components/club-texts-provider";
 
 type LiveTimingPanelProps = {
   eventId: string;
@@ -27,6 +28,7 @@ function hostLabel(url: string): string {
 }
 
 function TimingRows({ rows }: { rows: LiveTimingResult[] }) {
+  const clubTexts = useClubTexts();
   return (
     <ResponsiveTable
       rows={rows}
@@ -35,7 +37,7 @@ function TimingRows({ rows }: { rows: LiveTimingResult[] }) {
       columns={[
         {
           key: "name",
-          header: "ZWB'er",
+          header: clubTexts.memberNoun,
           primary: true,
           cell: (row) => (
             <span className="flex items-center gap-2">
@@ -148,7 +150,7 @@ export function LiveTimingPanel({
             <h2 className="font-semibold">{eventTitle}</h2>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Alleen gematchte ZWB&apos;ers ·{" "}
+            Alleen gematchte <MemberNoun plural /> ·{" "}
             {updatedAt
               ? `bijgewerkt om ${new Date(updatedAt).toLocaleTimeString("nl-NL", {
                   hour: "2-digit",
@@ -187,7 +189,7 @@ export function LiveTimingPanel({
         </p>
       ) : outcome.results.length === 0 ? (
         <p className="p-4 text-sm text-muted-foreground">
-          Nog geen ZWB&apos;ers gevonden in de live timing.
+          Nog geen <MemberNoun plural /> gevonden in de live timing.
         </p>
       ) : (
         <div className="p-4">

@@ -39,7 +39,7 @@ export type MateriaalArticle = {
   title: string;
   summary: string;
   points: string[];
-  /** Wat de bronnen níét laten zien, of wat een eigen keuze van ZWB is. */
+  /** Wat de bronnen níét laten zien, of wat een eigen keuze van de app is. */
   limits: string[];
   sources: KnowledgeSource[];
 };
@@ -728,7 +728,7 @@ export const MATERIAAL_ARTICLES: MateriaalArticle[] = [
       "Bij 160 mountainbikers daalden ongemak, vermoeidheid en kniepijn een maand na een bikefit sterk. In een enquête onder 849 renners hing een bikefit samen met meer comfort en minder pijn, niet met minder blessures.",
       "Na een bikefit met 3D-meting hadden twaalf recreanten 8,6 % meer piekvermogen en iets meer vermogen in de FTP-test. Dat is een kleine eerste proef.",
       "De schoenplaatjes 15 mm naar voren of achteren zetten veranderde de stand van heup en enkel, maar niet het rendement of het sprintvermogen.",
-      "Heb je klachten, ga dan naar een bikefitter of fysiotherapeut. ZWB rekent bewust geen zadelhoogte uit.",
+      "Heb je klachten, ga dan naar een bikefitter of fysiotherapeut. De app rekent bewust geen zadelhoogte uit.",
     ],
     limits: [
       "Van de studies naar de andere instellingen werd er geen enkele als goed beoordeeld.",

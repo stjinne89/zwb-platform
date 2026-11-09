@@ -10,6 +10,7 @@ import * as cheerio from "cheerio";
 import type { Category } from "./rules";
 import type { ResultRow } from "./settle";
 import { parseChampionships, parseSeries } from "./calendar";
+import { getClub } from "@/lib/club";
 
 export const CYCLINGFLASH = "https://cyclingflash.com";
 
@@ -149,10 +150,12 @@ export const BLOCKED = "CyclingFlash weigert de server. Plak de paginabron.";
 // een uitdaging neer (403, cf-mitigated: challenge), voor een gewoon
 // https-verzoek met dezelfde user-agent niet (gemeten 2026-10-19, lokaal).
 // Of dat vanaf Netlify ook zo is, is niet getest; daarvoor is BLOCKED.
-function page(path: string): Promise<string> {
+async function page(path: string): Promise<string> {
+  const clubTexts = (await getClub()).texts;
+  const userAgent = `${clubTexts.shortName}-platform ${clubTexts.modules.voorspelspel} (clubspel)`;
   return new Promise((resolve, reject) => {
     const request = https.get(
-      { host: "cyclingflash.com", path, headers: { "user-agent": "ZWB-platform voorZpWelBokaal (clubspel)", accept: "text/html" } },
+      { host: "cyclingflash.com", path, headers: { "user-agent": userAgent, accept: "text/html" } },
       (response) => {
         if (response.statusCode === 403 || response.statusCode === 429) {
           response.resume();

@@ -9,6 +9,7 @@ import type { RaceKind } from "@/lib/zrl-analysis/personal";
 import { raceClock, raceTime, signedSeconds, wkg } from "@/lib/zrl-analysis/format";
 import { OwnRide, Stat, TipList, dateLabel } from "./race-parts";
 import { ExpectationStats, RaceTrendView, SegmentDepth, ZrsTrendView } from "./race-depth";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 const KIND_LABEL: Record<RaceKind, string> = {
   race: "Race",
@@ -127,7 +128,7 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
 
       {frr && frr.peers.length > 0 ? (
         <section className="space-y-3">
-          <SectionHeader title={`ZWB in etappe ${frr.stage}`} />
+          <SectionHeader title={<><ClubShortName /> in etappe {frr.stage}</>} />
           <ResponsiveTable
             columns={[
               { key: "name", header: "Renner", cell: (p) => <span className={p.own ? "font-semibold" : undefined}>{p.name}</span>, primary: true },
@@ -143,7 +144,7 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
       ) : (
         race.peers.length > 1 && (
           <section className="space-y-3">
-            <SectionHeader title="ZWB in deze race" />
+            <SectionHeader title={<><ClubShortName /> in deze race</>} />
             <ResponsiveTable
               columns={[
                 { key: "name", header: "Renner", cell: (p) => <span className={p.own ? "font-semibold" : undefined}>{p.name}</span>, primary: true },

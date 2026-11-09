@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { usesZwbeterTraining } from "./training-notice-actions";
-import { useModuleName } from "@/components/club-texts-provider";
+import { ClubText, useModuleName } from "@/components/club-texts-provider";
 
 const SEEN_KEY = "zwb-nieuw-zwbeter-trainen-2026-10";
 const NOTICE_UNTIL = Date.parse("2026-12-01T00:00:00+01:00");
@@ -89,7 +89,7 @@ export function TrainingNoticeDialog() {
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Nieuw in ZWBeter trainen</DialogTitle>
+          <DialogTitle><ClubText text="Nieuw in {beter} trainen" /></DialogTitle>
           <DialogDescription className="sr-only">Wat er veranderd is in je trainingsschema en de AI-coach.</DialogDescription>
         </DialogHeader>
         <ul className="space-y-3 text-sm">

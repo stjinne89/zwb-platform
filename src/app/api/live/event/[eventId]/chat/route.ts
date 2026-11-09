@@ -5,6 +5,7 @@ import { rateLimitHit, clientIpFromRequest } from "@/lib/rate-limit";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { deliverRideMessage, eventMessageRecipients } from "@/lib/ride-messages/deliver";
 import { normalizeRideMessage } from "@/lib/telegram/bot";
+import { getClub } from "@/lib/club";
 
 // Live-chat op de liveticker. Eén route voor beide pagina's:
 //   GET  → laatste publieke (niet-interne) berichten — gepolled door de
@@ -32,7 +33,7 @@ type ChatRow = {
   profiles?: { display_name: string | null } | { display_name: string | null }[] | null;
 };
 
-function shape(row: ChatRow) {
+function shape(row: ChatRow, fallbackName: string) {
   const prof = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
   const isGuest = !row.profile_id;
   return {
@@ -40,7 +41,7 @@ function shape(row: ChatRow) {
     profileId: row.profile_id,
     name: isGuest
       ? row.guest_name || "Gast"
-      : prof?.display_name || "ZWB'er",
+      : prof?.display_name || fallbackName,
     isGuest,
     body: row.body,
     createdAt: row.created_at,
@@ -53,6 +54,7 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ eventId: string }> },
 ) {
+  const clubTexts = (await getClub()).texts;
   const { eventId } = await params;
   if (!eventId) return NextResponse.json({ messages: [] });
 
@@ -93,7 +95,7 @@ export async function GET(
   // Zonder migratie 0253 bestaat to_riders niet; dan zonder die kolom.
   const full = await load(`${BASE_COLUMNS}, to_riders`);
   const { data } = full.error ? await load(BASE_COLUMNS) : full;
-  const messages = ((data ?? []) as unknown as ChatRow[]).map(shape).reverse();
+  const messages = ((data ?? []) as unknown as ChatRow[]).map((row) => shape(row, clubTexts.memberNoun)).reverse();
   return NextResponse.json(
     { messages },
     { headers: { "Cache-Control": "no-store, max-age=0" } },
@@ -104,6 +106,7 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ eventId: string }> },
 ) {
+  const clubTexts = (await getClub()).texts;
   const { eventId } = await params;
   if (!eventId) {
     return NextResponse.json({ ok: false, error: "Geen event." }, { status: 400 });
@@ -205,7 +208,7 @@ export async function POST(
         .gte("last_seen_at", new Date(Date.now() - LIVE_STALE_MS).toISOString()),
     ]);
     riderMessage = {
-      senderName: sender?.display_name || "ZWB'er",
+      senderName: sender?.display_name || clubTexts.memberNoun,
       recipientIds: eventMessageRecipients(
         (rsvps ?? []) as Array<{ profile_id: string; status: string }>,
         (live ?? []).map((row) => row.profile_id as string),

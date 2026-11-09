@@ -6,6 +6,7 @@ import { ScrollTabs } from "@/components/ui/scroll-tabs";
 import { SCROLL_TAB_ITEM } from "@/components/ui/scroll-tab-item";
 import { BackLink } from "@/components/app-ui";
 import { GpsLabel } from "@/components/gps-label";
+import { getClub } from "@/lib/club";
 
 type SegmentCollection =
   | "cols"
@@ -536,7 +537,7 @@ function Stat({
   );
 }
 
-function SegmentCard({
+async function SegmentCard({
   segment,
   mySegment,
   leaderboard,
@@ -547,6 +548,7 @@ function SegmentCard({
   leaderboard: ClubSegment[];
   myProfileId: string;
 }) {
+  const clubTexts = (await getClub()).texts;
   const badge = categoryBadge(segment);
   const top = leaderboard.slice(0, 3);
   const myPr = formatTime(mySegment.best_time_seconds);
@@ -555,8 +557,8 @@ function SegmentCard({
     leaderboard.findIndex((entry) => entry.profile_id === myProfileId) + 1;
   const leaderboardSummary =
     myRank > 0
-      ? `jij: ${myRank} van ${leaderboard.length} ZWB'ers`
-      : `${leaderboard.length} ZWB'ers`;
+      ? `jij: ${myRank} van ${leaderboard.length} ${clubTexts.memberNounPlural}`
+      : `${leaderboard.length} ${clubTexts.memberNounPlural}`;
   const distance = formatDistance(segment.distance_m);
 
   return (
@@ -623,7 +625,7 @@ function SegmentCard({
       {top.length > 1 && (
         <details className="text-xs">
           <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-            {hasAnyTime ? "Snelste ZWB'ers" : "ZWB-stand"} ({leaderboardSummary})
+            {hasAnyTime ? `Snelste ${clubTexts.memberNounPlural}` : `${clubTexts.shortName}-stand`} ({leaderboardSummary})
           </summary>
           <ol className="mt-2 space-y-1">
             {leaderboard.map((entry, i) => {

@@ -13,12 +13,15 @@ import {
 } from "@/lib/teams/comparison-riders";
 import type { SearchParamsProp } from "../../_components/types";
 import { loadAthlete, loadAthleteConnection, trainerContext } from "../_data";
+import { ClubShortName } from "@/components/club-texts-provider";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const maxDuration = 60;
 
 export default async function TrainerPowerPage({ searchParams }: SearchParamsProp) {
+  const clubTexts = (await getClub()).texts;
   const context = await trainerContext(searchParams);
   if (!context.ok) {
     return (
@@ -62,7 +65,7 @@ export default async function TrainerPowerPage({ searchParams }: SearchParamsPro
       break;
     }
   }
-  const comparisonRiders = comparisonRidersFromRows(comparisonRows);
+  const comparisonRiders = comparisonRidersFromRows(comparisonRows, `${clubTexts.shortName}-lid`);
 
   return (
     <section className="rounded-lg border bg-card p-4 sm:p-5">
@@ -70,7 +73,7 @@ export default async function TrainerPowerPage({ searchParams }: SearchParamsPro
         <h2 className="font-semibold">Power-duration curve</h2>
         <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
           <Users className="size-3.5" />
-          {comparisonRiders.length} vergelijkbare ZWB-profielen
+          {comparisonRiders.length} vergelijkbare <ClubShortName />-profielen
         </span>
       </div>
       <PowerCurveChart
