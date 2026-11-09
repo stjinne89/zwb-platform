@@ -557,7 +557,7 @@ export default function PrivacyPage() {
             daarna verversen we je vermogensprofiel na een nieuwe rit en
             minstens één keer per week, en je Racing Score één keer per week. Alle goedgekeurde leden zien standaard je laatste score,
             je punten per onderdeel en je consistentie (geen metingen) en kunnen
-            die naast hun eigen steen zetten. Op <ClubShortName /> Rankings zien zij ook hoeveel
+            die naast hun eigen steen zetten. Op <ClubShortName />{" "}Rankings zien zij ook hoeveel
             punten je score sinds vorige week steeg, en bij Rider of the month op
             het dashboard hoeveel sinds vorige maand, met je score van toen en van
             nu (Groeibriljant). Wil je dat niet, zet dan

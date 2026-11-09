@@ -7,11 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Generieke versie, fase 3 deel 1: clubnaam en modulenamen (2026-11-09):
-   lokaal gecommit, niet gepusht.** Geen migratie. Lokaal gecontroleerd dat
-   manifest, titels en deelkaart voor ZWB gelijk zijn aan de live site. Deel 2
-   (hulp, privacy, voorwaarden) en deel 3 (de overige "ZWB"-teksten) volgen. Zie
-   de ronde "Generieke versie, fase 3 deel 1".
+0. **Generieke versie, fase 3 deel 1 en 2: clubnaam, modulenamen, hulp,
+   privacy en voorwaarden (2026-11-09): lokaal gecommit, niet gepusht.** Geen
+   migratie. Lokaal gecontroleerd dat manifest, titels, deelkaart, `/privacy` en
+   `/voorwaarden` voor ZWB gelijk zijn aan de live site. Deel 3 (de overige
+   "ZWB"-teksten, woordspelingen, enkelvouden) volgt. Zie de rondes "Generieke
+   versie, fase 3 deel 1" en "deel 2".
 
 0. **Inloglinks bestand tegen mailscanners (2026-11-09): gepusht naar `main`
    (`d48dd9c9`), samen met de bevestigingsmail-ronde.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
@@ -11953,6 +11954,76 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Generieke versie, fase 3 deel 2: hulp, privacy en voorwaarden
+
+**2026-11-09.** Op verzoek van de eigenaar ("Go on to deel 2"), na deel 1. Geen
+migratie: het contactadres staat sinds `0313` in `club_settings`. Doel: een
+andere club leest in de hulp, de privacyverklaring en de voorwaarden zijn eigen
+naam, en ZWB leest precies dezelfde tekst als voorheen.
+
+Wat er is:
+
+- **Meer clubwoorden.** `ClubTexts` (`lib/club-texts.ts`) heeft nu ook hoe een
+  lid heet (`memberNoun`, `memberNounPlural`; zonder eigen woord "lid" en
+  "leden"), het contactadres en de modules die uit staan (`off`). In JSX zijn er
+  `<ClubName />`, `<ClubShortName />`, `<MemberNoun plural />` en
+  `<ClubContactLink />` (een mail-link, of "het bestuur" zonder adres).
+- **Tekst als data.** De hulp heeft veel tekst in lijsten (`hulp/_data.ts`,
+  `help-categories.ts`, de zoekindex in `help-search.tsx`). Daarin staan nu
+  sleutels: `{club}`, `{kort}`, `{lid}`, `{leden}` en `{m:<module>}`.
+  `fillClubText()` vult ze in, `<ClubText text={…} />` in JSX. Een onbekende
+  sleutel blijft staan, zodat een fout zichtbaar is. De zoekwoorden (`terms`)
+  bleven zoals ze waren: ZWB'ers zoeken op "zwbieb".
+- **Privacy en voorwaarden.** Alle ZWB-namen in de tekst komen uit de club;
+  titel en omschrijving via `generateMetadata`. Het adres info@zwbcycling.nl
+  komt uit `club_settings.contact_email`. `BackLink` en de `Section`-kop van de
+  voorwaarden nemen nu ook JSX.
+- **Hulp van uitgezette modules weg.** `<ModuleGate module|href>` laat inhoud
+  weg als de module uit staat. Een hele categorie kan bij één module horen
+  (`module` in `HELP_CATEGORIES`: training, schema, workouts, racen en kennis bij
+  training); `/hulp/[categorie]` geeft dan een 404 en het menu laat hem weg.
+  Losse gidsen in een gemengde categorie staan in `HELP_ANCHOR_MODULES`
+  (teams, ZWB DS, ZWBgame, voorZpWelBokaal, rankings, badges, cols, onderhoud,
+  ZWBieb, ZWBriljant); `helpHrefModule()` vindt de module van een hulplink, ook
+  voor het zoeken en het overzicht op "Beginnen".
+
+**Gevonden bij de controle: de build laat soms een spatie vallen.** Na
+`<ClubShortName /> Rankings` maakte de SWC-compiler van Next "ZWBRankings",
+terwijl esbuild (vitest) de spatie houdt. Het trof vier plekken: privacy
+(Rankings), hulp schema (twee keer) en hulp club (managerspel). Daar staat nu
+`{" "}`. De oorzaak lijkt een eerdere meerbytetekens ("één") in hetzelfde
+tekstblok; niet verder uitgezocht. `tests/unit/club-texts-jsx-spaces.test.ts`
+compileert elk bestand met een clubwoord met de compiler van Next en faalt bij
+tekst die aan een clubwoord vastzit. Getest: de test faalt als de fix eruit is.
+
+**Bewust niet:**
+
+- **De woordspelingen** (ZWBeter, ZWBeter Worden, ZWBallen, ZWBal), het enkelvoud
+  ZWBeker en het voorbeeld van de Strava-samenvatting (💎 ZWBriljant): geen
+  instelling voor; deel 3. `club-texts-render.test.ts` laat ze bewust door
+  (`NOT_YET`).
+- **De zoekwoorden van de hulp** niet getokeniseerd, zie boven.
+- **Geen eigen hulptekst per club**: de hulp blijft één tekst met de namen
+  ingevuld. Eigen tekst hoort bij de inrichtingsmodule (fase 6), als die er komt.
+- **Geen nieuwe privacyversie.** De tekst is voor ZWB gelijk; voor een andere
+  club is het een nieuwe installatie met een eigen verklaring.
+
+**Niet meer waar:** in de ronde van deel 1 staat de hulp onder "bewust niet,
+deel 2"; dat is nu gebouwd.
+
+Lokaal: `tsc` en eslint schoon, `next build` slaagt met de echte env. Volledige
+suite groen op drie tests na die onder belasting time-outen (`club-theme`,
+`training-storage-retention`, `zrl-reservation`); los gedraaid groen.
+**Vergeleken met de live site:** `/privacy`, `/voorwaarden` en het manifest zijn
+gelijk, op de naam van de AI-dienst na. Die komt uit de env (lokaal OpenAI, live
+Anthropic). Daarnaast renderen privacy, voorwaarden, `/hulp` en alle twaalf
+hulpsecties met de ZWB-namen byte voor byte gelijk aan de stand vóór deze ronde
+(esbuild), en de ingevulde strings in de data gelijk aan de oude tekst. Origin/main
+is tussendoor ingemerged (Club Ladder-sortering, auth-mails, privacy
+`5d02c352`). **Niet bekeken:** de hulp achter de login in de browser, en een
+club met andere namen of uitgezette modules (kan niet op productie); dat laatste
+dekt `club-texts-render.test.ts` met een testclub.
 
 ### Gebouwd — Generieke versie, fase 3 deel 1: clubnaam en modulenamen
 

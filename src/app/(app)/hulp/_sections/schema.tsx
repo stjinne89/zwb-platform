@@ -372,7 +372,7 @@ export function SchemaHelp() {
           >
             <h3 className="text-sm font-semibold">Voor trainers: schema&apos;s vergelijken</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Naast de AI maakt <ClubShortName /> schema&apos;s met een eigen regelmotor. Op
+              Naast de AI maakt <ClubShortName />{" "}schema&apos;s met een eigen regelmotor. Op
               het trainerstabblad{" "}
               <Link href="/zwbeter-worden/trainer/vergelijken" className="underline hover:text-primary">
                 Vergelijken
@@ -887,7 +887,7 @@ export function SchemaHelp() {
               Whoop, Oura en Polar sturen een eigen readiness of herstelscore naar
               intervals.icu; die nemen we één op één over. Garmin doet dat niet:
               Body Battery en Training Readiness blijven in Garmin Connect en
-              komen niet mee. Voor die horloges rekent <ClubShortName /> zelf een readiness uit
+              komen niet mee. Voor die horloges rekent <ClubShortName />{" "}zelf een readiness uit
               je HRV en je rust-hartslag, afgezet tegen je eigen gemiddelde van de
               afgelopen 30 dagen, en je slaapscore. Korte nachten tellen daarna
               apart mee, net als bij de andere apparaten. Zo&apos;n waarde staat in

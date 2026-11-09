@@ -279,7 +279,7 @@ export function ClubHelp() {
             <h2 className="font-semibold">Clubverhaal</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Het verhaal van <ClubShortName /> op /verhaal, in vier hoofdstukken met de
-              renners uit de <ModuleName module="managerspel" /> in het tenue van toen. Leden vullen het aan
+              renners uit de <ModuleName module="managerspel" />{" "}in het tenue van toen. Leden vullen het aan
               met anekdotes en verhalen met foto&apos;s.
             </p>
           </div>
