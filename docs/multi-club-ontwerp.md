@@ -188,61 +188,88 @@ nagevraagd.
 
 ## 3. Moduleregister
 
-Eén register `src/lib/modules.ts`, met per module: een sleutel, de neutrale
-naam, de routeprefixes, de beheergebieden, de rechten-categorie, de crons, de
-afhankelijkheden en de benodigde koppelingen. De instelling per installatie zegt
-aan of uit, en geeft eventueel een eigen naam.
+Gebouwd in fase 1 (2026-11-09): `src/lib/modules.ts`, met per module een
+sleutel, de neutrale naam, de groep, de paden (pagina's, beheer en API), de crons
+en de vereiste modules. Een pad hoort bij de module met het langste passende
+patroon. Een pad dat bij geen module past, is kern en altijd aan. Wat per
+installatie aan staat en hoe een module heet, staat in `club_modules`.
 
-| Sleutel | Neutrale naam | Soort | Hangt af van |
+**Kern, altijd aan:** inloggen, dashboard, club, leden, profiel, hulp, Q&A,
+app-updates, beheer, de kalender met events, programma's en verjaardagen, en de
+koppelingen met Strava en intervals.icu. Kalender en koppelingen zijn tijdens het
+bouwen naar de kern gegaan: bijna elke module leunt erop, en een club zonder
+kalender bestaat niet.
+
+| Sleutel | Neutrale naam | Groep | Vereist |
 |---|---|---|---|
-| `core` | Toegang, leden, profiel, beheer, hulp, privacy | altijd aan | – |
-| `koppelingen` | Strava / intervals.icu | basis | – |
-| `kalender` | Kalender en events, programma's, ritverslagen, verjaardagen | algemeen | – |
-| `samen_fietsen` | Samen fietsen (live) | algemeen | kalender; Telegram |
-| `training` | Training (ZWBeter Worden) | algemeen | koppelingen; AI |
-| `weekoverzicht` | Weekoverzicht | algemeen | training; AI |
-| `stats` | Stats en ranglijsten | algemeen | koppelingen |
-| `bekers` | Badges en bekers | algemeen | koppelingen |
-| `segmenten` | Segmenten en cols | algemeen | koppelingen |
-| `garage` | Garage | algemeen | koppelingen |
-| `community` | WhatsApp-groepen, polls, media, clubverhaal | algemeen | – |
-| `bibliotheek` | Bibliotheek (ZWBieb) | algemeen | AI |
-| `sponsors` | Sponsors en ledenvoordeel | algemeen | – |
-| `voorspelspel` | Voorspelspel (voorZpWelBokaal) | algemeen | – |
-| `blokkenjacht` | Blokkenjacht (ZWBlokken) | algemeen + Zwift | koppelingen |
-| `teams` | Teams en competities (ZRL, FRR, ladder, TTT) | Zwift | kalender; Zwift-ID |
-| `pacing` | Race-pacing en briefing | Zwift | kalender; AI |
-| `rennersniveau` | Rennersniveau (ZWBriljant) | Zwift | koppelingen; ZwiftRacing |
-| `live_race` | Live race en ploegleider (DS) | Zwift | teams |
-| `src` | Sunday Race Club | Zwift | kalender |
-| `omnium` | Omnium | Zwift | kalender |
-| `managerspel` | Managerspel (ZWBgame) | Zwift | teams |
+| `samen_fietsen` | Samen fietsen | algemeen | – |
+| `training` | Training (ZWB: ZWBeter Worden) | algemeen | – |
+| `weekoverzicht` | Weekoverzicht | algemeen | – |
+| `stats` | Stats | algemeen | – |
+| `bekers` | Badges en bekers (ZWB: ZWBekers) | algemeen | – |
+| `segmenten` | Segmenten en cols (ZWB: ZWB Segments) | algemeen | – |
+| `garage` | Garage | algemeen | – |
+| `whatsapp` | WhatsApp-groepen | algemeen | – |
+| `polls` | Polls | algemeen | – |
+| `media` | Media (met Instagram) | algemeen | – |
+| `ritverslagen` | Ritverslagen | algemeen | – |
+| `clubverhaal` | Clubverhaal (met `/verhaal`) | algemeen | – |
+| `bibliotheek` | Bibliotheek (ZWB: ZWBieb) | algemeen | – |
+| `sponsors` | Sponsors | algemeen | – |
+| `voorspelspel` | Voorspelspel (ZWB: voorZpWelBokaal) | algemeen | – |
+| `blokkenjacht` | Blokkenjacht (ZWB: ZWBlokken) | zwift | – |
+| `teams` | Teams en competities (ZRL, FRR, ladder, TTT) | zwift | – |
+| `pacing` | Race-pacing en briefing | zwift | – |
+| `rennersniveau` | Rennersniveau (ZWB: ZWBriljant) | zwift | – |
+| `live_race` | Live race en ploegleider (ZWB: ZWB DS) | zwift | teams |
+| `src` | Sunday Race Club | zwift | – |
+| `omnium` | Omnium (ZWB: ZWB Omnium) | zwift | – |
+| `managerspel` | Managerspel (ZWB: ZWBgame) | zwift | teams |
 
-**Waar een uitgeschakelde module tegengehouden moet worden:**
+"Vereist" is alleen een harde afhankelijkheid: de module werkt niet zonder. Dat
+een module data van een andere toont (bekers uit teams, weekoverzicht uit
+training), is geen vereiste; dat deel blijft dan leeg.
 
-1. **Middleware** (`src/lib/supabase/middleware.ts`): routeprefix → module, zodat
-   een uitgeschakelde module een 404 geeft.
-2. **Navigatie** (`nav-config.ts`, `filterNavForPermissions`) en het
-   **beheermenu** (`ADMIN_AREAS`): een veld `module` erbij.
-3. **Tegelplekken** (`lib/design-places.ts`, `club/page.tsx`).
-4. **Dashboard** (`dashboard/page.tsx`, 1.626 regels, ~20 queries in één
-   `Promise.all`) en `tegels/vandaag.tsx`. Per sectie een check, en een query
-   voor een uitgeschakelde module niet uitvoeren.
-5. **Dialogen die op elke pagina draaien** (ZwiftIdDialog, DurabilitySetupDialog,
-   TrainingNoticeDialog, WeekReviewLauncher, de ongelezen-teller van ZWBieb).
-6. **Cron-routes**: een no-op als de module uit staat.
-7. **Hulpcategorieën** (`lib/help-categories.ts`) en de stappen van `/welkom`.
+**Waar een uitgeschakelde module wordt tegengehouden (fase 1):**
 
-Het patroon bestaat al: `getDesign()` (`lib/design.ts`) is een server-flag met
-React `cache()`. Op dezelfde manier komen `getClub()` en `isModuleEnabled()`.
-De rechten hebben al een `category`, en die past bijna één-op-één op een module.
+1. **Middleware** (`lib/modules-gate.ts`, aangeroepen vanuit
+   `lib/supabase/middleware.ts`): een pagina geeft de gewone 404, een API-route
+   een 404 in JSON, en een cron-route een 200 die niets doet. De poort onthoudt de
+   stand een minuut per warme instantie. Lukt lezen niet, dan staat alles aan.
+2. **Menu, beheermenu en persoonlijk menu**: `filterNavForPermissions` en
+   `beheerCategoriesFor` krijgen `club.allowsPath`, en de layout geeft de
+   gefilterde persoonlijke links door aan `AvatarMenu` en `MobileMenu`.
+3. **Tegels**: de tab "ZWBeter" valt weg als Training uit staat (`hiddenPlaces`),
+   en `club/page.tsx` filtert zijn tegels.
+4. **Dashboard**: vragen van een uitgeschakelde module vertrekken niet. Blokken
+   zonder data vallen vanzelf weg; de losse componenten (RecentBekers, MyRaces,
+   MyTeams, de training- en garageblokken, FRR, SRC, ClubStats, het weekoverzicht,
+   live en de briljant-tegel) hebben een eigen check.
+5. **Vaste dialogen en tellers in de layout**: TrainingNoticeDialog,
+   DurabilitySetupDialog, WeekReviewLauncher, de ongelezen-teller van ZWBieb en
+   de sponsorbalk. De ZwiftIdDialog blijft: het Zwift-ID hoort bij het profiel.
+
+**Nog niet afgeschermd** (later):
+
+- de hulpcategorieën (`lib/help-categories.ts`) en de stappen van `/welkom`;
+- losse links binnen pagina's naar een andere module (bijvoorbeeld van een event
+  naar de pacing). Die geven nu een 404 als de module uit staat.
+
+`getClub()` (`lib/club.ts`) leest de instellingen gedeeld gecachet
+(`unstable_cache`, tag `club-settings`), net als de sponsorbalk.
+`/beheer/modules` leegt die cache bij opslaan.
 
 Wat niet generiek wordt: `/brochure` (trainingsweekend Warsberg) blijft van
 ZWB alleen.
 
 ## 4. Clubinstellingen
 
-Twee tabellen in elke installatie:
+Twee tabellen in elke installatie. Migratie `0313` (fase 1) maakt ze aan met
+alleen de identiteit, het contact, de social-handles en de stand van de
+inrichting. De huisstijl komt in fase 2, de clubherkenning in fase 4 en de inhoud
+in fase 3/6, elk met een eigen kolomuitbreiding. Het Zwift-club-ID staat bewust
+niet in `0313`: het is een env-waarde, en een env-waarde mag niet letterlijk in de
+repo staan (Netlify secrets-scan).
 
 - **`club_settings`** (één rij):
   - identiteit: naam, korte naam, leden-aanduiding (bv. "ZWB'er"), logo en
@@ -260,10 +287,15 @@ voorlopig env-variabelen per Netlify-site. In de database zou dat met de
 bestaande `TOKEN_ENCRYPTION_KEY` (`admin/encrypt-secrets`) kunnen, maar dat is
 een aparte afweging.
 
-**RLS**: iedereen die ingelogd is mag lezen. De publieke pagina's (login,
-`/live`, `/profielen`) lezen naam, logo en kleuren via een smalle view.
-Schrijven mag alleen met het recht `roles.manage_permissions`, of een nieuw recht
-`club.setup` (de check-constraint uit `0206` moet dan mee).
+**RLS** (zo gebouwd in `0313`):
+
+- Lezen mag iedereen, ook anon. De publieke pagina's en de middleware moeten
+  weten wat aan staat, en er staat niets geheims in. Een view is daarom niet
+  nodig.
+- Schrijven mag alleen de server, met de service role, na de controle op
+  `roles.manage_permissions`. Daarom is er geen schrijfpolicy. Een eigen recht
+  `club.setup` is niet gemaakt: dat zou de check-constraint uit `0206` vragen,
+  en het zijn nu dezelfde mensen.
 
 ## 5. De inrichtingsmodule
 

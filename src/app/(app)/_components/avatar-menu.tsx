@@ -11,17 +11,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogoutButton } from "./logout-button";
-import { AVATAR_NAV, type AdminNavItem } from "./nav-config";
+import { AVATAR_NAV, type AdminNavItem, type NavLeaf } from "./nav-config";
 
 export function AvatarMenu({
   displayName,
   adminItems,
+  personalItems = AVATAR_NAV,
   avatarUrl,
   showOnMobile = false,
   beheerPage = false,
 }: {
   displayName: string;
   adminItems: AdminNavItem[];
+  /** De persoonlijke links, zonder die van uitgeschakelde modules. */
+  personalItems?: NavLeaf[];
   /** Design "tegels": toon de profielfoto in plaats van de naam. */
   avatarUrl?: string | null;
   /** Design "tegels": het menu staat ook op de telefoon in de balk. */
@@ -48,7 +51,7 @@ export function AvatarMenu({
       <DropdownMenuContent align="end" className="min-w-48">
         {/* Hulp staat overal waar dit menu staat al als vraagteken ernaast; in
             het mobiele menu (huidig design, geen vraagteken) blijft het. */}
-        {AVATAR_NAV.filter((item) => item.href !== "/hulp").map((item) => (
+        {personalItems.filter((item) => item.href !== "/hulp").map((item) => (
           <DropdownMenuItem
             key={item.href}
             render={<Link href={item.href} />}

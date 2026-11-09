@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getClub } from "@/lib/club";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { TegelsLinkGrid, type PlaceLink } from "@/components/tegels/link-grid";
 import { NAV_GROUPS, filterNavForPermissions, type NavLeaf } from "../_components/nav-config";
@@ -36,10 +37,11 @@ const TILE_STYLE: Record<string, Pick<PlaceLink, "tone" | "size">> = {
 };
 
 export default async function ClubPage() {
-  const [supabase, user, access] = await Promise.all([
+  const [supabase, user, access, clubSettings] = await Promise.all([
     createClient(),
     getRequestUser(),
     getRequestAccess(),
+    getClub(),
   ]);
   const { data: profile } = user
     ? await supabase.from("profiles").select("sex").eq("id", user.id).single()
@@ -49,6 +51,7 @@ export default async function ClubPage() {
     NAV_GROUPS,
     (permission) => access.has(permission),
     (profile?.sex as string | null) ?? null,
+    clubSettings.allowsPath,
   );
   const club = nodes.find((node) => node.type === "group" && node.label === "Club");
   const links: PlaceLink[] = [
@@ -65,7 +68,7 @@ export default async function ClubPage() {
     { href: "/polls", label: "Polls", ...TILE_STYLE["/polls"] },
     // Sponsors stond in het persoonlijke menu (besluit eigenaar, 2026-10-16).
     { href: "/sponsors", label: "Sponsors", ...TILE_STYLE["/sponsors"] },
-  ];
+  ].filter((link) => clubSettings.allowsPath(link.href));
 
   return (
     <div className="tg-repeats-nav space-y-5">

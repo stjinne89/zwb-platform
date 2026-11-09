@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getRequestAccess } from "@/lib/auth/request";
 import { getDesign } from "@/lib/design";
+import { getClub } from "@/lib/club";
 import { beheerCategoriesFor } from "../_components/nav-config";
 
 // Het beheer van het design "tegels". De categorieën als tegels toont de layout
@@ -8,8 +9,9 @@ import { beheerCategoriesFor } from "../_components/nav-config";
 // staan de beheerschermen in het persoonlijke menu en linkt er niets hierheen.
 
 export default async function BeheerPage() {
-  const access = await getRequestAccess();
-  const allowed = beheerCategoriesFor((permission) => access.has(permission)).length > 0;
+  const [access, club] = await Promise.all([getRequestAccess(), getClub()]);
+  const allowed =
+    beheerCategoriesFor((permission) => access.has(permission), club.allowsPath).length > 0;
   if (!allowed || (await getDesign()) !== "tegels") redirect("/dashboard");
   return null;
 }

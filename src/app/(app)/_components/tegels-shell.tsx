@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { tegelsFont } from "@/components/tegels/font";
+import type { PlaceId } from "@/lib/design-places";
 import { TegelsTabs } from "./tegels-tabs";
 
 /** De schil van het design "tegels": het originele logo bovenin, de vier
@@ -11,12 +12,15 @@ export function TegelsShell({
   actions,
   children,
   after,
+  hiddenPlaces,
 }: {
   before?: ReactNode;
   back?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
   after?: ReactNode;
+  /** Plekken waarvan de module bij deze club uit staat. */
+  hiddenPlaces?: PlaceId[];
 }) {
   return (
     <div
@@ -35,13 +39,13 @@ export function TegelsShell({
             <img src="/zwb-logo.png" alt="" />
           </Link>
           {back}
-          <TegelsTabs position="top" />
+          <TegelsTabs position="top" hiddenPlaces={hiddenPlaces} />
           <div className="flex-1 md:hidden" />
           <div className="flex items-center gap-2">{actions}</div>
         </nav>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-10 pt-5">{children}</main>
-      <TegelsTabs position="bottom" />
+      <TegelsTabs position="bottom" hiddenPlaces={hiddenPlaces} />
       {after}
     </div>
   );

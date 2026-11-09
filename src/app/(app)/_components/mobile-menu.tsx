@@ -58,10 +58,13 @@ export function MobileMenu({
   displayName,
   adminItems,
   nodes,
+  personalItems = AVATAR_NAV,
 }: {
   displayName: string;
   adminItems: AdminNavItem[];
   nodes: NavNode[];
+  /** De persoonlijke links, zonder die van uitgeschakelde modules. */
+  personalItems?: NavLeaf[];
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -72,7 +75,7 @@ export function MobileMenu({
   // /zwbeter-worden/schema zowel "Vandaag" als "Schema" gemarkeerd.
   const activeHref = activeHrefIn(pathname, [
     ...navHrefs(nodes),
-    ...AVATAR_NAV.map((item) => item.href),
+    ...personalItems.map((item) => item.href),
     ...adminItems.map((item) => item.href),
   ]);
 
@@ -172,7 +175,7 @@ export function MobileMenu({
                   <div className="my-2 border-t border-border/80 dark:border-white/10" />
 
                   <SectionHeader label={displayName} />
-                  {AVATAR_NAV.map((item) => (
+                  {personalItems.map((item) => (
                     <MobileMenuItem
                       key={item.href}
                       item={item}

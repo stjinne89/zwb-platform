@@ -228,6 +228,7 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
     tone: "meer",
     items: [
       adminLink("rechten"),
+      adminLink("modules"),
       adminLink("notificaties"),
       adminLink("appUpdates"),
       adminLink("koppelingen"),
@@ -237,29 +238,36 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
   },
 ];
 
-/** De beheercategorieën met alleen de items waar de gebruiker recht op heeft;
- * een lege categorie valt weg. */
+/** De beheercategorieën met alleen de items waar de gebruiker recht op heeft
+ * en waarvan de module bij deze club aan staat; een lege categorie valt weg. */
 export function beheerCategoriesFor(
   has: (permission: CommunityPermission) => boolean,
+  /** Staat de module van dit pad aan (getClub().allowsPath)? */
+  allowsPath: (href: string) => boolean = () => true,
 ): BeheerCategory[] {
   return BEHEER_CATEGORIES.flatMap((category) => {
-    const items = category.items.filter((item) => has(item.permission));
+    const items = category.items.filter((item) => has(item.permission) && allowsPath(item.href));
     return items.length > 0 ? [{ ...category, items }] : [];
   });
 }
 
 /**
- * Laat alleen de items over waar de gebruiker recht op heeft. Groepen zonder
- * overgebleven items vallen weg, zodat er geen lege dropdown blijft staan.
+ * Laat alleen de items over waar de gebruiker recht op heeft en waarvan de
+ * module bij deze club aan staat. Groepen zonder overgebleven items vallen weg,
+ * zodat er geen lege dropdown blijft staan.
  */
 export function filterNavForPermissions(
   nodes: NavNode[],
   has: (permission: CommunityPermission) => boolean,
   /** Geslacht uit het profiel; null als het niet is ingevuld. */
   sex: string | null = null,
+  /** Staat de module van dit pad aan (getClub().allowsPath)? */
+  allowsPath: (href: string) => boolean = () => true,
 ): NavNode[] {
   const allowed = (item: NavLeaf) =>
-    (!item.permission || has(item.permission)) && (!item.onlyForSex || item.onlyForSex === sex);
+    (!item.permission || has(item.permission)) &&
+    (!item.onlyForSex || item.onlyForSex === sex) &&
+    (item.external || allowsPath(item.href));
   return nodes.flatMap<NavNode>((node) => {
     if (node.type === "link") return allowed(node) ? [node] : [];
     const items = node.items.filter(allowed);

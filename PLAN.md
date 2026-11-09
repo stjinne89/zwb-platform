@@ -12,11 +12,15 @@ gaat stabiliteit voor nieuwe features.
    dat de pop-up na de andere meldingen komt. Zie de ronde "Ledenvoordeel als
    pop-up".
 
-0. **Generieke versie voor andere clubs (2026-11-09): ontwerp klaar, nog niets
-   gebouwd.** Besluiten eigenaar: één codebase met een eigen installatie per club,
-   inrichten in de app zelf, neutrale modulenamen. Volgende stap: de eigenaar
-   kiest wanneer fase 1 (fundament) in de volgorde past, gezien de featurepauze.
-   Zie de ronde "Generieke versie voor andere clubs" en
+0. **Generieke versie voor andere clubs, fase 1: clubinstellingen en modules
+   (2026-11-09): lokaal gecommit, niet gepusht; migratie `0313` niet toegepast.**
+   Besluiten eigenaar: één codebase met een eigen installatie per club, inrichten
+   in de app zelf, neutrale modulenamen. Fase 1 gestart op verzoek van de eigenaar.
+   ZWB staat in `0313` met alle modules aan, dus voor leden verandert er niets.
+   De code werkt ook zonder de migratie (dan staat alles aan). Na pushen en
+   toepassen: op `/beheer/modules` één module uit- en weer aanzetten, en zien dat
+   menu, tegels, dashboard en de 404 meegaan. Zie de rondes "Generieke versie,
+   fase 1" en "Generieke versie voor andere clubs", en
    [multi-club-ontwerp](docs/multi-club-ontwerp.md).
 
 0. **Laadtijd, deel 4: schema weer sneller (2026-11-08): gepusht naar `main`
@@ -11945,6 +11949,91 @@ volledige suite faalt in deze worktree op ontbrekende pakketten in de gedeelde
 
 **Niet geverifieerd.** De pop-up in de echte app (inloggen kon hier niet), op
 een telefoon, en samen met de app-update en de welkomstrondleiding.
+
+### Gebouwd — Generieke versie, fase 1: clubinstellingen en modules
+
+**2026-11-09, op verzoek van de eigenaar ("start fase 1").** Lokaal gecommit,
+niet gepusht. Commit: de commit die dit blok toevoegt. **Migratie
+`0313_club_settings.sql` is niet toegepast.** `origin/main` eindigde op 2026-11-09
+op `0312`; vlak vóór het toepassen opnieuw nakijken.
+
+Waarom: elke club krijgt een eigen installatie van dezelfde code (zie de ronde
+hieronder). Wat per club verschilt, moet daarom in de database staan en niet in
+de code. Deze fase legt het fundament: een register van modules, een tabel met de
+instellingen, en overal waar een module zichtbaar is een controle of hij aan
+staat.
+
+**Wat er is gebouwd:**
+- **`0313`**: `club_settings` (één rij: naam, korte naam, leden-aanduiding,
+  contact, website, Instagram, YouTube, inrichting-af) en `club_modules` (per
+  sleutel aan/uit en een eigen naam).
+  - Lezen mag iedereen, ook anon; schrijven alleen de service role.
+  - ZWB staat erin met zijn huidige waarden en alle modules aan, met de ZWB-namen
+    (ZWBeter Worden, ZWBieb, ZWBekers enz.).
+  - Het Zwift-club-ID staat er bewust niet in: het is een env-waarde, en die mag
+    niet in de repo (Netlify secrets-scan).
+- **`src/lib/modules.ts`**: het register met 23 modules in twee groepen (algemeen,
+  Zwift).
+  - Per module: paden, crons en vereiste modules.
+  - Het langste passende patroon wint, zodat bijvoorbeeld `/zwbeter-worden/briljant`
+    bij Rennersniveau hoort.
+  - Wat bij geen module past, is kern. Kalender en de Strava/intervals-koppelingen
+    zijn kern geworden, anders dan het ontwerp: bijna alles leunt erop.
+- **`src/lib/club.ts`**: `getClub()`, gedeeld gecachet (`unstable_cache`, tag
+  `club-settings`), net als de sponsorbalk.
+  - Faalt het lezen (bijvoorbeeld zonder migratie), dan staat alles aan.
+  - Twee eigen namen (`moduleLabel`, `settings.name`) staan klaar maar worden
+    nog nergens getoond; dat is fase 3.
+- **Middleware** (`lib/modules-gate.ts`): bij een uitgeschakelde module
+  - geeft een pagina de gewone 404;
+  - geeft een API-route een 404 in JSON;
+  - geeft een cron een 200 die niets doet.
+
+  De stand wordt een minuut onthouden per warme instantie, en kernpaden kosten
+  geen vraag. De poort faalt open: dit is inrichting, geen beveiliging.
+- **Afgeschermd** als de module uit staat:
+  - menu, beheermenu, persoonlijk menu (ook mobiel), tegeltab "ZWBeter",
+    clubtegels, `/beheer` en de beheernavigatie;
+  - het dashboard: de vragen vertrekken niet, en de blokken vallen weg;
+  - de dialogen en tellers in de layout (training, durability, weekoverzicht,
+    ZWBieb-teller, sponsorbalk).
+- **`/beheer/modules`** (recht `roles.manage_permissions`): vinkjes per groep. Een
+  module die door een vereiste module uit staat, zegt dat. Opslaan leegt de cache
+  (`updateTag`).
+- **Tests**: `tests/unit/modules.test.ts` en `tests/unit/club.test.ts`.
+  - Elk patroon wijst naar een bestaande route.
+  - Elke cron is publiek en hoort bij zijn eigen module.
+  - De specificiteit van de patronen, het menu, de poort (404, lege 200,
+    onthouden, faalt open) en `buildClub` worden getest.
+  - `0313` draait in PGlite: ZWB-rij, één rij, opnieuw uitvoerbaar, en anon en
+    leden kunnen niet schrijven.
+
+**Wat bewust niet is gebouwd:**
+- Eigen namen tonen en bewerken: dat is fase 3. De ZWB-namen staan al in
+  `club_modules.label`.
+- De hulpcategorieën en de stappen van `/welkom` afschermen.
+- Links binnen pagina's naar een andere module (bijvoorbeeld van een event naar
+  de pacing) weghalen: die geven bij een uitgeschakelde module een 404. Opruimen
+  in fase 3 of 6.
+- Een eigen recht `club.setup`: dat zou de check-constraint uit `0206` vragen,
+  en het zijn nu dezelfde mensen als bij `roles.manage_permissions`.
+- `src/middleware.ts` omzetten naar `proxy.ts`. Next 16 noemt middleware
+  verouderd, maar het werkt nog; dat is een aparte ronde.
+
+**Gecontroleerd:**
+- `tsc` is schoon.
+- `eslint` is schoon op de gewijzigde bestanden.
+- `vitest`: 4.059 van de 4.060 tests slagen.
+  - De test "0206 …" in `admin-areas.test.ts` liep in de volle run uit de tijd
+    (PGlite onder last), maar slaagt los.
+  - `omnium-live.test.ts` heeft een `.env.local` nodig die in deze worktree niet
+    staat.
+- Een volledige run op de gedeelde `node_modules` van de hoofdmap gaf 24 rode
+  bestanden: daar ontbreekt `@anthropic-ai/sdk` en is `zwift-data` verouderd. Dat
+  staat los van deze ronde.
+
+**Niet geverifieerd:** de migratie op productie, en de app in de browser. Er is
+geen lokale database, en de `0313`-test in PGlite is geen echte Supabase.
 
 ### Onderzocht — Generieke versie voor andere clubs
 

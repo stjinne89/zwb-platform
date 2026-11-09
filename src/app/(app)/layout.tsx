@@ -26,8 +26,11 @@ import { loadLatestUpdate } from "@/lib/app-updates/queries";
 import { inPopupWindow } from "@/lib/app-updates/schedule";
 import { updateLabel } from "@/components/app-updates/update-card";
 import { loadFatigueSetupIssue } from "@/lib/briljant/fatigue-setup";
+import { getClub } from "@/lib/club";
+import { PLACES } from "@/lib/design-places";
 import {
   ADMIN_NAV,
+  AVATAR_NAV,
   NAV_GROUPS,
   beheerCategoriesFor,
   filterNavForPermissions,
@@ -74,7 +77,7 @@ export default async function AppLayout({
   const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
   if (!user) redirect("/login");
 
-  const [{ data: profile }, access, unreadThreads] = await Promise.all([
+  const [{ data: profile }, access, unreadThreads, club] = await Promise.all([
     supabase
       .from("profiles")
       .select("display_name, avatar_url, zwift_id, zwift_opt_out, sex, privacy_accepted_at, privacy_accepted_version")
@@ -83,7 +86,10 @@ export default async function AppLayout({
     getRequestAccess(),
     // ZWBieb: alleen een icoon als er iets ongelezen is.
     countUnreadThreads(supabase, user.id).catch(() => 0),
+    // Welke modules deze club aan heeft (0313); gedeeld gecachet.
+    getClub(),
   ]);
+  const unreadCount = club.isEnabled("bibliotheek") ? unreadThreads : 0;
 
   const displayName = profile?.display_name ?? user.email ?? "";
 
@@ -119,7 +125,7 @@ export default async function AppLayout({
     // ZWBriljant: geen bruikbare kJ-standen in intervals.icu, dus geen
     // durability. Het weekoverzicht ontwijkt de dialoog zelf (hij opent niet
     // als er al een openstaat).
-    showNotices ? loadFatigueSetupIssue(supabase, user.id) : null,
+    showNotices && club.isEnabled("rennersniveau") ? loadFatigueSetupIssue(supabase, user.id) : null,
     // De app-update van deze week (0293): vanaf donderdag 17:00 een week lang.
     // Of het lid hem al zag, weet alleen de browser.
     showNotices ? loadLatestUpdate(supabase).catch(() => null) : null,
@@ -134,7 +140,7 @@ export default async function AppLayout({
   const durabilityDialog = fatigueIssue ? <DurabilitySetupDialog issue={fatigueIssue} /> : null;
   // "Nieuw in ZWBeter trainen": zelf eenmalig per apparaat, nooit boven op de
   // twee vragen hierboven. Of het lid ZWBeter gebruikt, vraagt hij zelf na.
-  const trainingNotice = showNotices ? <TrainingNoticeDialog /> : null;
+  const trainingNotice = showNotices && club.isEnabled("training") ? <TrainingNoticeDialog /> : null;
 
   const appUpdate =
     latestUpdate && inPopupWindow(latestUpdate.publishAt) ? (
@@ -156,15 +162,22 @@ export default async function AppLayout({
   // zelf na, zodat deze layout er geen query voor doet.
   const period = reviewPeriod();
   const weekReview =
-    period.inPopupWindow && !needsPrivacyConsent && !needsZwiftId ? (
+    period.inPopupWindow && !needsPrivacyConsent && !needsZwiftId && club.isEnabled("weekoverzicht") ? (
       <WeekReviewLauncher weekStart={period.weekStart} />
     ) : null;
-  const adminItems = ADMIN_NAV.filter((item) => access.has(item.permission));
+  const adminItems = ADMIN_NAV.filter(
+    (item) => access.has(item.permission) && club.allowsPath(item.href),
+  );
   const navNodes = filterNavForPermissions(
     NAV_GROUPS,
     (permission) => access.has(permission),
     (profile?.sex as string | null) ?? null,
+    club.allowsPath,
   );
+  const personalItems = AVATAR_NAV.filter((item) => club.allowsPath(item.href));
+  const hasBeheerPage =
+    beheerCategoriesFor((permission) => access.has(permission), club.allowsPath).length > 0;
+  const sponsorFooter = club.isEnabled("sponsors") ? <SponsorFooter /> : null;
 
   const canPreviewDesign = access.has(DESIGN_PREVIEW_PERMISSION);
   const design = await getDesign();
@@ -172,12 +185,13 @@ export default async function AppLayout({
   if (design === "tegels") {
     return (
       <TegelsShell
+        hiddenPlaces={PLACES.filter((place) => !club.allowsPath(place.href)).map((place) => place.id)}
         before={<NavProgress />}
         back={<BackButton className="size-11 hover:bg-transparent" />}
         actions={
           <>
             <UnreadMessagesLink
-              count={unreadThreads}
+              count={unreadCount}
               className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
               iconClassName="size-5"
             />
@@ -188,7 +202,8 @@ export default async function AppLayout({
             <AvatarMenu
               displayName={displayName}
               adminItems={[]}
-              beheerPage={beheerCategoriesFor((permission) => access.has(permission)).length > 0}
+              personalItems={personalItems}
+              beheerPage={hasBeheerPage}
               avatarUrl={(profile?.avatar_url as string | null) ?? null}
               showOnMobile
             />
@@ -209,7 +224,7 @@ export default async function AppLayout({
         }
       >
         {children}
-        <SponsorFooter />
+        {sponsorFooter}
         {canPreviewDesign && <DesignSwitch design={design} />}
       </TegelsShell>
     );
@@ -238,7 +253,7 @@ export default async function AppLayout({
           {/* Right side: avatar-dropdown + theme + mobile-hamburger */}
           <div className="flex items-center gap-2">
             <UnreadMessagesLink
-              count={unreadThreads}
+              count={unreadCount}
               className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
               iconClassName="size-4"
             />
@@ -246,15 +261,24 @@ export default async function AppLayout({
               className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
               iconClassName="size-4"
             />
-            <AvatarMenu displayName={displayName} adminItems={adminItems} />
+            <AvatarMenu
+              displayName={displayName}
+              adminItems={adminItems}
+              personalItems={personalItems}
+            />
             <ThemeToggle />
-            <MobileMenu displayName={displayName} adminItems={adminItems} nodes={navNodes} />
+            <MobileMenu
+              displayName={displayName}
+              adminItems={adminItems}
+              nodes={navNodes}
+              personalItems={personalItems}
+            />
           </div>
         </nav>
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
         {children}
-        <SponsorFooter />
+        {sponsorFooter}
         {canPreviewDesign && <DesignSwitch design={design} />}
       </main>
       {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}

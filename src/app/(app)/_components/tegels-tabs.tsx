@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PLACES, placeForPath } from "@/lib/design-places";
+import { PLACES, placeForPath, type PlaceId } from "@/lib/design-places";
 
 /** De vier plekken van het design "tegels": onderin op de telefoon, bovenin op
- * een breed scherm. De actieve tab steekt uit. */
-export function TegelsTabs({ position }: { position: "bottom" | "top" }) {
+ * een breed scherm. De actieve tab steekt uit. Een plek waarvan de module bij
+ * deze club uit staat, valt weg. */
+export function TegelsTabs({
+  position,
+  hiddenPlaces = [],
+}: {
+  position: "bottom" | "top";
+  hiddenPlaces?: PlaceId[];
+}) {
   const active = placeForPath(usePathname());
+  const places = PLACES.filter((place) => !hiddenPlaces.includes(place.id));
   return (
     <nav
       aria-label="Hoofdmenu"
@@ -17,7 +25,7 @@ export function TegelsTabs({ position }: { position: "bottom" | "top" }) {
           : "tg-tabs-top hidden flex-1 items-end self-end md:flex"
       }
     >
-      {PLACES.map((place) => (
+      {places.map((place) => (
         <Link
           key={place.id}
           href={place.href}

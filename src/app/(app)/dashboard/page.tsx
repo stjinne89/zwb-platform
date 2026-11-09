@@ -79,6 +79,7 @@ import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { getDesign } from "@/lib/design";
+import { getClub } from "@/lib/club";
 import { points as briljantPoints, positionFor as briljantPosition } from "@/lib/briljant/score";
 import { SCALE_VERSION as BRILJANT_SCALE } from "@/lib/briljant/norms";
 import { storedScore as briljantStoredScore } from "@/lib/briljant/compare";
@@ -486,7 +487,15 @@ export default async function DashboardPage({
   const params = (await searchParams) ?? {};
   const rawStravaError = params.strava_error;
   const stravaError = Array.isArray(rawStravaError) ? rawStravaError[0] : rawStravaError;
-  const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
+  const [supabase, user, club] = await Promise.all([
+    createClient(),
+    getRequestUser(),
+    getClub(),
+  ]);
+  // Modules die deze club uit heeft (0313): hun vragen vertrekken niet, en een
+  // blok zonder data valt hieronder vanzelf weg.
+  const on = club.isEnabled;
+  const skip = () => Promise.resolve({ data: null });
   // Elke databasevraag is een oversteek (functies in Ohio, database in Ierland), dus
   // wat niet van elkaar afhangt, vertrekt tegelijk: de rechten en de ritbron lopen
   // mee met de grote ronde hieronder in plaats van ervoor en erna.
@@ -497,7 +506,9 @@ export default async function DashboardPage({
   // Wie er nu live rijdt, voor de tegel Samen fietsen in het design "tegels".
   // Loopt mee met de rest, want Garmin en Wahoo eerst bijwerken kost een oversteek.
   const livePromise = getDesign()
-    .then((design) => (design === "tegels" && user ? loadLiveNow(supabase, user.id) : null))
+    .then((design) =>
+      design === "tegels" && user && on("samen_fietsen") ? loadLiveNow(supabase, user.id) : null,
+    )
     .catch(() => null);
 
   const nowIso = new Date().toISOString();
@@ -558,7 +569,7 @@ export default async function DashboardPage({
           .eq("id", user.id)
           .single()
       : Promise.resolve({ data: null }),
-    supabase
+    !on("media") ? skip() : supabase
       .from("media_items")
       .select("id, title, body_md, pinned, published_at, kind, author_id, profiles(display_name)")
       .gte("published_at", since7Iso)
@@ -566,7 +577,7 @@ export default async function DashboardPage({
       .order("pinned", { ascending: false })
       .order("published_at", { ascending: false })
       .limit(5),
-    supabase
+    !on("polls") ? skip() : supabase
       .from("polls")
       // Opties en stemmen alleen van deze twee polls; eerder kwamen alle stemmen
       // van alle polls ooit mee (en boven 1000 rijen stilletjes afgekapt).
@@ -578,7 +589,7 @@ export default async function DashboardPage({
       .order("created_at", { ascending: false })
       .order("display_order", { referencedTable: "poll_options" })
       .limit(2),
-    supabase
+    !on("sponsors") ? skip() : supabase
       .from("member_benefits")
       .select(
         "id, title, discount_code, redeem_url, valid_until, active, display_order, sponsors(name, logo_url)",
@@ -595,7 +606,7 @@ export default async function DashboardPage({
       .lte("start_at", plus14Iso)
       .order("start_at", { ascending: true })
       .limit(30),
-    supabase
+    !on("teams") ? skip() : supabase
       .from("team_results")
       .select(
         "id, team_id, competition, round_label, round_at, position, points, total_teams, created_at, source_url, teams(id, name, type, division)",
@@ -614,7 +625,7 @@ export default async function DashboardPage({
       .in("sport_type", CYCLING_SPORTS)
       .order("start_date", { ascending: false })
       .limit(8),
-    supabase
+    !on("bekers") ? skip() : supabase
       .from("achievement_awards")
       .select(
         "id, profile_id, award_scope, period_start, awarded_at, value, metadata, profiles(display_name), achievement_badges(title, icon, color)",
@@ -623,7 +634,7 @@ export default async function DashboardPage({
       .order("awarded_at", { ascending: false })
       .order("period_start", { ascending: false })
       .limit(8),
-    supabase
+    !on("ritverslagen") ? skip() : supabase
       .from("events")
       .select("id, title, start_at, location, cover_image_path, created_by")
       .gte("start_at", since7Iso)
@@ -639,7 +650,7 @@ export default async function DashboardPage({
           .eq("profile_id", user.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    user
+    user && on("training")
       ? supabase
           .from("training_workouts")
           .select("title, scheduled_at, intensity, duration_minutes, structure_json, test_type")
@@ -656,7 +667,7 @@ export default async function DashboardPage({
           .eq("profile_id", user.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase
+    !on("media") ? skip() : supabase
       .from("media_items")
       .select("id, title, web_url, cover_url, source, published_at")
       .eq("kind", "instagram")
@@ -664,7 +675,7 @@ export default async function DashboardPage({
       .order("published_at", { ascending: false })
       .limit(30),
     // computed_at ligt kort na de race; de racedatum zelf filtert zrlStandings.
-    supabase
+    !on("teams") ? skip() : supabase
       .from("zrl_team_results")
       .select(
         "event_id, team_id, rank, total_teams:teams, points, computed_at, events(title, start_at, parent_event_id), team:team_id(id, name, type, division)",
@@ -676,13 +687,15 @@ export default async function DashboardPage({
     // plaats van op event-id, zodat ze met de rest mee kunnen in plaats van in een
     // tweede ronde; hieronder houden we alleen over wat bij een getoond event hoort.
     // Een dag marge: de chat van een event begint op de dag zelf, soms vóór de start.
-    supabase
+    !on("ritverslagen") ? skip() : supabase
       .from("event_reports")
       .select("event_id, body_md, created_at, profiles(display_name)")
       .gte("created_at", since8Iso)
       .order("created_at", { ascending: false }),
-    supabase.from("event_chat_messages").select("event_id").gte("created_at", since8Iso),
-    supabase
+    !on("ritverslagen")
+      ? skip()
+      : supabase.from("event_chat_messages").select("event_id").gte("created_at", since8Iso),
+    !on("ritverslagen") ? skip() : supabase
       .from("event_photos")
       .select("event_id, storage_path")
       .gte("created_at", since8Iso)
@@ -867,7 +880,7 @@ export default async function DashboardPage({
   const wellnessDevice =
     ((profile as { wellness_device?: string | null } | null)?.wellness_device ??
       null) as WellnessDevice | null;
-  const showTraining = Boolean(conn) || Boolean(nextWorkout);
+  const showTraining = on("training") && (Boolean(conn) || Boolean(nextWorkout));
   // Syncen kan alleen met een koppeling die ook activiteiten mag lezen. Lukt
   // koppelen niet — de Strava-atletenlimiet raakt niet elk lid — dan blijft de
   // CSV/GPX-import de volwaardige route, dus die staat er altijd.
@@ -964,7 +977,7 @@ export default async function DashboardPage({
   // openen van de pagina of uit de wekelijkse job). Zonder snapshot of zonder
   // migratie 0265 geen tegel.
   let tileBriljant: VandaagBriljant | null = null;
-  if (tegels && user) {
+  if (tegels && user && on("rennersniveau")) {
     const { data: snapshot } = await supabase
       .from("zwbriljant_snapshots")
       .select("facets, consistency")
@@ -1088,7 +1101,7 @@ export default async function DashboardPage({
 
       {/* Vaste plek voor het weekoverzicht: de hele week, naar de laatst
           afgesloten week. In tegels staat het in de tegelrij hieronder. */}
-      {!tegels && user && <WeekReviewDashboardLink />}
+      {!tegels && user && on("weekoverzicht") && <WeekReviewDashboardLink />}
 
       {/* Blijft staan tot het ID er is: de dialoog bij inloggen mag weggeklikt
           worden, maar dan moet het ergens zichtbaar blijven. */}
@@ -1104,7 +1117,7 @@ export default async function DashboardPage({
       {needsWeight && <MissingWeightNotice />}
 
       {/* Bekers van de afgelopen week, met een feestje als ze nieuw zijn. */}
-      {user && (
+      {user && on("bekers") && (
         <Suspense fallback={null}>
           <RecentBekers />
         </Suspense>
@@ -1114,8 +1127,8 @@ export default async function DashboardPage({
         // Eén tegelrij: jouw races, Q&A, jouw teams en de Instagram-posts van deze
         // week. Dense: een brede teamtegel laat geen gat achter.
         <div className="grid grid-flow-row-dense grid-cols-2 gap-2 empty:hidden md:grid-cols-4">
-          {user && <WeekReviewDashboardLink tegels />}
-          {user && (
+          {user && on("weekoverzicht") && <WeekReviewDashboardLink tegels />}
+          {user && on("teams") && (
             <Suspense fallback={null}>
               <MyRaces userId={user.id} tegels />
             </Suspense>
@@ -1123,7 +1136,7 @@ export default async function DashboardPage({
           <Suspense fallback={null}>
             <QaDashboard tegels />
           </Suspense>
-          {user && (
+          {user && on("teams") && (
             <Suspense fallback={null}>
               <MyTeams userId={user.id} />
             </Suspense>
@@ -1134,7 +1147,7 @@ export default async function DashboardPage({
           />
         </div>
       ) : (
-        user && (
+        user && on("teams") && (
           <Suspense fallback={null}>
             <MyRaces userId={user.id} />
           </Suspense>
@@ -1164,14 +1177,16 @@ export default async function DashboardPage({
             />
           </Suspense>
         )}
-        <Suspense fallback={<CoreStatusSkeleton />}>
-          <CoreStatus tegels={tegels} />
-        </Suspense>
+        {on("training") && (
+          <Suspense fallback={<CoreStatusSkeleton />}>
+            <CoreStatus tegels={tegels} />
+          </Suspense>
+        )}
       </div>
 
       {!tegels && instagramPosts.length > 0 && <InstagramStrip posts={instagramPosts} />}
 
-      {user?.id && <MaintenanceStatus profileId={user.id} />}
+      {user?.id && on("garage") && <MaintenanceStatus profileId={user.id} />}
 
       {!tegels && clubRaces.length > 0 && (
         <section>
@@ -1232,13 +1247,17 @@ export default async function DashboardPage({
         </section>
       )}
 
-      <Suspense fallback={null}>
-        <FrrStandings userId={user?.id ?? null} />
-      </Suspense>
+      {on("teams") && (
+        <Suspense fallback={null}>
+          <FrrStandings userId={user?.id ?? null} />
+        </Suspense>
+      )}
 
-      <Suspense fallback={null}>
-        <SrcResults userId={user?.id ?? null} />
-      </Suspense>
+      {on("src") && (
+        <Suspense fallback={null}>
+          <SrcResults userId={user?.id ?? null} />
+        </Suspense>
+      )}
 
       {!tegels && (
       <section>
@@ -1436,7 +1455,7 @@ export default async function DashboardPage({
         <SectionHeader
           icon={Bike}
           title="Training en clubactiviteit"
-          action={<InlineMoreLink href="/stats">Clubstats</InlineMoreLink>}
+          action={on("stats") ? <InlineMoreLink href="/stats">Clubstats</InlineMoreLink> : undefined}
         />
         {stravaError ? (
           <p className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -1544,7 +1563,7 @@ export default async function DashboardPage({
         <StravaAttribution />
       </section>
 
-      <ClubStats />
+      {on("stats") && <ClubStats />}
 
       {/* Alleen tonen wat er is: een lege poll- of voordeelkaart duwde de rest
           omlaag zonder iets te zeggen. */}

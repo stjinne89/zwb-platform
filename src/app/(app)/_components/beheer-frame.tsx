@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { getRequestAccess } from "@/lib/auth/request";
 import { getDesign } from "@/lib/design";
+import { getClub } from "@/lib/club";
 import { BeheerNav } from "./beheer-nav";
 import { beheerCategoriesFor } from "./nav-config";
 
@@ -10,8 +11,11 @@ import { beheerCategoriesFor } from "./nav-config";
  * zoals het is. */
 export async function BeheerFrame({ children }: { children: ReactNode }) {
   if ((await getDesign()) !== "tegels") return children;
-  const access = await getRequestAccess();
-  const categories = beheerCategoriesFor((permission) => access.has(permission)).map(
+  const [access, club] = await Promise.all([getRequestAccess(), getClub()]);
+  const categories = beheerCategoriesFor(
+    (permission) => access.has(permission),
+    club.allowsPath,
+  ).map(
     (category) => ({
       label: category.label,
       tone: category.tone,

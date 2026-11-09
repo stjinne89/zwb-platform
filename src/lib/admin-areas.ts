@@ -11,6 +11,9 @@ export type AdminArea = { href: string; label: string; permission: CommunityPerm
 
 export const ADMIN_AREAS = {
   rechten: { href: "/beheer/rechten", label: "Rechten", permission: "roles.manage_permissions" },
+  // Welke modules deze club gebruikt (0313, docs/multi-club-ontwerp.md). Het
+  // recht van de eigenaar: een module uit zetten raakt alle leden.
+  modules: { href: "/beheer/modules", label: "Modules", permission: "roles.manage_permissions" },
   achievements: {
     href: "/beheer/achievements",
     label: "Badgebeheer",

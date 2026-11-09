@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth/session-user";
+import { moduleGateResponse } from "@/lib/modules-gate";
 
 const PASSWORD_RECOVERY_COOKIE = "zwb-password-recovery";
 
@@ -147,6 +148,14 @@ export async function updateSession(request: NextRequest) {
       url.pathname = "/dashboard";
       return NextResponse.redirect(url);
     }
+  }
+
+  // Modules die deze club heeft uitgezet (0313): 404, of een lege 200 voor een
+  // cronjob. Een ververste sessie gaat mee in het antwoord.
+  const gated = await moduleGateResponse(request, supabase);
+  if (gated) {
+    response.cookies.getAll().forEach((cookie) => gated.cookies.set(cookie));
+    return gated;
   }
 
   return response;
