@@ -262,79 +262,31 @@
     z-index: 1;
   }
 
+  /* De tenuebanen achter de schil: hier de vorm, de kleuren en de hoogte staan
+     bij tegels verderop (en bij een eigen huisstijl in lib/club-theme.ts). */
   html:not(.dark) .app-shell::before,
-  html:not(.dark) .app-shell::after,
-  html.dark .app-shell::before,
-  html.dark .app-shell::after {
+  html.dark .app-shell::before {
     content: "";
     pointer-events: none;
     position: fixed;
     z-index: 0;
+    inset: 3.75rem 0 auto;
   }
 
   html:not(.dark) .app-shell::before {
-    height: 24rem;
-    inset: 3.75rem 0 auto;
-    background:
-      linear-gradient(132deg, transparent 0 18%, rgb(0 70 83 / 0.08) 18% 32%, transparent 32%),
-      linear-gradient(149deg, transparent 0 34%, rgb(31 96 104 / 0.1) 34% 49%, transparent 49%),
-      linear-gradient(28deg, transparent 0 45%, rgb(127 149 144 / 0.1) 45% 61%, transparent 61%),
-      linear-gradient(156deg, transparent 0 62%, rgb(184 135 61 / 0.13) 62% 66%, transparent 66%);
     -webkit-mask-image: linear-gradient(180deg, black 0%, black 68%, transparent 100%);
     mask-image: linear-gradient(180deg, black 0%, black 68%, transparent 100%);
   }
 
   html.dark .app-shell::before {
-    height: 25rem;
-    inset: 3.75rem 0 auto;
-    background:
-      linear-gradient(132deg, transparent 0 18%, rgb(31 96 104 / 0.14) 18% 32%, transparent 32%),
-      linear-gradient(149deg, transparent 0 34%, rgb(127 149 144 / 0.1) 34% 49%, transparent 49%),
-      linear-gradient(28deg, transparent 0 45%, rgb(255 255 255 / 0.055) 45% 61%, transparent 61%),
-      linear-gradient(156deg, transparent 0 62%, rgb(184 135 61 / 0.18) 62% 66%, transparent 66%);
     -webkit-mask-image: linear-gradient(180deg, black 0%, black 66%, transparent 100%);
     mask-image: linear-gradient(180deg, black 0%, black 66%, transparent 100%);
-  }
-
-  html:not(.dark) .app-shell::after {
-    height: 18rem;
-    opacity: 0.82;
-    right: max(0px, calc((100vw - 72rem) / 2));
-    top: 8rem;
-    width: min(34rem, 76vw);
-    background:
-      linear-gradient(35deg, transparent 0 40%, rgb(0 70 83 / 0.08) 40% 56%, transparent 56%),
-      linear-gradient(145deg, transparent 0 46%, rgb(31 96 104 / 0.09) 46% 61%, transparent 61%),
-      linear-gradient(165deg, transparent 0 58%, rgb(184 135 61 / 0.14) 58% 64%, transparent 64%);
-    clip-path: polygon(0 12%, 100% 0, 100% 72%, 76% 100%, 18% 82%);
-  }
-
-  html.dark .app-shell::after {
-    height: 18rem;
-    opacity: 0.7;
-    right: max(0px, calc((100vw - 72rem) / 2));
-    top: 8rem;
-    width: min(34rem, 76vw);
-    background:
-      linear-gradient(35deg, transparent 0 40%, rgb(31 96 104 / 0.16) 40% 56%, transparent 56%),
-      linear-gradient(145deg, transparent 0 46%, rgb(127 149 144 / 0.11) 46% 61%, transparent 61%),
-      linear-gradient(165deg, transparent 0 58%, rgb(184 135 61 / 0.2) 58% 64%, transparent 64%);
-    clip-path: polygon(0 12%, 100% 0, 100% 72%, 76% 100%, 18% 82%);
   }
 
   @media (max-width: 640px) {
     html:not(.dark) .app-shell::before,
     html.dark .app-shell::before {
-      height: 19rem;
       inset-inline: -14rem -8rem;
-    }
-
-    html:not(.dark) .app-shell::after,
-    html.dark .app-shell::after {
-      height: 14rem;
-      right: -8rem;
-      top: 7rem;
-      width: 28rem;
     }
   }
 }
@@ -404,9 +356,9 @@
   }
 }
 
-/* ---------- Design "tegels" (standaard; het oude design staat achter een schakelaar) ----------
-   Geldt alleen binnen [data-design="tegels"], dat de app-layout zet tenzij het
-   oude design aanstaat (lib/design.ts). Het oude design blijft onaangeroerd.
+/* ---------- Design "tegels" ----------
+   Het enige design sinds 2026-11-09 (het oude, "klassiek", is weg). Geldt binnen
+   [data-design="tegels"], dat de schil, het inlogkader en /welkom zetten.
    Vier plekken en vijf tenuekleuren; een tegel heeft de kleur van de soort waar
    hij heen leidt. */
 [data-design="tegels"] {
@@ -493,9 +445,6 @@ html.dark .app-shell[data-design="tegels"]::before {
     linear-gradient(149deg, transparent 0 34%, rgb(127 149 144 / 0.13) 34% 49%, transparent 49%),
     linear-gradient(28deg, transparent 0 45%, rgb(255 255 255 / 0.05) 45% 61%, transparent 61%),
     linear-gradient(156deg, transparent 0 62%, rgb(196 146 63 / 0.34) 62% 66%, transparent 66%);
-}
-.app-shell[data-design="tegels"]::after {
-  display: none;
 }
 
 /* Paginakop: geen kaart meer, de titel draagt de pagina. */
@@ -1058,7 +1007,7 @@ html[data-viewport-fout] .tg-tabs-bottom {
 /* Een link in een lijst (races, opgeslagen plannen): kleur is klikbaar, dus in
    het design "tegels" een gevuld vlak in de kleur van de soort (tg-kalender,
    tg-zwbeter, ...). Waar je al bent: het paneel met de gouden lijn, net als bij
-   de ZWBeter-pijlers. In het oude design doet de klasse niets. De regels voor
+   de ZWBeter-pijlers. De regels voor
    panelen hierboven (bg-card, bg-background, divide-y) zijn specifieker dan een
    klasse; daarom hier !important. */
 [data-design="tegels"] .tg-link {

@@ -8,12 +8,16 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Generieke versie, fase 2 deel 2: lettertype, logo, kaarten en klassiek weg
-   (2026-11-09): lokaal gecommit, niet gepusht; migratie `0315` niet
-   toegepast.** Keuzes van de eigenaar op 2026-11-09: klassiek gaat eruit, logo
+   (2026-11-09): gepusht naar `main`; migratie `0315` toegepast** (versie
+   `20261109101801`, op verzoek van de eigenaar, vóór de push; de bucket
+   `club-assets` bestaat, en bij ZWB staan letter, logo en beeldmerk leeg).
+   Keuzes van de eigenaar op 2026-11-09: klassiek gaat eruit, logo
    en beeldmerk, een korte lijst van vier letters, alleen grafieken en kaarten
-   volgen de clubkleuren, donker blijft afgeleid. Volgorde: eerst `0315`
-   toepassen (de bucket `club-assets`), dan pushen. Zie de ronde "Generieke
-   versie, fase 2 deel 2".
+   volgen de clubkleuren, donker blijft afgeleid. Nalopen na de deploy: het
+   dashboard, de kalender en het schema (veel bestanden geraakt door het
+   weghalen van klassiek), en `/beheer/huisstijl` opent. Niets opslaan: dat ziet
+   elk lid. Zie de ronde "Generieke
+   versie, fase 2 deel 2" en "Oude design klassiek weg".
 
 0. **Generieke versie, fase 2 deel 1: clubkleuren (2026-11-09): gepusht naar
    `main`; migratie `0314` toegepast** (versie `20261109093654`, in de
@@ -11922,6 +11926,39 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Oude design "klassiek" weg
+
+**2026-11-09.** Besluit van de eigenaar, bij fase 2 deel 2 van de generieke
+versie. "Tegels" is nu het enige design. Klassiek was sinds 2026-10-19 alleen
+nog te zien voor wie `roles.manage_permissions` had en het cookie `zwb-design`
+zette, dus voor leden verandert er niets. Gemaakt door een hulpagent op een
+eigen branch (`a947f36b`) en samengevoegd; geen migratie.
+
+- **Weg:** `src/lib/design.ts`, de schakelaar (`design-switch.tsx`,
+  `_actions/design.ts`), `desktop-nav.tsx`, `mobile-menu.tsx`, en op het
+  dashboard `greeting.tsx` en `photo-nudge.tsx`. `ADMIN_NAV` en
+  `isActiveGroup` (`nav-config.ts`) waren alleen nog voor het oude menu.
+- **Alleen het tegelpad over** in de app-layout, het dashboard en zijn tegels,
+  de kalender, ZWBeter (layout, Vandaag, schema), stats, hulp, teams, beheer en
+  de schermen vóór het inloggen. Componenten verloren hun prop `tegels`.
+- **Minder werk per pagina:** het dashboard vraagt geen ritverslagen, chat en
+  foto's van voorbije events meer op, en kijkt 7 in plaats van 14 dagen vooruit
+  (de tegels filterden al op 7). De kalender vraagt de live-sessies niet meer op
+  en roept `refreshExternalLiveSessions` niet meer aan; die voedden alleen de
+  oude lijst. Het schema laadt geen Zwift- en buitensuggesties meer die tegels
+  nooit toonde.
+- **CSS:** de tenuebanen van het oude design (`.app-shell::after` en de kleuren
+  en hoogte van `::before`) zijn uit `globals.css`; alleen de vorm blijft.
+  DESIGN.md noemt klassiek niet meer als vangnet.
+
+**Niet meer waar:** alles in dit document over "het oude design achter de
+schakelaar" of `lib/design.ts`, onder meer in de rondes van het design tegels.
+Die stukken staan er als geschiedenis.
+
+Lokaal: `tsc` schoon, `next build` slaagt, de testsuite groen op time-outs
+onder belasting na (los gedraaid alle tien groen) en `omnium-live` zonder
+`.env.local`. Niet in de browser bekeken.
+
 ### Gebouwd — Generieke versie, fase 2 deel 2: lettertype, logo en kaarten
 
 **2026-11-09.** Op verzoek van de eigenaar, met zijn keuzes van dezelfde dag:
@@ -11934,10 +11971,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
   hun eigen stijl;
 - het donkere thema blijft afgeleid; geen tweede set kleuren.
 
-Migratie `0315_club_brand.sql` (**niet toegepast**): op `club_settings` de
+Migratie `0315_club_brand.sql` (toegepast op 2026-11-09, versie
+`20261109101801`): op `club_settings` de
 kolommen `font` (check op de vier sleutels), `logo_url` en `mark_url`, en de
 publieke bucket `club-assets` (PNG en JPG, max 2 MB; uploaden alleen met de
-service role). Lokaal gecommit, niet gepusht.
+service role). Daarna naar `main` gepusht.
 
 - **Lettertype.** Barlow Semi Condensed (standaard), Archivo, Inter en Schibsted
   Grotesk, alle vier als woff2 in `src/fonts` en zonder preload in

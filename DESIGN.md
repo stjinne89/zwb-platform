@@ -235,9 +235,9 @@ components:
 # Design System: ZWB Cycling Platform
 
 Dit beschrijft het design "tegels", sinds 2026-10-19 de standaard voor alle
-leden. Het oude design ("klassiek") bestaat nog als vangnet achter een cookie
-voor bestuursleden (`src/lib/design.ts`) en staat hier niet meer in; zijn
-beschrijving staat in de git-geschiedenis van dit bestand (vóór 2026-10-19).
+leden en sinds 2026-11-09 het enige design. Het oude design ("klassiek") is
+weggehaald; zijn beschrijving staat in de git-geschiedenis van dit bestand
+(vóór 2026-10-19).
 
 De bron is de code. Alles hieronder geldt binnen `[data-design="tegels"]`,
 dat de app-schil zet (`src/app/(app)/_components/tegels-shell.tsx`), en voor
