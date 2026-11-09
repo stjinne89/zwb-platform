@@ -15,8 +15,8 @@ gaat stabiliteit voor nieuwe features.
    384 events), en "Jouw races" van de eigenaar toont 26 races. Zie de ronde
    "ZWBeter racen: races per lid, ook buiten de kalender".
 
-0. **ZWBeter racen: diepere race-analyse (2026-11-09): lokaal gecommit, niet
-   gepusht; migratie `0321` niet toegepast.** Open: de eigenaar keurt de
+0. **ZWBeter racen: diepere race-analyse (2026-11-09): lokaal gecommit
+   (`7fe8ba59`), niet gepusht; migratie `0321` niet toegepast.** Open: de eigenaar keurt de
    privacytekst goed (wellness en geplande training bij het openen, klimtijden
    bewaard, W/kg van ZWB'ers in dezelfde race), past `0321` toe (eerst
    `origin/main` op het nummer checken) en kijkt de pagina ingelogd na. Zie de
@@ -12132,7 +12132,7 @@ race en als pagina aan de eigenaar voorgelegd:
 
 ### Gebouwd — ZWBeter racen: diepere race-analyse
 
-**2026-11-09.** Lokaal gecommit, niet gepusht. Migratie
+**2026-11-09.** Commit `7fe8ba59`, lokaal, niet gepusht. Migratie
 `0321_race_climb_efforts` (nummer na `0320` op `origin/main`, gecheckt
 2026-11-09), niet toegepast. Vraag van de eigenaar, na de onderzoekspagina:
 "Ik wil dat je al deze blokken bouwt, met daar telkens uitleg over wanneer je
