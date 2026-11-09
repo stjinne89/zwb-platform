@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Lettertypes in de repo (2026-11-09): lokaal gecommit, nog niet gepusht.**
+   Geen migratie. Na de push: de Netlify-deploy moet slagen, en ZWBriljant,
+   ZWBekers, het weekoverzicht, voorZpWelBokaal en het spiekbriefje tonen hun
+   eigen letter. Zie de ronde "Lettertypes in de repo".
+
 0. **Ledenvoordeel als pop-up (2026-11-09): gepusht naar `main`.** Geen
    migratie. Na de deploy: in een browser met lege opslag inloggen en zien
    dat de pop-up na de andere meldingen komt. **Vervolg: nieuwste voordeel
@@ -11901,6 +11906,39 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Lettertypes in de repo
+
+**2026-11-09.** De productiedeploy van `main@aa86bab` faalde op het ophalen van
+Cormorant Garamond bij Google Fonts ("next/font/google queries have exactly one
+entry", Module not found `@vercel/turbopack-next/internal/font/google/font`),
+precies zoals op 2026-11-06. De code was niet de oorzaak: lokaal slaagde de
+build. Zolang de build lettertypes bij Google ophaalt, kan elke deploy zo
+mislukken, en een mislukte deploy kost credits. Daarom staan alle twaalf
+lettertypes nu als woff2 in `src/fonts` en laden ze via `next/font/local`:
+Geist en Geist Mono (`app/layout.tsx`), Barlow Semi Condensed (tegels),
+Cormorant Garamond en Jost (ZWBriljant, ZWBekers), Alfa Slab One, Cabin Sketch,
+Kalam en Courier Prime (voorZpWelBokaal), Big Shoulders Stencil en Karla
+(weekoverzicht) en Shantell Sans (spiekbriefje, met de assen BNCE en INFM).
+Opgehaald met de css2-API van Google Fonts, alleen de subset `latin`, met
+dezelfde gewichten als voorheen; variabele letters als één bestand. Samen ruim
+0,8 MB. Herkomst en licentie (SIL OFL 1.1) staan in `src/fonts/README.md`.
+
+Gevolg: `next/font/local` noemt de familie naar de variabele (`tegelsFont`,
+`briljantSerif` enz.), niet naar de echte naam. `globals.css` noemde Barlow
+Semi Condensed bij naam voor dialogen buiten de tegels-schil; dat is nu
+`"tegelsFont"`. De terugval `"Cormorant Garamond"` en `"Jost"` in de
+CSS-modules van ZWBriljant en ZWBekers staat achter de variabele en doet niets
+meer, maar is onschadelijk.
+
+Lokaal: `next build` (met nep-env) slaagt zonder netwerk naar Google, `tsc`
+schoon, de tests groen op time-outs onder belasting na (los gedraaid groen) en
+`omnium-live`, dat een `.env.local` verwacht. Niet in de browser bekeken.
+
+**Bewust niet.** De subset `latin-ext` (voor letters als ł of ő in namen): die
+stond ook voorheen niet aan. Een npm-pakket per lettertype (`geist`,
+`@fontsource/*`): dat zijn twaalf afhankelijkheden voor bestanden die niet
+veranderen.
+
 ### Gebouwd — Ledenvoordeel als pop-up
 
 **2026-11-09.** Gemaakt op de branch
@@ -13044,7 +13082,7 @@ Tegelijk faalde een Netlify-build op `next/font/google` in
 `zwbekers/kast-view.tsx` ("Can't resolve …/internal/font/google/font"). Die
 code en `package.json` zijn sinds eind oktober niet veranderd en latere builds
 slaagden; aangenomen is een tijdelijke fout bij het ophalen van Google Fonts
-tijdens de build, niet gecontroleerd. Het advies van Netlify om Next.js terug
+tijdens de build, niet gecontroleerd. Op 2026-11-09 gebeurde het opnieuw; sindsdien staan de lettertypes in de repo (ronde "Lettertypes in de repo"). Het advies van Netlify om Next.js terug
 te zetten naar 15 is bewust niet opgevolgd.
 
 **Bewust niet.** Geen automatische vernieuwing van de sessie (dat vraagt

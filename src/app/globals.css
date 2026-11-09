@@ -426,7 +426,8 @@
 
 /* Dialogen en uitklapmenu's renderen in een portal buiten de schil; via :has()
    krijgen ze dezelfde tokens. De letter staat hier bij naam: --font-tegels
-   bestaat alleen op de schil zelf. */
+   bestaat alleen op de schil zelf. next/font/local noemt de familie naar de
+   variabele in src/components/tegels/font.ts ("tegelsFont"). */
 :root:has([data-design="tegels"]) {
   --radius: 0.125rem;
   --tg-vandaag: #b8873d;
@@ -438,7 +439,7 @@
   --tg-paper: #fbfbf7;
   --tg-band: rgb(255 255 255 / 0.1);
   --tg-panel: rgb(0 70 83 / 0.07);
-  --tg-display: "Barlow Semi Condensed", var(--font-geist-sans), system-ui, sans-serif;
+  --tg-display: "tegelsFont", var(--font-geist-sans), system-ui, sans-serif;
 }
 .dark:has([data-design="tegels"]) {
   --background: #061c22;

@@ -1,17 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { IosViewportHerstel } from "@/components/ios-viewport-herstel";
 
-const geistSans = Geist({
+// De lettertypes staan in src/fonts, zodat de build niet van Google Fonts
+// afhangt (zie de README daar).
+const geistSans = localFont({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  src: "../fonts/geist-100-900.woff2",
+  weight: "100 900",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  src: "../fonts/geist-mono-100-900.woff2",
+  weight: "100 900",
 });
 
 export const metadata: Metadata = {

@@ -5,13 +5,17 @@
 // Het briefje is papier, ook in het donkere thema (dan iets gedimd): de kleuren
 // hieronder zijn inkt op papier, geen thema-tokens.
 
-import { Shantell_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { cn } from "@/lib/utils";
 
 // Handschrift met duidelijke cijfers: een 1 die niet op een l lijkt. De assen
 // INFM (informeel) en BNCE (dansende letters) maken het meer geschreven; de
-// koppen het sterkst.
-export const hand = Shantell_Sans({ subsets: ["latin"], weight: "variable", axes: ["BNCE", "INFM"], display: "swap" });
+// koppen het sterkst. Het bestand in src/fonts heeft die twee assen.
+export const hand = localFont({
+  src: "../../fonts/shantell-sans-300-800.woff2",
+  weight: "300 800",
+  display: "swap",
+});
 export const HAND_TEXT = "[font-variation-settings:'INFM'_70,'BNCE'_25]";
 export const HAND_HEADING = "[font-variation-settings:'INFM'_100,'BNCE'_50]";
 
