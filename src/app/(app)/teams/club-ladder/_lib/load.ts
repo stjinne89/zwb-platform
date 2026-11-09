@@ -307,6 +307,32 @@ export async function loadTeamRosterRiders(
   });
 }
 
+export type LadderAddOption = { id: string; name: string };
+
+/**
+ * Keuzes om een renner aan de ladder toe te voegen: goedgekeurde leden en
+ * rosternamen zonder account. Een rosternaam met het Zwift-ID van een lid valt
+ * weg, zoals in de puzzel: dat is dezelfde renner.
+ */
+export async function loadLadderAddOptions(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<{ members: LadderAddOption[]; roster: LadderAddOption[] }> {
+  const [{ data: profileRows }, { data: rosterRows }] = await Promise.all([
+    admin.from("profiles").select("id, display_name, zwift_id").eq("is_approved", true).order("display_name"),
+    admin.from("roster_entries").select("id, name, zwift_id").is("claimed_by", null).order("name"),
+  ]);
+  const profiles = (profileRows ?? []) as Array<{ id: string; display_name: string | null; zwift_id: string | null }>;
+  const memberZwiftIds = new Set(profiles.map((row) => row.zwift_id?.trim()).filter(Boolean));
+  return {
+    members: profiles
+      .filter((row) => row.display_name?.trim())
+      .map((row) => ({ id: row.id, name: row.display_name!.trim() })),
+    roster: ((rosterRows ?? []) as Array<{ id: string; name: string | null; zwift_id: string | null }>)
+      .filter((row) => row.name?.trim() && !memberZwiftIds.has(row.zwift_id?.trim()))
+      .map((row) => ({ id: row.id, name: row.name!.trim() })),
+  };
+}
+
 export async function loadLadderCaptains(
   ladderTeams: TeamRow[],
   admin: ReturnType<typeof createAdminClient>,

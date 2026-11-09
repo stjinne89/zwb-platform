@@ -7,6 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Club Ladder: rosternamen toevoegen aan puzzel en teams (2026-11-09):
+   gebouwd, lokaal gecommit op `claude/rosternamen-club-ladder-5c54a7`, niet
+   gepusht.** Geen migratie. Nalopen na een deploy, met de rol teamcaptain:
+   onder de puzzel bij "Renner aan de puzzel toevoegen" een rosternaam kiezen en
+   in een team zetten, en op de pagina van een ladderteam onder het teamprofiel
+   een rosternaam toevoegen. Zie de ronde "Club Ladder: rosternamen toevoegen
+   aan puzzel en teams".
+
 0. **Zwift-garage: fietslijst voorbij 1000 rijen (2026-11-09): gepusht naar
    `main` (`c01addc9`).** Geen migratie. Open: na de deploy de garage bekijken. Zwift TT, Steel, Safety en een deel van de Zwift
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
@@ -12138,6 +12146,60 @@ en beheer gelijk, en een club zonder namen ziet geen "ZWB").
 schermen achter de login in de browser, en een club met andere namen. Dat laatste
 kan niet op productie zonder dat elk lid het ziet.
 
+### Gebouwd — Club Ladder: rosternamen toevoegen aan puzzel en teams
+
+**2026-11-09.** Lokaal gecommit op `claude/rosternamen-club-ladder-5c54a7` (de
+commit met deze ronde), niet gepusht. Geen migratie.
+
+**Waarom.** Eigenaar: "Ik wil rosternamen ook kunnen toevoegen aan de club
+ladder puzzel en teams". Een rosternaam zonder account kwam alleen in de puzzel
+via "Renner toevoegen" met een Zwift-ID; de keuzelijst onder de puzzel toonde
+alleen leden, en op de teampagina kon je niemand toevoegen. Op productie
+(2026-11-09) zijn er 54 ongeclaimde rosternamen, waarvan 4 in de ladder.
+
+**Wat.**
+- `addLadderRider(renner, team)` (`teams/club-ladder/_actions.ts`): lid of
+  rosternaam in een ladderteam, of bij de losse stukjes (`null`). Een rosternaam
+  krijgt een rij in `ladder_roster_riders` (upsert op `roster_entry_id`, dus een
+  rosternaam die al in een ander ladderteam stond, verhuist); een geclaimde
+  rosternaam wordt geweigerd. Een lid naar een puzzelteam gaat via
+  `moveLadderPuzzleRider` (uit de andere puzzelteams), naar een team buiten de
+  puzzel als `team_members` met herkomst `manual`, en naar de losse stukjes via
+  `addToLadderPool`.
+- Rechten zoals ze al waren: een puzzelteam alleen de rol teamcaptain
+  (`canEditLadderPuzzle`), een team buiten de puzzel `canAssignLadderRiders`,
+  een rosternaam bij de losse stukjes de rol teamcaptain (zoals "Renner
+  toevoegen"), een lid bij de losse stukjes een van beide.
+- `loadLadderAddOptions` (`_lib/load.ts`): goedgekeurde leden en ongeclaimde
+  rosternamen; een rosternaam met het Zwift-ID van een lid valt weg, zoals in de
+  puzzel.
+- Clubladderpagina: "Lid aan de puzzel toevoegen" heet "Renner aan de puzzel
+  toevoegen", met in de keuzelijst Leden en Rosternamen zonder account, en een
+  tweede keuze voor het team (Losse stukjes of een puzzelteam). Rosternamen en
+  de teamkeuze alleen voor de rol teamcaptain. Het formulier staat er voor wie
+  ladderteams indeelt of de rol teamcaptain heeft (eerst alleen het eerste).
+- Teampagina (`/teams/club-ladder/[teamId]`): onder het teamprofiel "Renner aan
+  <team> toevoegen", met leden en rosternamen die nog niet in dat team staan.
+- `/hulp` (Teams en wedstrijden) aangepast.
+
+**Bewust niet.** Geen nieuwe rosternamen vanuit deze keuzelijst: dat blijft
+"Renner toevoegen" in de puzzel, met Zwift-ID. Een lid dat in een team buiten
+de puzzel komt, blijft in zijn puzzelteam staan; alleen in de puzzel geldt één
+team per renner. Bij een rosternaam staat in de keuzelijst niet in welk
+ladderteam hij al zit. Geen privacytekst: ladderteam van renners zonder account
+staat er al sinds 0290.
+
+**Niet meer waar.** In de ronde "Ladderpuzzel: weergave, volgorde en renners
+weghalen" (2026-10-29) heette het formulier "Lid aan de ladderlijst toevoegen";
+daar staat nu een verwijzing naar deze ronde.
+
+**Gecontroleerd.** `tsc` zonder nieuwe fouten (alleen ontbrekende pakketten in
+deze worktree: `@anthropic-ai/sdk`, `@mediapipe/tasks-vision`,
+`modern-screenshot`), ESLint schoon op `teams/club-ladder` en `hulp/_data.ts`,
+Vitest `club-ladder*` 159 groen (`club-ladder-sync` laadt niet door
+`@anthropic-ai/sdk`). **Niet geverifieerd:** de formulieren in de browser en een
+echte toevoeging op productie.
+
 ### Gebouwd — Club Ladder: duren en watt in de verwachte uitslag
 
 **2026-11-09.** Commits `2dd807dc`, `5d02c352` (privacy) en `85138f0b` (kleur), op
@@ -17247,7 +17309,9 @@ kunnen halen als iemand niet meer mee wil doen.
   puzzel niet meer bewerken, tenzij het ook de rol teamcaptain heeft. Captain
   van een ladderteam zijn telt niet mee. Op 2026-10-29 hebben negen leden die
   rol, onder wie de captains Jeroen en Femke en de eigenaar. De
-  Captain-selectie, "Lid aan de ladderlijst toevoegen" en captains aanwijzen
+  Captain-selectie, "Lid aan de ladderlijst toevoegen" (*sinds 2026-11-09
+  "Renner aan de puzzel toevoegen", ook met rosternamen; zie de ronde "Club
+  Ladder: rosternamen toevoegen aan puzzel en teams"*) en captains aanwijzen
   houden de oude regel (`canAssignLadderRiders`: `teams.manage_roster`, of
   captain van een ladderteam).
 
