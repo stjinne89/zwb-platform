@@ -7,15 +7,20 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Ledenvoordeel als pop-up (2026-11-09): gepusht naar `main`.** Geen
+   migratie. Na de deploy: in een browser met lege opslag inloggen en zien
+   dat de pop-up na de andere meldingen komt. Zie de ronde "Ledenvoordeel als
+   pop-up".
+
 0. **Laadtijd, deel 4: schema weer sneller (2026-11-08): gepusht naar `main`
    (`25e17429`), migratie `0312` toegepast** (versie `20261108205601`, op
    verzoek van de eigenaar). Nameting: schema 5,4–8,0 → 2,8–5,3 s.
-   **Vervolg: ritplan pas bij openklappen (2026-11-08): lokaal gecommit, niet
-   gepusht.** Geen migratie. Na de push: een training in de maandweergave openen
+   **Vervolg: ritplan pas bij openklappen (2026-11-08): op `main`
+   (`ac812f86`).** Geen migratie. Na de deploy: een training in de maandweergave openen
    en zien dat Klaarzetten verschijnt, de bidonmaat kiezen, en het schema opnieuw
    meten. Zie de ronde "Laadtijd, deel 4".
 
-0. **Houding (bèta) voor leden (2026-11-08): lokaal gecommit, niet gepusht.**
+0. **Houding (bèta) voor leden (2026-11-08): op `main` (`09525926`).**
    Tab Houding onder ZWBeter materiaal, zonder advies in Zwift Ride-letters of
    millimeters. De eigenaar doet deze week de lettertest op
    `/beheer/houding-meetproef` (gepusht, `c44673e8`) met zijn Zwift Ride V2; pas
@@ -11882,6 +11887,57 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Ledenvoordeel als pop-up
+
+**2026-11-09.** Gemaakt op de branch
+`claude/discount-codes-first-visit-popup-c8f625` en op 2026-11-09 op verzoek
+van de eigenaar naar `main` gepusht. Geen migratie.
+
+**Waarom.** De eigenaar: nieuwe kortingscodes en ledenvoordeel meteen onder de
+aandacht brengen als iemand in de app komt, in plaats van alleen op
+`/sponsors` en het dashboard.
+
+**Wat er veranderde.**
+- `lib/benefits/popup.ts` laadt de voordelen die vandaag gelden (actief,
+  `valid_from` niet in de toekomst, `valid_until` niet voorbij, op
+  Nederlandse datum) en rekent uit welke dit apparaat nog niet zag.
+- `BenefitPopupDialog` in de app-layout: elk voordeel dat dit apparaat nog niet
+  zag, één keer. Een nieuw lid ziet zo bij binnenkomst alles wat er is, een
+  bestaand lid alleen wat er later bijkomt. Bij de eerste keer na de deploy
+  ziet ieder lid dus alle huidige voordelen één keer.
+- Tot drie voordelen in de pop-up, met sponsor en een kopieerknop voor de code;
+  meer dan drie geeft "En nog N voordelen" en de knop "Alle voordelen" naar
+  `/sponsors`.
+- Gezien onthoudt de browser (`zwb-ledenvoordeel-gezien`, de lijst met ID's
+  van wat er bij sluiten stond), net als de app-update. Zonder opslag
+  (privévenster) geen pop-up, liever dan elke pagina opnieuw.
+- Volgorde: nooit boven op de toestemmingsvraag of de Zwift-ID-vraag
+  (`showNotices`), en hij opent na 4,5 s alleen als er geen andere dialoog
+  openstaat; de andere meldingen (2–3 s) gaan dus voor en dan komt deze bij een
+  volgende pagina terug.
+- De layout doet er één query bij, in dezelfde `Promise.all`-ronde als de
+  andere meldingen: geen extra oversteek naar de database.
+
+**Bewust niet.**
+- Geen "gezien" in de database: dat vraagt een migratie en een tabel per lid
+  voor iets dat de app-update ook per apparaat doet. Wie op een tweede apparaat
+  inlogt, ziet de pop-up daar nog één keer.
+- Geen vinkje "dit voordeel als pop-up tonen" bij beheer: elk actief voordeel
+  is het melden waard, en een nieuw voordeel komt er vanzelf in.
+- Geen omschrijving (markdown) in de pop-up: die staat op `/sponsors`; de
+  pop-up blijft kort.
+- Geen tekst in de privacyverklaring: de browser bewaart alleen ID's van
+  voordelen, geen persoonsgegevens, zoals bij de app-update.
+
+**Getest.** ESLint schoon op de gewijzigde bestanden; typecheck zonder fouten
+in de nieuwe code; nieuwe unittest `benefit-popup.test.ts` (5) slaagt. De
+volledige suite faalt in deze worktree op ontbrekende pakketten in de gedeelde
+`node_modules` (`@anthropic-ai/sdk`, `@mediapipe/tasks-vision`,
+`modern-screenshot`) en een paar netwerktests, los van deze ronde.
+
+**Niet geverifieerd.** De pop-up in de echte app (inloggen kon hier niet), op
+een telefoon, en samen met de app-update en de welkomstrondleiding.
 
 ### Gebouwd — Laadtijd, deel 4: schema, layout en de rechtencheck in RLS
 

@@ -19,6 +19,8 @@ import { DurabilitySetupDialog } from "./_components/durability-setup-dialog";
 import { TrainingNoticeDialog } from "./_components/training-notice-dialog";
 import { AppUpdateDialog } from "./_components/app-update-dialog";
 import { IntegrationNoticeDialog } from "./_components/integration-notice-dialog";
+import { BenefitPopupDialog } from "./_components/benefit-popup-dialog";
+import { loadPopupBenefits } from "@/lib/benefits/popup";
 import { loadOpenIntegrationNotices } from "@/lib/integrations/member-notices";
 import { loadLatestUpdate } from "@/lib/app-updates/queries";
 import { inPopupWindow } from "@/lib/app-updates/schedule";
@@ -112,7 +114,7 @@ export default async function AppLayout({
   // samen in één ronde: deze layout draait op elke pagina, en na elkaar kostte
   // dat vier oversteken naar de database voordat de pagina kon renderen.
   const showNotices = Boolean(profile) && !needsPrivacyConsent && !needsZwiftId;
-  const [claims, fatigueIssue, latestUpdate, integrationNotices] = await Promise.all([
+  const [claims, fatigueIssue, latestUpdate, integrationNotices, benefits] = await Promise.all([
     needsZwiftId ? claimableRosterEntries(supabase, displayName) : [],
     // ZWBriljant: geen bruikbare kJ-standen in intervals.icu, dus geen
     // durability. Het weekoverzicht ontwijkt de dialoog zelf (hij opent niet
@@ -124,6 +126,9 @@ export default async function AppLayout({
     // "Nog niet gekoppeld" van beheer (0307). Eén indexvraag; de koppelingen
     // laden pas als er iets openstaat.
     showNotices ? loadOpenIntegrationNotices(supabase, user.id).catch(() => []) : [],
+    // Ledenvoordeel dat dit apparaat nog niet zag; welke dat zijn, weet alleen
+    // de browser.
+    showNotices ? loadPopupBenefits(supabase).catch(() => []) : [],
   ]);
 
   const durabilityDialog = fatigueIssue ? <DurabilitySetupDialog issue={fatigueIssue} /> : null;
@@ -143,6 +148,8 @@ export default async function AppLayout({
 
   const integrationNotice =
     integrationNotices.length > 0 ? <IntegrationNoticeDialog notices={integrationNotices} /> : null;
+
+  const benefitPopup = benefits.length > 0 ? <BenefitPopupDialog benefits={benefits} /> : null;
 
   // Het weekoverzicht: zondagavond tot en met woensdag, en nooit boven op een
   // van de twee vragen hierboven. Of er echt iets klaarstaat vraagt de launcher
@@ -197,6 +204,7 @@ export default async function AppLayout({
             {trainingNotice}
             {appUpdate}
             {integrationNotice}
+            {benefitPopup}
           </>
         }
       >
@@ -256,6 +264,7 @@ export default async function AppLayout({
       {trainingNotice}
       {appUpdate}
       {integrationNotice}
+      {benefitPopup}
     </div>
   );
 }
