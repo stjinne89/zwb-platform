@@ -60,6 +60,10 @@ export type LadderBriefingRider = {
   wkg: PowerWkg | null;
   source: MatchupRider["source"];
   racingScore: number | null;
+  /** Voor watt in de tabel Verwachte uitslag; telt niet mee in de sterkte. */
+  weightKg?: number | null;
+  /** Profiel van een ZWB'er, voor de link naar /leden. */
+  profileId?: string | null;
 };
 
 export type LadderPlace = LadderBriefingRider & { place: number; points: number };
@@ -137,6 +141,8 @@ export function ladderRiders(matchup: LadderMatchup, weights: DurationWeights | 
     wkg: rider.wkg,
     source: rider.source,
     racingScore: rider.racingScore,
+    weightKg: rider.weightKg,
+    profileId: rider.profileId ?? null,
   }));
 }
 
