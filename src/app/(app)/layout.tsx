@@ -134,7 +134,7 @@ export default async function AppLayout({
     showNotices ? loadOpenIntegrationNotices(supabase, user.id).catch(() => []) : [],
     // Ledenvoordeel dat dit apparaat nog niet zag; welke dat zijn, weet alleen
     // de browser.
-    showNotices ? loadPopupBenefits(supabase).catch(() => []) : [],
+    showNotices && club.isEnabled("sponsors") ? loadPopupBenefits(supabase).catch(() => []) : [],
   ]);
 
   const durabilityDialog = fatigueIssue ? <DurabilitySetupDialog issue={fatigueIssue} /> : null;

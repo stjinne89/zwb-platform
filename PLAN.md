@@ -13,13 +13,14 @@ gaat stabiliteit voor nieuwe features.
    pop-up".
 
 0. **Generieke versie voor andere clubs, fase 1: clubinstellingen en modules
-   (2026-11-09): lokaal gecommit, niet gepusht; migratie `0313` niet toegepast.**
+   (2026-11-09): gepusht naar `main`; migratie `0313` toegepast** (versie
+   `20261109085754`, op verzoek van de eigenaar, vóór de push).
    Besluiten eigenaar: één codebase met een eigen installatie per club, inrichten
    in de app zelf, neutrale modulenamen. Fase 1 gestart op verzoek van de eigenaar.
    ZWB staat in `0313` met alle modules aan, dus voor leden verandert er niets.
-   De code werkt ook zonder de migratie (dan staat alles aan). Na pushen en
-   toepassen: op `/beheer/modules` één module uit- en weer aanzetten, en zien dat
-   menu, tegels, dashboard en de 404 meegaan. Zie de rondes "Generieke versie,
+   Nalopen na de deploy: op `/beheer/modules` één module uit- en weer aanzetten
+   (bijvoorbeeld Managerspel), en zien dat menu, tegels, dashboard en de 404 op
+   `/zwbgame` meegaan. Zie de rondes "Generieke versie,
    fase 1" en "Generieke versie voor andere clubs", en
    [multi-club-ontwerp](docs/multi-club-ontwerp.md).
 
@@ -11952,10 +11953,16 @@ een telefoon, en samen met de app-update en de welkomstrondleiding.
 
 ### Gebouwd — Generieke versie, fase 1: clubinstellingen en modules
 
-**2026-11-09, op verzoek van de eigenaar ("start fase 1").** Lokaal gecommit,
-niet gepusht. Commit: de commit die dit blok toevoegt. **Migratie
-`0313_club_settings.sql` is niet toegepast.** `origin/main` eindigde op 2026-11-09
-op `0312`; vlak vóór het toepassen opnieuw nakijken.
+**2026-11-09, op verzoek van de eigenaar ("start fase 1").** Gepusht naar
+`main` op verzoek van de eigenaar (2026-11-09), na een rebase op "Ledenvoordeel
+als pop-up". Die pop-up is meteen ook aan de module Sponsors gehangen.
+**Migratie `0313_club_settings.sql` is op 2026-11-09 via de Supabase-connector
+toegepast** (versie `20261109085754`), vóór de push. Gecontroleerd na het
+toepassen:
+- de ZWB-rij staat erin;
+- er zijn 10 modulerijen, alle aan;
+- RLS staat aan, met alleen de twee leespolicies;
+- anon en authenticated hebben alleen `SELECT`.
 
 Waarom: elke club krijgt een eigen installatie van dezelfde code (zie de ronde
 hieronder). Wat per club verschilt, moet daarom in de database staan en niet in
@@ -12032,8 +12039,8 @@ staat.
   bestanden: daar ontbreekt `@anthropic-ai/sdk` en is `zwift-data` verouderd. Dat
   staat los van deze ronde.
 
-**Niet geverifieerd:** de migratie op productie, en de app in de browser. Er is
-geen lokale database, en de `0313`-test in PGlite is geen echte Supabase.
+**Niet geverifieerd:** de app in de browser. Een module uit- en aanzetten op
+productie is nog niet gedaan; dat staat in de actieve volgorde.
 
 ### Onderzocht — Generieke versie voor andere clubs
 
