@@ -25,7 +25,11 @@ vi.mock("@/lib/events/zwift-club", () => ({
       startedAts: page.map((row) => row.startDate),
     };
   },
-  fetchActivitySubgroup: async (activityId: string) => `9${activityId}`,
+  fetchActivityEvent: async (activityId: string) => ({
+    eventId: `5${activityId}`,
+    eventName: `Race ${activityId}`,
+    subgroupId: `9${activityId}`,
+  }),
   fetchRiderScoreChange: async (subgroup: string) => zwift.scores.get(subgroup.slice(1)) ?? null,
 }));
 

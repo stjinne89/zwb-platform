@@ -12,6 +12,15 @@ gaat stabiliteit voor nieuwe features.
    toegepast.** Open: migratie toepassen (op verzoek), dan op het profiel
    onder Dashboard iets uitvinken en het dashboard bekijken. Zie de ronde
    "Dashboard: zelf kiezen wat je ziet".
+
+0. **ZWBeter racen: races per lid, ook buiten de kalender (2026-11-09):
+   gepusht naar `main` (`9a5f13d5`), migratie `0317` toegepast** (versie
+   `20261109130648`, op verzoek van de eigenaar, vóór de push). Privacytekst
+   nog voorleggen aan de eigenaar. Na de deploy: het antwoord
+   van `/api/briljant/zrs-history` (`races`) en `/api/zrl/freeze` bekijken, en
+   na een dag "Jouw races" van een paar leden. Zie de ronde "ZWBeter racen:
+   races per lid, ook buiten de kalender".
+
 0. **Dashboard: volgorde in groepen, "Vandaag" heet "Dashboard" (2026-11-09):
    gepusht naar `main` (`55493bd0`).** Geen migratie. Open: na de deploy ingelogd
    bekijken, met een dag met twee trainingen (veegrij) en een lopend event.
@@ -3658,9 +3667,13 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
 >
-> - Een andere race uit de kalender (geen ZRL, geen FRR) staat pas in de lijst als
+> - ~~Een andere race uit de kalender (geen ZRL, geen FRR) staat pas in de lijst als
 >   hij bewaard is, dus na één bezoek; zonder bewaarde uitslag weet de app niet
->   wie meereed. Op dit moment is er zo'n race niet (alleen een groepsrit).
+>   wie meereed. Op dit moment is er zo'n race niet (alleen een groepsrit).~~
+>   *Vervangen op 2026-11-09 (ronde "ZWBeter racen: races per lid, ook buiten
+>   de kalender"): de freeze-cron bewaart zo'n race zelf, en de racejob vindt
+>   per lid de eigen races via de Zwift-activiteiten. Op 2026-11-09 misten er
+>   7 van de 8 Zwift-kalenderraces van de afgelopen 120 dagen.*
 > - Bij FRR telt de eigen plek in het klassement na de laatst verwerkte etappe,
 >   niet die na deze etappe.
 >
@@ -3668,6 +3681,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > 2026-11-02 staan ladderwedstrijden wel als event in de kalender, zie de ronde
 > "Ladderwedstrijden in de kalender, met opstelling"*), SRC
 > (MyWhoosh), en zelf races zoeken buiten de kalender op de naam van een
+*(sinds 2026-11-09 wel races buiten de kalender, maar exact via het Zwift-event
+in het activiteitdetail, niet op de naam; zie de ronde "ZWBeter racen: races per
+lid, ook buiten de kalender")*
 > intervals-rit (zou raden zijn). Een tabel met de geplakte races per lid: de
 > bewaarde uitslag zegt al wie meereed.
 >
@@ -12052,6 +12068,88 @@ De fitheidstegel bekeken op `/ontwerp-voorbeeld?scherm=vandaag` op 375 px.
 **Gezien, niet opgelost.** Op de telefoon valt "punten" in de ZWBriljant-tegel
 deels buiten de tegel bij vier cijfers (al zo voor deze ronde; nu de tegel
 naast de fitheidstegel staat, valt het meer op).
+
+### Gebouwd — ZWBeter racen: races per lid, ook buiten de kalender
+
+**2026-11-09.** Vraag van de eigenaar: "Bij ZWBeter racen zie ik niet alle races
+die op de kalender stonden, hoe komt dit en kunnen we per lid zijn afgelopen
+races niet automatisch ophalen?" Na de diagnose koos de eigenaar "Ook races per
+lid" (naast de kalender-cron). Commit `9a5f13d5`, op 2026-11-09 op verzoek van
+de eigenaar naar `main` gepusht. Migratie `0317_zwift_race_events` vóór de push
+toegepast (versie `20261109130648`) en in productie nagekeken: de vijf kolommen
+en de index staan er, RLS staat nog aan.
+
+**Waarom ze ontbraken** (productie, 2026-11-09, laatste 120 dagen). "Jouw races"
+kende alleen races waarvan de app wist dat het lid meereed: ZRL via de
+opstelling of de bewaarde uitslag, FRR via de FRR-uitslagen, en elke andere
+race alleen via een bewaarde uitslag. Die werd buiten de ZRL pas bewaard als
+iemand de race opende (besluit van de bouwer in de ronde over FRR en andere
+Zwift-races, nu vervangen). Daardoor hadden 7 van de 8 Zwift-kalenderraces geen
+uitslag (onder andere Fellowship Championship Stage 3 op 6 november en La Cyclo
+MedioFondo op 1 november; de rest groepsritten). Ook 14 ZRL-teamraces hadden
+geen bewaarde uitslag; wie daar zonder opstelling meereed (een invaller), zag
+ze niet. SRC en buitenritten staan er bewust niet in.
+
+**Wat er is:**
+
+- **`zwift_race_scores` krijgt het Zwift-event (0317):** `zwift_event_id`,
+  `event_name`, `event_looked_up_at`. Het detail van een activiteit noemt het
+  event in `eventInfo` (`id`, `name`, `eventSubGroupId`; gemeten 2026-11-09 op
+  een race van Tour of Watopia). `fetchActivitySubgroup` is vervangen door
+  `fetchActivityEvent`; de ZRS-historie bewaart het event nu gratis mee bij elke
+  race die ze opzoekt. `zwift_race_score_sync` krijgt `listed_until` (de start
+  van de oudste gelezen activiteit) en `races_checked_at`.
+- **Racejob** (`lib/racen/zwift-races.ts`): per lid met een Zwift-ID, wie het
+  langst wacht eerst en hooguit eens per 3 uur, nieuwe activiteiten bovenaan,
+  de lijst verder tot 120 dagen terug (`listed_until`), en per race daarin het
+  event. Zelfde lijst en cursor als de ZRS-historie, dus ook zelfde regels:
+  een 401/403/404 op de lijst is `refused` (niet gevolgd door het
+  serviceaccount) en wordt overgeslagen. Draait als eerste deel van
+  `/api/briljant/zrs-history` (elk uur, tot 12 s), **niet in een eigen cron**:
+  twee jobs tegelijk op dezelfde cursor kunnen hem terugzetten. Geen nieuwe
+  job op cron-job.org nodig.
+- **Freeze-cron** (`/api/zrl/freeze`): ook de andere Zwift-races uit de
+  kalender (type `zwift` en `ladder`; `zwift_event_type` leeg, `RACE`,
+  `TIME_TRIAL` of `TEAM_TIME_TRIAL`) zonder bewaarde uitslag, tot een dag na de
+  start. `freezeCalendarRace` bewaart ze zoals het openen dat deed (details
+  alleen van de ZWB'ers). Dan staan ze ook bij leden die het serviceaccount
+  niet volgt.
+- **Racelijst** (`listRaces`, `ownRaceIds`): de eigen events uit
+  `zwift_race_scores` tellen mee. Een kalenderrace gaat naar de kalenderpagina,
+  een ZRL-race van een eigen team telt als eigen race (invallers), en een race
+  buiten de kalender krijgt een regel naar `/zwbeter-worden/racen/zwift/[id]`
+  met de naam uit Zwift. De uitslag komt daar pas bij het openen, met de
+  bestaande controle dat het lid in de uitslag staat. Zonder 0317 geeft de
+  query een fout en blijft de lijst zoals hij was.
+- **Hulp** (`/hulp#racen`, hulpzoeker) en **privacytekst** (`/privacy#racen`):
+  dat de app via je Zwift-ID je lijst met Zwift-races leest en per race het
+  event bewaart, zichtbaar alleen voor jou. **Voorleggen aan de eigenaar.**
+  Geen nieuwe privacyversie: de activiteitenlijst werd al gelezen en per race
+  bewaard voor de ZRS-historie; nieuw is alleen welk event het was.
+- **Runbook:** de rijen van beide crons.
+
+**Bewust niet:**
+
+- **Geen FRR-tijdsloten in de freeze-cron.** Die staan er al via de
+  FRR-uitslagen, en het zijn er veel (41 zonder uitslag in 120 dagen).
+- **De uitslag niet meteen ophalen** voor races buiten de kalender. Een race
+  kost zo'n 8 s en een stuk van de Zwift-limiet; nu alleen bij het openen.
+- **Niet meer leden laten volgen.** Wie het serviceaccount niet volgt, krijgt
+  alleen de kalenderraces en de geplakte link. Volgen gebeurt al via de
+  event-scan.
+- **Geen ZRL-uitslagen achteraf bevriezen** voor de 14 ZRL-races zonder
+  uitslag; die verschijnen nu via de opstelling of de racejob, en de uitslag
+  komt bij het openen.
+
+**Niet lokaal te controleren:** de migratie (geen Docker en geen config; wel
+op productie nagekeken, zie boven), de crons op Netlify, en de pagina's in de browser (inloggen kan alleen de
+eigenaar). Hoe snel de achterstand binnen is, is een schatting: zo'n 50 leden
+en een paar honderd races, bij 12 s per uur ongeveer een dag. Lokaal: `tsc`
+zonder fouten in de gewijzigde bestanden (wel bestaande fouten over modules die
+in de gedeelde `node_modules` ontbreken), eslint schoon, en
+`racen-zwift-races.test.ts` (venster, bovenaan bijwerken, detail weg,
+complete lijst niet opnieuw lezen, budget, volgorde) en
+`briljant-zrs-history.test.ts` groen. `next build` is niet gedraaid.
 
 ### Gebouwd — Dashboard: Mijn training, Mijn fitheid, Mijn events
 

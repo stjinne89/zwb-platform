@@ -21,7 +21,7 @@ import {
   fetchIntervalsActivityStreams,
   fetchIntervalsPowerCurve,
 } from "@/lib/intervals/client";
-import { loadZrlLive, loadZwiftRaceData, type RaceData, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
+import { loadZrlLive, loadZwiftRaceData, raceSettled, type RaceData, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import { analysePersonalRace, raceKindOf, type PersonalRace, type RaceKind } from "@/lib/zrl-analysis/personal";
 import { loadFrrStandingRows } from "@/lib/frr/zwb-standings";
 import { analyseRace, segmentKind, type RaceAnalysis, type RiderAnalysis } from "@/lib/zrl-analysis/race";
@@ -100,10 +100,36 @@ type EventRow = {
 
 const EVENT_COLUMNS = "id, title, start_at, zwift_event_type, team_id, parent_event_id, zwift_event_id, teams(name)";
 
+/** Een eigen race-activiteit met het Zwift-event erbij (0317). */
+type OwnZwiftRace = { zwiftEventId: string; name: string | null; racedAt: string };
+
+/**
+ * De Zwift-events van de eigen race-activiteiten sinds `since`, uit de
+ * activiteitenlijst die de racejob per lid bijhoudt (src/lib/racen/zwift-races.ts).
+ * Leeg zonder tabel of kolommen (0317 niet toegepast). Per verzoek één keer.
+ */
+const ownZwiftRaces = cache(async (zwiftId: number, since: string): Promise<OwnZwiftRace[]> => {
+  const { data, error } = await createAdminClient()
+    .from("zwift_race_scores")
+    .select("zwift_event_id, event_name, raced_at")
+    .eq("zwift_id", zwiftId)
+    .gte("raced_at", since)
+    .not("zwift_event_id", "is", null)
+    .order("raced_at", { ascending: false })
+    .limit(300);
+  if (error) return [];
+  return ((data ?? []) as Array<{ zwift_event_id: number | string; event_name: string | null; raced_at: string }>).map((row) => ({
+    zwiftEventId: String(row.zwift_event_id),
+    name: row.event_name,
+    racedAt: row.raced_at,
+  }));
+});
+
 /**
  * Teamraces die dit lid zelf reed: de opstelling (op de race of op de
- * raceweek erboven) of de eigen Zwift-ID in de bevroren uitslag, bij een team
- * waar het lid in zit of in de opstelling stond.
+ * raceweek erboven), de eigen Zwift-ID in de bevroren uitslag, of een eigen
+ * race-activiteit bij dat Zwift-event (0317), bij een team waar het lid in zit
+ * of in de opstelling stond.
  */
 async function ownRaceIds(userId: string, since: string): Promise<Set<string>> {
   const admin = createAdminClient();
@@ -129,11 +155,16 @@ async function ownRaceIds(userId: string, since: string): Promise<Set<string>> {
   const zwiftId = Number(profile?.zwift_id);
   const teamIds = [...new Set([...(memberships ?? []).map((m) => m.team_id as string), ...(lineups ?? []).map((l) => l.team_id as string)])];
   if (zwiftId && teamIds.length) {
-    const { data: snaps } = await admin
-      .from("zrl_race_snapshots")
-      .select("zwift_event_id")
-      .contains("data", { subgroups: [{ results: [{ profileId: zwiftId }] }] });
-    const zwiftEvents = (snaps ?? []).map((s) => String(s.zwift_event_id));
+    const [{ data: snaps }, raced] = await Promise.all([
+      admin
+        .from("zrl_race_snapshots")
+        .select("zwift_event_id")
+        .contains("data", { subgroups: [{ results: [{ profileId: zwiftId }] }] }),
+      ownZwiftRaces(zwiftId, since),
+    ]);
+    const zwiftEvents = [
+      ...new Set([...(snaps ?? []).map((s) => String(s.zwift_event_id)), ...raced.map((r) => r.zwiftEventId)]),
+    ];
     if (zwiftEvents.length) {
       const { data } = await admin
         .from("events")
@@ -544,6 +575,19 @@ export async function raceEventType(eventId: string): Promise<string | null> {
   return (data?.type as string | undefined) ?? null;
 }
 
+/**
+ * De uitslag van een Zwift-race uit de kalender (geen ZRL) één keer bewaren,
+ * met details alleen van de ZWB'ers, zoals bij het openen van de race. Dan staat
+ * hij in "Jouw races" bij iedereen die meereed, ook zonder dat iemand hem opende.
+ * Voor de cron `/api/zrl/freeze`.
+ */
+export async function freezeCalendarRace(zwiftEventId: string): Promise<"bewaard" | "nog niet compleet" | "fout"> {
+  const names = await zwbRiderNames();
+  const data = await loadZwiftRaceData(zwiftEventId, { keepDetailsOf: new Set(names.keys()) });
+  if (!data) return "fout";
+  return raceSettled(data) ? "bewaard" : "nog niet compleet";
+}
+
 /** Het kalenderevent bij een Zwift-event, als dat er is: dan hoort de analyse daar. */
 export async function calendarEventForZwift(zwiftEventId: string): Promise<string | null> {
   if (!/^\d+$/.test(zwiftEventId)) return null;
@@ -579,16 +623,17 @@ export async function listRaces(userId: string, access: Access): Promise<ZrlRace
   const zwiftId = Number(profile?.zwift_id);
   if (!zwiftId) return zrl;
 
-  const [{ data: frrRows }, { data: snaps }] = await Promise.all([
+  const [{ data: frrRows }, { data: snaps }, raced] = await Promise.all([
     admin.from("frr_stage_results").select("slot_event_id").eq("zwift_id", String(zwiftId)),
     admin
       .from("zrl_race_snapshots")
       .select("zwift_event_id, name:data->>eventName, start:data->subgroups->0->>startAt")
       .contains("data", { subgroups: [{ results: [{ profileId: zwiftId }] }] }),
+    ownZwiftRaces(zwiftId, new Date(since).toISOString()),
   ]);
   const snapshots = (snaps ?? []) as unknown as Array<{ zwift_event_id: string | number; name: string | null; start: string | null }>;
   const slotIds = [...new Set((frrRows ?? []).map((r) => r.slot_event_id as string))];
-  const zwiftIds = snapshots.map((s) => String(s.zwift_event_id));
+  const zwiftIds = [...new Set([...snapshots.map((s) => String(s.zwift_event_id)), ...raced.map((r) => r.zwiftEventId)])];
   const columns = "id, title, type, start_at, zwift_event_id, zwift_event_type";
   const [bySlot, byZwift] = await Promise.all([
     slotIds.length ? admin.from("events").select(columns).in("id", slotIds) : Promise.resolve({ data: [] }),
@@ -622,6 +667,23 @@ export async function listRaces(userId: string, access: Access): Promise<ZrlRace
       kind: "zwift",
       title: snap.name || `Zwift-race ${id}`,
       startAt: new Date(start).toISOString(),
+      teamName: null,
+      ttt: false,
+      own: true,
+      captain: false,
+    });
+  }
+  // Eigen races buiten de kalender zonder bewaarde uitslag: de uitslag komt pas
+  // bij het openen, net als bij een geplakte link.
+  for (const race of raced) {
+    const key = `zwift-${race.zwiftEventId}`;
+    if (inCalendar.has(race.zwiftEventId) || items.has(key)) continue;
+    items.set(key, {
+      id: key,
+      href: `/zwbeter-worden/racen/zwift/${race.zwiftEventId}`,
+      kind: "zwift",
+      title: race.name || `Zwift-race ${race.zwiftEventId}`,
+      startAt: new Date(race.racedAt).toISOString(),
       teamName: null,
       ttt: false,
       own: true,

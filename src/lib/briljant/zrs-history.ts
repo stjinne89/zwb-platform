@@ -18,8 +18,9 @@ import "server-only";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import {
   ACTIVITIES_PER_PAGE,
-  fetchActivitySubgroup,
+  fetchActivityEvent,
   fetchRiderRacePage,
+  type ActivityEvent,
   fetchRiderScoreChange,
   type RaceScoreChange,
   type RiderRaceActivity,
@@ -29,14 +30,14 @@ import { SCALE_VERSION, ZRS_ANCHORS } from "./norms";
 import { FACETS, levelAt, scoreFor, type Facet } from "./score";
 import { monthEndOfWeek, zrsAtMonthEnd, type BriljantSources, type KnownRace } from "./snapshot";
 
-type Admin = ReturnType<typeof createAdminClient>;
+export type Admin = ReturnType<typeof createAdminClient>;
 
 /** Zoveel races proberen we per maand als een uitslag geen score geeft. */
 export const TRIES_PER_MONTH = 4;
 /** Tussen twee vragen naar activiteiten of details; de uitslagen hebben hun eigen wachtrij. */
-const SPACING_MS = 300;
+export const SPACING_MS = 300;
 /** Minstens zoveel tijd over voor nog een pagina van de lijst. */
-const LIST_RESERVE_MS = 2_000;
+export const LIST_RESERVE_MS = 2_000;
 /** Minstens zoveel tijd over voor het opzoeken van één race (detail plus uitslag). */
 const LOOKUP_RESERVE_MS = 6_000;
 /** Minder tijd dan dit: aan geen nieuw lid meer beginnen. */
@@ -44,23 +45,30 @@ const RIDER_MIN_MS = 4_000;
 /** PostgREST geeft hooguit zoveel rijen per vraag. */
 const PAGE_ROWS = 1000;
 
-const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Zwift weigert de lijst of het lid bestaat niet: niet blijven proberen. */
-const refused = (error: unknown) => error instanceof Error && /status (401|403|404)\b/.test(error.message);
+export const refused = (error: unknown) => error instanceof Error && /status (401|403|404)\b/.test(error.message);
 
-/** Een race zoals we hem kennen, met het tijdstip om de volgorde te bewaren. */
-type StoredRace = KnownRace & { racedAt: string };
+/**
+ * Een race zoals we hem kennen, met het tijdstip om de volgorde te bewaren, en
+ * of het Zwift-event erbij al is opgezocht (0317, voor ZWBeter racen).
+ */
+export type StoredRace = KnownRace & { racedAt: string; eventLookedUp: boolean };
 
-type SyncState = {
+export type SyncState = {
   next_start: number;
   list_complete: boolean;
   refused: boolean;
   newest_at: string | null;
   settled_at: string | null;
+  /** De start van de oudste activiteit die gelezen is (0317). */
+  listed_until: string | null;
+  /** Wanneer de racejob dit lid voor het laatst bijwerkte (0317). */
+  races_checked_at: string | null;
 };
 
-type RiderState = { zwiftId: string; races: StoredRace[]; sync: SyncState };
+export type RiderState = { zwiftId: string; races: StoredRace[]; sync: SyncState };
 
 type RaceRow = {
   activity_id: string;
@@ -69,9 +77,18 @@ type RaceRow = {
   score_before: number | null;
   score_after: number | null;
   looked_up_at: string | null;
+  event_looked_up_at: string | null;
 };
 
-const SYNC_START: SyncState = { next_start: 0, list_complete: false, refused: false, newest_at: null, settled_at: null };
+const SYNC_START: SyncState = {
+  next_start: 0,
+  list_complete: false,
+  refused: false,
+  newest_at: null,
+  settled_at: null,
+  listed_until: null,
+  races_checked_at: null,
+};
 
 const byNewest = (a: StoredRace, b: StoredRace) => Date.parse(b.racedAt) - Date.parse(a.racedAt);
 
@@ -82,6 +99,7 @@ const toRace = (row: RaceRow): StoredRace => ({
   lookedUp: row.looked_up_at != null,
   before: row.score_before,
   after: row.score_after,
+  eventLookedUp: row.event_looked_up_at != null,
 });
 
 /** Alle bewaarde races van een renner, nieuw naar oud; null als de tabel (0271) er niet is. */
@@ -90,7 +108,7 @@ async function loadRaces(admin: Admin, zwiftId: string): Promise<StoredRace[] | 
   for (let from = 0; ; from += PAGE_ROWS) {
     const { data, error } = await admin
       .from("zwift_race_scores")
-      .select("activity_id, raced_at, raced_on, score_before, score_after, looked_up_at")
+      .select("activity_id, raced_at, raced_on, score_before, score_after, looked_up_at, event_looked_up_at")
       .eq("zwift_id", zwiftId)
       .order("raced_at", { ascending: false })
       .order("activity_id", { ascending: false })
@@ -102,12 +120,12 @@ async function loadRaces(admin: Admin, zwiftId: string): Promise<StoredRace[] | 
   }
 }
 
-async function loadState(admin: Admin, zwiftId: string): Promise<RiderState | null> {
+export async function loadState(admin: Admin, zwiftId: string): Promise<RiderState | null> {
   const [races, sync] = await Promise.all([
     loadRaces(admin, zwiftId),
     admin
       .from("zwift_race_score_sync")
-      .select("next_start, list_complete, refused, newest_at, settled_at")
+      .select("next_start, list_complete, refused, newest_at, settled_at, listed_until, races_checked_at")
       .eq("zwift_id", zwiftId)
       .maybeSingle(),
   ]);
@@ -135,7 +153,7 @@ export function decidedZrs(scores: { races: KnownRace[]; listComplete: boolean }
   return result.kind === "found" || result.kind === "none" ? result : null;
 }
 
-async function saveSync(admin: Admin, state: RiderState, extra: { attempted_at?: string } = {}) {
+export async function saveSync(admin: Admin, state: RiderState, extra: { attempted_at?: string } = {}) {
   const { error } = await admin
     .from("zwift_race_score_sync")
     .upsert(
@@ -168,6 +186,7 @@ async function addRaces(admin: Admin, state: RiderState, races: RiderRaceActivit
       lookedUp: false,
       before: null,
       after: null,
+      eventLookedUp: false,
     })),
   );
   state.races.sort(byNewest);
@@ -181,7 +200,7 @@ const latest = (current: string | null, times: string[]) =>
  * op, dus de cursor schuift mee, maar alleen als we zeker weten hoeveel het er
  * waren: te weinig opschuiven geeft overlap (onschuldig), te veel een gat.
  */
-async function topUp(admin: Admin, state: RiderState, left: () => number): Promise<void> {
+export async function topUp(admin: Admin, state: RiderState, left: () => number): Promise<void> {
   const since = state.sync.newest_at;
   if (!since || state.sync.refused) return;
   const known = Date.parse(since);
@@ -203,12 +222,16 @@ async function topUp(admin: Admin, state: RiderState, left: () => number): Promi
   await saveSync(admin, state);
 }
 
+const earliest = (current: string | null, times: string[]) =>
+  times.reduce<string | null>((min, time) => (!min || Date.parse(time) < Date.parse(min) ? time : min), current);
+
 /** De volgende pagina van de lijst, waar de vorige run stopte. */
-async function listMore(admin: Admin, state: RiderState): Promise<void> {
+export async function listMore(admin: Admin, state: RiderState): Promise<void> {
   try {
     const page = await fetchRiderRacePage(state.zwiftId, state.sync.next_start);
     await addRaces(admin, state, page.races);
     if (state.sync.next_start === 0) state.sync.newest_at = latest(state.sync.newest_at, page.startedAts);
+    state.sync.listed_until = earliest(state.sync.listed_until, page.startedAts);
     state.sync.next_start += page.count;
     if (page.count < ACTIVITIES_PER_PAGE) state.sync.list_complete = true;
   } catch (error) {
@@ -220,13 +243,23 @@ async function listMore(admin: Admin, state: RiderState): Promise<void> {
   await pause(SPACING_MS);
 }
 
-/** De ZRS rond één race opzoeken en bewaren, ook als Zwift er geen geeft. */
+/** Wat we van het Zwift-event bij een race bewaren (0317); ook leeg, dan zoeken we niet opnieuw. */
+export function eventColumns(event: ActivityEvent | null) {
+  return {
+    zwift_event_id: event?.eventId ? Number(event.eventId) : null,
+    event_name: event?.eventName ?? null,
+    event_looked_up_at: new Date().toISOString(),
+  };
+}
+
+/** De ZRS rond één race opzoeken en bewaren, ook als Zwift er geen geeft. Het event komt gratis mee. */
 async function lookUp(admin: Admin, state: RiderState, race: KnownRace): Promise<void> {
   let change: RaceScoreChange | null = null;
+  let event: ActivityEvent | null = null;
   try {
-    const subgroup = await fetchActivitySubgroup(race.activityId);
+    event = await fetchActivityEvent(race.activityId);
     await pause(SPACING_MS);
-    change = subgroup ? await fetchRiderScoreChange(subgroup, state.zwiftId) : null;
+    change = event.subgroupId ? await fetchRiderScoreChange(event.subgroupId, state.zwiftId) : null;
   } catch (error) {
     if (!refused(error)) throw error;
   }
@@ -235,12 +268,17 @@ async function lookUp(admin: Admin, state: RiderState, race: KnownRace): Promise
   const after = round(change?.after);
   const { error } = await admin
     .from("zwift_race_scores")
-    .update({ score_before: before, score_after: after, looked_up_at: new Date().toISOString() })
+    .update({
+      score_before: before,
+      score_after: after,
+      looked_up_at: new Date().toISOString(),
+      ...(event ? eventColumns(event) : {}),
+    })
     .eq("zwift_id", state.zwiftId)
     .eq("activity_id", race.activityId);
   if (error) throw new Error(error.message);
   const stored = state.races.find((item) => item.activityId === race.activityId);
-  if (stored) Object.assign(stored, { lookedUp: true, before, after });
+  if (stored) Object.assign(stored, { lookedUp: true, before, after, ...(event ? { eventLookedUp: true } : {}) });
 }
 
 type TerugblikRow = {
