@@ -12026,7 +12026,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Generieke versie, fase 5: schone installatie
 
-**2026-11-09.** Op verzoek van de eigenaar ("ga maar verder", na fase 4), met
+**2026-11-09, commit `49f0bd31`.** Op verzoek van de eigenaar ("ga maar
+verder", na fase 4), met
 vier keuzes vooraf. Geen migratie. Nieuwe devDependency
 `@electric-sql/pglite-tools@0.4.8` (pg_dump; precies de versie bij PGlite
 0.5.8).
