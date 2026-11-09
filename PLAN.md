@@ -12065,7 +12065,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Eventpagina: Discord-kanaal van het team
 
-**2026-11-09, commit HASH.** Op verzoek van de eigenaar ("Kun je de
+**2026-11-09, commit `69ea7662`.** Op verzoek van de eigenaar ("Kun je de
 discordlink van elk team ook op elk passende eventpagina plaatsen?"), daarna
 "Ja, bouwen" op het voorstel. Geen migratie: `teams.discord_url` (migr. `0118`,
 `0119`) bestond al.
