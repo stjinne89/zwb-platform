@@ -12049,7 +12049,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Generieke versie, fase 7: proefinstallatie
 
-**2026-11-09, commit `COMMIT7`.** Op verzoek van de eigenaar ("ga verder", na
+**2026-11-09, commit `b0836acb`.** Op verzoek van de eigenaar ("ga verder", na
 fase 6), met keuzes vooraf: een eigen Supabase-project aanmaken, de app lokaal
 draaien (geen Netlify), en per installatie een eigen tabel voor de migraties.
 Geen migratie voor ZWB. Nieuwe devDependency `postgres@3.4.9`.
