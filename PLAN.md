@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Zwift-garage: fietslijst voorbij 1000 rijen (2026-11-09): lokaal, niet
+   gepusht.** Geen migratie. Zwift TT, Steel, Safety en een deel van de Zwift
+   Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
+   ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
+
 0. **Generieke versie, fase 3 deel 1 en 2: clubnaam, modulenamen, hulp,
    privacy en voorwaarden (2026-11-09): gepusht naar `main` (deel 1
    `c8ed7cb3`, deel 2 `fdbdbd91`).** Geen
@@ -11955,6 +11960,43 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Zwift-garage: fietslijst voorbij 1000 rijen
+
+**2026-11-09.** Geen migratie. Aanleiding: een lid meldde dat de Zwift TT niet
+in de garage staat.
+
+**Oorzaak.** `loadBikeParts` (`lib/pacing/ride-context.ts`) las
+`zwift_bike_parts` in één verzoek, op naam gesorteerd, met `.limit(2000)`.
+Supabase geeft per verzoek hoogstens 1000 rijen, wat de limit ook zegt. De
+tabel telt 1031 rijen (882 framerijen, nagekeken met de Supabase-connector),
+dus vielen de laatste 31 eraf: Zwift Mountain (deels), Zwift Safety, Zwift
+Steel en Zwift TT, en de wielsets Zwift Plain, Pride On, Pride On Disc, Safety,
+Supersonic en Tri Spoke // Disc. Dat gold niet alleen voor de garage maar voor
+alles wat `loadBikeParts` gebruikt: Snelste fiets in het pacingplan en de
+briefing konden deze fietsen niet kiezen. De tabel zelf was compleet; de fout
+zat sinds de lijst boven de 1000 rijen kwam (vóór 2026-10-26 al 1034).
+
+**Wat er is.** `loadBikeParts` leest per 1000 rijen (`.range`, gesorteerd op
+naam en `id`) tot een pagina korter is. Test: `tests/unit/load-bike-parts.test.ts`.
+
+**Volledigheid nagekeken.** De sheet van ZwiftInsider (opgehaald 2026-11-09)
+geeft na het afleiden 1032 rijen en 148 frames; alles staat in de tabel. Uit
+de sheet vallen alleen de funbikes weg (Brompton, Big Wheel, BMX Bandit,
+Handcycle, MX Rider, Recumbent Trike), bewust. `zwift-data` kent nog fietsen
+die ZwiftInsider niet apart test: skins en teamversies (Canyon Aeroad Team
+Edition 2021, Tarmac SL7 SRAM, Filante SLR ID2 Team, Buffalo Qhubeka, Golden
+Concept Z1, de MyCanyon-ontwerpen, Cello Team, Trek Team, Tarmac Mixtape,
+Aeroad Abell, Speedmax Team Edition) en een paar zonder meting (Canyon Aeroad
+CFR 2026, Canyon Ultimate Generation, Merida Scultura, Zwift Skeletal, Zwift
+Bat). **Niet gebouwd:** die namen op hun basisframe zetten. Dat vraagt per
+skin een keuze en meetgegevens die er niet zijn; eerst aan de eigenaar
+voorleggen.
+
+**Niet lokaal te controleren.** De garage in de browser met echte data; lokaal
+is er geen productiedatabase. De unit-test draait; de volledige suite faalt in
+deze worktree op ontbrekende pakketten (`@anthropic-ai/sdk`) en `.env.local`,
+niet op deze wijziging.
 
 ### Gebouwd — Generieke versie, fase 3 deel 2: hulp, privacy en voorwaarden
 

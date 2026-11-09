@@ -106,16 +106,35 @@ type PartRow = {
   fixed_wheels?: boolean | null;
 };
 
+/**
+ * Supabase geeft per verzoek hoogstens 1000 rijen, ook met een hogere limit.
+ * De lijst telde op 2026-11-09 1031 rijen; op naam gesorteerd vielen Zwift
+ * Mountain, Safety, Steel en TT en zes wielsets eraf. Daarom per pagina.
+ */
+const PART_PAGE = 1000;
+
 /** De fietslijst; leeg als die nog niet is opgehaald of de tabel nog ontbreekt. */
 export async function loadBikeParts(admin: Client): Promise<BikePart[]> {
-  const read = (columns: string) =>
-    admin.from("zwift_bike_parts").select(columns).order("name", { ascending: true }).limit(2000);
+  const read = async (columns: string): Promise<{ data: PartRow[] | null; error: unknown }> => {
+    const rows: PartRow[] = [];
+    for (let from = 0; ; from += PART_PAGE) {
+      const { data, error } = await admin
+        .from("zwift_bike_parts")
+        .select(columns)
+        .order("name", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, from + PART_PAGE - 1);
+      if (error) return { data: null, error };
+      rows.push(...((data ?? []) as PartRow[]));
+      if (!data || data.length < PART_PAGE) return { data: rows, error: null };
+    }
+  };
   const base = "part, name, kind, test_frame, stage, cda_delta, kg_delta";
   let { data, error } = await read(`${base}, fixed_wheels`);
   // Zonder migratie 0262: de lijst zonder vaste wielen.
   if (error) ({ data, error } = await read(base));
   if (error || !data) return [];
-  return (data as PartRow[]).map((row) => ({
+  return data.map((row) => ({
     part: row.part,
     name: row.name,
     kind: row.kind,
