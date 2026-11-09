@@ -45,14 +45,13 @@ gaat stabiliteit voor nieuwe features.
    migratie. Lokaal gecontroleerd dat manifest, titels, deelkaart, `/privacy` en
    `/voorwaarden` voor ZWB gelijk zijn aan de live site. Zie de rondes
    "Generieke versie, fase 3 deel 1" en "deel 2".
-   **Deel 3a** (de clubwoorden in schermen, meldingen en AI-prompts) is lokaal
-   gecommit en nog niet gepusht. Geen migratie. Zie de ronde "fase 3 deel 3a".
-   **Deel 3b** (eigen woorden, appnaam, user agents, neutrale kennisbanken) is
-   lokaal gebouwd en nog niet gepusht, met migratie `0318` (nog **niet**
-   toegepast). **Pas `0318` toe vóór de push**: zonder de kolommen ziet ZWB
-   "Dagadvies", "ballen", "beker" en "Beter". De open punten (een woord voor
-   "ZWBeter X" en de stroeve kennisbankzinnen) zijn dezelfde dag beslist. Zie
-   de ronde "fase 3 deel 3b".
+   **Deel 3a** (de clubwoorden in schermen, meldingen en AI-prompts) en
+   **deel 3b** (eigen woorden, appnaam, user agents, neutrale kennisbanken)
+   zijn op 2026-11-09 op verzoek van de eigenaar ("Apply and push") naar
+   `main` gepusht. Migratie `0319` is vooraf toegepast; ZWB heeft de zes
+   woorden. Open: na de deploy de schermen van ZWB nalopen (tabs, ZWBeter
+   Worden, prijzenkast, hulp) en de eerste Strava-samenvatting bekijken. Zie de
+   rondes "fase 3 deel 3a" en "deel 3b".
 
 0. **Inloglinks bestand tegen mailscanners (2026-11-09): gepusht naar `main`
    (`d48dd9c9`), samen met de bevestigingsmail-ronde.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
@@ -12011,14 +12010,15 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Generieke versie, fase 3 deel 3b: eigen woorden, appnaam en neutrale kennisbanken
 
 **2026-11-09.** Op verzoek van de eigenaar ("Yes, start 3b"), na de keuzes van
-dezelfde dag (zie het bovenste punt van de actieve volgorde). Migratie `0318`
-(`club_words`) is **niet toegepast** en niet lokaal te testen. Hij moet vóór de
-push op productie staan: zonder de kolommen valt ZWB terug op de neutrale
-woorden.
+dezelfde dag (zie het bovenste punt van de actieve volgorde). Migratie `0319`
+(`club_words`) is op 2026-11-09 vóór de push op productie toegepast (versie
+`0319_club_words`); daarna gaf `club_settings` voor ZWB ZWBasis, ZWBeterWorden,
+ZWBal, ZWBallen, ZWBeker en ZWBeter. Niet lokaal te testen. Zonder de kolommen
+valt een installatie terug op de neutrale woorden.
 
 Wat er is:
 
-- **Eigen woorden (`0318`).** `club_settings` krijgt zes kolommen. Elke lege
+- **Eigen woorden (`0319`).** `club_settings` krijgt zes kolommen. Elke lege
   kolom geeft een neutraal woord.
 
   | Kolom | Bij ZWB | Neutraal |
@@ -12155,7 +12155,9 @@ een parameter, die `teams/_actions.ts` meegeeft.
 
 **Migratienummer en samenvoegen.** De migratie heette eerst `0316`. Bij het
 samenvoegen met `origin/main` bleken `0316` en `0317` al vergeven door andere
-sessies (en op productie toegepast), dus hij is hernummerd naar `0318`
+sessies (en op productie toegepast), dus hij is hernummerd naar `0318`, en
+bij de push opnieuw, naar `0319`, omdat de dashboardkeuze `0318` intussen had
+genomen
 (`49929c7f`, merge `dfe8fccc`). Conflicten in `training-status.tsx`,
 `claude.ts`, `training/ai.ts` en dit plan zijn met beide kanten opgelost.
 
@@ -12163,7 +12165,7 @@ sessies (en op productie toegepast), dus hij is hernummerd naar `0318`
 
 - de schermen in de browser;
 - echte user agents tegen de sites;
-- het gedrag vóór en na `0318` op productie.
+- het gedrag vóór en na `0319` op productie.
 
 ### Gebouwd — Generieke versie, fase 3 deel 3a: clubwoorden in schermen, meldingen en AI-prompts
 

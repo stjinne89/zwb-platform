@@ -40,7 +40,7 @@ export type ClubSettings = {
   /** Logo en beeldmerk (0315) als publieke URL, of null: de vaste ZWB-bestanden. */
   logoUrl: string | null;
   markUrl: string | null;
-  /** Eigen woorden (0318), of null: het neutrale woord (lib/club-texts.ts). */
+  /** Eigen woorden (0319), of null: het neutrale woord (lib/club-texts.ts). */
   appName: string | null;
   adviceName: string | null;
   currencyNoun: string | null;

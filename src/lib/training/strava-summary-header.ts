@@ -15,7 +15,7 @@ export function unicodeBold(text: string): string {
   }).join("");
 }
 
-/** De kopregel van het blok, met het beter-woord van de club (0318). */
+/** De kopregel van het blok, met het beter-woord van de club (0319). */
 export function summaryHeader(betterWord = "ZWBeter"): string {
   return unicodeBold(`${betterWord} workout-samenvatting`);
 }

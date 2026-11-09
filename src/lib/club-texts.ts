@@ -21,7 +21,7 @@ export type ClubTexts = {
   modules: Record<ModuleKey, string>;
   /** Modules die uit staan, om de hulp ervan te verbergen (ModuleGate). */
   off: ModuleKey[];
-  /** Eigen woorden van de club (0318), als token `{sleutel}` te gebruiken. */
+  /** Eigen woorden van de club (0319), als token `{sleutel}` te gebruiken. */
   words: ClubWords;
 };
 
@@ -48,7 +48,7 @@ export type ClubWords = {
 
 export const WORD_KEYS = ["app", "adviesnaam", "advies", "bal", "ballen", "beker", "beter"] as const satisfies readonly (keyof ClubWords)[];
 
-/** De eigen woorden uit club_settings (0318), aangevuld met de neutrale. */
+/** De eigen woorden uit club_settings (0319), aangevuld met de neutrale. */
 export function buildClubWords(club: {
   shortName: string;
   appName?: string | null;

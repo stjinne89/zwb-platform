@@ -16,7 +16,7 @@ const other = buildClubTexts(
   (key: ModuleKey) => neutralModuleNames()[key],
 );
 
-// ZWB met de waarden uit 0313 en 0318.
+// ZWB met de waarden uit 0313 en 0319.
 const ZWB_LABELS: Partial<Record<ModuleKey, string>> = { omnium: "ZWB Omnium", managerspel: "ZWBgame", training: "ZWBeter Worden" };
 const zwb = buildClubTexts(
   {
@@ -67,7 +67,7 @@ describe("clubtokens in vaste teksten", () => {
   });
 });
 
-describe("eigen woorden (0318)", () => {
+describe("eigen woorden (0319)", () => {
   it("vult de woorden van ZWB in", () => {
     expect(fillClubText("{app} · {adviesnaam} · je {advies} · 1 {bal} · 10 {ballen} · een {beker}", zwb)).toBe(
       "ZWBasis · ZWBeterWorden · je ZWBeterWorden-advies · 1 ZWBal · 10 ZWBallen · een ZWBeker",
