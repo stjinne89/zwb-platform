@@ -27,6 +27,7 @@ import type {
   SearchParamsProp,
   StravaActivityRow,
 } from "../_components/types";
+import { getClub } from "@/lib/club";
 
 export type IntervalsAthleteConnection = {
   profile_id: string;
@@ -196,6 +197,7 @@ export async function loadRiders(
   viewer: Viewer,
   assignments: AssignmentRow[],
 ): Promise<TrainerRider[]> {
+  const clubTexts = (await getClub()).texts;
   const athleteIds = assignments.map((assignment) => assignment.athlete_id);
   if (athleteIds.length === 0) return [];
 
@@ -248,7 +250,7 @@ export async function loadRiders(
     const rider = status.get(assignment.athlete_id);
     return {
       id: assignment.athlete_id,
-      name: profile?.display_name ?? "ZWB-lid",
+      name: profile?.display_name ?? `${clubTexts.shortName}-lid`,
       ftpLabel: `${profile?.ftp_watts ?? "-"}w`,
       zrlCategory: profile?.zrl_category ?? null,
       distanceLabel: formatKm(totals.distance),

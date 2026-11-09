@@ -39,9 +39,9 @@ function numberOrNull(value: unknown) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
-function profileName(profiles: PowerProfileRow["profiles"]) {
+function profileName(profiles: PowerProfileRow["profiles"], fallbackName: string) {
   const profile = Array.isArray(profiles) ? profiles[0] : profiles;
-  return profile?.display_name ?? "ZWB-lid";
+  return profile?.display_name ?? fallbackName;
 }
 
 /** Terugval op de zeven vaste duurtijden als er geen volledige curve is. */
@@ -111,14 +111,14 @@ export function downsample(points: PowerCurvePoint[], limit = 260) {
 }
 
 /** Rijen uit `rider_power_profiles` omzetten naar vergelijkbare curves. */
-export function comparisonRidersFromRows(rows: unknown[] | null): ComparisonRider[] {
+export function comparisonRidersFromRows(rows: unknown[] | null, fallbackName: string): ComparisonRider[] {
   return ((rows ?? []) as unknown as PowerProfileRow[])
     .map((row) => {
       const storedPoints = storedCurvePoints(row.curve_points);
       const hasFullCurve = storedPoints.length >= 3;
       return {
         id: row.profile_id,
-        name: profileName(row.profiles),
+        name: profileName(row.profiles, fallbackName),
         riderType: row.rider_type,
         weightKg: numberOrNull(row.weight_kg),
         points: downsample(hasFullCurve ? storedPoints : fixedPoints(row)),

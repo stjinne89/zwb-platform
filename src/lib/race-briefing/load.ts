@@ -66,6 +66,7 @@ import { segmentRecords, type SegmentRecord } from "./segment-records";
 import { defaultSheet, effectiveSheet, sanitizeOverride, type SheetContent, type SheetSection } from "./sheet";
 import type { LadderProjection } from "@/lib/club-ladder/briefing";
 import type { PowerDuration } from "@/lib/club-ladder/routes";
+import { getClub } from "@/lib/club";
 
 type Access = Pick<CurrentUserAccess, "has">;
 
@@ -394,6 +395,7 @@ export async function loadRaceBriefing(
   access: Access,
   supabase: SupabaseClient,
 ): Promise<BriefingOutcome> {
+  const clubTexts = (await getClub()).texts;
   const admin = createAdminClient();
   const { data: eventData } = await admin
     .from("events")
@@ -498,7 +500,7 @@ export async function loadRaceBriefing(
   const inPen = own.filter((r) => r.inPen);
   if (view) {
     if (inPen.length > MAX_PER_RACE) {
-      warnings.push({ kind: "lineup", text: `${inPen.length} ZWB'ers staan in de groep; er mogen er ${MAX_PER_RACE} rijden.` });
+      warnings.push({ kind: "lineup", text: `${inPen.length} ${clubTexts.memberNounPlural} staan in de groep; er mogen er ${MAX_PER_RACE} rijden.` });
     }
     if (inPen.length < FULL_TEAM_STARTERS) {
       warnings.push({ kind: "starters", text: `${inPen.length} van onze renners staan in de groep. Voor volle leaguepunten moeten er ${FULL_TEAM_STARTERS} starten.` });

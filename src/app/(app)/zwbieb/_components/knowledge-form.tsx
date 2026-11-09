@@ -9,6 +9,7 @@ import { MAX_ITEMS_PER_MEMBER, MAX_TOPICS_PER_MEMBER, TOPIC_NOTE_MAX } from "@/l
 import { saveMyKnowledge, stopMyKnowledge } from "../_actions";
 import { AddTopic } from "./add-topic";
 import { TopicBadge } from "./topic-badge";
+import { ModuleName } from "@/components/club-texts-provider";
 
 const SECTIONS: { kind: TopicKind; title: string; max: number; notePlaceholder: string }[] = [
   { kind: "kennis", title: "Kennis", max: MAX_TOPICS_PER_MEMBER, notePlaceholder: "Waarin precies (optioneel)" },
@@ -149,7 +150,7 @@ export function KnowledgeForm({
           <span>
             Ik ga akkoord met{" "}
             <Link href="/privacy#zwbieb" className="underline underline-offset-2">
-              ZWBieb in de privacyverklaring
+              <ModuleName module="bibliotheek" /> in de privacyverklaring
             </Link>
             .
           </span>

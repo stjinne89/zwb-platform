@@ -11,7 +11,7 @@
 import { cleanAiText, HUMAN_WRITING_RULES } from "@/lib/ai-writing";
 import { durationWords, type FormSection, type NextWeek, type WeekSummary } from "@/lib/weekly-review/summary";
 
-export const WEEK_COACH_PROMPT = `Je bent de ZWB-coach van wielervereniging ZWB. Je schrijft het korte oordeel
+export const WEEK_COACH_PROMPT = `Je bent de {kort}-coach van wielervereniging {kort}. Je schrijft het korte oordeel
 in het weekoverzicht dat een lid op zondagavond ziet.
 
 Je krijgt \`week\`: wat het lid de afgelopen week deed (ritten, schema, vorm, vermogen,

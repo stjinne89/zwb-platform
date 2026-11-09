@@ -1,6 +1,7 @@
 import { currentAchievementWeek, previousAchievementWeek, weekStartDate } from "@/lib/strava/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { uniqueRides } from "@/lib/rides/unique-rides";
+import { getClub } from "@/lib/club";
 
 export type BadgeDefinition = {
   id: string;
@@ -263,6 +264,7 @@ export async function awardCompletedAchievementWeeks(
   supabase: Db,
   options: { weeks?: number | "all" } = {},
 ) {
+  const clubTexts = (await getClub()).texts;
   const currentWeek = currentAchievementWeek();
   const weeks = options.weeks ?? AWARD_WEEKS;
   const fromWeek = weeks === "all" ? null : addWeeks(currentWeek, -Math.max(1, weeks));
@@ -325,7 +327,7 @@ export async function awardCompletedAchievementWeeks(
       await sendNotificationToMembers(
         "on_new_badge",
         {
-          title: "Nieuwe ZWB-badge behaald",
+          title: `Nieuwe ${clubTexts.shortName}-badge behaald`,
           body,
           url: "/profiel?weergave=bewerken",
           tag: `weekbadges-${profileId}-${currentWeek}`,

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { QA_SELECT, QA_SELECT_0254, toQaItem, type QaItem, type QuestionRow } from "./data";
+import { getClub } from "@/lib/club";
 
 /**
  * De vragen die de kijker mag zien (RLS, 0254), met de FAQ en "Ik ook" (0258).
@@ -11,6 +12,7 @@ export async function loadQuestions(
   viewerId: string | null,
   limit: number,
 ): Promise<{ items: QaItem[]; error: boolean }> {
+  const clubTexts = (await getClub()).texts;
   const query = (columns: string) =>
     supabase
       .from("member_questions")
@@ -30,7 +32,7 @@ export async function loadQuestions(
   );
 
   const items = ((result.data ?? []) as unknown as QuestionRow[]).map((row) =>
-    toQaItem(row, viewerId, alsoAskedIds),
+    toQaItem(row, viewerId, alsoAskedIds, clubTexts.memberNoun),
   );
   return { items, error: false };
 }

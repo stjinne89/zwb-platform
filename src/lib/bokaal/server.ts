@@ -5,6 +5,7 @@ import { privacyConsentIsCurrent } from "@/lib/privacy";
 import type { Board } from "./odds";
 import type { BonusQuestion, ResultRow } from "./settle";
 import { seasonOf, type Category, type Market } from "./rules";
+import { getClub } from "@/lib/club";
 
 export type RaceRow = {
   id: string;
@@ -47,6 +48,7 @@ export const BET_COLUMNS =
 
 /** Ingelogd, goedgekeurd en privacyverklaring getekend; anders een melding voor het scherm. */
 export async function requireBokaalMember() {
+  const clubTexts = (await getClub()).texts;
   const client = await createClient();
   const { data: { user } } = await client.auth.getUser();
   if (!user) throw new Error("Log in om mee te spelen.");
@@ -55,7 +57,7 @@ export async function requireBokaalMember() {
     .select("id, display_name, is_approved, privacy_accepted_version")
     .eq("id", user.id)
     .single();
-  if (error || !member?.is_approved) throw new Error("Alleen goedgekeurde ZWB-leden kunnen meespelen.");
+  if (error || !member?.is_approved) throw new Error(`Alleen goedgekeurde ${clubTexts.shortName}-leden kunnen meespelen.`);
   if (!privacyConsentIsCurrent(member.privacy_accepted_version)) throw new Error("Bevestig eerst de privacyverklaring.");
   return { client, member: member as { id: string; display_name: string | null } };
 }
@@ -69,11 +71,12 @@ const numberish = <T extends { odds: unknown; payout: unknown }>(row: T) => ({
 });
 
 export async function loadPlayer(client: SupabaseClient, profileId: string, season: string) {
+  const clubTexts = (await getClub()).texts;
   const [player, balance] = await Promise.all([
     client.from("bokaal_players").select("joined_at").eq("profile_id", profileId).eq("season", season).maybeSingle(),
     client.rpc("bokaal_balance", { p_profile: profileId, p_season: season }),
   ]);
-  if (player.error || balance.error) throw new Error("voorZpWelBokaal is tijdelijk niet beschikbaar.");
+  if (player.error || balance.error) throw new Error(`${clubTexts.modules.voorspelspel} is tijdelijk niet beschikbaar.`);
   return { joined: Boolean(player.data), balance: Number(balance.data ?? 0) };
 }
 

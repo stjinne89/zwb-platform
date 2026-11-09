@@ -8,6 +8,7 @@
 import { defaultPacingPrompt } from "@/lib/pacing/prompt";
 import { createClaudeJob, isClaudeJobId, readClaudeJob, todayLine } from "@/lib/ai/claude";
 import { claudeSettings, usesClaude } from "@/lib/ai/settings";
+import { withClubInstructions } from "@/lib/club";
 
 export type PacingAiStatus =
   | "queued"
@@ -296,6 +297,8 @@ async function fetchOpenAi(
   init: RequestInit,
   timeoutMs: number,
 ) {
+  // De instructies noemen de club met {club} en {kort} (lib/club-texts.ts).
+  init = await withClubInstructions(init);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {

@@ -4,8 +4,11 @@ import { boardName, CATEGORY_LABEL, formatBalls, formatOdd, MARKET_LABEL } from 
 import { cn } from "@/lib/utils";
 import styles from "@/components/bokaal/bokaal.module.css";
 import { LeaveBokaal } from "./leave";
+import { moduleName } from "@/lib/club";
 
-export const metadata = { title: "Briefjes · voorZpWelBokaal" };
+export async function generateMetadata() {
+  return { title: `Briefjes · ${await moduleName("voorspelspel")}` };
+}
 export const dynamic = "force-dynamic";
 
 const DAY = new Intl.DateTimeFormat("nl-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" });

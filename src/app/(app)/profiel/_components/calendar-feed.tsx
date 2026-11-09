@@ -9,6 +9,7 @@ import {
   createCalendarFeedToken,
   revokeCalendarFeedToken,
 } from "../_actions/calendar-feed";
+import { ClubShortName, useClubTexts } from "@/components/club-texts-provider";
 
 const linkButton = buttonVariants({ variant: "outline", size: "sm" });
 
@@ -18,6 +19,7 @@ export type CalendarFeedStatus = {
 };
 
 export function CalendarFeed({ initial }: { initial: CalendarFeedStatus | null }) {
+  const clubTexts = useClubTexts();
   const [status, setStatus] = useState(initial);
   const [urls, setUrls] = useState<CalendarFeedUrls | null>(null);
   const [pending, startTransition] = useTransition();
@@ -42,7 +44,7 @@ export function CalendarFeed({ initial }: { initial: CalendarFeedStatus | null }
   }
 
   function revoke() {
-    if (!window.confirm("Je agenda krijgt dan geen ZWB-items meer. Doorgaan?")) return;
+    if (!window.confirm(`Je agenda krijgt dan geen ${clubTexts.shortName}-items meer. Doorgaan?`)) return;
     setError(null);
     startTransition(async () => {
       const res = await revokeCalendarFeedToken();
@@ -73,7 +75,7 @@ export function CalendarFeed({ initial }: { initial: CalendarFeedStatus | null }
       {!status ? (
         <Button type="button" size="sm" onClick={create} disabled={pending}>
           <CalendarPlus className="size-4" />
-          Zet ZWB in je agenda
+          Zet <ClubShortName /> in je agenda
         </Button>
       ) : (
         <>

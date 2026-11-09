@@ -20,6 +20,7 @@ import {
   loadLadderRiders,
   loadLadderTeams,
 } from "./_lib/load";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,7 @@ export default async function ClubLadderPage({
       ) : (
         <>
           <section className="rounded-lg border bg-card p-4">
-            <h2 className="font-semibold">ZWB teams</h2>
+            <h2 className="font-semibold"><ClubShortName /> teams</h2>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {teamRows.map((team) => {
                 const result = latestResultFor(team.id, resultRows);

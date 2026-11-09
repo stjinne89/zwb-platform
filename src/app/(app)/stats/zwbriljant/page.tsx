@@ -30,6 +30,8 @@ import { createClient } from "@/lib/supabase/server";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { mondayKey } from "@/lib/briljant/snapshot";
 import { moduleName } from "@/lib/club";
+import { getClub } from "@/lib/club";
+import { fillClubText } from "@/lib/club-texts";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -47,9 +49,9 @@ const shortWeekLabel = (monday: string) =>
 
 /** De gemiddelde stenen: van iedereen, en van mannen en vrouwen (eigenaar, 2026-10-22). */
 const AVERAGE_STONES: Array<{ id: string; group: AverageGroup; label: string; short: string; subject: string }> = [
-  { id: "zwb", group: "zwb", label: "ZWB-gemiddelde", short: "ZWB", subject: "het gemiddelde ZWB-lid" },
-  { id: "zwb-man", group: "man", label: "Gemiddelde ZWB-man", short: "Man", subject: "de gemiddelde ZWB-man" },
-  { id: "zwb-vrouw", group: "vrouw", label: "Gemiddelde ZWB-vrouw", short: "Vrouw", subject: "de gemiddelde ZWB-vrouw" },
+  { id: "zwb", group: "zwb", label: "{kort}-gemiddelde", short: "{kort}", subject: "het gemiddelde {kort}-lid" },
+  { id: "zwb-man", group: "man", label: "Gemiddelde {kort}-man", short: "Man", subject: "de gemiddelde {kort}-man" },
+  { id: "zwb-vrouw", group: "vrouw", label: "Gemiddelde {kort}-vrouw", short: "Vrouw", subject: "de gemiddelde {kort}-vrouw" },
 ];
 
 export default async function BriljantPage({
@@ -57,6 +59,7 @@ export default async function BriljantPage({
 }: {
   searchParams: Promise<{ datum?: string | string[]; met?: string | string[]; tab?: string | string[]; lid?: string | string[]; van?: string | string[] }>;
 }) {
+  const clubTexts = (await getClub()).texts;
   const user = await getRequestUser();
   if (!user) redirect("/login");
   const params = await searchParams;
@@ -87,7 +90,12 @@ export default async function BriljantPage({
     loadClubAverages(admin),
   ]);
   // Alleen de gemiddelden met genoeg leden.
-  const averageStones = AVERAGE_STONES.filter((stone) => averages[stone.group] != null);
+  const averageStones = AVERAGE_STONES.filter((stone) => averages[stone.group] != null).map((stone) => ({
+    ...stone,
+    label: fillClubText(stone.label, clubTexts),
+    short: fillClubText(stone.short, clubTexts),
+    subject: fillClubText(stone.subject, clubTexts),
+  }));
   // Wie zijn steen verbergt, ziet ook die van anderen niet (eigenaar, 2026-10-22;
   // in RLS sinds 0268). Het anonieme ZWB-gemiddelde en de records blijven.
   const hallStones = sharing ? shared : [];

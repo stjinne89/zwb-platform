@@ -32,6 +32,7 @@ import {
   type LiveSample,
 } from "./external-livetrack";
 import { wahooPagePoints } from "./fit-records";
+import { getClub } from "@/lib/club";
 
 const FETCH_EVERY_MS = 30 * 1000;
 const WAHOO_DETECT_EVERY_MS = 3 * 60 * 1000;
@@ -252,6 +253,7 @@ async function detectWahooRides(
   profileIds: string[] | undefined,
   now: number,
 ) {
+  const clubTexts = (await getClub()).texts;
   let query = admin
     .from("live_tracker_tokens")
     .select("id, profile_id, external_url, last_checked_at, profiles(display_name, is_approved)")
@@ -317,8 +319,8 @@ async function detectWahooRides(
       await sendNotificationToMembers(
         "on_live_started",
         {
-          title: "ZWB'er is live",
-          body: `${link.profiles?.display_name ?? "Een ZWB'er"} is live via Wahoo.`,
+          title: `${clubTexts.memberNoun} is live`,
+          body: `${link.profiles?.display_name ?? `Een ${clubTexts.memberNoun}`} is live via Wahoo.`,
           url: "/live",
           tag: `live-${session.id}`,
         },

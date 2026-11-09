@@ -13,6 +13,7 @@ import {
   type HelpVideoId,
 } from "@/lib/help-videos";
 import { cn } from "@/lib/utils";
+import { clubCommunity } from "@/lib/club-texts";
 
 // De starthelper voor nieuwe leden, in het design "tegels". Elke stap is een
 // tegel in de kleur van de soort waar hij heen leidt; de eerstvolgende stap is
@@ -148,6 +149,7 @@ function VideoTile({ id }: { id: HelpVideoId }) {
 }
 
 export default async function WelkomPage() {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
   const {
     data: { user },
@@ -347,7 +349,7 @@ export default async function WelkomPage() {
           <Link
             href={isApproved ? "/dashboard" : "/"}
             className="tg-logo flex shrink-0 items-center"
-            aria-label="ZWB Cycling Community"
+            aria-label={clubCommunity(clubTexts)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={clubLogoUrl((await getClub()).settings.logoUrl)} alt="" />
@@ -363,7 +365,7 @@ export default async function WelkomPage() {
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-7 px-4 pb-10 pt-5">
         <header className="space-y-3">
-          <h1 className="tg-display">{firstName ? `Welkom, ${firstName}` : "Welkom bij ZWB"}</h1>
+          <h1 className="tg-display">{firstName ? `Welkom, ${firstName}` : `Welkom bij ${clubTexts.shortName}`}</h1>
           <div className="max-w-md">
             <p className="text-sm tabular-nums text-muted-foreground">
               {allDone ? "Alles staat klaar." : `${doneCount} van ${steps.length} stappen klaar`}

@@ -90,6 +90,7 @@ import {
   type LiveRider,
   type RunningEvent,
 } from "@/lib/live/event-riders";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 const INSTAGRAM_NON_POST_SOURCES = [INSTAGRAM_STORY_SOURCE, INSTAGRAM_TAG_HIDDEN_SOURCE];
 
@@ -243,8 +244,8 @@ function singleProfileName(rel: ProfileRef | ProfileRef[] | null): string | null
   return single?.display_name ?? null;
 }
 
-function activityProfile(row: ClubActivityRow): string {
-  return singleProfileName(row.profiles) ?? "ZWB'er";
+function activityProfile(row: ClubActivityRow, fallback: string): string {
+  return singleProfileName(row.profiles) ?? fallback;
 }
 
 function toNumber(value: number | string | null | undefined): number {
@@ -399,6 +400,7 @@ async function loadLiveNow(
   supabase: Awaited<ReturnType<typeof createClient>>,
   viewerId: string,
 ): Promise<{ together: VandaagLive | null; events: VandaagLiveEvent[] }> {
+  const clubTexts = (await getClub()).texts;
   await refreshExternalLiveSessions({ detect: false });
   const now = Date.now();
   const cutoff = new Date(now - 15 * 60 * 1000).toISOString();
@@ -412,7 +414,7 @@ async function loadLiveNow(
   const byProfile = new Map<string, LiveRider>();
   for (const row of data ?? []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const name = ((row.profiles as any)?.display_name as string) ?? "ZWB'er";
+    const name = ((row.profiles as any)?.display_name as string) ?? clubTexts.memberNoun;
     const profileId = row.profile_id as string;
     if (!byProfile.has(profileId)) {
       byProfile.set(profileId, { profileId, name, sessionStartedAt: row.started_at as string });
@@ -472,6 +474,7 @@ export default async function DashboardPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const clubTexts = (await getClub()).texts;
   // De Strava-koppeling komt hier terug uit OAuth; de melding hoort dus ook
   // hier, bij de knop die het lid net gebruikte.
   const params = (await searchParams) ?? {};
@@ -1015,12 +1018,12 @@ export default async function DashboardPage({
           <SectionHeader
             icon={BadgeCheck}
             title="Nieuwste badges"
-            action={<InlineMoreLink href="/stats/rankings">ZWB Rankings</InlineMoreLink>}
+            action={<InlineMoreLink href="/stats/rankings"><ClubShortName /> Rankings</InlineMoreLink>}
           />
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {awards.map((award) => {
               const badge = awardBadge(award);
-              const profileName = singleProfileName(award.profiles) ?? "ZWB'er";
+              const profileName = singleProfileName(award.profiles) ?? clubTexts.memberNoun;
               return (
                 <li key={award.id}>
                   <Link
@@ -1120,7 +1123,7 @@ export default async function DashboardPage({
                 <ActivityRow activityId={activity.id}>
                   <div className="min-w-0">
                     <p className="truncate">
-                      <span className="font-medium">{activityProfile(activity)}</span>{" "}
+                      <span className="font-medium">{activityProfile(activity, clubTexts.memberNoun)}</span>{" "}
                       <span className="text-muted-foreground">-</span>{" "}
                       <span className="text-muted-foreground">
                         {activity.name ?? "Activiteit"}
@@ -1222,7 +1225,7 @@ export default async function DashboardPage({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{benefit.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {singleSponsorName(benefit.sponsors) ?? "ZWB Cycling"}
+                        {singleSponsorName(benefit.sponsors) ?? clubTexts.name}
                         {benefit.valid_until
                           ? ` - geldig t/m ${new Date(
                               benefit.valid_until,

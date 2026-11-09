@@ -9,6 +9,7 @@ import {
 } from "@/lib/training/symptoms";
 import { LogForm } from "./_components/log-form";
 import { OptInButton } from "./_components/opt-in";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ function amsterdamToday(): string {
 }
 
 export default async function LogboekPage() {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,7 +35,7 @@ export default async function LogboekPage() {
   const header = (
     <PageHeader
       className="tg-repeats-nav"
-      eyebrow="ZWB Training"
+      eyebrow={`${clubTexts.shortName} Training`}
       title="Logboek"
       description="Hoe je je voelt, zodat je schema erop kan meebewegen."
     />

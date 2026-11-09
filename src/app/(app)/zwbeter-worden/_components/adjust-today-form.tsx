@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { markTodayRestDay } from "../_actions";
 import { ADJUST_TODAY_ANCHOR } from "./adjust-today-link";
 import { useAiDraftPoll, type DraftPayload } from "./use-ai-draft-poll";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -24,6 +25,7 @@ const FEELINGS: { value: string; label: string }[] = [
  * formulier al open.
  */
 export function AdjustTodayForm({ initialOpen = false }: { initialOpen?: boolean }) {
+  const clubTexts = useClubTexts();
   const router = useRouter();
   const [open, setOpen] = useState(initialOpen);
   const [feeling, setFeeling] = useState("normal");
@@ -34,12 +36,12 @@ export function AdjustTodayForm({ initialOpen = false }: { initialOpen?: boolean
   const onCompleted = useCallback((payload: DraftPayload) => {
     setResult(
       payload.published
-        ? "Aangepast. De training staat in ZWB en intervals.icu; je trainer kijkt er later naar."
+        ? `Aangepast. De training staat in ${clubTexts.shortName} en intervals.icu; je trainer kijkt er later naar.`
         : "Voorstel klaargezet — bekijk het bij je schema's hieronder.",
     );
     setIntervalsUrl(payload.intervalsUrl ?? null);
     setOpen(false);
-  }, []);
+  }, [clubTexts.shortName]);
   const poll = useAiDraftPoll({
     onCompleted,
     firstDelayMs: 1_000,

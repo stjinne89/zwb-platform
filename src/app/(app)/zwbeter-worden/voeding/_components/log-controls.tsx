@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useActionState, type ReactNode } from "react";
 import { Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 type Action = (formData: FormData) => Promise<ActionResult>;
@@ -23,7 +24,7 @@ export function LogConsentForm({ action }: { action: Action }) {
       <label className="flex items-start gap-3 text-sm">
         <input type="checkbox" name="consent" required className="mt-1 size-4 shrink-0" />
         <span>
-          Ik wil vastleggen wat ik eet. ZWB bewaart per maaltijd de producten en de hoeveelheden en rekent
+          Ik wil vastleggen wat ik eet. <ClubShortName /> bewaart per maaltijd de producten en de hoeveelheden en rekent
           daaruit mijn koolhydraten en eiwit. Alleen ik zie dit. Ik kan pauzeren en alles wissen.{" "}
           <Link href="/privacy" className="text-primary hover:underline">
             Privacyverklaring

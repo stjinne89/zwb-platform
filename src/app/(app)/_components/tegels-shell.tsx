@@ -5,6 +5,7 @@ import type { PlaceId } from "@/lib/design-places";
 import { getClub } from "@/lib/club";
 import { clubLogoUrl } from "@/lib/club-icons";
 import { TegelsTabs } from "./tegels-tabs";
+import { clubCommunity } from "@/lib/club-texts";
 
 /** De schil van het design "tegels": het originele logo bovenin, de vier
  * plekken onderin (telefoon) of bovenin (breed scherm). */
@@ -24,6 +25,7 @@ export async function TegelsShell({
   /** Plekken waarvan de module bij deze club uit staat. */
   hiddenPlaces?: PlaceId[];
 }) {
+  const clubTexts = (await getClub()).texts;
   // Het logo van de club (0315), anders het ZWB-logo.
   const logo = clubLogoUrl((await getClub()).settings.logoUrl);
   return (
@@ -37,7 +39,7 @@ export async function TegelsShell({
           <Link
             href="/dashboard"
             className="tg-logo flex shrink-0 items-center"
-            aria-label="ZWB Cycling Community"
+            aria-label={clubCommunity(clubTexts)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={logo} alt="" />

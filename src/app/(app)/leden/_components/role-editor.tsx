@@ -8,6 +8,7 @@ import {
 } from "@/lib/community-roles";
 import { Button } from "@/components/ui/button";
 import { updateMemberRoles } from "../_actions";
+import { ClubText } from "@/components/club-texts-provider";
 
 export function RoleEditor({
   profileId,
@@ -78,7 +79,7 @@ export function RoleEditor({
                   <span>
                     <span className="block font-medium">{meta.label}</span>
                     <span className="block text-xs text-muted-foreground">
-                      {meta.description}
+                      <ClubText text={meta.description} />
                     </span>
                   </span>
                 </label>

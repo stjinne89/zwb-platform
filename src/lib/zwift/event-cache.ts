@@ -23,6 +23,7 @@ import {
 } from "@/lib/events/external-scan";
 import { fetchFeedEvents, zwiftClubConfigured } from "@/lib/events/zwift-club";
 import { parseWkgRange } from "@/lib/training/zwift-match";
+import { getClub } from "@/lib/club";
 
 const UPCOMING_URL = "https://us-or-rly101.zwift.com/api/public/events/upcoming";
 
@@ -257,6 +258,7 @@ export async function syncZwiftEventCache(
   supabase: SupabaseClient,
   options: { horizonDays?: number; budgetMs?: number; now?: Date } = {},
 ): Promise<EventSyncResult> {
+  const clubTexts = (await getClub()).texts;
   const now = options.now ?? new Date();
   const horizonDays = Math.max(1, options.horizonDays ?? DEFAULT_HORIZON_DAYS);
   const deadline = Date.now() + Math.max(1000, options.budgetMs ?? DEFAULT_BUDGET_MS);
@@ -354,8 +356,8 @@ export async function syncZwiftEventCache(
     } catch (error) {
       result.notes.push(
         error instanceof Error
-          ? `ZWB-inschrijvingen ophalen mislukt: ${error.message}`
-          : "ZWB-inschrijvingen ophalen mislukt.",
+          ? `${clubTexts.shortName}-inschrijvingen ophalen mislukt: ${error.message}`
+          : `${clubTexts.shortName}-inschrijvingen ophalen mislukt.`,
       );
     }
   }

@@ -1,8 +1,12 @@
+"use client";
+
 import {
   COMMUNITY_ROLE_META,
   normalizeCommunityRoles,
 } from "@/lib/community-roles";
 import { cn } from "@/lib/utils";
+import { fillClubText } from "@/lib/club-texts";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 export function CommunityRoleBadges({
   roles,
@@ -13,6 +17,7 @@ export function CommunityRoleBadges({
   isAdmin?: boolean;
   compact?: boolean;
 }) {
+  const clubTexts = useClubTexts();
   const normalized = normalizeCommunityRoles(roles);
 
   return (
@@ -32,7 +37,7 @@ export function CommunityRoleBadges({
         return (
           <span
             key={role}
-            title={meta.description}
+            title={fillClubText(meta.description, clubTexts)}
             className={cn(
               "inline-flex items-center rounded-full border font-medium",
               meta.className,

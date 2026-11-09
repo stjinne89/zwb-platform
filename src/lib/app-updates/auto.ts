@@ -58,7 +58,7 @@ const SCHEMA = {
   },
 };
 
-const SYSTEM = `Je schrijft de wekelijkse app-update voor de leden van ZWB, een wielerclub met een eigen app (ZWBasis). Leden lezen hem op donderdag in een pop-up en op de pagina App-updates.
+const SYSTEM = `Je schrijft de wekelijkse app-update voor de leden van {kort}, een wielerclub met een eigen app (ZWBasis). Leden lezen hem op donderdag in een pop-up en op de pagina App-updates.
 
 Je krijgt de rondes uit het projectplan van de afgelopen week. Dat plan is geschreven voor ontwikkelaars. Maak er een korte update voor leden van.
 
@@ -69,7 +69,7 @@ Regels:
 - Eén punt per onderdeel. Voeg rondes over hetzelfde onderdeel samen. Hooguit 14 nieuw en 10 opgelost; kies wat leden het meest merken.
 - "summary": één of twee zinnen met het belangrijkste van de week, hooguit 300 tekens.
 - Elk punt hooguit 160 tekens, één zin of twee korte.
-- Nederlands, spreek het lid aan met "je". Gewone woorden, geen vakjargon of code. Namen van onderdelen zoals in de app (ZWBeter Worden, ZWBriljant, Stats, Club Ladder).
+- Nederlands, spreek het lid aan met "je". Gewone woorden, geen vakjargon of code. Namen van onderdelen zoals in de app ({m:training}, {m:rennersniveau}, Stats, Club Ladder).
 - Noem geen namen van leden.
 - Geen uitroeptekens, geen reclametaal, geen emoji.
 - Is er niets wat leden merken, geef dan een lege summary en lege lijsten.

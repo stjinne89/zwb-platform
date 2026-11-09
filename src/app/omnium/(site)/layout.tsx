@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ZwbMark } from "@/components/zwb-logo";
 import { moduleName } from "@/lib/club";
+import { ClubName } from "@/components/club-texts-provider";
 
 // De publieke Omnium-sectie is Engelstalig: het deelnemersveld is
 // internationaal en logt niet in. De rest van het platform blijft Nederlands,
@@ -57,7 +58,7 @@ export default function OmniumLayout({
 
       <footer className="border-t">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-xs text-muted-foreground">
-          <span>ZWB Cycling</span>
+          <span><ClubName /></span>
           <span>
             Results are published per edition. Questions about your data?{" "}
             <Link href="/privacy" className="underline">

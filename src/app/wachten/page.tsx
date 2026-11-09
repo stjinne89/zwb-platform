@@ -5,6 +5,7 @@ import { LogoutButton } from "@/app/(app)/_components/logout-button";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TegelsAuthFrame } from "@/components/tegels/auth-frame";
+import { ClubName, ClubShortName } from "@/components/club-texts-provider";
 
 export default async function WachtenPage() {
   const supabase = await createClient();
@@ -25,13 +26,13 @@ export default async function WachtenPage() {
     <TegelsAuthFrame>
       <div className="space-y-4">
         <h1 className="text-[2.25rem] font-light leading-[1.05] tracking-tight text-primary dark:text-foreground">
-          Welkom bij ZWB Cycling, {profile?.display_name ?? user.email}!
+          Welkom bij <ClubName />, {profile?.display_name ?? user.email}!
         </h1>
         <p>
           Je registratie is ontvangen en wacht op goedkeuring door een
           beheerder. Zodra dat gebeurd is krijg je toegang tot het platform.
         </p>
-        <p className="text-muted-foreground">Vragen? Neem contact op met het ZWB-bestuur.</p>
+        <p className="text-muted-foreground">Vragen? Neem contact op met het <ClubShortName />-bestuur.</p>
       </div>
       <Link
         href="/welkom"

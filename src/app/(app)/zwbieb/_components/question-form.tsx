@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { QUESTION_MAX } from "@/lib/zwbieb/limits";
 import { askQuestion } from "../_actions";
+import { ModuleName } from "@/components/club-texts-provider";
 
 export function QuestionForm({
   expertId,
@@ -58,7 +59,7 @@ export function QuestionForm({
           <span>
             Ik ga akkoord met{" "}
             <Link href="/privacy#zwbieb" className="underline underline-offset-2">
-              ZWBieb in de privacyverklaring
+              <ModuleName module="bibliotheek" /> in de privacyverklaring
             </Link>
             .
           </span>

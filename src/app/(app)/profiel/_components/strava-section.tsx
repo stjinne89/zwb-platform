@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 import { ModuleName } from "@/components/club-texts-provider";
 import { useModuleName } from "@/components/club-texts-provider";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 export function StravaSection({
   connection,
@@ -148,7 +149,7 @@ export function StravaSection({
               href="/stats/rankings"
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
-              Naar ZWB Rankings
+              Naar <ClubShortName /> Rankings
             </Link>
             <ConnectWithStrava reconnect size="compact" />
             <Button

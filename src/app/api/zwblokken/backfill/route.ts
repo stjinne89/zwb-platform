@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { OUTDOOR_CYCLING_SPORTS } from "@/lib/strava/sports";
 import { backfillRegions, syncBlocksForUser } from "@/lib/zwblokken/sync";
 import { syncZwiftBlocksForUser } from "@/lib/zwblokken/zwift-sync";
+import { getClub } from "@/lib/club";
 
 type ProfileResult = {
   profileId: string;
@@ -100,6 +101,7 @@ async function profilesWithPendingZwiftWork(
 }
 
 export async function POST(request: Request) {
+  const clubTexts = (await getClub()).texts;
   const expected = process.env.STRAVA_SYNC_SECRET;
   const actual = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
@@ -202,7 +204,7 @@ export async function POST(request: Request) {
           newBlocks: 0,
           remaining: true,
           error:
-            err instanceof Error ? err.message : "ZWBlokken-backfill faalde.",
+            err instanceof Error ? err.message : `${clubTexts.modules.blokkenjacht}-backfill faalde.`,
         });
       }
     }
@@ -227,7 +229,7 @@ export async function POST(request: Request) {
       {
         ok: false,
         error:
-          err instanceof Error ? err.message : "ZWBlokken-backfill faalde.",
+          err instanceof Error ? err.message : `${clubTexts.modules.blokkenjacht}-backfill faalde.`,
       },
       { status: 500 },
     );

@@ -24,6 +24,8 @@ import { isNoticeIntegration, NOTICE_BODY_MAX, noticeTemplate } from "@/lib/inte
 import { helpVideo, helpVideoDuration } from "@/lib/help-videos";
 import type { MemberIntegrationRow } from "../_data";
 import { sendIntegrationNotice } from "../_actions";
+import { useClubTexts } from "@/components/club-texts-provider";
+import { fillClubText } from "@/lib/club-texts";
 
 // Uit member-overview alleen types: die module trekt de ritten-logica mee, en
 // die hoort niet in de browserbundel. notices.ts is puur en zonder imports.
@@ -356,8 +358,9 @@ function NoticeComposer({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const clubTexts = useClubTexts();
   const template = noticeTemplate(integration, { stravaCapFull });
-  const [body, setBody] = useState(template.body);
+  const [body, setBody] = useState(() => fillClubText(template.body, clubTexts));
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

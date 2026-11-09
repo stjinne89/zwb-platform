@@ -14,6 +14,7 @@ import {
   type ClaudeRequest,
 } from "@/lib/ai/claude";
 import { claudeSettings, usesClaude, type AiKind } from "@/lib/ai/settings";
+import { withClubInstructions } from "@/lib/club";
 
 export type GeneratedWorkout = {
   date: string;
@@ -534,6 +535,8 @@ async function fetchOpenAiResponse(
   init: RequestInit,
   timeoutMs: number,
 ) {
+  // De instructies noemen de club met {club} en {kort} (lib/club-texts.ts).
+  init = await withClubInstructions(init);
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
   try {

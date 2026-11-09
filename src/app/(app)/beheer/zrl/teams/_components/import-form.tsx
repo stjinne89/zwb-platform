@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { parseWtrlTeams } from "@/lib/teams/wtrl-roster";
 import { importWtrlTeams } from "../_actions";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -22,6 +23,7 @@ export function WtrlImportForm({
   teams: ZwbTeamOption[];
   knownMapping: Record<string, string | null>;
 }) {
+  const clubTexts = useClubTexts();
   const [text, setText] = useState("");
   const [choices, setChoices] = useState<Record<string, string>>({});
   const [result, setResult] = useState<string | null>(null);
@@ -85,7 +87,7 @@ export function WtrlImportForm({
               <select
                 className={`${FIELD} sm:w-56`}
                 value={teamFor(team.trcRef, team.name)}
-                aria-label={`ZWB-team voor ${team.name}`}
+                aria-label={`${clubTexts.shortName}-team voor ${team.name}`}
                 onChange={(event) =>
                   setChoices((prev) => ({ ...prev, [team.trcRef]: event.target.value }))
                 }

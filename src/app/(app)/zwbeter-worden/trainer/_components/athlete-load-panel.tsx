@@ -14,6 +14,7 @@ import {
   recoveryPillClass,
   recoveryStateLabel,
 } from "../../_components/ui";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 export function AthleteLoadPanel({
   loadPoints,
@@ -102,7 +103,7 @@ export function AthleteLoadPanel({
                     }
                     hint={
                       recovery.summary.readinessSource === "afgeleid"
-                        ? "berekend door ZWB"
+                        ? <>berekend door <ClubShortName /></>
                         : undefined
                     }
                   />

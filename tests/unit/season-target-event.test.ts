@@ -40,7 +40,7 @@ function fake() {
   return { from };
 }
 
-vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+vi.mock("next/cache", () => ({ revalidatePath: () => undefined, unstable_cache: (fn: unknown) => fn }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => fake() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => fake() }));
 vi.mock("@/lib/auth/permissions", () => ({

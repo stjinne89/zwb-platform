@@ -23,6 +23,7 @@ import {
   type SegmentResult,
 } from "@/lib/zwift/segment-results-pb";
 import { decodePlayerState, type PlayerState } from "@/lib/zwift/player-state-pb";
+import { getClub } from "@/lib/club";
 
 const TOKEN_URL =
   "https://secure.zwift.com/auth/realms/zwift/protocol/openid-connect/token";
@@ -935,6 +936,7 @@ export async function followZwbMembers(zwiftIds: string[]): Promise<FollowResult
  * en controleer of de entrants-endpoint bereikbaar is. Lekt geen secrets.
  */
 export async function diagnoseZwiftClub(): Promise<string> {
+  const clubTexts = (await getClub()).texts;
   if (!zwiftClubConfigured()) {
     return "Zwift-clubkoppeling niet geconfigureerd (ZWIFT_USERNAME, ZWIFT_PASSWORD en ZWIFT_CLUB_ID ontbreken).";
   }
@@ -954,7 +956,7 @@ export async function diagnoseZwiftClub(): Promise<string> {
   }
 
   if (clubEvents.length === 0) {
-    return "Zwift-login gelukt en de member-feed is bereikbaar, maar er staan nu geen aankomende ZWB-club-events in. Plan een clubrit op Zwift en test opnieuw.";
+    return `Zwift-login gelukt en de member-feed is bereikbaar, maar er staan nu geen aankomende ${clubTexts.shortName}-club-events in. Plan een clubrit op Zwift en test opnieuw.`;
   }
 
   const first = clubEvents[0];
@@ -964,5 +966,5 @@ export async function diagnoseZwiftClub(): Promise<string> {
   } catch {
     // Entrants zijn optioneel voor de check; events vinden is het signaal.
   }
-  return `Zwift-clubkoppeling werkt: ${clubEvents.length} aankomende ZWB-club-events gevonden. Eerste event "${first.candidate.title}" heeft ${entrantCount} ingeschreven renners zichtbaar.`;
+  return `Zwift-clubkoppeling werkt: ${clubEvents.length} aankomende ${clubTexts.shortName}-club-events gevonden. Eerste event "${first.candidate.title}" heeft ${entrantCount} ingeschreven renners zichtbaar.`;
 }

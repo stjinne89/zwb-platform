@@ -28,6 +28,8 @@ import { ConnectIntervalsForm } from "../_components/connect-form";
 import { FtpTestHistory, type FtpTestHistoryRow } from "../_components/ftp-test-history";
 import { SyncPowerButton } from "../../teams/_components/sync-power-button";
 import { PowerCurveChart } from "@/components/charts/power-curve-chart";
+import { ClubShortName } from "@/components/club-texts-provider";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -50,6 +52,7 @@ export default async function PowerPage({
 }: {
   searchParams: Promise<{ period?: string | string[] }>;
 }) {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
   const {
     data: { user },
@@ -174,7 +177,7 @@ export default async function PowerPage({
     const points = downsample(entry.points);
     return points.length > 1 ? [{ afterKj: entry.afterKj, points }] : [];
   });
-  const comparisonRiders = comparisonRidersFromRows(comparisonRows);
+  const comparisonRiders = comparisonRidersFromRows(comparisonRows, `${clubTexts.shortName}-lid`);
   const ownWeightKg = numberOrNull(profile?.weight_kg) ?? intervalsWeightKg;
   // Voorrang: de laatste FTP-test, dan de ingestelde FTP in intervals.icu, dan de
   // eFTP, dan het profiel. Dezelfde volgorde als de powerprofiel-sync in
@@ -203,7 +206,7 @@ export default async function PowerPage({
     <div className="space-y-6">
       <PageHeader
         className="tg-repeats-nav"
-        eyebrow="ZWB Training"
+        eyebrow={`${clubTexts.shortName} Training`}
         title="Mijn vermogen"
         actions={
           <div className="flex flex-wrap gap-2">
@@ -308,7 +311,7 @@ export default async function PowerPage({
                 <h2 className="text-lg font-semibold">Power-duration curve</h2>
                 <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
                   <Users className="size-3.5" />
-                  {comparisonRiders.length} vergelijkbare ZWB-profielen
+                  {comparisonRiders.length} vergelijkbare <ClubShortName />-profielen
                 </span>
               </div>
               <PowerCurveChart

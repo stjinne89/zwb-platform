@@ -8,6 +8,7 @@ import {
   telegramConfig,
   verifyWebhookSecret,
 } from "@/lib/telegram/bot";
+import { getClub } from "@/lib/club";
 
 // Webhook van de ZWB-Telegram-bot. Alleen privéchats; de bot doet twee dingen:
 //   /start <token>  koppelt deze chat aan het lid dat de link maakte
@@ -25,6 +26,7 @@ type TelegramUpdate = {
 const ok = () => NextResponse.json({ ok: true });
 
 export async function POST(request: NextRequest) {
+  const clubTexts = (await getClub()).texts;
   const config = telegramConfig();
   if (!config) {
     return NextResponse.json({ ok: false, error: "Niet ingesteld." }, { status: 503 });
@@ -52,13 +54,13 @@ export async function POST(request: NextRequest) {
 
   if (isStopCommand(text)) {
     await admin.from("telegram_links").delete().eq("chat_id", chatId);
-    await reply("Ontkoppeld. Je krijgt geen ritberichten van ZWB meer.");
+    await reply(`Ontkoppeld. Je krijgt geen ritberichten van ${clubTexts.shortName} meer.`);
     return ok();
   }
 
   const token = startTokenFromText(text);
   if (!token) {
-    await reply("Deze bot stuurt alleen berichten tijdens ZWB-ritten.");
+    await reply(`Deze bot stuurt alleen berichten tijdens ${clubTexts.shortName}-ritten.`);
     return ok();
   }
 
@@ -91,7 +93,7 @@ export async function POST(request: NextRequest) {
   await reply(
     error
       ? "Koppelen mislukte. Probeer het opnieuw vanaf Samen fietsen."
-      : "Gekoppeld aan ZWB. Berichten tijdens je rit komen hier binnen.",
+      : `Gekoppeld aan ${clubTexts.shortName}. Berichten tijdens je rit komen hier binnen.`,
   );
   return ok();
 }

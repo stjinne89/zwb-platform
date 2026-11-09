@@ -12,6 +12,7 @@ import { useState, useTransition } from "react";
 import { ExternalLink, Lightbulb } from "lucide-react";
 import Link from "next/link";
 import { chooseZwiftEvent, clearZwiftEvent, dismissZwiftSuggestions } from "../_actions";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 /**
  * Bewust een eigen, smalle vorm en niet ZwiftEventMatch zelf: die draagt het
@@ -119,6 +120,7 @@ function scoreTone(scorePct: number) {
 }
 
 function MatchRow({ match, workoutId }: { match: ZwiftSuggestionView; workoutId: string }) {
+  const clubTexts = useClubTexts();
   const facts = [
     startTime(match.startAt),
     duration(match.estimatedMinutes),
@@ -141,7 +143,7 @@ function MatchRow({ match, workoutId }: { match: ZwiftSuggestionView; workoutId:
           <p className="mt-0.5 text-xs text-muted-foreground">{facts.join(" · ")}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {match.strongest}
-            {zwb > 0 ? ` · ${zwb} ZWB'er${zwb === 1 ? " rijdt" : "s rijden"} mee` : ""}
+            {zwb > 0 ? ` · ${zwb} ${zwb === 1 ? `${clubTexts.memberNoun} rijdt` : `${clubTexts.memberNounPlural} rijden`} mee` : ""}
           </p>
           {match.weakest ? (
             <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400">{match.weakest}</p>

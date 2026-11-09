@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { bokaalFontVariables } from "./fonts";
 import styles from "./bokaal.module.css";
+import { useModuleName } from "@/components/club-texts-provider";
 
 const PAGES = [
   { href: "/voorzpwelbokaal", label: "Bord" },
@@ -12,6 +15,7 @@ const PAGES = [
 
 /** De cafémuur met het emaille bord; elke pagina van voorZpWelBokaal hangt hieraan. */
 export function BokaalShell({ active, canManage = false, children }: { active: string; canManage?: boolean; children: ReactNode }) {
+  const bokaalName = useModuleName("voorspelspel");
   const pages = canManage ? [...PAGES, { href: "/voorzpwelbokaal/beheer", label: "Beheer" }] : PAGES;
   return (
     <div className={cn(styles.root, bokaalFontVariables)}>
@@ -23,7 +27,7 @@ export function BokaalShell({ active, canManage = false, children }: { active: s
               <b>B</b>okaal
             </h1>
           </div>
-          <nav className={styles.nav} aria-label="voorZpWelBokaal">
+          <nav className={styles.nav} aria-label={bokaalName}>
             {pages.map((page) => (
               <Link key={page.href} href={page.href} aria-current={page.href === active ? "page" : undefined}>
                 {page.label}

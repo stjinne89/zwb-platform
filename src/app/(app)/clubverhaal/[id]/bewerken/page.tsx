@@ -4,12 +4,14 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { canEdit } from "@/lib/clubverhaal/story";
 import { loadBekerOptions, loadStory, requireStoryMember } from "@/lib/clubverhaal/server";
 import { StoryForm } from "../../_components/story-form";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Verhaal aanpassen" };
 
 /** Een eigen verhaal aanpassen zolang het niet geplaatst is; daarna gaat het opnieuw naar het bestuur. */
 export default async function BewerkenPage({ params }: { params: Promise<{ id: string }> }) {
+  const clubTexts = (await getClub()).texts;
   const { id } = await params;
   let guard;
   try {
@@ -28,7 +30,7 @@ export default async function BewerkenPage({ params }: { params: Promise<{ id: s
   return (
     <div className="space-y-6">
       <BackLink href="/clubverhaal" label="Je verhalen" />
-      <PageHeader eyebrow="Het verhaal van ZWB" title="Verhaal aanpassen" />
+      <PageHeader eyebrow={`Het verhaal van ${clubTexts.shortName}`} title="Verhaal aanpassen" />
       <StoryForm
         bekers={bekers}
         year={Number(amsterdamDayKey().slice(0, 4))}

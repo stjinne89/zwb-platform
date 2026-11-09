@@ -7,6 +7,7 @@ import type { DsGroup, DsRider } from "@/lib/ds/field";
 import type { DsView } from "@/lib/ds/snapshot";
 import { cn } from "@/lib/utils";
 import { DsCourse } from "./ds-course";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 /** "+0:18", of "+1:05". */
 function gap(seconds: number | null) {
@@ -194,7 +195,7 @@ function OurRiders({ view }: { view: DsView }) {
   if (ours.length === 0 && view.zwbUnseen.length === 0) return null;
   return (
     <section className="rounded-lg border bg-card">
-      <h2 className="border-b px-4 py-3 text-sm font-semibold">ZWB</h2>
+      <h2 className="border-b px-4 py-3 text-sm font-semibold"><ClubShortName /></h2>
       <ul className="divide-y">
         {ours.map((rider) => (
           <RiderCard key={rider.zwiftId} rider={rider} total={field.riders.length} routeM={field.routeM} />

@@ -13,6 +13,7 @@ import { EmptyState, PageHeader } from "@/components/app-ui";
 import { DeleteRitverslagButton } from "./_components/delete-ritverslag-button";
 import { eventLabel } from "@/lib/event-types";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,7 @@ function amsterdamDateKey(date: Date) {
 }
 
 export default async function RitverslagenPage() {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
   const user = await getRequestUser();
   if (!user) redirect("/login");
@@ -85,7 +87,7 @@ export default async function RitverslagenPage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          eyebrow="ZWB"
+          eyebrow={clubTexts.shortName}
           title="Ritverslagen"
         />
         <EmptyState>Nog geen voorbije events.</EmptyState>
@@ -182,7 +184,7 @@ export default async function RitverslagenPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ZWB"
+        eyebrow={clubTexts.shortName}
         title="Ritverslagen"
         description="Voorbije ritten met foto's en verslagen."
       />

@@ -36,7 +36,7 @@ export function RecoveryStat({
   label: string;
   value: string;
   /** Bijschrift onder het label, bv. dat een waarde berekend is en niet gemeten. */
-  hint?: string;
+  hint?: React.ReactNode;
 }) {
   return (
     <div className="tg-stat rounded-md bg-muted/50 p-3 text-center">

@@ -96,6 +96,7 @@ import {
   generateOutdoorRoutes,
   loadStartPoints,
 } from "@/lib/training/outdoor-suggestions";
+import { getClub } from "@/lib/club";
 
 const GOAL_TYPES = ["zrl", "ladder", "outdoor_event", "gran_fondo", "ftp", "base_fitness", "rebuild"];
 const MODES = ["indoor", "outdoor", "mixed"];
@@ -1110,6 +1111,7 @@ export async function setPlanStatus(formData: FormData) {
 }
 
 export async function publishTrainingPlan(formData: FormData) {
+  const clubTexts = (await getClub()).texts;
   try {
     const { user, access } = await currentUser();
     const planId = mustString(formData.get("plan_id"), "Schema");
@@ -1174,7 +1176,7 @@ export async function publishTrainingPlan(formData: FormData) {
         "on_training_plan",
         {
           title: "Trainingsschema gepubliceerd",
-          body: "Je schema staat klaar in ZWB en intervals.icu.",
+          body: `Je schema staat klaar in ${clubTexts.shortName} en intervals.icu.`,
           url: "/zwbeter-worden",
           tag: `training-published-${planId}`,
         },

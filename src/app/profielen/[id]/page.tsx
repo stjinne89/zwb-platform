@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/app-ui";
 import { PublicProfile } from "./_components/public-profile";
+import { ClubName } from "@/components/club-texts-provider";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -19,7 +20,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
       <div className="mx-auto max-w-3xl space-y-4">
         {user && <BackLink href={`/leden/${id}`} label="Leden" />}
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          ZWB Cycling profiel
+          <ClubName /> profiel
         </p>
         <PublicProfile profileId={id} />
       </div>

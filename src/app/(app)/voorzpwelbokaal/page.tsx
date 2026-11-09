@@ -4,8 +4,11 @@ import { currentSeason, loadBets, loadBoardRaces, loadPlayer, requireBokaalMembe
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { adminAreaPermission } from "@/lib/admin-areas";
 import styles from "@/components/bokaal/bokaal.module.css";
+import { moduleName } from "@/lib/club";
 
-export const metadata = { title: "voorZpWelBokaal" };
+export async function generateMetadata() {
+  return { title: await moduleName("voorspelspel") };
+}
 export const dynamic = "force-dynamic";
 
 async function load() {
@@ -22,13 +25,14 @@ async function load() {
 }
 
 export default async function BokaalPage() {
+  const bokaalName = await moduleName("voorspelspel");
   let data;
   try {
     data = await load();
   } catch (error) {
     return (
       <BokaalShell active="/voorzpwelbokaal">
-        <p className={styles.wallText} role="status">{error instanceof Error ? error.message : "voorZpWelBokaal is tijdelijk niet beschikbaar."}</p>
+        <p className={styles.wallText} role="status">{error instanceof Error ? error.message : `${bokaalName} is tijdelijk niet beschikbaar.`}</p>
       </BokaalShell>
     );
   }

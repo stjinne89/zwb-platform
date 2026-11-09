@@ -7,6 +7,7 @@ import { FRR_TOUR_COLUMNS, type FrrTourRow } from "@/lib/frr/import";
 import { RefreshButton, TourForm } from "./_components/tour-form";
 import { adminAreaPermission } from "@/lib/admin-areas";
 import { getRequestAccess } from "@/lib/auth/request";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 // Opslaan en Nu verversen draaien de sync met een budget van 20 seconden (met
@@ -36,6 +37,7 @@ function when(iso: string | null) {
 }
 
 export default async function FrrKalenderPage() {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
   const access = await getRequestAccess();
   if (!access.user) redirect("/login");
@@ -136,7 +138,7 @@ export default async function FrrKalenderPage() {
                               className="rounded-full border px-2 py-0.5 text-xs tabular-nums hover:bg-muted"
                             >
                               {subEventLabel(slot.title, stage.title)}
-                              {count ? ` · ${count} ZWB` : null}
+                              {count ? ` · ${count} ${clubTexts.shortName}` : null}
                             </Link>
                           );
                         })}

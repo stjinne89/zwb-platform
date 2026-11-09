@@ -42,12 +42,14 @@ import {
   loadAthleteIntervals,
   trainerContext,
 } from "./_data";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const maxDuration = 60;
 
 export default async function TrainerOverviewPage({ searchParams }: SearchParamsProp) {
+  const clubTexts = (await getClub()).texts;
   const context = await trainerContext(searchParams);
   if (!context.ok) {
     return (
@@ -187,7 +189,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
             icon={Calendar}
             label="Komend"
             value={`${upcomingWorkouts.length + upcomingEvents.length}`}
-            hint="ZWB + intervals.icu"
+            hint={`${clubTexts.shortName} + intervals.icu`}
           />
         </div>
 

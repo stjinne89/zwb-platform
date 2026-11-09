@@ -6,12 +6,14 @@ import { chapterById } from "@/lib/clubverhaal/chapters";
 import { STATUS_LABEL } from "@/lib/clubverhaal/story";
 import { loadOwnStories, requireStoryMember } from "@/lib/clubverhaal/server";
 import { RemoveStoryButton } from "./_components/story-controls";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Clubverhaal" };
 
 /** Je eigen verhalen voor het clubverhaal op /verhaal (0288): open, teruggestuurd en geplaatst. */
 export default async function ClubverhaalPage() {
+  const clubTexts = (await getClub()).texts;
   let guard;
   try {
     guard = await requireStoryMember();
@@ -23,7 +25,7 @@ export default async function ClubverhaalPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Het verhaal van ZWB"
+        eyebrow={`Het verhaal van ${clubTexts.shortName}`}
         title="Je verhalen"
         actions={
           <div className="flex flex-wrap gap-2">

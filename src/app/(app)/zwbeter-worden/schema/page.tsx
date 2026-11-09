@@ -83,12 +83,15 @@ import { loadActiveRuns } from "../_protocol-data";
 import { loadRidePlans, ridePlanApplies } from "../voeding/_data";
 import { RidePlanView } from "../_components/ride-plan-view";
 import type { RidePlan } from "@/lib/nutrition/ride-plan";
+import { ClubShortName } from "@/components/club-texts-provider";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const maxDuration = 60;
 
 export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchParamsProp) {
+  const clubTexts = (await getClub()).texts;
   const params = (await searchParams) ?? {};
   // Maand is de ingang: daar zie je in één blik je week én kun je een training
   // aanklikken. De lijst blijft als alternatief bestaan.
@@ -376,7 +379,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
 
       <CollapsibleCard
         title="Mijn trainingen"
-        subtitle="Uit ZWB-schema's, intervals.icu en je gereden ritten"
+        subtitle={`Uit ${clubTexts.shortName}-schema's, intervals.icu en je gereden ritten`}
         defaultOpen
       >
         <div className="flex justify-end border-b p-2">
@@ -422,7 +425,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                   <div className="min-w-0">
                     <WorkoutTitle workout={workout} athleteId={conn?.athlete_id} />
                     <p className="text-xs text-muted-foreground">
-                      ZWB-schema - {workout.duration_minutes} min -{" "}
+                      <ClubShortName />-schema - {workout.duration_minutes} min -{" "}
                       {plannedWorkoutIntensity(workout, profile?.ftp_watts ?? null).label}
                     </p>
                   </div>
@@ -532,9 +535,9 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
 
       {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
 
-      <CollapsibleCard title="Mijn ZWB-schema's" defaultOpen>
+      <CollapsibleCard title={`Mijn ${clubTexts.shortName}-schema's`} defaultOpen>
         {families.length === 0 ? (
-          <EmptyState>Geen ZWB-trainingsschema&apos;s.</EmptyState>
+          <EmptyState>Geen <ClubShortName />-trainingsschema&apos;s.</EmptyState>
         ) : (
           <div className="divide-y">
             {families.map(({ root, derived }) => {

@@ -6,8 +6,12 @@ import { currentSeason, requireBokaalMember } from "@/lib/bokaal/server";
 import { loadAdmin } from "@/lib/bokaal/admin";
 import { BONUS_QUESTIONS } from "@/lib/bokaal/settle";
 import { BokaalAdmin, type AdminRace } from "./admin-client";
+import { ModuleName } from "@/components/club-texts-provider";
+import { moduleName } from "@/lib/club";
 
-export const metadata = { title: "voorZpWelBokaal · beheer" };
+export async function generateMetadata() {
+  return { title: `${await moduleName("voorspelspel")} · beheer` };
+}
 export const dynamic = "force-dynamic";
 
 const DATE = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Europe/Brussels" });
@@ -43,8 +47,8 @@ export default async function BokaalAdminPage() {
   const bonusOptions = Object.entries(BONUS_QUESTIONS).map(([key, q]) => ({ key, label: q.question("m") }));
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <BackLink href="/voorzpwelbokaal" label="voorZpWelBokaal" />
-      <h1 className="text-2xl font-bold">voorZpWelBokaal · beheer</h1>
+      <BackLink href="/voorzpwelbokaal" label={<ModuleName module="voorspelspel" />} />
+      <h1 className="text-2xl font-bold"><ModuleName module="voorspelspel" /> · beheer</h1>
       <BokaalAdmin season={season} ratings={data.ratings} races={races} bonusOptions={bonusOptions} />
     </div>
   );

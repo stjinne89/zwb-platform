@@ -14,6 +14,7 @@ import type { ExecutionAnalysis } from "@/lib/training/execution";
 import { trainingSuggestions } from "@/lib/training/training-advice";
 import { ReviewQueue, type ReviewQueueItem } from "../_components/review-queue";
 import { loadAssignments, trainerViewer } from "../_data";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -29,6 +30,7 @@ type ReportRow = {
 };
 
 export default async function TrainerReviewPage() {
+  const clubTexts = (await getClub()).texts;
   const viewer = await trainerViewer();
   if (!viewer.access.has("training.view_assigned")) {
     return <EmptyState>Je hebt geen trainer-rechten.</EmptyState>;
@@ -103,7 +105,7 @@ export default async function TrainerReviewPage() {
       {
         workoutId: report.workout_id,
         title: workout.title,
-        athleteName: profiel?.display_name ?? "ZWB-lid",
+        athleteName: profiel?.display_name ?? `${clubTexts.shortName}-lid`,
         scheduledAt: workout.scheduled_at,
         metrics,
         blocks: normalizeWorkoutBlocks(

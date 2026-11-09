@@ -12,7 +12,7 @@
 // kan het rekenmodel niet bedenken.
 
 const RULES = [
-  "Je bent de wedstrijdcoach van wielerclub ZWB. Je maakt een pacingplan voor één lid voor één specifiek event.",
+  "Je bent de wedstrijdcoach van wielerclub {kort}. Je maakt een pacingplan voor één lid voor één specifiek event.",
   "Schrijf in het Nederlands, in de je-vorm, kort en concreet. Geen slogans, geen uitroeptekens.",
   "",
   "WAT JE KRIJGT",

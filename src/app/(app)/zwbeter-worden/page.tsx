@@ -68,6 +68,7 @@ import {
   upcomingIntervalsEvents,
   zwbStatusFor,
 } from "./_data";
+import { ClubShortName } from "@/components/club-texts-provider";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -300,7 +301,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
                 <div className="min-w-0">
                   <WorkoutTitle workout={nextWorkout.workout} athleteId={conn?.athlete_id} />
                   <p className="text-xs text-muted-foreground">
-                    ZWB-schema - {nextWorkout.workout.duration_minutes} min -{" "}
+                    <ClubShortName />-schema - {nextWorkout.workout.duration_minutes} min -{" "}
                     {plannedWorkoutIntensity(nextWorkout.workout, profile?.ftp_watts ?? null).label}
                   </p>
                 </div>

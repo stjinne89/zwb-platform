@@ -23,6 +23,7 @@ import {
   startCoachAnswerBackground,
 } from "@/lib/training/ai";
 import { buildCoachChatContext } from "@/lib/training/chat-context";
+import { getClub } from "@/lib/club";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -37,11 +38,11 @@ export const CHAT_HISTORY_LIMIT = 20;
  */
 export const PENDING_TIMEOUT_MS = 5 * 60_000;
 
-export const COACH_SYSTEM_PROMPT = `Je bent de ZWB-coach in de trainingsruimte van wielervereniging ZWB.
+export const COACH_SYSTEM_PROMPT = `Je bent de {kort}-coach in de trainingsruimte van wielervereniging {kort}.
 
 Je doet drie dingen: uitleggen waarom het trainingsschema van dit lid eruitziet zoals het
 eruitziet, vragen beantwoorden over zijn trainingsdata, en vragen beantwoorden over trainen,
-voeding en kracht met de kennisbank van ZWB. Je hebt die data en die kennisbank echt — gebruik
+voeding en kracht met de kennisbank van {kort}. Je hebt die data en die kennisbank echt — gebruik
 ze, en zeg nooit dat je er niet bij kunt.
 
 Wat je krijgt:
@@ -57,13 +58,13 @@ Wat je krijgt:
   trainer. Die gaan in elk volgend schema mee. Staat een voorkeur er wel maar zie je hem niet
   terug in \`generatieInvoer\`, dan is hij vastgelegd nadat dit schema werd gemaakt.
 - De kennisbank staat onderaan deze instructies: per artikel een pad, een samenvatting, de
-  punten, de beperkingen en de bronnen. Dat is wat ZWB na een toets van de literatuur
+  punten, de beperkingen en de bronnen. Dat is wat {kort} na een toets van de literatuur
   onderschrijft.
 
 Kennisbank:
 - Gaat een vraag over hoe iets werkt — opbouw, zones, intervallen, herstel, taper, voeding,
   supplementen, kracht, materiaal — antwoord dan vanuit de kennisbank, ook als je zelf iets anders weet.
-  Staat er iets in wat een eigen keuze van ZWB is, zeg dan dat het een keuze is en geen bewezen
+  Staat er iets in wat een eigen keuze van {kort} is, zeg dan dat het een keuze is en geen bewezen
   grens.
 - Noem een beperking als die je antwoord raakt: bijvoorbeeld dat het onderzoek bij hardlopers
   of bij een kleine groep is gedaan.
@@ -113,7 +114,7 @@ Regels:
  * en ze gaan vóór de context van het lid, zodat OpenAI dit deel uit de cache haalt.
  */
 export function coachInstructions(): string {
-  return `${COACH_SYSTEM_PROMPT}\n\n# Kennisbank van ZWB\n\n${coachKnowledgeText()}`;
+  return `${COACH_SYSTEM_PROMPT}\n\n# Kennisbank van {kort}\n\n${coachKnowledgeText()}`;
 }
 
 export type CoachHistoryMessage = {
@@ -340,13 +341,13 @@ export type ChatMessageView = {
   createdAt: string;
 };
 
-export function shapeChatMessage(row: ChatMessageRow): ChatMessageView {
+export function shapeChatMessage(row: ChatMessageRow, fallbackName: string): ChatMessageView {
   const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
   return {
     id: row.id,
     role: row.role,
     authorId: row.author_id,
-    name: row.role === "coach" ? "Coach" : profile?.display_name || "ZWB'er",
+    name: row.role === "coach" ? "Coach" : profile?.display_name || fallbackName,
     body: row.body,
     status: row.status,
     affectsPlan: row.affects_plan,
@@ -365,13 +366,14 @@ export async function loadChatMessages(
   admin: Admin,
   profileId: string,
 ): Promise<ChatMessageView[]> {
+  const clubTexts = (await getClub()).texts;
   const { data } = await admin
     .from("training_chat_messages")
     .select(CHAT_SELECT)
     .eq("profile_id", profileId)
     .order("created_at", { ascending: false })
     .limit(CHAT_MESSAGE_LIMIT);
-  return ((data ?? []) as unknown as ChatMessageRow[]).map(shapeChatMessage).reverse();
+  return ((data ?? []) as unknown as ChatMessageRow[]).map((row) => shapeChatMessage(row, clubTexts.memberNoun)).reverse();
 }
 
 /**

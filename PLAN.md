@@ -11,9 +11,12 @@ gaat stabiliteit voor nieuwe features.
    privacy en voorwaarden (2026-11-09): gepusht naar `main` (deel 1
    `c8ed7cb3`, deel 2 `fdbdbd91`).** Geen
    migratie. Lokaal gecontroleerd dat manifest, titels, deelkaart, `/privacy` en
-   `/voorwaarden` voor ZWB gelijk zijn aan de live site. Deel 3 (de overige
-   "ZWB"-teksten, woordspelingen, enkelvouden) volgt. Zie de rondes "Generieke
-   versie, fase 3 deel 1" en "deel 2".
+   `/voorwaarden` voor ZWB gelijk zijn aan de live site. Zie de rondes
+   "Generieke versie, fase 3 deel 1" en "deel 2".
+   **Deel 3a** (de clubwoorden in schermen, meldingen en AI-prompts) is lokaal
+   gecommit en nog niet gepusht. Geen migratie. Zie de ronde "fase 3 deel 3a".
+   **Deel 3b** volgt en vraagt eerst keuzes van de eigenaar: de woordspelingen,
+   het enkelvoud ZWBeker, de kennisbanken en de workout-titel.
 
 0. **Inloglinks bestand tegen mailscanners (2026-11-09): gepusht naar `main`
    (`d48dd9c9`), samen met de bevestigingsmail-ronde.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
@@ -11955,6 +11958,141 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Generieke versie, fase 3 deel 3a: clubwoorden in schermen, meldingen en AI-prompts
+
+**2026-11-09.** Op verzoek van de eigenaar ("ga maar verder"), na deel 1 en 2.
+Geen migratie. Deel 3 bleek te groot en te gemengd voor één ronde. Daarom
+splitsen we het in tweeën:
+
+- **3a (deze ronde):** de korte naam, de volledige naam en het woord voor een
+  lid, die al in `club_settings` staan. Ook de modulenamen die deel 1 miste.
+- **3b (later):** de stukken die een nieuw clubveld of een keuze van de
+  eigenaar vragen.
+
+Doel: een andere club ziet in schermen, meldingen en AI-antwoorden zijn eigen
+naam, en ZWB ziet precies dezelfde tekst. Het gaat om 119 bestanden. Het aantal
+regels met "ZWB" in `src` daalt van 956 naar 792, en het aantal bestanden van
+407 naar 349.
+
+Wat er is:
+
+- **Schermen.** De volgende onderdelen gebruiken nu `getClub().texts` op de
+  server of `useClubTexts()` en de clubcomponenten in de client:
+  - eyebrows, koppen, terugknoppen, lege staten en foutmeldingen in dashboard,
+    events, live, stats en rankings, ZWBriljant, segmenten, ritverslagen,
+    clubverhaal, verjaardagen, sponsors, voorZpWelBokaal, ZWBgame, de trainer
+    en ZWBeter Worden;
+  - beheer: event-scan, FRR-kalender, SRC, koppelingen, ZRL-import en Strava.
+
+  Waar een functie een terugvalnaam nodig heeft ("ZWB-lid", "ZWB'er"), krijgt
+  hij die als argument mee: `toQaItem`, `shapeChatMessage`,
+  `comparisonRidersFromRows`, `activityProfile`, `relationName`, de
+  chatroute en `testRideMessage(club)`.
+- **Tekst als data.** Vaste lijsten krijgen tokens, die op het moment van tonen
+  worden ingevuld met `fillClubText()` of `<ClubText />`. Dat zijn:
+  - de sponsorniveaus;
+  - de tabs van ZWBriljant en de gemiddelde stenen;
+  - de omschrijvingen van de communityrollen;
+  - de racelink "{kort}-website";
+  - de meldingen bij ontbrekende koppelingen (`integrations/notices.ts`).
+- **Meldingen buiten de app.** De Telegram-teksten, de testrit-melding, de
+  inkomende mail, de dagelijkse aanpassingen, awards en mijlpalen, de bokaal en
+  de ZWBekers-meldingen nemen de naam uit de club. De ICS-agenda gebruikt de
+  korte naam in `X-WR-CALNAME` en `PRODID`.
+- **AI-prompts.** De prompts dragen tokens in de code (`{club}`, `{kort}`,
+  `{m:…}`), zodat er geen clubnaam vastzit. Ze worden centraal gevuld op het
+  moment van verzenden:
+  - `runClaude` vult het systeemdeel;
+  - `fetchOpenAiResponse` en de pacing-aanroep vullen `instructions` via
+    `withClubInstructions()` (`lib/club.ts`, naast `fillClub()`);
+  - de doelenpagina van de trainer vult de standaardprompt die in de editor
+    staat.
+
+  Geraakt:
+  - pacing (`pacing/prompt.ts`);
+  - de coachchat, met de systeemprompt en de kop van de kennisbank;
+  - de weekreview;
+  - de workoutgenerator (`training/workouts.ts`);
+  - de automatische app-updates.
+- **Tests.**
+  - `club-texts-tokens.test.ts` vult de koppelingsmeldingen en de pacingprompt
+    voor een testclub in en faalt bij een overgebleven "ZWB" of token.
+  - `vitest.config.ts` heeft nu een alias voor `server-only`
+    (`tests/unit/stubs/server-only.ts`). Zonder die alias faalde elke suite die
+    via `lib/club` importeert met "Cannot find package 'server-only'".
+
+**Let op:** `training_ai_generations.prompt_text` logt de prompt zoals hij in de
+code staat, dus mét tokens. Die kolom wordt nergens getoond; voor wie hem uitleest
+staat `{kort}` daar voor de clubnaam.
+
+**Bewust niet (deel 3b):** deze stukken vragen een nieuw clubveld of een keuze
+van de eigenaar.
+
+- **De woordspelingen:**
+  - ZWBeter X;
+  - het ZWBeterWorden-advies en de niveauteksten in `zwbeterworden.ts`;
+  - ZWBallen en ZWBal;
+  - ZWBasis;
+  - de ZWB-week-awards.
+
+  Een andere club heeft geen vervanging. Er moet een eigen veld komen of een
+  neutrale vorm worden gekozen.
+- **Het enkelvoud ZWBeker.**
+- **De kennisbanken:** `training-library`, de protocollen, voeding en materiaal.
+- **`EVENT_BLOCK_NOTE`** en de zwift-match-notitie.
+- **Twee terugvallen:** die van `analysePersonalRace` en de clubpool van
+  ZWBgame.
+- **`WORKOUT_TITLE_BRAND` en de Strava-samenvatting**, inclusief de regel in
+  `workouts.ts` die zegt dat "ZWBeter Worden" niet in de titel mag.
+- **`EVENT_TYPES` en de labels van de rechten.**
+- **De user agents.** Die blijven bewust staan: de UA voor cyclingflash is
+  gemeten en komt langs Cloudflare. Een nieuwe naam hoort bij de vraag hoe het
+  product heet.
+
+**Niet in fase 3:**
+
+- **Fase 4:** de teamnamen in `team-results/sync`, `ZWB_MENTION`, het
+  standaardteam van SRC, de Instagram- en YouTube-teksten en de
+  ZWB-herkenning.
+- **Eigen inhoud van ZWB:** `/verhaal`, `/brochure`, de hoofdstukken van het
+  clubverhaal en het ontwerp-voorbeeld.
+
+**Niet meer waar:** de ronde van deel 1 noemt drie delen, met een deel 3 voor "de overige teksten". Dat deel 3 is nu gesplitst in 3a en 3b.
+
+**Gevonden bij de controle:**
+
+- De overlay van het omnium toonde na een eerste omzetting "ZWB OMNIUM" via de
+  korte naam. Hij gebruikt nu de modulenaam in hoofdletters.
+- `gps-label.tsx` en `bokaal/shell.tsx` hadden `"use client"` nodig voor de
+  hook.
+
+Lokaal: `tsc` en eslint zijn schoon op de geraakte bestanden. De volledige suite
+is groen, op deze tests na:
+
+- `admin-areas` (0206) en `club-theme` (0314) lopen onder belasting in een
+  time-out. Los gedraaid zijn ze groen.
+- `omnium-live` heeft `.env.local` nodig.
+
+`next build` slaagt met de echte env.
+
+**Vergeleken met de live site:**
+
+- Gelijk: `/login`, `/omnium`, `/omnium/rules`, `/voorwaarden` en de kop van
+  het omnium.
+- `/privacy` verschilt alleen in de naam van de AI-dienst, die uit de env komt.
+- Elke gewijzigde regel die eerst "ZWB" bevatte, is met de ZWB-waarden
+  ingevuld en vergeleken met de oude regel. Dat waren 165 hunks; 21 weken na
+  normaliseren af, en die zijn met de hand nagelopen. Alle 21 zijn voor ZWB
+  gelijk; het verschil zit in de vorm (JSX of een sjabloonstring), niet in de
+  tekst.
+
+**Niet bekeken:**
+
+- de schermen achter de login in de browser;
+- echte Telegram-berichten en AI-antwoorden;
+- een club met andere namen (kan niet op productie). Voor de meldingen en de
+  pacingprompt dekt de nieuwe test dat.
 
 ### Gebouwd — Generieke versie, fase 3 deel 2: hulp, privacy en voorwaarden
 

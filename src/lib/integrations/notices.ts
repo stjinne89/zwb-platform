@@ -33,7 +33,7 @@ export type NoticeTemplate = {
 };
 
 const RIDES_MATTER =
-  "Ze tellen dan niet mee voor badges, weekstanden, clubstatistieken, cols en ZWBlokken, en je trainingsschema ziet niet wat je reed.";
+  "Ze tellen dan niet mee voor badges, weekstanden, clubstatistieken, cols en {m:blokkenjacht}, en je trainingsschema ziet niet wat je reed.";
 
 /**
  * De tekst per koppeling. Bij Strava hangt die af van de plekken: zijn die vol,
@@ -49,7 +49,7 @@ export function noticeTemplate(
       return options.stravaCapFull
         ? {
             title: "Je ritten komen nog niet binnen",
-            body: `Je ritten komen nog niet in ZWB. ${RIDES_MATTER} De Strava-plekken zijn vol; via intervals.icu kan het wel.`,
+            body: `Je ritten komen nog niet in {kort}. ${RIDES_MATTER} De Strava-plekken zijn vol; via intervals.icu kan het wel.`,
             href: "/zwbeter-worden/doelen",
             linkLabel: "intervals.icu koppelen",
             helpHref: "/hulp/koppelen#ritten-via-intervals",
@@ -57,7 +57,7 @@ export function noticeTemplate(
           }
         : {
             title: "Strava is nog niet gekoppeld",
-            body: `Zonder Strava-koppeling komen je ritten niet in ZWB. ${RIDES_MATTER}`,
+            body: `Zonder Strava-koppeling komen je ritten niet in {kort}. ${RIDES_MATTER}`,
             href: "/profiel?weergave=bewerken#strava",
             linkLabel: "Strava koppelen",
             helpHref: "/hulp/koppelen#strava-rechten",
@@ -66,7 +66,7 @@ export function noticeTemplate(
     case "intervals":
       return {
         title: "intervals.icu is nog niet gekoppeld",
-        body: "Zonder intervals.icu kent je trainingsschema je fitheid (CTL, ATL en TSB), je FTP en je zones niet, en zonder vermogensmeter ook de belasting van je ritten niet. Je powercurve en ZWBriljant hebben het ook nodig.",
+        body: "Zonder intervals.icu kent je trainingsschema je fitheid (CTL, ATL en TSB), je FTP en je zones niet, en zonder vermogensmeter ook de belasting van je ritten niet. Je powercurve en {m:rennersniveau} hebben het ook nodig.",
         href: "/zwbeter-worden/doelen",
         linkLabel: "intervals.icu koppelen",
         helpHref: "/hulp/training#intervals-koppelen",
@@ -75,7 +75,7 @@ export function noticeTemplate(
     case "push":
       return {
         title: "Meldingen staan nog uit",
-        body: "Zonder meldingen mis je nieuwe events, herinneringen, berichten tijdens een rit en nieuws over je trainingsschema. Op een iPhone werkt dat alleen als ZWB als app op je beginscherm staat.",
+        body: "Zonder meldingen mis je nieuwe events, herinneringen, berichten tijdens een rit en nieuws over je trainingsschema. Op een iPhone werkt dat alleen als {kort} als app op je beginscherm staat.",
         href: "/profiel?weergave=bewerken#meldingen",
         linkLabel: "Meldingen aanzetten",
         helpHref: "/hulp/problemen#meldingen",
@@ -84,7 +84,7 @@ export function noticeTemplate(
     case "telegram":
       return {
         title: "Telegram is nog niet gekoppeld",
-        body: "Rijd je met een Wahoo ELEMNT? Die toont geen ZWB-meldingen, wel die van Telegram. Zonder koppeling komen berichten tijdens een rit niet op je fietscomputer.",
+        body: "Rijd je met een Wahoo ELEMNT? Die toont geen {kort}-meldingen, wel die van Telegram. Zonder koppeling komen berichten tijdens een rit niet op je fietscomputer.",
         href: "/samen-fietsen",
         linkLabel: "Telegram koppelen",
         helpHref: "/hulp/live-volgen#ritberichten",

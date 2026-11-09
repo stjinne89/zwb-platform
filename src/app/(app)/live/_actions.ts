@@ -16,7 +16,7 @@ import {
   newMailCode,
 } from "@/lib/live/inbound-mail";
 import { rateLimitHit } from "@/lib/rate-limit";
-import { deliverRideMessage, TEST_RIDE_MESSAGE } from "@/lib/ride-messages/deliver";
+import { deliverRideMessage, testRideMessage } from "@/lib/ride-messages/deliver";
 import {
   hashLinkToken,
   LINK_TOKEN_TTL_MS,
@@ -25,6 +25,7 @@ import {
   telegramConfig,
   telegramStartUrl,
 } from "@/lib/telegram/bot";
+import { getClub } from "@/lib/club";
 
 function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -239,6 +240,7 @@ export async function removeTelegramLink() {
 
 /** Testbericht naar de eigen fietscomputer, om de eigen instellingen na te lopen. */
 export async function sendTestRideMessage() {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
   const {
     data: { user },
@@ -251,8 +253,8 @@ export async function sendTestRideMessage() {
 
   const { reached } = await deliverRideMessage(createAdminClient(), {
     recipientIds: [user.id],
-    senderName: "ZWB",
-    body: TEST_RIDE_MESSAGE,
+    senderName: clubTexts.shortName,
+    body: testRideMessage(clubTexts.shortName),
     url: "/samen-fietsen",
     tag: `ride-test-${user.id}`,
   });
@@ -263,6 +265,7 @@ const LIVE_STALE_MS = 15 * 60 * 1000;
 
 /** Bericht van een lid naar iemand die nu live rijdt, op diens fietscomputer. */
 export async function sendRiderMessage(recipientId: string, rawBody: string) {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
   const {
     data: { user },
@@ -296,7 +299,7 @@ export async function sendRiderMessage(recipientId: string, rawBody: string) {
 
   const { reached } = await deliverRideMessage(createAdminClient(), {
     recipientIds: [recipientId],
-    senderName: sender.display_name || "ZWB'er",
+    senderName: sender.display_name || clubTexts.memberNoun,
     body,
     url: "/samen-fietsen",
     tag: `ride-${recipientId}`,

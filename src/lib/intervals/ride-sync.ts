@@ -41,6 +41,7 @@ import { sendNotificationToMembers } from "@/lib/push/send";
 import { runPostSyncForProfile } from "@/lib/strava/post-sync";
 import type { TimedPoint } from "@/lib/segments/gps-efforts";
 import { storeGpsEfforts } from "@/lib/segments/gps-sync";
+import { getClub } from "@/lib/club";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
@@ -432,6 +433,7 @@ export async function sendDueVisitReminders(
   connections: IntervalsRideConnection[],
   now = new Date(),
 ): Promise<number> {
+  const clubTexts = (await getClub()).texts;
   const due = connections.filter((row) =>
     visitPushDue(
       {
@@ -448,7 +450,7 @@ export async function sendDueVisitReminders(
     "on_intervals_visit_reminder",
     {
       title: "Open intervals.icu even",
-      body: "Dan blijven je ritten in ZWB binnenkomen.",
+      body: `Dan blijven je ritten in ${clubTexts.shortName} binnenkomen.`,
       url: "/dashboard#strava-sync",
       tag: "intervals-visit-reminder",
     },

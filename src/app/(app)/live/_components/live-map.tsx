@@ -7,6 +7,7 @@ import type { Map as LeafletMap } from "leaflet";
 import { createClient } from "@/lib/supabase/client";
 import type { ActiveSession } from "../types";
 import "leaflet/dist/leaflet.css";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((m) => m.MapContainer),
@@ -61,6 +62,7 @@ export function LiveMap({
   initialPositions: PositionRow[];
   focus?: MapFocus | null;
 }) {
+  const clubTexts = useClubTexts();
   const router = useRouter();
 
   // Server-snapshot → markers per session. useMemo hangt aan de props, dus na
@@ -74,14 +76,14 @@ export function LiveMap({
       byId.set(p.session_id, {
         sessionId: p.session_id,
         profileId: p.profile_id,
-        name: nameById.get(p.session_id) ?? "ZWB'er",
+        name: nameById.get(p.session_id) ?? clubTexts.memberNoun,
         lat: Number(p.lat),
         lng: Number(p.lng),
         updatedAt: p.recorded_at,
       });
     }
     return byId;
-  }, [outdoorSessions, initialPositions]);
+  }, [outdoorSessions, initialPositions, clubTexts.memberNoun]);
 
   const activeIds = useMemo(
     () => new Set(outdoorSessions.map((s) => s.id)),
@@ -122,7 +124,7 @@ export function LiveMap({
             next.set(row.session_id, {
               sessionId: row.session_id,
               profileId: row.profile_id,
-              name: existing?.name ?? "ZWB'er",
+              name: existing?.name ?? clubTexts.memberNoun,
               lat: Number(row.lat),
               lng: Number(row.lng),
               updatedAt: row.recorded_at,
@@ -164,7 +166,7 @@ export function LiveMap({
       document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
-  }, [activeIds, scheduleRefresh, router]);
+  }, [activeIds, scheduleRefresh, router, clubTexts.memberNoun]);
 
   // Zichtbare markers = server-snapshot, overschreven door nieuwere realtime-
   // posities, gefilterd op sessies die nog actief zijn.

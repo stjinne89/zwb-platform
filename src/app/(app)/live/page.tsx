@@ -10,6 +10,7 @@ import { StopLiveButton } from "./_components/stop-button";
 import { TelegramPanel } from "./_components/telegram-panel";
 import { TestMessagePanel } from "./_components/test-message-panel";
 import type { ActiveSession, RiderStats, TrackerTokenStatus } from "./types";
+import { getClub } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -73,6 +74,7 @@ async function loadRiderStats(supabase: ServerClient, sessionIds: string[]) {
 }
 
 export default async function LivePage() {
+  const clubTexts = (await getClub()).texts;
   const supabase = await createClient();
   const {
     data: { user },
@@ -138,7 +140,7 @@ export default async function LivePage() {
     id: s.id,
     profileId: s.profile_id,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    profileName: ((s.profiles as any)?.display_name as string) ?? "ZWB'er",
+    profileName: ((s.profiles as any)?.display_name as string) ?? clubTexts.memberNoun,
     mode: s.mode as ActiveSession["mode"],
     source: (s.source ?? "manual") as ActiveSession["source"],
     status_text: s.status_text,

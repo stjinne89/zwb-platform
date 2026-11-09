@@ -54,7 +54,7 @@ describe("comparisonRidersFromRows", () => {
           { afterKj: 1000, points: points.map((p) => ({ ...p, watts: p.watts - 30 })) },
         ],
       },
-    ]);
+    ], "ZWB-lid");
     expect(rider.fatigueCurves?.map((curve) => curve.afterKj)).toEqual([1000, 2000]);
     expect(rider.fatigueCurves?.[0].points[0].watts).toBe(470);
   });
@@ -65,12 +65,12 @@ describe("comparisonRidersFromRows", () => {
         ...row,
         curve_points_fatigue: [{ afterKj: 1000, points: [{ seconds: 60, watts: 470 }] }, "kapot"],
       },
-    ]);
+    ], "ZWB-lid");
     expect(rider.fatigueCurves).toEqual([]);
   });
 
   it("werkt op databases zonder de vermoeide-curvekolom", () => {
-    const [rider] = comparisonRidersFromRows([row]);
+    const [rider] = comparisonRidersFromRows([row], "ZWB-lid");
     expect(rider.fatigueCurves).toEqual([]);
     expect(rider.hasFullCurve).toBe(true);
   });
