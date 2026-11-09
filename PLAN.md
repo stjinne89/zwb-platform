@@ -12060,7 +12060,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Beheer: huisstijl en modules onder Inrichting
 
-**2026-11-09, commit `COMMITN`.** Op verzoek van de eigenaar ("Ik zie bij
+**2026-11-09, commit `fdf4e804`.** Op verzoek van de eigenaar ("Ik zie bij
 beheer nu inrichting, module en huistijl kun je dit onderbrengen onder 1
 paraplu-tab?"), daarna "Ja, bouwen" op het voorstel. Geen migratie.
 
