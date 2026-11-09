@@ -10,10 +10,12 @@ gaat stabiliteit voor nieuwe features.
 0. **ZWBeter racen: races per lid, ook buiten de kalender (2026-11-09):
    gepusht naar `main` (`9a5f13d5`), migratie `0317` toegepast** (versie
    `20261109130648`, op verzoek van de eigenaar, vóór de push). Privacytekst
-   goedgekeurd door de eigenaar. Na de deploy: het antwoord
-   van `/api/briljant/zrs-history` (`races`) en `/api/zrl/freeze` bekijken, en
-   na een dag "Jouw races" van een paar leden. Zie de ronde "ZWBeter racen:
-   races per lid, ook buiten de kalender".
+   goedgekeurd door de eigenaar. Na de deploy nagekeken (2026-11-09): de
+   cron van 14:30 werkte, de achterstand is met de hand ingehaald (39 leden,
+   384 events), en "Jouw races" van de eigenaar toont 26 races. Open: welke
+   blokken van het onderzoek naar een diepere race-analyse gebouwd worden
+   (wacht op de eigenaar). Zie de ronde "ZWBeter racen: races per lid, ook
+   buiten de kalender".
 
 0. **Dashboard: volgorde in groepen, "Vandaag" heet "Dashboard" (2026-11-09):
    gepusht naar `main` (`55493bd0`).** Geen migratie. Open: na de deploy ingelogd
@@ -12076,13 +12078,51 @@ ze niet. SRC en buitenritten staan er bewust niet in.
 
 **Niet lokaal te controleren:** de migratie (geen Docker en geen config; wel
 op productie nagekeken, zie boven), de crons op Netlify, en de pagina's in de browser (inloggen kan alleen de
-eigenaar). Hoe snel de achterstand binnen is, is een schatting: zo'n 50 leden
-en een paar honderd races, bij 12 s per uur ongeveer een dag. Lokaal: `tsc`
+eigenaar). ~~Hoe snel de achterstand binnen is, is een schatting: zo'n 50 leden
+en een paar honderd races, bij 12 s per uur ongeveer een dag.~~ Te optimistisch:
+een cronrun haalt zo'n 5 tot 8 races (de 2 verzoeken per seconde en de
+activiteitenlijst kosten meer dan geschat). Daarom is de achterstand op
+2026-11-09 met de hand ingehaald, zie "Na de push" hieronder. Lokaal: `tsc`
 zonder fouten in de gewijzigde bestanden (wel bestaande fouten over modules die
 in de gedeelde `node_modules` ontbreken), eslint schoon, en
 `racen-zwift-races.test.ts` (venster, bovenaan bijwerken, detail weg,
 complete lijst niet opnieuw lezen, budget, volgorde) en
 `briljant-zrs-history.test.ts` groen. `next build` is niet gedraaid.
+
+**Na de push (2026-11-09).** Op verzoek van de eigenaar ("ik wil mijn races nu
+al zien") de racejob met de echte code lokaal tegen productie gedraaid, eerst
+voor de eigenaar en daarna voor alle leden: 39 leden, 384 events opgezocht.
+De cron van 14:30 werkte (nagekeken aan `races_checked_at` en nieuwe events in
+de database; cron-job.org bewaart geen antwoord, dat is een instelling van de
+job en niet aangepast). "Jouw races" van de eigenaar toont in Chrome 26 races.
+
+**Onderzoek diepere race-analyse (2026-11-09, nog niets gebouwd).** De eigenaar
+vond de analyse van een race "karig" (Stage 5 van Tour of Watopia 2026, event
+5752884: IF 1,07 en diep in de W′-balans, maar geen tips) en vroeg eerst te
+onderzoeken welke data en blokken er kunnen. Uitkomst, doorgerekend op die
+race en als pagina aan de eigenaar voorgelegd:
+
+- **Waarom karig:** route `121619062` staat niet in `route-segments.json`, dus
+  0 segmenten en één stuk "Vlak 1", en geen van de vier tipregels slaat aan.
+  Het W′-model uit de 90-dagencurve (CP 287 W, W′ 19,7 kJ) loopt achter als de
+  race een nieuw best is: W′ zakt tot −72%, wat niet kan; met het model van
+  intervals.icu na de rit (CP 302 W, W′ 25,2 kJ) is het −12%. De profiel-FTP
+  (273 W) wijkt af van intervals.icu (280 W indoor, 308 W na de rit). De
+  vergelijking van de helften kijkt niet naar het parcours (afdaling).
+- **Onbenutte data:** `loadOwnRide` haalt alleen tijd, vermogen, hartslag en
+  cadans; hoogte, afstand, snelheid en koppel liggen er ook. De ritvelden van
+  intervals.icu (`icu_pm_cp`, `icu_pm_w_prime`, FTP na de rit, decoupling,
+  `icu_hrr`, zonetijden, `carbs_used`, gekoppeld event) en wellness worden niet
+  gebruikt.
+- **Voorgestelde volgorde:** eerst stukken uit het hoogteprofiel en een
+  passend W′-model, dan "waar de race beslist werd" met de W′-rekening en de
+  finale, dan nieuwe besten en FTP, dan context (vorm, vervangen training,
+  hart, cadans, brandstof). Later: ZRS-verloop (historie heeft maar bij 8 van
+  60 races een verschil voor/na) en stukken uit de hoogte vergelijken met
+  eerdere keren.
+- **Niet:** vermogen van renners van andere clubs buiten de ZRL (privacykeuze
+  van 2026-10-15). Positie in het peloton geeft Zwift niet; "waar de groep
+  wegreed" blijft een afleiding.
 
 ### Gebouwd — Dashboard: Mijn training, Mijn fitheid, Mijn events
 
