@@ -21,12 +21,11 @@ gaat stabiliteit voor nieuwe features.
    384 events), en "Jouw races" van de eigenaar toont 26 races. Zie de ronde
    "ZWBeter racen: races per lid, ook buiten de kalender".
 
-0. **ZWBeter racen: diepere race-analyse (2026-11-09): lokaal gecommit
-   (`7fe8ba59`), niet gepusht; migratie `0321` niet toegepast.** Open: de eigenaar keurt de
-   privacytekst goed (wellness en geplande training bij het openen, klimtijden
-   bewaard, W/kg van ZWB'ers in dezelfde race), past `0321` toe (eerst
-   `origin/main` op het nummer checken) en kijkt de pagina ingelogd na. Zie de
-   ronde "ZWBeter racen: diepere race-analyse".
+0. **ZWBeter racen: diepere race-analyse (2026-11-09): gepusht naar `main`
+   (`7fe8ba59`, merge `915a582c`); migratie `0321` toegepast; privacytekst
+   goedgekeurd door de eigenaar.** Open: de eigenaar kijkt de pagina ingelogd na
+   (ook de popovers op een telefoon). Zie de ronde "ZWBeter racen: diepere
+   race-analyse".
 
 0. **Dashboard: volgorde in groepen, "Vandaag" heet "Dashboard" (2026-11-09):
    gepusht naar `main` (`55493bd0`).** Geen migratie. Open: na de deploy ingelogd
@@ -12689,9 +12688,12 @@ race en als pagina aan de eigenaar voorgelegd:
 
 ### Gebouwd — ZWBeter racen: diepere race-analyse
 
-**2026-11-09.** Commit `7fe8ba59`, lokaal, niet gepusht. Migratie
-`0321_race_climb_efforts` (nummer na `0320` op `origin/main`, gecheckt
-2026-11-09), niet toegepast. Vraag van de eigenaar, na de onderzoekspagina:
+**2026-11-09.** Commit `7fe8ba59`, met `origin/main` samengevoegd in
+`915a582c` en gepusht naar `main` op verzoek van de eigenaar ("nee dit is goed
+pas toe en push"). Migratie `0321_race_climb_efforts` (nummer na `0320` op
+`origin/main`, gecheckt 2026-11-09) via de Supabase-connector toegepast op
+productie (versie `20261109143139`) en nagekeken: tabel, twee indexen, RLS aan,
+één select-policy. Vraag van de eigenaar, na de onderzoekspagina:
 "Ik wil dat je al deze blokken bouwt, met daar telkens uitleg over wanneer je
 ingewikkelde begrippen gebruikt". Details en drempels:
 [docs/zrl-analyse.md](docs/zrl-analyse.md), "Diepere race-analyse".
@@ -12726,7 +12728,8 @@ nieuwe besten, en de tipregels hadden klimsegmenten nodig.
 - **0321 `race_climb_efforts`:** per klim uit het hoogteprofiel tijd, vermogen
   en W/kg, bewaard na het antwoord bij het openen (`after`). RLS: alleen de eigen
   rijen lezen. Zonder 0321 valt het blok weg en blijft de pagina heel.
-- **Privacytekst** (`/privacy#racen`) en hulp bijgewerkt; nog niet goedgekeurd.
+- **Privacytekst** (`/privacy#racen`) en hulp bijgewerkt; door de eigenaar goedgekeurd
+  (2026-11-09).
   Bij het openen leest de app nu ook wellness (HRV, rusthartslag, slaap) en de
   gekoppelde training, bewaart de klimtijden, en andere ZWB'ers zien je W/kg in
   een andere Zwift-race. ~~Andere ZWB'ers in zo'n race zien jouw plek en tijd,
@@ -12741,10 +12744,15 @@ historie al; nu 31 van de 256 races van de eigenaar met score).
 **Gecontroleerd:** lokaal op de gedumpte data van de eigenaar (echte code via
 jiti): 11 stukken met 3 klimmen, W′ laagst −12%, drie tips; "Jouw rit"
 server-side gerenderd zonder fouten. `tsc` schoon op de gewijzigde bestanden,
-eslint schoon, 252 tests groen (nieuw: `zrl-analysis-story.test.ts`).
+eslint schoon, 252 tests groen (nieuw: `zrl-analysis-story.test.ts`). Na de
+merge met `main`: `tsc` en eslint schoon. Van de hele unit-suite falen 3 tests
+in code die deze ronde niet raakt (`race-links`, `zwift-route` Spiral Summit,
+`intervals-ride-sync`); die komen mee uit `main`. 26 testbestanden laden lokaal
+niet, omdat `@anthropic-ai/sdk` en `.env.local` in deze worktree ontbreken.
 **Niet gecontroleerd:** de pagina ingelogd in de browser (inloggen kan alleen de
-eigenaar), de popovers op een telefoon, `0321` (geen Docker en geen config),
-`next build`.
+eigenaar), de popovers op een telefoon, `0321` lokaal (geen Docker en geen
+config; alleen op productie nagekeken), `next build` (dat doet Netlify bij de
+push).
 
 ### Gebouwd — Dashboard: Mijn training, Mijn fitheid, Mijn events
 
