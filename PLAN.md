@@ -53,18 +53,19 @@ gaat stabiliteit voor nieuwe features.
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
-0. **Generieke versie, fase 7: proefinstallatie (2026-11-09): lokaal
-   gecommit, niet gepusht.** Geen migratie voor ZWB. Proefproject
+0. **Generieke versie, fase 7: proefinstallatie (2026-11-09): gepusht naar
+   `main`** (`b0836acb`). Geen migratie voor ZWB. Proefproject
    `zwb-proefclub` ($10 per maand) staat nog aan. Migratiescript
    `scripts/migrate-installation.mjs`, de handleiding bijgewerkt. Open: het
    proefproject pauzeren of verwijderen. Zie de ronde "fase 7:
    proefinstallatie".
 
 0. **Generieke versie: geen ZWB-logo's bij een andere club (2026-11-09):
-   lokaal gecommit, niet gepusht. Migratie `0322` niet toegepast op
-   productie** (wel op het proefproject). Bij het live zetten eerst `0322`,
-   dan pushen; daarna nalopen dat ZWB zijn logo, favicon en app-iconen houdt.
-   Zie de ronde "geen ZWB-logo's bij een andere club".
+   gepusht naar `main` (`a5d2a2f3`), migratie `0322` toegepast** (versie
+   `20261109155236`, op verzoek van de eigenaar, vóór de push; daarna heeft
+   ZWB `static_brand` aan). Open: na de deploy nalopen dat ZWB zijn logo,
+   favicon en app-iconen houdt. Zie de ronde "geen ZWB-logo's bij een andere
+   club".
 
 0. **Generieke versie, fase 6: inrichtingsmodule (2026-11-09): gepusht naar
    main** (`ae323155`). Geen migratie. `/beheer/inrichting` met de stappen Club,
@@ -12057,8 +12058,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 **2026-11-09, commit `a5d2a2f3`.** Op verzoek van de eigenaar ("Kun je ervoor
 zorgen dat een blanco app ook geen logo's van zwb meeneemt? Dat ze dan dus
 leegblijven"), daarna "Ja, bouwen" op het voorstel. Migratie
-`0322_club_static_brand.sql`, **niet toegepast op productie**; wel op het
-proefproject `zwb-proefclub`, met `scripts/migrate-installation.mjs` (de eerste
+`0322_club_static_brand.sql`, op 2026-11-09 vóór de push op productie
+toegepast (versie `20261109155236`, naam `club_static_brand`, op verzoek van de
+eigenaar: "Ja, toepassen en push"); daarna gaf `club_settings` voor ZWB
+`static_brand` aan, zonder logo of beeldmerk. Ook op het proefproject
+`zwb-proefclub`, met `scripts/migrate-installation.mjs` (de eerste
 keer dat het script een nieuwe migratie oppakte).
 
 Aanleiding: bevinding 6 van fase 7. Zonder eigen logo of beeldmerk toonde de
@@ -12146,10 +12150,8 @@ ZWB-logo, het manifest met de vaste iconen en `/favicon.ico` naar het
 ZWB-bestand. Daarna weer uit gezet.
 
 **Niet bekeken:** een echte pushmelding (geen VAPID-sleutels lokaal), de
-3D-wanden van de galerij en de bekerkast in de browser, en ZWB zelf: de
-migratie staat niet op productie. **Volgorde bij het live zetten:** eerst
-`0322` toepassen, dan pushen. Andersom gaat ook goed, want zonder kolom geldt
-hij als aan.
+3D-wanden van de galerij en de bekerkast in de browser, en ZWB zelf na de
+deploy.
 
 ### Gebouwd — Generieke versie, fase 7: proefinstallatie
 
