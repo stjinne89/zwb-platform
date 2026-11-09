@@ -6,38 +6,30 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogoutButton } from "./logout-button";
-import { AVATAR_NAV, type AdminNavItem, type NavLeaf } from "./nav-config";
+import { AVATAR_NAV, type NavLeaf } from "./nav-config";
 
 export function AvatarMenu({
   displayName,
-  adminItems,
   personalItems = AVATAR_NAV,
   avatarUrl,
-  showOnMobile = false,
   beheerPage = false,
 }: {
   displayName: string;
-  adminItems: AdminNavItem[];
   /** De persoonlijke links, zonder die van uitgeschakelde modules. */
   personalItems?: NavLeaf[];
-  /** Design "tegels": toon de profielfoto in plaats van de naam. */
+  /** De profielfoto; zonder foto staat de naam er. */
   avatarUrl?: string | null;
-  /** Design "tegels": het menu staat ook op de telefoon in de balk. */
-  showOnMobile?: boolean;
-  /** Design "tegels": één link naar /beheer in plaats van de beheerlijst. */
+  /** Eén link naar /beheer, voor wie daar iets mag. */
   beheerPage?: boolean;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className={`${
-          showOnMobile ? "inline-flex min-h-11" : "hidden md:inline-flex"
-        } items-center gap-1 text-sm text-muted-foreground outline-none hover:text-primary`}
+        className="inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground outline-none hover:text-primary"
         aria-label={`Persoonlijk menu van ${displayName}`}
       >
         {avatarUrl ? (
@@ -49,8 +41,7 @@ export function AvatarMenu({
         <ChevronDown className="size-3.5" aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-48">
-        {/* Hulp staat overal waar dit menu staat al als vraagteken ernaast; in
-            het mobiele menu (huidig design, geen vraagteken) blijft het. */}
+        {/* Hulp staat overal waar dit menu staat al als vraagteken ernaast. */}
         {personalItems.filter((item) => item.href !== "/hulp").map((item) => (
           <DropdownMenuItem
             key={item.href}
@@ -64,23 +55,6 @@ export function AvatarMenu({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href="/beheer" />}>Beheer</DropdownMenuItem>
-          </>
-        )}
-
-        {adminItems.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-              Beheer
-            </DropdownMenuLabel>
-            {adminItems.map((item) => (
-              <DropdownMenuItem
-                key={item.href}
-                render={<Link href={item.href} />}
-              >
-                {item.label}
-              </DropdownMenuItem>
-            ))}
           </>
         )}
 

@@ -6,11 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { privacyConsentIsCurrent } from "@/lib/privacy";
 import { looksLikeMe } from "@/lib/text/normalize";
-import { ZwbMark } from "@/components/zwb-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { DesktopNav } from "./_components/desktop-nav";
 import { AvatarMenu } from "./_components/avatar-menu";
-import { MobileMenu } from "./_components/mobile-menu";
 import { BackButton } from "./_components/back-button";
 import { NavProgress } from "./_components/nav-progress";
 import { PrivacyConsentDialog } from "./_components/privacy-consent-dialog";
@@ -28,17 +25,9 @@ import { updateLabel } from "@/components/app-updates/update-card";
 import { loadFatigueSetupIssue } from "@/lib/briljant/fatigue-setup";
 import { getClub } from "@/lib/club";
 import { PLACES } from "@/lib/design-places";
-import {
-  ADMIN_NAV,
-  AVATAR_NAV,
-  NAV_GROUPS,
-  beheerCategoriesFor,
-  filterNavForPermissions,
-} from "./_components/nav-config";
+import { AVATAR_NAV, beheerCategoriesFor } from "./_components/nav-config";
 import { TegelsShell } from "./_components/tegels-shell";
 import { SponsorFooter } from "./_components/sponsor-footer";
-import { DesignSwitch } from "./_components/design-switch";
-import { DESIGN_PREVIEW_PERMISSION, getDesign } from "@/lib/design";
 import { countUnreadThreads } from "@/lib/zwbieb/queries";
 import { WeekReviewLauncher } from "@/components/weekoverzicht/launcher";
 import { reviewPeriod } from "@/lib/weekly-review/period";
@@ -80,7 +69,7 @@ export default async function AppLayout({
   const [{ data: profile }, access, unreadThreads, club] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, avatar_url, zwift_id, zwift_opt_out, sex, privacy_accepted_at, privacy_accepted_version")
+      .select("display_name, avatar_url, zwift_id, zwift_opt_out, privacy_accepted_at, privacy_accepted_version")
       .eq("id", user.id)
       .single(),
     getRequestAccess(),
@@ -165,131 +154,52 @@ export default async function AppLayout({
     period.inPopupWindow && !needsPrivacyConsent && !needsZwiftId && club.isEnabled("weekoverzicht") ? (
       <WeekReviewLauncher weekStart={period.weekStart} />
     ) : null;
-  const adminItems = ADMIN_NAV.filter(
-    (item) => access.has(item.permission) && club.allowsPath(item.href),
-  );
-  const navNodes = filterNavForPermissions(
-    NAV_GROUPS,
-    (permission) => access.has(permission),
-    (profile?.sex as string | null) ?? null,
-    club.allowsPath,
-  );
   const personalItems = AVATAR_NAV.filter((item) => club.allowsPath(item.href));
   const hasBeheerPage =
     beheerCategoriesFor((permission) => access.has(permission), club.allowsPath).length > 0;
   const sponsorFooter = club.isEnabled("sponsors") ? <SponsorFooter /> : null;
 
-  const canPreviewDesign = access.has(DESIGN_PREVIEW_PERMISSION);
-  const design = await getDesign();
-
-  if (design === "tegels") {
-    return (
-      <TegelsShell
-        hiddenPlaces={PLACES.filter((place) => !club.allowsPath(place.href)).map((place) => place.id)}
-        before={<NavProgress />}
-        back={<BackButton className="size-11 hover:bg-transparent" />}
-        actions={
-          <>
-            <UnreadMessagesLink
-              count={unreadCount}
-              className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
-              iconClassName="size-5"
-            />
-            <HeaderHelpLink
-              className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
-              iconClassName="size-5"
-            />
-            <AvatarMenu
-              displayName={displayName}
-              adminItems={[]}
-              personalItems={personalItems}
-              beheerPage={hasBeheerPage}
-              avatarUrl={(profile?.avatar_url as string | null) ?? null}
-              showOnMobile
-            />
-            <ThemeToggle className="size-11 px-0 text-muted-foreground hover:bg-transparent hover:text-primary [&_svg]:size-5!" />
-          </>
-        }
-        after={
-          <>
-            {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
-            {needsZwiftId && <ZwiftIdDialog claims={claims} />}
-            {weekReview}
-            {durabilityDialog}
-            {trainingNotice}
-            {appUpdate}
-            {integrationNotice}
-            {benefitPopup}
-          </>
-        }
-      >
-        {children}
-        {sponsorFooter}
-        {canPreviewDesign && <DesignSwitch design={design} />}
-      </TegelsShell>
-    );
-  }
-
   return (
-    <div className="app-shell flex min-h-screen flex-col">
-      <NavProgress />
-      <header className="relative border-b border-border/80 bg-background/88 backdrop-blur">
-        <nav className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2.5 md:gap-6">
-          <Link
-            href="/dashboard"
-            className="flex shrink-0 items-center"
-            aria-label="ZWB Cycling Community"
-          >
-            <ZwbMark className="h-7 w-auto" />
-          </Link>
-          <BackButton />
-
-          {/* Desktop nav (6 top-level slots, sommige met dropdown) */}
-          <DesktopNav nodes={navNodes} />
-
-          {/* Spacer voor mobiel zodat right-side rechts uitlijnt */}
-          <div className="flex-1 md:hidden" />
-
-          {/* Right side: avatar-dropdown + theme + mobile-hamburger */}
-          <div className="flex items-center gap-2">
-            <UnreadMessagesLink
-              count={unreadCount}
-              className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
-              iconClassName="size-4"
-            />
-            <HeaderHelpLink
-              className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
-              iconClassName="size-4"
-            />
-            <AvatarMenu
-              displayName={displayName}
-              adminItems={adminItems}
-              personalItems={personalItems}
-            />
-            <ThemeToggle />
-            <MobileMenu
-              displayName={displayName}
-              adminItems={adminItems}
-              nodes={navNodes}
-              personalItems={personalItems}
-            />
-          </div>
-        </nav>
-      </header>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
-        {children}
-        {sponsorFooter}
-        {canPreviewDesign && <DesignSwitch design={design} />}
-      </main>
-      {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
-      {needsZwiftId && <ZwiftIdDialog claims={claims} />}
-      {weekReview}
-      {durabilityDialog}
-      {trainingNotice}
-      {appUpdate}
-      {integrationNotice}
-      {benefitPopup}
-    </div>
+    <TegelsShell
+      hiddenPlaces={PLACES.filter((place) => !club.allowsPath(place.href)).map((place) => place.id)}
+      before={<NavProgress />}
+      back={<BackButton className="size-11 hover:bg-transparent" />}
+      actions={
+        <>
+          <UnreadMessagesLink
+            count={unreadCount}
+            className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
+            iconClassName="size-5"
+          />
+          <HeaderHelpLink
+            className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
+            iconClassName="size-5"
+          />
+          <AvatarMenu
+            displayName={displayName}
+            personalItems={personalItems}
+            beheerPage={hasBeheerPage}
+            avatarUrl={(profile?.avatar_url as string | null) ?? null}
+          />
+          <ThemeToggle className="size-11 px-0 text-muted-foreground hover:bg-transparent hover:text-primary [&_svg]:size-5!" />
+        </>
+      }
+      after={
+        <>
+          {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
+          {needsZwiftId && <ZwiftIdDialog claims={claims} />}
+          {weekReview}
+          {durabilityDialog}
+          {trainingNotice}
+          {appUpdate}
+          {integrationNotice}
+          {benefitPopup}
+        </>
+      }
+    >
+      {children}
+      {sponsorFooter}
+    </TegelsShell>
   );
 }
 

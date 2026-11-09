@@ -40,16 +40,6 @@ import {
 import { WorkoutDurationControl } from "./workout-duration-control";
 import { RaceWarmupControl, type RaceWarmupView } from "./race-warmup-control";
 import { WorkoutRidePlan } from "./ride-plan-view";
-import {
-  ZwiftEventSuggestions,
-  type ChosenZwiftEvent,
-  type ZwiftSuggestionView,
-} from "./zwift-event-suggestions";
-import {
-  OutdoorRouteSuggestions,
-  type OutdoorRouteView,
-  type StartPointOption,
-} from "./outdoor-route-suggestions";
 
 export type MemberCalendarItem = {
   id: string;
@@ -92,12 +82,6 @@ export type MemberCalendarItem = {
     /** Wat het lid met een geplande training mag: verwijderen, en de duur aanpassen. */
     removable?: boolean;
     resizable?: boolean;
-    /** Zwift-events die bij deze geplande training passen. Leeg = geen voorstel. */
-    zwift?: ZwiftSuggestionView[];
-    /** Het event dat het lid al koos; dan vervallen de voorstellen. */
-    zwiftChosen?: ChosenZwiftEvent | null;
-    /** Voorgestelde buitenrondjes; leeg tot het lid erom vraagt. */
-    outdoor?: OutdoorRouteView[];
     /** Bij een geplande race: de warming-up die het lid erbij kan zetten. */
     warmup?: RaceWarmupView | null;
     /** Er is een ritplan (klaarzetten); het plan zelf komt pas bij het openen binnen. */
@@ -233,13 +217,9 @@ export function RideDetail({
 function WorkoutDetail({
   item,
   ftpWatts,
-  startPoints,
-  suggestions = true,
 }: {
   item: MemberCalendarItem;
   ftpWatts?: number | null;
-  startPoints: StartPointOption[];
-  suggestions?: boolean;
 }) {
   if (item.ride) return <RideDetail item={{ ...item, ride: item.ride }} />;
 
@@ -359,26 +339,6 @@ function WorkoutDetail({
           {detail.ridePlan ? (
             <WorkoutRidePlan workoutId={item.id} durationMinutes={item.durationMinutes} intensity={item.intensity} />
           ) : null}
-          {/* Onderaan, want dit is een suggestie naast de training en niet de
-              training zelf: eerst wát je rijdt, dan pas waar je het kunt rijden. */}
-          {suggestions ? (
-            <ZwiftEventSuggestions
-              key={`zwift-${item.id}`}
-              workoutId={item.id}
-              matches={detail.zwift ?? []}
-              chosen={detail.zwiftChosen ?? null}
-            />
-          ) : null}
-          {/* Binnen en buiten naast elkaar: het weer bepaalt welke van de twee
-              je die dag wilt, en dat kan het lid zelf het beste zien. */}
-          {suggestions ? (
-            <OutdoorRouteSuggestions
-              key={`buiten-${item.id}`}
-              workoutId={item.id}
-              routes={detail.outdoor ?? []}
-              startPoints={startPoints}
-            />
-          ) : null}
         </>
       ) : (
         <>
@@ -437,8 +397,6 @@ export function MemberWorkoutCalendar({
   items,
   todayKey,
   ftpWatts,
-  startPoints = [],
-  suggestions = true,
   markers = [],
 }: {
   items: MemberCalendarItem[];
@@ -447,11 +405,6 @@ export function MemberWorkoutCalendar({
   todayKey: string;
   /** Voor de vermogensbanden in de blokkenbalk. */
   ftpWatts?: number | null;
-  /** Waar het lid vandaan vertrekt, voor de routevoorstellen. */
-  startPoints?: StartPointOption[];
-  /** Zwift-events en buitenrondjes bij een training tonen. In het design
-   * "tegels" staan die op ZWBeter Vandaag en niet hier. */
-  suggestions?: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = items.find((item) => item.id === selectedId) ?? null;
@@ -482,8 +435,6 @@ export function MemberWorkoutCalendar({
           <WorkoutDetail
             item={selected}
             ftpWatts={ftpWatts}
-            startPoints={startPoints}
-            suggestions={suggestions}
           />
         ) : (
           <p className="text-sm text-muted-foreground">

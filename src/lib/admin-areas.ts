@@ -1,6 +1,6 @@
 // Eén register van de beheergebieden en het recht dat elk vraagt (migr. 0206).
 //
-// Het menu (ADMIN_NAV) en de controle op de pagina's en hun server-actions
+// Het beheer (BEHEER_CATEGORIES) en de controle op de pagina's en hun server-actions
 // lezen allebei hieruit. Tot 2026-10-01 stonden die los, en liepen ze uiteen:
 // de ZRL-kalender liet bijvoorbeeld drie rechten toe terwijl het menu er één
 // toonde. Een recht per gebied is in te stellen op /beheer/rechten.

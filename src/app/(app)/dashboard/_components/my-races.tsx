@@ -10,10 +10,9 @@
 // van het dashboard niet ophouden.
 
 import Link from "next/link";
-import { Activity, Flag, Radio } from "lucide-react";
+import { Activity, Radio } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { InlineMoreLink, SectionHeader } from "@/components/app-ui";
-import { CLUB_RACE_TYPES, EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { CLUB_RACE_TYPES } from "@/lib/event-types";
 import { zwiftDsConfigured } from "@/lib/events/zwift-club";
 import { inDsWindow } from "@/lib/ds/schedule";
 
@@ -35,11 +34,9 @@ type MyRace = {
   key: string;
   href: string;
   title: string;
-  type: string;
   startAt: string;
   teamName: string | null;
   status: RaceStatus;
-  lineup: Array<{ name: string; isMe: boolean }>;
   liveHref: string | null;
   /** ZWB DS (docs/zwb-ds-spike.md): elke race met een Zwift-event, in hetzelfde venster. */
   dsHref: string | null;
@@ -65,14 +62,7 @@ function teamName(rel: RaceEvent["teams"]) {
   return (Array.isArray(rel) ? rel[0] : rel)?.name ?? null;
 }
 
-function statusClass(status: RaceStatus) {
-  if (status === "lineup" || status === "yes") return "bg-primary text-primary-foreground";
-  if (status === "available") return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300";
-  if (status === "unavailable") return "bg-muted text-muted-foreground";
-  return "bg-amber-500/15 text-amber-800 dark:text-amber-300";
-}
-
-export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boolean }) {
+export async function MyRaces({ userId }: { userId: string }) {
   const supabase = await createClient();
   const now = new Date();
   const fromIso = new Date(now.getTime() - STARTED_GRACE_MS).toISOString();
@@ -222,11 +212,9 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
       key: event.id,
       href: `/events/${event.id}`,
       title: event.title,
-      type: event.type,
       startAt: event.start_at,
       teamName: teamName(event.teams),
       status,
-      lineup,
       liveHref: liveHref(event),
       dsHref: dsHref(event),
     };
@@ -254,11 +242,9 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
       key,
       href: `/events/${parent ? parent.id : events[0].id}`,
       title: parent?.title ?? events[0].title,
-      type: events[0].type,
       startAt: parent?.start_at ?? events[0].start_at,
       teamName: null,
       status: availability.get(key) ?? null,
-      lineup: [],
       liveHref: null,
       dsHref: null,
     });
@@ -268,11 +254,9 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
       key: event.id,
       href: `/events/${event.id}`,
       title: event.title,
-      type: event.type,
       startAt: event.start_at,
       teamName: null,
       status: "yes",
-      lineup: [],
       liveHref: liveHref(event),
       dsHref: dsHref(event),
     });
@@ -282,137 +266,64 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
     .sort((a, b) => a.startAt.localeCompare(b.startAt))
     .slice(0, MAX_RACES);
 
-  // Design "tegels": elke race is een petrol tegel, zoals elk event, met de
-  // starttijd groot en jouw status als label. Goud is schaars (kleurbeleid in
-  // globals.css): alleen de eerste race zonder opgave vraagt om actie.
-  if (tegels) {
-    const askKey = shown.find((race) => !race.status)?.key;
-    return (
-      <ul className="contents" aria-label="Jouw races">
-        {shown.map((race) => (
-          <li
-            key={race.key}
-            className={`tg-tile ${race.key === askKey ? "tg-vandaag" : "tg-kalender"}`}
-          >
-            <span className="tg-tile-small">
-              {new Date(race.startAt).toLocaleDateString("nl-NL", {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-                timeZone: "Europe/Amsterdam",
-              })}
-              {race.teamName ? ` · ${race.teamName}` : ""}
-            </span>
-            <Link
-              href={race.href}
-              className="tg-tile-title mt-0.5 line-clamp-2 !static after:absolute after:inset-0 after:content-['']"
-            >
-              {race.title}
-            </Link>
-            <span className="mt-2 flex flex-wrap items-center gap-1.5">
-              <span className="bg-[var(--tg-paper)] px-2 py-1 text-xs font-semibold text-[var(--tg-ink)]">
-                {race.status ? STATUS_LABELS[race.status] : "Nog niet opgegeven"}
-              </span>
-              {race.liveHref && (
-                <Link
-                  href={race.liveHref}
-                  className="z-10 inline-flex items-center gap-1 bg-destructive px-2 py-1 text-xs font-semibold text-white"
-                >
-                  <Radio className="size-3.5" />
-                  Live stand
-                </Link>
-              )}
-              {race.dsHref && (
-                <Link
-                  href={race.dsHref}
-                  className="z-10 inline-flex items-center gap-1 bg-destructive px-2 py-1 text-xs font-semibold text-white"
-                >
-                  <Activity className="size-3.5" />
-                  ZWB DS
-                </Link>
-              )}
-            </span>
-            <span className="tg-tile-num">
-              {new Date(race.startAt).toLocaleTimeString("nl-NL", {
-                hour: "2-digit",
-                minute: "2-digit",
-                timeZone: "Europe/Amsterdam",
-              })}
-            </span>
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
+  // Elke race is een petrol tegel, zoals elk event, met de starttijd groot en
+  // jouw status als label. Goud is schaars (kleurbeleid in globals.css): alleen
+  // de eerste race zonder opgave vraagt om actie.
+  const askKey = shown.find((race) => !race.status)?.key;
   return (
-    <section>
-      <SectionHeader
-        icon={Flag}
-        title="Jouw races"
-        action={<InlineMoreLink href="/kalender">Kalender</InlineMoreLink>}
-      />
-      <ul className="divide-y rounded-lg border border-primary/30 bg-card">
-        {shown.map((race) => (
-          <li key={race.key} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-            <Link href={race.href} className="group min-w-0 flex-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-primary">
-                {new Date(race.startAt).toLocaleString("nl-NL", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  timeZone: "Europe/Amsterdam",
-                })}
-              </p>
-              <p className="truncate font-medium group-hover:underline">{race.title}</p>
-              <p className="truncate text-sm text-muted-foreground">
-                {[EVENT_TYPE_LABELS[race.type] ?? race.type, race.teamName]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-              {race.lineup.length > 0 && (
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                  {race.lineup.map((item, index) => (
-                    <span key={`${item.name}-${index}`}>
-                      {index > 0 ? ", " : ""}
-                      <span className={item.isMe ? "font-semibold text-foreground" : ""}>
-                        {item.name}
-                      </span>
-                    </span>
-                  ))}
-                </p>
-              )}
-            </Link>
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {race.liveHref && (
-                <Link
-                  href={race.liveHref}
-                  className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-destructive/90"
-                >
-                  <Radio className="size-3.5" />
-                  Live stand
-                </Link>
-              )}
-              {race.dsHref && (
-                <Link
-                  href={race.dsHref}
-                  className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-destructive/90"
-                >
-                  <Activity className="size-3.5" />
-                  ZWB DS
-                </Link>
-              )}
-              <span
-                className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(race.status)}`}
+    <ul className="contents" aria-label="Jouw races">
+      {shown.map((race) => (
+        <li
+          key={race.key}
+          className={`tg-tile ${race.key === askKey ? "tg-vandaag" : "tg-kalender"}`}
+        >
+          <span className="tg-tile-small">
+            {new Date(race.startAt).toLocaleDateString("nl-NL", {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+              timeZone: "Europe/Amsterdam",
+            })}
+            {race.teamName ? ` · ${race.teamName}` : ""}
+          </span>
+          <Link
+            href={race.href}
+            className="tg-tile-title mt-0.5 line-clamp-2 !static after:absolute after:inset-0 after:content-['']"
+          >
+            {race.title}
+          </Link>
+          <span className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="bg-[var(--tg-paper)] px-2 py-1 text-xs font-semibold text-[var(--tg-ink)]">
+              {race.status ? STATUS_LABELS[race.status] : "Nog niet opgegeven"}
+            </span>
+            {race.liveHref && (
+              <Link
+                href={race.liveHref}
+                className="z-10 inline-flex items-center gap-1 bg-destructive px-2 py-1 text-xs font-semibold text-white"
               >
-                {race.status ? STATUS_LABELS[race.status] : "Nog niet opgegeven"}
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </section>
+                <Radio className="size-3.5" />
+                Live stand
+              </Link>
+            )}
+            {race.dsHref && (
+              <Link
+                href={race.dsHref}
+                className="z-10 inline-flex items-center gap-1 bg-destructive px-2 py-1 text-xs font-semibold text-white"
+              >
+                <Activity className="size-3.5" />
+                ZWB DS
+              </Link>
+            )}
+          </span>
+          <span className="tg-tile-num">
+            {new Date(race.startAt).toLocaleTimeString("nl-NL", {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "Europe/Amsterdam",
+            })}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -109,7 +109,7 @@ export function TeamRosterTable({
   rows: TeamRosterRow[];
   teams: TeamOption[];
   /** Begin met de vermogenscurve (15s t/m 20m) ingeklapt; FTP, zFTP en zMAP
-   * blijven staan. Het design "tegels" zet dit aan. */
+   * blijven staan. Het ledenoverzicht op /teams zet dit aan. */
   curveCollapsed?: boolean;
 }) {
   const [showCurve, setShowCurve] = useState(!curveCollapsed);

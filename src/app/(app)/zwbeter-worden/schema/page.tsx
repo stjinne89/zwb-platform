@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { getDesign } from "@/lib/design";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRequestUser } from "@/lib/auth/request";
@@ -69,9 +68,7 @@ import {
   loadProfile,
   loadScheduleEventChoices,
   loadScheduleRides,
-  loadOutdoorSuggestionViews,
   loadZrlTeamMembership,
-  loadZwiftSuggestionViews,
   planUpdateDefaults,
   requireViewer,
   rideLinkFor,
@@ -96,9 +93,6 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // Maand is de ingang: daar zie je in één blik je week én kun je een training
   // aanklikken. De lijst blijft als alternatief bestaan.
   const workoutView = paramString(params.view) === "lijst" ? "lijst" : "maand";
-  // In het design "tegels" staan de Zwift-events en buitenrondjes bij een
-  // training op ZWBeter Vandaag (besluit eigenaar, 2026-10-12), niet hier.
-  const tegels = (await getDesign()) === "tegels";
   // Elke databasevraag is een oversteek (functies in Ohio, database in Ierland), en
   // deze pagina deed er ruim twintig na elkaar (gemeten 2026-10-01: 3,0-3,3 s in
   // deze functie). Daarom vertrekt elke stap zodra zijn invoer er is, in plaats van
@@ -129,12 +123,6 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   );
   const memberWorkoutsPromise = snapshotPromise.then((loaded) =>
     loadMemberWorkouts(viewer, loaded.events),
-  );
-  const zwiftPromise = memberWorkoutsPromise.then((workouts) =>
-    loadZwiftSuggestionViews(viewer, workouts),
-  );
-  const outdoorPromise = memberWorkoutsPromise.then((workouts) =>
-    loadOutdoorSuggestionViews(viewer, workouts),
   );
   // Ritten waar geen training voor stond: een extra herstelrondje, een groepsrit,
   // of de tweede helft van een rit die onderweg in tweeën is geknipt. Zonder
@@ -178,8 +166,6 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     warmupOptions,
     ownWorkoutOptions,
     memberWorkouts,
-    zwift,
-    outdoor,
     { unplanned: extraRides, byId: ridesById, deleted: deletedRides, rpe: rideRpe },
     eventChoices,
     ridePlans,
@@ -199,8 +185,6 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     loadWarmupOptions(createAdminClient()).catch(() => []),
     loadOwnWorkoutOptions(createAdminClient()).catch(() => []),
     memberWorkoutsPromise,
-    zwiftPromise,
-    outdoorPromise,
     scheduleRidesPromise,
     eventChoicesPromise,
     ridePlansPromise,
@@ -324,9 +308,6 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             !workout.test_type &&
             !warmupRaceId(workout) &&
             String(workout.scheduled_at).slice(0, 10) >= todayKey,
-          zwift: zwift.suggestions.get(workout.id) ?? [],
-          zwiftChosen: zwift.chosen.get(workout.id) ?? null,
-          outdoor: outdoor.routes.get(workout.id) ?? [],
           warmup: isUpcomingRace(workout, todayKey)
             ? raceWarmupView(workout, memberWorkouts, warmupOptions)
             : null,
@@ -426,8 +407,6 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             items={calendarItems}
             todayKey={todayKey}
             ftpWatts={profile?.ftp_watts}
-            startPoints={outdoor.startPoints}
-            suggestions={!tegels}
             markers={protocolMarkers}
           />
         ) : upcomingEvents.length === 0 && upcomingWorkouts.length === 0 ? (

@@ -2,16 +2,11 @@ import { describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readdir, readFile } from "node:fs/promises";
 import { ADMIN_AREAS } from "@/lib/admin-areas";
-import {
-  ADMIN_NAV,
-  BEHEER_CATEGORIES,
-  beheerCategoriesFor,
-} from "@/app/(app)/_components/nav-config";
+import { BEHEER_CATEGORIES, beheerCategoriesFor } from "@/app/(app)/_components/nav-config";
 import { COMMUNITY_PERMISSION_IDS, DEFAULT_ROLE_PERMISSIONS } from "@/lib/permissions";
 
 describe("register van beheergebieden", () => {
-  it("vult het beheermenu, en elk gebied vraagt een bestaand recht", () => {
-    expect(ADMIN_NAV.map((item) => item.href)).toEqual(Object.values(ADMIN_AREAS).map((area) => area.href));
+  it("laat elk gebied een bestaand recht vragen", () => {
     for (const area of Object.values(ADMIN_AREAS)) {
       expect(COMMUNITY_PERMISSION_IDS).toContain(area.permission);
     }

@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/app-ui";
 import { PowerUnitProvider, PowerUnitToggle } from "@/components/power-unit";
 import { parsePowerUnit, POWER_UNIT_COOKIE } from "@/lib/training/power-unit";
 import {
@@ -9,9 +8,7 @@ import {
   filterNavForPermissions,
   type NavLeaf,
 } from "../_components/nav-config";
-import { SectionNav } from "./_components/section-nav";
 import { ZwbeterNav } from "./_components/zwbeter-nav";
-import { getDesign } from "@/lib/design";
 import { ZWBETER_PILLARS } from "@/lib/zwbeter-pillars";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
@@ -44,9 +41,8 @@ export default async function ZwbeterWordenLayout({
     (profile?.sex as string | null) ?? null,
   ) as NavLeaf[];
 
-  // Design "tegels": ZWBeter Worden heet daar ZWBeter, met zes pijlers
-  // (lib/zwbeter-pillars.ts) in plaats van één rij van elf tabs.
-  const tegels = (await getDesign()) === "tegels";
+  // ZWBeter, met zes pijlers (lib/zwbeter-pillars.ts) in plaats van één rij van
+  // elf tabs.
   const pillars = ZWBETER_PILLARS.map((pillar) => ({
     id: pillar.id,
     word: pillar.word,
@@ -62,29 +58,10 @@ export default async function ZwbeterWordenLayout({
       weightKg={weightKg}
       ftpWatts={ftpWatts}
     >
-      {tegels ? (
-        <div className="tg-zwbeter-area space-y-5">
-          <ZwbeterNav
-            pillars={pillars}
-            actions={
-              <PowerUnitToggle percent />
-            }
-          />
-          {children}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          <PageHeader
-            eyebrow="ZWB Training"
-            title="ZWBeter Worden"
-            actions={
-              <PowerUnitToggle percent />
-            }
-          />
-          <SectionNav items={sections.map(({ href, label }) => ({ href, label }))} />
-          {children}
-        </div>
-      )}
+      <div className="tg-zwbeter-area space-y-5">
+        <ZwbeterNav pillars={pillars} actions={<PowerUnitToggle percent />} />
+        {children}
+      </div>
     </PowerUnitProvider>
   );
 }

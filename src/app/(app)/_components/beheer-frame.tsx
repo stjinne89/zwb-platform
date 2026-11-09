@@ -1,16 +1,13 @@
 import type { ReactNode } from "react";
 import { getRequestAccess } from "@/lib/auth/request";
-import { getDesign } from "@/lib/design";
 import { getClub } from "@/lib/club";
 import { BeheerNav } from "./beheer-nav";
 import { beheerCategoriesFor } from "./nav-config";
 
-/** Zet in het design "tegels" de beheernavigatie boven een beheerscherm. Ook
- * voor de schermen buiten /beheer (ZWBgame, WhatsApp-groepen, Media); wie daar
- * geen beheerrecht voor heeft, ziet de navigatie niet. Het oude design blijft
- * zoals het is. */
+/** Zet de beheernavigatie boven een beheerscherm. Ook voor de schermen buiten
+ * /beheer (ZWBgame, WhatsApp-groepen, Media); wie daar geen beheerrecht voor
+ * heeft, ziet de navigatie niet. */
 export async function BeheerFrame({ children }: { children: ReactNode }) {
-  if ((await getDesign()) !== "tegels") return children;
   const [access, club] = await Promise.all([getRequestAccess(), getClub()]);
   const categories = beheerCategoriesFor(
     (permission) => access.has(permission),

@@ -6,9 +6,6 @@
 // 0179). Dan staat alleen het subteam er, met de naam van de paraplu erbij: de
 // pagina van het subteam toont de raceweken van de paraplu ook. Wie captain of
 // co-captain van de paraplu is, houdt die regel wel.
-//
-// Alleen in het design "tegels"; het klassieke design houdt zijn link naar
-// /teams bij het scorebord.
 
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";

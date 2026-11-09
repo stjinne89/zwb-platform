@@ -23,7 +23,7 @@ export function SectionNav({
    * null: geen; dan wint overal de meest specifieke tab.
    */
   exactHref,
-  /** Design "tegels": de kleur van de tabs; standaard die van de plek waar je bent. */
+  /** De kleur van de tabs; standaard die van de plek waar je bent. */
   tone,
 }: {
   items: SectionLink[];
@@ -41,9 +41,9 @@ export function SectionNav({
           items.map((item) => item.href).filter((href) => href !== indexHref),
         );
   return (
-    // tg-subnav en tg-link doen alleen iets in het design "tegels": daar zijn de
-    // tabs vlakken in de kleur van de plek (kleur is klikbaar) en is de actieve het paneel met de
-    // gouden lijn, net als bij de pijlers erboven.
+    // tg-subnav en tg-link: de tabs zijn vlakken in de kleur van de plek (kleur
+    // is klikbaar) en de actieve is het paneel met de gouden lijn, net als bij
+    // de pijlers erboven.
     <ScrollTabs variant="panel" ariaLabel="Subnavigatie" className="tg-subnav">
       {items.map((item) => {
         const active = item.href === activeHref;

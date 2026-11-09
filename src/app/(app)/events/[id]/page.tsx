@@ -1328,7 +1328,7 @@ export default async function EventDetailPage({
           } as CSSProperties
         }
       >
-        {/* Alleen zichtbaar in het design "tegels": het dagvak in de eventkleur. */}
+        {/* Het dagvak in de eventkleur; globals.css (tg-event-day) maakt het zichtbaar. */}
         <span className="tg-event-day hidden" aria-hidden>
           {new Date(event.start_at).toLocaleDateString("nl-NL", {
             weekday: "short",

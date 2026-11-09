@@ -4,7 +4,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** `className` vult aan; het design "tegels" maakt hem even groot als de
+/** `className` vult aan; de app-layout maakt hem even groot als de
  * andere knoppen in de balk (44px). */
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();

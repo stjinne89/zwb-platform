@@ -6,21 +6,15 @@ import {
   AlertTriangle,
   BadgeCheck,
   Bike,
-  CalendarDays,
-  Camera,
-  Flag,
   Gift,
   HeartHandshake,
-  Medal,
   Mountain,
   Newspaper,
   Pin,
-  Trophy,
   Vote,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { DeleteRitverslagButton } from "../ritverslagen/_components/delete-ritverslag-button";
-import { EmptyState, InlineMoreLink, PageHeader, SectionHeader } from "@/components/app-ui";
+import { EmptyState, InlineMoreLink, SectionHeader } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import {
   IntervalsRideSyncButton,
@@ -31,7 +25,7 @@ import { garminAttribution } from "@/lib/intervals/rides";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
 import { MemberLink } from "@/components/member-link";
-import { CLUB_RACE_TYPES, eventLabel } from "@/lib/event-types";
+import { CLUB_RACE_TYPES } from "@/lib/event-types";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import {
   INSTAGRAM_STORY_SOURCE,
@@ -39,14 +33,11 @@ import {
   INSTAGRAM_TAG_HIDDEN_SOURCE,
   INSTAGRAM_TAG_SOURCE,
 } from "@/lib/instagram-sync";
-import { amsterdamHour } from "@/lib/greeting";
 import { ClubStats } from "./_components/club-stats";
 import { CoreStatus, CoreStatusSkeleton } from "./_components/core-status";
 import { FrrStandings } from "./_components/frr-standings";
-import { Greeting } from "./_components/greeting";
 import { MyRaces } from "./_components/my-races";
 import { MyTeams } from "./_components/my-teams";
-import { PhotoNudge } from "./_components/photo-nudge";
 import { QaDashboard } from "./_components/qa";
 import { RecentBekers } from "./_components/recent-bekers";
 import { InstagramStrip, type InstagramPost } from "./_components/instagram-strip";
@@ -77,8 +68,7 @@ import {
 } from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
-import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
-import { getDesign } from "@/lib/design";
+import { getRequestUser } from "@/lib/auth/request";
 import { getClub } from "@/lib/club";
 import { points as briljantPoints, positionFor as briljantPosition } from "@/lib/briljant/score";
 import { SCALE_VERSION as BRILJANT_SCALE } from "@/lib/briljant/norms";
@@ -497,19 +487,16 @@ export default async function DashboardPage({
   const on = club.isEnabled;
   const skip = () => Promise.resolve({ data: null });
   // Elke databasevraag is een oversteek (functies in Ohio, database in Ierland), dus
-  // wat niet van elkaar afhangt, vertrekt tegelijk: de rechten en de ritbron lopen
-  // mee met de grote ronde hieronder in plaats van ervoor en erna.
-  const accessPromise = getRequestAccess();
+  // wat niet van elkaar afhangt, vertrekt tegelijk: de ritbron loopt mee met de
+  // grote ronde hieronder in plaats van ervoor en erna.
   const rideStatusPromise = user
     ? loadRideSourceStatus(user.id).catch(() => null)
     : Promise.resolve(null);
-  // Wie er nu live rijdt, voor de tegel Samen fietsen in het design "tegels".
-  // Loopt mee met de rest, want Garmin en Wahoo eerst bijwerken kost een oversteek.
-  const livePromise = getDesign()
-    .then((design) =>
-      design === "tegels" && user && on("samen_fietsen") ? loadLiveNow(supabase, user.id) : null,
-    )
-    .catch(() => null);
+  // Wie er nu live rijdt, voor de tegel Samen fietsen. Loopt mee met de rest,
+  // want Garmin en Wahoo eerst bijwerken kost een oversteek.
+  const livePromise = (
+    user && on("samen_fietsen") ? loadLiveNow(supabase, user.id) : Promise.resolve(null)
+  ).catch(() => null);
 
   const nowIso = new Date().toISOString();
   const since7 = new Date();
@@ -524,17 +511,9 @@ export default async function DashboardPage({
         .slice(0, 10),
       "00:00",
     ) ?? since7Iso;
-  const since8 = new Date(since7);
-  since8.setDate(since8.getDate() - 1);
-  const since8Iso = since8.toISOString();
   const plus7 = new Date();
   plus7.setDate(plus7.getDate() + 7);
   const plus7Iso = plus7.toISOString();
-  // Clubraces kijken verder vooruit dan de overige events: een ZRL-ronde wil je
-  // ruim van tevoren zien staan.
-  const plus14 = new Date();
-  plus14.setDate(plus14.getDate() + 14);
-  const plus14Iso = plus14.toISOString();
   const today = new Date().toISOString().slice(0, 10);
   // Amsterdam-datum: zo verdwijnt de workout van vandaag niet zodra het geplande
   // tijdstip voorbij is (zelfde keuze als de trainingspagina).
@@ -551,21 +530,17 @@ export default async function DashboardPage({
     { data: standingRows },
     { data: clubActivities },
     { data: awardRows },
-    { data: recentPastEventRows },
     { data: trainingConn },
     { data: nextWorkoutRows },
     { data: stravaConn },
     { data: instagramRows },
     { data: zrlResultRows },
-    { data: repRows },
-    { data: chatRows },
-    { data: photoRows },
     needsWeight,
   ] = await Promise.all([
     user
       ? supabase
           .from("profiles")
-          .select("display_name, sex, wellness_device, zwift_id, zwift_opt_out, ftp_watts")
+          .select("sex, wellness_device, zwift_id, zwift_opt_out, ftp_watts")
           .eq("id", user.id)
           .single()
       : Promise.resolve({ data: null }),
@@ -603,7 +578,7 @@ export default async function DashboardPage({
       // Teamevents staan onder hun hoofdevent (migr. 0178).
       .is("parent_event_id", null)
       .gte("start_at", nowIso)
-      .lte("start_at", plus14Iso)
+      .lte("start_at", plus7Iso)
       .order("start_at", { ascending: true })
       .limit(30),
     !on("teams") ? skip() : supabase
@@ -634,15 +609,6 @@ export default async function DashboardPage({
       .order("awarded_at", { ascending: false })
       .order("period_start", { ascending: false })
       .limit(8),
-    !on("ritverslagen") ? skip() : supabase
-      .from("events")
-      .select("id, title, start_at, location, cover_image_path, created_by")
-      .gte("start_at", since7Iso)
-      .lt("start_at", nowIso)
-      // FRR-tijdsloten (migr. 0195) niet: een tourweek heeft er ruim veertig.
-      .or("type.neq.flamme_rouge,parent_event_id.is.null")
-      .order("start_at", { ascending: false })
-      .limit(6),
     user
       ? supabase
           .from("intervals_connections")
@@ -683,76 +649,8 @@ export default async function DashboardPage({
       .gte("computed_at", since7Iso)
       .order("computed_at", { ascending: false })
       .limit(40),
-    // Verslagen, chat en foto's bij de voorbije events van deze week. Op datum in
-    // plaats van op event-id, zodat ze met de rest mee kunnen in plaats van in een
-    // tweede ronde; hieronder houden we alleen over wat bij een getoond event hoort.
-    // Een dag marge: de chat van een event begint op de dag zelf, soms vóór de start.
-    !on("ritverslagen") ? skip() : supabase
-      .from("event_reports")
-      .select("event_id, body_md, created_at, profiles(display_name)")
-      .gte("created_at", since8Iso)
-      .order("created_at", { ascending: false }),
-    !on("ritverslagen")
-      ? skip()
-      : supabase.from("event_chat_messages").select("event_id").gte("created_at", since8Iso),
-    !on("ritverslagen") ? skip() : supabase
-      .from("event_photos")
-      .select("event_id, storage_path")
-      .gte("created_at", since8Iso)
-      .order("created_at", { ascending: false }),
     user ? loadWeightMissing(supabase, user.id, { inTeam: true }) : Promise.resolve(false),
   ]);
-  const access = await accessPromise;
-  const isModerator = access.has("events.manage_all");
-
-  // Ritverslagen = voorbije events van de afgelopen 7 dagen, verrijkt met een
-  // eventueel geschreven verslag, foto's en de live-chat.
-  const recentPastEvents = (recentPastEventRows ?? []) as Array<{
-    id: string;
-    title: string;
-    start_at: string;
-    location: string | null;
-    cover_image_path: string | null;
-    created_by: string | null;
-  }>;
-  const recentEventIds = new Set(recentPastEvents.map((e) => e.id));
-
-  const reportByEvent = new Map<string, { count: number; author: string; snippet: string }>();
-  const chatCountByEvent = new Map<string, number>();
-  const photoCountByEvent = new Map<string, number>();
-  const photoPathsByEvent = new Map<string, string[]>();
-  if (recentEventIds.size > 0) {
-    for (const r of (repRows ?? []) as Array<{
-      event_id: string;
-      body_md: string;
-      profiles: ProfileRef | ProfileRef[] | null;
-    }>) {
-      if (!recentEventIds.has(r.event_id)) continue;
-      const cur = reportByEvent.get(r.event_id);
-      if (cur) {
-        cur.count += 1;
-      } else {
-        const text = r.body_md.replace(/[#*_>`-]/g, "").replace(/\s+/g, " ").trim();
-        reportByEvent.set(r.event_id, {
-          count: 1,
-          author: singleProfileName(r.profiles) ?? "ZWB'er",
-          snippet: text.length > 120 ? `${text.slice(0, 120)}…` : text,
-        });
-      }
-    }
-    for (const c of (chatRows ?? []) as { event_id: string }[]) {
-      if (!recentEventIds.has(c.event_id)) continue;
-      chatCountByEvent.set(c.event_id, (chatCountByEvent.get(c.event_id) ?? 0) + 1);
-    }
-    for (const p of (photoRows ?? []) as { event_id: string; storage_path: string }[]) {
-      if (!recentEventIds.has(p.event_id)) continue;
-      photoCountByEvent.set(p.event_id, (photoCountByEvent.get(p.event_id) ?? 0) + 1);
-      const list = photoPathsByEvent.get(p.event_id) ?? [];
-      list.push(p.storage_path);
-      photoPathsByEvent.set(p.event_id, list);
-    }
-  }
-
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
   // Live stories (hooguit 24 uur oud) eerst, dan de drie nieuwste posts: eigen
   // posts en posts van anderen waarin de club is getagd door elkaar, op datum.
@@ -771,7 +669,7 @@ export default async function DashboardPage({
       .slice(0, 3)
       .map((i) => ({ ...i, story: false, tagged: i.source === INSTAGRAM_TAG_SOURCE })),
   ];
-  // Het design "tegels" toont alleen posts van de laatste zeven dagen.
+  // Alleen de posts van de laatste zeven dagen.
   const instagramRecentIds = new Set(
     instagramItems.filter((item) => item.published_at >= since7Iso).map((item) => item.id),
   );
@@ -792,65 +690,11 @@ export default async function DashboardPage({
   ]);
   const activities = (clubActivities ?? []) as unknown as ClubActivityRow[];
   const awards = (awardRows ?? []) as unknown as AwardRow[];
-  const reportPreviews = recentPastEvents.map((ev) => {
-    const rep = reportByEvent.get(ev.id);
-    // Header-beeld: stabiel gekozen uit cover + foto's, zodat renders puur blijven.
-    const imagePool = [
-      ...(ev.cover_image_path ? [ev.cover_image_path] : []),
-      ...(photoPathsByEvent.get(ev.id) ?? []),
-    ];
-    const pickedIndex =
-      imagePool.length > 0
-        ? Array.from(ev.id).reduce((sum, ch) => sum + ch.charCodeAt(0), 0) %
-          imagePool.length
-        : -1;
-    const pickedPath =
-      pickedIndex >= 0 ? imagePool[pickedIndex] : null;
-    const coverUrl = pickedPath
-      ? supabase.storage.from("event-photos").getPublicUrl(pickedPath).data
-          .publicUrl
-      : null;
-    return {
-      id: ev.id,
-      eventId: ev.id,
-      eventTitle: ev.title,
-      dateLabel: new Date(ev.start_at).toLocaleDateString("nl-NL", {
-        day: "numeric",
-        month: "short",
-        timeZone: "Europe/Amsterdam",
-      }),
-      coverUrl,
-      author: rep?.author ?? null,
-      snippet: rep?.snippet ?? null,
-      reportCount: rep?.count ?? 0,
-      chatCount: chatCountByEvent.get(ev.id) ?? 0,
-      photoCount: photoCountByEvent.get(ev.id) ?? 0,
-      canDelete: isModerator || ev.created_by === user?.id,
-    };
-  });
-
-  // Ritverslagen met een verslag of foto's eerst; drie kaarten zijn genoeg om
-  // de clubraces en events niet onder de vouw te duwen.
-  const shownReports = [...reportPreviews]
-    .sort(
-      (a, b) =>
-        Number(b.reportCount + b.photoCount > 0) - Number(a.reportCount + a.photoCount > 0),
-    )
-    .slice(0, 3);
-
-  // Clubraces krijgen een eigen blok boven de overige events, die hun venster
-  // van zeven dagen houden.
-  const upcomingEvents = (upcoming ?? []) as UpcomingEvent[];
-  const clubRaces = upcomingEvents
-    .filter((event) => CLUB_RACE_TYPES.includes(event.type))
+  // Clubraces staan niet in de tegels: de races waar je zelf in zit komen er
+  // direct onder (MyRaces), en alle andere staan in de kalender.
+  const otherEvents = ((upcoming ?? []) as UpcomingEvent[])
+    .filter((event) => !CLUB_RACE_TYPES.includes(event.type))
     .slice(0, 5);
-  const otherEvents = upcomingEvents
-    .filter((event) => !CLUB_RACE_TYPES.includes(event.type) && event.start_at <= plus7Iso)
-    .slice(0, 5);
-
-  const firstName = (profile?.display_name ?? user?.email?.split("@")[0] ?? "")
-    .trim()
-    .split(/\s+/)[0];
 
   // Persoonlijk trainingsblok: alleen tonen als het lid intervals.icu gekoppeld
   // heeft óf een geplande workout heeft. De trage intervals-fetch zit in het
@@ -892,10 +736,8 @@ export default async function DashboardPage({
   const canSyncStrava =
     hasActivityScope(strava?.scope ?? null) && (rideStatus?.stravaActive ?? true);
 
-  // Design "tegels" (achter de schakelaar, lib/design.ts): dezelfde data, bovenaan
-  // als tegels. Clubraces, scorebord en aankomende events staan dan in de tegels
-  // en in de kalender; ritverslagen vervalt daar als los blok.
-  const tegels = (await getDesign()) === "tegels";
+  // Bovenaan de tegels. Clubraces, scorebord en aankomende events staan in de
+  // tegels en in de kalender; ritverslagen staat er niet als los blok.
   const amsterdam = { timeZone: "Europe/Amsterdam" } as const;
   const dayKeyOf = (iso: string) => new Date(iso).toLocaleDateString("en-CA", amsterdam);
   // eslint-disable-next-line react-hooks/purity
@@ -922,13 +764,11 @@ export default async function DashboardPage({
     }),
     place,
   });
-  // Clubraces staan niet in deze tegels: de races waar je zelf in zit komen er
-  // direct onder (MyRaces), en alle andere staan in de kalender.
   // Het verloop van de eerstvolgende training voor de lijn in de tegel: per blok
   // de duur en het midden van het doelvermogen, of van de zone als het blok geen
   // eigen doel heeft.
   const workoutProfile =
-    tegels && nextWorkoutRow
+    nextWorkoutRow
       ? normalizeWorkoutBlocks(
           nextWorkoutRow.structure_json,
           nextWorkoutRow.intensity as WorkoutIntensity,
@@ -951,7 +791,7 @@ export default async function DashboardPage({
   // paraplu zit, telt de subteams als eigen team (zelfde regel als MyRaces en de
   // kalender, migr. 0179). Geen eigen team met een uitslag: geen tegel.
   let tileStanding: TeamStandingWithTeam | null = null;
-  if (tegels && user && standings.length > 0) {
+  if (user && standings.length > 0) {
     const { data: memberRows } = await supabase
       .from("team_members")
       .select("team_id")
@@ -977,7 +817,7 @@ export default async function DashboardPage({
   // openen van de pagina of uit de wekelijkse job). Zonder snapshot of zonder
   // migratie 0265 geen tegel.
   let tileBriljant: VandaagBriljant | null = null;
-  if (tegels && user && on("rennersniveau")) {
+  if (user && on("rennersniveau")) {
     const { data: snapshot } = await supabase
       .from("zwbriljant_snapshots")
       .select("facets, consistency")
@@ -1005,103 +845,47 @@ export default async function DashboardPage({
     }
   }
 
-  function eventList(events: UpcomingEvent[]) {
-    return (
-      <ul className="divide-y rounded-lg border bg-card">
-        {events.map((event) => {
-          const coverUrl = event.cover_image_path
-            ? supabase.storage
-                .from("event-photos")
-                .getPublicUrl(event.cover_image_path).data.publicUrl
-            : null;
-          return (
-          <li key={event.id}>
-            <Link
-              href={`/events/${event.id}`}
-              className="flex items-center gap-3 p-4 transition hover:bg-muted/50"
-            >
-              {coverUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={coverUrl}
-                  alt=""
-                  className="size-12 shrink-0 rounded-md object-cover"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{event.title}</p>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(event.start_at).toLocaleString("nl-NL", {
-                    dateStyle: "full",
-                    timeStyle: "short",
-                    timeZone: "Europe/Amsterdam",
-                  })}
-                  {event.location ? ` - ${event.location}` : ""}
-                </p>
-              </div>
-              <span className="w-fit shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                {eventLabel(event.type, event.kind)}
-              </span>
-            </Link>
-          </li>
-          );
-        })}
-      </ul>
-    );
-  }
-
   return (
-    <div className={tegels ? "tg-dash space-y-2" : "space-y-8"}>
-      {tegels ? (
-        <TegelsVandaag
-          weekday={new Date().toLocaleDateString("nl-NL", { weekday: "long", ...amsterdam })}
-          date={new Date().toLocaleDateString("nl-NL", {
-            day: "numeric",
-            month: "long",
-            ...amsterdam,
-          })}
-          workout={
-            nextWorkout
-              ? {
-                  title: nextWorkout.title,
-                  profile: workoutProfile,
-                  when: whenLabel(nextWorkout.scheduled_at),
-                  today: dayKeyOf(nextWorkout.scheduled_at) === todayKey,
-                  meta: [
-                    nextWorkout.duration_minutes ? `${nextWorkout.duration_minutes} min` : null,
-                    nextWorkout.intensityLabel ?? null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · "),
-                }
-              : null
-          }
-          events={tileEvents}
-          live={liveNow?.together ?? null}
-          liveEvents={liveNow?.events ?? []}
-          briljant={tileBriljant}
-          standing={
-            tileStanding && tileStanding.position
-              ? {
-                  href: tileStanding.round_url ?? tileStanding.href,
-                  team: tileStanding.team.name,
-                  competition: tileStanding.competition,
-                  position: tileStanding.position,
-                  totalTeams: tileStanding.total_teams ?? null,
-                }
-              : null
-          }
-        />
-      ) : (
-        <PageHeader
-          eyebrow={<Greeting name={firstName || null} serverHour={amsterdamHour()} />}
-          title="Welkom thuis op ZWBasis"
-        />
-      )}
-
-      {/* Vaste plek voor het weekoverzicht: de hele week, naar de laatst
-          afgesloten week. In tegels staat het in de tegelrij hieronder. */}
-      {!tegels && user && on("weekoverzicht") && <WeekReviewDashboardLink />}
+    <div className="tg-dash space-y-2">
+      <TegelsVandaag
+        weekday={new Date().toLocaleDateString("nl-NL", { weekday: "long", ...amsterdam })}
+        date={new Date().toLocaleDateString("nl-NL", {
+          day: "numeric",
+          month: "long",
+          ...amsterdam,
+        })}
+        workout={
+          nextWorkout
+            ? {
+                title: nextWorkout.title,
+                profile: workoutProfile,
+                when: whenLabel(nextWorkout.scheduled_at),
+                today: dayKeyOf(nextWorkout.scheduled_at) === todayKey,
+                meta: [
+                  nextWorkout.duration_minutes ? `${nextWorkout.duration_minutes} min` : null,
+                  nextWorkout.intensityLabel ?? null,
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
+              }
+            : null
+        }
+        events={tileEvents}
+        live={liveNow?.together ?? null}
+        liveEvents={liveNow?.events ?? []}
+        briljant={tileBriljant}
+        standing={
+          tileStanding && tileStanding.position
+            ? {
+                href: tileStanding.round_url ?? tileStanding.href,
+                team: tileStanding.team.name,
+                competition: tileStanding.competition,
+                position: tileStanding.position,
+                totalTeams: tileStanding.total_teams ?? null,
+              }
+            : null
+        }
+      />
 
       {/* Blijft staan tot het ID er is: de dialoog bij inloggen mag weggeklikt
           worden, maar dan moet het ergens zichtbaar blijven. */}
@@ -1123,55 +907,33 @@ export default async function DashboardPage({
         </Suspense>
       )}
 
-      {tegels ? (
-        // Eén tegelrij: jouw races, Q&A, jouw teams en de Instagram-posts van deze
-        // week. Dense: een brede teamtegel laat geen gat achter.
-        <div className="grid grid-flow-row-dense grid-cols-2 gap-2 empty:hidden md:grid-cols-4">
-          {user && on("weekoverzicht") && <WeekReviewDashboardLink tegels />}
-          {user && on("teams") && (
-            <Suspense fallback={null}>
-              <MyRaces userId={user.id} tegels />
-            </Suspense>
-          )}
-          <Suspense fallback={null}>
-            <QaDashboard tegels />
-          </Suspense>
-          {user && on("teams") && (
-            <Suspense fallback={null}>
-              <MyTeams userId={user.id} />
-            </Suspense>
-          )}
-          <InstagramStrip
-            tegels
-            posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
-          />
-        </div>
-      ) : (
-        user && on("teams") && (
+      {/* Eén tegelrij: jouw races, Q&A, jouw teams en de Instagram-posts van
+          deze week. Dense: een brede teamtegel laat geen gat achter. */}
+      <div className="grid grid-flow-row-dense grid-cols-2 gap-2 empty:hidden md:grid-cols-4">
+        {user && on("weekoverzicht") && <WeekReviewDashboardLink />}
+        {user && on("teams") && (
           <Suspense fallback={null}>
             <MyRaces userId={user.id} />
           </Suspense>
-        )
-      )}
+        )}
+        <Suspense fallback={null}>
+          <QaDashboard />
+        </Suspense>
+        {user && on("teams") && (
+          <Suspense fallback={null}>
+            <MyTeams userId={user.id} />
+          </Suspense>
+        )}
+        <InstagramStrip
+          posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
+        />
+      </div>
 
-      {/* Naast elkaar op desktop: de trainingsstatus is het brede blok, het
-          core-advies de smalle kolom ernaast. Zonder trainingsstatus staat core
-          gewoon over de volle breedte. */}
-      <div
-        className={
-          tegels
-            ? "grid gap-2"
-            : showTraining
-            ? "grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
-            : "grid items-start gap-6"
-        }
-      >
+      <div className="grid gap-2">
         {showTraining && (
           <Suspense fallback={<TrainingStatusSkeleton />}>
             <TrainingStatus
-              tegels={tegels}
               conn={conn}
-              nextWorkout={nextWorkout}
               sex={sex}
               wellnessDevice={wellnessDevice}
             />
@@ -1179,73 +941,12 @@ export default async function DashboardPage({
         )}
         {on("training") && (
           <Suspense fallback={<CoreStatusSkeleton />}>
-            <CoreStatus tegels={tegels} />
+            <CoreStatus />
           </Suspense>
         )}
       </div>
 
-      {!tegels && instagramPosts.length > 0 && <InstagramStrip posts={instagramPosts} />}
-
       {user?.id && on("garage") && <MaintenanceStatus profileId={user.id} />}
-
-      {!tegels && clubRaces.length > 0 && (
-        <section>
-          <SectionHeader
-            icon={Flag}
-            title="Clubraces"
-            action={<InlineMoreLink href="/kalender">Kalender</InlineMoreLink>}
-          />
-          {eventList(clubRaces)}
-        </section>
-      )}
-
-      {!tegels && standings.length > 0 && (
-        <section>
-          <SectionHeader
-            icon={Trophy}
-            title="Teams en scorebord"
-            action={<InlineMoreLink href="/teams">Teams</InlineMoreLink>}
-          />
-          <ul className="divide-y rounded-lg border bg-card">
-            {standings.map((standing) => (
-              <li key={standing.id}>
-                <Link
-                  href={standing.href}
-                  className="grid gap-3 p-4 transition hover:bg-muted/50 sm:grid-cols-[1.2fr_1fr_auto] sm:items-center"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{standing.team.name}</p>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {standing.team.type}
-                      {standing.team.division ? ` - ${standing.team.division}` : ""}
-                    </p>
-                  </div>
-                  <div className="min-w-0 text-sm">
-                    <p className="truncate">{standing.competition}</p>
-                    {standing.round_label && (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {standing.round_label}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 sm:justify-end">
-                    <span className="inline-flex min-w-16 items-center justify-center gap-1 rounded-md bg-primary px-2 py-1 text-sm font-semibold tabular-nums text-primary-foreground">
-                      <Medal className="size-4" />
-                      #{standing.position}
-                      {standing.total_teams ? `/${standing.total_teams}` : ""}
-                    </span>
-                    {standing.points !== null && standing.points !== undefined && (
-                      <span className="text-sm tabular-nums text-muted-foreground">
-                        {standing.points} pt
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       {on("teams") && (
         <Suspense fallback={null}>
@@ -1257,21 +958,6 @@ export default async function DashboardPage({
         <Suspense fallback={null}>
           <SrcResults userId={user?.id ?? null} />
         </Suspense>
-      )}
-
-      {!tegels && (
-      <section>
-        <SectionHeader
-          icon={CalendarDays}
-          title="Aankomende events"
-          action={<InlineMoreLink href="/kalender">Kalender</InlineMoreLink>}
-        />
-        {otherEvents.length === 0 ? (
-          <EmptyState>Geen events ingepland.</EmptyState>
-        ) : (
-          eventList(otherEvents)
-        )}
-      </section>
       )}
 
       {mediaItems.length > 0 && (
@@ -1323,87 +1009,6 @@ export default async function DashboardPage({
           </ul>
         </section>
       )}
-
-      {/* Q&A als ingang naar /qa; in tegels staat hij in de tegelrij bovenaan
-          (wens eigenaar, 2026-10-20). */}
-      {!tegels && (
-        <Suspense fallback={null}>
-          <QaDashboard />
-        </Suspense>
-      )}
-
-      {!tegels && shownReports.length > 0 && (
-        <section>
-          <SectionHeader
-            icon={Camera}
-            title={
-              <Link
-                href="/ritverslagen"
-                className="hover:text-primary hover:underline"
-              >
-                Ritverslagen
-              </Link>
-            }
-          />
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {shownReports.map((r) => (
-              <li key={r.id} className="relative">
-                {r.canDelete && (
-                  <div className="absolute right-2 top-2 z-10">
-                    <DeleteRitverslagButton eventId={r.eventId} />
-                  </div>
-                )}
-                <Link
-                  href={`/events/${r.eventId}`}
-                  className="group block h-full overflow-hidden rounded-lg border bg-card transition hover:border-primary/40"
-                >
-                  <div className="relative aspect-[16/8] w-full bg-gradient-to-br from-primary/20 to-secondary">
-                    {r.coverUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={r.coverUrl}
-                        alt=""
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-3">
-                      <p className="line-clamp-1 text-sm font-semibold text-white">
-                        {r.eventTitle}
-                      </p>
-                      <p className="text-xs text-white/80">
-                        {[
-                          r.dateLabel,
-                          r.reportCount > 0
-                            ? `${r.reportCount} verslag${r.reportCount === 1 ? "" : "en"}`
-                            : null,
-                          r.photoCount > 0 ? `${r.photoCount} foto's` : null,
-                          r.chatCount > 0 ? `${r.chatCount} chat` : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="line-clamp-2 p-3 text-sm text-muted-foreground">
-                    {r.snippet
-                      ? r.snippet
-                      : r.reportCount === 0 && r.photoCount === 0
-                        ? "Nog geen verslag of foto's — voeg jouw verslag toe."
-                        : r.author
-                          ? `Verslag van ${r.author}`
-                          : "Bekijk het ritverslag."}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* In het design "tegels" vervalt dit blok (besluit eigenaar, 2026-10-12). */}
-      {user && !tegels && <PhotoNudge userId={user.id} />}
 
       {awards.length > 0 && (
         <section>

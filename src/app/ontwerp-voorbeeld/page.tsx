@@ -22,10 +22,10 @@ import { BOKAAL_ANSWERS, BOKAAL_NOW, BOKAAL_PLACED, BOKAAL_RACES } from "./bokaa
 import { RecentBekersList } from "../(app)/dashboard/_components/recent-bekers";
 import { ZWBEKERS_VOORBEELD } from "./zwbekers-voorbeeld";
 
-// Het design "tegels" met voorbeelddata, zonder login. Alleen bij lokaal
+// De schermen van de app met voorbeelddata, zonder login. Alleen bij lokaal
 // ontwikkelen: in productie bestaat deze pagina niet. Bedoeld om het uiterlijk
-// te controleren zonder de productiedatabase; met echte data kijk je via de
-// schakelaar in de app zelf.
+// te controleren zonder de productiedatabase; met echte data kijk je in de app
+// zelf.
 
 const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "weekoverzicht", "bokaal", "inloggen"] as const;
 
@@ -89,7 +89,7 @@ export default async function OntwerpVoorbeeldPage({
   if (scherm === "inloggen") {
     return (
       <TegelsAuthFrame>
-        <AuthScreen tegels />
+        <AuthScreen />
       </TegelsAuthFrame>
     );
   }
@@ -153,7 +153,7 @@ export default async function OntwerpVoorbeeldPage({
         )}
         {(!scherm || scherm === "vandaag") && (
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            <WeekReviewDashboardLink tegels />
+            <WeekReviewDashboardLink />
           </div>
         )}
         {(!scherm || scherm === "vandaag") && <RecentBekersList bekers={ZWBEKERS_VOORBEELD} />}

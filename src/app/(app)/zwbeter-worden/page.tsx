@@ -1,6 +1,5 @@
 import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
 import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
-import { getDesign } from "@/lib/design";
 import { ZwiftEventSuggestions } from "./_components/zwift-event-suggestions";
 import { OutdoorRouteSuggestions } from "./_components/outdoor-route-suggestions";
 import { Suspense } from "react";
@@ -225,11 +224,10 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
       ? planCautionsFromSummary(planSummaries.get(nextWorkout.workout.plan_id))
       : [];
 
-  // Design "tegels": Vandaag is de hub van de dag. De Zwift-events en
-  // buitenrondjes bij de eerstvolgende training staan daarom hier in plaats van
-  // in het schema (besluit eigenaar, 2026-10-12).
-  const hubWorkout =
-    (await getDesign()) === "tegels" && nextWorkout?.kind === "zwb" ? nextWorkout.workout : null;
+  // Vandaag is de hub van de dag. De Zwift-events en buitenrondjes bij de
+  // eerstvolgende training staan daarom hier in plaats van in het schema
+  // (besluit eigenaar, 2026-10-12).
+  const hubWorkout = nextWorkout?.kind === "zwb" ? nextWorkout.workout : null;
   const [hubZwift, hubOutdoor] = hubWorkout
     ? await Promise.all([
         loadZwiftSuggestionViews(viewer, [hubWorkout]),

@@ -611,8 +611,8 @@ export default async function TeamDetailPage({
         </section>
       )}
 
-      {/* tg-metric-row: in het design "tegels" één paneel met de cijfers in
-          plaats van losse gelijke kaarten. */}
+      {/* tg-metric-row: één paneel met de cijfers in plaats van losse gelijke
+          kaarten. */}
       <section className="tg-metric-row grid gap-3 sm:grid-cols-2">
         <Metric icon={<Users className="size-4" />} label="Renners" value={rows.length} />
         <Metric icon={<CalendarDays className="size-4" />} label="Teamraces" value={calendarEvents.length} />

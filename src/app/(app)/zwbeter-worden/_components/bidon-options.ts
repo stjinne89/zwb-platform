@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils";
 
 // De drie bidons naast elkaar: als knoppen bij Klaarzetten (ride-plan-view.tsx),
 // als links in het receptenboek. Gebouwd als segmentschakelaar (een omlijnde
-// houder met een gevulde gekozen knop), zodat het design "tegels" er vlakken in
-// de kleur van de plek van maakt (globals.css). Geen client-module, zodat de
+// houder met een gevulde gekozen knop), waar globals.css vlakken in de kleur
+// van de plek van maakt. Geen client-module, zodat de
 // serverpagina deze ook kan aanroepen.
 
 export function bidonLabel(ml: number): string {

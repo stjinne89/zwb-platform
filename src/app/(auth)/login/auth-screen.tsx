@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type CSSProperties } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -10,7 +10,6 @@ import {
   signUp,
 } from "./actions";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 type Mode = "login" | "register" | "reset";
 
@@ -20,33 +19,6 @@ type Status =
   | { kind: "confirm-sent" }
   | { kind: "reset-sent" }
   | { kind: "error"; msg: string };
-
-const FIELD =
-  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
-
-// De inlogkaart staat altijd in de lichte ZWB-palet — ook als de app in
-// dark-mode staat — zodat het transparante logo (met de donkere "B") goed
-// uitkomt en de hele kaart lichter oogt. We forceren de licht-tokens lokaal.
-const LIGHT_CARD_VARS = {
-  "--background": "oklch(0.965 0.011 103)",
-  "--foreground": "oklch(0.22 0.034 215)",
-  "--card": "oklch(0.992 0.006 103)",
-  "--card-foreground": "oklch(0.22 0.034 215)",
-  "--popover": "oklch(0.992 0.006 103)",
-  "--popover-foreground": "oklch(0.22 0.034 215)",
-  "--primary": "oklch(0.34 0.071 209)",
-  "--primary-foreground": "oklch(0.99 0.006 103)",
-  "--secondary": "oklch(0.9 0.026 178)",
-  "--secondary-foreground": "oklch(0.28 0.058 204)",
-  "--muted": "oklch(0.935 0.015 150)",
-  "--muted-foreground": "oklch(0.43 0.036 205)",
-  "--accent": "oklch(0.63 0.101 77)",
-  "--accent-foreground": "oklch(0.19 0.031 210)",
-  "--destructive": "oklch(0.577 0.245 27.325)",
-  "--border": "oklch(0.86 0.022 157)",
-  "--input": "oklch(0.86 0.022 157)",
-  "--ring": "oklch(0.63 0.101 77)",
-} as CSSProperties;
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   "auth-link-storage-missing":
@@ -70,18 +42,15 @@ function messageFromAuthError(error: string | null) {
   return "Inloggen is mislukt. Probeer het opnieuw.";
 }
 
-// Klassen per design. In "tegels" is de hoofdactie goud (jij, nu) en de
-// tweede actie sage (de club); kleur betekent daar: hier kun je op tikken.
-const TEGELS_FIELD = "w-full px-3 py-2.5 text-base";
-const TEGELS_SUBMIT = "tg-link tg-vandaag min-h-11 w-full text-base";
-const TEGELS_SECOND = "tg-link tg-club min-h-11 w-full text-base";
-const TEGELS_NOTE = "tg-note px-3 py-3 text-sm";
-const KLASSIEK_NOTE =
-  "rounded-md bg-green-50 px-3 py-2 text-sm text-green-900 dark:bg-green-950 dark:text-green-100";
+// De hoofdactie is goud (jij, nu) en de tweede actie sage (de club); kleur
+// betekent: hier kun je op tikken.
+const FIELD = "w-full px-3 py-2.5 text-base";
+const SUBMIT = "tg-link tg-vandaag min-h-11 w-full text-base";
+const SECOND = "tg-link tg-club min-h-11 w-full text-base";
+const NOTE = "tg-note px-3 py-3 text-sm";
 
-/** Inloggen, registreren en een resetlink aanvragen. `tegels`: het nieuwe
- * design, gekozen in page.tsx op basis van het cookie. */
-export function AuthScreen({ tegels }: { tegels: boolean }) {
+/** Inloggen, registreren en een resetlink aanvragen. */
+export function AuthScreen() {
   const params = useSearchParams();
   const initialError = messageFromAuthError(params.get("error"));
   const rawMode = params.get("mode");
@@ -154,12 +123,8 @@ export function AuthScreen({ tegels }: { tegels: boolean }) {
     setStatus({ kind: "idle" });
   }
 
-  const field = tegels ? TEGELS_FIELD : FIELD;
-  const submitClassName = tegels ? TEGELS_SUBMIT : "w-full";
-  const note = tegels ? TEGELS_NOTE : KLASSIEK_NOTE;
-
   const toggle =
-    mode === "reset" ? null : tegels ? (
+    mode === "reset" ? null : (
       // Zoals de pijlers van ZWBeter: kleur is klikbaar, waar je bent is het
       // paneel met de gouden lijn.
       <div className="grid grid-cols-2 gap-2">
@@ -177,31 +142,6 @@ export function AuthScreen({ tegels }: { tegels: boolean }) {
           </button>
         ))}
       </div>
-    ) : (
-      <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1 text-sm">
-        <button
-          type="button"
-          onClick={() => switchMode("login")}
-          className={`rounded px-3 py-1.5 transition ${
-            mode === "login"
-              ? "bg-background shadow-sm font-medium"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Inloggen
-        </button>
-        <button
-          type="button"
-          onClick={() => switchMode("register")}
-          className={`rounded px-3 py-1.5 transition ${
-            mode === "register"
-              ? "bg-background shadow-sm font-medium"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Registreren
-        </button>
-      </div>
     );
 
   const body = (
@@ -210,7 +150,7 @@ export function AuthScreen({ tegels }: { tegels: boolean }) {
 
       {/* Confirmation message */}
       {status.kind === "confirm-sent" ? (
-        <div className={cn("space-y-2", note, !tegels && "py-3")}>
+        <div className={`space-y-2 ${NOTE}`}>
           <p className="font-medium">Bijna klaar.</p>
           <p>
             Check je inbox en klik op de bevestigingslink om je account te
@@ -230,8 +170,6 @@ export function AuthScreen({ tegels }: { tegels: boolean }) {
           pending={pending}
           onSubmit={handlePassword}
           onResetMode={() => switchMode("reset")}
-          field={field}
-          submitClassName={submitClassName}
         />
       ) : mode === "reset" ? (
         <ResetRequestForm
@@ -240,8 +178,6 @@ export function AuthScreen({ tegels }: { tegels: boolean }) {
           pending={pending}
           onSubmit={handleReset}
           onBack={() => switchMode("login")}
-          field={field}
-          submitClassName={submitClassName}
         />
       ) : (
         <RegisterForm
@@ -249,8 +185,6 @@ export function AuthScreen({ tegels }: { tegels: boolean }) {
           setEmail={setEmail}
           pending={pending}
           onSubmit={handleRegister}
-          field={field}
-          submitClassName={submitClassName}
         />
       )}
 
@@ -267,7 +201,7 @@ export function AuthScreen({ tegels }: { tegels: boolean }) {
             variant="outline"
             disabled={pending}
             onClick={handleMagic}
-            className={tegels ? TEGELS_SECOND : "w-full"}
+            className={SECOND}
           >
             Stuur magic link
           </Button>
@@ -275,11 +209,11 @@ export function AuthScreen({ tegels }: { tegels: boolean }) {
       )}
 
       {status.kind === "magic-sent" && (
-        <p className={note}>Check je inbox — de magic link is verzonden.</p>
+        <p className={NOTE}>Check je inbox — de magic link is verzonden.</p>
       )}
 
       {status.kind === "reset-sent" && (
-        <p className={note}>
+        <p className={NOTE}>
           Als dit e-mailadres bekend is, ontvang je een link om je wachtwoord
           opnieuw in te stellen.
         </p>
@@ -291,41 +225,15 @@ export function AuthScreen({ tegels }: { tegels: boolean }) {
     </>
   );
 
-  if (tegels) {
-    // Het kader (logo, tenuebanen) zet page.tsx. Geen zichtbare titel die de
-    // pijlers herhaalt; bij een reset is er geen pijler, dan wel.
-    return (
-      <div className="space-y-5">
-        <h1 className={mode === "reset" ? "tg-display" : "sr-only"}>
-          {mode === "reset" ? "Wachtwoord" : mode === "login" ? "Inloggen" : "Registreren"}
-        </h1>
-        {body}
-      </div>
-    );
-  }
-
+  // Het kader (logo, tenuebanen) zet page.tsx. Geen zichtbare titel die de
+  // pijlers herhaalt; bij een reset is er geen pijler, dan wel.
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <div
-        className="w-full max-w-sm space-y-6 rounded-2xl border bg-card p-8 text-card-foreground shadow-sm"
-        style={LIGHT_CARD_VARS}
-      >
-        <div className="space-y-3 text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/zwb-logo.png"
-            alt="ZWB Cycling Community"
-            className="mx-auto h-16 w-auto"
-          />
-          <p className="text-sm text-muted-foreground">
-            {mode === "login" && "Log in om verder te gaan."}
-            {mode === "register" && "Maak een ZWB-account aan."}
-            {mode === "reset" && "Vraag een link aan om je wachtwoord te herstellen."}
-          </p>
-        </div>
-        {body}
-      </div>
-    </main>
+    <div className="space-y-5">
+      <h1 className={mode === "reset" ? "tg-display" : "sr-only"}>
+        {mode === "reset" ? "Wachtwoord" : mode === "login" ? "Inloggen" : "Registreren"}
+      </h1>
+      {body}
+    </div>
   );
 }
 
@@ -335,16 +243,12 @@ function LoginForm({
   pending,
   onSubmit,
   onResetMode,
-  field,
-  submitClassName,
 }: {
   email: string;
   setEmail: (v: string) => void;
   pending: boolean;
   onSubmit: (fd: FormData) => void;
   onResetMode: () => void;
-  field: string;
-  submitClassName: string;
 }) {
   return (
     <form action={onSubmit} className="space-y-3">
@@ -356,7 +260,7 @@ function LoginForm({
         placeholder="E-mailadres"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className={field}
+        className={FIELD}
       />
       <input
         type="password"
@@ -364,9 +268,9 @@ function LoginForm({
         required
         autoComplete="current-password"
         placeholder="Wachtwoord"
-        className={field}
+        className={FIELD}
       />
-      <Button type="submit" disabled={pending} className={submitClassName}>
+      <Button type="submit" disabled={pending} className={SUBMIT}>
         {pending ? "Bezig…" : "Inloggen"}
       </Button>
       <button
@@ -386,16 +290,12 @@ function ResetRequestForm({
   pending,
   onSubmit,
   onBack,
-  field,
-  submitClassName,
 }: {
   email: string;
   setEmail: (v: string) => void;
   pending: boolean;
   onSubmit: (fd: FormData) => void;
   onBack: () => void;
-  field: string;
-  submitClassName: string;
 }) {
   return (
     <form action={onSubmit} className="space-y-3">
@@ -407,9 +307,9 @@ function ResetRequestForm({
         placeholder="E-mailadres"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className={field}
+        className={FIELD}
       />
-      <Button type="submit" disabled={pending} className={submitClassName}>
+      <Button type="submit" disabled={pending} className={SUBMIT}>
         {pending ? "Bezig..." : "Stuur resetlink"}
       </Button>
       <button
@@ -428,15 +328,11 @@ function RegisterForm({
   setEmail,
   pending,
   onSubmit,
-  field,
-  submitClassName,
 }: {
   email: string;
   setEmail: (v: string) => void;
   pending: boolean;
   onSubmit: (fd: FormData) => void;
-  field: string;
-  submitClassName: string;
 }) {
   return (
     <form action={onSubmit} className="space-y-3">
@@ -446,7 +342,7 @@ function RegisterForm({
         required
         autoComplete="name"
         placeholder="Je naam (bv. Stijn Martens)"
-        className={field}
+        className={FIELD}
       />
       <input
         type="email"
@@ -456,7 +352,7 @@ function RegisterForm({
         placeholder="E-mailadres"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className={field}
+        className={FIELD}
       />
       <input
         type="password"
@@ -465,7 +361,7 @@ function RegisterForm({
         minLength={8}
         autoComplete="new-password"
         placeholder="Wachtwoord (min. 8 tekens)"
-        className={field}
+        className={FIELD}
       />
       <label className="flex items-start gap-2 text-xs text-muted-foreground">
         <input
@@ -489,7 +385,7 @@ function RegisterForm({
           andere leden.
         </span>
       </label>
-      <Button type="submit" disabled={pending} className={submitClassName}>
+      <Button type="submit" disabled={pending} className={SUBMIT}>
         {pending ? "Bezig…" : "Account aanmaken"}
       </Button>
     </form>

@@ -1,17 +1,11 @@
-import { Fragment, type CSSProperties } from "react";
 import Link from "next/link";
-import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
-import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
-import { EmptyState, PageHeader } from "@/components/app-ui";
-import { getDesign } from "@/lib/design";
 import { TegelsAgenda, type AgendaRow } from "@/components/tegels/agenda";
 import { Button } from "@/components/ui/button";
 import {
   EVENT_KINDS,
   EVENT_TYPES,
-  eventColorStyle,
   eventLabel,
   eventTypeColor,
   eventTypeInk,
@@ -28,11 +22,9 @@ import {
   splitTypeFilter,
 } from "@/lib/events/type-filter";
 import { programsByEvent, programsForGroup } from "@/lib/events/programs";
-import { EventBadge, ProgramBadges } from "./_components/event-badge";
 import { LabelFilter, type LabelGroup, type LabelOption } from "./_components/label-filter";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { groupRouteFigures, groupSubEvents, subEventLabel } from "@/lib/events/sub-events";
-import { groupByMonth } from "@/lib/events/month-groups";
 import { eventRouteSize } from "@/lib/events/route-size";
 import {
   eventGroupFitsMember,
@@ -43,18 +35,15 @@ import {
   type FitReason,
 } from "@/lib/events/fit";
 import {
-  ageOnBirthday,
   amsterdamDateKey,
-  formatDateKey,
   nextBirthdayOccurrence,
 } from "@/lib/birthdays";
 
-const STALE_AFTER_MIN = 15;
 const HISTORY_DAYS = 365;
 // De kalender toont alleen vandaag en later; voorbije events worden alleen
 // geteld. Ophalen vanaf 30 dagen terug, zodat een meerdaagse tour waarvan het
 // hoofdevent al begonnen is (FRR, migr. 0196) nog met zijn etappes meekomt. Wat
-// ouder is, telt via een losse telling mee in "Voorbije ritten".
+// ouder is, telt via een losse telling mee in "Ouder".
 const PAST_WINDOW_DAYS = 30;
 type RsvpStatus = "yes" | "maybe" | "no";
 type SearchParams = Promise<{
@@ -67,10 +56,6 @@ type SearchParams = Promise<{
 
 function pastWindowStartIso() {
   return new Date(Date.now() - PAST_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
-}
-
-async function getActiveCutoffIso() {
-  return new Date(Date.now() - STALE_AFTER_MIN * 60 * 1000).toISOString();
 }
 
 /**
@@ -260,7 +245,6 @@ export default async function KalenderPage({
     return last;
   };
   const upcoming = topLevel.filter((event) => lastDayOf(event) >= todayKey);
-  const pastCount = (olderTopLevelCount ?? 0) + topLevel.length - upcoming.length;
 
   // Wat past er niet, en waarom? Ook zonder actief filter berekend, zodat de
   // knop meteen zijn aantal kan tonen.
@@ -320,11 +304,9 @@ export default async function KalenderPage({
     ];
   });
   const birthdays = birthdaysMatchFilter(filter) ? allBirthdays : [];
-  // Eigen trainingen staan alleen in het design "tegels" in de lijst; het
-  // label bestaat daarom ook alleen daar.
-  const tegels = (await getDesign()) === "tegels";
+  // De eigen trainingen staan tussen de events in de lijst.
   const { data: workoutRows } =
-    tegels && user
+    user
       ? await supabase
           .from("training_workouts")
           .select("id, title, scheduled_at, duration_minutes, event_id")
@@ -389,7 +371,7 @@ export default async function KalenderPage({
           count: allBirthdays.length,
           dot: "var(--zwb-gold)",
         },
-        ...(tegels && user
+        ...(user
           ? [
               {
                 value: OWN_TRAINING_FILTER,
@@ -419,10 +401,6 @@ export default async function KalenderPage({
       birthday,
     })),
   ].sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-  const todayEventIds = events
-    .filter((event) => amsterdamDateKey(new Date(event.start_at)) === todayKey)
-    .map((event) => event.id);
-  const liveCountsByEvent = new Map<string, number>();
 
   // Renners die "ja" hebben gezegd, met avatar + naam onder de eventtitel.
   type YesRider = { id: string; name: string; avatarUrl: string | null };
@@ -460,38 +438,6 @@ export default async function KalenderPage({
         avatarUrl: profile.avatar_url,
       });
       yesRidersByEvent.set(target, current);
-    }
-  }
-
-  if (todayEventIds.length > 0) {
-    // Geen Wahoo-links bekijken: de kalender opent vaak en toont alleen een
-    // teller. Dat doen /live en de eventpagina.
-    await refreshExternalLiveSessions({ detect: false });
-    const cutoff = await getActiveCutoffIso();
-    const [{ data: rsvps }, { data: sessions }] = await Promise.all([
-      supabase
-        .from("event_rsvps")
-        .select("event_id, profile_id, status")
-        .in("event_id", todayEventIds)
-        .in("status", ["yes", "maybe"] satisfies RsvpStatus[]),
-      supabase
-        .from("live_sessions")
-        .select("profile_id")
-        .eq("mode", "outdoor")
-        .is("ended_at", null)
-        .gte("last_seen_at", cutoff),
-    ]);
-
-    const liveProfileIds = new Set((sessions ?? []).map((s) => s.profile_id));
-    const liveProfilesByEvent = new Map<string, Set<string>>();
-    for (const rsvp of rsvps ?? []) {
-      if (!liveProfileIds.has(rsvp.profile_id)) continue;
-      const current = liveProfilesByEvent.get(rsvp.event_id) ?? new Set<string>();
-      current.add(rsvp.profile_id);
-      liveProfilesByEvent.set(rsvp.event_id, current);
-    }
-    for (const [eventId, profileIds] of liveProfilesByEvent) {
-      liveCountsByEvent.set(eventId, profileIds.size);
     }
   }
 
@@ -561,392 +507,146 @@ export default async function KalenderPage({
       </nav>
   );
 
-  // Design "tegels" (achter de schakelaar, lib/design.ts): events en de eigen
-  // trainingen in één lijst, met wat geweest is erboven. Ritverslagen vervalt
-  // daar als los onderdeel; een voorbij event open je vanuit deze lijst.
-  if (tegels) {
-    const zone = { timeZone: "Europe/Amsterdam" } as const;
-    const dayOf = (date: Date, timeZone: string = zone.timeZone) => ({
-      day: date.toLocaleDateString("nl-NL", { weekday: "short", timeZone }).slice(0, 2),
-      dayNumber: date.toLocaleDateString("nl-NL", { day: "numeric", timeZone }),
-    });
-    const timeOf = (iso: string) =>
-      new Date(iso).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", ...zone });
+  // Events en de eigen trainingen in één lijst, met wat geweest is erboven.
+  // Ritverslagen vervalt als los onderdeel; een voorbij event open je vanuit
+  // deze lijst.
+  const zone = { timeZone: "Europe/Amsterdam" } as const;
+  const dayOf = (date: Date, timeZone: string = zone.timeZone) => ({
+    day: date.toLocaleDateString("nl-NL", { weekday: "short", timeZone }).slice(0, 2),
+    dayNumber: date.toLocaleDateString("nl-NL", { day: "numeric", timeZone }),
+  });
+  const timeOf = (iso: string) =>
+    new Date(iso).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", ...zone });
 
-    // Een training die bij een event hoort (training_workouts.event_id, migr.
-    // 0116) staat niet als eigen regel: het event staat er al. De duur komt dan
-    // bij dat event te staan. Een teamevent telt mee via zijn hoofdevent.
-    // Losse trainingen volgen het label Mijn trainingen.
-    const shownEventIds = new Set(events.map((event) => event.id));
-    const showOwnTrainings = ownTrainingsMatchFilter(filter);
-    const workoutByEvent = new Map<string, { duration_minutes: number | null }>();
-    const looseWorkouts = (workoutRows ?? []).filter((workout) => {
-      const target = workout.event_id
-        ? (rsvpTarget.get(workout.event_id as string) ?? (workout.event_id as string))
-        : null;
-      if (!target || !shownEventIds.has(target)) return showOwnTrainings;
-      workoutByEvent.set(target, { duration_minutes: workout.duration_minutes });
-      return false;
-    });
-    const eventColor = (type: string) => ({ bg: eventTypeColor(type), ink: eventTypeInk(type) });
+  // Een training die bij een event hoort (training_workouts.event_id, migr.
+  // 0116) staat niet als eigen regel: het event staat er al. De duur komt dan
+  // bij dat event te staan. Een teamevent telt mee via zijn hoofdevent.
+  // Losse trainingen volgen het label Mijn trainingen.
+  const shownEventIds = new Set(events.map((event) => event.id));
+  const showOwnTrainings = ownTrainingsMatchFilter(filter);
+  const workoutByEvent = new Map<string, { duration_minutes: number | null }>();
+  const looseWorkouts = (workoutRows ?? []).filter((workout) => {
+    const target = workout.event_id
+      ? (rsvpTarget.get(workout.event_id as string) ?? (workout.event_id as string))
+      : null;
+    if (!target || !shownEventIds.has(target)) return showOwnTrainings;
+    workoutByEvent.set(target, { duration_minutes: workout.duration_minutes });
+    return false;
+  });
+  const eventColor = (type: string) => ({ bg: eventTypeColor(type), ink: eventTypeInk(type) });
 
-    const pastRows: AgendaRow[] = topLevel
-      .filter((event) => lastDayOf(event) < todayKey)
-      .slice(-5)
-      .map((event) => ({
-        key: `past-${event.id}`,
+  const pastRows: AgendaRow[] = topLevel
+    .filter((event) => lastDayOf(event) < todayKey)
+    .slice(-5)
+    .map((event) => ({
+      key: `past-${event.id}`,
+      href: `/events/${event.id}`,
+      dateKey: amsterdamDateKey(new Date(event.start_at)),
+      color: eventColor(event.type),
+      ...dayOf(new Date(event.start_at)),
+      title: event.title,
+      sub: ["geweest", eventLabel(event.type, event.kind), event.location]
+        .filter(Boolean)
+        .join(" · "),
+    }));
+
+  const upcomingRows: Array<AgendaRow & { sortKey: string }> = [
+    ...calendarItems.map((item) => {
+      if (item.kind === "birthday") {
+        const birthday = item.birthday;
+        return {
+          sortKey: item.sortKey,
+          key: `birthday-${birthday.id}-${birthday.year}`,
+          href: `/verjaardagen/${birthday.id}?jaar=${birthday.year}`,
+          dateKey: birthday.dateKey,
+          color: { bg: "var(--tg-vandaag)", ink: "var(--tg-ink)" },
+          image: birthday.avatarUrl,
+          ...dayOf(new Date(`${birthday.dateKey}T12:00:00Z`), "UTC"),
+          title: `Verjaardag van ${birthday.displayName}`,
+        };
+      }
+      const event = item.event;
+      const riders = yesRidersByEvent.get(event.id) ?? [];
+      const subEvents = childrenByParent.get(event.id) ?? [];
+      const figures = groupRouteFigures(event, subEvents);
+      return {
+        sortKey: item.sortKey,
+        key: `event-${event.id}`,
         href: `/events/${event.id}`,
         dateKey: amsterdamDateKey(new Date(event.start_at)),
         color: eventColor(event.type),
         ...dayOf(new Date(event.start_at)),
         title: event.title,
-        sub: ["geweest", eventLabel(event.type, event.kind), event.location]
+        sub: [
+          eventLabel(event.type, event.kind),
+          workoutByEvent.has(event.id)
+            ? `jouw training${
+                workoutByEvent.get(event.id)?.duration_minutes
+                  ? ` ${workoutByEvent.get(event.id)?.duration_minutes} min`
+                  : ""
+              }`
+            : null,
+          event.location,
+          figures.distanceKm ? `${figures.distanceKm} km` : null,
+        ]
           .filter(Boolean)
           .join(" · "),
-      }));
-
-    const upcomingRows: Array<AgendaRow & { sortKey: string }> = [
-      ...calendarItems.map((item) => {
-        if (item.kind === "birthday") {
-          const birthday = item.birthday;
-          return {
-            sortKey: item.sortKey,
-            key: `birthday-${birthday.id}-${birthday.year}`,
-            href: `/verjaardagen/${birthday.id}?jaar=${birthday.year}`,
-            dateKey: birthday.dateKey,
-            color: { bg: "var(--tg-vandaag)", ink: "var(--tg-ink)" },
-            image: birthday.avatarUrl,
-            ...dayOf(new Date(`${birthday.dateKey}T12:00:00Z`), "UTC"),
-            title: `Verjaardag van ${birthday.displayName}`,
-          };
-        }
-        const event = item.event;
-        const riders = yesRidersByEvent.get(event.id) ?? [];
-        const subEvents = childrenByParent.get(event.id) ?? [];
-        const figures = groupRouteFigures(event, subEvents);
-        return {
-          sortKey: item.sortKey,
-          key: `event-${event.id}`,
-          href: `/events/${event.id}`,
-          dateKey: amsterdamDateKey(new Date(event.start_at)),
-          color: eventColor(event.type),
-          ...dayOf(new Date(event.start_at)),
-          title: event.title,
-          sub: [
-            eventLabel(event.type, event.kind),
-            workoutByEvent.has(event.id)
-              ? `jouw training${
-                  workoutByEvent.get(event.id)?.duration_minutes
-                    ? ` ${workoutByEvent.get(event.id)?.duration_minutes} min`
-                    : ""
-                }`
-              : null,
-            event.location,
-            figures.distanceKm ? `${figures.distanceKm} km` : null,
-          ]
-            .filter(Boolean)
-            .join(" · "),
-          time: timeOf(event.start_at),
-          riders,
-          extra:
-            subEvents.length > 0
-              ? subEvents.map((sub) => (
-                  <Link
-                    key={sub.id}
-                    href={`/events/${sub.id}`}
-                    className="inline-flex min-h-9 items-center border bg-card px-3 text-xs font-medium hover:bg-muted"
-                  >
-                    {subEventLabel(sub.title, event.title)}
-                  </Link>
-                ))
-              : undefined,
-        };
-      }),
-      ...looseWorkouts.map((workout) => ({
-        sortKey:
-          `${amsterdamDateKey(new Date(workout.scheduled_at))}|` +
-          `${workout.scheduled_at}|training|${workout.id}`,
-        key: `training-${workout.id}`,
-        href: "/zwbeter-worden/schema",
-        dateKey: amsterdamDateKey(new Date(workout.scheduled_at)),
-        color: { bg: "var(--tg-zwbeter)", ink: "var(--tg-paper)" },
-        ...dayOf(new Date(workout.scheduled_at)),
-        title: workout.title as string,
-        sub: ["training", workout.duration_minutes ? `${workout.duration_minutes} min` : null]
-          .filter(Boolean)
-          .join(" · "),
-      })),
-    ].sort((x, y) => x.sortKey.localeCompare(y.sortKey));
-
-    return (
-      <div className="space-y-4">
-        <header className="tg-repeats-nav flex items-end justify-end gap-3">
-          <h1 className="tg-display">Kalender</h1>
-          {canCreateEvents && (
-            <Link href="/kalender/nieuw">
-              <Button>Nieuw event</Button>
-            </Link>
-          )}
-        </header>
-        {filterNav}
-        {(olderTopLevelCount ?? 0) > 0 && (
-          <p className="text-sm">
-            <Link href="/ritverslagen" className="font-medium text-muted-foreground hover:text-primary">
-              Ouder ({olderTopLevelCount})
-            </Link>
-          </p>
-        )}
-        <TegelsAgenda
-          past={pastRows}
-          upcoming={upcomingRows}
-          todayKey={todayKey}
-          empty="Geen aankomende events of trainingen."
-        />
-      </div>
-    );
-  }
+        time: timeOf(event.start_at),
+        riders,
+        extra:
+          subEvents.length > 0
+            ? subEvents.map((sub) => (
+                <Link
+                  key={sub.id}
+                  href={`/events/${sub.id}`}
+                  className="inline-flex min-h-9 items-center border bg-card px-3 text-xs font-medium hover:bg-muted"
+                >
+                  {subEventLabel(sub.title, event.title)}
+                </Link>
+              ))
+            : undefined,
+      };
+    }),
+    ...looseWorkouts.map((workout) => ({
+      sortKey:
+        `${amsterdamDateKey(new Date(workout.scheduled_at))}|` +
+        `${workout.scheduled_at}|training|${workout.id}`,
+      key: `training-${workout.id}`,
+      href: "/zwbeter-worden/schema",
+      dateKey: amsterdamDateKey(new Date(workout.scheduled_at)),
+      color: { bg: "var(--tg-zwbeter)", ink: "var(--tg-paper)" },
+      ...dayOf(new Date(workout.scheduled_at)),
+      title: workout.title as string,
+      sub: ["training", workout.duration_minutes ? `${workout.duration_minutes} min` : null]
+        .filter(Boolean)
+        .join(" · "),
+    })),
+  ].sort((x, y) => x.sortKey.localeCompare(y.sortKey));
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Kalender"
-        actions={
-          canCreateEvents ? (
-            <Link href="/kalender/nieuw">
-              <Button>Nieuw event</Button>
-            </Link>
-          ) : null
-        }
-      />
-
+    <div className="space-y-4">
+      <header className="tg-repeats-nav flex items-end justify-end gap-3">
+        <h1 className="tg-display">Kalender</h1>
+        {canCreateEvents && (
+          <Link href="/kalender/nieuw">
+            <Button>Nieuw event</Button>
+          </Link>
+        )}
+      </header>
       {filterNav}
-
-      {calendarItems.length === 0 ? (
-        <EmptyState>
-          Geen aankomende events of gedeelde verjaardagen.
-          {pastCount > 0 && (
-            <>
-              {" "}
-              <Link href="/ritverslagen" className="underline">
-                Bekijk voorbije ritten
-              </Link>
-              .
-            </>
-          )}
-        </EmptyState>
-      ) : (
-        <div className="space-y-2">
-          {groupByMonth(calendarItems, (item) => item.sortKey, todayKey).map((group) => (
-          <Fragment key={group.monthKey}>
-          <h2 className="flex items-center gap-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground first:pt-0 after:h-px after:flex-1 after:bg-border after:content-['']">
-            {group.label}
-          </h2>
-          <ul className="space-y-2">
-          {group.items.map((item) => {
-            if (item.kind === "birthday") {
-              const birthday = item.birthday;
-              const age = ageOnBirthday(birthday.birthDate, birthday.year);
-              const isToday = birthday.dateKey === todayKey;
-              return (
-                <li
-                  key={`birthday-${birthday.id}-${birthday.year}`}
-                  className="relative overflow-hidden rounded-lg border border-zwb-gold/50 bg-gradient-to-r from-zwb-gold/20 via-card to-zwb-gold/5 p-4 pl-5 shadow-sm transition before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-zwb-gold before:content-[''] hover:border-zwb-gold/80 hover:shadow-md"
-                >
-                  <Link
-                    href={`/verjaardagen/${birthday.id}?jaar=${birthday.year}`}
-                    className="flex items-center justify-between gap-3"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      {birthday.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={birthday.avatarUrl}
-                          alt=""
-                          className="size-14 shrink-0 rounded-full object-cover ring-2 ring-zwb-gold/50 ring-offset-2 ring-offset-background"
-                        />
-                      ) : (
-                        <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-zwb-gold/15 text-zwb-gold ring-2 ring-zwb-gold/40 ring-offset-2 ring-offset-background">
-                          <Cake className="size-6" />
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium">
-                            Verjaardag van {birthday.displayName}
-                          </p>
-                          {isToday && (
-                            <span className="rounded-full bg-zwb-gold px-2 py-0.5 text-xs font-semibold text-slate-950 shadow-sm">
-                              Vandaag
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {formatDateKey(birthday.dateKey, { dateStyle: "full" })}
-                          {age !== null ? ` · ${age} jaar` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="hidden rounded-full border border-zwb-gold/40 bg-zwb-gold/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-900 dark:text-amber-200 sm:inline">
-                      Verjaardag
-                    </span>
-                  </Link>
-                </li>
-              );
-            }
-
-            const event = item.event;
-            const color = eventColorStyle(event.type, event.kind);
-            const participantLine = String(event.description ?? "")
-              .split("\n")
-              .find((line) => line.startsWith("ZWB-deelnemers:"))
-              ?.replace(/^ZWB-deelnemers:\s*/, "")
-              .trim();
-            const yesRiders = yesRidersByEvent.get(event.id) ?? [];
-            const subEvents = childrenByParent.get(event.id) ?? [];
-            const figures = groupRouteFigures(event, subEvents);
-            const liveCount = liveCountsByEvent.get(event.id) ?? 0;
-            const coverUrl = event.cover_image_path
-              ? supabase.storage
-                  .from("event-photos")
-                  .getPublicUrl(event.cover_image_path).data.publicUrl
-              : null;
-            return (
-              <li
-                key={event.id}
-                className={`relative flex flex-col gap-3 overflow-hidden rounded-lg border bg-card p-4 pl-5 transition before:absolute before:inset-y-0 before:left-0 before:bg-[var(--event-bar)] before:content-[''] hover:border-foreground/30 sm:flex-row sm:items-center sm:justify-between ${
-                  color.wideBar ? "before:w-2" : "before:w-1"
-                }`}
-                style={{ "--event-bar": color.bar } as CSSProperties}
-              >
-                <Link
-                  href={`/events/${event.id}`}
-                  className="flex min-w-0 flex-1 items-center gap-3"
-                >
-                  {coverUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={coverUrl}
-                      alt=""
-                      className="hidden size-14 shrink-0 rounded-md object-cover sm:block"
-                    />
-                  )}
-                  <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium">{event.title}</p>
-                    {liveCount > 0 && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-xs font-semibold text-destructive-foreground">
-                        <span className="size-1.5 animate-pulse rounded-full bg-current" />
-                        Live nu ({liveCount})
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {lastDayOf(event) !== amsterdamDateKey(new Date(event.start_at))
-                      ? `${new Date(event.start_at).toLocaleDateString("nl-NL", {
-                          weekday: "long",
-                          day: "numeric",
-                          month: "long",
-                          timeZone: "Europe/Amsterdam",
-                        })} t/m ${new Date(`${lastDayOf(event)}T12:00:00Z`).toLocaleDateString(
-                          "nl-NL",
-                          { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" },
-                        )}`
-                      : new Date(event.start_at).toLocaleString("nl-NL", {
-                          dateStyle: "full",
-                          timeStyle: "short",
-                          timeZone: "Europe/Amsterdam",
-                        })}
-                    {event.location ? ` · ${event.location}` : ""}
-                    {figures.distanceKm ? ` · ${figures.distanceKm} km` : ""}
-                    {figures.elevationM ? ` · ${figures.elevationM} hm` : ""}
-                  </p>
-                  {participantLine && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {participantLine}
-                    </p>
-                  )}
-                  {yesRiders.length > 0 && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <div className="flex -space-x-2">
-                        {yesRiders.slice(0, 5).map((rider) =>
-                          rider.avatarUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              key={rider.id}
-                              src={rider.avatarUrl}
-                              alt=""
-                              title={rider.name}
-                              className="size-7 rounded-full object-cover ring-2 ring-card"
-                            />
-                          ) : (
-                            <span
-                              key={rider.id}
-                              title={rider.name}
-                              className="flex size-7 items-center justify-center rounded-full bg-secondary text-xs font-medium text-secondary-foreground ring-2 ring-card"
-                            >
-                              {rider.name.slice(0, 1).toUpperCase()}
-                            </span>
-                          ),
-                        )}
-                      </div>
-                      <p className="min-w-0 truncate text-sm text-muted-foreground">
-                        {yesRiders.length <= 3
-                          ? yesRiders.map((rider) => rider.name).join(", ")
-                          : `${yesRiders
-                              .slice(0, 2)
-                              .map((rider) => rider.name)
-                              .join(", ")} +${yesRiders.length - 2}`}
-                      </p>
-                    </div>
-                  )}
-                  </div>
-                </Link>
-
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  {subEvents.map((sub) => (
-                    <Link
-                      key={sub.id}
-                      href={`/events/${sub.id}`}
-                      className={`rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-secondary ${
-                        (sub.team_id && member.teamIds.includes(sub.team_id)) ||
-                        member.committedEventIds.has(sub.id) ||
-                        (childrenByParent.get(sub.id) ?? []).some((slot) =>
-                          member.committedEventIds.has(slot.id),
-                        )
-                          ? "border-primary/50 bg-primary/10"
-                          : "bg-background"
-                      }`}
-                    >
-                      {subEventLabel(sub.title, event.title)}
-                    </Link>
-                  ))}
-                  <ProgramBadges programs={programsOf(event)} />
-                  <EventBadge type={event.type} kind={event.kind} />
-                  {liveCount > 0 && (
-                    <Link
-                      href={`/live/${event.id}`}
-                      className="rounded-md border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
-                    >
-                      Live volgen
-                    </Link>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-          </ul>
-          </Fragment>
-          ))}
-        </div>
-      )}
-
-      {calendarItems.length > 0 && pastCount > 0 && (
-        <p className="text-sm text-muted-foreground">
-          <Link href="/ritverslagen" className="font-medium text-primary hover:underline">
-            Voorbije ritten ({pastCount}) →
+      {(olderTopLevelCount ?? 0) > 0 && (
+        <p className="text-sm">
+          <Link href="/ritverslagen" className="font-medium text-muted-foreground hover:text-primary">
+            Ouder ({olderTopLevelCount})
           </Link>
         </p>
       )}
+      <TegelsAgenda
+        past={pastRows}
+        upcoming={upcomingRows}
+        todayKey={todayKey}
+        empty="Geen aankomende events of trainingen."
+      />
     </div>
   );
 }

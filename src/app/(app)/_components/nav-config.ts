@@ -1,8 +1,9 @@
-// Gedeelde nav-config tussen desktop (layout.tsx) en mobiel (mobile-menu.tsx).
-// Discriminated union zodat we per node-type kunnen renderen.
+// Gedeelde nav-config: de links per plek, de tabbalken binnen modules, het
+// persoonlijke menu en het beheer. Discriminated union zodat we per node-type
+// kunnen renderen.
 //
-// 'link'  → directe top-level link
-// 'group' → dropdown-cluster (desktop) of section-header (mobiel)
+// 'link'  → losse link
+// 'group' → cluster links onder een kopje (bijvoorbeeld Club op /club)
 
 import type { CommunityPermission } from "@/lib/permissions";
 import { ADMIN_AREAS, type AdminAreaKey } from "@/lib/admin-areas";
@@ -13,8 +14,8 @@ export type NavLeaf = {
   href: string;
   label: string;
   external?: boolean;
-  /** Alleen tonen als de gebruiker dit recht heeft. Filteren gebeurt in de
-   * layout, want de nav-componenten draaien client-side. */
+  /** Alleen tonen als de gebruiker dit recht heeft. Filteren gebeurt op de
+   * server, vóór de links naar de client gaan. */
   permission?: CommunityPermission;
   /**
    * Alleen tonen bij dit geslacht uit het profiel. Nu alleen voor het logboek:
@@ -32,8 +33,7 @@ export type NavGroup = {
 
 export type NavNode = NavLeaf | NavGroup;
 
-/** De subpagina's van ZWBeter Worden. Eén bron voor het hoofdmenu én de
- * tabbalk binnen de module. */
+/** De subpagina's van ZWBeter Worden: de tabbalk binnen de module. */
 export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden", label: "Vandaag" },
   { type: "link", href: "/zwbeter-worden/schema", label: "Schema" },
@@ -157,7 +157,7 @@ export const NAV_GROUPS: NavNode[] = [
   { type: "link", href: "/sponsors", label: "Sponsors" },
 ];
 
-// Items voor de avatar-dropdown (en mobiel onderaan).
+// Items voor het persoonlijke menu achter de profielfoto.
 export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/profiel", label: "Profiel" },
   { type: "link", href: "/mijn-garage", label: "Mijn garage" },
@@ -168,22 +168,14 @@ export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/updates", label: "App-updates" },
 ];
 
-// Admin-items met bijbehorende permission, uit het register van de
-// beheergebieden (lib/admin-areas.ts). Filteren gebeurt in de layout via
-// getCurrentUserAccess.
+// Beheeritems met bijbehorende permission, uit het register van de
+// beheergebieden (lib/admin-areas.ts).
 export type AdminNavItem = {
   type: "link";
   href: string;
   label: string;
   permission: CommunityPermission;
 };
-
-export const ADMIN_NAV: AdminNavItem[] = Object.values(ADMIN_AREAS).map((area) => ({
-  type: "link" as const,
-  href: area.href,
-  label: area.label,
-  permission: area.permission,
-}));
 
 function adminLink(key: AdminAreaKey): AdminNavItem {
   const area = ADMIN_AREAS[key];
@@ -193,10 +185,10 @@ function adminLink(key: AdminAreaKey): AdminNavItem {
 export type BeheerCategory = { label: string; tone: PlaceTone; items: AdminNavItem[] };
 
 /**
- * Design "tegels": het beheer als één pagina met tegels per soort, zoals Club,
- * in plaats van een lange lijst in het persoonlijke menu (besluit eigenaar,
- * 2026-10-16). WhatsApp-groepen en Media zijn geen beheergebied maar staan in
- * dit design wel hier (besluit eigenaar, 2026-10-12).
+ * Het beheer als één pagina met tegels per soort, zoals Club, in plaats van een
+ * lange lijst in het persoonlijke menu (besluit eigenaar, 2026-10-16).
+ * WhatsApp-groepen en Media zijn geen beheergebied maar staan wel hier
+ * (besluit eigenaar, 2026-10-12).
  */
 export const BEHEER_CATEGORIES: BeheerCategory[] = [
   {
@@ -309,7 +301,3 @@ export function navHrefs(nodes: readonly NavNode[]): string[] {
   );
 }
 
-/** Helper: bevat deze groep de actieve link? Voor highlight-state op trigger. */
-export function isActiveGroup(activeHref: string | null, group: NavGroup): boolean {
-  return activeHref !== null && group.items.some((item) => item.href === activeHref);
-}

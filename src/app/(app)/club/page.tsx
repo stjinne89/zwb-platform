@@ -4,12 +4,10 @@ import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { TegelsLinkGrid, type PlaceLink } from "@/components/tegels/link-grid";
 import { NAV_GROUPS, filterNavForPermissions, type NavLeaf } from "../_components/nav-config";
 
-// De plek "Club" van het design "tegels": alles van de club als tegels. In het
-// oude design staat dit in het menu en linkt er niets naar deze pagina.
+// De plek "Club": alles van de club als tegels.
 
-// In het oude design is Samen fietsen een eigen menu-item; hier staat het
-// naast Leden, want het gaat om met clubgenoten rijden (besluit eigenaar,
-// 2026-10-16).
+// Samen fietsen staat naast Leden, want het gaat om met clubgenoten rijden
+// (besluit eigenaar, 2026-10-16).
 const SAMEN_FIETSEN: NavLeaf = { type: "link", href: "/samen-fietsen", label: "Samen fietsen" };
 
 // Kleur volgt het kleurbeleid (zie globals.css): de soort inhoud bepaalt de

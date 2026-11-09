@@ -6,13 +6,12 @@ import {
   KRACHT_SECTIONS,
   VOEDING_SECTIONS,
   activeHrefIn,
-  isActiveGroup,
   navHrefs,
   type NavGroup,
 } from "@/app/(app)/_components/nav-config";
 
-// Melding 4 (plannenboek, 4 september): in het mobiele menu stonden meerdere
-// opties tegelijk geselecteerd, omdat elke link ook op zijn subroutes matchte.
+// Melding 4 (plannenboek, 4 september): in het menu stonden meerdere opties
+// tegelijk geselecteerd, omdat elke link ook op zijn subroutes matchte.
 const menuHrefs = [...navHrefs(NAV_GROUPS), ...AVATAR_NAV.map((item) => item.href)];
 
 function activeLinks(pathname: string, hrefs: string[]) {
@@ -98,25 +97,15 @@ describe("activeHrefIn", () => {
   });
 });
 
-describe("isActiveGroup", () => {
-  const zwbeter = NAV_GROUPS.find(
-    (node): node is NavGroup => node.type === "group" && node.label === "ZWBeter Worden",
-  )!;
+describe("Club-groep", () => {
   const club = NAV_GROUPS.find(
     (node): node is NavGroup => node.type === "group" && node.label === "Club",
   )!;
-
-  it("licht alleen de groep van de actieve link op", () => {
-    const active = activeHrefIn("/zwbeter-worden/jaarplan", menuHrefs);
-    expect(isActiveGroup(active, zwbeter)).toBe(true);
-    expect(isActiveGroup(active, club)).toBe(false);
-    expect(isActiveGroup(null, zwbeter)).toBe(false);
-  });
 
   it("zet ZWB Segments in Club, direct boven ZWBlokken, en niet meer in het avatarmenu", () => {
     const hrefs = club.items.map((item) => item.href);
     expect(hrefs.indexOf("/profiel/segments/collecties")).toBe(hrefs.indexOf("/zwblokken") - 1);
     expect(AVATAR_NAV.map((item) => item.href)).not.toContain("/profiel/segments/collecties");
-    expect(isActiveGroup(activeHrefIn("/profiel/segments/collecties", menuHrefs), club)).toBe(true);
+    expect(hrefs).toContain(activeHrefIn("/profiel/segments/collecties", menuHrefs));
   });
 });
