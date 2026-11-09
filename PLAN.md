@@ -54,11 +54,10 @@ gaat stabiliteit voor nieuwe features.
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
 0. **Generieke versie, fase 7: proefinstallatie (2026-11-09): gepusht naar
-   `main`** (`b0836acb`). Geen migratie voor ZWB. Proefproject
-   `zwb-proefclub` ($10 per maand) staat nog aan. Migratiescript
-   `scripts/migrate-installation.mjs`, de handleiding bijgewerkt. Open: het
-   proefproject pauzeren of verwijderen. Zie de ronde "fase 7:
-   proefinstallatie".
+   `main`** (`b0836acb`). Geen migratie voor ZWB. Migratiescript
+   `scripts/migrate-installation.mjs`, de handleiding bijgewerkt. Het
+   proefproject `zwb-proefclub` is na de proef verwijderd. Zie de ronde "fase
+   7: proefinstallatie".
 
 0. **Generieke versie: geen ZWB-logo's bij een andere club (2026-11-09):
    gepusht naar `main` (`a5d2a2f3`), migratie `0322` toegepast** (versie
@@ -12170,6 +12169,14 @@ akkoord eigenaar). Het databasewachtwoord en de service-role-sleutel heeft de
 eigenaar zelf in `.env.proefclub` en `.env.proefclub-app` gezet; die vallen
 onder `.gitignore`. Productie is niet aangeraakt, behalve lezen voor de
 schemavergelijking.
+
+**Na de proef verwijderd** (2026-11-09, op verzoek van de eigenaar: "Zijn we
+klaar met testen zet dan het project maar weer op pauze", daarna
+"Verwijderen"). Pauzeren kon niet: Supabase pauzeert via de API alleen
+projecten in een gratis organisatie, en de organisatie terugzetten zou ook
+productie raken. Verwijderd in het dashboard; de twee env-bestanden zijn
+lokaal weggegooid. Een nieuwe proef: een leeg project aanmaken en de
+handleiding volgen; het script zet de database in een paar seconden neer.
 
 Wat er is:
 
