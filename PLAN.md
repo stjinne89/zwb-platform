@@ -12054,7 +12054,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Generieke versie: geen ZWB-logo's bij een andere club
 
-**2026-11-09, commit `COMMITL`.** Op verzoek van de eigenaar ("Kun je ervoor
+**2026-11-09, commit `a5d2a2f3`.** Op verzoek van de eigenaar ("Kun je ervoor
 zorgen dat een blanco app ook geen logo's van zwb meeneemt? Dat ze dan dus
 leegblijven"), daarna "Ja, bouwen" op het voorstel. Migratie
 `0322_club_static_brand.sql`, **niet toegepast op productie**; wel op het
