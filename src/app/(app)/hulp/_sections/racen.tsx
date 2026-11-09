@@ -190,9 +190,12 @@ export function RacenHelp() {
           <p className="mt-2 text-sm text-muted-foreground">
             Je ziet per stuk vermogen, genormaliseerd vermogen (NP), intensiteit
             (NP gedeeld door je FTP uit je profiel), W/kg, hoogte, hartslag en
-            cadans, en je beste vermogen in de race naast je beste van de
-            laatste 90 dagen; &ldquo;nieuw&rdquo; betekent dat het beste van die
-            90 dagen uit deze race komt. Geeft Zwift voor de route geen
+            cadans, en je beste vermogen in de race over 5 seconden tot 40
+            minuten naast je beste van de laatste 90 dagen; &ldquo;nieuw&rdquo;
+            betekent dat het beste van die 90 dagen uit deze race komt. In de
+            grafiek staat de W′-balans bij je vermogen, met zijn eigen schaal
+            rechts en het hoogteprofiel erachter; onder 0% kleurt de lijn rood.
+            Geeft Zwift voor de route geen
             klimsegmenten, dan haalt de app de klimmen uit het hoogteprofiel van
             je rit: minstens 12 meter stijgen over meer dan 200 meter. Een stuk
             dat gemiddeld meer dan 1,5% daalt, heet een afdaling.

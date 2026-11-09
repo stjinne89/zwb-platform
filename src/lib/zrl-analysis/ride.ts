@@ -168,7 +168,7 @@ export type RideAnalysis = {
   series: Array<{ t: number; watts: number; heartRate: number | null; wbal: number | null; altitude: number | null }>;
 };
 
-export const BEST_DURATIONS = [60, 120, 180, 300, 600, 1200, 1800, 2400];
+export const BEST_DURATIONS = [5, 15, 30, 60, 120, 180, 300, 600, 1200, 1800, 2400];
 /** W′ op of onder dit percentage: op. */
 export const EMPTY_SHARE = 5;
 /** Na een lege W′: hersteld vanaf dit percentage. */

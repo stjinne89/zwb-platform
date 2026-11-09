@@ -23,9 +23,11 @@ gaat stabiliteit voor nieuwe features.
 
 0. **ZWBeter racen: diepere race-analyse (2026-11-09): gepusht naar `main`
    (`7fe8ba59`, merge `915a582c`); migratie `0321` toegepast; privacytekst
-   goedgekeurd door de eigenaar.** Open: de eigenaar kijkt de pagina ingelogd na
-   (ook de popovers op een telefoon). Zie de ronde "ZWBeter racen: diepere
-   race-analyse".
+   goedgekeurd door de eigenaar.** Daarna de rit-grafiek (W′ bij het vermogen,
+   duidelijker hoogteprofiel) en beste vermogen over 5, 15 en 30 s: lokaal
+   gecommit, niet gepusht. Open: de eigenaar kijkt de pagina ingelogd na (ook
+   de popovers op een telefoon). Zie de rondes "ZWBeter racen: rit-grafiek en
+   korte besten" en "ZWBeter racen: diepere race-analyse".
 
 0. **Dashboard: volgorde in groepen, "Vandaag" heet "Dashboard" (2026-11-09):
    gepusht naar `main` (`55493bd0`).** Geen migratie. Open: na de deploy ingelogd
@@ -3859,7 +3861,8 @@ lid, ook buiten de kalender")*
 > - **Pagina's:** vijfde pijler **racen** met `/zwbeter-worden/racen` (jouw races,
 >   als captain, andere teams) en
 >   `/zwbeter-worden/racen/[eventId]`, met twee nieuwe grafieken (voorsprong per
->   tussenpunt; vermogen, hartslag en W′ in drie banden). Menu-item "Racen".
+>   tussenpunt; vermogen, hartslag en W′ ~~in drie banden~~, sinds 2026-11-09
+>   in twee: W′ bij het vermogen). Menu-item "Racen".
 > - `/hulp#racen` en `#racen-eigen-rit`, de hulpzoeker en de wegwijzer.
 > - **Privacyverklaring** (`#racen`): wat we uit de Zwift-uitslag bewaren, wie het
 >   ziet, en dat de eigen rit alleen voor het lid is en niet bewaard wordt. Geen
@@ -12685,6 +12688,43 @@ race en als pagina aan de eigenaar voorgelegd:
 - **Niet:** vermogen van renners van andere clubs buiten de ZRL (privacykeuze
   van 2026-10-15). Positie in het peloton geeft Zwift niet; "waar de groep
   wegreed" blijft een afleiding.
+
+### Gebouwd — ZWBeter racen: rit-grafiek en korte besten
+
+**2026-11-09.** Lokaal gecommit, niet gepusht. Geen migratie. Vraag van de
+eigenaar bij een schermafbeelding van "Jouw rit": "Kun je w bal in dezelfde
+grafiek weergeven als de vermogens? en kun je het hoogteprofiel iets
+duidelijker weergeven?", en daarna "Kun je daarnaast in de vermogens ook 5s,
+15s en 30s toevoegen?". Het voorstel (W′ op een rechteras, rood onder 0%,
+hoogte groter met een eigen kleur) is eerst voorgelegd en goedgekeurd.
+
+**Waarom.** In drie losse banden moest je met je oog van het vermogen naar de
+W′-band springen om te zien welk vermogen je W′ leegtrok; het hoogteprofiel
+was met 12% dekking en 40% van de band nauwelijks te zien.
+
+**Wat er is:**
+
+- `ride-chart.tsx`: twee banden. Boven vermogen (links, in W) met de
+  W′-balans op een eigen as rechts (−10 tot 100%); onder 0% kleurt de W′-lijn
+  rood (`clipPath`). Erachter het hoogteprofiel over 60% van de band, in de
+  nieuwe kleur `--chart-terrain` (licht en donker) met een lijn bovenop, en de
+  spanne ("0–131 m") linksonder. Onder de hartslag, ongewijzigd. De
+  vermogensband is hoger (240 tegen 150 px).
+- `BEST_DURATIONS` begint nu bij 5, 15 en 30 s; de kaarten staan op een breed
+  scherm in vijf kolommen. De 90-dagencurve van intervals.icu heeft die
+  duren al, dus het percentage en "nieuw" werken ook voor de korte besten.
+- Hulp "Jouw rit" bijgewerkt (duren en de grafiek).
+
+**Bewust niet:** een as voor de hoogte (de rechteras is van W′; de spanne
+staat als tekst in de band); de afgevlakte vermogenslijnen over 5, 15 en 30 s
+in de grafiek (de vraag ging over de lijst met beste vermogens, en de lijn is
+al een gemiddelde over 30 s).
+
+**Gecontroleerd:** de grafiek met de echte race van de eigenaar server-side
+gerenderd en in licht en donker bekeken (headless Edge); besten op die race:
+5 s 717 W (81%), 15 s 623 W, 30 s 543 W. `tsc` en eslint schoon, 246 tests
+groen (`zrl`, `help`, `racen`). **Niet gecontroleerd:** de grafiek ingelogd in
+de app en op een telefoon, `next build`.
 
 ### Gebouwd — ZWBeter racen: diepere race-analyse
 
