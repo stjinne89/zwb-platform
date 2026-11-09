@@ -10,6 +10,8 @@
 // - processClaudeJob doet de eigenlijke aanroep en schrijft het antwoord terug.
 // - readClaudeJob geeft dezelfde statussen terug als OpenAI, zodat de ophaal-code
 //   van elke functie gelijk blijft.
+// - runClaude schrijft na elke aanroep een regel in ai_usage (0316, usage.ts):
+//   van wie, wie hem startte, de tokens en de kosten.
 // Het id dat de functies bewaren is "aij_" + het id in ai_jobs; een id van
 // OpenAI begint met "resp_". Zo worden opdrachten die nog bij OpenAI liepen na
 // de overstap gewoon daar opgehaald.
@@ -20,6 +22,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "../supabase/admin";
 import type { AiEffort } from "./settings";
+import { costUsd, tokensFromUsage, type AiMeter } from "./usage";
 
 export const CLAUDE_JOB_PREFIX = "aij_";
 
@@ -34,6 +37,12 @@ export type ClaudeRequest = {
   schema?: Record<string, unknown> | null;
   /** De systeemprompt cachen; alleen zinvol als die tussen aanroepen gelijk blijft. */
   cacheSystem?: boolean;
+  /**
+   * Van wie de aanroep is en wie hem startte, voor ai_usage (0316). Verplicht,
+   * zodat geen nieuwe aanroep ongemeten blijft. Een opdracht die nog van vóór
+   * deze regel in de rij stond, heeft hem niet; die wordt niet geteld.
+   */
+  meter: AiMeter;
 };
 
 export type ClaudeJobState =
@@ -46,6 +55,8 @@ const RUNNING_TIMEOUT_MS = 16 * 60_000;
 /** Na zoveel wachten in de rij wordt de achtergrondfunctie opnieuw aangestoten. */
 const REKICK_AFTER_MS = 60_000;
 const KEEP_DAYS = 7;
+/** ai_usage bewaart dertien maanden: genoeg om een heel jaar te vergelijken. */
+const USAGE_KEEP_DAYS = 396;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function isClaudeJobId(id: string | null | undefined): boolean {
@@ -91,8 +102,45 @@ function client(): Anthropic {
   return new Anthropic({ apiKey, maxRetries: 3, timeout: 14 * 60_000 });
 }
 
+/**
+ * Eén regel in ai_usage. Mag de aanroep zelf nooit laten mislukken: zonder
+ * tabel (migratie 0316 nog niet toegepast) of bij een fout telt hij gewoon niet.
+ */
+async function recordUsage(
+  feature: ClaudeFeature,
+  meter: AiMeter | undefined,
+  model: string,
+  usage: unknown,
+  stopReason: string | null,
+): Promise<void> {
+  if (!meter) return;
+  try {
+    const tokens = tokensFromUsage(usage);
+    await createAdminClient()
+      .from("ai_usage")
+      .insert({
+        profile_id: meter.profileId,
+        feature,
+        kind: meter.kind ?? feature,
+        trigger: meter.trigger,
+        model,
+        stop_reason: stopReason,
+        input_tokens: tokens.input,
+        output_tokens: tokens.output,
+        cache_write_tokens: tokens.cacheWrite,
+        cache_read_tokens: tokens.cacheRead,
+        cost_usd: costUsd(model, tokens),
+      });
+  } catch {
+    // Meten is bijzaak.
+  }
+}
+
 /** Eén aanroep, synchroon. Gooit bij een weigering, een afgekapt of leeg antwoord. */
-export async function runClaude(request: ClaudeRequest): Promise<{ text: string; usage: unknown; model: string }> {
+export async function runClaude(
+  request: ClaudeRequest,
+  feature: ClaudeFeature,
+): Promise<{ text: string; usage: unknown; model: string }> {
   const stream = client().beta.messages.stream({
     model: request.model,
     max_tokens: 64_000,
@@ -111,6 +159,9 @@ export async function runClaude(request: ClaudeRequest): Promise<{ text: string;
     messages: [{ role: "user", content: request.user }],
   });
   const message = await stream.finalMessage();
+  // Ook een geweigerd of afgekapt antwoord kost tokens, dus eerst tellen.
+  // Met een fallback rekent dit met het model dat het antwoord afmaakte.
+  await recordUsage(feature, request.meter, message.model, message.usage, message.stop_reason ?? null);
   if (message.stop_reason === "refusal") throw new Error("Claude weigerde deze vraag.");
   if (message.stop_reason === "max_tokens") throw new Error("Het antwoord van Claude werd afgekapt.");
   const text = message.content
@@ -186,12 +237,12 @@ export async function processClaudeJob(id: string): Promise<void> {
     .update({ status: "in_progress", started_at: new Date().toISOString() })
     .eq("id", id)
     .eq("status", "queued")
-    .select("request")
+    .select("request, feature")
     .maybeSingle();
   if (!job?.request) return;
 
   try {
-    const result = await runClaude(job.request as ClaudeRequest);
+    const result = await runClaude(job.request as ClaudeRequest, job.feature as ClaudeFeature);
     await admin
       .from("ai_jobs")
       .update({
@@ -219,6 +270,11 @@ export async function processClaudeJob(id: string): Promise<void> {
     .from("ai_jobs")
     .delete()
     .lt("created_at", new Date(Date.now() - KEEP_DAYS * 86_400_000).toISOString());
+  // Zonder tabel (0316) geeft dit een fout terug in plaats van te gooien.
+  await admin
+    .from("ai_usage")
+    .delete()
+    .lt("created_at", new Date(Date.now() - USAGE_KEEP_DAYS * 86_400_000).toISOString());
 }
 
 export async function readClaudeJob(jobId: string): Promise<ClaudeJobState> {

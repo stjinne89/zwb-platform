@@ -117,6 +117,8 @@ export function buildRequest(weekStart: string, rounds: PlanRound[], example: Dr
     system: SYSTEM,
     cacheSystem: true,
     schema: SCHEMA,
+    // Voor de hele club, door de app zelf.
+    meter: { profileId: null, trigger: "automatic" as const },
     user: `${todayLine()}\n\nDe update verschijnt donderdag ${thursday} om 17:00 en gaat over ${addDays(thursday, -6)} tot en met ${thursday}.${style}\n\nDe rondes uit het projectplan:\n\n${roundsInput(rounds)}`,
   };
 }

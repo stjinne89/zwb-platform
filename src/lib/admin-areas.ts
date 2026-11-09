@@ -82,6 +82,13 @@ export const ADMIN_AREAS = {
     label: "Houding-meetproef",
     permission: "roles.manage_permissions",
   },
+  // Wat de AI kost, per lid en per soort (0316, fase 0 van ZWBrandstof). Geld en
+  // verbruik per lid: het recht van de eigenaar, net als de meetproef.
+  aiVerbruik: {
+    href: "/beheer/ai-verbruik",
+    label: "AI-verbruik",
+    permission: "roles.manage_permissions",
+  },
 } as const satisfies Record<string, AdminArea>;
 
 export type AdminAreaKey = keyof typeof ADMIN_AREAS;

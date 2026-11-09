@@ -15,6 +15,7 @@ import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/ac
 import { getRequestAccess } from "@/lib/auth/request";
 import {
   latestResultFor,
+  loadLadderAddOptions,
   loadLadderCaptains,
   loadLadderPuzzle,
   loadLadderRiders,
@@ -49,7 +50,12 @@ export default async function ClubLadderPage({
   // Wie uit de ladder is gehaald, valt uit de puzzel.
   const allLadderRiders = loadedRiders.filter((rider) => !withdrawn.has(rider.id));
   const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
-  const captainData = canAssign ? await loadLadderCaptains(teamRows, admin) : null;
+  const [captainData, addOptions] = await Promise.all([
+    canAssign ? loadLadderCaptains(teamRows, admin) : null,
+    canAssign || canPuzzle ? loadLadderAddOptions(admin) : null,
+  ]);
+  // Rosternamen en puzzelteams deelt alleen de rol teamcaptain in.
+  const inLadderRoster = new Set((puzzle?.roster ?? []).map((row) => row.roster_entry_id));
   // Zelfde recht als syncResultsNow; met alleen manage_results faalde de knop.
   const canSync = access.has("teams.sync_sources");
   const firstTeam = teamRows.find((team) => !team.is_graveyard) ?? teamRows[0] ?? null;
@@ -116,11 +122,14 @@ export default async function ClubLadderPage({
             />
           )}
 
-          {captainData && (
+          {addOptions && (
             <LadderPoolAdd
-              members={captainData.members.filter(
+              title="Renner aan de puzzel toevoegen"
+              members={addOptions.members.filter(
                 (member) => !allLadderRiders.some((rider) => rider.id === member.id),
               )}
+              roster={canPuzzle && puzzle ? addOptions.roster.filter((entry) => !inLadderRoster.has(entry.id)) : []}
+              teams={canPuzzle && puzzle ? puzzle.teams.map((team) => ({ id: team.id, name: team.name })) : []}
             />
           )}
 

@@ -320,6 +320,8 @@ async function fetchOpenAi(
 
 export async function startPacingPlanBackground(
   input: PacingAiInput,
+  /** Het lid voor wie het plan is (ai_usage, 0316). */
+  profileId: string,
   promptText = defaultPacingPrompt(),
   options: PacingAiOptions = {},
 ): Promise<{
@@ -336,6 +338,7 @@ export async function startPacingPlanBackground(
       system: promptText,
       user: `${todayLine()}\n\nMaak een pacingplan op basis van dit parcours, deze renner en dit basisvoorstel:\n${JSON.stringify(input, null, 2)}`,
       schema: planSchema,
+      meter: { profileId, trigger: "member" },
     });
     return { responseId, status: "queued", model, promptSummary: JSON.stringify(input, null, 2) };
   }

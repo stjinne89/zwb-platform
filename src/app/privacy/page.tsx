@@ -537,6 +537,17 @@ export default function PrivacyPage() {
             events van de week erna. Het staat in je data-export en verdwijnt
             als je je account opheft.
           </li>
+          <li>
+            <strong>AI-verbruik:</strong> bij elke vraag aan {AI} (een schema,
+            de coach, het weekoverzicht, een pacingplan of een maaltijd
+            herkennen) bewaren we voor wie hij was, wat voor vraag het was, of
+            je er zelf om vroeg of dat de app het deed, hoeveel tekst er heen en
+            terug ging en wat dat kostte. Wat je vroeg en wat het antwoord was,
+            bewaren we hier niet. Het bestuur ziet dit per lid, om te weten waar
+            de kosten van de app zitten. We bewaren het dertien maanden. Het staat
+            in je data-export; hef je je account op, dan blijven alleen de
+            bedragen staan, zonder je naam.
+          </li>
           <li id="zwbriljant" className="scroll-mt-20">
             <strong><ModuleName module="rennersniveau" />:</strong> bij Stats zie je je niveau als
             edelsteen, met een score in punten. Daarvoor gebruiken we wat je al
