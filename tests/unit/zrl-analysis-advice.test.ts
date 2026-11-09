@@ -83,6 +83,12 @@ function phase(name: string, climb: boolean, extra: Partial<RidePhase> = {}): Ri
     emptyBeforeEnd: null,
     recoveryAfter: null,
     seasonBest: climb ? 330 : null,
+    gain: null,
+    distance: null,
+    grade: null,
+    wkg: null,
+    vam: null,
+    startKm: null,
     ...extra,
   };
 }
@@ -102,10 +108,10 @@ function ride(overrides: Partial<RideAnalysis> = {}): RideAnalysis {
     cadence: 72,
     phases: [phase("Vlak 1", false), phase("KOM 1", true), phase("Vlak 2", false)],
     best: [
-      { seconds: 600, watts: 250, at: 400, season: 301, share: 83 },
-      { seconds: 2400, watts: 256, at: 199, season: 273, share: 94 },
+      { seconds: 600, watts: 250, at: 400, season: 301, share: 83, isNew: false },
+      { seconds: 2400, watts: 256, at: 199, season: 273, share: 94, isNew: false },
     ],
-    cp: { cp: 275, wPrime: 13000 },
+    cp: { cp: 275, wPrime: 13000, source: "curve" },
     wbalMin: { share: 0, at: 594 },
     drift: { first: 1.61, last: 1.38, change: -15 },
     halves: { first: 265, second: 260 },
@@ -115,6 +121,15 @@ function ride(overrides: Partial<RideAnalysis> = {}): RideAnalysis {
       { from: 80, seconds: 100 },
     ],
     series: [],
+    curveModel: null,
+    terrain: false,
+    weightKg: null,
+    wbal: null,
+    efforts: null,
+    climbing: null,
+    heart: { wPerBeat: null, aboveLthr: null },
+    cadenceStats: { aboveFtp: null, grinding: null, maxTorque: null },
+    durability: [],
     ...overrides,
   };
 }
@@ -171,7 +186,7 @@ describe("rideAdvice", () => {
   });
 
   it("noemt een harde start alleen als je met weinig W′ aan de eerste klim begon", () => {
-    const start = { best: [{ seconds: 600, watts: 279, at: 15, season: 301, share: 93 }] };
+    const start = { best: [{ seconds: 600, watts: 279, at: 15, season: 301, share: 93, isNew: false }] };
     const costly = rideAdvice(withClimb({ wbalStart: 47 }, start), 274, "ttt");
     expect(costly[0].finding).toBe("Je begon op 102% van je FTP (279 W over de eerste 10 minuten) en kwam met 47% W′ aan de voet van KOM 1.");
     expect(costly[0].tip).toContain("tempo van de ploeg");
@@ -200,7 +215,7 @@ describe("rideAdvice", () => {
   });
 
   it("noemt reserve alleen in een tijdrit of ploegentijdrit, met een doel uit de eigen curve", () => {
-    const reserve = ride({ best: [{ seconds: 2400, watts: 220, at: 0, season: 270, share: 81 }] });
+    const reserve = ride({ best: [{ seconds: 2400, watts: 220, at: 0, season: 270, share: 81, isNew: false }] });
     expect(rideAdvice(reserve, 274, "tt").map((t) => t.tip)).toContain("Er zat meer in: mik op rond 257 W gemiddeld.");
     expect(rideAdvice(reserve, 274, "ttt")[0].tip).toContain("richting 257 W");
     expect(rideAdvice(reserve, 274, "race")).toEqual([]);

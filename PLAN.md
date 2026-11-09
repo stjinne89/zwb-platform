@@ -12,10 +12,15 @@ gaat stabiliteit voor nieuwe features.
    `20261109130648`, op verzoek van de eigenaar, vóór de push). Privacytekst
    goedgekeurd door de eigenaar. Na de deploy nagekeken (2026-11-09): de
    cron van 14:30 werkte, de achterstand is met de hand ingehaald (39 leden,
-   384 events), en "Jouw races" van de eigenaar toont 26 races. Open: welke
-   blokken van het onderzoek naar een diepere race-analyse gebouwd worden
-   (wacht op de eigenaar). Zie de ronde "ZWBeter racen: races per lid, ook
-   buiten de kalender".
+   384 events), en "Jouw races" van de eigenaar toont 26 races. Zie de ronde
+   "ZWBeter racen: races per lid, ook buiten de kalender".
+
+0. **ZWBeter racen: diepere race-analyse (2026-11-09): lokaal gecommit, niet
+   gepusht; migratie `0321` niet toegepast.** Open: de eigenaar keurt de
+   privacytekst goed (wellness en geplande training bij het openen, klimtijden
+   bewaard, W/kg van ZWB'ers in dezelfde race), past `0321` toe (eerst
+   `origin/main` op het nummer checken) en kijkt de pagina ingelogd na. Zie de
+   ronde "ZWBeter racen: diepere race-analyse".
 
 0. **Dashboard: volgorde in groepen, "Vandaag" heet "Dashboard" (2026-11-09):
    gepusht naar `main` (`55493bd0`).** Geen migratie. Open: na de deploy ingelogd
@@ -12096,7 +12101,8 @@ De cron van 14:30 werkte (nagekeken aan `races_checked_at` en nieuwe events in
 de database; cron-job.org bewaart geen antwoord, dat is een instelling van de
 job en niet aangepast). "Jouw races" van de eigenaar toont in Chrome 26 races.
 
-**Onderzoek diepere race-analyse (2026-11-09, nog niets gebouwd).** De eigenaar
+**Onderzoek diepere race-analyse (2026-11-09; ~~nog niets gebouwd~~ gebouwd in de
+ronde "ZWBeter racen: diepere race-analyse").** De eigenaar
 vond de analyse van een race "karig" (Stage 5 van Tour of Watopia 2026, event
 5752884: IF 1,07 en diep in de W′-balans, maar geen tips) en vroeg eerst te
 onderzoeken welke data en blokken er kunnen. Uitkomst, doorgerekend op die
@@ -12123,6 +12129,65 @@ race en als pagina aan de eigenaar voorgelegd:
 - **Niet:** vermogen van renners van andere clubs buiten de ZRL (privacykeuze
   van 2026-10-15). Positie in het peloton geeft Zwift niet; "waar de groep
   wegreed" blijft een afleiding.
+
+### Gebouwd — ZWBeter racen: diepere race-analyse
+
+**2026-11-09.** Lokaal gecommit, niet gepusht. Migratie
+`0321_race_climb_efforts` (nummer na `0320` op `origin/main`, gecheckt
+2026-11-09), niet toegepast. Vraag van de eigenaar, na de onderzoekspagina:
+"Ik wil dat je al deze blokken bouwt, met daar telkens uitleg over wanneer je
+ingewikkelde begrippen gebruikt". Details en drempels:
+[docs/zrl-analyse.md](docs/zrl-analyse.md), "Diepere race-analyse".
+
+**Waarom.** Op Stage 5 van Tour of Watopia (event 5752884) gaf de analyse één
+stuk "Vlak 1", een onmogelijke W′ van −72% en geen tips: de route stond niet in
+de routetabel, het W′-model uit de 90-dagencurve liep achter op een race met
+nieuwe besten, en de tipregels hadden klimsegmenten nodig.
+
+**Wat er is:**
+
+- **Stukken uit het hoogteprofiel** als Zwift geen klimsegmenten geeft (klimmen
+  en afdalingen), met hoogte, percentage, W/kg en VAM per stuk; het
+  hoogteprofiel ook achter het vermogen in de grafiek. `loadOwnRide` haalt
+  daarvoor ook hoogte, afstand en koppel op.
+- **W′-model van intervals.icu na de rit** (`icu_pm_cp`, `icu_pm_w_prime`),
+  zonder dat model het curvemodel; dat blijft ter vergelijking zichtbaar als het
+  niet past. ~~De app schat CP en W′ uit de eigen curve~~ (hulptekst
+  bijgewerkt).
+- **Blokken onder Jouw rit:** waar de race beslist werd, model en FTP,
+  W′-rekening, versnellingen en verloop (met klimmeters per helft), klimmen
+  tegenover eerdere keren, hart, cadans en koppel, vorm en planning, brandstof,
+  durability; nieuwe besten met "nieuw". **ZRS over je races** als lijn.
+  **ZWB in deze race** met W/kg (gemiddeld, 5 en 20 min).
+- **Tips** (`storyAdvice`): FTP bijwerken, de groep op een klim kwijt (met
+  reserve: dieper gaan; leeg: dat vermogen trainen), lang zwaar op lage cadans.
+- **Uitleg bij begrippen** (`terms.ts`, `Term`): op de pagina achter het
+  onderstreepte begrip, een popover die je met een tik opent; dezelfde lijst op
+  `/hulp/racen#racen-begrippen` en in de hulpzoeker. Bewuste uitzondering op
+  "geen uitleg in featureschermen", op verzoek van de eigenaar; de uitleg staat
+  dicht tot je tikt.
+- **0321 `race_climb_efforts`:** per klim uit het hoogteprofiel tijd, vermogen
+  en W/kg, bewaard na het antwoord bij het openen (`after`). RLS: alleen de eigen
+  rijen lezen. Zonder 0321 valt het blok weg en blijft de pagina heel.
+- **Privacytekst** (`/privacy#racen`) en hulp bijgewerkt; nog niet goedgekeurd.
+  Bij het openen leest de app nu ook wellness (HRV, rusthartslag, slaap) en de
+  gekoppelde training, bewaart de klimtijden, en andere ZWB'ers zien je W/kg in
+  een andere Zwift-race. ~~Andere ZWB'ers in zo'n race zien jouw plek en tijd,
+  niet je vermogen~~.
+
+**Bewust niet:** vermogen van renners van andere clubs (privacykeuze van
+2026-10-15); de plek in het peloton (geeft Zwift niet, dus "waar de groep
+wegreed" is een afleiding); klimmen vergelijken over routes heen (vraagt het
+GPS-spoor); de ZRS na elke race apart bij Zwift ophalen (de ZRS-job vult de
+historie al; nu 31 van de 256 races van de eigenaar met score).
+
+**Gecontroleerd:** lokaal op de gedumpte data van de eigenaar (echte code via
+jiti): 11 stukken met 3 klimmen, W′ laagst −12%, drie tips; "Jouw rit"
+server-side gerenderd zonder fouten. `tsc` schoon op de gewijzigde bestanden,
+eslint schoon, 252 tests groen (nieuw: `zrl-analysis-story.test.ts`).
+**Niet gecontroleerd:** de pagina ingelogd in de browser (inloggen kan alleen de
+eigenaar), de popovers op een telefoon, `0321` (geen Docker en geen config),
+`next build`.
 
 ### Gebouwd — Dashboard: Mijn training, Mijn fitheid, Mijn events
 

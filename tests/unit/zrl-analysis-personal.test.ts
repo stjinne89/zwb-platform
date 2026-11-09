@@ -171,6 +171,15 @@ function ride(overrides: Partial<RideAnalysis> = {}): RideAnalysis {
     startShare: null,
     cadenceAboveFtp: [],
     series: [],
+    curveModel: null,
+    terrain: false,
+    weightKg: null,
+    wbal: null,
+    efforts: null,
+    climbing: null,
+    heart: { wPerBeat: null, aboveLthr: null },
+    cadenceStats: { aboveFtp: null, grinding: null, maxTorque: null },
+    durability: [],
     ...overrides,
   };
 }
@@ -187,10 +196,10 @@ describe("personalAdvice", () => {
   it("voegt wegzakken bij een te harde start samen tot één tip", () => {
     const r = analysePersonalRace(race(), 1, NAMES, "tt")!;
     const start = ride({
-      best: [{ seconds: 600, watts: 300, at: 0, season: 310, share: 97 }],
+      best: [{ seconds: 600, watts: 300, at: 0, season: 310, share: 97, isNew: false }],
       phases: [
-        { name: "Vlak 1", climb: false, from: 0, to: 400, avgWatts: 300, np: 300, intensity: 1.09, avgHeartRate: 170, maxHeartRate: 175, cadence: 90, wbalMin: 30, wbalEnd: 30, wbalStart: 100, halves: null, emptyBeforeEnd: null, recoveryAfter: null, seasonBest: null },
-        { name: "KOM 1", climb: true, from: 400, to: 530, avgWatts: 340, np: 344, intensity: 1.25, avgHeartRate: 180, maxHeartRate: 185, cadence: 80, wbalMin: 0, wbalEnd: 0, wbalStart: 28, halves: null, emptyBeforeEnd: 50, recoveryAfter: null, seasonBest: 395 },
+        { name: "Vlak 1", climb: false, from: 0, to: 400, avgWatts: 300, np: 300, intensity: 1.09, avgHeartRate: 170, maxHeartRate: 175, cadence: 90, wbalMin: 30, wbalEnd: 30, wbalStart: 100, halves: null, emptyBeforeEnd: null, recoveryAfter: null, seasonBest: null, gain: null, distance: null, grade: null, wkg: null, vam: null, startKm: null },
+        { name: "KOM 1", climb: true, from: 400, to: 530, avgWatts: 340, np: 344, intensity: 1.25, avgHeartRate: 180, maxHeartRate: 185, cadence: 80, wbalMin: 0, wbalEnd: 0, wbalStart: 28, halves: null, emptyBeforeEnd: 50, recoveryAfter: null, seasonBest: 395, gain: null, distance: null, grade: null, wkg: null, vam: null, startKm: null },
       ],
     });
     const tips = personalAdvice(r, start, 274);
@@ -218,7 +227,7 @@ describe("personalAdvice", () => {
 
   it("geeft in een race geen reserve-tip en geen ploegwoorden", () => {
     const r = analysePersonalRace(race(), 1, NAMES, "race")!;
-    const tips = personalAdvice(r, ride({ best: [{ seconds: 2400, watts: 200, at: 0, season: 270, share: 74 }] }), 274);
+    const tips = personalAdvice(r, ride({ best: [{ seconds: 2400, watts: 200, at: 0, season: 270, share: 74, isNew: false }] }), 274);
     const text = tips.map((t) => t.tip).join(" ");
     expect(text).not.toMatch(/ploeg|beurt|reserve|meer in/);
   });

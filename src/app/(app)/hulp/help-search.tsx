@@ -308,6 +308,13 @@ const HELP_INDEX: HelpResult[] = [
       "racen race analyse zrl frr flamme rouge etappe tijdslot klassement tijdrit itt link plakken zwiftpower ploegentijdrit ttt puntenrace uitslag ploegtijd tegenstander verloop tussentijd segment sprint klim kom vermogen w/kg zwiftpower los gelost eigen rit bestand np genormaliseerd intensiteit if w-balans wbal critical power hartslag cadans curve",
   },
   {
+    title: "Begrippen bij je race",
+    text: "Uitleg bij NP, IF, VI, FTP, CP, W′, decoupling, hartslagherstel, vorm, HRV, VAM, koppel, durability en ZRS.",
+    href: "/hulp/racen#racen-begrippen",
+    terms:
+      "begrip begrippen uitleg woordenlijst np genormaliseerd if intensiteit vi variabiliteit ftp cp critical power w-accent wbal w-balans model kilojoule kj decoupling ontkoppeling hartslagherstel hrr lthr drempelhartslag vorm fitheid vermoeidheid ctl atl tsb hrv rusthartslag vam koppel torque durability zrs compliance klimmen hoogteprofiel afdaling versnellingen eindsprint groepjes brandstof koolhydraten",
+  },
+  {
     title: "Je race tegenover de verwachting",
     text: "Verwachte plek en punten op je ZRS, waar je punten vandaan kwamen, je sprints naast eerder en het racebriefje.",
     href: "/hulp/racen#racen-verwachting",

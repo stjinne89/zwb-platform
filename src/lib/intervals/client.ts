@@ -251,6 +251,32 @@ export async function fetchIntervalsWellness(
   return rows.map(normalizeIntervalsWellness);
 }
 
+/** Wellness tussen twee dagen (YYYY-MM-DD), voor de dag van een race en de weken ervoor. */
+export async function fetchIntervalsWellnessBetween(
+  apiKey: string,
+  athleteId: string,
+  oldest: string,
+  newest: string,
+): Promise<IntervalsWellness[]> {
+  const rows = await intervalsFetch<IntervalsWellness[]>(
+    apiKey,
+    `/api/v1/athlete/${athleteId}/wellness?oldest=${oldest}&newest=${newest}`,
+  );
+  return Array.isArray(rows) ? rows.map(normalizeIntervalsWellness) : [];
+}
+
+/** Eén geplande training uit de kalender van intervals.icu, bv. die waar een rit aan gekoppeld is. */
+export async function fetchIntervalsEventById(
+  apiKey: string,
+  athleteId: string,
+  eventId: string | number,
+): Promise<{ name?: string | null; icu_training_load?: number | null; category?: string | null } | null> {
+  return intervalsFetch<{ name?: string | null; icu_training_load?: number | null; category?: string | null }>(
+    apiKey,
+    `/api/v1/athlete/${athleteId}/events/${encodeURIComponent(String(eventId))}`,
+  );
+}
+
 /** Activiteiten van de laatste N dagen, oldest first. */
 export async function fetchIntervalsActivities(
   apiKey: string,

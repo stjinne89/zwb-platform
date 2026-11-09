@@ -5,7 +5,7 @@ import { ResponsiveChart, useChartPointer } from "@/components/charts/responsive
 import { linearScale } from "@/lib/charts/scale";
 import { raceClock } from "@/lib/zrl-analysis/format";
 
-export type RideSeriesPoint = { t: number; watts: number; heartRate: number | null; wbal: number | null };
+export type RideSeriesPoint = { t: number; watts: number; heartRate: number | null; wbal: number | null; altitude?: number | null };
 export type RideClimb = { name: string; from: number; to: number };
 
 type Band = {
@@ -22,6 +22,7 @@ type Band = {
 /**
  * De eigen rit in drie banden op één tijdas: vermogen, hartslag en W′-balans.
  * Drie banden in plaats van twee assen: elke maat houdt zijn eigen schaal.
+ * Achter het vermogen het hoogteprofiel, zonder as: alleen de vorm telt.
  */
 export function RideChart({ series, climbs, ftp }: { series: RideSeriesPoint[]; climbs: RideClimb[]; ftp: number | null }) {
   const pointer = useChartPointer(series.length);
@@ -37,10 +38,14 @@ export function RideChart({ series, climbs, ftp }: { series: RideSeriesPoint[]; 
   ];
   for (const band of bands) if (band.ticks.length === 0) band.ticks = [band.lo, Math.round((band.lo + band.hi) / 2), band.hi];
   const end = series[series.length - 1]?.t ?? 1;
+  const alts = series.flatMap((p) => (p.altitude == null ? [] : [p.altitude]));
+  const altLo = alts.length ? Math.min(...alts) : 0;
+  const altHi = alts.length ? Math.max(...alts) : 0;
+  const hasAltitude = alts.length > 10 && altHi - altLo >= 5;
 
   return (
     <ResponsiveChart
-      ariaLabel="Vermogen, hartslag en W′-balans over de race, met de klimmen gemarkeerd."
+      ariaLabel="Vermogen, hartslag en W′-balans over de race, met de klimmen gemarkeerd en het hoogteprofiel achter het vermogen."
       height={bands.length * 150 + 40}
       onPointerRatio={pointer.onPointerRatio}
     >
@@ -66,8 +71,20 @@ export function RideChart({ series, climbs, ftp }: { series: RideSeriesPoint[]; 
                 .filter(Boolean)
                 .join(" ")
                 .replace(/^L/, "M");
+              // Hoogte in de onderste 40% van de vermogensband.
+              const altY = (a: number) => y0 + bandH - ((a - altLo) / (altHi - altLo)) * bandH * 0.4;
+              const altitudeArea =
+                band.key === "watts" && hasAltitude
+                  ? `M ${x(series[0].t).toFixed(1)} ${(y0 + bandH).toFixed(1)} ` +
+                    series
+                      .filter((p) => p.altitude != null)
+                      .map((p) => `L ${x(p.t).toFixed(1)} ${altY(p.altitude as number).toFixed(1)}`)
+                      .join(" ") +
+                    ` L ${x(series[series.length - 1].t).toFixed(1)} ${(y0 + bandH).toFixed(1)} Z`
+                  : null;
               return (
                 <g key={band.key}>
+                  {altitudeArea && <path d={altitudeArea} fill="var(--muted-foreground)" opacity={0.12} />}
                   {climbs.map((c) => (
                     <rect key={c.name + c.from} x={x(c.from)} y={y0} width={Math.max(1, x(c.to) - x(c.from))} height={bandH} fill="var(--muted)" opacity={0.7} />
                   ))}
@@ -107,6 +124,7 @@ export function RideChart({ series, climbs, ftp }: { series: RideSeriesPoint[]; 
                     { label: "Vermogen", value: `${active.watts} W` },
                     ...(active.heartRate ? [{ label: "Hartslag", value: String(active.heartRate) }] : []),
                     ...(active.wbal !== null ? [{ label: "W′", value: `${active.wbal}%` }] : []),
+                    ...(active.altitude != null && hasAltitude ? [{ label: "Hoogte", value: `${Math.round(active.altitude)} m` }] : []),
                   ] satisfies TooltipRow[]}
                 />
               </>

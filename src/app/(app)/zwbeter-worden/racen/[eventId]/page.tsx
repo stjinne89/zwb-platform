@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { GapChart } from "../_components/gap-chart";
 import { Chip, OwnRide, Stat, TipList, dateLabel } from "../_components/race-parts";
 import { PersonalRaceView } from "../_components/personal-race";
-import { ExpectationStats, PointsSources, RaceTrendView, SegmentDepth } from "../_components/race-depth";
+import { ExpectationStats, PointsSources, RaceTrendView, SegmentDepth, ZrsTrendView } from "../_components/race-depth";
 
 type PageProps = { params: Promise<{ eventId: string }> };
 
@@ -281,6 +281,7 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
       </section>
 
       {depth && <RaceTrendView depth={depth} />}
+      {depth && <ZrsTrendView depth={depth} />}
 
       <OwnRide ride={ride} />
     </div>

@@ -34,6 +34,8 @@ export type RaceRecord = {
   best15Wkg: number | null;
   best60Wkg: number | null;
   segments: Array<{ segmentId: string; name: string; kind: SegmentKind; elapsed: number; wkg: number | null }>;
+  /** ZRS van voor de race, uit de uitslag van Zwift. */
+  scoreBefore: number | null;
 };
 
 /** Waar punten vandaan komen: sprints, klimmen, andere segmenten en de finish (FIN plus podium). */
@@ -84,7 +86,44 @@ export function raceRecord(
     best15Wkg: wkgOf(rider.criticalPower?.s15),
     best60Wkg: wkgOf(rider.criticalPower?.m1),
     segments: rider.segments.map((s) => ({ segmentId: s.segmentId, name: s.name, kind: s.kind, elapsed: s.elapsed, wkg: s.wkg })),
+    scoreBefore: expected?.scoreBefore ?? null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// ZRS over de races: de score van voor elke race, uit de bewaarde uitslagen en
+// de ZRS-historie (zwift_race_scores). De score na een race is die van voor de
+// volgende; voor de laatste race telt de score na uit de historie.
+
+export type ZrsPoint = { zwiftEventId: string; title: string; startAt: number; score: number; current: boolean };
+export type ZrsTrend = {
+  points: ZrsPoint[];
+  /** Wat deze race aan je ZRS deed, als de score erna bekend is. */
+  change: number | null;
+};
+
+export function zrsTrend(
+  records: RaceRecord[],
+  scores: Array<{ zwiftEventId: string; title: string | null; startAt: number; before: number | null; after: number | null }>,
+  current: { zwiftEventId: string; title: string; startAt: number; before: number | null },
+): ZrsTrend | null {
+  const byEvent = new Map<string, { title: string; startAt: number; before: number | null; after: number | null }>();
+  for (const s of scores) byEvent.set(s.zwiftEventId, { title: s.title ?? "Zwift-race", startAt: s.startAt, before: s.before, after: s.after });
+  for (const r of records) {
+    const known = byEvent.get(r.zwiftEventId);
+    byEvent.set(r.zwiftEventId, { title: r.title, startAt: r.startAt, before: r.scoreBefore ?? known?.before ?? null, after: known?.after ?? null });
+  }
+  const own = byEvent.get(current.zwiftEventId);
+  byEvent.set(current.zwiftEventId, { title: current.title, startAt: current.startAt, before: current.before ?? own?.before ?? null, after: own?.after ?? null });
+  const points = [...byEvent]
+    .flatMap(([id, v]) => (v.before === null ? [] : [{ zwiftEventId: id, title: v.title, startAt: v.startAt, score: Math.round(v.before), current: id === current.zwiftEventId }]))
+    .sort((a, b) => a.startAt - b.startAt);
+  if (points.length < 3) return null;
+  const at = points.findIndex((p) => p.current);
+  const next = at >= 0 ? points[at + 1] : undefined;
+  const after = byEvent.get(current.zwiftEventId)?.after ?? null;
+  const change = at < 0 ? null : next ? next.score - points[at].score : after !== null ? Math.round(after) - points[at].score : null;
+  return { points, change };
 }
 
 // ---------------------------------------------------------------------------

@@ -11,6 +11,7 @@ import type { RideAnalysis } from "@/lib/zrl-analysis/ride";
 import type { PersonalRace, RaceKind } from "@/lib/zrl-analysis/personal";
 import { durationLabel, raceClock as clock } from "@/lib/zrl-analysis/format";
 import type { RaceTrend } from "@/lib/zrl-analysis/history";
+import type { RideContext } from "@/lib/zrl-analysis/ride-context";
 
 export type Advice = {
   /** Wat de data laat zien. */
@@ -523,4 +524,71 @@ export function strengthAdvice(trend: RaceTrend): Advice[] {
           : "Bouw je puntenrace rond de klimmen: rij de sprints in het wiel en spaar je voor de KOM's.",
     },
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Tips uit het verhaal van de rit (2026-11-09): FTP, de groep kwijt met reserve
+// over, en zwaar trappen op lage cadans. Steunen op ride-story en ride-context.
+
+/** FTP na de rit zoveel hoger dan in het profiel: bijwerken. */
+export const FTP_UPDATE_SHARE = 1.03;
+/** Zoveel seconden finishte de groep voor je eerder: die was je kwijt. */
+export const GROUP_GAP_S = 20;
+/** Met zoveel W′ (%) vijf minuten voor de finish had je nog reserve. */
+export const FINALE_RESERVE = 75;
+/** De W′ zakt na de top nog even door: een dip tot zoveel seconden na de top hoort bij de klim. */
+export const TOP_MARGIN_S = 60;
+/** Met zo weinig W′ (%) op het diepste punt was je leeg: dan helpt dieper gaan niet. */
+export const EMPTY_DIP = 10;
+/** Zoveel seconden op meer dan 120% van je FTP onder 70 rpm. */
+export const GRINDING_S = 60;
+
+export function storyAdvice(ride: RideAnalysis, context: RideContext, kind: RaceKind): Advice[] {
+  const advice: Advice[] = [];
+  const { profile, after } = context.ftp;
+  if (profile && after && after >= profile * FTP_UPDATE_SHARE) {
+    advice.push({
+      finding: `intervals.icu schat je FTP na deze race op ${after} W; in je profiel staat ${profile} W. Daarom lijkt je intensiteit (IF ${ride.intensity === null ? "—" : ride.intensity.toFixed(2).replace(".", ",")}) zo hoog.`,
+      tip: `Zet je FTP in je profiel op ${after} W; dan kloppen je zones, je schema en de analyse van je races weer.`,
+    });
+  }
+
+  const finish = context.finish;
+  const dip = ride.wbal?.dips.reduce<typeof ride.wbal.dips[number] | null>((low, d) => (!low || d.low < low.low ? d : low), null) ?? null;
+  const dipPhase = dip ? ride.phases.find((p) => p.climb && dip.at >= p.from && dip.at <= p.to + TOP_MARGIN_S) : undefined;
+  const finale = ride.wbal?.finale;
+  if (
+    kind === "race" &&
+    finish?.ahead &&
+    finish.own.behindWinner - finish.ahead.behindWinner >= GROUP_GAP_S &&
+    dip &&
+    dipPhase &&
+    finale &&
+    finale.share >= FINALE_RESERVE
+  ) {
+    const ahead = finish.ahead;
+    const places = ahead.firstRank === ahead.lastRank ? `plek ${ahead.firstRank}` : `plek ${ahead.firstRank} tot ${ahead.lastRank}`;
+    const gap = finish.own.behindWinner - ahead.behindWinner;
+    const minutes = durationLabel(Math.max(60, Math.round((dipPhase.to - dipPhase.from) / 60) * 60));
+    advice.push(
+      dip.low > EMPTY_DIP
+        ? {
+            finding: `De renners voor je (${places}) finishten ${gap} s eerder. Op ${dipPhase.name} had je op je diepste punt nog ${dip.low}% W′, en vijf minuten voor de finish weer ${finale.share}%.`,
+            tip: "Waar de groep op een klim wegrijdt, is aanhaken meer waard dan reserve voor de sprint: ga daar dieper, en herstel daarna in het wiel.",
+          }
+        : {
+            finding: `De renners voor je (${places}) finishten ${gap} s eerder. Op ${dipPhase.name} zakte je W′ tot ${dip.low}% (${clock(dip.at)}): daar was je leeg.`,
+            tip: `Daar verloor je de groep op vermogen, niet op verdeling. Train je vermogen over zo'n ${minutes}: intervallen van die lengte net boven je CP.`,
+          },
+    );
+  }
+
+  const grinding = ride.cadenceStats.grinding;
+  if (grinding !== null && grinding >= GRINDING_S) {
+    advice.push({
+      finding: `Je reed ${clock(grinding)} op meer dan 120% van je FTP met een cadans onder 70.`,
+      tip: "Schakel bij een versnelling of op een klim eerder een tandje lichter en hou 80 of meer aan; zware omwentelingen kosten je benen meer voor de volgende aanval.",
+    });
+  }
+  return advice;
 }

@@ -166,9 +166,14 @@ export default function PrivacyPage() {
             van het plan ook diens eerdere ZRL-ploegentijdritten bij andere
             {" "}<ClubShortName />-teams: W/kg, vermogen op de klimmen en of je loste. Reed je
             zelf mee en heb je intervals.icu gekoppeld, dan halen we bij het
-            openen je rit per seconde en je vermogenscurve van de laatste 90 dagen
-            op om je eigen rit te analyseren. Die analyse ziet alleen jij, en we
-            bewaren haar niet. Bij een FRR-etappe, een andere Zwift-race uit de
+            openen je rit per seconde, je vermogenscurve van de laatste 90 dagen,
+            je wellness van die dag en de vier weken ervoor (HRV, rusthartslag,
+            slaap) en de training uit je schema waar de rit aan gekoppeld is op
+            om je eigen rit te analyseren. Die analyse ziet alleen jij, en we
+            bewaren haar niet, met één uitzondering: haalt de app de klimmen uit
+            het hoogteprofiel van je rit, dan bewaren we per klim je tijd, je
+            gemiddelde vermogen en W/kg, om ze de volgende keer op dezelfde route
+            te vergelijken. Ook dat ziet alleen jij. Bij een FRR-etappe, een andere Zwift-race uit de
             kalender of een race waarvan je de link plakt, bewaren we de uitslag
             en de segmenttijden van je startgroep; vermogen, gewicht en naam alleen
             van <MemberNoun plural />, van anderen alleen plek, tijden en de Zwift Racing
@@ -180,7 +185,9 @@ export default function PrivacyPage() {
             Zwift-races en bewaren we per race welk Zwift-event het was (nummer en
             naam). Die lijst ziet alleen jij. Een geplakte race
             halen we alleen op als je zelf in de uitslag staat. Andere <MemberNoun plural />{" "}
-            in zo&apos;n race zien jouw plek en tijd, niet je vermogen.
+            in zo&apos;n race zien jouw plek, tijd en W/kg uit de uitslag van Zwift
+            (gemiddeld en over je beste 5 en 20 minuten), zoals Zwift die ook zelf
+            toont; je gewicht en je eigen rit zien ze niet.
           </li>
           <li id="zwb-ds" className="scroll-mt-20">
             <strong><ModuleName module="live_race" /> (live raceoverzicht):</strong> tijdens een Zwift-race
