@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Eventpagina: Discord-kanaal van het team (2026-11-09): lokaal gecommit,
-   niet gepusht.** Geen migratie. Open: na de deploy een race van ZRL A of een
+0. **Eventpagina: Discord-kanaal van het team (2026-11-09): gepusht naar
+   `main` (`69ea7662`).** Geen migratie. Open: na de deploy een race van ZRL A of een
    ladderteam openen en de Discord-chip in Raceinfo zien. Zie de ronde
    "Eventpagina: Discord-kanaal van het team".
 
