@@ -15,8 +15,27 @@ gaat stabiliteit voor nieuwe features.
    "Generieke versie, fase 3 deel 1" en "deel 2".
    **Deel 3a** (de clubwoorden in schermen, meldingen en AI-prompts) is lokaal
    gecommit en nog niet gepusht. Geen migratie. Zie de ronde "fase 3 deel 3a".
-   **Deel 3b** volgt en vraagt eerst keuzes van de eigenaar: de woordspelingen,
-   het enkelvoud ZWBeker, de kennisbanken en de workout-titel.
+   **Deel 3b** volgt. De eigenaar koos op 2026-11-09:
+   - **Eigen woorden per club.** Eén nieuw veld in de clubinstellingen
+     (migratie) voor de naam van het dagadvies, het betaalmiddel van de bokaal
+     (enkelvoud en meervoud) en het enkelvoud van de beker. ZWB houdt
+     ZWBeterWorden, ZWBal en ZWBallen, en ZWBeker. Zonder eigen woord ziet een
+     club een neutraal woord.
+   - **Eigen appnaam per club** (bij ZWB "ZWBasis"), onder meer voor de prompt
+     van de app-updates.
+   - **De user agents nemen de korte clubnaam, niet de appnaam.** Zo blijft de
+     UA van ZWB gelijk ("ZWB-Platform …") en hoeft de gemeten cyclingflash-UA
+     niet opnieuw getest te worden.
+   - **De kennisbanken en protocollen worden voor iedereen neutraal**, ook voor
+     ZWB: "ZWB" wordt "de app" in zo'n 40 zinnen. De keuzes zijn van het
+     platform, niet van de club. Zinnen waar "de app" stroef leest, worden
+     eerst aan de eigenaar voorgelegd.
+   - **Zonder keuze, met dezelfde tekst voor ZWB:**
+     - de korte naam in het event-blok, de awards ("ZWB-week") en de twee
+       terugvallen;
+     - de module- of clubnaam in `EVENT_TYPES` en de rechtenlabels;
+     - de workout-titel volgt de modulenaam van training. De oude Strava-kop
+       blijft herkenbaar.
 
 0. **Inloglinks bestand tegen mailscanners (2026-11-09): gepusht naar `main`
    (`d48dd9c9`), samen met de bevestigingsmail-ronde.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
