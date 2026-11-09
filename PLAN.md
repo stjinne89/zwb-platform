@@ -53,8 +53,8 @@ gaat stabiliteit voor nieuwe features.
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
-0. **Generieke versie, fase 6: inrichtingsmodule (2026-11-09): lokaal, niet
-   gepusht.** Geen migratie. `/beheer/inrichting` met de stappen Club,
+0. **Generieke versie, fase 6: inrichtingsmodule (2026-11-09): gepusht naar
+   main** (`ae323155`). Geen migratie. `/beheer/inrichting` met de stappen Club,
    Huisstijl, Modules, Namen en woorden, en Herkenning, plus een controle en
    afronden. Niet in de app bekeken. Zie de ronde "fase 6: inrichtingsmodule".
 
@@ -12040,7 +12040,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Generieke versie, fase 6: inrichtingsmodule
 
-**2026-11-09.** Op verzoek van de eigenaar ("begin daar maar aan", daarna "Ja,
+**2026-11-09, commit `ae323155`.** Op verzoek van de eigenaar ("begin daar maar aan", daarna "Ja,
 bouwen" op het voorstel). Geen migratie: alle kolommen bestaan al (`0313` tot en
 met `0320`).
 
