@@ -33,8 +33,8 @@ gaat stabiliteit voor nieuwe features.
    elk lid. Zie de ronde "Generieke
    versie, fase 2 deel 2" en "Oude design klassiek weg".
 
-0. **Club Ladder: duren en watt in de verwachte uitslag (2026-11-09): lokaal
-   gecommit op `claude/racebriefing-uitslag-filters-5170c3`, niet gepusht.**
+0. **Club Ladder: duren, watt en kleur in de verwachte uitslag (2026-11-09):
+   gepusht naar `main` (`2dd807dc`, privacyzin `5d02c352`, kleur `85138f0b`).**
    Geen migratie. Privacyzin uitgebreid naar het racebriefje (akkoord eigenaar
    2026-11-09). Nalopen: op het racebriefje
    van een ladderrace 15 s en 20 min aanzetten, naar Watt schakelen, op een
@@ -11948,6 +11948,63 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: duren en watt in de verwachte uitslag
+
+**2026-11-09.** Commits `2dd807dc`, `5d02c352` (privacy) en `85138f0b` (kleur), op
+2026-11-09 op verzoek van de eigenaar naar `main` gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: in de tabel Verwachte uitslag op het
+racebriefje van een ladderrace stond alleen de zwaarste duur van het parcours
+(vaak 5 min) in W/kg, plus ZRS en punten. Hij wilde ook 15 s, 1 min en 20 min
+zien, in W/kg en in watt, als filter te kiezen, en erop sorteren.
+
+**Wat er veranderde.**
+- **Duren kiezen**: boven de tabel een knoppenrij 15 s · 1 min · 5 min · 20 min
+  (meer tegelijk aan, minstens één). Zonder keuze staat alleen de zwaarste duur
+  van het parcours aan, zoals eerst.
+- **Watt of W/kg**: dezelfde schakelaar als in de matchup (`PowerUnitToggle`,
+  cookie `zwb-power-unit`); zonder eerdere keuze W/kg. Watt is W/kg maal het
+  gewicht uit de matchup (`riderWatts`); wie geen gewicht heeft, krijgt "—".
+  Daarvoor dragen `LadderBriefingRider`s nu `weightKg` en `profileId` mee
+  (optioneel, telt niet mee in de sterkte).
+- **Sorteren**: de koppen #, Renner, Punten, elke duur en ZRS zijn knoppen;
+  eerste klik plek en naam oplopend, getallen hoogste eerst, tweede klik
+  andersom. Zonder klik de verwachte volgorde; zonder waarde altijd onderaan.
+  Sorteren verandert de punten niet: die horen bij de verwachte volgorde.
+  Pure logica in `lib/club-ladder/briefing-sort.ts` (test
+  `club-ladder-briefing-sort.test.ts`), tabel in
+  `briefing/_components/ladder-result-table.tsx`.
+- Namen in die tabel linken nu via `MemberLink` naar het profiel.
+- `/hulp` beschrijft de keuze en het sorteren.
+- **Kleur per duur** (vervolgvraag dezelfde dag, met een screenshot van de
+  Club Ladder): elke vermogenswaarde krijgt een achtergrond van rood (hoogste
+  van de tien) via geel naar groen (laagste), per kolom en in de gekozen
+  eenheid, zoals de Club Ladder het doet. `ladderPowerRange` en `heatHue` in
+  `briefing-sort.ts`; de kleur is `hsl(… / 0.3)`, zodat de tekst in licht en
+  donker leesbaar blijft. Zonder waarde of zonder verschil geen kleur. Bewust
+  rood = hoogste, als op de Club Ladder, ook al is hoog voor ons goed.
+  ZRS, punten en plek krijgen geen kleur: de ladder kleurt alleen vermogen.
+
+**Bewust niet.**
+- Geen watt of extra duren op het gedeelde racebriefje (het plaatje) en niet
+  in de ZRL-tabellen: de vraag ging over de ladder-uitslag, en bij de
+  ZRL-briefing tonen we het gewicht van andere teams bewust niet.
+- Geen gedeelde sorteercomponent met de matchup: andere kolommen (punten,
+  plek); het patroon (pijltje, eerste klik) is gelijk.
+- De gekozen duren worden niet onthouden: elke briefing begint bij de
+  zwaarste duur van dat parcours.
+
+**Privacy.** De privacyverklaring zei dat watt naast W/kg per renner "in de
+matchup" staat; het racebriefje toont nu hetzelfde (dezelfde gewichten,
+dezelfde renners). De zin in de alinea Club Ladder luidt nu "in de matchup en
+de verwachte uitslag van het racebriefje per renner het vermogen in watt naast
+W/kg", akkoord eigenaar 2026-11-09, in een eigen commit. Zonder nieuwe
+privacyversie: het gaat om gewichten die al voor de matchup worden gebruikt.
+
+**Niet geverifieerd.** Het racebriefje in de browser: achter inloggen. Wel:
+tests (ladder, 7 nieuw), ESLint en typecheck schoon. In deze worktree moest
+eerst `npm ci` (pakketten als `@anthropic-ai/sdk` ontbraken).
+
 ### Gebouwd — Alle auth-mails in ZWB-stijl
 
 **2026-11-09.** Op verzoek van de eigenaar: elke mail van Supabase moet als ZWB
@@ -12190,64 +12247,6 @@ Hook of een eigen Supabase-project per club; dat hoort bij de proefinstallatie
 (fase 7). ~~Ook niet: de andere mails (magic link, wachtwoord resetten) in dezelfde
 stijl. Daar is niet om gevraagd.~~ Inmiddels gevraagd en gemaakt, zie "Alle
 auth-mails in ZWB-stijl".
-
-### Gebouwd — Club Ladder: duren en watt in de verwachte uitslag
-
-**2026-11-09.** Lokaal gecommit op de branch
-`claude/racebriefing-uitslag-filters-5170c3` (de commit met deze tekst), niet
-gepusht. Geen migratie.
-
-**Waarom.** Vraag van de eigenaar: in de tabel Verwachte uitslag op het
-racebriefje van een ladderrace stond alleen de zwaarste duur van het parcours
-(vaak 5 min) in W/kg, plus ZRS en punten. Hij wilde ook 15 s, 1 min en 20 min
-zien, in W/kg en in watt, als filter te kiezen, en erop sorteren.
-
-**Wat er veranderde.**
-- **Duren kiezen**: boven de tabel een knoppenrij 15 s · 1 min · 5 min · 20 min
-  (meer tegelijk aan, minstens één). Zonder keuze staat alleen de zwaarste duur
-  van het parcours aan, zoals eerst.
-- **Watt of W/kg**: dezelfde schakelaar als in de matchup (`PowerUnitToggle`,
-  cookie `zwb-power-unit`); zonder eerdere keuze W/kg. Watt is W/kg maal het
-  gewicht uit de matchup (`riderWatts`); wie geen gewicht heeft, krijgt "—".
-  Daarvoor dragen `LadderBriefingRider`s nu `weightKg` en `profileId` mee
-  (optioneel, telt niet mee in de sterkte).
-- **Sorteren**: de koppen #, Renner, Punten, elke duur en ZRS zijn knoppen;
-  eerste klik plek en naam oplopend, getallen hoogste eerst, tweede klik
-  andersom. Zonder klik de verwachte volgorde; zonder waarde altijd onderaan.
-  Sorteren verandert de punten niet: die horen bij de verwachte volgorde.
-  Pure logica in `lib/club-ladder/briefing-sort.ts` (test
-  `club-ladder-briefing-sort.test.ts`), tabel in
-  `briefing/_components/ladder-result-table.tsx`.
-- Namen in die tabel linken nu via `MemberLink` naar het profiel.
-- `/hulp` beschrijft de keuze en het sorteren.
-- **Kleur per duur** (vervolgvraag dezelfde dag, met een screenshot van de
-  Club Ladder): elke vermogenswaarde krijgt een achtergrond van rood (hoogste
-  van de tien) via geel naar groen (laagste), per kolom en in de gekozen
-  eenheid, zoals de Club Ladder het doet. `ladderPowerRange` en `heatHue` in
-  `briefing-sort.ts`; de kleur is `hsl(… / 0.3)`, zodat de tekst in licht en
-  donker leesbaar blijft. Zonder waarde of zonder verschil geen kleur. Bewust
-  rood = hoogste, als op de Club Ladder, ook al is hoog voor ons goed.
-  ZRS, punten en plek krijgen geen kleur: de ladder kleurt alleen vermogen.
-
-**Bewust niet.**
-- Geen watt of extra duren op het gedeelde racebriefje (het plaatje) en niet
-  in de ZRL-tabellen: de vraag ging over de ladder-uitslag, en bij de
-  ZRL-briefing tonen we het gewicht van andere teams bewust niet.
-- Geen gedeelde sorteercomponent met de matchup: andere kolommen (punten,
-  plek); het patroon (pijltje, eerste klik) is gelijk.
-- De gekozen duren worden niet onthouden: elke briefing begint bij de
-  zwaarste duur van dat parcours.
-
-**Privacy.** De privacyverklaring zei dat watt naast W/kg per renner "in de
-matchup" staat; het racebriefje toont nu hetzelfde (dezelfde gewichten,
-dezelfde renners). De zin in de alinea Club Ladder luidt nu "in de matchup en
-de verwachte uitslag van het racebriefje per renner het vermogen in watt naast
-W/kg", akkoord eigenaar 2026-11-09, in een eigen commit. Zonder nieuwe
-privacyversie: het gaat om gewichten die al voor de matchup worden gebruikt.
-
-**Niet geverifieerd.** Het racebriefje in de browser: achter inloggen. Wel:
-tests (ladder, 7 nieuw), ESLint en typecheck schoon. In deze worktree moest
-eerst `npm ci` (pakketten als `@anthropic-ai/sdk` ontbraken).
 
 ### Gebouwd — Generieke versie, fase 2 deel 1: clubkleuren
 
