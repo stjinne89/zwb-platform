@@ -34,6 +34,11 @@ zoals hieronder.
 </a>
 ```
 
+`/auth/confirm` gebruikt het token niet bij het openen van de link. Het stuurt
+door naar `/auth/doorgaan`, waar het lid op een knop drukt; pas die knop (een
+POST) verzilvert het token. Zo kan een mailscanner (Outlook/Hotmail Safe Links)
+die elke link vooraf opent het token niet opmaken.
+
 Een recovery-link zet tijdelijk een Supabase-sessie zodat `updateUser` het
 wachtwoord mag aanpassen. De app markeert zo'n sessie met een korte recovery
 cookie en stuurt de gebruiker naar `/wachtwoord-resetten` totdat het nieuwe
@@ -49,3 +54,9 @@ Zet in Supabase **Authentication -> URL Configuration**:
 
 Laat `NEXT_PUBLIC_SITE_URL` in Netlify overeenkomen met de productie-URL. Lokaal
 blijft de waarde in `.env.local` normaal `http://localhost:3000`.
+
+## Maillimiet
+
+Zonder eigen SMTP verstuurt Supabase maar twee auth-mails per uur voor het hele
+project. Stel daarom onder **Authentication -> Emails -> SMTP Settings** een
+eigen maildienst in.

@@ -7,6 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Inloglinks bestand tegen mailscanners (2026-11-09): lokaal gecommit,
+   niet gepusht.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
+   meer binnen. **Nog te doen door de eigenaar:** eigen SMTP instellen in
+   Supabase (Authentication -> Emails -> SMTP); de ingebouwde mailer stuurt
+   maar twee mails per uur voor de hele club. Na de deploy: Tino een nieuwe
+   resetlink laten aanvragen. Zie de ronde "Inloglinks bestand tegen
+   mailscanners".
+
 0. **Generieke versie, fase 2 deel 2: lettertype, logo, kaarten en klassiek weg
    (2026-11-09): gepusht naar `main`; migratie `0315` toegepast** (versie
    `20261109101801`, op verzoek van de eigenaar, vóór de push; de bucket
@@ -11925,6 +11933,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Inloglinks bestand tegen mailscanners
+
+**2026-11-09.** Op verzoek van de eigenaar: Tino van Ramesdonk (hotmail-adres)
+kon niet meer inloggen, en wachtwoord herstellen werkte niet. Het account zelf
+was in orde (goedgekeurd, niet geblokkeerd, wachtwoord gezet). De auth-logs van
+die ochtend laten twee oorzaken zien:
+
+1. **Een mailscanner verzilverde de resetlink.** Om 10:10:28 UTC kwam
+   `/auth/confirm` twee keer binnen in dezelfde seconde: de eerste `verifyOtp`
+   slaagde, de tweede (Tino zelf) kreeg `otp_expired`. Outlook/Hotmail (Safe
+   Links) opent elke link in een mail vóór de ontvanger. Omdat de route het
+   eenmalige `token_hash` bij een gewone GET gebruikte, logde de scanner in en
+   kreeg het lid "link verlopen". Bij de bevestigingsmail van een ander
+   hotmail-lid zag je hetzelfde: een `HEAD /verify` van een Microsoft-adres.
+2. **De maillimiet van Supabase.** De ingebouwde mailer (`noreply@mail.app.supabase.io`)
+   stuurt twee mails per uur voor het hele project. Een registratie-bevestiging
+   (09:51) en Tino's resetmail (10:08) waren er twee, dus elke magic link en
+   resetaanvraag daarna kreeg `429 over_email_send_rate_limit`. Die melding
+   kwam in het Engels op het scherm.
+
+Wat er veranderd is:
+
+- `src/app/auth/confirm/route.ts`: een GET met `token_hash` verzilvert niets
+  meer, maar stuurt door naar de nieuwe pagina `/auth/doorgaan`. Daar staat
+  één knop (Inloggen / Bevestigen / Wachtwoord instellen), die met een POST
+  terug naar `/auth/confirm` gaat; pas die POST doet `verifyOtp`. Een scanner
+  opent de pagina wel, maar drukt niet op de knop. De mailtemplates hoeven
+  daarvoor niet te veranderen. Ook: `next` wordt alleen nog als pad binnen de
+  eigen site gevolgd (een `//`-adres of volledige URL wordt `/dashboard`), en
+  `type` alleen uit de bekende OTP-types.
+- `src/app/(auth)/login/actions.ts`: de maillimiet geeft bij magic link,
+  wachtwoord vergeten en registreren nu een Nederlandse melding.
+
+Lokaal getest met `next dev` en een nep-token: de link komt op de knop, de knop
+eindigt in `/login?error=auth-link-invalid`, en `next=//evil.example` wordt
+`/dashboard`. `tsc` geeft geen fouten in de gewijzigde bestanden; eslint
+schoon. **Niet getest:** een echte resetlink tot en met het nieuwe wachtwoord
+(dat vraagt een mail, en de limiet zat vol), en of Safe Links de knop met rust
+laat. Dat laatste is de gangbare aanpak, maar niet hier bewezen.
+
+**Bewust niet.**
+
+- De `code`-flow (PKCE, de standaardlink `{{ .ConfirmationURL }}`) is niet te
+  beschermen: Supabase verzilvert dat token zelf al vóórdat de browser bij ons
+  is. De bevestigingsmail bij registratie gebruikt die link nog (de logs tonen
+  een GET op Supabase's `/verify` en daarna `flow_state_expired`). Zet die
+  template om naar de `token_hash`-link uit
+  `docs/supabase-auth-email-templates.md`; dat is een instelling in het
+  dashboard, geen code.
+- Eigen SMTP is niet ingesteld: dat is een keuze van de eigenaar (welke
+  maildienst, welk afzenderadres) en een instelling in het Supabase-dashboard.
+- Een zescijferige code in de mail in plaats van een link is robuuster tegen
+  scanners, maar vraagt een ander inlogscherm; de knop is de kleinere stap.
+- Geen wachtwoord voor Tino gezet of een link met de hand gemaakt.
 
 ### Gebouwd — Oude design "klassiek" weg
 
