@@ -12096,10 +12096,22 @@ de link als platte tekst, en een regel voor wie zich niet heeft aangemeld. Het i
 HTML met tabellen en inline stijlen, omdat mailprogramma's geen stylesheet en
 geen CSS-variabelen lezen. De link houdt de `token_hash`-vorm voor iOS.
 
+**Ingesteld op productie op 2026-11-09**, via het dashboard in Chrome. Na
+herladen zijn onderwerp en inhoud teken voor teken gelijk aan het docs-bestand.
+Daarvoor stond er nog de Engelse standaardtemplate van Supabase met
+`{{ .ConfirmationURL }}` (de PKCE-`code`-flow), ondanks de oproep in het
+docs-bestand om de `token_hash`-link te gebruiken. Die oude link werkte via de
+`code`-tak van `/auth/confirm`, maar kon op iOS stuklopen als Mail een andere
+browser opent. Niet nagekeken: of *Magic link* en *Reset password* nog op de
+standaard staan. De Site URL is `https://zwb-platform.netlify.app`, dus de knop
+en het logo wijzen naar productie.
+
+Het dashboard waarschuwt dat het project de ingebouwde maildienst gebruikt, met
+een laag uurlimiet en Supabase als afzender. Eigen SMTP is niet ingesteld.
+
 Lokaal bekeken als HTML met ingevulde voorbeeldwaarden. **Niet geverifieerd:**
-dat hij in Supabase is ingesteld, en hoe hij er in Gmail, Outlook en Apple Mail
-uitziet. Dat kan pas als de template in het dashboard staat en er een echte
-registratie is gedaan.
+hoe de mail er in Gmail, Outlook en Apple Mail uitziet, en of de nieuwe link een
+echte registratie bevestigt. Dat blijkt pas bij de eerstvolgende aanmelding.
 
 **Bewust niet:** de kleuren en naam per club laten volgen (generieke versie).
 Een Supabase-template kent alleen de projectinstellingen en de metadata van de
