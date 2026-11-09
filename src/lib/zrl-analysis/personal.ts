@@ -4,7 +4,10 @@
 //
 // De renner staat centraal: plek en tijd in de eigen startgroep, de achterstand
 // op de winnaar, per segment wat hij verloor op de snelste van zijn groep, en de
-// ZWB'ers in dezelfde race (alleen plek en tijd). Uitwerking: docs/zrl-analyse.md.
+// ZWB'ers in dezelfde race: plek, tijd en W/kg uit de uitslag van Zwift (die
+// Zwift ook zelf toont; W/kg voor ZWB'ers sinds 2026-11-09, op verzoek van de
+// eigenaar). Van renners van andere clubs alleen plek en tijd. Uitwerking:
+// docs/zrl-analyse.md.
 
 import type { RaceData } from "@/lib/zrl-live/snapshot";
 import { scoreRace, type ZrlScoringFormat } from "@/lib/zrl-live/scoring";
@@ -40,6 +43,8 @@ export type Peer = {
   /** Finishtijd in ms vanaf de eigen start. */
   time: number | null;
   own: boolean;
+  /** W/kg gemiddeld en over de beste 1, 5 en 20 minuten, uit de uitslag van Zwift; null als die er niet is. */
+  wkg: { avg: number | null; m1: number | null; m5: number | null; m20: number | null } | null;
 };
 
 export type PersonalRace = {
@@ -58,6 +63,16 @@ export type PersonalRace = {
   peers: Peer[];
   hasPower: boolean;
 };
+
+const perKg = (watts: number | null | undefined, kg: number | null | undefined) =>
+  watts && kg && kg > 0 ? Math.round((watts / kg) * 100) / 100 : null;
+
+function peerWkg(r: RaceData["subgroups"][number]["results"][number]): Peer["wkg"] {
+  const kg = r.weightKg;
+  if (!kg) return null;
+  const wkg = { avg: perKg(r.avgWatts, kg), m1: perKg(r.criticalPower?.m1, kg), m5: perKg(r.criticalPower?.m5, kg), m20: perKg(r.criticalPower?.m20, kg) };
+  return Object.values(wkg).some((v) => v !== null) ? wkg : null;
+}
 
 export function analysePersonalRace(
   data: RaceData,
@@ -138,6 +153,7 @@ export function analysePersonalRace(
         of: done.length,
         time: r.durationMs,
         own: r.profileId === zwiftId,
+        wkg: peerWkg(r),
       }));
   });
   peers.sort((a, b) => a.subgroupLabel.localeCompare(b.subgroupLabel) || a.rank - b.rank);

@@ -19,19 +19,34 @@ import type { CurrentUserAccess } from "@/lib/auth/permissions";
 import {
   fetchIntervalsActivities,
   fetchIntervalsActivityStreams,
+  fetchIntervalsEventById,
   fetchIntervalsPowerCurve,
+  fetchIntervalsWellnessBetween,
 } from "@/lib/intervals/client";
 import { loadZrlLive, loadZwiftRaceData, raceSettled, type RaceData, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import { analysePersonalRace, raceKindOf, type PersonalRace, type RaceKind } from "@/lib/zrl-analysis/personal";
 import { loadFrrStandingRows } from "@/lib/frr/zwb-standings";
 import { analyseRace, segmentKind, type RaceAnalysis, type RiderAnalysis } from "@/lib/zrl-analysis/race";
 import { analyseRide, type RideAnalysis, type RideAnchor } from "@/lib/zrl-analysis/ride";
-import { ownAdvice, personalAdvice, riderRaceAdvice, strengthAdvice, teamAdvice, tttPlanAdvice, type Advice, type PlanRider } from "@/lib/zrl-analysis/advice";
+import { climbHistory, rideContext, type ClimbEffortRow, type ClimbHistory, type RideContext } from "@/lib/zrl-analysis/ride-context";
+import {
+  ownAdvice,
+  personalAdvice,
+  riderRaceAdvice,
+  storyAdvice,
+  strengthAdvice,
+  teamAdvice,
+  tttPlanAdvice,
+  type Advice,
+  type PlanRider,
+} from "@/lib/zrl-analysis/advice";
 import {
   compareSegments,
   raceContribution,
   raceRecord,
   raceTrend,
+  zrsTrend,
+  type ZrsTrend,
   type RaceContribution,
   type RaceRecord,
   type RaceTrend,
@@ -220,7 +235,7 @@ export async function listZrlRaces(userId: string, access: Access): Promise<ZrlR
 }
 
 export type RideOutcome =
-  | { status: "ok"; analysis: RideAnalysis; ftp: number | null; activityName: string | null }
+  | { status: "ok"; analysis: RideAnalysis; ftp: number | null; activityName: string | null; context: RideContext; climbs: ClimbHistory[] }
   | { status: "not-riding" }
   | { status: "no-intervals" }
   | { status: "no-ride" }
@@ -284,7 +299,7 @@ export async function loadRaceAnalysis(
       .select("id, title, type, start_at, team_id, parent_event_id, zwift_event_id, teams(name)")
       .eq("id", eventId)
       .maybeSingle(),
-    supabase.from("profiles").select("zwift_id, ftp_watts").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("zwift_id, ftp_watts, weight_kg").eq("id", user.id).maybeSingle(),
   ]);
   if (!eventRow || eventRow.type !== "zrl" || !eventRow.zwift_event_id) return { status: "not-found" };
 
@@ -305,11 +320,13 @@ export async function loadRaceAnalysis(
   const ftp = Number(profile?.ftp_watts) || null;
 
   const ride = rode && data && subgroup
-    ? await loadOwnRide({ data, subgroup, zwiftId: ownZwiftId as number, ftp, userId: user.id, supabase })
+    ? await loadOwnRide({ data, subgroup, zwiftId: ownZwiftId as number, ftp, userId: user.id, supabase, zwiftEventId: String(eventRow.zwift_event_id), weightKg: Number(profile?.weight_kg) || null })
     : ({ status: "not-riding" } as const);
 
   const ownRider = rode ? analysis.riders.find((r) => r.athleteId === ownZwiftId) ?? null : null;
-  const depth = ownRider && subgroup ? await loadDepth(ownRider, subgroup) : null;
+  const depth = ownRider && subgroup
+    ? await loadDepth(ownRider, subgroup, { zwiftEventId: String(eventRow.zwift_event_id), title: eventRow.title as string })
+    : null;
   const leads = viewer === "captain" || viewer === "board";
   const plan = leads && analysis.format === "ttt"
     ? await loadTttPlan([eventRow.id as string, eventRow.parent_event_id as string | null], eventRow.team_id as string | null)
@@ -328,7 +345,10 @@ export async function loadRaceAnalysis(
     ride,
     ownTips: rode
       ? [
-          ...ownAdvice(analysis, ownRider, ride.status === "ok" ? ride.analysis : null, ftp).slice(0, OWN_TIPS - (depth?.tips.length ?? 0)),
+          ...[
+            ...(ride.status === "ok" ? storyAdvice(ride.analysis, ride.context, analysis.format === "ttt" ? "ttt" : "race") : []),
+            ...ownAdvice(analysis, ownRider, ride.status === "ok" ? ride.analysis : null, ftp),
+          ].slice(0, OWN_TIPS - (depth?.tips.length ?? 0)),
           ...(depth?.tips ?? []),
         ]
       : [],
@@ -350,6 +370,8 @@ async function loadOwnRide({
   ftp,
   userId,
   supabase,
+  zwiftEventId,
+  weightKg,
 }: {
   data: RaceData;
   subgroup: RaceData["subgroups"][number];
@@ -357,6 +379,9 @@ async function loadOwnRide({
   ftp: number | null;
   userId: string;
   supabase: SupabaseClient;
+  /** Voor de klimmen tegenover eerdere keren (0321); zonder ID geen vergelijking. */
+  zwiftEventId?: string | null;
+  weightKg?: number | null;
 }): Promise<RideOutcome> {
   const result = subgroup.results.find((r) => r.profileId === zwiftId);
   if (!result?.durationMs) return { status: "not-riding" };
@@ -376,10 +401,26 @@ async function loadOwnRide({
     // Een rit die via Strava binnenkwam, heeft bij intervals.icu geen streams.
     if (!String(activity.id).startsWith("i") || activity.source === "STRAVA") return { status: "strava-only" };
     const fileStart = activityStartMs(activity) as number;
+    const raw = activity as unknown as Record<string, unknown>;
+    const raceDay = amsterdamDay(ownStart);
+    const pairedEvent = raw.paired_event_id;
 
-    const [streams, curve] = await Promise.all([
-      fetchIntervalsActivityStreams(connection.api_key, String(activity.id), ["time", "watts", "heartrate", "cadence"]),
-      fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, "90d").catch(() => null),
+    const [streams, curve, wellness, planned, climbRows] = await Promise.all([
+      fetchIntervalsActivityStreams(connection.api_key, String(activity.id), RIDE_STREAMS),
+      fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, "90d", { includeFatigue: true }).catch(() => null),
+      fetchIntervalsWellnessBetween(connection.api_key, connection.athlete_id, shiftDay(raceDay, -28), raceDay).catch(() => []),
+      pairedEvent
+        ? fetchIntervalsEventById(connection.api_key, connection.athlete_id, String(pairedEvent)).catch(() => null)
+        : Promise.resolve(null),
+      zwiftEventId && subgroup.routeId
+        ? createAdminClient()
+            .from("race_climb_efforts")
+            .select("zwift_event_id, climb_index, route_id, raced_at, start_km, gain_m, seconds, avg_watts, wkg")
+            .eq("profile_id", userId)
+            .eq("route_id", Number(subgroup.routeId))
+            .limit(500)
+            .then(({ data: rows, error }) => (error ? [] : ((rows ?? []) as ClimbEffortRow[])))
+        : Promise.resolve([] as ClimbEffortRow[]),
     ]);
     const byType = new Map(streams.map((s) => [s.type, s.data]));
     const time = (byType.get("time") ?? []).map((t) => Number(t));
@@ -394,18 +435,88 @@ async function loadOwnRide({
         return [{ name, end: (p.ts - ownStart) / 1000, elapsed: p.elapsed, avgPower: p.avgPower ?? null, climb: segmentKind(name) === "klim" }];
       });
 
+    const weight = result.weightKg || weightKg || null;
+    const icuCp = Number(raw.icu_pm_cp);
+    const icuWPrime = Number(raw.icu_pm_w_prime) || Number(raw.icu_rolling_w_prime);
     const analysis = analyseRide({
-      streams: { time, watts, heartrate: byType.get("heartrate"), cadence: byType.get("cadence") },
+      streams: {
+        time,
+        watts,
+        heartrate: byType.get("heartrate"),
+        cadence: byType.get("cadence"),
+        altitude: byType.get("altitude"),
+        distance: byType.get("distance"),
+        torque: byType.get("torque"),
+      },
       startOffset: (fileStart - ownStart) / 1000,
       finish: result.durationMs / 1000,
       anchors,
       ftp,
-      curve: (curve?.points ?? []).map((p) => ({ seconds: p.seconds, watts: p.watts })),
+      curve: (curve?.points ?? []).map((p) => ({ seconds: p.seconds, watts: p.watts, activityId: p.activityId ?? null })),
+      model: icuCp > 0 && icuWPrime > 0 ? { cp: icuCp, wPrime: icuWPrime } : null,
+      weightKg: weight,
+      lthr: Number(raw.lthr) || null,
+      activityId: String(activity.id),
+      fatigue: (curve?.fatigueCurves ?? []).map((c) => ({ afterKj: c.afterKj, points: c.points.map((p) => ({ seconds: p.seconds, watts: p.watts })) })),
     });
-    return { status: "ok", analysis, ftp, activityName: activity.name ?? null };
+    const context = rideContext({
+      activity: raw,
+      ride: analysis,
+      profileFtp: ftp,
+      wellness,
+      raceDay,
+      planned,
+      finishSeconds: result.durationMs / 1000,
+      results: subgroup.results,
+      ownId: zwiftId,
+    });
+
+    const racedAt = new Date(ownStart).toISOString();
+    const terrainClimbs = analysis.terrain ? analysis.phases.filter((p) => p.climb) : [];
+    const climbs = zwiftEventId ? climbHistory(terrainClimbs, climbRows, zwiftEventId, racedAt) : [];
+    if (zwiftEventId && subgroup.routeId && terrainClimbs.length > 0) {
+      const rows = terrainClimbs.flatMap((p, index) =>
+        p.startKm !== null && p.gain !== null && p.distance && p.distance > 0 && p.to > p.from
+          ? [
+              {
+                profile_id: userId,
+                zwift_event_id: Number(zwiftEventId),
+                climb_index: index,
+                route_id: Number(subgroup.routeId),
+                raced_at: racedAt,
+                start_km: p.startKm,
+                length_m: p.distance,
+                gain_m: p.gain,
+                seconds: Math.round(p.to - p.from),
+                avg_watts: p.avgWatts,
+                wkg: p.wkg,
+              },
+            ]
+          : [],
+      );
+      // Bewaren na het antwoord; een fout (bv. 0321 nog niet toegepast) laat de pagina heel.
+      after(async () => {
+        await createAdminClient().from("race_climb_efforts").upsert(rows, { onConflict: "profile_id,zwift_event_id,climb_index" });
+      });
+    }
+    return { status: "ok", analysis, ftp, activityName: activity.name ?? null, context, climbs };
   } catch {
     return { status: "error" };
   }
+}
+
+/** De streams van de eigen rit; hoogte en afstand voor de klimmen zonder Zwift-segmenten. */
+const RIDE_STREAMS = ["time", "watts", "heartrate", "cadence", "altitude", "distance", "torque"];
+
+/** De kalenderdag in Amsterdam van een moment, als YYYY-MM-DD. */
+function amsterdamDay(ms: number): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Amsterdam", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms));
+}
+
+function shiftDay(day: string, days: number): string {
+  const d = new Date(`${day}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 /** Naam van een segment op de route van deze subgroep. */
@@ -514,7 +625,7 @@ async function loadPersonal(
   calendar: CalendarRace | null,
 ): Promise<PersonalRaceOutcome> {
   const clubTexts = (await getClub()).texts;
-  const { data: profile } = await supabase.from("profiles").select("zwift_id, ftp_watts").eq("id", user.id).maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select("zwift_id, ftp_watts, weight_kg").eq("id", user.id).maybeSingle();
   const zwiftId = Number(profile?.zwift_id) || null;
   if (!zwiftId) return { status: "no-zwift-id" };
   const names = await zwbRiderNames();
@@ -527,12 +638,12 @@ async function loadPersonal(
   const ftp = Number(profile?.ftp_watts) || null;
   const [ride, frr, depth] = await Promise.all([
     subgroup
-      ? loadOwnRide({ data, subgroup, zwiftId, ftp, userId: user.id, supabase })
+      ? loadOwnRide({ data, subgroup, zwiftId, ftp, userId: user.id, supabase, zwiftEventId, weightKg: Number(profile?.weight_kg) || null })
       : Promise.resolve<RideOutcome>({ status: "not-riding" }),
     calendar?.frrTourId && calendar.frrStage
       ? loadFrrContext(calendar.frrTourId, calendar.frrStage, zwiftId, names)
       : Promise.resolve(null),
-    subgroup ? loadDepth(race.rider, subgroup) : Promise.resolve<RaceDepth>({ segments: [], trend: raceTrend([]), tips: [] }),
+    subgroup ? loadDepth(race.rider, subgroup, { zwiftEventId, title: calendar?.title ?? data.eventName }) : Promise.resolve<RaceDepth>({ segments: [], trend: raceTrend([]), tips: [] }),
   ]);
   return {
     status: "ok",
@@ -542,7 +653,10 @@ async function loadPersonal(
     race,
     ride,
     tips: [
-      ...personalAdvice(race, ride.status === "ok" ? ride.analysis : null, ftp).slice(0, OWN_TIPS - depth.tips.length),
+      ...[
+        ...(ride.status === "ok" ? storyAdvice(ride.analysis, ride.context, kind) : []),
+        ...personalAdvice(race, ride.status === "ok" ? ride.analysis : null, ftp),
+      ].slice(0, OWN_TIPS - depth.tips.length),
       ...depth.tips,
     ],
     depth,
@@ -814,7 +928,7 @@ export async function loadTttRaces(): Promise<TttRaceRecord[]> {
 // en over alle bewaarde races waar de punten vandaan komen. Alleen uit wat al
 // bewaard is: geen Zwift-verzoeken tijdens het laden.
 
-export type RaceDepth = { segments: SegmentComparison[]; trend: RaceTrend; tips: Advice[] };
+export type RaceDepth = { segments: SegmentComparison[]; trend: RaceTrend; tips: Advice[]; zrs?: ZrsTrend | null };
 
 /** Zoveel tijd krijgt het aanvullen van de ZRS in oude races na het antwoord. */
 const SCORE_BACKFILL_MS = 20_000;
@@ -849,7 +963,7 @@ const summarizeRaces = unstable_cache(
     }
     return records;
   },
-  ["zwbeter-race-history", "v1"],
+  ["zwbeter-race-history", "v2"],
   { revalidate: 7 * 24 * 60 * 60 },
 );
 
@@ -889,10 +1003,19 @@ const loadRaceHistory = cache(async (zwiftId: number): Promise<RaceRecord[]> => 
 });
 
 /** De verdieping voor de renner in deze race. */
-async function loadDepth(rider: RiderAnalysis, subgroup: RaceData["subgroups"][number]): Promise<RaceDepth> {
+async function loadDepth(
+  rider: RiderAnalysis,
+  subgroup: RaceData["subgroups"][number],
+  current?: { zwiftEventId: string; title: string },
+): Promise<RaceDepth> {
   const field = [...new Set([...subgroup.entrants.map((e) => Number(e.zwiftId)), ...subgroup.results.map((r) => r.profileId)])];
   const segmentIds = [...new Set(rider.segments.map((s) => s.segmentId))];
-  const [history, bests] = await Promise.all([loadRaceHistory(rider.athleteId), loadSegmentBests(field, segmentIds)]);
+  const since = new Date(Date.now() - LIST_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const [history, bests, scores] = await Promise.all([
+    loadRaceHistory(rider.athleteId),
+    loadSegmentBests(field, segmentIds),
+    current ? ownZwiftScores(rider.athleteId, since) : Promise.resolve([]),
+  ]);
   const own = subgroup.results.find((r) => r.profileId === rider.athleteId);
   const raceStart = own?.finishedAt && own.durationMs ? own.finishedAt - own.durationMs : subgroup.startAt;
   const trend = raceTrend(history);
@@ -900,7 +1023,29 @@ async function loadDepth(rider: RiderAnalysis, subgroup: RaceData["subgroups"][n
     segments: compareSegments({ rider, raceStart, weightKg: own?.weightKg ?? null, history, bests: bests ?? [], field }),
     trend,
     tips: strengthAdvice(trend),
+    zrs: current ? zrsTrend(history, scores, { ...current, startAt: raceStart, before: own?.scoreBefore ?? null }) : null,
   };
+}
+
+/** De ZRS-historie van een renner (0271, 0317): de score voor en na elke race. */
+async function ownZwiftScores(zwiftId: number, since: string) {
+  const { data, error } = await createAdminClient()
+    .from("zwift_race_scores")
+    .select("zwift_event_id, event_name, raced_at, score_before, score_after")
+    .eq("zwift_id", zwiftId)
+    .gte("raced_at", since)
+    .not("zwift_event_id", "is", null)
+    .not("score_before", "is", null)
+    .limit(300);
+  if (error) return [];
+  type Row = { zwift_event_id: number | string; event_name: string | null; raced_at: string; score_before: number | null; score_after: number | null };
+  return ((data ?? []) as Row[]).map((row) => ({
+    zwiftEventId: String(row.zwift_event_id),
+    title: row.event_name,
+    startAt: Date.parse(row.raced_at),
+    before: row.score_before === null ? null : Number(row.score_before),
+    after: row.score_after === null ? null : Number(row.score_after),
+  }));
 }
 
 /**

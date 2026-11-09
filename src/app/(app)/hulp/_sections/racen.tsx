@@ -5,6 +5,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { ClubShortName, ClubText, MemberNoun, ModuleName } from "@/components/club-texts-provider";
+import { RACE_TERMS } from "@/lib/zrl-analysis/terms";
 
 export function RacenHelp() {
   return (
@@ -120,8 +121,11 @@ export function RacenHelp() {
             Een FRR-tijdslot of een andere Zwift-race uit de kalender staat
             vanzelf in je lijst zodra je hem gereden hebt. Bij FRR zie je ook
             de <MemberNoun plural /> in dezelfde etappe over alle tijdsloten, met hun tijd, en
-            je plek in het klassement van FRR. Van andere <MemberNoun plural /> zie je alleen
-            plek en tijd, net als op de site van FRR.
+            je plek in het klassement van FRR. Van andere <MemberNoun plural /> zie je
+            plek en tijd, net als op de site van FRR, en in een andere Zwift-race
+            ook hun W/kg: gemiddeld en over de beste 5 en 20 minuten, zoals Zwift
+            die zelf in de uitslag toont. Van renners van andere clubs zie je
+            alleen plek en tijd.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Ook races die niet in de kalender staan, komen vanzelf in je lijst,
@@ -146,6 +150,11 @@ export function RacenHelp() {
             waarop hij steunt. Leegrijden op een klim is in een race normaal;
             een tip komt er pas als je de klim te hard begon en ver voor de top
             stilviel, of als een harde start je W′ kostte voor de eerste klim.
+            Verloor je in een race de groep voor je op een klim, dan zegt de tip
+            of je daar nog reserve had (dan: dieper gaan) of leeg was (dan: dat
+            vermogen trainen). Schat intervals.icu je FTP na de race duidelijk
+            hoger dan je profiel, of reed je lang zwaar op een cadans onder 70,
+            dan krijg je daar ook een tip over.
             In een ploegentijdrit kijkt de app ook hoe lang je na een klim
             nodig had om te herstellen, waar je loste en op welke klim je het
             meeste vermogen nodig had. In een tijdrit: of je wegzakte in de
@@ -180,16 +189,56 @@ export function RacenHelp() {
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Je ziet per stuk vermogen, genormaliseerd vermogen (NP), intensiteit
-            (NP gedeeld door je FTP uit je profiel), hartslag en cadans, en je
-            beste vermogen in de race naast je beste van de laatste 90 dagen.
-            De W′-balans is een model: de app schat je critical power en je
-            reserve daarboven (W′) uit je eigen curve van 3 tot 20 minuten, en
-            rekent mee hoe die reserve leegloopt boven je critical power en
-            herstelt eronder. Bij 0% is je reserve volgens het model op; komt
-            hij eronder, dan schat de curve je iets te laag in. Watt per hartslag
-            vergelijkt het eerste en het laatste vlakke stuk: daalt die, dan
-            liep je hartslag op bij hetzelfde vermogen.
+            (NP gedeeld door je FTP uit je profiel), W/kg, hoogte, hartslag en
+            cadans, en je beste vermogen in de race naast je beste van de
+            laatste 90 dagen; &ldquo;nieuw&rdquo; betekent dat het beste van die
+            90 dagen uit deze race komt. Geeft Zwift voor de route geen
+            klimsegmenten, dan haalt de app de klimmen uit het hoogteprofiel van
+            je rit: minstens 12 meter stijgen over meer dan 200 meter. Een stuk
+            dat gemiddeld meer dan 1,5% daalt, heet een afdaling.
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            De W′-balans is een model: hoeveel reserve boven je critical power
+            je nog had. De app neemt het model dat intervals.icu na deze rit
+            gebruikt; zonder dat model schat hij het uit je eigen curve van 3
+            tot 20 minuten. Rijd je in een race een nieuw best, dan loopt die
+            curve achter en zakt de W′ ver onder nul; dan staat erbij dat het
+            model niet past. Watt per hartslag vergelijkt het eerste en het
+            laatste vlakke stuk: daalt die, dan liep je hartslag op bij hetzelfde
+            vermogen.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Onder je rit staan de blokken. Waar de race beslist werd: de
+            groepjes aan de finish (wie binnen 2 seconden van elkaar finishte,
+            reed samen), je zwaarste klim en je diepste W′-punt. Zwift geeft niet
+            door waar je in de groep reed, dus waar de groep wegreed is een
+            afleiding. Verder: je FTP in je profiel naast die van intervals.icu,
+            de W′-rekening (hoe lang je diep zat en hoe snel je herstelde),
+            versnellingen boven 150% van je FTP, hart, cadans en koppel, je vorm
+            en de training uit je schema die de race verving, brandstof, en bij
+            lange races je vermogen na 1000 en 2000 kJ. Bij klimmen uit het
+            hoogteprofiel bewaart de app je tijd en vermogen per klim, zodat je
+            de volgende keer op dezelfde route ziet hoe je het eerder deed. Dat
+            ziet alleen jij. Onder ZRS over je races staat je Zwift Racing Score
+            van voor elke race; de score na een race is die van voor de
+            volgende.
+          </p>
+        </div>
+
+        <div id="racen-begrippen" className="mt-4 scroll-mt-20 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Begrippen</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Op de pagina van een race tik je op een onderstreept begrip voor
+            de uitleg. Hier staan ze onder elkaar.
+          </p>
+          <dl className="mt-2 space-y-2 text-sm">
+            {Object.entries(RACE_TERMS).map(([key, term]) => (
+              <div key={key}>
+                <dt className="font-medium">{term.title}</dt>
+                <dd className="text-muted-foreground">{term.text}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </section>
 

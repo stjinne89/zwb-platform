@@ -149,6 +149,7 @@ export const HELP_CATEGORIES = [
       "racen-verwachting",
       "racen-trainer",
       "racen-eigen-rit",
+      "racen-begrippen",
       "pacing",
       "pacing-eindtijd",
       "pacing-neutralisatie",

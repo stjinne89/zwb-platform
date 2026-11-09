@@ -1,6 +1,7 @@
 // Bouwstenen die de ZRL-pagina en de pagina van een individuele race delen.
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { EmptyState, SectionHeader } from "@/components/app-ui";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import type { RideOutcome } from "@/lib/zrl-analysis/load";
@@ -9,6 +10,8 @@ import type { Advice } from "@/lib/zrl-analysis/advice";
 import { decimal, durationLabel, raceClock, signedSeconds } from "@/lib/zrl-analysis/format";
 import { cn } from "@/lib/utils";
 import { RideChart } from "./ride-chart";
+import { RideBlocks } from "./ride-blocks";
+import { Term } from "./term";
 
 export const dateLabel = new Intl.DateTimeFormat("nl-NL", {
   weekday: "long",
@@ -19,7 +22,7 @@ export const dateLabel = new Intl.DateTimeFormat("nl-NL", {
   timeZone: "Europe/Amsterdam",
 });
 
-export function Stat({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
+export function Stat({ value, label, accent }: { value: string; label: ReactNode; accent?: boolean }) {
   return (
     <div className="min-w-0 rounded-lg border bg-card p-3">
       <div className={cn("text-xl font-semibold tabular-nums tracking-tight sm:text-2xl", accent && "text-primary")}>{value}</div>
@@ -73,10 +76,26 @@ export function OwnRide({ ride }: { ride: RideOutcome }) {
     <section className="space-y-4">
       <SectionHeader title="Jouw rit" />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat value={`${a.np} W`} label={a.intensity !== null ? `genormaliseerd · IF ${decimal(a.intensity)}` : "genormaliseerd"} />
-        <Stat value={`${a.avgWatts} W`} label={`gemiddeld · ${a.kilojoules} kJ`} />
+        <Stat
+          value={`${a.np} W`}
+          label={
+            <>
+              <Term id="np">genormaliseerd</Term>
+              {a.intensity !== null && (
+                <>
+                  {" "}
+                  · <Term id="if" /> {decimal(a.intensity)}
+                </>
+              )}
+            </>
+          }
+        />
+        <Stat value={`${a.avgWatts} W`} label={<>gemiddeld · {a.kilojoules} <Term id="kj" /></>} />
         <Stat value={a.avgHeartRate ? `${a.avgHeartRate} / ${a.maxHeartRate}` : "—"} label="hartslag gem. / max" />
-        <Stat value={a.wbalMin ? `${a.wbalMin.share}%` : "—"} label={a.wbalMin ? `laagste W′ · ${raceClock(a.wbalMin.at)}` : "W′-balans"} />
+        <Stat
+          value={a.wbalMin ? `${a.wbalMin.share}%` : "—"}
+          label={a.wbalMin ? <>laagste <Term id="wbal" /> · {raceClock(a.wbalMin.at)}</> : <Term id="wbal">W′-balans</Term>}
+        />
       </div>
       <div className="rounded-lg border bg-card p-3">
         <RideChart series={a.series} climbs={climbs} ftp={ride.ftp} />
@@ -86,7 +105,14 @@ export function OwnRide({ ride }: { ride: RideOutcome }) {
         columns={[
           { key: "name", header: "Stuk", cell: (p) => p.name, primary: true },
           { key: "time", header: "Tijd", cell: (p) => raceClock(p.to - p.from), align: "right" },
+          {
+            key: "terrain",
+            header: "Hoogte",
+            cell: (p) => (p.gain === null ? "—" : `${p.gain > 0 ? "+" : ""}${p.gain} m${p.grade !== null ? ` · ${decimal(p.grade, 1)}%` : ""}`),
+            align: "right",
+          },
           { key: "avg", header: "Gem.", cell: (p) => `${p.avgWatts} W`, align: "right" },
+          { key: "wkg", header: "W/kg", cell: (p) => (p.wkg === null ? "—" : decimal(p.wkg)), align: "right" },
           { key: "np", header: "NP", cell: (p) => `${p.np} W`, align: "right" },
           { key: "if", header: "IF", cell: (p) => decimal(p.intensity), align: "right" },
           { key: "hr", header: "Hartslag", cell: (p) => p.avgHeartRate ?? "—", align: "right" },
@@ -96,17 +122,30 @@ export function OwnRide({ ride }: { ride: RideOutcome }) {
         rows={a.phases}
         rowKey={(p) => `${p.name}-${p.from}`}
         rowClassName={(p) => (p.climb ? "bg-muted/40" : undefined)}
-        minWidth={640}
+        minWidth={820}
       />
 
       {a.best.some((b) => b.share !== null) && (
         <div className="space-y-2">
           <h3 className="text-sm font-semibold">Beste vermogen tegenover de laatste 90 dagen</h3>
+          {a.best.some((b) => b.isNew) && (
+            <p className="text-sm">
+              Nieuw best over 90 dagen:{" "}
+              {a.best
+                .filter((b) => b.isNew)
+                .map((b) => `${durationLabel(b.seconds)} (${b.watts} W)`)
+                .join(", ")}
+              .
+            </p>
+          )}
           <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {a.best.map((b) => (
               <li key={b.seconds} className="rounded-lg border bg-card p-3">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm text-muted-foreground">{durationLabel(b.seconds)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {durationLabel(b.seconds)}
+                    {b.isNew && <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-xs text-primary">nieuw</span>}
+                  </span>
                   <span className="font-semibold tabular-nums">{b.share !== null ? `${b.share}%` : "—"}</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -124,18 +163,10 @@ export function OwnRide({ ride }: { ride: RideOutcome }) {
       <dl className="grid gap-2 text-sm sm:grid-cols-3">
         {a.drift && (
           <div className="rounded-lg border bg-card p-3">
-            <dt className="text-muted-foreground">Watt per hartslag</dt>
+            <dt className="text-muted-foreground">Watt per hartslag, eerste en laatste vlakke stuk</dt>
             <dd className="font-medium tabular-nums">
               {decimal(a.drift.first)} → {decimal(a.drift.last)} ({a.drift.change > 0 ? "+" : ""}
               {a.drift.change}%)
-            </dd>
-          </div>
-        )}
-        {a.cadenceAboveFtp.length > 0 && (
-          <div className="rounded-lg border bg-card p-3">
-            <dt className="text-muted-foreground">Cadans boven je FTP</dt>
-            <dd className="font-medium tabular-nums">
-              {a.cadenceAboveFtp.map((c) => `${c.from}-${c.from + 9}: ${raceClock(c.seconds)}`).join(" · ")}
             </dd>
           </div>
         )}
@@ -146,6 +177,8 @@ export function OwnRide({ ride }: { ride: RideOutcome }) {
           </div>
         )}
       </dl>
+
+      <RideBlocks ride={a} context={ride.context} climbs={ride.climbs} />
     </section>
   );
 }

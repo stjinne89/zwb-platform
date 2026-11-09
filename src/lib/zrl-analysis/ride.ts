@@ -6,6 +6,29 @@
 // het best klopt met wat Zwift per passage gaf (gemeten 2026-10-13: op de watt
 // gelijk bij 15 s). Zonder passages met vermogen geldt de starttijd van het
 // bestand. Uitwerking: docs/zrl-analyse.md.
+//
+// Zonder klimsegmenten van Zwift (route niet in de routetabel) komen de
+// klimmen uit het eigen hoogteprofiel (ride-story.ts). Het W′-model is dat van
+// intervals.icu na deze rit; zonder dat model een schatting uit de curve.
+
+import {
+  cadenceStats,
+  climbingMeters,
+  durability,
+  efforts,
+  EFFORT_SHARE,
+  heartStats,
+  terrainBetween,
+  terrainClimbs,
+  terrainDescents,
+  wbalAccount,
+  type CadenceStats,
+  type DurabilityRow,
+  type Effort,
+  type FatigueCurve,
+  type HeartStats,
+  type WbalAccount,
+} from "@/lib/zrl-analysis/ride-story";
 
 export type RideStreams = {
   /** Seconden vanaf de start van het bestand. */
@@ -13,6 +36,10 @@ export type RideStreams = {
   watts: Array<number | null>;
   heartrate?: Array<number | null>;
   cadence?: Array<number | null>;
+  /** Hoogte in m en afgelegde afstand in m, voor klimmen zonder Zwift-segmenten. */
+  altitude?: Array<number | null>;
+  distance?: Array<number | null>;
+  torque?: Array<number | null>;
 };
 
 /** Een eigen segmentpassage, in seconden vanaf de eigen start van de race. */
@@ -25,7 +52,7 @@ export type RideAnchor = {
   climb: boolean;
 };
 
-export type CurvePoint = { seconds: number; watts: number };
+export type CurvePoint = { seconds: number; watts: number; activityId?: string | null };
 
 export type RideInput = {
   streams: RideStreams;
@@ -37,6 +64,15 @@ export type RideInput = {
   ftp: number | null;
   /** Beste vermogen per duur, bv. de laatste 90 dagen. */
   curve: CurvePoint[];
+  /** CP en W′ van intervals.icu na deze rit; zonder: een schatting uit de curve. */
+  model?: { cp: number; wPrime: number } | null;
+  weightKg?: number | null;
+  /** Drempelhartslag uit intervals.icu. */
+  lthr?: number | null;
+  /** Id van de rit in intervals.icu: staat die bij een punt van de curve, dan is dat een nieuw best. */
+  activityId?: string | null;
+  /** Vermoeide curves van intervals.icu (na 1000 en 2000 kJ). */
+  fatigue?: FatigueCurve[];
 };
 
 export type RidePhase = {
@@ -64,9 +100,28 @@ export type RidePhase = {
   recoveryAfter: number | null;
   /** Eigen beste vermogen over deze duur (uit de curve), voor een klim. */
   seasonBest: number | null;
+  /** Netto hoogteverschil (m), afstand (m) en gemiddeld stijgingspercentage; null zonder hoogte. */
+  gain: number | null;
+  distance: number | null;
+  grade: number | null;
+  wkg: number | null;
+  /** Meter stijgen per uur, voor een klim. */
+  vam: number | null;
+  /** Kilometer vanaf de eigen start waar dit stuk begint; null zonder afstand. */
+  startKm: number | null;
 };
 
-export type RideBest = { seconds: number; watts: number; at: number; season: number | null; share: number | null };
+export type RideBest = {
+  seconds: number;
+  watts: number;
+  at: number;
+  season: number | null;
+  share: number | null;
+  /** Het beste van de curve komt uit deze rit: een nieuw best over 90 dagen. */
+  isNew: boolean;
+};
+
+export type RideModel = { cp: number; wPrime: number; source: "intervals" | "curve" };
 
 export type RideAnalysis = {
   /** Gevonden verschuiving: racetijd = bestandstijd + offset. */
@@ -85,8 +140,21 @@ export type RideAnalysis = {
   cadence: number | null;
   phases: RidePhase[];
   best: RideBest[];
-  /** Critical power en W′ uit de curve (3 tot 20 minuten), of null als die te dun is. */
-  cp: { cp: number; wPrime: number } | null;
+  /** Het W′-model: van intervals.icu na de rit, anders uit de curve (3 tot 20 minuten); null zonder. */
+  cp: RideModel | null;
+  /** Ter vergelijking: het model uit de 90-dagencurve en de laagste W′ daarmee, als het hoofdmodel van intervals.icu komt. */
+  curveModel: { cp: number; wPrime: number; wbalMin: number } | null;
+  /** De klimmen komen uit het eigen hoogteprofiel, niet uit Zwift-segmenten. */
+  terrain: boolean;
+  weightKg: number | null;
+  wbal: WbalAccount | null;
+  /** Versnellingen boven 150% van de FTP, tijd boven de FTP en seconden niet getrapt. */
+  efforts: { threshold: number; list: Effort[]; aboveFtp: number; coasting: number } | null;
+  /** Meters klimmen in de eerste en de tweede helft, om de helften eerlijk te lezen. */
+  climbing: { first: number; second: number } | null;
+  heart: HeartStats;
+  cadenceStats: CadenceStats;
+  durability: DurabilityRow[];
   wbalMin: { share: number; at: number } | null;
   /** Watt per hartslag op het eerste en het laatste vlakke stuk. */
   drift: { first: number; last: number; change: number } | null;
@@ -97,7 +165,7 @@ export type RideAnalysis = {
   /** Seconden boven de FTP per cadansvak van 10 rpm. */
   cadenceAboveFtp: Array<{ from: number; seconds: number }>;
   /** Voor de grafiek: elke 10 s het gemiddelde over 30 s. */
-  series: Array<{ t: number; watts: number; heartRate: number | null; wbal: number | null }>;
+  series: Array<{ t: number; watts: number; heartRate: number | null; wbal: number | null; altitude: number | null }>;
 };
 
 export const BEST_DURATIONS = [60, 120, 180, 300, 600, 1200, 1800, 2400];
@@ -118,14 +186,22 @@ function perRaceSecond(streams: RideStreams, offset: number, finish: number) {
   const watts: Array<number | null> = new Array(length).fill(null);
   const heart: Array<number | null> = new Array(length).fill(null);
   const cadence: Array<number | null> = new Array(length).fill(null);
+  const altitude: Array<number | null> = new Array(length).fill(null);
+  const distance: Array<number | null> = new Array(length).fill(null);
+  const torque: Array<number | null> = new Array(length).fill(null);
+  let joulesBefore = 0;
   streams.time.forEach((t, i) => {
     const r = Math.round(t + offset);
+    if (r < 0) joulesBefore += streams.watts[i] ?? 0;
     if (r < 0 || r >= length) return;
     watts[r] = streams.watts[i] ?? 0;
     heart[r] = streams.heartrate?.[i] ?? null;
     cadence[r] = streams.cadence?.[i] ?? null;
+    altitude[r] = streams.altitude?.[i] ?? null;
+    distance[r] = streams.distance?.[i] ?? null;
+    torque[r] = streams.torque?.[i] ?? null;
   });
-  return { watts, heart, cadence };
+  return { watts, heart, cadence, altitude, distance, torque, kjBefore: joulesBefore / 1000 };
 }
 
 function windowMean(watts: Array<number | null>, from: number, to: number): number | null {
@@ -237,12 +313,21 @@ export function curveAt(curve: CurvePoint[], seconds: number): number | null {
   return null;
 }
 
-/** Stukken van de race: vlak tussen de klimmen, de klimmen zelf. */
-export function ridePhases(anchors: RideAnchor[], finish: number): Array<{ name: string; climb: boolean; from: number; to: number }> {
-  const climbs = anchors
+/**
+ * Stukken van de race: vlak tussen de klimmen, de klimmen zelf. Zonder
+ * klimsegmenten van Zwift de klimmen uit het hoogteprofiel (`terrain`).
+ */
+export function ridePhases(
+  anchors: RideAnchor[],
+  finish: number,
+  terrain: Array<{ from: number; to: number }> = [],
+): Array<{ name: string; climb: boolean; from: number; to: number }> {
+  const fromAnchors = anchors
     .filter((a) => a.climb)
-    .map((a) => ({ name: a.name, from: Math.max(0, a.end - a.elapsed), to: a.end }))
-    .sort((a, b) => a.from - b.from);
+    .map((a) => ({ name: a.name, from: Math.max(0, a.end - a.elapsed), to: a.end }));
+  const climbs = (fromAnchors.length > 0 ? fromAnchors : terrain.map((c, i) => ({ name: `Klim ${i + 1}`, from: c.from, to: c.to }))).sort(
+    (a, b) => a.from - b.from,
+  );
   const phases: Array<{ name: string; climb: boolean; from: number; to: number }> = [];
   let at = 0;
   let flat = 1;
@@ -255,9 +340,51 @@ export function ridePhases(anchors: RideAnchor[], finish: number): Array<{ name:
   return phases;
 }
 
+/** Laagste W′-balans in % bij een model, vanaf de eerste seconde met data. */
+function lowestShare(watts: Array<number | null>, first: number, cp: number, wPrime: number): number {
+  const bal = wPrimeBalance(watts, cp, wPrime);
+  let low = Infinity;
+  for (let i = Math.max(first, 0); i < bal.length; i++) low = Math.min(low, bal[i]);
+  return Math.round((100 * low) / wPrime);
+}
+
+/** Een afdaling: gemiddeld minstens 1,5% omlaag. */
+const DESCENT_GRADE = -1.5;
+/** Een stuk korter dan dit (s) voegen we niet los toe. */
+const MIN_PIECE_S = 30;
+
+/** Vlakke stukken opdelen bij de afdalingen erin (uit het hoogteprofiel). */
+function splitDescents(
+  phases: Array<{ name: string; climb: boolean; from: number; to: number }>,
+  descents: Array<{ from: number; to: number }>,
+): Array<{ name: string; climb: boolean; from: number; to: number; descent?: boolean }> {
+  return phases.flatMap((phase) => {
+    if (phase.climb) return [phase];
+    const inside = descents.filter((d) => d.to > phase.from + MIN_PIECE_S && d.from < phase.to - MIN_PIECE_S);
+    if (inside.length === 0) return [phase];
+    const pieces: Array<{ name: string; climb: boolean; from: number; to: number; descent?: boolean }> = [];
+    let at = phase.from;
+    for (const d of inside) {
+      const from = Math.max(at, d.from);
+      const to = Math.min(phase.to, d.to);
+      // Een kort vlak stukje voor de afdaling hoort bij de afdaling.
+      const start = from - at >= MIN_PIECE_S ? from : at;
+      if (start > at) pieces.push({ ...phase, from: at, to: start });
+      const last = pieces[pieces.length - 1];
+      // Twee afdalingen direct achter elkaar zijn er een.
+      if (last?.descent && last.to >= start) last.to = to;
+      else pieces.push({ ...phase, from: start, to, descent: true });
+      at = to;
+    }
+    if (phase.to - at >= MIN_PIECE_S) pieces.push({ ...phase, from: at, to: phase.to });
+    else if (pieces.length) pieces[pieces.length - 1].to = phase.to;
+    return pieces;
+  });
+}
+
 export function analyseRide(input: RideInput): RideAnalysis {
   const { offset, error } = alignRide(input.streams, input.startOffset, input.finish, input.anchors);
-  const { watts, heart, cadence } = perRaceSecond(input.streams, offset, input.finish);
+  const { watts, heart, cadence, altitude, distance, torque, kjBefore } = perRaceSecond(input.streams, offset, input.finish);
   const first = watts.findIndex((w) => w != null);
   const present = watts.flatMap((w) => (w == null ? [] : [w]));
   const np = normalizedPower(present);
@@ -265,12 +392,40 @@ export function analyseRide(input: RideInput): RideAnalysis {
   const hr = heart.flatMap((h) => (h && h > 0 ? [h] : []));
   const cad = cadence.flatMap((c) => (c && c > 0 ? [c] : []));
   const ftp = input.ftp && input.ftp > 0 ? input.ftp : null;
+  const weight = input.weightKg && input.weightKg > 0 ? input.weightKg : null;
 
-  const cp = fitCriticalPower(input.curve);
+  const fitted = fitCriticalPower(input.curve);
+  const given = input.model && input.model.cp > 0 && input.model.wPrime > 2000 ? input.model : null;
+  const cp: RideModel | null = given
+    ? { cp: Math.round(given.cp), wPrime: Math.round(given.wPrime), source: "intervals" }
+    : fitted
+      ? { ...fitted, source: "curve" }
+      : null;
+  const curveModel = given && fitted ? { ...fitted, wbalMin: lowestShare(watts, first, fitted.cp, fitted.wPrime) } : null;
   const wbal = cp ? wPrimeBalance(watts, cp.cp, cp.wPrime) : null;
   const share = (j: number) => (cp ? Math.round((100 * j) / cp.wPrime) : 0);
 
-  const phases: RidePhase[] = ridePhases(input.anchors, input.finish).map((phase) => {
+  const fromZwift = input.anchors.some((a) => a.climb);
+  const terrain = fromZwift ? [] : terrainClimbs(altitude, distance);
+  const descents = terrainDescents(altitude, distance);
+
+  const startDistance = distance.find((d) => d != null) ?? null;
+  const kmAt = (r: number) => {
+    if (startDistance === null) return null;
+    for (let k = Math.max(0, Math.round(r)); k < distance.length; k++) {
+      const d = distance[k];
+      if (d != null) return Math.round((d - startDistance) / 10) / 100;
+    }
+    return null;
+  };
+
+  let flatCount = 0;
+  let descentCount = 0;
+  const phases: RidePhase[] = splitDescents(ridePhases(input.anchors, input.finish, terrain), descents).map((raw) => {
+    const shape = terrainBetween(altitude, distance, raw.from, raw.to);
+    const descent = !raw.climb && (raw.descent || (shape?.grade != null && shape.grade <= DESCENT_GRADE));
+    const name = raw.climb ? raw.name : descent ? `Afdaling ${++descentCount}` : `Vlak ${++flatCount}`;
+    const phase = { ...raw, name };
     const startIndex = Math.round(Math.max(phase.from, first < 0 ? 0 : first));
     const endIndex = Math.round(phase.to);
     const middleIndex = Math.round((startIndex + endIndex) / 2);
@@ -304,10 +459,12 @@ export function analyseRide(input: RideInput): RideAnalysis {
     const p = normalizedPower(w);
     const low = wbal ? Math.min(...wbal.slice(Math.round(from), Math.round(phase.to))) : null;
     const end = wbal ? wbal[Math.min(wbal.length - 1, Math.round(phase.to))] : null;
+    const avg = Math.round(mean(w));
+    const seconds = endIndex - startIndex;
     return {
       ...phase,
       from,
-      avgWatts: Math.round(mean(w)),
+      avgWatts: avg,
       np: p,
       intensity: ftp ? Math.round((100 * p) / ftp) / 100 : null,
       avgHeartRate: h.length ? Math.round(mean(h)) : null,
@@ -320,15 +477,23 @@ export function analyseRide(input: RideInput): RideAnalysis {
       emptyBeforeEnd: emptyAt === null ? null : endIndex - emptyAt,
       recoveryAfter: recovered,
       seasonBest: phase.climb ? curveAt(input.curve, endIndex - startIndex) : null,
+      gain: shape?.gain ?? null,
+      distance: shape?.distance ?? null,
+      grade: shape?.grade ?? null,
+      wkg: weight ? Math.round((100 * avg) / weight) / 100 : null,
+      vam: phase.climb && shape && shape.gain > 0 && seconds > 0 ? Math.round((shape.gain * 3600) / seconds) : null,
+      startKm: kmAt(from),
     };
   });
 
-  const season = new Map(input.curve.map((p) => [p.seconds, p.watts]));
+  const season = new Map(input.curve.map((p) => [p.seconds, p]));
   const best: RideBest[] = BEST_DURATIONS.flatMap((d) => {
     const b = bestAverage(watts, d);
     if (!b || d > present.length) return [];
-    const s = season.get(d) ?? null;
-    return [{ seconds: d, watts: b.watts, at: b.at, season: s, share: s ? Math.round((100 * b.watts) / s) : null }];
+    const point = season.get(d) ?? null;
+    const s = point?.watts ?? null;
+    const isNew = Boolean(input.activityId && point?.activityId && point.activityId === input.activityId);
+    return [{ seconds: d, watts: b.watts, at: b.at, season: s, share: s ? Math.round((100 * b.watts) / s) : null, isNew }];
   });
 
   let wbalMin: RideAnalysis["wbalMin"] = null;
@@ -369,25 +534,33 @@ export function analyseRide(input: RideInput): RideAnalysis {
     const w = windowMean(watts, t - 15, t + 15);
     if (w === null) continue;
     const h = heart.slice(Math.max(0, t - 15), t + 15).flatMap((v) => (v && v > 0 ? [v] : []));
+    const alt = altitude[t];
     series.push({
       t,
       watts: Math.round(w),
       heartRate: h.length ? Math.round(mean(h)) : null,
       wbal: wbal ? share(wbal[t]) : null,
+      altitude: alt == null ? null : Math.round(alt * 10) / 10,
     });
   }
 
-  const middle = Math.round((Math.max(first, 0) + watts.length) / 2);
-  const firstHalf = watts.slice(Math.max(first, 0), middle).flatMap((w) => (w == null ? [] : [w]));
+  const start = Math.max(first, 0);
+  const middle = Math.round((start + watts.length) / 2);
+  const firstHalf = watts.slice(start, middle).flatMap((w) => (w == null ? [] : [w]));
   const secondHalf = watts.slice(middle).flatMap((w) => (w == null ? [] : [w]));
   const halves =
     firstHalf.length >= 60 && secondHalf.length >= 60
       ? { first: Math.round(mean(firstHalf)), second: Math.round(mean(secondHalf)) }
       : null;
+  const climbFirst = climbingMeters(altitude, start, middle);
+  const climbSecond = climbingMeters(altitude, middle, watts.length);
 
-  const tenth = Math.max(60, Math.round((watts.length - Math.max(first, 0)) / 10));
-  const opening = watts.slice(Math.max(first, 0), Math.max(first, 0) + tenth).flatMap((w) => (w == null ? [] : [w]));
+  const tenth = Math.max(60, Math.round((watts.length - start) / 10));
+  const opening = watts.slice(start, start + tenth).flatMap((w) => (w == null ? [] : [w]));
   const startShare = opening.length >= 60 && avgWatts > 0 ? Math.round((100 * mean(opening)) / avgWatts) : null;
+
+  const threshold = ftp ? Math.round(EFFORT_SHARE * ftp) : null;
+  const shares = wbal ? wbal.map((j) => share(j)) : null;
 
   return {
     offset,
@@ -406,7 +579,24 @@ export function analyseRide(input: RideInput): RideAnalysis {
     phases,
     best,
     cp,
+    curveModel,
+    terrain: !fromZwift && terrain.length > 0,
+    weightKg: weight,
     wbalMin,
+    wbal: shares && first >= 0 ? wbalAccount(shares, watts, first) : null,
+    efforts:
+      threshold && ftp
+        ? {
+            threshold,
+            list: efforts(watts, threshold),
+            aboveFtp: present.filter((w) => w > ftp).length,
+            coasting: present.filter((w) => w === 0).length,
+          }
+        : null,
+    climbing: climbFirst !== null && climbSecond !== null ? { first: climbFirst, second: climbSecond } : null,
+    heart: heartStats(watts, heart, start, input.lthr ?? null),
+    cadenceStats: cadenceStats(watts, cadence, torque, ftp),
+    durability: input.fatigue?.length ? durability(watts, kjBefore, input.fatigue, input.curve) : [],
     drift,
     cadenceAboveFtp: [...bins].sort((a, b) => a[0] - b[0]).map(([from, s]) => ({ from, seconds: s })),
     series,

@@ -104,6 +104,7 @@ function record(startAt: number, extra: Partial<RaceRecord> = {}): RaceRecord {
     best15Wkg: null,
     best60Wkg: null,
     segments: [],
+    scoreBefore: null,
     ...extra,
   };
 }

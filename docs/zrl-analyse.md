@@ -62,7 +62,9 @@ Gemeten bij het handwerk, en bevestigd in de app:
   renner vermogen, W/kg, beste 1/5/20 minuten en per sprint of klim W/kg en plek.
 - **Eigen rit** (`src/lib/zrl-analysis/ride.ts`, puur): uitlijnen, NP, IF,
   stukken (vlak tussen de klimmen), beste vermogen tegenover de 90-dagencurve,
-  CP en W′ uit die curve (3 tot 20 minuten), W′-balans (Skiba), watt per
+  ~~CP en W′ uit die curve (3 tot 20 minuten)~~ CP en W′ van intervals.icu na
+  de rit, zonder dat model uit de curve (3 tot 20 minuten; sinds 2026-11-09, zie
+  "Diepere race-analyse"), W′-balans (Skiba), watt per
   hartslag op het eerste en laatste vlakke stuk, cadans boven de FTP.
 - **ZWBeter racen**: een vijfde pijler met `/zwbeter-worden/racen` (lijst) en
   `/zwbeter-worden/racen/[eventId]` (analyse).
@@ -209,6 +211,67 @@ waarden van ploeggenoten staan zonder naam in de bewaarde samenvatting.
   bevatten.
 - **De terugblik voor captains of trainers.** Alleen voor de renner zelf; de
   trainer krijgt wel de tip mee in de tips die het lid ziet.
+
+## Diepere race-analyse (2026-11-09)
+
+Aanleiding: de eigenaar vond de analyse van Stage 5 van Tour of Watopia 2026
+(event 5752884) karig: IF 1,07 en diep in de W′, maar één stuk "Vlak 1" en
+geen tips. Na een onderzoekspagina met data en mogelijke blokken vroeg de
+eigenaar: "Ik wil dat je al deze blokken bouwt, met daar telkens uitleg over
+wanneer je ingewikkelde begrippen gebruikt".
+
+**Oorzaken.** Route 121619062 stond niet in de routetabel, dus geen
+segmenten en geen klimmen. Het curvemodel (CP 287 W, W′ 19,7 kJ) liet de W′
+zakken tot −72%; met het model van intervals.icu na de rit (CP 302 W, W′
+25,2 kJ, velden `icu_pm_cp` en `icu_pm_w_prime` in de activiteitenlijst) is
+het −12%. Een fit met deze race erbij hielp niet (CP 264 W, −57%).
+
+**Gebouwd** (puur: `ride-story.ts`, `ride-context.ts`; laden in
+`loadOwnRide`):
+
+- Klimmen uit het hoogteprofiel als Zwift geen klimsegmenten geeft: 15 s
+  gladgestreken hoogte, begin waar het over 30 s 3 m stijgt (daarna naar voren
+  tot de weg echt stijgt), einde als er over 20 s geen halve meter meer bij
+  komt; telt vanaf 12 m over meer dan 200 m. Afdalingen met dezelfde regel
+  omgekeerd, een vlak stuk met gemiddeld ≤ −1,5% heet ook afdaling. Per stuk
+  hoogte, percentage, W/kg, VAM en kilometer.
+- W′-model van intervals.icu na de rit; het curvemodel blijft ter vergelijking
+  ("zakte tot −72%, past niet").
+- Waar de race beslist werd: finishgroepjes (binnen 2 s), kopgroep, de
+  dichtstbijzijnde groep van minstens drie voor je, zwaarste klim, diepste W′.
+  De plek in de groep geeft Zwift niet, dus "waarschijnlijk ging de groep hier
+  weg" is een afleiding.
+- W′-rekening (onder 25%, onder nul, dips vanaf 30% met de minuut ervoor en het
+  herstel tot 50%, vijf minuten voor de finish, eindsprint), versnellingen boven
+  150% FTP (≥ 5 s, gat tot 2 s), klimmeters per helft naast de helften, hart
+  (decoupling en hartslagherstel van intervals.icu, watt per slag per helft, tijd
+  boven LTHR), cadans en koppel (onder 70 rpm boven 120% FTP), vorm (CTL, ATL en
+  wellness van de dag tegenover vier weken), de gekoppelde training uit de
+  kalender van intervals.icu (`paired_event_id`), brandstof (kJ,
+  `carbs_used`, het advies van ZWBeter voeden), durability (na de kJ-drempels
+  van de vermoeide curves), nieuwe besten (het punt van de 90-dagencurve komt uit
+  deze rit).
+- ZRS over je races: de score van vóór elke race uit de bewaarde uitslagen en
+  `zwift_race_scores`; de score na een race is die van voor de volgende.
+- Klimmen tegenover eerdere keren (0321, `race_climb_efforts`): per klim uit
+  het hoogteprofiel tijd, vermogen en W/kg, bewaard bij het openen; dezelfde klim
+  is dezelfde route, begin binnen 300 m en hoogtemeters binnen 25%.
+- ZWB'ers in dezelfde race met W/kg (gemiddeld, 5 en 20 min) uit de uitslag.
+- Tips: FTP bijwerken (na de rit ≥ 3% boven het profiel), de groep voor je kwijt
+  op een klim (met reserve: dieper gaan; leeg, ≤ 10% W′: dat vermogen trainen),
+  lang zwaar op lage cadans (≥ 60 s).
+- Uitleg: `terms.ts` met de begrippen; op de pagina achter het begrip (popover),
+  op `/hulp/racen#racen-begrippen` onder elkaar.
+
+**Op de race van de eigenaar** (lokaal met de echte code): 11 stukken met 3
+klimmen, W′ laagst −12% op 16:20 (Klim 2), 9 versnellingen boven 410 W,
+eindsprint 47 s op 508 W, FTP 273 → 308 W, drie tips (FTP, groep kwijt op Klim
+2 terwijl leeg, 1:47 onder 70 rpm).
+
+**Bewust niet:** vermogen van renners van andere clubs (privacykeuze van
+2026-10-15); de plek in het peloton (geeft Zwift niet); klimmen vergelijken over
+routes heen (zou het GPS-spoor vragen); de ZRS na elke race apart ophalen (de
+historie vult zich al via de ZRS-job).
 
 ## Keuzes
 

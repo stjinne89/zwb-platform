@@ -8,7 +8,7 @@ import type { PersonalRaceOutcome } from "@/lib/zrl-analysis/load";
 import type { RaceKind } from "@/lib/zrl-analysis/personal";
 import { raceClock, raceTime, signedSeconds, wkg } from "@/lib/zrl-analysis/format";
 import { OwnRide, Stat, TipList, dateLabel } from "./race-parts";
-import { ExpectationStats, RaceTrendView, SegmentDepth } from "./race-depth";
+import { ExpectationStats, RaceTrendView, SegmentDepth, ZrsTrendView } from "./race-depth";
 import { ClubShortName } from "@/components/club-texts-provider";
 
 const KIND_LABEL: Record<RaceKind, string> = {
@@ -151,6 +151,9 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
                 { key: "group", header: "Groep", cell: (p) => p.subgroupLabel },
                 { key: "rank", header: "Plek", cell: (p) => `${p.rank}/${p.of}`, align: "right" },
                 { key: "time", header: "Tijd", cell: (p) => raceTime(p.time), align: "right" },
+                { key: "wkg", header: "W/kg", cell: (p) => wkg(p.wkg?.avg ?? null), align: "right" },
+                { key: "m5", header: "5 min", cell: (p) => wkg(p.wkg?.m5 ?? null), align: "right" },
+                { key: "m20", header: "20 min", cell: (p) => wkg(p.wkg?.m20 ?? null), align: "right" },
               ]}
               rows={race.peers}
               rowKey={(p) => String(p.zwiftId)}
@@ -161,6 +164,7 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
       )}
 
       <RaceTrendView depth={depth} />
+      <ZrsTrendView depth={depth} />
 
       <OwnRide ride={outcome.ride} />
     </div>

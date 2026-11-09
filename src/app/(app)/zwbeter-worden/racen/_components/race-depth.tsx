@@ -11,6 +11,7 @@ import { pointsBySource, type PointsSource, type RaceRecord } from "@/lib/zrl-an
 import { raceClock, wkg } from "@/lib/zrl-analysis/format";
 import { cn } from "@/lib/utils";
 import { Stat } from "./race-parts";
+import { Term } from "./term";
 
 const nl1 = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 1 });
 const shortDate = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", timeZone: "Europe/Amsterdam" });
@@ -254,6 +255,46 @@ export function RaceTrendView({ depth }: { depth: RaceDepth }) {
         rowKey={(r) => r.zwiftEventId}
         minWidth={720}
       />
+    </section>
+  );
+}
+
+/** Je ZRS van voor elke race, als lijn; deze race gemarkeerd. */
+export function ZrsTrendView({ depth }: { depth: RaceDepth }) {
+  const zrs = depth.zrs;
+  if (!zrs) return null;
+  const { points, change } = zrs;
+  const lo = Math.min(...points.map((p) => p.score));
+  const hi = Math.max(...points.map((p) => p.score));
+  const span = Math.max(1, hi - lo);
+  const w = 300;
+  const h = 64;
+  const x = (i: number) => (points.length === 1 ? w / 2 : 6 + (i / (points.length - 1)) * (w - 12));
+  const y = (score: number) => 6 + (1 - (score - lo) / span) * (h - 12);
+  const current = points.findIndex((p) => p.current);
+  const latest = points[points.length - 1];
+  return (
+    <section className="space-y-3">
+      <SectionHeader title={<><Term id="zrs">ZRS</Term> over je races</>} />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {current >= 0 && <Stat value={String(points[current].score)} label="voor deze race" />}
+        {change !== null && <Stat value={`${change > 0 ? "+" : change < 0 ? "−" : "±"}${Math.abs(change)}`} label="door deze race" accent={change > 0} />}
+        <Stat value={String(latest.score)} label={`voor je laatste race, ${shortDate.format(new Date(latest.startAt))}`} />
+        <Stat value={`${lo}–${hi}`} label={`laagste en hoogste, ${points.length} races`} />
+      </div>
+      <div className="rounded-lg border bg-card p-3">
+        <svg viewBox={`0 0 ${w} ${h}`} className="h-16 w-full" role="img" aria-label={`ZRS van ${points[0].score} naar ${latest.score} over ${points.length} races.`} preserveAspectRatio="none">
+          <polyline
+            points={points.map((p, i) => `${x(i).toFixed(1)},${y(p.score).toFixed(1)}`).join(" ")}
+            fill="none"
+            stroke="var(--chart-1)"
+            strokeWidth={2}
+            vectorEffect="non-scaling-stroke"
+            strokeLinejoin="round"
+          />
+          {current >= 0 && <circle cx={x(current)} cy={y(points[current].score)} r={4} fill="var(--color-zwb-gold, var(--primary))" />}
+        </svg>
+      </div>
     </section>
   );
 }
