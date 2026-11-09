@@ -12092,7 +12092,7 @@ Wat er is:
 3a de rolomschrijving met een rauw `{kort}`. De rolomschrijvingen kregen in 3a
 tokens, maar dit scherm vulde ze niet in. Dat is hersteld.
 
-**Open punten, dezelfde dag beslist** ("Eerst de open punten"):
+**Open punten, dezelfde dag beslist** ("Eerst de open punten"; commit `bea87141`, lokaal):
 
 - **"ZWBeter X"** werd het zesde eigen woord, `better_word`, neutraal "Beter"
   (zie hierboven). `club-texts-render.test.ts` laat niets meer door; de
