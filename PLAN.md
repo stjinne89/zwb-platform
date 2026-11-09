@@ -15,6 +15,12 @@ gaat stabiliteit voor nieuwe features.
    resetlink laten aanvragen. Zie de ronde "Inloglinks bestand tegen
    mailscanners".
 
+0. **Alle auth-mails in ZWB-stijl (2026-11-09): templates in de docs, nog niet
+   in Supabase.** Magic link, wachtwoord vergeten, e-mail wijzigen, uitnodiging
+   en bevestigingscode, in de stijl van de bevestigingsmail. Plakken in het
+   dashboard, en eigen SMTP via Resend (stappen in het docs-bestand). Zie de
+   ronde "Alle auth-mails in ZWB-stijl".
+
 0. **Generieke versie, fase 2 deel 2: lettertype, logo, kaarten en klassiek weg
    (2026-11-09): gepusht naar `main`; migratie `0315` toegepast** (versie
    `20261109101801`, op verzoek van de eigenaar, vóór de push; de bucket
@@ -11934,6 +11940,46 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Alle auth-mails in ZWB-stijl
+
+**2026-11-09.** Op verzoek van de eigenaar: elke mail van Supabase moet als ZWB
+herkenbaar zijn, ook bij wachtwoord vergeten. De ronde "Eigen bevestigingsmail
+na registreren" (branch `claude/supabase-registration-email-98e2d3`, nog niet
+op `main`) is hiervoor in deze branch overgenomen (cherry-pick), zodat alle
+templates in één docs-bestand staan.
+
+[supabase-auth-email-templates](docs/supabase-auth-email-templates.md) heeft nu
+onderwerp en volledige HTML voor *Magic link*, *Reset password*, *Change email
+address*, *Invite user* en *Reauthentication*, in dezelfde opmaak als de
+bevestigingsmail (logo, petrol balk en knop, link als platte tekst, een regel
+voor wie het niet aanvroeg). Alle links gebruiken de `token_hash`-vorm naar
+`/auth/confirm`, dus ook de magic link loopt nu via de knop op `/auth/doorgaan`
+en niet meer via Supabase's eigen `/verify`. De uitnodiging gaat naar
+`/wachtwoord-resetten`, omdat een uitgenodigd lid nog geen wachtwoord heeft;
+*Reauthentication* is alleen een code. "Verloopt na een uur" volgt
+`mailer_otp_exp` = 3600.
+
+**Nog niet op productie.** De templates in Supabase zelf zijn niet aangepast:
+opslaan via de Management API vanuit het dashboard werd door de
+veiligheidscontrole van de sessie geweigerd. Plakken kan in het dashboard
+(Authentication -> Emails -> Templates), uit het docs-bestand.
+
+**Maillimiet.** Stand op 2026-11-09: geen eigen SMTP, `rate_limit_email_sent`
+= 2 per uur. `zwbcycling.nl` heeft DMARC `p=reject`, dus versturen namens dat
+domein kan alleen met DKIM. Het docs-bestand beschrijft Resend (bestaand
+account) met een subdomein `auth.zwbcycling.nl`, afzendernaam "ZWB Cycling
+Community", en daarna de limiet op 30 per uur. Dat is een keuze en een
+DNS-wijziging van de eigenaar; niets daarvan is ingesteld.
+
+Lokaal bekeken als HTML met ingevulde voorbeeldwaarden. **Niet geverifieerd:**
+de mails in Gmail, Outlook en Apple Mail, en een echte invite of
+e-mailwijziging (de app gebruikt die twee nu niet).
+
+**Bewust niet.** De beveiligingsmeldingen (wachtwoord of e-mail gewijzigd,
+inlogmethode gekoppeld) staan uit in Supabase en zijn niet opgemaakt. De
+afzender blijft Supabase zolang er geen eigen SMTP is; dat is met templates
+niet op te lossen.
+
 ### Gebouwd — Inloglinks bestand tegen mailscanners
 
 **2026-11-09.** Op verzoek van de eigenaar: Tino van Ramesdonk (hotmail-adres)
@@ -12079,6 +12125,7 @@ browser.
 `/omnium`), het pushicoon `badge-96.png` en `/brochure`: die horen bij de
 teksten en de clubherkenning (fase 3 en 4) of blijven van ZWB. De merkwerelden
 houden hun vaste kleuren (keuze eigenaar).
+
 ### Gebouwd — Eigen bevestigingsmail na registreren
 
 **2026-11-09.** Op verzoek van de eigenaar: de mail die Supabase na het
@@ -12102,8 +12149,11 @@ Daarvoor stond er nog de Engelse standaardtemplate van Supabase met
 `{{ .ConfirmationURL }}` (de PKCE-`code`-flow), ondanks de oproep in het
 docs-bestand om de `token_hash`-link te gebruiken. Die oude link werkte via de
 `code`-tak van `/auth/confirm`, maar kon op iOS stuklopen als Mail een andere
-browser opent. Niet nagekeken: of *Magic link* en *Reset password* nog op de
-standaard staan. De Site URL is `https://zwb-platform.netlify.app`, dus de knop
+browser opent. ~~Niet nagekeken: of *Magic link* en *Reset password* nog op de
+standaard staan.~~ Nagekeken op 2026-11-09: *Reset password* had een eigen,
+Engelse template met de `token_hash`-link; *Magic link*, *Change email* en
+*Invite* stonden op de Engelse standaard met `{{ .ConfirmationURL }}`. Zie de
+ronde "Alle auth-mails in ZWB-stijl". De Site URL is `https://zwb-platform.netlify.app`, dus de knop
 en het logo wijzen naar productie.
 
 Het dashboard waarschuwt dat het project de ingebouwde maildienst gebruikt, met
@@ -12117,8 +12167,9 @@ echte registratie bevestigt. Dat blijkt pas bij de eerstvolgende aanmelding.
 Een Supabase-template kent alleen de projectinstellingen en de metadata van de
 gebruiker, niet `club_settings`. Per club een eigen mail vraagt een Send Email
 Hook of een eigen Supabase-project per club; dat hoort bij de proefinstallatie
-(fase 7). Ook niet: de andere mails (magic link, wachtwoord resetten) in dezelfde
-stijl. Daar is niet om gevraagd.
+(fase 7). ~~Ook niet: de andere mails (magic link, wachtwoord resetten) in dezelfde
+stijl. Daar is niet om gevraagd.~~ Inmiddels gevraagd en gemaakt, zie "Alle
+auth-mails in ZWB-stijl".
 
 ### Gebouwd — Generieke versie, fase 2 deel 1: clubkleuren
 
