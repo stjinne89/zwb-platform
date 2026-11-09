@@ -12079,6 +12079,34 @@ browser.
 `/omnium`), het pushicoon `badge-96.png` en `/brochure`: die horen bij de
 teksten en de clubherkenning (fase 3 en 4) of blijven van ZWB. De merkwerelden
 houden hun vaste kleuren (keuze eigenaar).
+### Gebouwd — Eigen bevestigingsmail na registreren
+
+**2026-11-09.** Op verzoek van de eigenaar: de mail die Supabase na het
+registreren stuurt, in ZWB-stijl. Geen code en geen migratie; alleen
+[supabase-auth-email-templates](docs/supabase-auth-email-templates.md) onder
+*Confirm Signup*.
+
+De template staat in Supabase zelf (**Authentication → Emails → Confirm
+signup**), niet in de repo. Het docs-bestand is de bron om uit te plakken. De
+nieuwe versie heeft het onderwerp "Bevestig je account bij ZWB", het logo
+(`{{ .SiteURL }}/zwb-logo.png`), een welkom met `{{ .Data.full_name }}` (de naam
+die `signUp()` als metadata meegeeft), een knop in clubpetrol, drie stappen die
+gelijklopen met `/welkom` (bevestigen, goedkeuring door een beheerder, profiel),
+de link als platte tekst, en een regel voor wie zich niet heeft aangemeld. Het is
+HTML met tabellen en inline stijlen, omdat mailprogramma's geen stylesheet en
+geen CSS-variabelen lezen. De link houdt de `token_hash`-vorm voor iOS.
+
+Lokaal bekeken als HTML met ingevulde voorbeeldwaarden. **Niet geverifieerd:**
+dat hij in Supabase is ingesteld, en hoe hij er in Gmail, Outlook en Apple Mail
+uitziet. Dat kan pas als de template in het dashboard staat en er een echte
+registratie is gedaan.
+
+**Bewust niet:** de kleuren en naam per club laten volgen (generieke versie).
+Een Supabase-template kent alleen de projectinstellingen en de metadata van de
+gebruiker, niet `club_settings`. Per club een eigen mail vraagt een Send Email
+Hook of een eigen Supabase-project per club; dat hoort bij de proefinstallatie
+(fase 7). Ook niet: de andere mails (magic link, wachtwoord resetten) in dezelfde
+stijl. Daar is niet om gevraagd.
 
 ### Gebouwd — Generieke versie, fase 2 deel 1: clubkleuren
 
