@@ -8,8 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Club Ladder: rosternamen toevoegen aan puzzel en teams (2026-11-09):
-   gebouwd, lokaal gecommit op `claude/rosternamen-club-ladder-5c54a7`, niet
-   gepusht.** Geen migratie. Nalopen na een deploy, met de rol teamcaptain:
+   gepusht naar `main` (`6bfa983e`).** Geen migratie. Nalopen na een deploy, met de rol teamcaptain:
    onder de puzzel bij "Renner aan de puzzel toevoegen" een rosternaam kiezen en
    in een team zetten, en op de pagina van een ladderteam onder het teamprofiel
    een rosternaam toevoegen. Zie de ronde "Club Ladder: rosternamen toevoegen
@@ -12148,8 +12147,8 @@ kan niet op productie zonder dat elk lid het ziet.
 
 ### Gebouwd — Club Ladder: rosternamen toevoegen aan puzzel en teams
 
-**2026-11-09.** Lokaal gecommit op `claude/rosternamen-club-ladder-5c54a7` (de
-commit met deze ronde), niet gepusht. Geen migratie.
+**2026-11-09.** Commit `6bfa983e`, gepusht naar `main` op 2026-11-09. Geen
+migratie.
 
 **Waarom.** Eigenaar: "Ik wil rosternamen ook kunnen toevoegen aan de club
 ladder puzzel en teams". Een rosternaam zonder account kwam alleen in de puzzel
