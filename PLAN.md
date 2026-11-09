@@ -16,8 +16,8 @@ gaat stabiliteit voor nieuwe features.
    **Deel 3a** (de clubwoorden in schermen, meldingen en AI-prompts) is lokaal
    gecommit en nog niet gepusht. Geen migratie. Zie de ronde "fase 3 deel 3a".
    **Deel 3b** (eigen woorden, appnaam, user agents, neutrale kennisbanken) is
-   lokaal gebouwd en nog niet gepusht, met migratie `0316` (nog **niet**
-   toegepast). **Pas `0316` toe vóór de push**: zonder de kolommen ziet ZWB
+   lokaal gebouwd en nog niet gepusht, met migratie `0318` (nog **niet**
+   toegepast). **Pas `0318` toe vóór de push**: zonder de kolommen ziet ZWB
    "Dagadvies", "ballen" en "beker". Nog open bij de eigenaar: een eigen woord
    voor "ZWBeter X" en vijf stroeve kennisbankzinnen. Zie de ronde "fase 3 deel
    3b".
@@ -11966,14 +11966,14 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Generieke versie, fase 3 deel 3b: eigen woorden, appnaam en neutrale kennisbanken
 
 **2026-11-09.** Op verzoek van de eigenaar ("Yes, start 3b"), na de keuzes van
-dezelfde dag (zie het bovenste punt van de actieve volgorde). Migratie `0316`
+dezelfde dag (zie het bovenste punt van de actieve volgorde). Migratie `0318`
 (`club_words`) is **niet toegepast** en niet lokaal te testen. Hij moet vóór de
 push op productie staan: zonder de kolommen valt ZWB terug op de neutrale
 woorden.
 
 Wat er is:
 
-- **Eigen woorden (`0316`).** `club_settings` krijgt vijf kolommen. Elke lege
+- **Eigen woorden (`0318`).** `club_settings` krijgt vijf kolommen. Elke lege
   kolom geeft een neutraal woord.
 
   | Kolom | Bij ZWB | Neutraal |
@@ -12088,7 +12088,7 @@ een parameter, die `teams/_actions.ts` meegeeft.
 
 - de schermen in de browser;
 - echte user agents tegen de sites;
-- het gedrag vóór en na `0316` op productie.
+- het gedrag vóór en na `0318` op productie.
 
 ### Gebouwd — Generieke versie, fase 3 deel 3a: clubwoorden in schermen, meldingen en AI-prompts
 
