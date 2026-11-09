@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LadderPlace } from "@/lib/club-ladder/briefing";
-import { ladderPower, nextLadderSort, sortLadderPlaces } from "@/lib/club-ladder/briefing-sort";
+import { heatHue, ladderPower, ladderPowerRange, nextLadderSort, sortLadderPlaces } from "@/lib/club-ladder/briefing-sort";
 
 const place = (
   zwiftId: number,
@@ -68,5 +68,20 @@ describe("nextLadderSort", () => {
     expect(nextLadderSort(null, "place")).toEqual({ key: "place", direction: "asc" });
     expect(nextLadderSort(null, "m1")).toEqual({ key: "m1", direction: "desc" });
     expect(nextLadderSort({ key: "m1", direction: "desc" }, "m1")).toEqual({ key: "m1", direction: "asc" });
+  });
+});
+
+describe("heatHue", () => {
+  it("hoogste rood, laagste groen, zonder verschil of waarde geen kleur", () => {
+    const range = ladderPowerRange(rows, "m20", "wkg");
+    expect(range).toEqual({ min: 4.0, max: 4.5 });
+    expect(heatHue(4.5, range)).toBe(0);
+    expect(heatHue(4.0, range)).toBe(120);
+    expect(heatHue(4.25, range)).toBe(60);
+    expect(heatHue(null, range)).toBeNull();
+    expect(heatHue(4, { min: 4, max: 4 })).toBeNull();
+    // In watt telt alleen wie gewicht heeft: Bart 270, Anna 360.
+    expect(ladderPowerRange(rows, "m20", "w")).toEqual({ min: 270, max: 360 });
+    expect(ladderPowerRange(rows, "m1", "wkg")).toBeNull();
   });
 });

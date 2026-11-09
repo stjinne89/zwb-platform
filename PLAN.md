@@ -37,8 +37,8 @@ gaat stabiliteit voor nieuwe features.
    gecommit op `claude/racebriefing-uitslag-filters-5170c3`, niet gepusht.**
    Geen migratie. Privacyzin uitgebreid naar het racebriefje (akkoord eigenaar
    2026-11-09). Nalopen: op het racebriefje
-   van een ladderrace 15 s en 20 min aanzetten, naar Watt schakelen en op een
-   duur sorteren. Zie de ronde "Club Ladder: duren en watt in de verwachte
+   van een ladderrace 15 s en 20 min aanzetten, naar Watt schakelen, op een
+   duur sorteren en zien dat de hoogste waarde rood en de laagste groen is. Zie de ronde "Club Ladder: duren en watt in de verwachte
    uitslag".
 
 0. **Generieke versie, fase 2 deel 1: clubkleuren (2026-11-09): gepusht naar
@@ -12220,6 +12220,14 @@ zien, in W/kg en in watt, als filter te kiezen, en erop sorteren.
   `briefing/_components/ladder-result-table.tsx`.
 - Namen in die tabel linken nu via `MemberLink` naar het profiel.
 - `/hulp` beschrijft de keuze en het sorteren.
+- **Kleur per duur** (vervolgvraag dezelfde dag, met een screenshot van de
+  Club Ladder): elke vermogenswaarde krijgt een achtergrond van rood (hoogste
+  van de tien) via geel naar groen (laagste), per kolom en in de gekozen
+  eenheid, zoals de Club Ladder het doet. `ladderPowerRange` en `heatHue` in
+  `briefing-sort.ts`; de kleur is `hsl(… / 0.3)`, zodat de tekst in licht en
+  donker leesbaar blijft. Zonder waarde of zonder verschil geen kleur. Bewust
+  rood = hoogste, als op de Club Ladder, ook al is hoog voor ons goed.
+  ZRS, punten en plek krijgen geen kleur: de ladder kleurt alleen vermogen.
 
 **Bewust niet.**
 - Geen watt of extra duren op het gedeelde racebriefje (het plaatje) en niet
@@ -12238,7 +12246,7 @@ W/kg", akkoord eigenaar 2026-11-09, in een eigen commit. Zonder nieuwe
 privacyversie: het gaat om gewichten die al voor de matchup worden gebruikt.
 
 **Niet geverifieerd.** Het racebriefje in de browser: achter inloggen. Wel:
-tests (ladder, 6 nieuw), ESLint en typecheck schoon. In deze worktree moest
+tests (ladder, 7 nieuw), ESLint en typecheck schoon. In deze worktree moest
 eerst `npm ci` (pakketten als `@anthropic-ai/sdk` ontbraken).
 
 ### Gebouwd — Generieke versie, fase 2 deel 1: clubkleuren

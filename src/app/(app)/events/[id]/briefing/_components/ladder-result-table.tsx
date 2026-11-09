@@ -7,7 +7,7 @@ import { PowerUnitToggle } from "@/components/power-unit";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ui/responsive-table";
 import { DURATION_LABELS } from "@/lib/club-ladder/advice";
 import type { LadderPlace } from "@/lib/club-ladder/briefing";
-import { ladderPower, nextLadderSort, sortLadderPlaces, type LadderSort, type LadderSortKey } from "@/lib/club-ladder/briefing-sort";
+import { heatHue, ladderPower, ladderPowerRange, nextLadderSort, sortLadderPlaces, type LadderSort, type LadderSortKey } from "@/lib/club-ladder/briefing-sort";
 import type { PowerDuration } from "@/lib/club-ladder/routes";
 import { DURATIONS } from "@/lib/club-ladder/team-power";
 import { cn } from "@/lib/utils";
@@ -60,9 +60,23 @@ export function LadderResultTable({
     );
   };
 
+  const ranges = useMemo(
+    () => new Map(DURATIONS.map((d) => [d, ladderPowerRange(rows, d, unit)] as const)),
+    [rows, unit],
+  );
+
   const power = (row: LadderPlace, d: PowerDuration) => {
     const value = ladderPower(row, unit)?.[d];
-    return value == null ? "—" : unit === "w" ? String(Math.round(value)) : nl2.format(value);
+    if (value == null) return "—";
+    const hue = heatHue(value, ranges.get(d) ?? null);
+    return (
+      <span
+        className="inline-block min-w-12 rounded px-1.5 py-0.5 text-right tabular-nums"
+        style={hue == null ? undefined : { backgroundColor: `hsl(${hue} 70% 50% / 0.3)` }}
+      >
+        {unit === "w" ? String(Math.round(value)) : nl2.format(value)}
+      </span>
+    );
   };
 
   const columns: Array<ResponsiveColumn<LadderPlace>> = [

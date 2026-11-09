@@ -40,3 +40,18 @@ export function nextLadderSort(current: LadderSort | null, key: LadderSortKey): 
   if (current?.key === key) return { key, direction: current.direction === "asc" ? "desc" : "asc" };
   return { key, direction: key === "place" || key === "name" ? "asc" : "desc" };
 }
+
+/** Laagste en hoogste waarde per duur over alle renners, in de gekozen eenheid. */
+export function ladderPowerRange(rows: LadderPlace[], d: PowerDuration, unit: MatchupUnit): { min: number; max: number } | null {
+  const values = rows.map((row) => ladderPower(row, unit)?.[d]).filter((v): v is number => v != null);
+  return values.length < 2 ? null : { min: Math.min(...values), max: Math.max(...values) };
+}
+
+/**
+ * Kleur als op de Club Ladder: de hoogste waarde rood (0), de laagste groen
+ * (120), daartussen via oranje en geel. Null zonder waarde of zonder verschil.
+ */
+export function heatHue(value: number | null | undefined, range: { min: number; max: number } | null): number | null {
+  if (value == null || !range || range.max === range.min) return null;
+  return Math.round(120 * ((range.max - value) / (range.max - range.min)));
+}
