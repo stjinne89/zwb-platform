@@ -376,7 +376,7 @@ die fasen niets merken; dat is tegelijk de test.
 | Fase | Inhoud | Omvang | Migratie |
 |---|---|---|---|
 | 1. Fundament | `club_settings`, `club_modules`, `getClub()`, `src/lib/modules.ts`, gating in middleware, nav, beheer en crons; ZWB-waarden als seed | middel | ja |
-| 2. Huisstijl | deel 1 (gebouwd): 5 kleuren, afgeleide tokens in een runtime-`<style>`, manifest als route, `generateViewport`, `/beheer/huisstijl`. Deel 2: logo-upload, iconen genereren, canvas leest variabelen, font kiezen, klassiek weg | groot | klein (`0314`) |
+| 2. Huisstijl | deel 1 (gebouwd): 5 kleuren, afgeleide tokens in een runtime-`<style>`, manifest als route, `generateViewport`, `/beheer/huisstijl`. Deel 2 (gebouwd): logo en beeldmerk met gegenereerde iconen, een lijst van vier letters, kaarten lezen de clubkleuren, klassiek weg. Merkwerelden houden hun stijl; donker blijft afgeleid (keuzes eigenaar 2026-11-09) | groot | klein (`0314`, `0315`) |
 | 3. Teksten en namen | title-template, clubnaam en modulenamen via `getClub()` in UI, meldingen, AI-prompts en extern; privacy, voorwaarden en hulp als templates | groot | nee |
 | 4. Clubherkenning | Zwift-club-ID, markers, teamtag, WTRL- en ladderteams, SRC- en Omnium-defaults, social naar instellingen; ZWB-teams uit de code naar de DB | middel | ja |
 | 5. Schone installatie | baseline-migratie, generieke seed, bootstrap van de eerste beheerder, installatiehandleiding, migratiescript voor meerdere projecten | groot | baseline |

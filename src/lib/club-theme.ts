@@ -26,6 +26,52 @@ export const DEFAULT_PALETTE: ClubPalette = {
   ink: "#0a2b34",
 };
 
+// ---------- Lettertype (0315) ----------
+
+export type ClubFont = "barlow" | "archivo" | "inter" | "schibsted";
+
+/**
+ * De letters waaruit een club kiest. family is de naam die next/font/local de
+ * familie geeft: de naam van de variabele in src/components/tegels/font.ts.
+ */
+export const CLUB_FONTS: readonly { key: ClubFont; label: string; family: string }[] = [
+  { key: "barlow", label: "Barlow Semi Condensed", family: "tegelsFont" },
+  { key: "archivo", label: "Archivo", family: "tegelsArchivo" },
+  { key: "inter", label: "Inter", family: "tegelsInter" },
+  { key: "schibsted", label: "Schibsted Grotesk", family: "tegelsSchibsted" },
+];
+
+export const DEFAULT_FONT: ClubFont = "barlow";
+
+/** Een bekende letter, of null (de standaard). */
+export function resolveFont(value: string | null | undefined): ClubFont | null {
+  const font = CLUB_FONTS.find((f) => f.key === value);
+  return font && font.key !== DEFAULT_FONT ? font.key : null;
+}
+
+/** De CSS die de letter van de club op de schil en in dialogen zet. */
+export function clubFontCss(font: ClubFont): string {
+  const family = CLUB_FONTS.find((f) => f.key === font)?.family ?? "tegelsFont";
+  return [
+    `html [data-design="tegels"]{--font-tegels:var(--font-tegels-${font})}`,
+    `html:root:has([data-design="tegels"]){--tg-display:"${family}", var(--font-geist-sans), system-ui, sans-serif}`,
+  ].join("\n");
+}
+
+/**
+ * Alle CSS van de huisstijl van de club, of null als alles de standaard is:
+ * dan zet de root layout geen <style> neer.
+ */
+export function clubStyleCss(
+  palette: ClubPalette | null,
+  font: ClubFont | null,
+): string | null {
+  const parts = [palette ? clubThemeCss(palette) : null, font ? clubFontCss(font) : null].filter(
+    (part): part is string => Boolean(part),
+  );
+  return parts.length ? parts.join("\n") : null;
+}
+
 // ---------- Kleurrekenen (sRGB, OKLab/OKLCH, WCAG-contrast) ----------
 
 type Rgb = [number, number, number]; // 0..1

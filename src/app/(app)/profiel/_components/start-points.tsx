@@ -10,6 +10,7 @@
 
 import { useState, useTransition } from "react";
 import dynamic from "next/dynamic";
+import { useClubColors } from "@/lib/use-club-colors";
 import { MapPin, Trash2 } from "lucide-react";
 import { deleteStartPoint, saveStartPoint } from "../_actions/start-points";
 import "leaflet/dist/leaflet.css";
@@ -30,6 +31,8 @@ export type StartPointRow = { id: string; label: string; lat: number; lon: numbe
 const DEFAULT_CENTER: [number, number] = [52.1, 5.3];
 
 export function StartPoints({ points }: { points: StartPointRow[] }) {
+  // Als hex: Leaflet zet de kleur als SVG-attribuut (0314).
+  const club = useClubColors();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<{ lat: number; lon: number } | null>(null);
@@ -120,14 +123,14 @@ export function StartPoints({ points }: { points: StartPointRow[] }) {
               key={point.id}
               center={[point.lat, point.lon]}
               radius={7}
-              pathOptions={{ color: "#1f6068", fillColor: "#1f6068", fillOpacity: 0.7 }}
+              pathOptions={{ color: club.secondary, fillColor: club.secondary, fillOpacity: 0.7 }}
             />
           ))}
           {picked ? (
             <CircleMarker
               center={[picked.lat, picked.lon]}
               radius={8}
-              pathOptions={{ color: "#b8873d", fillColor: "#b8873d", fillOpacity: 0.8 }}
+              pathOptions={{ color: club.accent, fillColor: club.accent, fillOpacity: 0.8 }}
             />
           ) : null}
         </MapContainer>

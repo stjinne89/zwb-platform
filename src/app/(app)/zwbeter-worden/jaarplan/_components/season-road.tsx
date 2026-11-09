@@ -326,10 +326,10 @@ function Regel({ titel, meta }: { titel: string; meta: string }) {
 }
 
 const PRIORITEIT_STIJL: Record<SeasonTarget["priority"], CSSProperties | undefined> = {
-  a: { "--row-bg": "var(--zwb-gold)", "--row-ink": "#0a2b34" } as CSSProperties,
+  a: { "--row-bg": "var(--zwb-gold)", "--row-ink": "var(--zwb-petrol-dark)" } as CSSProperties,
   b: {
     "--row-bg": "var(--tg-kalender, var(--zwb-petrol))",
-    "--row-ink": "#fbfbf7",
+    "--row-ink": "var(--zwb-paper)",
   } as CSSProperties,
   c: undefined,
 };

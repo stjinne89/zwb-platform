@@ -14,6 +14,8 @@
 
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
+import type { ClubPalette } from "@/lib/club-theme";
+import { useClubColors } from "@/lib/use-club-colors";
 
 const MapContainer = dynamic(() => import("react-leaflet").then((m) => m.MapContainer), {
   ssr: false,
@@ -25,8 +27,11 @@ const CircleMarker = dynamic(() => import("react-leaflet").then((m) => m.CircleM
 });
 const FitBounds = dynamic(() => import("./map-fit-bounds"), { ssr: false });
 
-/** Jersey-kleuren, in deze volgorde toegekend aan de rondjes op score. */
-export const ROUTE_COLORS = ["#004653", "#b8873d", "#7f9590"] as const;
+/** Clubkleuren, in deze volgorde toegekend aan de rondjes op score. Als hex:
+ * Leaflet zet de lijnkleur als SVG-attribuut (0314). */
+export function routeColors(palette: ClubPalette): readonly string[] {
+  return [palette.primary, palette.accent, palette.neutral];
+}
 
 export type MapRoute = {
   id: string;
@@ -42,6 +47,7 @@ export function OutdoorRouteMap({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const colors = routeColors(useClubColors());
   const drawable = routes.filter((route) => route.line.length >= 2);
   if (drawable.length === 0) return null;
 
@@ -58,7 +64,7 @@ export function OutdoorRouteMap({
         <FitBounds points={all} />
 
         {drawable.map((route, index) => {
-          const color = ROUTE_COLORS[index % ROUTE_COLORS.length];
+          const color = colors[index % colors.length];
           const selected = route.id === selectedId;
           return (
             <PolylinePair

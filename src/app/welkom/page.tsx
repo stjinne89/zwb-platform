@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Check, Play } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
-import { tegelsFont } from "@/components/tegels/font";
+import { tegelsFontVariables } from "@/components/tegels/font";
+import { getClub } from "@/lib/club";
+import { clubLogoUrl } from "@/lib/club-icons";
 import type { PlaceTone } from "@/components/tegels/link-grid";
 import {
   helpVideo,
@@ -338,7 +340,7 @@ export default async function WelkomPage() {
   return (
     <div
       data-design="tegels"
-      className={`app-shell flex min-h-dvh flex-col bg-background ${tegelsFont.variable}`}
+      className={`app-shell flex min-h-dvh flex-col bg-background ${tegelsFontVariables}`}
     >
       <header className="relative">
         <nav className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 pt-3">
@@ -348,7 +350,7 @@ export default async function WelkomPage() {
             aria-label="ZWB Cycling Community"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/zwb-logo.png" alt="" />
+            <img src={clubLogoUrl((await getClub()).settings.logoUrl)} alt="" />
           </Link>
           <Link
             href={!user ? "/login" : isApproved ? "/dashboard" : "/wachten"}

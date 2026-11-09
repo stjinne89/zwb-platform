@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useClubColors } from "@/lib/use-club-colors";
 import dynamic from "next/dynamic";
 import { Maximize2, X } from "lucide-react";
 import type { DivIcon, LeafletEvent } from "leaflet";
 import type { GpxPoint } from "@/lib/gpx";
 import {
-  CLIMB_CATEGORY_HEX,
+  climbCategoryHex,
   type Climb,
 } from "@/lib/gpx-climbs";
 import { climbLength } from "./climb-overlay";
@@ -224,7 +225,7 @@ export function GpxMap({
         L.divIcon({
           className: "",
           html:
-            '<div style="width:28px;height:28px;border-radius:9999px;background:#004653;border:2px solid #b8873d;box-shadow:0 1px 4px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;line-height:1;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fbfbf7" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/><path d="M8.5 17.5 11 11h3l-2 6.5"/><path d="M11 11 8 8"/><path d="M14 11 17 8"/><path d="M13.5 6.5h.1"/><path d="M12 17.5h3.5"/></svg></div>',
+            '<div style="width:28px;height:28px;border-radius:9999px;background:var(--zwb-petrol);border:2px solid var(--zwb-gold);box-shadow:0 1px 4px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;line-height:1;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fbfbf7" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/><path d="M8.5 17.5 11 11h3l-2 6.5"/><path d="M11 11 8 8"/><path d="M14 11 17 8"/><path d="M13.5 6.5h.1"/><path d="M12 17.5h3.5"/></svg></div>',
           iconSize: [28, 28],
           iconAnchor: [14, 14],
         }),
@@ -365,6 +366,7 @@ function MapLayers({
   currentUserId,
   canModerate,
 }: MapData) {
+  const climbHex = climbCategoryHex(useClubColors());
   return (
     <>
       <TileLayer
@@ -398,7 +400,7 @@ function MapLayers({
       {climbs.map((climb, i) => {
         const segment = positions.slice(climb.startIdx, climb.endIdx + 1);
         if (segment.length < 2) return null;
-        const color = CLIMB_CATEGORY_HEX[climb.category];
+        const color = climbHex[climb.category];
         const active = activeClimb === i;
         return (
           <Polyline
@@ -428,7 +430,7 @@ function MapLayers({
             pathOptions={{
               color: "#ffffff",
               weight: 2,
-              fillColor: CLIMB_CATEGORY_HEX[climb.category],
+              fillColor: climbHex[climb.category],
               fillOpacity: 1,
             }}
             eventHandlers={{ click: () => onActiveClimb(activeClimb === i ? null : i) }}

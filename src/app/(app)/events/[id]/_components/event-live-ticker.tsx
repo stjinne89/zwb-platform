@@ -11,12 +11,13 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { useClubColors } from "@/lib/use-club-colors";
 import { ArrowUpRight, Clock, Gauge, Heart, MapPin, Maximize2, RotateCw, Route, X, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { MemberLink } from "@/components/member-link";
 import { parseGpx, type GpxPoint } from "@/lib/gpx";
 import {
-  CLIMB_CATEGORY_HEX,
+  climbCategoryHex,
   climbsFromRanges,
   detectClimbs,
   labelClimbsWithCols,
@@ -367,6 +368,8 @@ export function EventLiveTicker({
   description?: string;
   emptyText?: string;
 }) {
+  // Klimkleuren als hex: Leaflet zet ze als SVG-attribuut (0314).
+  const climbHex = climbCategoryHex(useClubColors());
   const router = useRouter();
   const [sessions, setSessions] = useState(initialSessions);
   const [points, setPoints] = useState<GpxPoint[]>([]);
@@ -684,7 +687,7 @@ export function EventLiveTicker({
             key={`climb-${i}`}
             positions={segment}
             pathOptions={{
-              color: CLIMB_CATEGORY_HEX[climb.category],
+              color: climbHex[climb.category],
               weight: activeClimb === i ? 8 : 6,
               opacity: 0.95,
             }}

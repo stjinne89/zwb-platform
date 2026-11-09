@@ -1,7 +1,15 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
-import { PALETTE_KEYS, normalizeHex, type PaletteKey } from "@/lib/club-theme";
+import {
+  DEFAULT_FONT,
+  PALETTE_KEYS,
+  normalizeHex,
+  resolveFont,
+  type PaletteKey,
+} from "@/lib/club-theme";
+import { ClubImages } from "./_components/club-images";
+import { FontPicker } from "./_components/font-picker";
 import { HuisstijlEditor } from "./_components/huisstijl-editor";
 
 export default async function HuisstijlPage() {
@@ -28,6 +36,9 @@ export default async function HuisstijlPage() {
   const stored = Object.fromEntries(
     PALETTE_KEYS.map((key) => [key, normalizeHex(row[`color_${key}`] as string | null)]),
   ) as Record<PaletteKey, string | null>;
+  const font = resolveFont(row.font as string | null) ?? DEFAULT_FONT;
+  const logoUrl = (row.logo_url as string | null) ?? null;
+  const markUrl = (row.mark_url as string | null) ?? null;
 
   return (
     <div className="space-y-6">
@@ -41,7 +52,13 @@ export default async function HuisstijlPage() {
           Kon de huisstijl niet laden.
         </section>
       ) : (
-        <HuisstijlEditor stored={stored} />
+        <>
+          <HuisstijlEditor stored={stored} />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <FontPicker initial={font} />
+            <ClubImages logoUrl={logoUrl} markUrl={markUrl} />
+          </div>
+        </>
       )}
     </div>
   );

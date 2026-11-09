@@ -7,6 +7,7 @@
 // alleen een naam als hij dicht bij een bekende col uit de cols-tabel ligt.
 
 import type { GpxPoint } from "@/lib/gpx";
+import type { ClubPalette } from "@/lib/club-theme";
 
 export type ClimbCategory = "4e" | "3e" | "2e" | "1e" | "HC";
 
@@ -46,15 +47,19 @@ export const CLIMB_CATEGORY_COLORS: Record<ClimbCategory, string> = {
   HC: "var(--color-zwb-gold)",
 };
 
-// Concrete hex-waarden van dezelfde ZWB-kleuren — voor contexten waar CSS-vars
-// niet werken (Leaflet zet `stroke` als SVG-attribuut, geen CSS-property).
-export const CLIMB_CATEGORY_HEX: Record<ClimbCategory, string> = {
-  "4e": "#7f9590",
-  "3e": "#1f6068",
-  "2e": "#004653",
-  "1e": "#0a2b34",
-  HC: "#b8873d",
-};
+// Concrete hex-waarden van dezelfde kleuren — voor contexten waar CSS-vars
+// niet werken (Leaflet zet `stroke` als SVG-attribuut, geen CSS-property). In
+// de browser met de clubkleuren uit useClubColors() (0314).
+export function climbCategoryHex(palette: ClubPalette): Record<ClimbCategory, string> {
+  return {
+    "4e": palette.neutral,
+    "3e": palette.secondary,
+    "2e": palette.primary,
+    "1e": palette.ink,
+    HC: palette.accent,
+  };
+}
+
 
 // Klim-score = lengte(m) × gemiddeld %. Drempels per categorie (oplopend zwaar).
 // Constanten staan hier zodat ze makkelijk te tunen zijn.

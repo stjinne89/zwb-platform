@@ -1,5 +1,6 @@
 import { getClub } from "@/lib/club";
 import { themeColors } from "@/lib/club-theme";
+import { clubIconUrl } from "@/lib/club-icons";
 
 // Het manifest van de app, met de kleuren van de club (0314). Tot 2026-11-09 een
 // vast bestand in public/; het adres /manifest.json blijft gelijk, zodat
@@ -7,7 +8,9 @@ import { themeColors } from "@/lib/club-theme";
 // generieke versie (docs/multi-club-ontwerp.md).
 
 export async function GET() {
-  const colors = themeColors((await getClub()).settings.palette);
+  const { settings } = await getClub();
+  const colors = themeColors(settings.palette);
+  const icon = (file: Parameters<typeof clubIconUrl>[1]) => clubIconUrl(settings.markUrl, file);
   const manifest = {
     name: "ZWB Cycling Platform",
     short_name: "ZWB",
@@ -20,10 +23,10 @@ export async function GET() {
     theme_color: colors.light,
     lang: "nl",
     icons: [
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icon-192-maskable.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-      { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: icon("icon-192.png"), sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: icon("icon-512.png"), sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: icon("icon-192-maskable.png"), sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: icon("icon-512-maskable.png"), sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
   return new Response(JSON.stringify(manifest, null, 2), {

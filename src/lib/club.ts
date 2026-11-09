@@ -10,7 +10,7 @@ import {
   resolveDisabled,
   type ModuleKey,
 } from "@/lib/modules";
-import { resolvePalette, type ClubPalette } from "@/lib/club-theme";
+import { resolveFont, resolvePalette, type ClubFont, type ClubPalette } from "@/lib/club-theme";
 
 // De instellingen van deze installatie (0313): naam, contact en welke modules
 // aan staan. Fase 1 van de generieke versie (docs/multi-club-ontwerp.md).
@@ -34,6 +34,11 @@ export type ClubSettings = {
   setupCompletedAt: string | null;
   /** Eigen kleuren (0314), of null: dan de standaard huisstijl. */
   palette: ClubPalette | null;
+  /** Eigen letter (0315), of null: Barlow Semi Condensed. */
+  font: ClubFont | null;
+  /** Logo en beeldmerk (0315) als publieke URL, of null: de vaste ZWB-bestanden. */
+  logoUrl: string | null;
+  markUrl: string | null;
 };
 
 type ClubRow = {
@@ -57,6 +62,9 @@ export const EMPTY_CLUB_SETTINGS: ClubSettings = {
   youtubeHandle: null,
   setupCompletedAt: null,
   palette: null,
+  font: null,
+  logoUrl: null,
+  markUrl: null,
 };
 
 const loadClubRows = unstable_cache(
@@ -96,6 +104,9 @@ const loadClubRows = unstable_cache(
               accent: s.color_accent as string | null | undefined,
               ink: s.color_ink as string | null | undefined,
             }),
+            font: resolveFont(s.font as string | null | undefined),
+            logoUrl: (s.logo_url as string | null) ?? null,
+            markUrl: (s.mark_url as string | null) ?? null,
           }
         : null,
       modules: (modules.data ?? []).map((m) => ({
@@ -105,7 +116,7 @@ const loadClubRows = unstable_cache(
       })),
     };
   },
-  ["club-settings", "v2"],
+  ["club-settings", "v3"],
   { revalidate: 60 * 60, tags: [CLUB_TAG] },
 );
 

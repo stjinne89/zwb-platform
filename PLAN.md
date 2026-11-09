@@ -7,6 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Generieke versie, fase 2 deel 2: lettertype, logo, kaarten en klassiek weg
+   (2026-11-09): lokaal gecommit, niet gepusht; migratie `0315` niet
+   toegepast.** Keuzes van de eigenaar op 2026-11-09: klassiek gaat eruit, logo
+   en beeldmerk, een korte lijst van vier letters, alleen grafieken en kaarten
+   volgen de clubkleuren, donker blijft afgeleid. Volgorde: eerst `0315`
+   toepassen (de bucket `club-assets`), dan pushen. Zie de ronde "Generieke
+   versie, fase 2 deel 2".
+
 0. **Generieke versie, fase 2 deel 1: clubkleuren (2026-11-09): gepusht naar
    `main`; migratie `0314` toegepast** (versie `20261109093654`, in de
    historie onder de naam `club_colors` zonder nummer; op verzoek van de
@@ -11913,6 +11921,63 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Generieke versie, fase 2 deel 2: lettertype, logo en kaarten
+
+**2026-11-09.** Op verzoek van de eigenaar, met zijn keuzes van dezelfde dag:
+
+- het design "klassiek" gaat eruit;
+- de club uploadt een logo **en** een vierkant beeldmerk;
+- een korte lijst van vier letters;
+- alleen grafieken en kaarten volgen de clubkleuren; de merkwerelden (/verhaal,
+  ZWBekers, ZWBriljant, ZWBgame, het spiekbriefje en het weekoverzicht) houden
+  hun eigen stijl;
+- het donkere thema blijft afgeleid; geen tweede set kleuren.
+
+Migratie `0315_club_brand.sql` (**niet toegepast**): op `club_settings` de
+kolommen `font` (check op de vier sleutels), `logo_url` en `mark_url`, en de
+publieke bucket `club-assets` (PNG en JPG, max 2 MB; uploaden alleen met de
+service role). Lokaal gecommit, niet gepusht.
+
+- **Lettertype.** Barlow Semi Condensed (standaard), Archivo, Inter en Schibsted
+  Grotesk, alle vier als woff2 in `src/fonts` en zonder preload in
+  `components/tegels/font.ts`. De schil zet de vier variabelen; `globals.css`
+  kiest `--font-tegels: var(--font-tegels-barlow)`, en `clubFontCss()`
+  (`lib/club-theme.ts`) zet een andere letter, ook bij naam voor dialogen
+  buiten de schil. **Rectificatie:** bij de keuze schreef de bouwer dat de drie
+  andere letters uit de proef van vijf kwamen; Inter zat daar niet in (de proef:
+  Archivo, Schibsted Grotesk, Barlow, Red Hat Display, Sofia Sans). Ook: de
+  tekstmaten in tegels staan een stap groter omdat Barlow smal is (zie "Maten
+  bij de smalle letter"); bij een bredere letter oogt alles groter. Dat is niet
+  aangepast.
+- **Logo en beeldmerk.** Upload op `/beheer/huisstijl`; elke upload krijgt een
+  nieuwe bestandsnaam, het oude bestand wordt opgeruimd. Het logo staat in de
+  kop van de schil, in het inlogkader (`TegelsAuthFrame`) en op `/welkom`;
+  zonder logo het vaste `/zwb-logo.png`. Uit het beeldmerk maakt
+  `/club-icon/[file].png` (`next/og`) de favicons, de app-iconen (ook
+  maskeerbaar), het Apple-icoon en de deelkaart, op de primaire kleur. Zonder
+  beeldmerk wijzen metadata en manifest naar de vaste bestanden op hun oude
+  adres (`lib/club-icons.ts`), en geeft de route een redirect. De namen eindigen
+  op .png, zodat de middleware ze overslaat.
+- **Kaarten.** `lib/use-club-colors.ts` leest de vijf kleuren als hex uit de
+  pagina, voor Leaflet (dat kleuren als SVG-attribuut zet): de klimkleuren op de
+  routekaart en de live-ticker, de drie buitenrondjes en de startpunten op het
+  profiel. De pin op de routekaart en de prioriteiten in het jaarplan gebruiken
+  nu de CSS-variabelen. `CLIMB_CATEGORY_HEX` en `ROUTE_COLORS` zijn vervangen
+  door `climbCategoryHex()` en `routeColors()`.
+
+Lokaal: `tsc` en eslint schoon; `tests/unit/club-theme.test.ts` uitgebreid
+(letters, CSS, iconen, en een PGlite-test van `0315` met een nagebootst
+storage-schema) en groen; `next build` slaagt; `next start` gaf voor ZWB
+hetzelfde manifest, dezelfde favicons en deelkaart, het vaste logo en geen
+`<style>`. **Niet getest:** een echte upload en de gegenereerde iconen (dat
+vraagt de database en de bucket), en de app met een andere letter in de
+browser.
+
+**Bewust niet.** De publieke pagina's met het oude `ZwbMark` (`/live`,
+`/omnium`), het pushicoon `badge-96.png` en `/brochure`: die horen bij de
+teksten en de clubherkenning (fase 3 en 4) of blijven van ZWB. De merkwerelden
+houden hun vaste kleuren (keuze eigenaar).
 
 ### Gebouwd — Generieke versie, fase 2 deel 1: clubkleuren
 

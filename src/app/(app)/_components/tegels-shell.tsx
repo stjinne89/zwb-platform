@@ -1,12 +1,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { tegelsFont } from "@/components/tegels/font";
+import { tegelsFontVariables } from "@/components/tegels/font";
 import type { PlaceId } from "@/lib/design-places";
+import { getClub } from "@/lib/club";
+import { clubLogoUrl } from "@/lib/club-icons";
 import { TegelsTabs } from "./tegels-tabs";
 
 /** De schil van het design "tegels": het originele logo bovenin, de vier
  * plekken onderin (telefoon) of bovenin (breed scherm). */
-export function TegelsShell({
+export async function TegelsShell({
   before,
   back,
   actions,
@@ -22,10 +24,12 @@ export function TegelsShell({
   /** Plekken waarvan de module bij deze club uit staat. */
   hiddenPlaces?: PlaceId[];
 }) {
+  // Het logo van de club (0315), anders het ZWB-logo.
+  const logo = clubLogoUrl((await getClub()).settings.logoUrl);
   return (
     <div
       data-design="tegels"
-      className={`app-shell flex min-h-screen flex-col bg-background ${tegelsFont.variable}`}
+      className={`app-shell flex min-h-screen flex-col bg-background ${tegelsFontVariables}`}
     >
       {before}
       <header className="relative">
@@ -36,7 +40,7 @@ export function TegelsShell({
             aria-label="ZWB Cycling Community"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/zwb-logo.png" alt="" />
+            <img src={logo} alt="" />
           </Link>
           {back}
           <TegelsTabs position="top" hiddenPlaces={hiddenPlaces} />

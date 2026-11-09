@@ -16,7 +16,8 @@ import {
   chooseOutdoorRoute,
   generateOutdoorRoutesAction,
 } from "../_actions";
-import { OutdoorRouteMap, ROUTE_COLORS } from "./outdoor-route-map";
+import { OutdoorRouteMap, routeColors } from "./outdoor-route-map";
+import { useClubColors } from "@/lib/use-club-colors";
 
 export type OutdoorRouteView = {
   id: string;
@@ -54,6 +55,7 @@ export function OutdoorRouteSuggestions({
   routes: OutdoorRouteView[];
   startPoints: StartPointOption[];
 }) {
+  const colors = routeColors(useClubColors());
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [startPointId, setStartPointId] = useState(startPoints[0]?.id ?? "");
@@ -159,7 +161,7 @@ export function OutdoorRouteSuggestions({
 
           <ul className="mt-2 space-y-2">
             {routes.map((route, index) => {
-              const color = ROUTE_COLORS[index % ROUTE_COLORS.length];
+              const color = colors[index % colors.length];
               const isOpen = selected?.id === route.id;
               return (
                 <li key={route.id}>
