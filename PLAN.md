@@ -45,11 +45,11 @@ gaat stabiliteit voor nieuwe features.
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
-0. **Generieke versie, fase 4: clubherkenning (2026-11-09): lokaal, niet
-   gepusht.** Migratie `0320` (`club_recognition`) is **niet toegepast**; pas
-   hem toe vóór de push. Zonder de kolommen herkent de eventscan alleen "ZWB"
-   en niet meer "zwift belgie" en "zwift belgium". Zie de ronde "fase 4:
-   clubherkenning".
+0. **Generieke versie, fase 4: clubherkenning (2026-11-09): gepusht naar
+   `main` (`5b50f06a`), migratie `0320` toegepast** (versie `20261109135410`,
+   op verzoek van de eigenaar, vóór de push). Open: na de deploy de volgende
+   eventscan, een ZRL-live of ZWB DS en de Instagram-sync nalopen. Zie de ronde
+   "fase 4: clubherkenning".
 
 0. **Generieke versie, fase 3 deel 1 en 2: clubnaam, modulenamen, hulp,
    privacy en voorwaarden (2026-11-09): gepusht naar `main` (deel 1
@@ -12022,8 +12022,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Generieke versie, fase 4: clubherkenning
 
 **2026-11-09.** Commit `5b50f06a` (lokaal). Op verzoek van de eigenaar ("ga maar door", na fase 3), met
-drie keuzes vooraf (zie onder). Migratie `0320` (`club_recognition`) is **niet
-toegepast** en niet lokaal te testen. Hij moet vóór de push op productie staan.
+drie keuzes vooraf (zie onder). Migratie `0320` (`club_recognition`) is op
+2026-11-09 vóór de push op productie toegepast (versie `20261109135410`, op
+verzoek van de eigenaar: "Apply and push"); daarna gaf `club_settings` voor ZWB
+de markers zwb, zwift belgie en zwift belgium en de tag ZWB. Niet lokaal te
+testen.
 
 Doel: wat de app als "van de club" herkent (eigen events, renners, uitslagen,
 teams en social) komt uit de club en niet uit de code. Voor ZWB verandert er
