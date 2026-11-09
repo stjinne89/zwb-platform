@@ -50,6 +50,7 @@ export default async function ClubPage() {
     (permission) => access.has(permission),
     (profile?.sex as string | null) ?? null,
     clubSettings.allowsPath,
+    clubSettings.texts.modules,
   );
   const club = nodes.find((node) => node.type === "group" && node.label === "Club");
   const links: PlaceLink[] = [

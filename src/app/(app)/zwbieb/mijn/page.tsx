@@ -12,6 +12,7 @@ import {
 } from "@/lib/zwbieb/queries";
 import { KnowledgeForm } from "../_components/knowledge-form";
 import { TipItem } from "../_components/tip-item";
+import { moduleName } from "@/lib/club";
 
 export default async function MijnZwbiebPage() {
   const supabase = await createClient();
@@ -46,8 +47,8 @@ export default async function MijnZwbiebPage() {
 
   return (
     <div className="space-y-6">
-      <BackLink href="/zwbieb" label="ZWBieb" />
-      <PageHeader title="Mijn ZWBieb" />
+      <BackLink href="/zwbieb" label={await moduleName("bibliotheek")} />
+      <PageHeader title={`Mijn ${await moduleName("bibliotheek")}`} />
       <KnowledgeForm options={options} initial={initial} joined={Boolean(consent)} />
 
       {tips.length > 0 && (

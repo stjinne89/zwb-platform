@@ -19,6 +19,7 @@ import {
 import type { Discipline } from "@/lib/omnium/scoring";
 import { followEventDate } from "@/lib/training/event-date";
 import { routeFromZwiftInsiderUrl } from "@/lib/zwift/zwiftinsider-route";
+import { moduleName } from "@/lib/club";
 
 type Fail = { ok: false; error: string };
 type Access = Awaited<ReturnType<typeof getCurrentUserAccess>>;
@@ -393,6 +394,7 @@ export async function updateOmniumEdition(input: EditionDetailInput) {
     firstStartLocal: amsterdamHhmm(startAt),
     reconDateKey: input.reconDateKey || undefined,
     reconTimeLocal: input.reconTimeLocal || undefined,
+    seriesName: await moduleName("omnium"),
     parts: input.parts,
   };
 
@@ -493,7 +495,7 @@ export async function publishOmniumEdition(editionId: string) {
 
   const eventRow = {
     type: "omnium" as const,
-    title: `${edition.title as string} — ZWB Omnium ${edition.number as number}`,
+    title: `${edition.title as string} — ${await moduleName("omnium")} ${edition.number as number}`,
     start_at: calendarStart,
     end_at: endAt,
     created_by: guard.access.user!.id,

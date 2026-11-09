@@ -332,8 +332,10 @@ een aparte afweging.
 - **`getClub()`** levert naam, leden-aanduiding en modulenamen aan server
   components, metadata, meldingen en AI-prompts. Client components krijgen ze via
   een provider in de layout.
-- **Een title-template** in de root layout (`%s · {clubnaam}`), zodat de 24
-  pagina's hun eigen "ZWB" kwijt kunnen.
+- **Geen title-template** (besloten bij fase 3 deel 1, 2026-11-09). Pagina's
+  hebben nu geen achtervoegsel, en een template als `%s · {clubnaam}` zou elke
+  tabtitel bij ZWB veranderen. Pagina's met een modulenaam in de titel krijgen
+  die via `generateMetadata` uit de clubinstellingen.
 - **Privacy en voorwaarden** worden templates met clubvelden. Inhoudelijk geldt:
   de club is verwerkingsverantwoordelijke, Stijn (als beheerder van de software) is
   verwerker. Dat vraagt een verwerkersovereenkomst per club. Dat is juridisch werk
@@ -377,7 +379,7 @@ die fasen niets merken; dat is tegelijk de test.
 |---|---|---|---|
 | 1. Fundament | `club_settings`, `club_modules`, `getClub()`, `src/lib/modules.ts`, gating in middleware, nav, beheer en crons; ZWB-waarden als seed | middel | ja |
 | 2. Huisstijl | deel 1 (gebouwd): 5 kleuren, afgeleide tokens in een runtime-`<style>`, manifest als route, `generateViewport`, `/beheer/huisstijl`. Deel 2 (gebouwd): logo en beeldmerk met gegenereerde iconen, een lijst van vier letters, kaarten lezen de clubkleuren, klassiek weg. Merkwerelden houden hun stijl; donker blijft afgeleid (keuzes eigenaar 2026-11-09) | groot | klein (`0314`, `0315`) |
-| 3. Teksten en namen | title-template, clubnaam en modulenamen via `getClub()` in UI, meldingen, AI-prompts en extern; privacy, voorwaarden en hulp als templates | groot | nee |
+| 3. Teksten en namen | deel 1 (gebouwd): clubnaam en modulenamen via `getClub().texts` en `ClubTextsProvider` in metadata, manifest, menu, beheer en schermen; geen title-template. Deel 2: hulp, privacy en voorwaarden als templates. Deel 3: overige "ZWB"-teksten, AI-prompts, woordspelingen, enkelvouden en tekst die buiten de app landt | groot | nee |
 | 4. Clubherkenning | Zwift-club-ID, markers, teamtag, WTRL- en ladderteams, SRC- en Omnium-defaults, social naar instellingen; ZWB-teams uit de code naar de DB | middel | ja |
 | 5. Schone installatie | baseline-migratie, generieke seed, bootstrap van de eerste beheerder, installatiehandleiding, migratiescript voor meerdere projecten | groot | baseline |
 | 6. Inrichtingsmodule | `/inrichten` en `/beheer/inrichting`, de 7 stappen, live voorbeeld, hulpcategorie | middel | nee |

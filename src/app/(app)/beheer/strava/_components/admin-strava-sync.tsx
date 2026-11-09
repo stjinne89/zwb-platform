@@ -11,6 +11,7 @@ import {
   adminSyncStravaForProfile,
   revalidateAfterRecompute,
 } from "../_actions";
+import { useModuleName } from "@/components/club-texts-provider";
 
 export type SyncMember = {
   profileId: string;
@@ -46,6 +47,7 @@ function formatDate(value: string | null) {
 
 export function AdminStravaSync({ members }: { members: SyncMember[] }) {
   const router = useRouter();
+  const blocksName = useModuleName("blokkenjacht");
   const [states, setStates] = useState<Record<string, RowState>>({});
   const [recomputeStates, setRecomputeStates] = useState<
     Record<string, RowState>
@@ -74,7 +76,7 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
   async function revokeMember(member: SyncMember) {
     if (
       !confirm(
-        `Strava-koppeling van ${member.name} opheffen? De toestemming bij Strava wordt ingetrokken en de opgehaalde ritten worden verwijderd. Badges en ZWBlokken blijven.`,
+        `Strava-koppeling van ${member.name} opheffen? De toestemming bij Strava wordt ingetrokken en de opgehaalde ritten worden verwijderd. Badges en ${blocksName} blijven.`,
       )
     ) {
       return;

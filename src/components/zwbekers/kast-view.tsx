@@ -9,6 +9,7 @@ import { DEFAULT_DESIGN, type BekerDesign } from "@/lib/zwbekers/design";
 import { briljantSans, briljantSerif } from "@/components/briljant/fonts";
 import { BekerIcon } from "./beker-icon";
 import styles from "./zwbekers.module.css";
+import { useModuleName } from "@/components/club-texts-provider";
 
 const CabinetScene = dynamic(() => import("./cabinet-scene"), {
   ssr: false,
@@ -40,6 +41,7 @@ type Props = {
 
 export function KastView({ bekers, startId, sponsors, ownOpen, waiting }: Props) {
   const labels = useRef(new Map<string, HTMLElement>());
+  const moduleLabel = useModuleName("bekers");
   const [failed, setFailed] = useState(false);
   const [aiming, setAiming] = useState(false);
   const router = useRouter();
@@ -91,11 +93,11 @@ export function KastView({ bekers, startId, sponsors, ownOpen, waiting }: Props)
         </button>
 
         <header className={styles.crest}>
-          <h1>ZWBekers</h1>
+          <h1>{moduleLabel}</h1>
           <p>{empty ? "De kast is nog leeg" : bekers.length === 1 ? "1 beker" : `${bekers.length} bekers`}</p>
         </header>
 
-        <nav className={styles.actions} aria-label="ZWBekers">
+        <nav className={styles.actions} aria-label={moduleLabel}>
           {waiting != null && (
             <Link href="/beheer/zwbekers" className={styles.action}>
               Keuren

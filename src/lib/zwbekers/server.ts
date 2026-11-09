@@ -17,6 +17,7 @@ import {
   type BekerStatus,
   type Nomination,
 } from "./nomination";
+import { moduleName } from "@/lib/club";
 
 // ZWBekers op de server (0286). Lezen gaat met de sessie van het lid, zodat RLS
 // beslist wat iemand ziet: een voordracht alleen voor wie hem deed en wie keurt,
@@ -115,7 +116,7 @@ export async function requireBekerMember() {
   const client = await createClient();
   const access = await getCurrentUserAccess(client);
   const user = access.user;
-  if (!user) throw new NominationError("Log in om ZWBekers te zien.");
+  if (!user) throw new NominationError(`Log in om ${await moduleName("bekers")} te zien.`);
   const { data: member } = await client
     .from("profiles")
     .select("id, display_name, is_approved, privacy_accepted_version")

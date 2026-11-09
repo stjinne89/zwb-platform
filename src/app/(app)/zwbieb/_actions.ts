@@ -26,6 +26,7 @@ import {
   type TopicKind,
   type TopicOption,
 } from "@/lib/zwbieb/topics";
+import { moduleName } from "@/lib/club";
 
 // Acties van ZWBieb. Alles loopt met de sessie van het lid zelf, dus
 // RLS (0239) is de eerste grendel; de filters op profile_id hieronder zijn de
@@ -191,7 +192,7 @@ async function notifyOther(threadId: string, recipientId: string, senderName: st
     "on_knowledge_message",
     {
       title: `${senderName} over ${topicName.toLowerCase()}`,
-      body: "Nieuw bericht in ZWBieb.",
+      body: `Nieuw bericht in ${await moduleName("bibliotheek")}.`,
       url: `${BASE}/gesprekken/${threadId}`,
       tag: `knowledge-${threadId}`,
     },

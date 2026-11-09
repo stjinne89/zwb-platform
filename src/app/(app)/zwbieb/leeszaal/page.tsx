@@ -8,6 +8,7 @@ import { loadMyThreads, loadTopicCatalog } from "@/lib/zwbieb/queries";
 import { COLLECTION_LABELS, shelves } from "@/lib/zwbieb/shelves";
 import { ZwbiebActions, ZwbiebTabs } from "../_components/zwbieb-nav";
 import { ShelfBrowser } from "./shelf-browser";
+import { moduleName } from "@/lib/club";
 
 /**
  * ZWBieb, tab Leeszaal: de artikelen uit de kennisbanken trainen, voeding,
@@ -37,7 +38,7 @@ export default async function ZwbiebLeeszaalPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ZWBieb"
+        title={await moduleName("bibliotheek")}
         actions={
           <ZwbiebActions
             unread={countUnread(threads, user.id)}

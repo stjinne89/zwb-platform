@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createOmniumSeason } from "../_actions";
+import { useModuleName } from "@/components/club-texts-provider";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -25,7 +26,8 @@ async function withTimeout<T>(promise: Promise<T>): Promise<T> {
 
 export function SeasonCreateForm() {
   const [slug, setSlug] = useState("2026-27");
-  const [name, setName] = useState("ZWB Omnium 2026/27");
+  const omnium = useModuleName("omnium");
+  const [name, setName] = useState(`${omnium} 2026/27`);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const router = useRouter();

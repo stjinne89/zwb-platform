@@ -44,6 +44,8 @@ export type OmniumEditionSpec = {
   reconDateKey?: string;
   reconTimeLocal?: string;
   reconZwiftEventId?: string;
+  /** De naam van de reeks bij de club (fase 3), in de titel van het kalenderitem. */
+  seriesName?: string;
   parts: OmniumPartSpec[];
 };
 
@@ -197,7 +199,7 @@ export function generateEdition(
     : null;
 
   const calendarEvent: GeneratedCalendarEvent = {
-    title: `${spec.title} — ZWB Omnium ${spec.number}`,
+    title: `${spec.title} — ${spec.seriesName ?? "Omnium"} ${spec.number}`,
     type: "omnium",
     // De voorbeschouwing hoort bij het kalenderitem: wie meekijkt begint eerder
     // dan wie meerijdt.

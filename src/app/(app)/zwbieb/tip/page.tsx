@@ -5,6 +5,7 @@ import { BackLink, PageHeader } from "@/components/app-ui";
 import { loadMembers, loadTopicCatalog } from "@/lib/zwbieb/queries";
 import { MemberChip } from "../_components/member-chip";
 import { TipForm } from "../_components/tip-form";
+import { moduleName } from "@/lib/club";
 
 type PageProps = {
   searchParams: Promise<{ onderwerp?: string; event?: string; col?: string; bericht?: string }>;
@@ -66,8 +67,8 @@ export default async function TipPage({ searchParams }: PageProps) {
     : msg
       ? { href: `/zwbieb/gesprekken/${msg.thread_id}`, label: "Gesprek" }
       : topic
-        ? { href: `/zwbieb?onderwerp=${topic}`, label: "ZWBieb" }
-        : { href: "/zwbieb", label: "ZWBieb" };
+        ? { href: `/zwbieb?onderwerp=${topic}`, label: await moduleName("bibliotheek") }
+        : { href: "/zwbieb", label: await moduleName("bibliotheek") };
 
   return (
     <div className="space-y-6">

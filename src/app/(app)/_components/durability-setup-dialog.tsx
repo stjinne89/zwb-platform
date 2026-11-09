@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { FACET_WEIGHTS } from "@/lib/briljant/norms";
 import type { FatigueSetupIssue } from "@/lib/briljant/fatigue-setup";
+import { ModuleName } from "@/components/club-texts-provider";
 
 const SNOOZE_KEY = "zwb-durability-melding";
 const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -61,7 +62,7 @@ export function DurabilitySetupDialog({ issue }: { issue: FatigueSetupIssue }) {
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Durability ontbreekt in je ZWBriljant</DialogTitle>
+          <DialogTitle>Durability ontbreekt in je <ModuleName module="rennersniveau" /></DialogTitle>
           <DialogDescription>
             {issue.kind === "te-laag"
               ? `Je kJ-stand van ${issue.afterKj.toLocaleString("nl-NL")} kJ in intervals.icu is te laag voor je gewicht.`

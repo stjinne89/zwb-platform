@@ -2,9 +2,12 @@ import { EmptyState } from "@/components/app-ui";
 import { KastView, type KastItem } from "@/components/zwbekers/kast-view";
 import { dayLabel, namesLabel } from "@/lib/zwbekers/nomination";
 import { loadKast, loadOwnNominations, requireBekerMember } from "@/lib/zwbekers/server";
+import { moduleName } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "ZWBekers" };
+export async function generateMetadata() {
+  return { title: await moduleName("bekers") };
+}
 
 /**
  * De prijzenkast van de club (wens eigenaar, 2026-10-28): toegekende ZWBekers

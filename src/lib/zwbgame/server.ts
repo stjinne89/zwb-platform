@@ -6,6 +6,7 @@ import { basicRider, buildRoster, platformRider, type MemberRow, type PlatformPo
 import { loadGameRoutes, loadZrlRace } from "./route-catalog";
 import { CONSENT_VERSION, type GameBootstrap, type GameRider } from "./types";
 import { z } from "zod";
+import { moduleName } from "@/lib/club";
 
 export const attributesSchema = z.object({
   kind: z.enum(["sprinter", "puncher", "tter", "climber", "allrounder"]),
@@ -15,7 +16,7 @@ export const attributesSchema = z.object({
 export async function requireGameMember() {
   const client = await createClient();
   const { data: { user } } = await client.auth.getUser();
-  if (!user) throw new Error("Log in om ZWBgame te spelen.");
+  if (!user) throw new Error(`Log in om ${await moduleName("managerspel")} te spelen.`);
   const { data: member, error } = await client.from("profiles").select("id, display_name, is_approved, is_admin, privacy_accepted_version").eq("id", user.id).single();
   if (error || !member?.is_approved) throw new Error("Alleen goedgekeurde ZWB-leden kunnen spelen.");
   if (!privacyConsentIsCurrent(member.privacy_accepted_version)) throw new Error("Bevestig eerst de privacyverklaring.");

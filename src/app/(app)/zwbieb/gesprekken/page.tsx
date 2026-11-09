@@ -7,6 +7,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { formatMoment, isUnreadFor } from "@/lib/zwbieb/data";
 import { loadMembers, loadMyThreads, loadTopicCatalog } from "@/lib/zwbieb/queries";
 import { MemberAvatar } from "../_components/member-chip";
+import { ModuleName } from "@/components/club-texts-provider";
+import { moduleName } from "@/lib/club";
 
 export default async function GesprekkenPage() {
   const supabase = await createClient();
@@ -35,13 +37,13 @@ export default async function GesprekkenPage() {
 
   return (
     <div className="space-y-6">
-      <BackLink href="/zwbieb" label="ZWBieb" />
+      <BackLink href="/zwbieb" label={await moduleName("bibliotheek")} />
       <PageHeader title="Gesprekken" />
       {rows.length === 0 ? (
         <EmptyState
           action={
             <Link href="/zwbieb" className={buttonVariants({ variant: "outline" })}>
-              Naar ZWBieb
+              Naar <ModuleName module="bibliotheek" />
             </Link>
           }
         >

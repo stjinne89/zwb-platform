@@ -10,6 +10,7 @@ import {
 } from "@/lib/omnium/public-data";
 import { Countdown } from "@/app/omnium/_components/countdown";
 import { LocalTime } from "@/app/omnium/_components/local-time";
+import { moduleName } from "@/lib/club";
 
 export const revalidate = 300;
 
@@ -25,7 +26,7 @@ export async function generateMetadata({
     title: found.edition.title,
     description:
       found.edition.subtitle ??
-      `Round ${found.edition.number} of the ZWB Omnium.`,
+      `Round ${found.edition.number} of the ${await moduleName("omnium")}.`,
   };
 }
 

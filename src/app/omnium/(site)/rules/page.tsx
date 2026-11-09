@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { EmptyState } from "@/components/app-ui";
 import { loadCurrentSeason } from "@/lib/omnium/public-data";
+import { ModuleName } from "@/components/club-texts-provider";
 
 export const revalidate = 300;
 
@@ -19,7 +20,7 @@ export default async function OmniumRulesPage() {
     <div className="space-y-6">
       <header className="space-y-1">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          {season?.name ?? "ZWB Omnium"}
+          {season?.name ?? <ModuleName module="omnium" />}
         </p>
         <h1 className="text-3xl font-semibold tracking-tight">Rules</h1>
       </header>

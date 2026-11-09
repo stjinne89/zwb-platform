@@ -10,6 +10,7 @@ import {
   importMyStravaFiles,
   syncMyBlocks,
 } from "@/app/(app)/stats/rankings/_actions";
+import { useModuleName } from "@/components/club-texts-provider";
 
 type State =
   | { kind: "idle" }
@@ -48,6 +49,7 @@ function count(n: number, one: string, many: string) {
 
 export function StravaImportForm() {
   const router = useRouter();
+  const blocksName = useModuleName("blokkenjacht");
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [state, setState] = useState<State>({ kind: "idle" });
@@ -133,7 +135,7 @@ export function StravaImportForm() {
       // doorrekent. Hier afmaken; er is geen achtergrondtaak die het overneemt.
       let blocksDone = false;
       for (let round = 0; round < MAX_BLOCK_ROUNDS && !blocksDone; round++) {
-        setState({ kind: "progress", message: "ZWBlokken bijwerken..." });
+        setState({ kind: "progress", message: `${blocksName} bijwerken...` });
         const blocks = await syncMyBlocks().catch(() => null);
         if (!blocks?.ok) break;
         blocksDone = !blocks.remaining;
@@ -153,7 +155,7 @@ export function StravaImportForm() {
         parts.push(`badgecheck: ${finish.milestoneErrors[0]}`);
       }
       if (!finish?.ok) parts.push("badges en cols volgen later");
-      if (!blocksDone) parts.push("ZWBlokken nog niet compleet");
+      if (!blocksDone) parts.push(`${blocksName} nog niet compleet`);
 
       formRef.current?.reset();
       if (failed.length > 0) {

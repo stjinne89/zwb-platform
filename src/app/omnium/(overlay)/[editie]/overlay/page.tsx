@@ -2,9 +2,12 @@ import { notFound } from "next/navigation";
 import { loadEditionBySlug, loadEditionStandings } from "@/lib/omnium/public-data";
 import { normalizeLeague } from "@/lib/omnium/parse-results";
 import { StandingsOverlay } from "@/app/omnium/_components/standings-overlay";
+import { moduleName } from "@/lib/club";
 
 export const revalidate = 15;
-export const metadata = { title: "ZWB Omnium — Overlay", robots: { index: false, follow: false } };
+export async function generateMetadata() {
+  return { title: `${await moduleName("omnium")} — Overlay`, robots: { index: false, follow: false } };
+}
 export default async function OverlayPage({ params, searchParams }: {
   params: Promise<{ editie: string }>;
   searchParams: Promise<{ league?: string; rotate?: string }>;

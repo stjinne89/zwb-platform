@@ -16,6 +16,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { linkLogo, type RaceLink, type RaceLinkIcon } from "@/lib/events/race-links";
 import { ZWIFT_POWERUP_ICONS, ZWIFT_POWERUP_LABELS, type EventPowerups } from "@/lib/zwift/powerups";
+import { ModuleName } from "@/components/club-texts-provider";
 
 const GLYPHS: Record<Extract<RaceLinkIcon, { glyph: string }>["glyph"], LucideIcon> = {
   stage: Flag,
@@ -204,7 +205,7 @@ export function RaceInfoCard({
           {dsHref && (
             <Link href={dsHref} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
               <Activity className="size-3.5" />
-              ZWB DS
+              <ModuleName module="live_race" />
             </Link>
           )}
           {signupUrl && (

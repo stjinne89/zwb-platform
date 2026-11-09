@@ -29,9 +29,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { mondayKey } from "@/lib/briljant/snapshot";
+import { moduleName } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "ZWBriljant" };
+export async function generateMetadata() {
+  return { title: await moduleName("rennersniveau") };
+}
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 /** Zo lang wacht de pagina hooguit op een ontbrekende terugblik. */
@@ -94,7 +97,7 @@ export default async function BriljantPage({
   if (live.score == null) {
     return (
       <>
-        <StatsTabs active="/stats/zwbriljant" title="ZWBriljant" />
+        <StatsTabs active="/stats/zwbriljant" title={await moduleName("rennersniveau")} />
         <EmptyState>
           <p>Nog te weinig gegevens voor je steen.</p>
           <p className="mt-2 text-sm">
@@ -244,7 +247,7 @@ export default async function BriljantPage({
 
   return (
     <>
-      <StatsTabs active="/stats/zwbriljant" title="ZWBriljant" />
+      <StatsTabs active="/stats/zwbriljant" title={await moduleName("rennersniveau")} />
       <BriljantView
         tab={tab}
         view={subject ? subject.view : tab === "ik" ? view : live}

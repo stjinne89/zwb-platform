@@ -5,6 +5,8 @@ import { adminAreaPermission } from "@/lib/admin-areas";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RosterAdmin } from "./roster-admin";
 import { BackLink } from "@/components/app-ui";
+import { ModuleName } from "@/components/club-texts-provider";
+import { moduleName } from "@/lib/club";
 
 export default async function GameAdminPage() {
   const { client } = await requireGameMember();
@@ -16,5 +18,5 @@ export default async function GameAdminPage() {
     admin.from("zwbgame_roster_exclusions").select("roster_id"),
   ]);
   const exclusions = new Set((excluded.data ?? []).map((r) => r.roster_id));
-  return <div className="mx-auto max-w-2xl space-y-5"><BackLink href="/zwbgame" label="ZWBgame" /><h1 className="text-2xl font-bold">ZWBgame · rosterdeelname</h1>{roster.error || excluded.error ? <p role="alert">Deelnemers laden mislukt.</p> : <RosterAdmin rows={(roster.data ?? []).map((r) => ({ id: r.id, name: r.name, excluded: exclusions.has(r.id) }))} />}</div>;
+  return <div className="mx-auto max-w-2xl space-y-5"><BackLink href="/zwbgame" label={await moduleName("managerspel")} /><h1 className="text-2xl font-bold"><ModuleName module="managerspel" /> · rosterdeelname</h1>{roster.error || excluded.error ? <p role="alert">Deelnemers laden mislukt.</p> : <RosterAdmin rows={(roster.data ?? []).map((r) => ({ id: r.id, name: r.name, excluded: exclusions.has(r.id) }))} />}</div>;
 }

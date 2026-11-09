@@ -9,9 +9,13 @@ import { describeDesign, gravureLines } from "@/lib/zwbekers/design";
 import { KIND_LABEL, STATUS_LABEL, dayLabel, namesLabel } from "@/lib/zwbekers/nomination";
 import { loadReviewQueue } from "@/lib/zwbekers/server";
 import { ReviewPanel } from "../../zwbekers/_components/beker-controls";
+import { ModuleName } from "@/components/club-texts-provider";
+import { moduleName } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "ZWBekers keuren" };
+export async function generateMetadata() {
+  return { title: `${await moduleName("bekers")} keuren` };
+}
 
 const sectionTitle = "text-sm font-semibold uppercase tracking-wide text-muted-foreground";
 
@@ -26,7 +30,7 @@ export default async function ZwbekersBeheerPage() {
   return (
     <div className="space-y-8">
       <header className="space-y-1">
-        <h1 className="text-3xl font-semibold tracking-tight">ZWBekers</h1>
+        <h1 className="text-3xl font-semibold tracking-tight"><ModuleName module="bekers" /></h1>
         <p className="text-sm text-muted-foreground">
           <Link href="/zwbekers" className="underline underline-offset-2">
             Naar de prijzenkast

@@ -1,20 +1,21 @@
 import { getClub } from "@/lib/club";
 import { themeColors } from "@/lib/club-theme";
 import { clubIconUrl } from "@/lib/club-icons";
+import { clubDescription } from "@/lib/club-texts";
 
 // Het manifest van de app, met de kleuren van de club (0314). Tot 2026-11-09 een
 // vast bestand in public/; het adres /manifest.json blijft gelijk, zodat
-// geïnstalleerde apps hun manifest blijven vinden. Namen volgen in fase 3 van de
-// generieke versie (docs/multi-club-ontwerp.md).
+// geïnstalleerde apps hun manifest blijven vinden. Naam en omschrijving komen
+// uit de clubinstellingen (fase 3, docs/multi-club-ontwerp.md).
 
 export async function GET() {
-  const { settings } = await getClub();
+  const { settings, texts } = await getClub();
   const colors = themeColors(settings.palette);
   const icon = (file: Parameters<typeof clubIconUrl>[1]) => clubIconUrl(settings.markUrl, file);
   const manifest = {
-    name: "ZWB Cycling Platform",
-    short_name: "ZWB",
-    description: "Hub voor ZWB Cycling Community — events, training, teams en chat.",
+    name: `${texts.name} Platform`,
+    short_name: texts.shortName,
+    description: clubDescription(texts),
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",

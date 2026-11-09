@@ -7,6 +7,7 @@ import { SeasonCreateForm } from "./_components/season-create-form";
 import { SeasonRules } from "./_components/season-rules";
 import { EditionList, type EditionRow } from "./_components/edition-list";
 import { getRequestAccess } from "@/lib/auth/request";
+import { moduleName } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,7 @@ export default async function OmniumBeheerPage({
     <div className="space-y-8">
       <PageHeader
         eyebrow="Beheer"
-        title="ZWB Omnium"
+        title={await moduleName("omnium")}
         description="Seizoenen plannen, edities vullen en publiceren."
       />
 

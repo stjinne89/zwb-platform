@@ -11,6 +11,7 @@ import type { QuoteCandidate } from "@/lib/maintenance/whatsapp-export";
 import type { TopicOption } from "@/lib/zwbieb/topics";
 import { TIP_MAX } from "@/lib/zwbieb/limits";
 import { parseExport, saveMemberTip, saveQuote, type ImportProfile } from "../_actions";
+import { useModuleName } from "@/components/club-texts-provider";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -116,6 +117,7 @@ function CandidateRow({
   onSaved: () => void;
 }) {
   const [profileId, setProfileId] = useState(candidate.matchedProfileId ?? "");
+  const libraryName = useModuleName("bibliotheek");
   // Garage: citaat bij een onderdeel. ZWBieb: tip bij een onderwerp.
   const [target, setTarget] = useState<"garage" | "kennis">("garage");
   const [topic, setTopic] = useState<string>(topics[0]?.slug ?? "");
@@ -188,7 +190,7 @@ function CandidateRow({
           onChange={(e) => setTarget(e.target.value === "kennis" ? "kennis" : "garage")}
         >
           <option value="garage">Mijn garage</option>
-          <option value="kennis">ZWBieb</option>
+          <option value="kennis">{libraryName}</option>
         </select>
 
         {target === "kennis" ? (

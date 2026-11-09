@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { usesZwbeterTraining } from "./training-notice-actions";
+import { useModuleName } from "@/components/club-texts-provider";
 
 const SEEN_KEY = "zwb-nieuw-zwbeter-trainen-2026-10";
 const NOTICE_UNTIL = Date.parse("2026-12-01T00:00:00+01:00");
@@ -40,7 +41,7 @@ function markSeen() {
   } catch {}
 }
 
-const ITEMS = [
+const items = (training: string) => [
   {
     title: "Je schema volgt wat je aankunt.",
     text: "Je beschikbare uren zijn een grens, geen doel. De belasting komt uit je fitheid (CTL), met meer intensiteit en kortere, stevigere ritten binnen. Een race vervangt je andere sleuteltrainingen niet meer.",
@@ -51,12 +52,13 @@ const ITEMS = [
   },
   {
     title: "Zelf je schema maken.",
-    text: "Coach je jezelf, dan maak je je schema nu met één knop bij je doel (ZWBeter Worden → Doelen).",
+    text: `Coach je jezelf, dan maak je je schema nu met één knop bij je doel (${training} → Doelen).`,
   },
 ];
 
 export function TrainingNoticeDialog() {
   const [open, setOpen] = useState(false);
+  const training = useModuleName("training");
 
   useEffect(() => {
     if (Date.now() >= NOTICE_UNTIL || seen()) return;
@@ -91,7 +93,7 @@ export function TrainingNoticeDialog() {
           <DialogDescription className="sr-only">Wat er veranderd is in je trainingsschema en de AI-coach.</DialogDescription>
         </DialogHeader>
         <ul className="space-y-3 text-sm">
-          {ITEMS.map((item) => (
+          {items(training).map((item) => (
             <li key={item.title}>
               <span className="font-semibold">{item.title}</span> {item.text}
             </li>

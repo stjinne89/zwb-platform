@@ -2,6 +2,7 @@ import Link from "next/link";
 import { dayLabel } from "@/lib/zwbekers/nomination";
 import type { BekerSummary } from "@/lib/zwbekers/server";
 import { BekerIcon } from "./beker-icon";
+import { ModuleName } from "@/components/club-texts-provider";
 
 /**
  * De ZWBekers van een lid op zijn profiel (wens eigenaar, 2026-10-28): een plank
@@ -14,7 +15,7 @@ export function BekerShelf({ bekers }: { bekers: BekerSummary[] }) {
     <section className="rounded-lg border bg-card p-6" aria-labelledby="zwbekers-plank">
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="zwbekers-plank" className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          ZWBekers ({bekers.length})
+          <ModuleName module="bekers" /> ({bekers.length})
         </h2>
         <Link href="/zwbekers" className="text-sm font-medium hover:underline">
           Prijzenkast

@@ -6,8 +6,12 @@
 // 'group' → cluster links onder een kopje (bijvoorbeeld Club op /club)
 
 import type { CommunityPermission } from "@/lib/permissions";
-import { ADMIN_AREAS, type AdminAreaKey } from "@/lib/admin-areas";
+import { ADMIN_AREAS, type AdminArea, type AdminAreaKey } from "@/lib/admin-areas";
 import type { PlaceTone } from "@/components/tegels/link-grid";
+import type { ModuleKey } from "@/lib/modules";
+
+/** De naam van elke module bij deze club (getClub().texts.modules). */
+export type ModuleNames = Readonly<Record<ModuleKey, string>>;
 
 export type NavLeaf = {
   type: "link";
@@ -23,12 +27,15 @@ export type NavLeaf = {
    * voor mannen. Wie niets heeft ingevuld ziet het item dus ook niet.
    */
   onlyForSex?: "vrouw" | "man";
+  /** Het label is de naam van deze module bij de club (fase 3). */
+  module?: ModuleKey;
 };
 
 export type NavGroup = {
   type: "group";
   label: string;
   items: NavLeaf[];
+  module?: ModuleKey;
 };
 
 export type NavNode = NavLeaf | NavGroup;
@@ -118,6 +125,7 @@ export const NAV_GROUPS: NavNode[] = [
   {
     type: "group",
     label: "ZWBeter Worden",
+    module: "training",
     items: ZWBETER_WORDEN_SECTIONS,
   },
   {
@@ -125,23 +133,19 @@ export const NAV_GROUPS: NavNode[] = [
     label: "Club",
     items: [
       { type: "link", href: "/leden", label: "Leden" },
-      { type: "link", href: "/zwbieb", label: "ZWBieb" },
+      { type: "link", href: "/zwbieb", label: "ZWBieb", module: "bibliotheek" },
       { type: "link", href: "/teams", label: "Teams" },
       { type: "link", href: "/stats", label: "Stats" },
       // De prijzenkast (0286, 2026-10-28).
-      { type: "link", href: "/zwbekers", label: "ZWBekers" },
+      { type: "link", href: "/zwbekers", label: "ZWBekers", module: "bekers" },
       // Verhalen insturen voor /verhaal (0288).
       { type: "link", href: "/clubverhaal", label: "Clubverhaal" },
-      { type: "link", href: "/profiel/segments/collecties", label: "ZWB Segments" },
-      { type: "link", href: "/zwblokken", label: "ZWBlokken" },
-      { type: "link", href: "/zwbgame", label: "ZWBgame" },
-      {
-        type: "link",
-        href: "/omnium",
-        label: "ZWB Omnium",
-      },
-      { type: "link", href: "/src", label: "Sunday Race Club" },
-      { type: "link", href: "/voorzpwelbokaal", label: "voorZpWelBokaal" },
+      { type: "link", href: "/profiel/segments/collecties", label: "ZWB Segments", module: "segmenten" },
+      { type: "link", href: "/zwblokken", label: "ZWBlokken", module: "blokkenjacht" },
+      { type: "link", href: "/zwbgame", label: "ZWBgame", module: "managerspel" },
+      { type: "link", href: "/omnium", label: "ZWB Omnium", module: "omnium" },
+      { type: "link", href: "/src", label: "Sunday Race Club", module: "src" },
+      { type: "link", href: "/voorzpwelbokaal", label: "voorZpWelBokaal", module: "voorspelspel" },
     ],
   },
   {
@@ -175,11 +179,23 @@ export type AdminNavItem = {
   href: string;
   label: string;
   permission: CommunityPermission;
+  module?: ModuleKey;
 };
 
 function adminLink(key: AdminAreaKey): AdminNavItem {
-  const area = ADMIN_AREAS[key];
-  return { type: "link", href: area.href, label: area.label, permission: area.permission };
+  const area: AdminArea = ADMIN_AREAS[key];
+  return {
+    type: "link",
+    href: area.href,
+    label: area.label,
+    permission: area.permission,
+    ...(area.module ? { module: area.module } : {}),
+  };
+}
+
+/** Het label met de naam van de module bij deze club, als het een modulenaam is. */
+function named<T extends { label: string; module?: ModuleKey }>(item: T, names?: ModuleNames): T {
+  return item.module && names ? { ...item, label: names[item.module] } : item;
 }
 
 export type BeheerCategory = { label: string; tone: PlaceTone; items: AdminNavItem[] };
@@ -237,9 +253,13 @@ export function beheerCategoriesFor(
   has: (permission: CommunityPermission) => boolean,
   /** Staat de module van dit pad aan (getClub().allowsPath)? */
   allowsPath: (href: string) => boolean = () => true,
+  /** De modulenamen van de club; zonder: de labels hierboven. */
+  names?: ModuleNames,
 ): BeheerCategory[] {
   return BEHEER_CATEGORIES.flatMap((category) => {
-    const items = category.items.filter((item) => has(item.permission) && allowsPath(item.href));
+    const items = category.items
+      .filter((item) => has(item.permission) && allowsPath(item.href))
+      .map((item) => named(item, names));
     return items.length > 0 ? [{ ...category, items }] : [];
   });
 }
@@ -256,15 +276,17 @@ export function filterNavForPermissions(
   sex: string | null = null,
   /** Staat de module van dit pad aan (getClub().allowsPath)? */
   allowsPath: (href: string) => boolean = () => true,
+  /** De modulenamen van de club; zonder: de labels hierboven. */
+  names?: ModuleNames,
 ): NavNode[] {
   const allowed = (item: NavLeaf) =>
     (!item.permission || has(item.permission)) &&
     (!item.onlyForSex || item.onlyForSex === sex) &&
     (item.external || allowsPath(item.href));
   return nodes.flatMap<NavNode>((node) => {
-    if (node.type === "link") return allowed(node) ? [node] : [];
-    const items = node.items.filter(allowed);
-    return items.length > 0 ? [{ ...node, items }] : [];
+    if (node.type === "link") return allowed(node) ? [named(node, names)] : [];
+    const items = node.items.filter(allowed).map((item) => named(item, names));
+    return items.length > 0 ? [{ ...named(node, names), items }] : [];
   });
 }
 

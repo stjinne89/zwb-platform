@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { EmptyState } from "@/components/app-ui";
+import { ModuleName } from "@/components/club-texts-provider";
 
 // Het startscherm van het design "tegels": wat jij vandaag en deze week doet,
 // als tegels in de kleur van hun soort (kleurbeleid in globals.css). Elke tegel
@@ -194,7 +195,7 @@ export function TegelsVandaag({
               className="tg-tile"
               style={{ "--tg-bg": briljant.color, "--tg-fg": inkOn(briljant.color) } as CSSProperties}
             >
-              <span className="tg-tile-small">ZWBriljant</span>
+              <span className="tg-tile-small"><ModuleName module="rennersniveau" /></span>
               <span className="tg-tile-title mt-0.5">{briljant.level}</span>
               {briljant.next && (
                 <span className="tg-tile-small mt-1">

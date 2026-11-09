@@ -14,6 +14,7 @@ import type {
 } from "@/lib/weekly-review/summary";
 import type { RaceContribution } from "@/lib/zrl-analysis/history";
 import s from "./week-review.module.css";
+import { useModuleName } from "@/components/club-texts-provider";
 
 const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
 const X = (i: number) => 26 + i * 50;
@@ -231,6 +232,7 @@ export function PowerPrint({ power }: { power: PowerSection }) {
  * klasse vol petrol loopt; een week eerder als stippellijn.
  */
 export function BriljantPrint({ briljant }: { briljant: BriljantSection }) {
+  const moduleLabel = useModuleName("rennersniveau");
   const bottom = 280;
   // In Diamant is er geen volgende klasse: dan is de steen vol.
   const fill = (points: number) => (briljant.nextName == null ? 1 : Math.min(1, Math.max(0, points / 100 - briljant.level)));
@@ -250,7 +252,7 @@ export function BriljantPrint({ briljant }: { briljant: BriljantSection }) {
   const before =
     briljant.previousPoints != null && briljant.previousLevel === briljant.level ? y(fill(briljant.previousPoints)) : null;
   return (
-    <svg viewBox="0 0 390 320" aria-label={`ZWBriljant ${briljant.levelName}, ${briljant.points} punten`}>
+    <svg viewBox="0 0 390 320" aria-label={`${moduleLabel} ${briljant.levelName}, ${briljant.points} punten`}>
       <defs>
         <clipPath id="wr-stone">
           <path d={outline} />

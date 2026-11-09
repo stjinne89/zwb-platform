@@ -25,6 +25,7 @@ import { ExpertRow } from "./expert-row";
 import { TipItem } from "./tip-item";
 import { TopicBadge } from "./topic-badge";
 import { ZWBIEB_TABS, ZwbiebActions, ZwbiebTabs } from "./zwbieb-nav";
+import { moduleName } from "@/lib/club";
 
 const TIPS_PER_TOPIC = 3;
 
@@ -113,7 +114,7 @@ export async function ZwbiebOverview({
     <div className="space-y-6">
       {focus && <BackLink href={base} label={kind === "spullen" ? "Alle spullen" : "Alle onderwerpen"} />}
       <PageHeader
-        title={focus ? catalog.label(focus) : "ZWBieb"}
+        title={focus ? catalog.label(focus) : await moduleName("bibliotheek")}
         actions={<ZwbiebActions unread={unread} joined={joined} canModerate={canModerate} />}
       />
 

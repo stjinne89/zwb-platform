@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { freezeZrlResultNow, saveZrlTeamAssignment } from "./_actions";
 import { zwiftDsConfigured } from "@/lib/events/zwift-club";
 import { DS_AFTER_MS } from "@/lib/ds/schedule";
+import { ModuleName } from "@/components/club-texts-provider";
 
 type PageProps = {
   params: Promise<{ eventId: string }>;
@@ -163,7 +164,7 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
         <Status view={view} />
         {access.user && zwiftDsConfigured() && view.fetchedAt <= view.startAt + DS_AFTER_MS && (
           <Link href={`/ds/${view.event.id}`} className="text-sm underline">
-            ZWB DS
+            <ModuleName module="live_race" />
           </Link>
         )}
         {canAssign && !editing && view.fetchedAt >= view.startAt && (

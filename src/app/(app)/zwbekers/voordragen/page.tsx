@@ -2,6 +2,7 @@ import { EmptyState, PageHeader } from "@/components/app-ui";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { loadBeker, loadFormOptions, requireBekerMember } from "@/lib/zwbekers/server";
 import { NominationForm, type FormInitial } from "../_components/nomination-form";
+import { ModuleName } from "@/components/club-texts-provider";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "ZWBeker voordragen" };
@@ -42,7 +43,7 @@ export default async function VoordragenPage({ searchParams }: { searchParams: P
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="ZWBekers" title="Voordragen" />
+      <PageHeader eyebrow={<ModuleName module="bekers" />} title="Voordragen" />
       <NominationForm options={options} today={today} initial={initial} />
     </div>
   );

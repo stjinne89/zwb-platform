@@ -51,6 +51,7 @@ function fakeAdmin() {
 }
 
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+vi.mock("@/lib/club", () => ({ moduleName: async () => "ZWB Omnium" }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => fakeAdmin() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({}) }));
 vi.mock("@/lib/auth/permissions", () => ({

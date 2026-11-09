@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EVENT_INTEREST_OPTIONS } from "@/lib/event-types";
 import { HOUSEHOLD_MAX, HOUSEHOLD_MOMENTS, type Household } from "@/lib/nutrition/shopping";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
+import { ModuleName } from "@/components/club-texts-provider";
 
 type Initial = {
   id: string;
@@ -435,7 +436,7 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
             defaultChecked={initial.share_briljant}
             className="mt-1 size-4 accent-primary"
           />
-          <span className="block text-sm font-medium">Mijn ZWBriljant-steen delen met leden</span>
+          <span className="block text-sm font-medium">Mijn <ModuleName module="rennersniveau" />-steen delen met leden</span>
         </label>
 
         <div className="grid gap-2 sm:grid-cols-2">

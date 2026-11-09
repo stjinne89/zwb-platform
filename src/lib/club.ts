@@ -11,6 +11,7 @@ import {
   type ModuleKey,
 } from "@/lib/modules";
 import { resolveFont, resolvePalette, type ClubFont, type ClubPalette } from "@/lib/club-theme";
+import { buildClubTexts, type ClubTexts } from "@/lib/club-texts";
 
 // De instellingen van deze installatie (0313): naam, contact en welke modules
 // aan staan. Fase 1 van de generieke versie (docs/multi-club-ontwerp.md).
@@ -131,6 +132,8 @@ export type Club = {
   allowsPath: (pathname: string) => boolean;
   /** De naam van de module bij deze club. */
   moduleLabel: (key: ModuleKey) => string;
+  /** Clubnaam en modulenamen in één, ook voor client components (fase 3). */
+  texts: ClubTexts;
 };
 
 export function buildClub(row: ClubRow | null): Club {
@@ -138,13 +141,16 @@ export function buildClub(row: ClubRow | null): Club {
   const disabled = resolveDisabled(switchedOffKeys);
   const switchedOff = new Set(MODULES.map((m) => m.key).filter((k) => switchedOffKeys.includes(k)));
   const labels = new Map((row?.modules ?? []).map((m) => [m.key, m.label]));
+  const settings = row?.settings ?? EMPTY_CLUB_SETTINGS;
+  const moduleLabel = (key: ModuleKey) => labels.get(key)?.trim() || moduleDef(key).label;
   return {
-    settings: row?.settings ?? EMPTY_CLUB_SETTINGS,
+    settings,
     disabled,
     switchedOff,
     isEnabled: (key) => !disabled.has(key),
     allowsPath: (pathname) => pathAllowed(pathname, disabled),
-    moduleLabel: (key) => labels.get(key)?.trim() || moduleDef(key).label,
+    moduleLabel,
+    texts: buildClubTexts(settings.name, settings.shortName, moduleLabel),
   };
 }
 
@@ -156,3 +162,8 @@ export const getClub = cache(async (): Promise<Club> => {
     return buildClub(null);
   }
 });
+
+/** De naam van een module bij deze club, voor server components en metadata. */
+export async function moduleName(key: ModuleKey): Promise<string> {
+  return (await getClub()).moduleLabel(key);
+}

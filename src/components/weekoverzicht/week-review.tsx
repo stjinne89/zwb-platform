@@ -30,6 +30,8 @@ import {
 } from "./prints";
 import { clock, WeekAhead } from "./week-ahead";
 import s from "./week-review.module.css";
+import { useClubTexts } from "@/components/club-texts-provider";
+import type { ClubTexts } from "@/lib/club-texts";
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -147,6 +149,7 @@ function buildSlides(
   coach: { text: string; state: WeekReview["coachState"] },
   back: () => void,
   preview: boolean,
+  names: ClubTexts["modules"],
 ): Slide[] {
   const slides: Slide[] = [];
   const { rides, plan, form, power, teams, fuel, club, briljant } = summary;
@@ -304,7 +307,7 @@ function buildSlides(
     const up = briljant.previousLevel != null && briljant.level > briljant.previousLevel;
     slides.push({
       key: "briljant",
-      label: "ZWBriljant",
+      label: names.rennersniveau,
       seconds: 6,
       render: () => (
         <>
@@ -313,7 +316,7 @@ function buildSlides(
             {up
               ? `Omhoog naar ${briljant.levelName}.`
               : diff == null
-                ? `ZWBriljant ${briljant.levelName}.`
+                ? `${names.rennersniveau} ${briljant.levelName}.`
                 : diff === 0
                   ? `${briljant.levelName}, gelijk gebleven.`
                   : `${briljant.levelName}, ${Math.abs(diff)} ${Math.abs(diff) === 1 ? "punt" : "punten"} ${diff > 0 ? "erbij" : "eraf"}.`}
@@ -433,11 +436,11 @@ function buildSlides(
         <>
           <h2 className={`${s.big} ${s.txt}`}>{ride ? ride.riders : `+${club.newBlocks}`}</h2>
           <p className={`${s.lead} ${s.txt}`}>
-            {ride ? `${ride.riders === 1 ? "Clubgenoot" : "Clubgenoten"} op ${weekdayName(ride.day)}.` : "Nieuwe ZWBlokken."}
+            {ride ? `${ride.riders === 1 ? "Clubgenoot" : "Clubgenoten"} op ${weekdayName(ride.day)}.` : `Nieuwe ${names.blokkenjacht}.`}
           </p>
           <p className={`${s.sub} ${s.txt}`}>
             {ride ? <>{ride.title}{club.clubRides.length > 1 ? ` en nog ${club.clubRides.length - 1} clubrit${club.clubRides.length > 2 ? "ten" : ""}` : ""}.</> : null}
-            {ride && club.newBlocks > 0 ? <> Onderweg <b>{club.newBlocks} nieuwe ZWBlokken</b>.</> : null}
+            {ride && club.newBlocks > 0 ? <> Onderweg <b>{club.newBlocks} nieuwe {names.blokkenjacht}</b>.</> : null}
             {club.badges.length ? <> Je verdiende de weekbadge <b>{club.badges.join(" en ")}</b>.</> : null}
           </p>
           {ride ? (
@@ -497,7 +500,11 @@ export function WeekReviewStories({ review, onClose, preview = false }: { review
   const [fontReady, setFontReady] = useState(false);
 
   const back = useCallback(() => setCurrent((value) => Math.max(0, value - 1)), []);
-  const slides = useMemo(() => buildSlides(review.summary, review, coach, back, preview), [review, coach, back, preview]);
+  const names = useClubTexts().modules;
+  const slides = useMemo(
+    () => buildSlides(review.summary, review, coach, back, preview, names),
+    [review, coach, back, preview, names],
+  );
   const last = slides.length - 1;
   const slide = slides[Math.min(current, last)];
 

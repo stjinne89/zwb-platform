@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Generieke versie, fase 3 deel 1: clubnaam en modulenamen (2026-11-09):
+   lokaal gecommit, niet gepusht.** Geen migratie. Lokaal gecontroleerd dat
+   manifest, titels en deelkaart voor ZWB gelijk zijn aan de live site. Deel 2
+   (hulp, privacy, voorwaarden) en deel 3 (de overige "ZWB"-teksten) volgen. Zie
+   de ronde "Generieke versie, fase 3 deel 1".
+
 0. **Generieke versie, fase 2 deel 2: lettertype, logo, kaarten en klassiek weg
    (2026-11-09): gepusht naar `main`; migratie `0315` toegepast** (versie
    `20261109101801`, op verzoek van de eigenaar, vóór de push; de bucket
@@ -11925,6 +11931,75 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Generieke versie, fase 3 deel 1: clubnaam en modulenamen
+
+**2026-11-09.** Op verzoek van de eigenaar ("laten verder gaan"), na fase 2.
+Geen migratie: de namen staan sinds `0313` in `club_settings` en
+`club_modules.label`. Fase 3 is te groot voor één ronde (755 coderegels met
+"ZWB" in 234 bestanden), dus in drie delen:
+
+- **deel 1 (deze ronde):** het mechanisme, en elke plek die een module bij naam
+  noemt;
+- **deel 2:** hulp, privacy en voorwaarden als templates (samen ~250 regels);
+- **deel 3:** de overige teksten met "ZWB" of "ZWB'er", de AI-prompts, de
+  woordspelingen en de tekst die buiten de app landt.
+
+Wat er is:
+
+- **Het mechanisme.** `lib/club-texts.ts` (puur) geeft clubnaam, korte naam en
+  de naam van elke module; `getClub().texts` levert het aan de server. De root
+  layout zet het in `ClubTextsProvider` (`components/club-texts-provider.tsx`),
+  met `useClubTexts()`, `useModuleName()` en `<ModuleName module="…" />`.
+  Dat laatste werkt ook binnen server components, voor tekst in JSX. Voor
+  strings op de server is er `await moduleName(key)` (`lib/club.ts`).
+- **Metadata en manifest.** Titel, applicatienaam, Apple-titel, OpenGraph en
+  Twitter komen uit de clubnaam; `clubDescription()` en `clubCommunity()`
+  maken "Hub voor ZWB Cycling Community — …". Lokaal tegen de echte database
+  vergeleken met de live site: manifest en metadata van `/login`, `/omnium`,
+  `/omnium/rules` en `/omnium/register` zijn gelijk.
+- **Menu en beheer.** Een item in `nav-config.ts` of `admin-areas.ts` kan een
+  `module` hebben; `filterNavForPermissions` en `beheerCategoriesFor` zetten dan
+  de clubnaam. Alleen bij items die nu een merknaam dragen; "Omnium" in het
+  beheer blijft "Omnium".
+- **Modulenamen in de schermen.** Paginatitels (via `generateMetadata`), koppen,
+  terugknoppen en knoppen van ZWBieb, ZWBekers, ZWBlokken, ZWBriljant, ZWBgame,
+  ZWB Segments, ZWB DS, ZWB Omnium en voorZpWelBokaal, in de app, het profiel,
+  het dashboard, het weekoverzicht en de publieke Omnium-site. Ook de pushmelding
+  van ZWBieb, foutmeldingen, de kalendertitel van een Omnium-editie
+  (`OmniumEditionSpec.seriesName`) en de standaardnaam van een nieuw
+  Omnium-seizoen.
+
+**Bewust niet:**
+
+- **Geen title-template** (`%s · ZWB`), anders dan het ontwerp voorstelde.
+  Pagina's hebben nu geen achtervoegsel; een template zou elke tabtitel bij ZWB
+  veranderen. `docs/multi-club-ontwerp.md` §6 is bijgewerkt.
+- **Enkelvouden** ("ZWBeker", "ZWBeker voordragen", "Je hebt een ZWBeker!"):
+  de club geeft alleen een meervoud op. Dat vraagt een veld of een andere zin,
+  in deel 3 of in de inrichtingsmodule.
+- **De woordspelingen** "ZWBeter {pijler}" (de koppen van de training), "ZWBeter
+  racen" en dergelijke: clubinhoud, deel 3.
+- **De workouttitel in intervals.icu en Zwift** (`WORKOUT_TITLE_BRAND`) en de
+  Strava-samenvatting: de code herkent die tekst terug (`BRAND_PATTERN`,
+  `stripZwbSummary`). Een andere naam vraagt dat ook de oude tekst herkend
+  blijft. Deel 3.
+- **`EVENT_TYPES` ("ZWB Omnium" als eventtype), de rechtenlabels in
+  `permissions.ts` en de koppelingsmeldingen** (`integrations/notices.ts`): die
+  mengen modulenaam en korte naam in vaste lijsten; deel 3.
+- **De hulp, `help-categories.ts` en `help-search.tsx`:** deel 2.
+
+**Niet meer waar:** het commentaar in `app/manifest.json/route.ts` dat de namen
+in fase 3 volgen; dat is nu zo.
+
+Lokaal: `tsc` schoon, eslint schoon op de geraakte bestanden, `next build`
+slaagt (met nep-env en met de echte), en de testsuite groen op `omnium-live`
+(vraagt `.env.local`) en een PGlite-time-out onder belasting na (los gedraaid
+groen). Nieuw: `tests/unit/club-texts.test.ts` (met de ZWB-namen blijven menu
+en beheer gelijk, en een club zonder namen ziet geen "ZWB").
+`omnium-season-actions.test.ts` mockt nu `@/lib/club`. **Niet bekeken:** de
+schermen achter de login in de browser, en een club met andere namen. Dat laatste
+kan niet op productie zonder dat elk lid het ziet.
 
 ### Gebouwd — Oude design "klassiek" weg
 

@@ -26,6 +26,7 @@ import {
 } from "@/lib/strava/import";
 import { looksLikeFit } from "@/lib/strava/fit";
 import type { TimedPoint } from "@/lib/segments/gps-efforts";
+import { moduleName } from "@/lib/club";
 
 // Gelijk aan serverActions.bodySizeLimit in next.config.ts.
 const STRAVA_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
@@ -629,7 +630,7 @@ export async function syncMyBlocks() {
   } catch (err) {
     return {
       ok: false as const,
-      error: err instanceof Error ? err.message : "ZWBlokken bijwerken faalde.",
+      error: err instanceof Error ? err.message : `${await moduleName("blokkenjacht")} bijwerken faalde.`,
     };
   }
 }

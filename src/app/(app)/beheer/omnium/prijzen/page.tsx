@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { OMNIUM_LEAGUES } from "@/lib/omnium/scales";
 import { PrizeForm } from "./prize-form";
 import { getRequestAccess } from "@/lib/auth/request";
+import { ModuleName } from "@/components/club-texts-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export default async function OmniumPrizesPage({
   if (!season) {
     return (
       <div className="space-y-6">
-        <PageHeader eyebrow="ZWB Omnium" title="Prijzen" />
+        <PageHeader eyebrow={<ModuleName module="omnium" />} title="Prijzen" />
         <EmptyState>Maak eerst een seizoen aan.</EmptyState>
       </div>
     );
@@ -127,7 +128,7 @@ export default async function OmniumPrizesPage({
   return (
     <div className="space-y-8">
       <BackLink href="/beheer/omnium" label="Omnium" />
-      <PageHeader eyebrow="ZWB Omnium" title="Prijzen" />
+      <PageHeader eyebrow={<ModuleName module="omnium" />} title="Prijzen" />
 
       <nav className="flex flex-wrap gap-2">
         {seasons.map((row) => (

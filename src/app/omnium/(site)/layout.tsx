@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ZwbMark } from "@/components/zwb-logo";
+import { moduleName } from "@/lib/club";
 
 // De publieke Omnium-sectie is Engelstalig: het deelnemersveld is
 // internationaal en logt niet in. De rest van het platform blijft Nederlands,
 // net als de beheerschermen. Geen i18n-laag; alleen lang="en" op deze sectie,
 // zodat schermlezers en vertalers het juiste doen op een pagina binnen een
 // verder Nederlandstalig document.
-export const metadata: Metadata = {
-  title: {
-    default: "ZWB Omnium",
-    template: "%s — ZWB Omnium",
-  },
-  description:
-    "Four events, one morning. The ZWB Omnium is a monthly Zwift racing series.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await moduleName("omnium");
+  return {
+    title: {
+      default: name,
+      template: `%s — ${name}`,
+    },
+    description: `Four events, one morning. The ${name} is a monthly Zwift racing series.`,
+  };
+}
 
 const NAV = [
   { href: "/omnium", label: "Home" },

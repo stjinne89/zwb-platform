@@ -6,6 +6,7 @@ import { BekerIcon } from "@/components/zwbekers/beker-icon";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { dayLabel, namesLabel } from "@/lib/zwbekers/nomination";
 import { loadRecentBekers, requireBekerMember, type BekerSummary } from "@/lib/zwbekers/server";
+import { ModuleName } from "@/components/club-texts-provider";
 
 /**
  * De ZWBekers van de afgelopen week op het dashboard (wens eigenaar,
@@ -29,7 +30,7 @@ export async function RecentBekers() {
 export function RecentBekersList({ bekers }: { bekers: BekerSummary[] }) {
   return (
     <BekerFeest ids={bekers.map((beker) => beker.id)} className="pt-2">
-      <SectionHeader icon={Trophy} title="ZWBekers van deze week" action={<InlineMoreLink href="/zwbekers">Prijzenkast</InlineMoreLink>} />
+      <SectionHeader icon={Trophy} title={<><ModuleName module="bekers" /> van deze week</>} action={<InlineMoreLink href="/zwbekers">Prijzenkast</InlineMoreLink>} />
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {bekers.map((beker) => {
           const who = beker.winners.map((winner) => winner.name);

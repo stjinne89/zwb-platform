@@ -4,6 +4,7 @@ import { getRequestAccess } from "@/lib/auth/request";
 import { BackLink, PageHeader } from "@/components/app-ui";
 import { loadTopicCatalog } from "@/lib/zwbieb/queries";
 import { TopicAdminRow } from "../_components/topic-admin-row";
+import { moduleName } from "@/lib/club";
 
 /**
  * Onderwerpen en spullen van ZWBieb beheren (0242): hernoemen, verbergen, of
@@ -34,7 +35,7 @@ export default async function OnderwerpenPage() {
 
   return (
     <div className="space-y-6">
-      <BackLink href="/zwbieb" label="ZWBieb" />
+      <BackLink href="/zwbieb" label={await moduleName("bibliotheek")} />
       <PageHeader title="Onderwerpen beheren" />
       {(["kennis", "spullen"] as const).map((kind) => (
         <section key={kind} className="space-y-2 rounded-lg border bg-card p-4">

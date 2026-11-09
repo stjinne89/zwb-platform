@@ -24,6 +24,7 @@ import { ProfileViewToggle } from "./_components/profile-view-toggle";
 import { householdFromRow } from "@/lib/nutrition/shopping";
 import { MemberProfile } from "../leden/[id]/_components/member-profile";
 import { PublicProfile } from "@/app/profielen/[id]/_components/public-profile";
+import { ModuleName } from "@/components/club-texts-provider";
 
 type AwardRow = {
   id: string;
@@ -341,13 +342,13 @@ export default async function ProfielPage({
       <section id="zwbieb" className="scroll-mt-20 rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            ZWBieb
+            <ModuleName module="bibliotheek" />
           </h2>
           <Link
             href="/zwbieb/mijn"
             className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
           >
-            Mijn ZWBieb
+            Mijn <ModuleName module="bibliotheek" />
           </Link>
         </div>
       </section>
@@ -395,13 +396,13 @@ export default async function ProfielPage({
       <section className="rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            ZWB Segments
+            <ModuleName module="segmenten" />
           </h2>
           <Link
             href="/profiel/segments/collecties"
             className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
           >
-            ZWB Segments bekijken
+            <ModuleName module="segmenten" /> bekijken
           </Link>
         </div>
       </section>

@@ -3,6 +3,7 @@ import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MergeRidersForm } from "./merge-form";
 import { getRequestAccess } from "@/lib/auth/request";
+import { ModuleName } from "@/components/club-texts-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function OmniumRidersPage() {
   return (
     <div className="space-y-6">
       <BackLink href="/beheer/omnium" label="Omnium" />
-      <PageHeader eyebrow="ZWB Omnium" title="Renners samenvoegen" />
+      <PageHeader eyebrow={<ModuleName module="omnium" />} title="Renners samenvoegen" />
       {riders.length < 2 ? (
         <EmptyState>Er zijn nog geen dubbele renners.</EmptyState>
       ) : (

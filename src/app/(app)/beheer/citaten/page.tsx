@@ -8,6 +8,7 @@ import { loadTopicCatalog } from "@/lib/zwbieb/queries";
 import { TipForm } from "./_components/tip-form";
 import { TipList, type TipRow } from "./_components/tip-list";
 import { getRequestAccess } from "@/lib/auth/request";
+import { ModuleName } from "@/components/club-texts-provider";
 
 export default async function CitatenPage() {
   const supabase = await createClient();
@@ -32,7 +33,7 @@ export default async function CitatenPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Tips en citaten</h1>
         <p className="text-sm text-muted-foreground">
           Tips verschijnen bij het bijbehorende onderdeel in Mijn garage, of bij
-          een onderwerp in ZWBieb. Een lid ziet zijn eigen citaten en tips
+          een onderwerp in <ModuleName module="bibliotheek" />. Een lid ziet zijn eigen citaten en tips
           en kan ze zelf aanpassen of verwijderen — zie de{" "}
           <Link href="/voorwaarden" className="underline underline-offset-2">
             gebruikersvoorwaarden

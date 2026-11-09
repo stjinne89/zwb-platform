@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MessagesSquare, Settings2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ModuleName } from "@/components/club-texts-provider";
 
 export type ZwbiebTab = "kennis" | "spullen" | "leeszaal";
 
@@ -50,7 +51,7 @@ export function ZwbiebActions({
         Gesprekken{unread > 0 ? ` (${unread})` : ""}
       </Link>
       <Link href="/zwbieb/mijn" className={buttonVariants()}>
-        {joined ? "Mijn ZWBieb" : "Doe mee"}
+        {joined ? <>Mijn <ModuleName module="bibliotheek" /></> : "Doe mee"}
       </Link>
       {canModerate && (
         <Link

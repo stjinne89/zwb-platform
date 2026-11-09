@@ -4,6 +4,7 @@ import { AskLink } from "./ask-link";
 import { cn } from "@/lib/utils";
 import { TipItem } from "./tip-item";
 import { TopicBadge } from "./topic-badge";
+import { ModuleName } from "@/components/club-texts-provider";
 
 /** ZWBieb op het profiel van een lid: weet van, leent uit, en de laatste tips. */
 export function MemberKnowledgeSection({
@@ -34,7 +35,7 @@ export function MemberKnowledgeSection({
     <section className="rounded-lg border bg-card p-6">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         <Link href="/zwbieb" className="hover:text-primary">
-          ZWBieb
+          <ModuleName module="bibliotheek" />
         </Link>
       </h2>
 

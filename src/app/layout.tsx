@@ -6,6 +6,8 @@ import { IosViewportHerstel } from "@/components/ios-viewport-herstel";
 import { getClub } from "@/lib/club";
 import { clubStyleCss, themeColors } from "@/lib/club-theme";
 import { clubIconUrl } from "@/lib/club-icons";
+import { clubCommunity, clubDescription } from "@/lib/club-texts";
+import { ClubTextsProvider } from "@/components/club-texts-provider";
 
 // De lettertypes staan in src/fonts, zodat de build niet van Google Fonts
 // afhangt (zie de README daar).
@@ -22,9 +24,13 @@ const geistMono = localFont({
 });
 
 // De iconen en de deelkaart volgen het beeldmerk van de club (0315); zonder
-// beeldmerk de vaste ZWB-bestanden op hun oude adres.
+// beeldmerk de vaste ZWB-bestanden op hun oude adres. Naam en omschrijving
+// komen uit de clubinstellingen (fase 3).
 export async function generateMetadata(): Promise<Metadata> {
-  const mark = (await getClub()).settings.markUrl;
+  const { settings, texts } = await getClub();
+  const mark = settings.markUrl;
+  const title = `${texts.name} Platform`;
+  const description = clubDescription(texts);
   const icon = (file: Parameters<typeof clubIconUrl>[1]) =>
     clubIconUrl(mark, file);
   return {
@@ -34,14 +40,13 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(
       process.env.NEXT_PUBLIC_SITE_URL ?? "https://zwb-platform.netlify.app",
     ),
-    title: "ZWB Cycling Platform",
-    description:
-      "Hub voor ZWB Cycling Community — events, training, teams en chat.",
-    applicationName: "ZWB",
+    title,
+    description,
+    applicationName: texts.shortName,
     manifest: "/manifest.json",
     appleWebApp: {
       capable: true,
-      title: "ZWB",
+      title: texts.shortName,
       statusBarStyle: "black-translucent",
     },
     icons: {
@@ -63,25 +68,23 @@ export async function generateMetadata(): Promise<Metadata> {
     // zelf maar een favicon — dat was het blokkerige logo.
     openGraph: {
       type: "website",
-      siteName: "ZWB Cycling",
+      siteName: texts.name,
       locale: "nl_NL",
-      title: "ZWB Cycling Platform",
-      description:
-        "Hub voor ZWB Cycling Community — events, training, teams en chat.",
+      title,
+      description,
       images: [
         {
           url: icon("og.png"),
           width: 1200,
           height: 630,
-          alt: "ZWB Cycling Community",
+          alt: clubCommunity(texts),
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: "ZWB Cycling Platform",
-      description:
-        "Hub voor ZWB Cycling Community — events, training, teams en chat.",
+      title,
+      description,
       images: [icon("og.png")],
     },
   };
@@ -105,7 +108,7 @@ export default async function RootLayout({
 }>) {
   // Eigen kleuren (0314) en letter (0315) van de club overschrijven de
   // standaard in globals.css; zonder eigen huisstijl geen <style>.
-  const { settings } = await getClub();
+  const { settings, texts } = await getClub();
   const clubCss = clubStyleCss(settings.palette, settings.font);
   return (
     <html
@@ -128,7 +131,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ClubTextsProvider texts={texts}>{children}</ClubTextsProvider>
         </ThemeProvider>
         <IosViewportHerstel />
       </body>

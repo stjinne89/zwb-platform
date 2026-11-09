@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DEFAULT_OMNIUM_PARTS, generateEdition } from "@/lib/omnium/edition";
 import type { Discipline } from "@/lib/omnium/scoring";
 import { lookupZwiftInsiderRoute, updateOmniumEdition } from "../../_actions";
+import { useModuleName } from "@/components/club-texts-provider";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -97,6 +98,7 @@ export function EditionForm({
   };
   parts: EditionPartRow[];
 }) {
+  const seriesName = useModuleName("omnium");
   const [title, setTitle] = useState(initial.title);
   const [subtitle, setSubtitle] = useState(initial.subtitle);
   const [slug, setSlug] = useState(initial.slug);
@@ -119,6 +121,7 @@ export function EditionForm({
         number: 1,
         slug: slug || "preview",
         title: title || "Editie",
+        seriesName,
         dateKey: startAtIso.slice(0, 10),
         firstStartLocal: amsterdamHhmm(startAtIso),
         parts: parts.map((part) => ({
@@ -128,7 +131,7 @@ export function EditionForm({
           breakMinutes: part.breakMinutes,
         })),
       }),
-    [parts, slug, title, startAtIso],
+    [parts, slug, title, startAtIso, seriesName],
   );
 
   function patch(discipline: Discipline, changes: Partial<PartState>) {

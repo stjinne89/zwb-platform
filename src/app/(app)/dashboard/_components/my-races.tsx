@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CLUB_RACE_TYPES } from "@/lib/event-types";
 import { zwiftDsConfigured } from "@/lib/events/zwift-club";
 import { inDsWindow } from "@/lib/ds/schedule";
+import { ModuleName } from "@/components/club-texts-provider";
 
 type RaceEvent = {
   id: string;
@@ -311,7 +312,7 @@ export async function MyRaces({ userId }: { userId: string }) {
                 className="z-10 inline-flex items-center gap-1 bg-destructive px-2 py-1 text-xs font-semibold text-white"
               >
                 <Activity className="size-3.5" />
-                ZWB DS
+                <ModuleName module="live_race" />
               </Link>
             )}
           </span>

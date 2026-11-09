@@ -4,6 +4,7 @@ import { getRequestUser } from "@/lib/auth/request";
 import { loadMembers, loadTopicCatalog, type ExpertTopicRow } from "@/lib/zwbieb/queries";
 import { shelfForArticle } from "@/lib/zwbieb/shelves";
 import { ExpertRow } from "./expert-row";
+import { ModuleName } from "@/components/club-texts-provider";
 
 const MAX_EXPERTS = 5;
 
@@ -67,7 +68,7 @@ export async function ArticleExperts({ articleHref }: { articleHref: string }) {
               href={`/zwbieb?onderwerp=${slug}`}
               className="inline-flex min-h-[44px] items-center text-muted-foreground hover:text-primary"
             >
-              {catalog.label(slug)} in ZWBieb
+              {catalog.label(slug)} in <ModuleName module="bibliotheek" />
             </Link>
           ))}
         </p>

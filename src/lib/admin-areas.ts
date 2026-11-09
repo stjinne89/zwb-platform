@@ -6,8 +6,15 @@
 // toonde. Een recht per gebied is in te stellen op /beheer/rechten.
 
 import type { CommunityPermission } from "@/lib/permissions";
+import type { ModuleKey } from "@/lib/modules";
 
-export type AdminArea = { href: string; label: string; permission: CommunityPermission };
+export type AdminArea = {
+  href: string;
+  label: string;
+  permission: CommunityPermission;
+  /** Het label is de naam van deze module bij de club (fase 3). */
+  module?: ModuleKey;
+};
 
 export const ADMIN_AREAS = {
   rechten: { href: "/beheer/rechten", label: "Rechten", permission: "roles.manage_permissions" },
@@ -23,7 +30,7 @@ export const ADMIN_AREAS = {
   },
   // Voordrachten voor ZWBekers keuren (0286): hetzelfde werk als badges
   // toekennen, dus hetzelfde recht.
-  zwbekers: { href: "/beheer/zwbekers", label: "ZWBekers", permission: "achievements.finalize" },
+  zwbekers: { href: "/beheer/zwbekers", label: "ZWBekers", permission: "achievements.finalize", module: "bekers" },
   citaten: { href: "/beheer/citaten", label: "Tips en citaten", permission: "community.manage" },
   // Verhalen voor de publieke pagina /verhaal plaatsen (0288): communitywerk,
   // net als tips en citaten.
@@ -43,10 +50,10 @@ export const ADMIN_AREAS = {
     permission: "calendar.sources",
   },
   omnium: { href: "/beheer/omnium", label: "Omnium", permission: "omnium.manage" },
-  zwbgame: { href: "/zwbgame/beheer", label: "ZWBgame", permission: "zwbgame.manage" },
+  zwbgame: { href: "/zwbgame/beheer", label: "ZWBgame", permission: "zwbgame.manage", module: "managerspel" },
   // Zelfde recht als ZWBgame: allebei clubspel; een eigen recht zou de
   // check-constraint van community_role_permissions (0206) vragen.
-  bokaal: { href: "/voorzpwelbokaal/beheer", label: "voorZpWelBokaal", permission: "zwbgame.manage" },
+  bokaal: { href: "/voorzpwelbokaal/beheer", label: "voorZpWelBokaal", permission: "zwbgame.manage", module: "voorspelspel" },
   strava: { href: "/beheer/strava", label: "Strava-sync", permission: "integrations.manage" },
   // Per lid wat er gekoppeld is en of het loopt, om leden met vragen te helpen
   // (2026-11-04). Zelfde recht als de Strava-sync: dezelfde mensen beheren de

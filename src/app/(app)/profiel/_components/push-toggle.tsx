@@ -9,6 +9,7 @@ import {
   savePushSubscription,
   updateNotificationPreferences,
 } from "../_actions/push";
+import { ModuleName } from "@/components/club-texts-provider";
 
 type Props = {
   vapidPublicKey: string | null;
@@ -291,7 +292,7 @@ export function PushToggle({
             name="on_knowledge_message"
             defaultChecked={initialPreferences.on_knowledge_message}
           />
-          Nieuw bericht in ZWBieb
+          Nieuw bericht in <ModuleName module="bibliotheek" />
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input

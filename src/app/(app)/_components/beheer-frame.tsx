@@ -12,6 +12,7 @@ export async function BeheerFrame({ children }: { children: ReactNode }) {
   const categories = beheerCategoriesFor(
     (permission) => access.has(permission),
     club.allowsPath,
+    club.texts.modules,
   ).map(
     (category) => ({
       label: category.label,

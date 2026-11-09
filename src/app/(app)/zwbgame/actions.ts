@@ -11,6 +11,7 @@ import { loadGame, requireGameMember } from "@/lib/zwbgame/server";
 import { CONSENT_VERSION, type GameBootstrap, type GamePreferences } from "@/lib/zwbgame/types";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { adminAreaPermission } from "@/lib/admin-areas";
+import { moduleName } from "@/lib/club";
 
 type Reply<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 function failure(error: unknown): Reply<never> {
@@ -84,7 +85,7 @@ export async function excludeRosterRider(rosterId: string, excluded: boolean): P
     const { client, member } = await requireGameMember();
     const access = await getCurrentUserAccess(client);
     if (!access.has(adminAreaPermission("zwbgame"))) {
-      throw new Error("Geen recht om het ZWBgame-peloton te beheren.");
+      throw new Error(`Geen recht om het ${await moduleName("managerspel")}-peloton te beheren.`);
     }
     const admin = createAdminClient();
     const result = excluded

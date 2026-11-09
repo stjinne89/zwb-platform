@@ -3,6 +3,7 @@ import { EmptyState, PageHeader } from "@/components/app-ui";
 import { BekerIcon } from "@/components/zwbekers/beker-icon";
 import { STATUS_LABEL, dayLabel } from "@/lib/zwbekers/nomination";
 import { loadOwnNominations, requireBekerMember } from "@/lib/zwbekers/server";
+import { ModuleName } from "@/components/club-texts-provider";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Je voordrachten" };
@@ -19,7 +20,7 @@ export default async function VoordrachtenPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="ZWBekers" title="Je voordrachten" />
+      <PageHeader eyebrow={<ModuleName module="bekers" />} title="Je voordrachten" />
       {own.length === 0 ? (
         <EmptyState action={<Link href="/zwbekers" className="text-sm font-medium underline underline-offset-2">Naar de prijzenkast</Link>}>
           Geen open voordrachten.

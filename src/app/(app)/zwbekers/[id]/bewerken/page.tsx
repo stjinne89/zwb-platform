@@ -4,6 +4,7 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { canEdit } from "@/lib/zwbekers/nomination";
 import { loadBeker, loadFormOptions, requireBekerMember } from "@/lib/zwbekers/server";
 import { NominationForm } from "../../_components/nomination-form";
+import { ModuleName } from "@/components/club-texts-provider";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Beker aanpassen" };
@@ -28,7 +29,7 @@ export default async function BewerkenPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="ZWBekers" title={beker.status === "toegekend" ? "Beker aanpassen" : "Voordracht aanpassen"} />
+      <PageHeader eyebrow={<ModuleName module="bekers" />} title={beker.status === "toegekend" ? "Beker aanpassen" : "Voordracht aanpassen"} />
       {beker.status === "afgewezen" && beker.reviewNote && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
           <p className="font-medium">Het bestuur schreef</p>

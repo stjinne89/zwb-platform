@@ -11,6 +11,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ConnectWithStrava, StravaAttribution } from "@/components/strava-brand";
 import { cn } from "@/lib/utils";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
+import { ModuleName } from "@/components/club-texts-provider";
+import { useModuleName } from "@/components/club-texts-provider";
 
 export function StravaSection({
   connection,
@@ -33,6 +35,7 @@ export function StravaSection({
   } | null;
 }) {
   const [pending, startTransition] = useTransition();
+  const blocks = useModuleName("blokkenjacht");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -192,7 +195,7 @@ export function StravaSection({
                 onClick={() => {
                   if (
                     !confirm(
-                      "Overstappen naar intervals.icu? Je Strava-koppeling en je Strava-ritten verdwijnen; je ritten komen voortaan via intervals.icu, tot een jaar terug. Je badges en ZWBlokken blijven.",
+                      `Overstappen naar intervals.icu? Je Strava-koppeling en je Strava-ritten verdwijnen; je ritten komen voortaan via intervals.icu, tot een jaar terug. Je badges en ${blocks} blijven.`,
                     )
                   )
                     return;
@@ -213,7 +216,7 @@ export function StravaSection({
           {disconnecting && (
             <div className="space-y-2 rounded-md border p-3">
               <p className="text-sm">
-                Strava ontkoppelen? Je badges en ZWBlokken blijven altijd.
+                Strava ontkoppelen? Je badges en <ModuleName module="blokkenjacht" /> blijven altijd.
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <Button

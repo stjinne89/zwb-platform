@@ -12,6 +12,7 @@ import type { BriljantView as View, FacetView, Win } from "@/lib/briljant/view";
 import type { SceneStone } from "./stone-scene";
 import { briljantSans, briljantSerif } from "./fonts";
 import styles from "./briljant.module.css";
+import { useModuleName } from "@/components/club-texts-provider";
 
 const HallScene = dynamic(() => import("./hall-scene"), {
   ssr: false,
@@ -508,6 +509,7 @@ function PanelBody({
 
 export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compare, lines, options, changes, wins, hall, sponsors, hidden }: Props) {
   const labels = useRef(new Map<string, HTMLElement>());
+  const moduleLabel = useModuleName("rennersniveau");
   const [failed, setFailed] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
   const opener = useRef<HTMLElement | null>(null);
@@ -625,7 +627,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
           Terug
         </button>
 
-        <nav className={styles.tabs} aria-label="ZWBriljant">
+        <nav className={styles.tabs} aria-label={moduleLabel}>
           {TABS.map((option) => (
             <button
               key={option.key}

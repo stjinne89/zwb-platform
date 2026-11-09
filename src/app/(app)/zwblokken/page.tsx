@@ -26,6 +26,8 @@ import {
   ZwblokkenView,
   type MemberOption,
 } from "./_components/zwblokken-view";
+import { ModuleName } from "@/components/club-texts-provider";
+import { moduleName } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 
@@ -167,13 +169,13 @@ export default async function ZwblokkenPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Club"
-        title="ZWBlokken"
+        title={await moduleName("blokkenjacht")}
         description="Elk blok dat je ooit doorkruist hebt, kleurt in."
       />
 
       {club.total === 0 ? (
         <EmptyState>
-          Er zijn nog geen ZWBlokken berekend. Zodra de Strava-sync gedraaid
+          Er zijn nog geen <ModuleName module="blokkenjacht" /> berekend. Zodra de Strava-sync gedraaid
           heeft, verschijnen ze hier.
         </EmptyState>
       ) : (

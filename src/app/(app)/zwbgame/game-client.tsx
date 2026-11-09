@@ -18,6 +18,7 @@ import { climbingShare } from "@/lib/zwbgame/routes";
 import { refreshGame, saveGamePower, saveGamePreferences } from "./actions";
 import { Debrief } from "./debrief";
 import styles from "./game.module.css";
+import { useModuleName } from "@/components/club-texts-provider";
 
 const RaceScene = dynamic(() => import("./race-scene"), { ssr: false, loading: () => <div className={styles.sceneLoading}>Peloton opstellen…</div> });
 const labels = { sprinter: "Sprinter", puncher: "Puncher", tter: "Diesel", climber: "Klimmer", allrounder: "Allrounder" };
@@ -74,6 +75,7 @@ const ladderSeed = (id: string) => [...id].reduce((h, c) => Math.imul(h ^ c.char
 const climbOf = (route: GameRoute) => Math.round(route.grades.reduce((sum, g) => sum + Math.max(0, g) * 100, 0));
 
 export function GameClient({ initial }: { initial: GameBootstrap }) {
+  const gameName = useModuleName("managerspel");
   const [data, setData] = useState(initial);
   const [mode, setMode] = useState<GameMode | "drill">("ladder");
   const [drill, setDrill] = useState<DrillId>("selection");
@@ -277,7 +279,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   async function reload() {
     const response = await refreshGame();
     if (!response.ok) throw new Error(response.error);
-    if (!response.data.available) throw new Error("ZWBgame is tijdelijk niet beschikbaar.");
+    if (!response.data.available) throw new Error(`${gameName} is tijdelijk niet beschikbaar.`);
     setData(response.data); return response.data;
   }
   async function start(resume: boolean) {
@@ -565,7 +567,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       {rosterOpen && <section className={styles.roster} aria-label="Clubpeloton">{data.roster.map((r) => <div key={r.id}><Bike size={16} /><strong>{r.name}</strong><span>{labels[r.kind]}</span></div>)}</section>}
       {results.length > 0 && <section className={styles.history}><div className={styles.sectionHeading}><h2>Jouw laatste koersen</h2><button onClick={() => { try { localStorage.removeItem(resultsKey(data.playerId)); setResults([]); } catch { setError("Wissen mislukt."); } }}>Wissen</button></div>{results.slice(0, 5).map((r) => <div key={r.id}><span>{r.route}</span><span>{r.teamRank ? `${r.teamRank[0]}e van ${r.teamRank[1]}` : r.score ? `${r.score[0]}–${r.score[1]}` : `${r.place}/${r.count}`}</span><span>{clock(r.seconds)}</span></div>)}</section>}
     </>}
-    <footer className={styles.footer}><span>ZWBgame <span>•</span> De club aan de start.</span><Link href="/hulp/wedstrijden#zwbgame">Spelregels <ArrowUpRight size={13} /></Link>{active.riders.some((r) => r.rider.garmin) && <span>Spelkwaliteiten mede op basis van Garmin-gegevens</span>}</footer>
+    <footer className={styles.footer}><span>{gameName} <span>•</span> De club aan de start.</span><Link href="/hulp/wedstrijden#zwbgame">Spelregels <ArrowUpRight size={13} /></Link>{active.riders.some((r) => r.rider.garmin) && <span>Spelkwaliteiten mede op basis van Garmin-gegevens</span>}</footer>
   </div>;
 }
 

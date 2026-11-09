@@ -10,6 +10,8 @@ import { loadDsView } from "@/lib/ds/snapshot";
 import { DsSections } from "./_components/ds-sections";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+import { ModuleName } from "@/components/club-texts-provider";
+import { moduleName } from "@/lib/club";
 
 type PageProps = {
   params: Promise<{ eventId: string }>;
@@ -18,7 +20,9 @@ type PageProps = {
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "ZWB DS" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await moduleName("live_race") };
+}
 
 export default async function DsPage({ params, searchParams }: PageProps) {
   const { eventId } = await params;
@@ -40,9 +44,9 @@ export default async function DsPage({ params, searchParams }: PageProps) {
     return (
       <div className="mx-auto max-w-3xl space-y-6">
         <BackLink href={`/events/${eventId}`} label="Event" />
-        <PageHeader eyebrow="ZWB DS" title="Raceoverzicht" />
+        <PageHeader eyebrow={<ModuleName module="live_race" />} title="Raceoverzicht" />
         <p className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
-          {outcome.status === "not-configured" ? "ZWB DS staat nog niet aan." : "Zwift is nu niet bereikbaar."}
+          {outcome.status === "not-configured" ? <><ModuleName module="live_race" /> staat nog niet aan.</> : "Zwift is nu niet bereikbaar."}
         </p>
       </div>
     );
@@ -55,7 +59,7 @@ export default async function DsPage({ params, searchParams }: PageProps) {
       {view.live && <AutoRefresh seconds={15} />}
       <BackLink href={`/events/${view.event.id}`} label="Event" />
       <PageHeader
-        eyebrow="ZWB DS"
+        eyebrow={<ModuleName module="live_race" />}
         title={view.event.title}
         actions={
           view.event.zrlLiveHref ? (

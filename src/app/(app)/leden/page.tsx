@@ -18,6 +18,7 @@ import { fetchIntervalsWellness } from "@/lib/intervals/client";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
 import { WELLNESS_SUMMARY_DAYS, type WellnessDevice } from "@/lib/training/wellness";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { ModuleName } from "@/components/club-texts-provider";
 
 type Profile = {
   id: string;
@@ -190,7 +191,7 @@ export default async function LedenPage() {
         title="Leden"
         actions={
           <Link href="/zwbieb" className={buttonVariants({ variant: "outline" })}>
-            ZWBieb
+            <ModuleName module="bibliotheek" />
           </Link>
         }
       />
