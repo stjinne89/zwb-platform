@@ -2,8 +2,6 @@
 // Vereist LADDER_COOKIE env var met de ingelogde session cookie
 // (bv. "connect.sid=s%3A...").
 
-import { getClub } from "@/lib/club";
-
 const GRAVEYARD_URL = "https://ladder.cycleracing.club/graveyard";
 
 /**
@@ -39,10 +37,14 @@ function decodeEntities(s: string): string {
 
 export async function fetchLadderGraveyard(
   cookie: string,
+  /**
+   * Korte clubnaam en website voor de user agent. Als parameter, want dit
+   * bestand komt via club-ladder/rules ook in de browser (geen lib/club hier).
+   */
+  club: { shortName: string; websiteUrl: string | null },
 ): Promise<LadderGraveyardResult> {
-  const club = await getClub();
-  const clubShort = club.texts.shortName;
-  const clubSite = club.settings.websiteUrl ? `; +${club.settings.websiteUrl}` : "";
+  const clubShort = club.shortName;
+  const clubSite = club.websiteUrl ? `; +${club.websiteUrl}` : "";
   const res = await fetch(GRAVEYARD_URL, {
     headers: {
       Cookie: cookie,

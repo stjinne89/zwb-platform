@@ -12077,9 +12077,16 @@ suite falen deze tests:
 - de workout-titel met een andere naam (ook met regex-tekens).
 
 Elke gewijzigde regel met "ZWB" is met de ZWB-waarden ingevuld en vergeleken met
-de oude regel; buiten de kennisbanken is alles voor ZWB gelijk. **Niet bekeken:**
+de oude regel; buiten de kennisbanken is alles voor ZWB gelijk.
 
-- een build en de schermen in de browser;
+`next build` met de echte env slaagt. De eerste poging faalde: `lib/ladder.ts`
+komt via `club-ladder/rules.ts` ook in de browser terecht en mag dus geen
+`lib/club` (server-only) importeren. De clubnaam voor die user agent is daarom
+een parameter, die `teams/_actions.ts` meegeeft.
+
+**Niet bekeken:**
+
+- de schermen in de browser;
 - echte user agents tegen de sites;
 - het gedrag vóór en na `0316` op productie.
 
