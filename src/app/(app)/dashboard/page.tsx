@@ -69,6 +69,7 @@ import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { getRequestUser } from "@/lib/auth/request";
 import { getClub } from "@/lib/club";
+import { instagramProfileUrl } from "@/lib/instagram";
 import { points as briljantPoints, positionFor as briljantPosition } from "@/lib/briljant/score";
 import { SCALE_VERSION as BRILJANT_SCALE } from "@/lib/briljant/norms";
 import { storedScore as briljantStoredScore } from "@/lib/briljant/compare";
@@ -999,6 +1000,7 @@ export default async function DashboardPage({
           </Suspense>
           <InstagramStrip
             posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
+            profileUrl={instagramProfileUrl(club.settings.instagramHandle)}
           />
         </TileRow>
       )}

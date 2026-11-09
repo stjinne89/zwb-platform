@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalize, nameTokens } from "@/lib/text/normalize";
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
+import { mentionsClub } from "@/lib/club-recognition";
 
 export type MatchedVia =
   | "member_name"
@@ -72,8 +73,11 @@ const USER_AGENT =
 const TIME_HMS = /\b(\d{1,2})[:.](\d{2})[:.](\d{2})(?:[.,]\d{1,3})?\b/;
 const TIME_MS = /\b(\d{1,3})[:.](\d{2})(?:[.,]\d{1,3})?\b/;
 
-// Woordgrens-"zwb" (niet als deel van een ander woord).
-const ZWB_MENTION = /(^|[^a-z0-9])zwb([^a-z0-9]|$)/i;
+/**
+ * De leden om tegen te matchen, en de teamtag van de club: een regel die de
+ * club als los woord noemt ("ZWB", niet "zwbart") telt ook mee.
+ */
+type MemberMatch = { list: MemberCandidate[]; teamTag: string };
 
 function timeToSeconds(text: string): number | null {
   const hms = text.match(TIME_HMS);
@@ -241,7 +245,7 @@ function pickLongestTextCell(cells: string[]): string | null {
 // bouwt ScrapedResult-records. Gebruikt `known*`-velden wanneer de adapter de
 // kolommen exact kent; valt anders terug op heuristische extractie.
 function matchRows(
-  candidates: MemberCandidate[],
+  candidates: MemberMatch,
   rows: RawRow[],
 ): ScrapedResult[] {
   const out: ScrapedResult[] = [];
@@ -255,7 +259,7 @@ function matchRows(
     const rowTokenSet = new Set(rowTokens);
 
     let best: MemberCandidate | null = null;
-    for (const cand of candidates) {
+    for (const cand of candidates.list) {
       if (matchCandidate(rowTokens, rowTokenSet, cand)) {
         if (
           !best ||
@@ -277,7 +281,7 @@ function matchRows(
       if (!row.knownName) {
         scrapedName = pickNameCell(row.cells, best.tokens) ?? matchText;
       }
-    } else if (ZWB_MENTION.test(matchText)) {
+    } else if (mentionsClub(matchText, candidates.teamTag)) {
       matchedVia = "zwb_mention";
       profileId = null;
       if (!row.knownName) {
@@ -508,7 +512,7 @@ async function chronoFetchTable(
 }
 
 async function scrapeChronoRace(
-  candidates: MemberCandidate[],
+  candidates: MemberMatch,
   db: string,
   table: string,
 ): Promise<ScrapeOutcome> {
@@ -575,7 +579,7 @@ async function scrapeChronoRace(
 }
 
 async function scrapeChronoRaceLive(
-  candidates: MemberCandidate[],
+  candidates: MemberMatch,
   db: string,
   table: string,
 ): Promise<LiveTimingOutcome> {
@@ -701,7 +705,7 @@ async function scrapeChronoRaceLive(
 // ---------------------------------------------------------------------------
 
 async function scrapeGenericHtml(
-  candidates: MemberCandidate[],
+  candidates: MemberMatch,
   resultsUrl: string,
 ): Promise<ScrapeOutcome> {
   let html: string;
@@ -828,7 +832,7 @@ async function rrFetchJson<T>(url: string): Promise<T | null> {
 }
 
 async function scrapeRaceResult(
-  candidates: MemberCandidate[],
+  candidates: MemberMatch,
   eventId: string,
   hash: string,
 ): Promise<ScrapeOutcome> {
@@ -1051,7 +1055,7 @@ function isUltratimingUrl(resultsUrl: string): boolean {
 }
 
 async function scrapeUltratiming(
-  candidates: MemberCandidate[],
+  candidates: MemberMatch,
   resultsUrl: string,
 ): Promise<ScrapeOutcome> {
   let baseUrl: string;
@@ -1118,6 +1122,8 @@ export async function scrapeEventResults(
   supabase: SupabaseClient,
   _eventId: string,
   resultsUrl: string,
+  /** De teamtag van de club (getClub().recognition.teamTag). */
+  teamTag: string,
 ): Promise<ScrapeOutcome> {
   // SSRF-bescherming: weiger interne/private adressen vóór er iets wordt opgehaald.
   try {
@@ -1130,7 +1136,7 @@ export async function scrapeEventResults(
     };
   }
 
-  const candidates = await buildMemberCandidates(supabase);
+  const candidates: MemberMatch = { list: await buildMemberCandidates(supabase), teamTag };
 
   if (isUltratimingUrl(resultsUrl)) {
     return scrapeUltratiming(candidates, resultsUrl);
@@ -1172,6 +1178,7 @@ export async function scrapeEventResults(
 export async function scrapeEventLiveTiming(
   supabase: SupabaseClient,
   timingUrl: string,
+  teamTag: string,
 ): Promise<LiveTimingOutcome> {
   try {
     await assertSafeUrl(timingUrl);
@@ -1193,6 +1200,6 @@ export async function scrapeEventLiveTiming(
     };
   }
 
-  const candidates = await buildMemberCandidates(supabase);
+  const candidates: MemberMatch = { list: await buildMemberCandidates(supabase), teamTag };
   return scrapeChronoRaceLive(candidates, parsed.db, parsed.table);
 }

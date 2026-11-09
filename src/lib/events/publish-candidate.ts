@@ -17,11 +17,13 @@ import { fetchZwiftPublicEvent } from "@/lib/events/zwift-route";
 import { zwiftEventFields, type ZwiftEventFields } from "@/lib/events/zwift-event-fields";
 import { registerZwiftRoute } from "@/lib/events/zrl-route-sync";
 import { zwiftCoverStore } from "@/lib/events/zrl-event-details";
+import { getClub } from "@/lib/club";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
 function participantDescription(
   participants: Array<{ external_name: string; category: string | null }>,
+  clubShortName: string,
 ) {
   if (participants.length === 0) return null;
   const names = participants
@@ -31,7 +33,7 @@ function participantDescription(
         : participant.external_name,
     )
     .join(", ");
-  return `ZWB-deelnemers: ${names}`;
+  return `${clubShortName}-deelnemers: ${names}`;
 }
 
 // Koppelt gematchte leden als RSVP "ja" aan het gepubliceerde event, zodat ze —
@@ -116,6 +118,7 @@ export async function publishCandidateToCalendar(
   ];
   const description = participantDescription(
     allParticipants.filter((participant) => !participant.profile_id),
+    (await getClub()).texts.shortName,
   );
   const { type, location } = eventTypeForSource(candidate.source);
   const resultsUrl = resultsUrlForSource(candidate.source, candidate.external_id);

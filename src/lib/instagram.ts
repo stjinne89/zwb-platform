@@ -29,8 +29,11 @@ type InstagramMeResponse = {
   error?: { message?: string; type?: string; code?: number };
 };
 
-export const ZWB_INSTAGRAM_URL = "https://www.instagram.com/zwb_cycling/";
-export const ZWB_INSTAGRAM_USERNAME = "zwb_cycling";
+/** Het Instagram-profiel van de club (club_settings.instagram_handle), of null. */
+export function instagramProfileUrl(handle: string | null | undefined): string | null {
+  const name = handle?.trim().replace(/^@/, "");
+  return name ? `https://www.instagram.com/${name}/` : null;
+}
 
 function apiVersion() {
   return process.env.INSTAGRAM_GRAPH_API_VERSION?.trim() || "v24.0";
@@ -55,7 +58,7 @@ export function instagramCoverUrl(item: InstagramMedia) {
   return coverFor(item);
 }
 
-export async function resolveInstagramUserId(accessToken: string) {
+export async function resolveInstagramUserId(accessToken: string, expectedUsername: string | null) {
   const url = apiUrl("/me");
   url.searchParams.set("fields", "id,username");
   url.searchParams.set("access_token", accessToken);
@@ -71,10 +74,9 @@ export async function resolveInstagramUserId(accessToken: string) {
     throw new Error(message);
   }
   if (!json.id) throw new Error("Meta Instagram API gaf geen Instagram User ID terug.");
-  if (json.username && json.username !== ZWB_INSTAGRAM_USERNAME) {
-    throw new Error(
-      `De Instagram-token hoort bij @${json.username}, niet bij @${ZWB_INSTAGRAM_USERNAME}.`,
-    );
+  const expected = expectedUsername?.trim().replace(/^@/, "");
+  if (expected && json.username && json.username !== expected) {
+    throw new Error(`De Instagram-token hoort bij @${json.username}, niet bij @${expected}.`);
   }
   return json.id;
 }

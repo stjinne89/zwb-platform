@@ -318,11 +318,16 @@ describe("pickSubgroup", () => {
   });
 
   it("laat één eigen renner elders niet winnen van meer ZWB'ers (Zwiftladies B)", () => {
-    expect(pickSubgroup([empty, a, b], new Set([1]))?.label).toBe("B");
+    expect(pickSubgroup([empty, a, b], new Set([1]), new Set(), "ZWB")?.label).toBe("B");
   });
 
   it("valt zonder bekende eigen renners terug op ZWB-tags (Zwiftladies B, 2026-09-22)", () => {
-    expect(pickSubgroup([empty, a, b], new Set())?.label).toBe("B");
+    expect(pickSubgroup([empty, a, b], new Set(), new Set(), "ZWB")?.label).toBe("B");
+  });
+
+  it("telt de tag van de club, niet die van ZWB", () => {
+    expect(pickSubgroup([empty, a, b], new Set(), new Set(), "AEO")?.label).toBe("A");
+    expect(pickSubgroup([empty, a, b], new Set())?.label).toBe("A");
   });
 
   it("neemt anders de eerste groep met inschrijvers", () => {
@@ -342,8 +347,8 @@ describe("pickSubgroup", () => {
     };
     const b1 = new Set([21, 22, 23]);
     const teamA = new Set([11, 12, 13]);
-    expect(pickSubgroup([groepA, groepB], b1)?.label).toBe("B");
-    expect(pickSubgroup([groepA, groepB], teamA)?.label).toBe("A");
+    expect(pickSubgroup([groepA, groepB], b1, new Set(), "ZWB")?.label).toBe("B");
+    expect(pickSubgroup([groepA, groepB], teamA, new Set(), "ZWB")?.label).toBe("A");
   });
 
   it("telt de ZWB'ers van B1 niet voor A, ook niet de renner die deze week bij B1 rijdt (W6, 2026-10-27)", () => {
@@ -354,13 +359,13 @@ describe("pickSubgroup", () => {
     const groepB = { label: "B", entrants: [e("21", "B1 [ZWB]"), e("22", "B2 [ZWB]"), e("23", "B3 [ZWB]"), e("24", "B4 [ZWB]"), e("30", "Wissel [ZWB]")] };
     const teamA = { all: new Set([11, 12, 13, 30]), lineup: new Set([11, 12, 13]) };
     const teamB1 = { all: new Set([21, 22, 23, 24, 30]), lineup: new Set([21, 22, 23, 24, 30]) };
-    expect(pickSubgroup([groepA, groepB], teamA.all)?.label).toBe("B");
+    expect(pickSubgroup([groepA, groepB], teamA.all, new Set(), "ZWB")?.label).toBe("B");
     const { own, others } = splitTeamRiders(teamA, [teamB1]);
     expect([...own].sort()).toEqual([11, 12, 13]);
     expect(others.has(30)).toBe(true);
-    expect(pickSubgroup([groepA, groepB], own, others)?.label).toBe("A");
+    expect(pickSubgroup([groepA, groepB], own, others, "ZWB")?.label).toBe("A");
     const forB1 = splitTeamRiders(teamB1, [teamA]);
-    expect(pickSubgroup([groepA, groepB], forB1.own, forB1.others)?.label).toBe("B");
+    expect(pickSubgroup([groepA, groepB], forB1.own, forB1.others, "ZWB")?.label).toBe("B");
   });
 
   it("houdt een renner die in beide opstellingen staat bij ons", () => {

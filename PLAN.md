@@ -45,6 +45,12 @@ gaat stabiliteit voor nieuwe features.
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
+0. **Generieke versie, fase 4: clubherkenning (2026-11-09): lokaal, niet
+   gepusht.** Migratie `0320` (`club_recognition`) is **niet toegepast**; pas
+   hem toe vóór de push. Zonder de kolommen herkent de eventscan alleen "ZWB"
+   en niet meer "zwift belgie" en "zwift belgium". Zie de ronde "fase 4:
+   clubherkenning".
+
 0. **Generieke versie, fase 3 deel 1 en 2: clubnaam, modulenamen, hulp,
    privacy en voorwaarden (2026-11-09): gepusht naar `main` (deel 1
    `c8ed7cb3`, deel 2 `fdbdbd91`).** Geen
@@ -12012,6 +12018,90 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Generieke versie, fase 4: clubherkenning
+
+**2026-11-09.** Op verzoek van de eigenaar ("ga maar door", na fase 3), met
+drie keuzes vooraf (zie onder). Migratie `0320` (`club_recognition`) is **niet
+toegepast** en niet lokaal te testen. Hij moet vóór de push op productie staan.
+
+Doel: wat de app als "van de club" herkent (eigen events, renners, uitslagen,
+teams en social) komt uit de club en niet uit de code. Voor ZWB verandert er
+niets.
+
+Wat er is:
+
+- **Twee kolommen (`0320`).** Leeg geeft de korte naam
+  (`lib/club-recognition.ts`, `getClub().recognition`).
+
+  | Kolom | Bij ZWB | Waarvoor |
+  |---|---|---|
+  | `event_markers` | zwb, zwift belgie, zwift belgium | de eventscan: eigen events in titel of serie |
+  | `team_tag` | ZWB | de teamtag in een Zwift-naam ("[ZWB]"): ZRL-live, ZWB DS en de uitslagscraper |
+
+  - De env `ZWB_EVENT_MARKERS` gaat voor (keuze eigenaar: "Env blijft
+    voorrang"). Zo verandert er niets als hij op Netlify een eigen waarde
+    heeft.
+  - Het Zwift-club-ID blijft een env-waarde (Netlify secrets-scan, zie het
+    ontwerp §4).
+- **Waar ze gelden:**
+  - `detectZwbMatchStatus(candidate, markers)`; de eventscan geeft de markers
+    van de club mee;
+  - `hasClubTag(name, tag)` (was `hasZwbTag`) en `pickSubgroup(…, tag)` in
+    ZRL-live en ZWB DS;
+  - de uitslagscraper: een regel die de club als los woord noemt
+    (`mentionsClub`, was de regex `ZWB_MENTION`). `scrapeEventResults` en
+    `scrapeEventLiveTiming` krijgen de tag mee, omdat `scrape.ts` ook in een
+    client-component terechtkomt en dus geen `lib/club` mag lezen.
+- **Teams alleen uit de database** (keuze eigenaar: "Seeds en fallback weg").
+  De teamsync legde bij elke run de zeven ZWB-teams en hun WTRL- en
+  ladderbronnen aan als ze ontbraken; op productie stonden ze er allemaal al.
+  Weg zijn de seeds, het uitschakelen van de oude bronnen "ZRL B" en "ZRL C"
+  (stonden al uit) en de vaste WTRL-fallback voor "ZWB Cycling B1" (2025/26
+  Round 4). Een nieuwe club maakt zijn eigen teams. De melding "x teams
+  aangemaakt" in de syncknop is weg. Het gelijkstellen van "ZWB Cycling B1"
+  en "ZWB B1" volgt de clubnaam en de korte naam.
+- **SRC:** het standaardteam heet `<korte naam> SRC` (`srcDefaultTeamName`).
+- **Social** uit `club_settings` (de waarden stonden er al sinds `0313`):
+  - Instagram: het profiel (`instagramProfileUrl`), de controle dat de token
+    bij het clubaccount hoort, en de titels "Instagram-post van <clubnaam>";
+    de dashboardstrip krijgt het profiel als prop. De token blijft env;
+  - YouTube: de syncknop zonder handle neemt `youtube_handle`; zonder kanaal
+    zegt hij "Geen YouTube-kanaal ingesteld.".
+- De beschrijving bij een gepubliceerd scanevent zegt
+  "<korte naam>-deelnemers".
+
+**Bewust niet:**
+
+- **De podcast-RSS** blijft de env `PODCAST_RSS_URL` (keuze eigenaar: "Env
+  laten"). Hij werkt al per installatie.
+- **Het logo bij een link naar zwbcycling.nl** (`race-links.ts`): dat is het
+  logo van die site, net als dat van Zwift of Strava. Voor een andere club
+  raakt het niets.
+- **Tabel- en functienamen** met zwb (`zwb_ds_rider_states`,
+  `claim_zwb_ds_budget`) en de cachesleutels: intern, voor de baseline van
+  fase 5.
+- **Strava-app, Zwift-serviceaccount, Telegram-bot en crons** zijn per
+  installatie apart (ontwerp §2.3); dat hoort bij de installatiehandleiding
+  van fase 5.
+- Een scherm om de herkenning te bewerken: dat is de inrichtingsmodule (fase 6).
+
+**Niet meer waar:** het ontwerp (§2.3) noemt `SRC_DEFAULT_TEAM_NAME`,
+`ZWB_MENTION` en de ZWB-teams in `team-results/sync.ts`; die zijn weg. De
+fase-3-rij in het ontwerp noemde `0318` als migratie; dat is `0319`.
+
+Lokaal: `tsc`, eslint en `next build` (met de echte env) zijn schoon. In de
+volledige suite faalden zes tests onder belasting; los gedraaid zijn ze groen,
+behalve `omnium-live`, dat `.env.local` nodig heeft. `club-recognition.test.ts`
+dekt de volgorde env > kolom > korte naam, de los-woordtest met regex-tekens,
+de teamtag en de eventmarkers voor ZWB en een testclub. De tests van
+`pickSubgroup` en de SRC-inschrijving geven de tag en de korte naam nu mee.
+
+**Niet bekeken:**
+
+- een echte eventscan, ZRL-live, ZWB DS, uitslagscrape en Instagram-sync na de
+  wijziging;
+- het gedrag vóór en na `0320` op productie.
 
 ### Gebouwd — Generieke versie, fase 3 deel 3b: eigen woorden, appnaam en neutrale kennisbanken
 

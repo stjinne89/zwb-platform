@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ensureSrcMonthEntry, SRC_DEFAULT_TEAM_NAME } from "@/lib/src/auto-join";
+import { ensureSrcMonthEntry, srcDefaultTeamName } from "@/lib/src/auto-join";
 import { fakeAdmin, type Row } from "./src-fake-admin";
 
 const month = "2026-10-01";
@@ -12,9 +12,10 @@ describe("ensureSrcMonthEntry", () => {
       src_month_entries: [],
       src_results: [],
     };
-    const result = await ensureSrcMonthEntry(fakeAdmin(tables), "lid", month);
+    const result = await ensureSrcMonthEntry(fakeAdmin(tables), "lid", month, "TCU");
     const team = tables.teams.find((row) => row.type === "src")!;
-    expect(team.name).toBe(SRC_DEFAULT_TEAM_NAME);
+    expect(team.name).toBe("TCU SRC");
+    expect(srcDefaultTeamName("ZWB")).toBe("ZWB SRC");
     expect(result).toEqual({ ok: true, joined: true, entry: { team_id: team.id, race: "men" } });
     expect(tables.src_month_entries).toEqual([
       expect.objectContaining({ month, profile_id: "lid", team_id: team.id, race: "men", category: null }),
@@ -38,7 +39,7 @@ describe("ensureSrcMonthEntry", () => {
         { event_id: "r-sep27", sunday: "2026-09-27" },
       ],
     };
-    const result = await ensureSrcMonthEntry(fakeAdmin(tables), "lid", month);
+    const result = await ensureSrcMonthEntry(fakeAdmin(tables), "lid", month, "TCU");
     expect(result).toMatchObject({ ok: true, joined: true, entry: { team_id: "src-1", race: "women" } });
     expect(tables.src_month_entries[0]).toMatchObject({ category: 4 });
     expect(tables.teams).toHaveLength(2);
@@ -49,7 +50,7 @@ describe("ensureSrcMonthEntry", () => {
       teams: [],
       src_month_entries: [{ month, profile_id: "lid", team_id: "t", race: "women" }],
     };
-    const result = await ensureSrcMonthEntry(fakeAdmin(tables), "lid", month);
+    const result = await ensureSrcMonthEntry(fakeAdmin(tables), "lid", month, "TCU");
     expect(result).toEqual({ ok: true, joined: false, entry: expect.objectContaining({ team_id: "t" }) });
     expect(tables.teams).toHaveLength(0);
   });
@@ -62,7 +63,7 @@ describe("ensureSrcMonthEntry", () => {
       ],
       src_month_entries: [],
     };
-    const result = await ensureSrcMonthEntry(fakeAdmin(tables), "lid", month);
+    const result = await ensureSrcMonthEntry(fakeAdmin(tables), "lid", month, "TCU");
     expect(result).toEqual({ ok: false, error: "Kies eerst je team op Sunday Race Club." });
     expect(tables.src_month_entries).toHaveLength(0);
   });

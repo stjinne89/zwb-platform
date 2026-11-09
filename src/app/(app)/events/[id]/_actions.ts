@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { scrapeEventResults } from "@/lib/event-results/scrape";
+import { getClub } from "@/lib/club";
 import { rateLimitHit } from "@/lib/rate-limit";
 import { syncEventWorkout } from "@/lib/training/events";
 import { requestReplan } from "@/lib/training/replan";
@@ -114,7 +115,7 @@ export async function refreshEventResults(eventId: string) {
   }
 
   const admin = createAdminClient();
-  const outcome = await scrapeEventResults(admin, eventId, resultsUrl);
+  const outcome = await scrapeEventResults(admin, eventId, resultsUrl, (await getClub()).recognition.teamTag);
 
   // Status/foutmelding wegschrijven (best-effort).
   await admin

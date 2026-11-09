@@ -29,6 +29,7 @@ import {
 } from "@/lib/zrl-live/scoring";
 import { extractTeamTag, pickTeamLabel, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
 import { freezeZrlTeamResult } from "@/lib/zrl-live/team-result";
+import { getClub } from "@/lib/club";
 
 /** Geen nieuwe passage of uitslag meer: dan noemen we de stand definitief. */
 const QUIET_BEFORE_FINAL_MS = 15 * 60 * 1000;
@@ -576,26 +577,30 @@ async function ownAndOtherZwiftIds(
   return splitTeamRiders(ours, others);
 }
 
-/** "Linda Kuiper [ZWB]", "Femke Vaessen [ZWB-Synergy]". */
-export function hasZwbTag(name: string): boolean {
-  return teamKey(extractTeamTag(name) ?? "").split(" ").includes("zwb");
+/** "Linda Kuiper [ZWB]", "Femke Vaessen [ZWB-Synergy]", met de teamtag van de club. */
+export function hasClubTag(name: string, teamTag: string): boolean {
+  const tag = teamKey(teamTag);
+  if (!tag) return false;
+  return teamKey(extractTeamTag(name) ?? "").split(" ").includes(tag);
 }
 
 /**
  * Onze subgroep: waar de meeste renners staan die we als eigen kennen óf die
- * "ZWB" in hun teamtag hebben; zonder zulke renners de eerste met inschrijvers.
+ * de teamtag van de club hebben; zonder zulke renners de eerste met inschrijvers.
  */
 export function pickSubgroup<T extends { entrants: Array<{ zwiftId: string; name: string }> }>(
   subgroups: T[],
   own: Set<number>,
   /** Renners van een andere ZWB-ploeg in hetzelfde Zwift-event: hun ZWB-tag telt niet voor ons. */
   others: Set<number> = new Set(),
+  /** De teamtag van de club (getClub().recognition.teamTag); leeg telt geen tags. */
+  teamTag = "",
 ): T | undefined {
   const occupied = subgroups.filter((s) => s.entrants.length > 0);
   // Eigen renner of ZWB-tag, elk één keer: één verkeerd gekoppelde "Femke" in A
   // mag niet winnen van vier ZWB'ers in B (Zwiftladies B, 2026-09-22).
   const score = (s: T) =>
-    s.entrants.filter((e) => own.has(Number(e.zwiftId)) || (hasZwbTag(e.name) && !others.has(Number(e.zwiftId)))).length;
+    s.entrants.filter((e) => own.has(Number(e.zwiftId)) || (hasClubTag(e.name, teamTag) && !others.has(Number(e.zwiftId)))).length;
   // Bij gelijkspel de groep met onze eigen renners. Twee ZWB-ploegen kunnen in
   // hetzelfde Zwift-event zitten: A in groep A en B1 in groep B (Open Aqua
   // Division 1, 2026-09-22), allebei vijf ZWB-tags. Zonder deze regel won de
@@ -645,6 +650,7 @@ export async function loadZrlLive(
     if (raceSettled(data)) await saveFrozenRaceData(zwiftEventId, data);
   }
 
+  const teamTag = (await getClub()).recognition.teamTag;
   const { own, others } = await ownAndOtherZwiftIds({
     id: event.id as string,
     team_id: event.team_id as string | null,
@@ -653,12 +659,12 @@ export async function loadZrlLive(
   });
   const subgroup = options.subgroupId
     ? data.subgroups.find((s) => s.id === options.subgroupId && s.entrants.length > 0)
-    : pickSubgroup(data.subgroups, own, others);
+    : pickSubgroup(data.subgroups, own, others, teamTag);
   if (!subgroup) return { status: options.subgroupId ? "not-found" : "no-route" };
   // Kent het platform niemand in deze groep, dan gelden de ZWB-tags als ons team,
   // behalve die van een andere ZWB-ploeg in dit Zwift-event.
   if (!subgroup.entrants.some((e) => own.has(Number(e.zwiftId)))) {
-    for (const e of subgroup.entrants) if (hasZwbTag(e.name) && !others.has(Number(e.zwiftId))) own.add(Number(e.zwiftId));
+    for (const e of subgroup.entrants) if (hasClubTag(e.name, teamTag) && !others.has(Number(e.zwiftId))) own.add(Number(e.zwiftId));
   }
   const route = subgroup.routeId ? routeSegments(subgroup.routeId, subgroup.laps) : null;
   if (!route) return { status: "no-route" };

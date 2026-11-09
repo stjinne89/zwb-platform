@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ZWB_INSTAGRAM_URL } from "@/lib/instagram";
 
 export type InstagramPost = {
   id: string;
@@ -18,7 +17,14 @@ export type InstagramPost = {
 // verlopen na verloop van tijd; een tegel waarvan de afbeelding niet meer laadt
 // verdwijnt, en zonder werkende tegels verdwijnt de hele sectie. Elke post is
 // een tegel, de foto vult hem helemaal.
-export function InstagramStrip({ posts }: { posts: InstagramPost[] }) {
+export function InstagramStrip({
+  posts,
+  profileUrl,
+}: {
+  posts: InstagramPost[];
+  /** Het Instagram-profiel van de club, voor een post zonder eigen link. */
+  profileUrl: string | null;
+}) {
   const [broken, setBroken] = useState<Set<string>>(() => new Set());
   const markBroken = (id: string) =>
     setBroken((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
@@ -30,7 +36,7 @@ export function InstagramStrip({ posts }: { posts: InstagramPost[] }) {
       {shown.map((post) => (
         <li key={post.id} className="flex">
           <a
-            href={post.web_url ?? ZWB_INSTAGRAM_URL}
+            href={post.web_url ?? profileUrl ?? undefined}
             target="_blank"
             rel="noopener noreferrer"
             className="tg-tile tg-meer group w-full !p-0"

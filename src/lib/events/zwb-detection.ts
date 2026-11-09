@@ -7,15 +7,10 @@ import type { ExternalEventCandidate } from "@/lib/events/external-scan";
 
 export type ZwbMatchStatus = "unknown" | "likely" | "confirmed" | "manual";
 
-// Markers die op ZWB's eigen events wijzen. Override via env
-// `ZWB_EVENT_MARKERS` (komma-gescheiden) zonder code te wijzigen.
-const DEFAULT_MARKERS = ["zwb", "zwift belgie", "zwift belgium"];
-
-export function zwbEventMarkers(): string[] {
-  const raw = process.env.ZWB_EVENT_MARKERS;
-  const markers = raw
-    ? raw.split(",").map((marker) => marker.trim()).filter(Boolean)
-    : DEFAULT_MARKERS;
+// De markers die op eigen events wijzen komen uit de clubherkenning
+// (getClub().recognition.eventMarkers: env ZWB_EVENT_MARKERS, club_settings of
+// de korte naam; zie lib/club-recognition.ts).
+function normalizedMarkers(markers: string[]): string[] {
   return markers.map((marker) => normalizeName(marker)).filter(Boolean);
 }
 
@@ -32,8 +27,9 @@ function markerHit(haystack: string, normalizedMarker: string) {
  */
 export function detectZwbMatchStatus(
   candidate: Pick<ExternalEventCandidate, "title" | "rawMetadata">,
+  eventMarkers: string[],
 ): Exclude<ZwbMatchStatus, "unknown" | "manual"> | null {
-  const markers = zwbEventMarkers();
+  const markers = normalizedMarkers(eventMarkers);
   const series = String(
     (candidate.rawMetadata as { series?: unknown }).series ?? "",
   );

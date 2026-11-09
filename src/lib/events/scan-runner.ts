@@ -250,6 +250,7 @@ async function saveScannedCandidates(
   let error: string | null = null;
   const scan = await scanExternalEvents();
   notes.push(...scan.notes);
+  const markers = (await getClub()).recognition.eventMarkers;
 
   const now = new Date().toISOString();
   // Alleen ZWB-relevante events bewaren: events die op een ZWB-marker matchen.
@@ -257,7 +258,7 @@ async function saveScannedCandidates(
     .filter(
       (candidate) =>
         allowedExternalUrl(candidate.externalUrl) &&
-        detectZwbMatchStatus(candidate) !== null,
+        detectZwbMatchStatus(candidate, markers) !== null,
     )
     .map((candidate) => ({
       source: candidate.source,
@@ -286,7 +287,7 @@ async function saveScannedCandidates(
         .map((candidate) => ({
           source: candidate.source,
           externalId: candidate.externalId,
-          status: detectZwbMatchStatus(candidate),
+          status: detectZwbMatchStatus(candidate, markers),
         }))
         .filter((detection) => detection.status !== null);
       for (const status of ["likely", "confirmed"] as const) {

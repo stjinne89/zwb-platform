@@ -15,7 +15,8 @@ import { routeFromZwiftId } from "@/lib/events/zwift-route";
 import { routeSegments } from "@/lib/zwift/route-segments";
 import type { RouteProfile } from "@/lib/events/zwift-route-streams";
 import { expandLaps } from "@/lib/pacing/route-profile";
-import { hasZwbTag, pickSubgroup } from "@/lib/zrl-live/snapshot";
+import { hasClubTag, pickSubgroup } from "@/lib/zrl-live/snapshot";
+import { getClub } from "@/lib/club";
 import { buildField, type DsEntrant, type DsField, type DsMark } from "@/lib/ds/field";
 import { dsAfterMs, NEAR_M, ridersToCheck } from "@/lib/ds/schedule";
 
@@ -318,18 +319,19 @@ export async function loadDsView(
   if (occupied.length === 0) return { status: "error" };
 
   const allIds = [...new Set(occupied.flatMap((s) => s.entrants.map((e) => e.zwiftId)))];
+  const teamTag = (await getClub()).recognition.teamTag;
   const zwb = new Set<string>();
   const { data: members } = await admin.from("profiles").select("zwift_id").in("zwift_id", allIds);
   for (const row of members ?? []) if (row.zwift_id) zwb.add(String(row.zwift_id).trim());
   for (const subgroup of occupied) {
-    for (const e of subgroup.entrants) if (hasZwbTag(e.name)) zwb.add(e.zwiftId);
+    for (const e of subgroup.entrants) if (hasClubTag(e.name, teamTag)) zwb.add(e.zwiftId);
   }
 
   const viewer = options.viewerZwiftId?.trim();
   const subgroup =
     occupied.find((s) => s.id === options.subgroupId) ??
     (viewer ? occupied.find((s) => s.entrants.some((e) => e.zwiftId === viewer)) : undefined) ??
-    pickSubgroup(occupied, new Set([...zwb].map(Number))) ??
+    pickSubgroup(occupied, new Set([...zwb].map(Number)), new Set(), teamTag) ??
     occupied[0];
 
   const now = Date.now();
