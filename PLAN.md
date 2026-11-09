@@ -7,13 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **AI-verbruik meten, fase 0 van ZWBrandstof (2026-11-09): lokaal op branch
-   `claude/community-token-economy-6def6e`, niet gepusht.** Migratie
-   `0316_ai_usage` is niet toegepast en lokaal niet getest. De privacytekst is
-   goedgekeurd (alleen tekst, geen nieuwe versie). Na toepassen en deploy: een
-   coachvraag stellen en
-   zien dat hij op `/beheer/ai-verbruik` verschijnt. Zie de ronde "AI-verbruik
-   meten".
+0. **AI-verbruik meten, fase 0 van ZWBrandstof (2026-11-09): gepusht naar
+   `main` (`35289cc2`, privacy `f60a9fdf`), migratie `0316` toegepast** (versie
+   `20261109123821`, op verzoek van de eigenaar). Na de deploy: een coachvraag
+   stellen en zien dat hij op `/beheer/ai-verbruik` verschijnt. Over een maand
+   de cijfers gebruiken voor de prijzen van ZWBrandstof (plannenboek). Zie de
+   ronde "AI-verbruik meten".
 
 0. **Club Ladder: rosternamen toevoegen aan puzzel en teams (2026-11-09):
    gepusht naar `main` (`6bfa983e`).** Geen migratie. Nalopen na een deploy, met de rol teamcaptain:
@@ -11979,8 +11978,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — AI-verbruik meten (fase 0 van ZWBrandstof)
 
 **2026-11-09.** Op verzoek van de eigenaar ("Doe beide": het voorstel in het
-plannenboek en fase 0 bouwen). Migratie `0316_ai_usage`. Commit: de commit die
-dit blok toevoegt, op `claude/community-token-economy-6def6e`, niet gepusht.
+plannenboek en fase 0 bouwen). Commits `35289cc2` (code) en `f60a9fdf`
+(privacytekst), gepusht naar `main` op 2026-11-09. Migratie `0316_ai_usage`
+toegepast op 2026-11-09 (versie `20261109123821`), op verzoek van de eigenaar.
+Daarna in productie gecontroleerd: RLS aan, geen policies, geen rechten voor
+`anon` en `authenticated`, en een proefinsert als `service_role` slaagt
+(teruggedraaid).
 
 **Waarom.** Het bestuur wil dat leden en sponsoren gaan bijdragen aan de app,
 met een verbruiksmunt (ZWBrandstof) en een munt voor hulp aan anderen
@@ -12050,8 +12053,9 @@ Wat er is:
 - **Geen euro's.** De kosten staan in dollars tegen de lijstprijs; de factuur
   van Anthropic blijft leidend.
 
-**Niet lokaal te controleren:** de migratie (geen Docker en geen config),
-het schrijven in productie, en de pagina in de browser (niet bekeken). Lokaal
+**Niet lokaal te controleren:** de migratie (geen Docker en geen config; wel
+op productie nagekeken, zie boven), het schrijven door de app zelf na de
+deploy, en de pagina in de browser (niet bekeken). Lokaal
 waren `tsc` en eslint schoon, en waren de nieuwe tests (`tests/unit/ai-usage.test.ts`,
 prijzen, tellers, samenvatting en maand) groen. De volledige suite was groen op
 een paar migratietests na die onder belasting time-outen; los gedraaid zijn ze
