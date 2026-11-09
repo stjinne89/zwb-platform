@@ -8,9 +8,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Dashboard: zelf kiezen wat je ziet, fitheid in een tegel (2026-11-09):
-   gebouwd, niet gepusht. Migratie `0318_dashboard_hidden.sql` niet
-   toegepast.** Open: migratie toepassen (op verzoek), dan op het profiel
-   onder Dashboard iets uitvinken en het dashboard bekijken. Zie de ronde
+   gepusht naar `main` (`07ceea93`), migratie `0318` toegepast** (versie
+   `20261109131357`, op verzoek van de eigenaar). Open: na de deploy op het
+   profiel onder Dashboard iets uitvinken en het dashboard bekijken. Zie de ronde
    "Dashboard: zelf kiezen wat je ziet".
 
 0. **ZWBeter racen: races per lid, ook buiten de kalender (2026-11-09):
@@ -12009,9 +12009,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Dashboard: zelf kiezen wat je ziet
 
-**2026-11-09.** Commit: de commit die dit blok toevoegt. Niet gepusht.
-Migratie `0318_dashboard_hidden.sql`, **niet toegepast** en lokaal niet te
-testen (geen Docker of Supabase-config). Eerst als `0317` geschreven; main had
+**2026-11-09.** Commit `07ceea93`, op 2026-11-09 op verzoek van de eigenaar
+naar `main` gepusht. Migratie `0318_dashboard_hidden.sql` dezelfde dag met de
+Supabase-connector toegepast (versie `20261109131357`); daarna stond de kolom
+`dashboard_hidden` (jsonb, standaard `[]`, niet null) in productie. Lokaal niet
+te testen (geen Docker of Supabase-config). Eerst als `0317` geschreven; main had
 dat nummer intussen voor `0317_zwift_race_events.sql`.
 
 **Waarom.** De eigenaar: een lid dat niet met ZWBeter traint, wil de
@@ -12062,7 +12064,7 @@ op het dashboard zelf (zoals "Tegels aanpassen" bij Stats): een plek is genoeg.
 **Getest.** `tsc` en ESLint schoon; `tests/unit/dashboard-parts.test.ts`
 (sleutels, aanbod per module) groen, net als `design-places` en `stats-tiles`.
 De fitheidstegel bekeken op `/ontwerp-voorbeeld?scherm=vandaag` op 375 px.
-**Niet lokaal te controleren:** de migratie, het profielblok en het opslaan
+**Niet lokaal te controleren:** het profielblok en het opslaan
 (vraagt een ingelogde sessie), en het dashboard met verborgen onderdelen.
 
 **Gezien, niet opgelost.** Op de telefoon valt "punten" in de ZWBriljant-tegel
