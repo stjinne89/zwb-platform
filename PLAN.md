@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Dashboard: zelf kiezen wat je ziet, fitheid in een tegel (2026-11-09):
+   gepusht naar `main` (`07ceea93`), migratie `0318` toegepast** (versie
+   `20261109131357`, op verzoek van de eigenaar). Open: na de deploy op het
+   profiel onder Dashboard iets uitvinken en het dashboard bekijken. Zie de ronde
+   "Dashboard: zelf kiezen wat je ziet".
+
 0. **ZWBeter racen: races per lid, ook buiten de kalender (2026-11-09):
    gepusht naar `main` (`9a5f13d5`), migratie `0317` toegepast** (versie
    `20261109130648`, op verzoek van de eigenaar, vóór de push). Privacytekst
@@ -12302,6 +12308,70 @@ is groen, op deze tests na:
 - een club met andere namen (kan niet op productie). Voor de meldingen en de
   pacingprompt dekt de nieuwe test dat.
 
+### Gebouwd — Dashboard: zelf kiezen wat je ziet
+
+**2026-11-09.** Commit `07ceea93`, op 2026-11-09 op verzoek van de eigenaar
+naar `main` gepusht. Migratie `0318_dashboard_hidden.sql` dezelfde dag met de
+Supabase-connector toegepast (versie `20261109131357`); daarna stond de kolom
+`dashboard_hidden` (jsonb, standaard `[]`, niet null) in productie. Lokaal niet
+te testen (geen Docker of Supabase-config). Eerst als `0317` geschreven; main had
+dat nummer intussen voor `0317_zwift_race_events.sql`.
+
+**Waarom.** De eigenaar: een lid dat niet met ZWBeter traint, wil de
+trainingstegels misschien niet zien. Zo iemand zag de core-tegel en het
+weekoverzicht, en met een intervals.icu-koppeling (vaak alleen voor de ritten)
+ook het advies en de fitheidscijfers. Daarnaast: Fitness, Vorm en Herstel
+kunnen samen in een tegel.
+
+**Wat er is.**
+- **Profiel, bij het potlood:** een blok "Dashboard" tussen Gezin en
+  Zichtbaarheid, met een vinkje per onderdeel in vier groepen (Training,
+  Fitheid, Events, Club). Het register staat in `lib/dashboard-parts.ts`:
+  sleutel, groep, naam (vast of de clubnaam van een module) en de modules
+  waarvan er minstens een aan moet staan. Een onderdeel van een uitgezette
+  module wordt niet aangeboden.
+- **Opslag:** `profile_stats_tiles.dashboard_hidden` (jsonb-lijst van
+  verborgen sleutels), in de tabel van 0241 die alleen het lid zelf leest en
+  schrijft. Standaard staat alles aan; een nieuw onderdeel verschijnt vanzelf,
+  onbekende sleutels vallen weg (`parseDashboardHidden`). `updateProfile`
+  slaat op: wat het formulier aanbood en niet aangevinkt is. Zolang 0318 er niet
+  is, blokkeert alleen iets verbergen het opslaan (zoals het gezin bij 0259);
+  het profiel en het dashboard lezen dan niets verborgen.
+- **Dashboard:** `show(onderdeel)` naast `on(module)`. De keuze komt mee in de
+  grote `Promise.all`-ronde, dus geen extra oversteek naar de database. Wat
+  verborgen is, rendert niet, en de trage delen achter een Suspense (advies en
+  fitheid bij intervals.icu, core, races, teams, bekers, FRR, SRC, onderhoud,
+  clubstats) vragen dan niets op. Ook de ZWBriljant-snapshot, de teamstand en,
+  als beide eventgroepen weg zijn, wie er live rijdt, worden overgeslagen. De
+  kleine vragen in de grote ronde (nieuws, polls, badges, trainingen) lopen nog
+  mee: daarvoor zou de keuze eerst binnen moeten zijn, en dat kost een oversteek.
+- **Niet te verbergen:** de Zwift-ID- en gewichtmelding (die gaan over standen
+  en teams) en het blok met je ritten en de Strava-sync (knoppen en import;
+  `/hulp` linkt naar `#strava-sync`).
+- **Een fitheidstegel:** `FitnessStatus` toont Fitness (CTL), Vorm (TSB) en
+  Herstel onder elkaar in een tegel (`FitnessTile`), met de waarde rechts. Geen
+  veegrij: de drie lees je samen (voorgesteld, eigenaar akkoord). Mijn fitheid is
+  nu twee tegels, op de telefoon naast elkaar in een rij.
+- `/hulp` (Profiel en ledenlijst) legt het blok uit; de privacyverklaring noemt
+  bij de profielgegevens dat de app onthoudt welke onderdelen je verborgen hebt.
+  Geen nieuwe toestemming: het is een voorkeur van jezelf, alleen voor jou
+  zichtbaar.
+
+**Bewust niet gebouwd.** Geen eigen volgorde per lid: iedereen hetzelfde
+dashboard houdt hulp geven eenvoudig. Geen schakelaar "Ik train niet met
+ZWBeter": de losse vinkjes doen hetzelfde en zijn duidelijker. Geen instelling
+op het dashboard zelf (zoals "Tegels aanpassen" bij Stats): een plek is genoeg.
+
+**Getest.** `tsc` en ESLint schoon; `tests/unit/dashboard-parts.test.ts`
+(sleutels, aanbod per module) groen, net als `design-places` en `stats-tiles`.
+De fitheidstegel bekeken op `/ontwerp-voorbeeld?scherm=vandaag` op 375 px.
+**Niet lokaal te controleren:** het profielblok en het opslaan
+(vraagt een ingelogde sessie), en het dashboard met verborgen onderdelen.
+
+**Gezien, niet opgelost.** Op de telefoon valt "punten" in de ZWBriljant-tegel
+deels buiten de tegel bij vier cijfers (al zo voor deze ronde; nu de tegel
+naast de fitheidstegel staat, valt het meer op).
+
 ### Gebouwd — ZWBeter racen: races per lid, ook buiten de kalender
 
 **2026-11-09.** Vraag van de eigenaar: "Bij ZWBeter racen zie ik niet alle races
@@ -12416,7 +12486,8 @@ tegelrij (`TileRow`, `grid-flow-row-dense`); een lege groep verdwijnt.
   kleine regel zegt "1 van 2".
 - **Advies en cijfers apart.** `TrainingStatus` is gesplitst in
   `TrainingAdvice` (de brede advies-tegel, bij Mijn training) en
-  `FitnessStatus` (de drie cijfertegels, bij Mijn fitheid). Ze delen één
+  `FitnessStatus` (de drie cijfertegels, bij Mijn fitheid; sinds de ronde
+  "Dashboard: zelf kiezen wat je ziet" een tegel). Ze delen één
   ophaalronde bij intervals.icu via React `cache`, met de losse waarden als
   sleutel. De skeletten met de oude sectiekop zijn weg; beide wachten zonder
   plaatshouder, zoals de andere tegels.

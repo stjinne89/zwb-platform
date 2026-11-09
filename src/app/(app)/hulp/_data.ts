@@ -50,6 +50,7 @@ export const GUIDES = [
       "Je profiel bepaalt wat andere leden mogen zien.",
       "Onder je naam op Profiel staat een schuifknop met drie standen: het potlood om je profiel te bewerken, de mensen voor hoe andere leden het zien en de wereldbol voor je deelbare profiel. Profiel opent in het midden.",
       "Onder Interesses kies je welke eventtypes je wilt zien op de kalender, en welke afstand en hoogtemeters je grens zijn.",
+      "Onder Dashboard vink je uit wat je op je dashboard niet wilt zien, zoals de trainingstegels als je niet met {m:training} traint. De volgorde blijft gelijk, en een nieuw onderdeel staat er vanzelf bij. De meldingen over je Zwift-ID en gewicht en het blok met je ritten en de Strava-sync blijven altijd staan.",
       "Badges blijven zichtbaar op je profiel en in de ledenlijst.",
       "Onder Mijn fietsen tonen we je fietsen uit Strava (naam + kilometers); zonder Strava voeg je een fiets handmatig toe. Je kiest per fiets of die zichtbaar is en zet er een foto bij.",
       "Bestuur of beheerders keuren nieuwe leden goed.",

@@ -25,6 +25,8 @@ import { householdFromRow } from "@/lib/nutrition/shopping";
 import { MemberProfile } from "../leden/[id]/_components/member-profile";
 import { PublicProfile } from "@/app/profielen/[id]/_components/public-profile";
 import { ModuleName } from "@/components/club-texts-provider";
+import { getClub } from "@/lib/club";
+import { offeredDashboardParts, parseDashboardHidden } from "@/lib/dashboard-parts";
 
 type AwardRow = {
   id: string;
@@ -129,6 +131,8 @@ export default async function ProfielPage({
     { data: heightRow },
     { data: calendarFeed },
     { data: briljantPref },
+    { data: dashboardPref },
+    club,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -203,6 +207,13 @@ export default async function ProfielPage({
       .eq("profile_id", user.id)
       .maybeSingle<CalendarFeedStatus>(),
     supabase.from("zwbriljant_preferences").select("visible").eq("profile_id", user.id).maybeSingle(),
+    // Zonder migratie 0318 een fout en dus niets verborgen.
+    supabase
+      .from("profile_stats_tiles")
+      .select("dashboard_hidden")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
+    getClub(),
   ]);
 
   // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
@@ -302,7 +313,13 @@ export default async function ProfielPage({
             ...((profileRow?.profile_visibility as Record<string, boolean> | null) ??
               {}),
           },
+          dashboard_hidden: [
+            ...parseDashboardHidden(
+              (dashboardPref as { dashboard_hidden?: unknown } | null)?.dashboard_hidden,
+            ),
+          ],
         }}
+        dashboardParts={offeredDashboardParts(club.isEnabled)}
       />
 
       <AvatarUpload
