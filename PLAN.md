@@ -12021,7 +12021,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Generieke versie, fase 4: clubherkenning
 
-**2026-11-09.** Op verzoek van de eigenaar ("ga maar door", na fase 3), met
+**2026-11-09.** Commit `5b50f06a` (lokaal). Op verzoek van de eigenaar ("ga maar door", na fase 3), met
 drie keuzes vooraf (zie onder). Migratie `0320` (`club_recognition`) is **niet
 toegepast** en niet lokaal te testen. Hij moet vóór de push op productie staan.
 
