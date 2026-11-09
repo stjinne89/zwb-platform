@@ -45,8 +45,8 @@ gaat stabiliteit voor nieuwe features.
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
-0. **Generieke versie, fase 5: schone installatie (2026-11-09): lokaal, niet
-   gepusht.** Geen migratie. Baseline en seed in `supabase/baseline/`,
+0. **Generieke versie, fase 5: schone installatie (2026-11-09): gepusht naar
+   main** (`49f0bd31`). Geen migratie. Baseline en seed in `supabase/baseline/`,
    handleiding in [docs/installatie.md](docs/installatie.md). Alleen getest op
    PGlite; de echte proef is fase 7. Zie de ronde "fase 5: schone installatie".
 
