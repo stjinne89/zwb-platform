@@ -9,8 +9,9 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Ledenvoordeel als pop-up (2026-11-09): gepusht naar `main`.** Geen
    migratie. Na de deploy: in een browser met lege opslag inloggen en zien
-   dat de pop-up na de andere meldingen komt. Zie de ronde "Ledenvoordeel als
-   pop-up".
+   dat de pop-up na de andere meldingen komt. **Vervolg: nieuwste voordeel
+   bovenaan (2026-11-09): gepusht naar `main`.** Zie de ronde
+   "Ledenvoordeel als pop-up".
 
 0. **Generieke versie voor andere clubs, fase 1: clubinstellingen en modules
    (2026-11-09): gepusht naar `main`; migratie `0313` toegepast** (versie
@@ -11918,7 +11919,8 @@ aandacht brengen als iemand in de app komt, in plaats van alleen op
   zag, één keer. Een nieuw lid ziet zo bij binnenkomst alles wat er is, een
   bestaand lid alleen wat er later bijkomt. Bij de eerste keer na de deploy
   ziet ieder lid dus alle huidige voordelen één keer.
-- Tot drie voordelen in de pop-up, met sponsor en een kopieerknop voor de code;
+- Tot drie voordelen in de pop-up, nieuwste eerst (`created_at`), met sponsor
+  en een kopieerknop voor de code;
   meer dan drie geeft "En nog N voordelen" en de knop "Alle voordelen" naar
   `/sponsors`.
 - Gezien onthoudt de browser (`zwb-ledenvoordeel-gezien`, de lijst met ID's
@@ -11930,6 +11932,12 @@ aandacht brengen als iemand in de app komt, in plaats van alleen op
   volgende pagina terug.
 - De layout doet er één query bij, in dezelfde `Promise.all`-ronde als de
   andere meldingen: geen extra oversteek naar de database.
+
+**Vervolg: nieuwste bovenaan (2026-11-09).** De eigenaar: het nieuwste
+voordeel hoort bovenaan, niet onderaan. De pop-up sorteerde op `display_order`
+zoals `/sponsors`; nu op `created_at`, nieuwste eerst. `/sponsors` en het
+dashboard houden de volgorde van beheer. Op 2026-11-09 op verzoek van de
+eigenaar naar `main` gepusht.
 
 **Bewust niet.**
 - Geen "gezien" in de database: dat vraagt een migratie en een tabel per lid
@@ -11943,7 +11951,7 @@ aandacht brengen als iemand in de app komt, in plaats van alleen op
   voordelen, geen persoonsgegevens, zoals bij de app-update.
 
 **Getest.** ESLint schoon op de gewijzigde bestanden; typecheck zonder fouten
-in de nieuwe code; nieuwe unittest `benefit-popup.test.ts` (5) slaagt. De
+in de nieuwe code; nieuwe unittest `benefit-popup.test.ts` (6, met de volgorde) slaagt. De
 volledige suite faalt in deze worktree op ontbrekende pakketten in de gedeelde
 `node_modules` (`@anthropic-ai/sdk`, `@mediapipe/tasks-vision`,
 `modern-screenshot`) en een paar netwerktests, los van deze ronde.

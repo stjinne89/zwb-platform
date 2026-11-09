@@ -21,13 +21,15 @@ type Row = {
   discount_code: string | null;
   valid_from: string | null;
   valid_until: string | null;
+  created_at: string;
   sponsors: { name: string } | { name: string }[] | null;
 };
 
-/** Voordelen die vandaag gelden: actief, begonnen en niet verlopen. */
+/** Voordelen die vandaag gelden (actief, begonnen en niet verlopen), nieuwste eerst. */
 export function currentBenefits(rows: Row[], today: string): PopupBenefit[] {
   return rows
     .filter((row) => (!row.valid_from || row.valid_from <= today) && (!row.valid_until || row.valid_until >= today))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .map((row) => {
       const sponsor = Array.isArray(row.sponsors) ? row.sponsors[0] ?? null : row.sponsors;
       return {
@@ -39,7 +41,7 @@ export function currentBenefits(rows: Row[], today: string): PopupBenefit[] {
     });
 }
 
-/** Wat dit apparaat nog niet zag, in de volgorde van /sponsors. */
+/** Wat dit apparaat nog niet zag, nieuwste eerst. */
 export function unseenBenefits(benefits: PopupBenefit[], seenIds: readonly string[]): PopupBenefit[] {
   const seen = new Set(seenIds);
   return benefits.filter((benefit) => !seen.has(benefit.id));
@@ -59,9 +61,9 @@ export function parseSeenIds(raw: string | null): string[] {
 export async function loadPopupBenefits(supabase: SupabaseClient, now = new Date()): Promise<PopupBenefit[]> {
   const { data } = await supabase
     .from("member_benefits")
-    .select("id, title, discount_code, valid_from, valid_until, sponsors(name)")
+    .select("id, title, discount_code, valid_from, valid_until, created_at, sponsors(name)")
     .eq("active", true)
-    .order("display_order")
+    .order("created_at", { ascending: false })
     .limit(50);
   return currentBenefits((data ?? []) as unknown as Row[], amsterdamDateKey(now));
 }

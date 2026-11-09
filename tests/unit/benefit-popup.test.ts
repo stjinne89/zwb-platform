@@ -7,6 +7,7 @@ const row = (id: string, extra: Partial<Parameters<typeof currentBenefits>[0][nu
   discount_code: null,
   valid_from: null,
   valid_until: null,
+  created_at: "2026-11-01T10:00:00Z",
   sponsors: null,
   ...extra,
 });
@@ -20,6 +21,15 @@ describe("currentBenefits", () => {
       row("d", { valid_from: "2026-11-09", valid_until: "2026-11-09" }),
     ];
     expect(currentBenefits(rows, "2026-11-09").map((b) => b.id)).toEqual(["a", "d"]);
+  });
+
+  it("zet het nieuwste voordeel bovenaan", () => {
+    const rows = [
+      row("oud", { created_at: "2026-06-01T10:00:00Z" }),
+      row("nieuw", { created_at: "2026-11-08T10:00:00Z" }),
+      row("midden", { created_at: "2026-09-15T10:00:00Z" }),
+    ];
+    expect(currentBenefits(rows, "2026-11-09").map((b) => b.id)).toEqual(["nieuw", "midden", "oud"]);
   });
 
   it("neemt de sponsornaam mee, ook als de relatie een lijst is", () => {
