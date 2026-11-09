@@ -7,6 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Dashboard: volgorde in groepen, "Vandaag" heet "Dashboard" (2026-11-09):
+   gebouwd, niet gepusht.** Geen migratie. Open: na de deploy ingelogd
+   bekijken, met een dag met twee trainingen (veegrij) en een lopend event.
+   Zie "Dashboard: Mijn training, Mijn fitheid, Mijn events" hieronder.
 0. **Zwift-garage: fietslijst voorbij 1000 rijen (2026-11-09): gepusht naar
    `main` (`c01addc9`).** Geen migratie. Open: na de deploy de garage bekijken. Zwift TT, Steel, Safety en een deel van de Zwift
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
@@ -1110,7 +1114,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Wat.**
 > - **Dashboard.** In "tegels" is Q&A een tegel in de tegelrij bovenaan
->   (na jouw races, voor Instagram): sage ("Vraag over de app?") en met het
+>   (na jouw races, voor Instagram; sinds 2026-11-09 in een rij met alleen
+>   Instagram, na de bekers): sage ("Vraag over de app?") en met het
 >   aantal FAQ-vragen in de kleine regel; voor wie antwoordt goud met "N vragen
 >   wachten" zodra er open vragen zijn, en dan naar `/qa#open`. In "klassiek"
 >   een regel zoals die van het weekoverzicht, op de plek van het oude blok.
@@ -4913,7 +4918,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   vijf plekken in tenuekleur: Vandaag, Kalender, ZWBeter, Club, Meer. Onderin
 >   op de telefoon, bovenin op een breed scherm. Welke route bij welke plek
 >   hoort staat in `lib/design-places.ts`.
-> - Vandaag (`/dashboard`): bovenaan tegels voor de eerstvolgende training,
+> - Vandaag (`/dashboard`, sinds 2026-11-09 "Dashboard" en in groepen; zie
+>   "Dashboard: Mijn training, Mijn fitheid, Mijn events"): bovenaan tegels voor de eerstvolgende training,
 >   twee clubraces, twee andere events en de laatste teamstand. De blokken
 >   Clubraces, Teams en scorebord, Aankomende events en Ritverslagen vallen dan
 >   weg; de rest van het dashboard staat er ongewijzigd onder.
@@ -8120,6 +8126,10 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > stond twee blokken verderop, los van de races. Het eigen teamevent, met de
 > starttijd en de opstelling, stond helemaal niet op het dashboard, want daar staan
 > alleen hoofdevents. De live ZRL-stand was er ook niet te vinden.
+>
+> *(Sinds 2026-11-09 geldt een andere volgorde: Mijn training, Mijn fitheid,
+> Mijn events, Overige events en dan de rest; zie "Dashboard: Mijn training,
+> Mijn fitheid, Mijn events".)*
 >
 > **Nieuwe volgorde.** Groet · Zwift-ID-melding · **Jouw races** · trainingsstatus
 > + core · onderhoud · **Clubraces** · Teams en scorebord · Aankomende events · Nieuws
@@ -11960,6 +11970,79 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Dashboard: Mijn training, Mijn fitheid, Mijn events
+
+**2026-11-09.** Commit: de commit die dit blok toevoegt. Niet gepusht. Geen
+migratie.
+
+**Waarom.** De eigenaar vond dat het dashboard zijn volgorde kwijt was. Na de
+overstap naar het design "tegels" stond alles in twee losse rijen: de
+Vandaag-tegels (training, live, events, ZWBriljant en teamstand door elkaar)
+en daaronder een gemengde rij (weekoverzicht, Jouw races, Q&A, Jouw teams,
+Instagram). De bekers stonden ertussen, en het trainingsadvies en de
+fitheidscijfers kwamen pas daarna. De gewenste volgorde: eerst je eigen
+training, dan je fitheid en je ZWBriljant, dan je eigen events, dan de overige
+events en dan de rest.
+
+**Nieuwe volgorde** (`dashboard/page.tsx`). Kop "Dashboard" met de datum ·
+Zwift-ID- en gewichtmelding · **Mijn training** (eerstvolgende training(en),
+trainingsadvies, core, weekoverzicht) · **Mijn fitheid** (Fitness, Vorm,
+Herstel, ZWBriljant) · **Mijn events** (lopend event of Samen fietsen waarin je
+zelf rijdt, Jouw races, uitslag van je eigen team, Jouw teams) · **Overige
+events** (Samen fietsen en lopende events van anderen, aankomende events) ·
+bekers · Q&A en Instagram · onderhoud · FRR · SRC · ritverslagen · badges ·
+clubactiviteit · clubstats · polls en ledenvoordeel. Elke groep is een eigen
+tegelrij (`TileRow`, `grid-flow-row-dense`); een lege groep verdwijnt.
+
+- **Meerdere trainingen op een dag.** De dashboardquery haalt nu tot 6
+  trainingen vanaf vandaag op en toont alle trainingen van de eerstvolgende
+  trainingsdag (Amsterdamse dag). Bij meer dan één, zoals een warming-up voor
+  een race of twee events op een dag, wordt de brede tegel een veegrij
+  (CSS scroll-snap, geen JavaScript): de volgende steekt een stukje uit en de
+  kleine regel zegt "1 van 2".
+- **Advies en cijfers apart.** `TrainingStatus` is gesplitst in
+  `TrainingAdvice` (de brede advies-tegel, bij Mijn training) en
+  `FitnessStatus` (de drie cijfertegels, bij Mijn fitheid). Ze delen één
+  ophaalronde bij intervals.icu via React `cache`, met de losse waarden als
+  sleutel. De skeletten met de oude sectiekop zijn weg; beide wachten zonder
+  plaatshouder, zoals de andere tegels.
+- **Live: van jou of van anderen.** `VandaagLive` kreeg `mine`: rijd je zelf
+  mee, dan staat de tegel bij Mijn events, anders bij Overige events.
+- **Tegels los.** `components/tegels/vandaag.tsx` exporteert nu losse tegels
+  (`WorkoutTiles`, `LiveTogetherTile`, `LiveEventTile`, `EventTile`,
+  `BriljantTile`, `StandingTile`) plus `DashboardHeader` en `TileRow`, in
+  plaats van één `TegelsVandaag`. `/ontwerp-voorbeeld?scherm=vandaag` toont de
+  groepen met voorbeelddata, met twee trainingen op één dag.
+- **"Vandaag" heet "Dashboard".** "Vandaag" was zowel de startpagina als het
+  eerste tabblad van ZWBeter (`/zwbeter-worden`), en `/hulp` gebruikt "Vandaag"
+  voor dat tabblad en "dashboard" voor de startpagina. Nu: de tab in
+  `lib/design-places.ts`, de kop, "Naar dashboard" op `/welkom` en de
+  tegelkleur in Huisstijl. De interne naam `vandaag` (plek-id, `.tg-vandaag`,
+  de huisstijlsleutel) blijft; die is de goudkleur "jij, nu" en de naam
+  veranderen zou alleen code raken. De tekst bij Dashboard op `/hulp` noemt
+  de nieuwe volgorde.
+
+**Bewust niet gebouwd.** Geen kopjes boven de groepen: de tegels hebben al
+hun eigen label en het design houdt titels kort (voorgelegd, eigenaar
+akkoord). Geen pijltjes of stipjes bij de veegrij: de uitstekende rand en
+"1 van 2" zeggen genoeg, en zo blijft het zonder JavaScript. Geen instelbare
+volgorde per lid (zoals in de ronde van 2026-09-29).
+
+**Bekend open.** De ondertitels van de instructievideo's
+(`scripts/instructievideo/scenes.mjs`, scènes "Vandaag" en de tabs) noemen de
+startpagina nog "Vandaag", en de beelden tonen de oude indeling. Die kloppen
+pas weer als de video's opnieuw worden gemaakt.
+
+**Getest.** `tsc` en ESLint schoon. `tests/unit/design-places.test.ts` groen.
+`/ontwerp-voorbeeld?scherm=vandaag` in de browser bekeken op 375 px en
+1280 px; vegen tussen twee trainingen werkt. De volledige suite heeft
+fouten die niet bij deze wijziging horen: `zwift-route` (Spiral Summit),
+`race-links` (ZwifterBikes), time-outs en `.env.local`. In de worktree
+ontbraken pakketten (`@anthropic-ai/sdk`, `@mediapipe/tasks-vision`); die zijn
+met `npm install` bijgezet, zonder wijziging in `package.json` of de lockfile.
+**Niet lokaal te controleren:** het ingelogde dashboard met echte data
+(trainingen, intervals.icu, live sessies, races).
 
 ### Hersteld — Zwift-garage: fietslijst voorbij 1000 rijen
 
@@ -17861,7 +17944,8 @@ er gepresteerd is en de winnaars kunnen feliciteren".
   (`requireBekerMember`: goedgekeurd en privacyverklaring getekend), anders
   geen blok. Bij een storing ook geen blok.
 - Het blok "ZWBekers van deze week" (`dashboard/_components/recent-bekers.tsx`)
-  staat bovenaan het dashboard, in beide designs, na de begroeting. Per beker
+  staat bovenaan het dashboard, in beide designs, na de begroeting (sinds
+  2026-11-09 na de groepen training, fitheid en events). Per beker
   het plaatje op de donkere plank van het profiel, titel, team en winnaars,
   datum en een knop Feliciteren naar `/zwbekers/[id]#felicitaties`.
 - `BekerFeest` (`components/zwbekers/beker-feest.tsx`): zit er een beker bij die

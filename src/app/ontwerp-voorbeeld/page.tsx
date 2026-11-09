@@ -3,7 +3,16 @@ import { notFound } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TegelsAgenda, type AgendaRow } from "@/components/tegels/agenda";
 import { TegelsLinkGrid } from "@/components/tegels/link-grid";
-import { TegelsVandaag } from "@/components/tegels/vandaag";
+import {
+  BriljantTile,
+  DashboardHeader,
+  EventTile,
+  LiveEventTile,
+  LiveTogetherTile,
+  StandingTile,
+  TileRow,
+  WorkoutTiles,
+} from "@/components/tegels/vandaag";
 import { seasonWarnings, type SeasonWarningInput } from "@/lib/training/season";
 import { TegelsShell } from "../(app)/_components/tegels-shell";
 import { TegelsAuthFrame } from "@/components/tegels/auth-frame";
@@ -137,23 +146,57 @@ export default async function OntwerpVoorbeeldPage({
             />
           </div>
         ) : (
-          <TegelsVandaag
-            weekday="maandag"
-            date="12 oktober"
-            workout={{ title: "Sweet spot 3 × 12 min", when: "vandaag", today: true, meta: "75 min · sweet spot" }}
-            events={[
-              { id: "1", title: "ZRL ronde 4 · TTT", when: "morgen", time: "19:45", place: "kalender" },
-              { id: "2", title: "Tour Ignite · etappe 3", when: "do 15 okt", time: "20:00", place: "kalender" },
-              { id: "3", title: "Clubrit Veluwezoom", when: "za 17 okt", time: "09:00", place: "kalender" },
-            ]}
-            standing={{ href: "#", team: "ZWB B1", competition: "ZRL", position: 3, totalTeams: 12 }}
-            live={{ count: 3, riders: "Anna, Bert en Carla" }}
-            liveEvents={[{ id: "4", title: "Legacy Gravel", count: 1, riders: "Dirk" }]}
-          />
-        )}
-        {(!scherm || scherm === "vandaag") && (
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            <WeekReviewDashboardLink />
+          <div className="space-y-2">
+            <DashboardHeader weekday="maandag" date="12 oktober" />
+            <TileRow label="Mijn training">
+              <WorkoutTiles
+                workouts={[
+                  {
+                    id: "w1",
+                    title: "Warming-up ZRL",
+                    when: "vandaag",
+                    today: true,
+                    meta: "20 min · opbouw",
+                    profile: [
+                      { minutes: 8, pct: 55 },
+                      { minutes: 6, pct: 75 },
+                      { minutes: 3, pct: 105 },
+                      { minutes: 3, pct: 55 },
+                    ],
+                  },
+                  {
+                    id: "w2",
+                    title: "ZRL ronde 4 · TTT",
+                    when: "vandaag",
+                    today: true,
+                    meta: "45 min · race",
+                  },
+                ]}
+              />
+              <WeekReviewDashboardLink />
+            </TileRow>
+            <TileRow label="Mijn fitheid">
+              <BriljantTile
+                briljant={{ points: 1840, level: "Saffier", color: "#0f52ba", next: { name: "Smaragd", toGo: 160 } }}
+              />
+            </TileRow>
+            <TileRow label="Mijn events">
+              <LiveEventTile
+                event={{ id: "4", title: "Legacy Gravel", count: 2, riders: "Jij en Dirk", mine: true }}
+              />
+              <StandingTile
+                standing={{ href: "#", team: "ZWB B1", competition: "ZRL", position: 3, totalTeams: 12 }}
+              />
+            </TileRow>
+            <TileRow label="Overige events">
+              <LiveTogetherTile live={{ count: 3, riders: "Anna, Bert en Carla", mine: false }} />
+              <EventTile
+                event={{ id: "2", title: "Tour Ignite · etappe 3", when: "do 15 okt", time: "20:00", place: "kalender" }}
+              />
+              <EventTile
+                event={{ id: "3", title: "Clubrit Veluwezoom", when: "za 17 okt", time: "09:00", place: "kalender" }}
+              />
+            </TileRow>
           </div>
         )}
         {(!scherm || scherm === "vandaag") && <RecentBekersList bekers={ZWBEKERS_VOORBEELD} />}

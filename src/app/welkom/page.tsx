@@ -356,7 +356,7 @@ export default async function WelkomPage() {
             href={!user ? "/login" : isApproved ? "/dashboard" : "/wachten"}
             className={cn(buttonVariants({ variant: "outline" }), "min-h-11 px-4 text-base")}
           >
-            {!user ? "Inloggen" : isApproved ? "Naar Vandaag" : "Status"}
+            {!user ? "Inloggen" : isApproved ? "Naar dashboard" : "Status"}
           </Link>
         </nav>
       </header>
@@ -395,7 +395,7 @@ export default async function WelkomPage() {
               <Link href="/dashboard" className="tg-tile tg-vandaag h-full">
                 <span className="tg-tile-small">Klaar</span>
                 <span className="mt-0.5 text-[2rem] font-light leading-[1.05] tracking-tight">
-                  Naar Vandaag
+                  Naar dashboard
                 </span>
               </Link>
             </li>

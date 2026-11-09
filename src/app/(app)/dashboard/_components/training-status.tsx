@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { HeartPulse } from "lucide-react";
-import { SectionHeader } from "@/components/app-ui";
+import { cache } from "react";
 import { fetchIntervalsWellness, type IntervalsWellness } from "@/lib/intervals/client";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
 import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
@@ -36,43 +35,71 @@ function formatTsb(tsb: number | null): string {
   return rounded > 0 ? `+${rounded}` : `${rounded}`;
 }
 
-export async function TrainingStatus({
-  conn,
-  sex,
-  wellnessDevice,
-}: {
+type StatusArgs = {
   conn: TrainingStatusConn | null;
   sex: string | null;
   wellnessDevice: WellnessDevice | null;
-}) {
-  let wellness: IntervalsWellness[] = [];
-  // Gevoel en klachten van het lid wegen mee in de readiness, net als op de
-  // trainingspagina; anders geven dashboard en ZWBeter een ander oordeel.
-  const subjectivePromise = Promise.all([createClient(), getRequestUser()])
-    .then(([supabase, user]) =>
-      user ? loadSubjectiveRecovery(supabase, user.id, { includeSymptoms: true }) : null,
-    )
-    .catch(() => null);
-  if (conn?.api_key && conn.athlete_id) {
-    try {
-      wellness = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 90);
-    } catch {
-      // intervals.icu onbereikbaar → val terug op het niveau-0-advies
-    }
-  }
-  const subjective = await subjectivePromise;
+};
 
-  const status = computeZwbStatus(wellness, {
-    wellnessOptIn: Boolean(conn?.wellness_opt_in),
+// Het advies staat bij Mijn training en de cijfers bij Mijn fitheid: twee
+// tegelrijen, één keer intervals.icu ophalen. React's cache deelt het resultaat
+// binnen dezelfde render; de sleutel zijn de losse waarden, niet het object.
+const loadStatus = cache(
+  async (
+    apiKey: string | null,
+    athleteId: string | null,
+    wellnessOptIn: boolean,
+    sex: string | null,
+    wellnessDevice: WellnessDevice | null,
+  ) => {
+    let wellness: IntervalsWellness[] = [];
+    // Gevoel en klachten van het lid wegen mee in de readiness, net als op de
+    // trainingspagina; anders geven dashboard en ZWBeter een ander oordeel.
+    const subjectivePromise = Promise.all([createClient(), getRequestUser()])
+      .then(([supabase, user]) =>
+        user ? loadSubjectiveRecovery(supabase, user.id, { includeSymptoms: true }) : null,
+      )
+      .catch(() => null);
+    if (apiKey && athleteId) {
+      try {
+        wellness = await fetchIntervalsWellness(apiKey, athleteId, 90);
+      } catch {
+        // intervals.icu onbereikbaar → val terug op het niveau-0-advies
+      }
+    }
+    const subjective = await subjectivePromise;
+    return computeZwbStatus(wellness, { wellnessOptIn, sex, wellnessDevice, subjective });
+  },
+);
+
+function statusFor({ conn, sex, wellnessDevice }: StatusArgs) {
+  return loadStatus(
+    conn?.api_key ?? null,
+    conn?.athlete_id ?? null,
+    Boolean(conn?.wellness_opt_in),
     sex,
     wellnessDevice,
-    subjective,
-  });
-  const { advice, ctl, tsb, recoverySummary } = status;
-  const hasMetrics = ctl != null || tsb != null || recoverySummary != null;
+  );
+}
 
-  // Het advies als brede tegel, de drie cijfers elk als tegel. De eerstvolgende
-  // workout staat al bovenaan het dashboard.
+/** Het trainingsadvies van vandaag als brede tegel, voor de rij Mijn training. */
+export async function TrainingAdvice(props: StatusArgs) {
+  const { advice } = await statusFor(props);
+  return (
+    <Link href="/zwbeter-worden" className="tg-tile tg-zwbeter col-span-2">
+      <span className="tg-tile-small">
+        ZWBeter trainen{advice.level > 0 ? ` · niveau ${advice.level}` : ""}
+      </span>
+      <span className="tg-tile-title mt-0.5">{advice.title}</span>
+      <span className="mt-1 text-sm opacity-90">{advice.description}</span>
+    </Link>
+  );
+}
+
+/** Fitness, vorm en herstel als losse tegels, voor de rij Mijn fitheid. */
+export async function FitnessStatus(props: StatusArgs) {
+  const { ctl, tsb, recoverySummary } = await statusFor(props);
+  if (ctl == null && tsb == null && recoverySummary == null) return null;
   const recovery =
     recoverySummary?.readiness != null
       ? String(recoverySummary.readiness)
@@ -91,43 +118,11 @@ export async function TrainingStatus({
           : "",
     },
   ];
-  return (
-    <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
-      <Link href="/zwbeter-worden" className="tg-tile tg-zwbeter col-span-3 !min-h-32">
-        <span className="tg-tile-small">
-          ZWBeter trainen{advice.level > 0 ? ` · niveau ${advice.level}` : ""}
-        </span>
-        <span className="tg-tile-title mt-0.5">{advice.title}</span>
-        <span className="mt-1 text-sm opacity-90">{advice.description}</span>
-      </Link>
-      {hasMetrics &&
-        stats.map((stat) => (
-          <Link
-            key={stat.label}
-            href="/zwbeter-worden/belasting"
-            className="tg-tile tg-zwbeter !min-h-32"
-          >
-            <span className="tg-tile-small">{stat.label}</span>
-            <span className="tg-tile-num">{stat.value}</span>
-            <span className="text-xs opacity-85">{stat.sub}</span>
-          </Link>
-        ))}
-    </div>
-  );
-}
-
-export function TrainingStatusSkeleton() {
-  return (
-    <section>
-      <SectionHeader icon={HeartPulse} title="Jouw trainingsstatus" />
-      <div className="space-y-3">
-        <div className="h-24 animate-pulse rounded-lg border bg-muted/40" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="h-20 animate-pulse rounded-lg border bg-muted/40" />
-          <div className="h-20 animate-pulse rounded-lg border bg-muted/40" />
-          <div className="h-20 animate-pulse rounded-lg border bg-muted/40" />
-        </div>
-      </div>
-    </section>
-  );
+  return stats.map((stat) => (
+    <Link key={stat.label} href="/zwbeter-worden/belasting" className="tg-tile tg-zwbeter">
+      <span className="tg-tile-small">{stat.label}</span>
+      <span className="tg-tile-num">{stat.value}</span>
+      <span className="text-xs opacity-85">{stat.sub}</span>
+    </Link>
+  ));
 }
