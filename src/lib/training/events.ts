@@ -11,6 +11,7 @@ import { deleteIntervalsWorkoutEvent } from "@/lib/intervals/client";
 import { hasOwnRoute, withParentRoute } from "@/lib/events/route-source";
 import { eventRouteSize } from "@/lib/events/route-size";
 import { withoutParentEvents } from "@/lib/events/sub-events";
+import { scheduleEventsFilter, teamIdsForRaces, TEAM_RACE_TYPES } from "@/lib/events/team-races";
 import { routeFromZwiftId } from "@/lib/events/zwift-route";
 import { activeBasePlan } from "@/lib/training/active-plan";
 import { pushWorkoutToIntervals } from "@/lib/training/publish";
@@ -525,13 +526,34 @@ export async function loadScheduleEvents(
   // De tijdsloten van een FRR-etappe (migr. 0195) blijven buiten de basislijst:
   // een tour heeft er ruim veertig, en die zouden de limiet opeten. Alleen de
   // slots waar het lid zelf op antwoordde, komen er hieronder bij.
+  // Een teamrace (team-races.ts) alleen van je eigen teams, of als je er al ja
+  // of misschien op zei. Een ZRL-week heeft zeven teamraces; die van andere
+  // teams vulden de limiet en lieten leden "Nee" klikken om ze kwijt te raken.
+  const [{ data: memberRows }, { data: teamRows }, { data: answeredRows }] = await Promise.all([
+    admin.from("team_members").select("team_id").eq("profile_id", profileId),
+    admin.from("teams").select("id, parent_team_id").not("parent_team_id", "is", null),
+    admin
+      .from("event_rsvps")
+      .select("event_id, events!inner(start_at, type)")
+      .eq("profile_id", profileId)
+      .in("status", ["yes", "maybe"])
+      .in("events.type", [...TEAM_RACE_TYPES])
+      .gte("events.start_at", `${from}T00:00:00`)
+      .lte("events.start_at", `${to}T23:59:59`),
+  ]);
+  const raceTeamIds = teamIdsForRaces(
+    (memberRows ?? []).map((row) => row.team_id as string),
+    (teamRows ?? []) as Array<{ id: string; parent_team_id: string | null }>,
+  );
+  const answeredIds = (answeredRows ?? []).map((row) => row.event_id as string);
+
   const [{ data: rawEvents }, { data: frrSlots }] = await Promise.all([
     admin
       .from("events")
       .select(EVENT_COLUMNS)
       .gte("start_at", `${from}T00:00:00`)
       .lte("start_at", `${to}T23:59:59`)
-      .or("type.neq.flamme_rouge,parent_event_id.is.null")
+      .or(scheduleEventsFilter(raceTeamIds, answeredIds))
       .order("start_at", { ascending: true })
       .limit(limit),
     admin

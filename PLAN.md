@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Teamraces alleen voor je eigen team (2026-11-09): lokaal gecommit, niet
+   gepusht.** Geen migratie; 87 oude "Nee"-antwoorden van niet-teamleden in
+   productie verwijderd (op verzoek van de eigenaar). Open: na de deploy het
+   schemapaneel van een lid zonder ZRL-team bekijken. Zie de ronde "Teamraces
+   alleen voor je eigen team".
+
 0. **Eventpagina: Discord-kanaal van het team (2026-11-09): gepusht naar
    `main` (`69ea7662`).** Geen migratie. Open: na de deploy een race van ZRL A of een
    ladderteam openen en de Discord-chip in Raceinfo zien. Zie de ronde
@@ -9861,7 +9867,8 @@ lid, ook buiten de kalender")*
 >   het hoofdevent als passend als een van de teamevents past; de ja's van de
 >   teamevents staan samen op het hoofdevent. **Dashboard:** komende events zonder
 >   teamevents; sinds 2026-09-29 staan je eigen teamevents apart in "Jouw races". **Schema** (`loadScheduleEvents`): zonder hoofdevents, zodat je daar
->   niet op het geheel ja kunt zeggen.
+>   niet op het geheel ja kunt zeggen. Sinds 2026-11-09 ook zonder de teamraces
+>   van andere teams (zie "Teamraces alleen voor je eigen team").
 >
 > **Bewust niet gebouwd.** Geen overerving van parcours of Zwift-regels van hoofd-
 > naar teamevent: elk team heeft zijn eigen Zwift-event, en dat levert route en
@@ -12062,6 +12069,60 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Teamraces alleen voor je eigen team
+
+**2026-11-09, commit HASH.** Op verzoek van de eigenaar ("Ik zie bij events af
+en toe leden die niet in het bepaalde team zitten op Nee staan. Kun je bekijken
+waarvan leden dit doen en hier een oplossing voor aandragen?"), daarna "Ja,
+alle drie" op het voorstel. Geen migratie.
+
+Oorzaak: sinds 1 september zeiden 7 leden samen 87 keer "Nee" op ZRL- en
+ladderraces van een team waar ze niet in zaten, steeds in reeksen van vijf tot
+negentien binnen een paar minuten. Alle zeven hebben een ZWBeter-schema. Het
+paneel "Clubevents in je schemaperiode" toonde elke teamrace van elk team
+(zeven per ZRL-week); alleen de raceweek zelf viel weg. Het paneel verbergt
+alleen wat op "Nee" staat, dus "Nee" was de manier om de lijst op te ruimen. Een
+"Nee" betekende daar "niet voor mij", niet "ik kan niet". Per lid stonden er in
+acht weken 58 events in de lijst, meer dan de grens van 50 van
+`loadScheduleEvents`; nu 11 tot 37.
+
+Wat er is:
+
+- **`src/lib/events/team-races.ts`**: een teamrace is een ZRL- of ladderrace
+  met `team_id`. Hij is voor de leden van dat team en van het hoofdteam erboven
+  (een lid van ZRL B ziet B1, B2 en Bdev; een lid van B1 niet die van B2).
+- **Schema** (`loadScheduleEvents`): de query neemt een teamrace alleen mee als
+  hij van je eigen team is, of als je er al ja of misschien op zei. Het filter
+  zit in de query zelf (`scheduleEventsFilter`), zodat races van andere teams
+  de grens van 50 niet meer opvullen. Dat geldt ook voor de jaarplanning, de
+  AI-input en de ZRL-melding, die dezelfde lijst gebruiken; die keken al alleen
+  naar ja en misschien.
+- **Eventpagina**: op een teamrace toont "Ben jij erbij?" geen "Nee" van buiten
+  het team en het hoofdteam. De knoppen blijven voor iedereen, zodat "Ja" je
+  lid maakt zoals migratie `0171` bedoelt.
+- **Opgeruimd in productie**: de 87 "Nee"-rijen van niet-leden op teamraces
+  (59 op komende races), van 7 leden, verwijderd met `RETURNING` (de rijen
+  staan in de sessie). Er hing geen workout aan, en de enige trigger op
+  `event_rsvps` (`event_rsvps_team_join`) loopt op insert en update, niet op
+  delete. Daarna 0 over.
+- **Tests** in `team-races.test.ts`: wat een teamrace is, welke teams je ziet,
+  het hoofdteam bij de race en het filter (ook dat iets anders dan een uuid er
+  niet in komt).
+
+**Bewust niet:** de knoppen voor niet-leden weghalen. Dat breekt de toetreding
+via "Ja" uit `0171`. Ook een teamrit buiten (`outdoor` met `team_id`) blijft
+voor iedereen zichtbaar: daar is geen opstelling.
+
+Lokaal: eslint schoon, `tsc` zonder fouten in de gewijzigde bestanden. Unit-
+tests: de nieuwe 10 groen; de volledige suite heeft dezelfde fouten als zonder
+deze ronde (bestanden die pakketten missen in deze worktree, en de
+ZwifterBikes- en intervals-test). Drie migratietests liepen in de volle run op
+tijd uit en slagen los. Het filter is tegen de PostgREST van productie gestuurd
+(met de publieke sleutel, dus zonder rijen door RLS) en wordt zonder fout
+geaccepteerd; de uitkomst per lid is in SQL nagerekend.
+
+**Niet bekeken:** het paneel en de eventpagina ingelogd in de browser.
 
 ### Gebouwd — Eventpagina: Discord-kanaal van het team
 

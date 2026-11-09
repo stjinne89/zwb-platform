@@ -34,6 +34,7 @@ import {
   type TeamDiscordRow,
 } from "@/lib/events/race-links";
 import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
+import { isTeamRace, raceTeamIds as teamAndParentIds } from "@/lib/events/team-races";
 import { ZrlTeamRank } from "./_components/zrl-team-rank";
 import { LadderMatchupView } from "./_components/ladder-matchup";
 import { loadLadderEventMatchup } from "@/lib/club-ladder/event-matchup";
@@ -1050,7 +1051,21 @@ export default async function EventDetailPage({
     maybe: [],
     no: [],
   };
+  // Op een teamrace zegt een "Nee" van buiten het team (en zijn hoofdteam) niets
+  // over de opstelling; zo'n antwoord kwam uit het schemapaneel, dat tot
+  // 2026-11-09 elke teamrace toonde.
+  const { data: raceMemberRows } =
+    event.team_id && isTeamRace(event)
+      ? await supabase
+          .from("team_members")
+          .select("profile_id")
+          .in("team_id", teamAndParentIds(event.team_id, discordTeams))
+      : { data: null };
+  const raceMembers = raceMemberRows
+    ? new Set(raceMemberRows.map((row) => row.profile_id as string))
+    : null;
   for (const r of rsvps ?? []) {
+    if (r.status === "no" && raceMembers && !raceMembers.has(r.profile_id as string)) continue;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const profile = (r as any).profiles ?? null;
     grouped[r.status as RsvpStatus]?.push({
