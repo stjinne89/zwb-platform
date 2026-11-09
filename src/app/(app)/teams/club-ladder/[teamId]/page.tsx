@@ -40,12 +40,14 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { DeleteResultButton, TeamChatLinksForm, TeamResultForm } from "../../[id]/_components/admin-panel";
 import { LadderAdviceRoutes } from "../_components/ladder-advice-routes";
+import { LadderPoolAdd } from "../_components/ladder-pool-add";
 import { LadderRoutes, type LadderRouteRow } from "../_components/ladder-routes";
 import { Metric, StandingsTable, TeamRidersTable } from "../_components/team-tables";
 import {
   fixtureMatches,
   fixtureWhen,
   latestResultFor,
+  loadLadderAddOptions,
   loadLadderPuzzle,
   loadLadderRiders,
   loadLadderTeams,
@@ -112,6 +114,11 @@ export default async function ClubLadderTeamPage({
     riderSort,
   );
   const strength = strengthFor(teamRiders);
+  // Een puzzelteam deelt alleen de rol teamcaptain in, een team erbuiten wie ladderteams indeelt.
+  const inPuzzle = Boolean(puzzle?.teams.some((row) => row.id === team.id));
+  const canAddRider = puzzle != null && (inPuzzle ? canEditRoutes : canAssign);
+  const addOptions = canAddRider ? await loadLadderAddOptions(admin) : null;
+  const teamRiderIds = new Set(teamRiders.map((rider) => rider.rosterEntryId ?? rider.id));
 
   let standings: ClubLadderStanding[] = [];
   let fixtures: ClubLadderFixture[] = [];
@@ -441,10 +448,19 @@ export default async function ClubLadderTeamPage({
           teamId={team.id}
           teamName={team.name}
           scoreLabel={scoreLabel}
-          canRemove={canAssign && !puzzle?.teams.some((row) => row.id === team.id)}
+          canRemove={canAssign && !inPuzzle}
           opponent={opponent?.name ?? null}
         />
       </section>
+
+      {addOptions && (
+        <LadderPoolAdd
+          title={`Renner aan ${team.name} toevoegen`}
+          teamId={team.id}
+          members={addOptions.members.filter((member) => !teamRiderIds.has(member.id))}
+          roster={addOptions.roster.filter((entry) => !teamRiderIds.has(entry.id))}
+        />
+      )}
 
       <section className="rounded-lg border bg-card p-4">
         <h2 className="font-semibold">Komende matchups</h2>
