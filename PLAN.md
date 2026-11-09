@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Teamraces alleen voor je eigen team (2026-11-09): lokaal gecommit, niet
-   gepusht.** Geen migratie; 87 oude "Nee"-antwoorden van niet-teamleden in
+0. **Teamraces alleen voor je eigen team (2026-11-09): gepusht naar `main`
+   (`0e6411cb`).** Geen migratie; 87 oude "Nee"-antwoorden van niet-teamleden in
    productie verwijderd (op verzoek van de eigenaar). Open: na de deploy het
    schemapaneel van een lid zonder ZRL-team bekijken. Zie de ronde "Teamraces
    alleen voor je eigen team".
