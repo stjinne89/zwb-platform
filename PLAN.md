@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Zwift-garage: fietslijst voorbij 1000 rijen (2026-11-09): lokaal, niet
-   gepusht.** Geen migratie. Zwift TT, Steel, Safety en een deel van de Zwift
+0. **Zwift-garage: fietslijst voorbij 1000 rijen (2026-11-09): gepusht naar
+   `main` (`c01addc9`).** Geen migratie. Open: na de deploy de garage bekijken. Zwift TT, Steel, Safety en een deel van de Zwift
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
@@ -11963,7 +11963,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Zwift-garage: fietslijst voorbij 1000 rijen
 
-**2026-11-09.** Geen migratie. Aanleiding: een lid meldde dat de Zwift TT niet
+**2026-11-09.** Commit `c01addc9`, gepusht naar `main` op 2026-11-09 (eigenaar).
+Geen migratie. Aanleiding: een lid meldde dat de Zwift TT niet
 in de garage staat.
 
 **Oorzaak.** `loadBikeParts` (`lib/pacing/ride-context.ts`) las
