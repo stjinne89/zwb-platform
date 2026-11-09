@@ -59,8 +59,8 @@ gaat stabiliteit voor nieuwe features.
    proefproject `zwb-proefclub` is na de proef verwijderd. Zie de ronde "fase
    7: proefinstallatie".
 
-0. **Beheer: huisstijl en modules onder Inrichting (2026-11-09): lokaal
-   gecommit, niet gepusht.** Geen migratie. Open: na een deploy ingelogd
+0. **Beheer: huisstijl en modules onder Inrichting (2026-11-09): gepusht naar
+   `main`** (`fdf4e804`). Geen migratie. Open: na een deploy ingelogd
    nalopen dat het menu onder App alleen Inrichting toont en de tab actief
    blijft op Huisstijl en Modules. Zie de ronde "huisstijl en modules onder
    Inrichting".
