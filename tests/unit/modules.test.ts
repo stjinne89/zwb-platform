@@ -125,7 +125,7 @@ describe("moduleregister", () => {
       "/hulp",
       "/beheer",
       "/beheer/rechten",
-      "/beheer/modules",
+      "/beheer/inrichting/modules",
       "/beheer/strava",
       "/login",
       "/api/strava/sync",
@@ -150,7 +150,8 @@ describe("moduleregister", () => {
       const key = moduleForPath(area.href);
       if (key !== null) expect(MODULE_KEYS).toContain(key);
     }
-    expect(moduleForPath(ADMIN_AREAS.modules.href)).toBeNull();
+    expect(moduleForPath(ADMIN_AREAS.inrichting.href)).toBeNull();
+    expect(moduleForPath("/beheer/inrichting/modules")).toBeNull();
   });
 });
 
@@ -180,7 +181,7 @@ describe("menu en beheer", () => {
     expect(hrefs).not.toContain("/beheer/src");
     expect(hrefs).not.toContain("/beheer/omnium");
     expect(hrefs).toContain("/beheer/zrl");
-    expect(hrefs).toContain("/beheer/modules");
+    expect(hrefs).toContain("/beheer/inrichting");
   });
 
   it("filtert de persoonlijke links", () => {

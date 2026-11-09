@@ -18,7 +18,7 @@ import { buildClubRecognition, type ClubRecognition } from "@/lib/club-recogniti
 // aan staan. Fase 1 van de generieke versie (docs/multi-club-ontwerp.md).
 //
 // Gedeeld gecachet tussen alle bezoekers, zoals de sponsorbalk: de layout vraagt
-// dit op elke pagina, en de rijen veranderen zelden. /beheer/modules leegt de
+// dit op elke pagina, en de rijen veranderen zelden. /beheer/inrichting/modules leegt de
 // cache meteen met updateTag(CLUB_TAG). De tabellen zijn voor anon leesbaar,
 // dus de publieke client zonder cookies volstaat en blijft cachebaar.
 

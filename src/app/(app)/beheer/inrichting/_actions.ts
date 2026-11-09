@@ -39,7 +39,7 @@ export async function updateClubNames(values: Record<string, string>): Promise<W
 
   if (parsed.value.labels.length) {
     const now = new Date().toISOString();
-    // Alleen de naam: de aan/uit-stand van /beheer/modules blijft staan.
+    // Alleen de naam: de aan/uit-stand van /beheer/inrichting/modules blijft staan.
     const { error } = await createAdminClient()
       .from("club_modules")
       .upsert(

@@ -59,6 +59,12 @@ gaat stabiliteit voor nieuwe features.
    proefproject `zwb-proefclub` is na de proef verwijderd. Zie de ronde "fase
    7: proefinstallatie".
 
+0. **Beheer: huisstijl en modules onder Inrichting (2026-11-09): lokaal
+   gecommit, niet gepusht.** Geen migratie. Open: na een deploy ingelogd
+   nalopen dat het menu onder App alleen Inrichting toont en de tab actief
+   blijft op Huisstijl en Modules. Zie de ronde "huisstijl en modules onder
+   Inrichting".
+
 0. **Generieke versie: geen ZWB-logo's bij een andere club (2026-11-09):
    gepusht naar `main` (`a5d2a2f3`), migratie `0322` toegepast** (versie
    `20261109155236`, op verzoek van de eigenaar, vóór de push; daarna heeft
@@ -12052,6 +12058,48 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Beheer: huisstijl en modules onder Inrichting
+
+**2026-11-09, commit `COMMITN`.** Op verzoek van de eigenaar ("Ik zie bij
+beheer nu inrichting, module en huistijl kun je dit onderbrengen onder 1
+paraplu-tab?"), daarna "Ja, bouwen" op het voorstel. Geen migratie.
+
+Waarom: het overzicht van Inrichting linkt al naar Huisstijl (stap 2) en
+Modules (stap 3); de twee losse items in het beheermenu waren dubbel.
+
+Wat er is:
+
+- **Het menu** (App in `BEHEER_CATEGORIES`): alleen nog Inrichting. Huisstijl
+  en Modules zijn geen eigen beheergebied meer in `ADMIN_AREAS`; het recht
+  (`roles.manage_permissions`) blijft gelijk.
+- **De pagina's verhuisd** naar `/beheer/inrichting/huisstijl` en
+  `/beheer/inrichting/modules`, naast de andere stappen. Zo blijft de tab
+  Inrichting actief op die pagina's.
+- **Doorverwijzing** in `next.config.ts`: `/beheer/huisstijl` en
+  `/beheer/modules` gaan permanent (308) naar het nieuwe adres.
+- **Kop**: beide pagina's hebben nu "← Inrichting", zoals de andere stappen
+  (`SetupHeader`).
+- `SETUP_STEPS`, de hulpankers en de opmerkingen in de code wijzen naar de
+  nieuwe adressen.
+- **Test** in `admin-areas.test.ts`: huisstijl en modules staan niet los in het
+  menu, en op elke stap is Inrichting de actieve tab.
+
+**Bewust niet:** de pagina's zelf, het opslaan en wie erbij mag zijn niet
+veranderd. De tab heet nog "Inrichting", niet "Club inrichten".
+
+**Niet meer waar:** fase 6 noemde `/beheer/huisstijl` en `/beheer/modules`
+als "het bestaande" adres van stap 2 en 3, en het ontwerp (§5) ook; die
+zinnen zijn aangepast. Oudere rondes noemen de oude adressen nog; die
+verwijzen nu door.
+
+Lokaal: `tsc` en eslint zijn schoon; `next build` met de env van ZWB slaagt
+(de twee nieuwe routes staan erin). Tests: `admin-areas`, `modules`,
+`club-setup`, `club-theme` en `help-anchors`, 92 groen. Met `next start`
+nagekeken dat de oude adressen met een 308 doorsturen.
+
+**Niet bekeken:** het menu ingelogd in de browser. Dat vraagt inloggen op de
+productiedata; de structuur dekt de test.
+
 ### Gebouwd — Generieke versie: geen ZWB-logo's bij een andere club
 
 **2026-11-09, commit `a5d2a2f3`.** Op verzoek van de eigenaar ("Kun je ervoor
@@ -12300,8 +12348,10 @@ Wat er is:
 - **De stappen** (`SETUP_STEPS` in `src/lib/club-setup.ts`):
   1. Club, `/beheer/inrichting/club` (nieuw): naam, korte naam, lid en leden,
      e-mailadres en website;
-  2. Huisstijl: het bestaande `/beheer/huisstijl`;
-  3. Modules: het bestaande `/beheer/modules`;
+  2. Huisstijl: het bestaande `/beheer/huisstijl` (sinds 2026-11-09
+     `/beheer/inrichting/huisstijl`);
+  3. Modules: het bestaande `/beheer/modules` (sinds 2026-11-09
+     `/beheer/inrichting/modules`);
   4. Namen en woorden, `/beheer/inrichting/namen` (nieuw): de woorden uit
      `0319` en per aangezette module een eigen naam, met de neutrale als
      placeholder. Een naam gelijk aan de neutrale slaat op als leeg;

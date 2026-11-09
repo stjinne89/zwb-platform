@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readdir, readFile } from "node:fs/promises";
 import { ADMIN_AREAS } from "@/lib/admin-areas";
-import { BEHEER_CATEGORIES, beheerCategoriesFor } from "@/app/(app)/_components/nav-config";
+import { BEHEER_CATEGORIES, activeHrefIn, beheerCategoriesFor } from "@/app/(app)/_components/nav-config";
+import { SETUP_STEPS } from "@/lib/club-setup";
 import { COMMUNITY_PERMISSION_IDS, DEFAULT_ROLE_PERMISSIONS } from "@/lib/permissions";
 
 describe("register van beheergebieden", () => {
@@ -16,6 +17,16 @@ describe("register van beheergebieden", () => {
     const hrefs = BEHEER_CATEGORIES.flatMap((category) => category.items.map((item) => item.href));
     expect(new Set(hrefs).size).toBe(hrefs.length);
     for (const area of Object.values(ADMIN_AREAS)) expect(hrefs).toContain(area.href);
+  });
+
+  it("zet huisstijl en modules onder de inrichting, met de tab Inrichting actief", () => {
+    const hrefs = BEHEER_CATEGORIES.flatMap((category) => category.items.map((item) => item.href));
+    expect(hrefs).not.toContain("/beheer/huisstijl");
+    expect(hrefs).not.toContain("/beheer/modules");
+    for (const step of SETUP_STEPS) {
+      expect(step.href.startsWith(`${ADMIN_AREAS.inrichting.href}/`), step.href).toBe(true);
+      expect(activeHrefIn(step.href, hrefs)).toBe(ADMIN_AREAS.inrichting.href);
+    }
   });
 
   it("laat in de beheercategorieën alleen toegestane items en geen lege categorie", () => {

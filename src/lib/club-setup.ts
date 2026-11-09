@@ -12,8 +12,8 @@ export type SetupStep = { key: SetupStepKey; label: string; href: string };
 /** De stappen op volgorde. Huisstijl en modules hebben al een eigen scherm. */
 export const SETUP_STEPS: readonly SetupStep[] = [
   { key: "club", label: "Club", href: "/beheer/inrichting/club" },
-  { key: "huisstijl", label: "Huisstijl", href: "/beheer/huisstijl" },
-  { key: "modules", label: "Modules", href: "/beheer/modules" },
+  { key: "huisstijl", label: "Huisstijl", href: "/beheer/inrichting/huisstijl" },
+  { key: "modules", label: "Modules", href: "/beheer/inrichting/modules" },
   { key: "namen", label: "Namen en woorden", href: "/beheer/inrichting/namen" },
   { key: "herkenning", label: "Herkenning en koppelingen", href: "/beheer/inrichting/herkenning" },
 ];

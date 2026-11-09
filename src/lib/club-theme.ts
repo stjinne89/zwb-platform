@@ -8,7 +8,7 @@
 // precies uit zoals voorheen; de afgeleide waarden benaderen de handmatige maar
 // zijn niet gelijk.
 //
-// Geen server-only: de editor op /beheer/huisstijl rekent hiermee het voorbeeld
+// Geen server-only: de editor op /beheer/inrichting/huisstijl rekent hiermee het voorbeeld
 // en de contrastcontrole uit in de browser.
 
 export type PaletteKey = "primary" | "secondary" | "neutral" | "accent" | "ink";

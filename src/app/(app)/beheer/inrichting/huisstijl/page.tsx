@@ -11,6 +11,7 @@ import {
 import { ClubImages } from "./_components/club-images";
 import { FontPicker } from "./_components/font-picker";
 import { HuisstijlEditor } from "./_components/huisstijl-editor";
+import { SetupHeader } from "../_components/setup-page";
 
 export default async function HuisstijlPage() {
   const user = await getRequestUser();
@@ -44,10 +45,7 @@ export default async function HuisstijlPage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Beheer</p>
-        <h1 className="text-3xl font-semibold tracking-tight">Huisstijl</h1>
-      </header>
+      <SetupHeader title="Huisstijl" />
 
       {error ? (
         <section className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">

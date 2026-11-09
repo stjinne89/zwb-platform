@@ -262,7 +262,7 @@ training), is geen vereiste; dat deel blijft dan leeg.
 
 `getClub()` (`lib/club.ts`) leest de instellingen gedeeld gecachet
 (`unstable_cache`, tag `club-settings`), net als de sponsorbalk.
-`/beheer/modules` leegt die cache bij opslaan.
+`/beheer/inrichting/modules` leegt die cache bij opslaan.
 
 Wat niet generiek wordt: `/brochure` (trainingsweekend Warsberg) blijft van
 ZWB alleen.
@@ -314,9 +314,9 @@ Gebouwd in fase 6 (2026-11-09), anders dan hier eerst stond:
   staat er een balk op het dashboard van beheerders.
 - Stappen:
   1. **Club**: naam, korte naam, leden-aanduiding, contact en website.
-  2. **Huisstijl**: het bestaande `/beheer/huisstijl` (kleuren met live
+  2. **Huisstijl**: `/beheer/inrichting/huisstijl` (tot 2026-11-09 `/beheer/huisstijl`) (kleuren met live
      voorbeeld en contrastcontrole, letter, logo).
-  3. **Modules**: het bestaande `/beheer/modules`; afhankelijkheden gaan mee.
+  3. **Modules**: `/beheer/inrichting/modules` (tot 2026-11-09 `/beheer/modules`); afhankelijkheden gaan mee.
   4. **Namen en woorden**: per aangezette module de naam, met de neutrale als
      voorinvulling, en de eigen woorden (`0319`).
   5. **Herkenning en koppelingen**: eventmarkers, teamtag en social. Per groep

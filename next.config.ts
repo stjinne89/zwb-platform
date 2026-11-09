@@ -102,6 +102,9 @@ const nextConfig: NextConfig = {
       // ZRL-kalender en WTRL-teams zijn samen ZRL-beheer (2026-10-13).
       { source: "/beheer/zrl-kalender", destination: "/beheer/zrl", permanent: true },
       { source: "/beheer/wtrl-teams", destination: "/beheer/zrl/teams", permanent: true },
+      // Huisstijl en modules zijn stappen van de inrichting (2026-11-09).
+      { source: "/beheer/huisstijl", destination: "/beheer/inrichting/huisstijl", permanent: true },
+      { source: "/beheer/modules", destination: "/beheer/inrichting/modules", permanent: true },
     ];
   },
 };

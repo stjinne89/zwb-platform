@@ -3,7 +3,7 @@ import type { ClubFont } from "@/lib/club-theme";
 
 // De letter van het design "tegels". Standaard Barlow Semi Condensed, door de
 // eigenaar gekozen uit een proef van vijf; een club kan een van de andere drie
-// kiezen op /beheer/huisstijl (0315). Alle vier zonder preload: een
+// kiezen op /beheer/inrichting/huisstijl (0315). Alle vier zonder preload: een
 // lettertype laadt pas als de pagina het echt gebruikt. Eén module, zodat de
 // app-schil en de inlogschermen dezelfde letter delen. De bestanden staan in
 // src/fonts (zie de README daar).

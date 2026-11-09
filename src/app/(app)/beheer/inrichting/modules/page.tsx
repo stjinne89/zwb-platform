@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { MODULES, moduleDef, type ModuleKey } from "@/lib/modules";
 import { ModulesEditor, type ModuleRow } from "./_components/modules-editor";
+import { SetupHeader } from "../_components/setup-page";
 
 export default async function ModulesPage() {
   const user = await getRequestUser();
@@ -50,10 +51,7 @@ export default async function ModulesPage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Beheer</p>
-        <h1 className="text-3xl font-semibold tracking-tight">Modules</h1>
-      </header>
+      <SetupHeader title="Modules" />
 
       {error ? (
         <section className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
