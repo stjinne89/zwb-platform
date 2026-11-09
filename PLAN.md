@@ -7,12 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Generieke versie, fase 2 deel 1: clubkleuren (2026-11-09): lokaal
-   gecommit, niet gepusht; migratie `0314` niet toegepast.** Op verzoek van de
-   eigenaar ("ga verder" na fase 1). ZWB krijgt geen eigen kleuren, dus voor de
-   leden verandert er niets. Volgorde: eerst `0314` toepassen, dan pushen (de
-   code werkt ook zonder `0314`, alleen `/beheer/huisstijl` kan dan niet
-   opslaan). Eigen kleuren niet op productie uitproberen: dat ziet elk lid. Zie
+0. **Generieke versie, fase 2 deel 1: clubkleuren (2026-11-09): gepusht naar
+   `main`; migratie `0314` toegepast** (versie `20261109093654`, in de
+   historie onder de naam `club_colors` zonder nummer; op verzoek van de
+   eigenaar, vóór de push). Na het toepassen staan alle vijf kolommen bij ZWB op
+   leeg, dus voor de leden verandert er niets. Nalopen na de deploy:
+   `/beheer/huisstijl` opent, en zonder opslaan staat er "Standaardkleuren". Eigen kleuren niet op productie uitproberen: dat ziet elk lid. Zie
    de ronde "Generieke versie, fase 2 deel 1".
 
 0. **Lettertypes in de repo (2026-11-09): gepusht naar `main` (`95a875bf`);
@@ -11917,7 +11917,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Generieke versie, fase 2 deel 1: clubkleuren
 
 **2026-11-09.** Op verzoek van de eigenaar ("ga verder"), na fase 1. Migratie
-`0314_club_colors.sql`, **niet toegepast**. Lokaal gecommit, niet gepusht.
+`0314_club_colors.sql`, toegepast op 2026-11-09 (versie `20261109093654`,
+naam `club_colors`), daarna naar `main` gepusht.
 
 Een club kiest vijf kleuren (primair, secundair, neutraal, accent, donkere
 inkt). `0314` zet ze als `color_primary` … `color_ink` op `club_settings`,
