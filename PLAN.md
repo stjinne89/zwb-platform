@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Dashboard: volgorde in groepen, "Vandaag" heet "Dashboard" (2026-11-09):
-   gebouwd, niet gepusht.** Geen migratie. Open: na de deploy ingelogd
+   gepusht naar `main` (`55493bd0`).** Geen migratie. Open: na de deploy ingelogd
    bekijken, met een dag met twee trainingen (veegrij) en een lopend event.
    Zie "Dashboard: Mijn training, Mijn fitheid, Mijn events" hieronder.
 
@@ -11988,8 +11988,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Dashboard: Mijn training, Mijn fitheid, Mijn events
 
-**2026-11-09.** Commit: de commit die dit blok toevoegt. Niet gepusht. Geen
-migratie.
+**2026-11-09.** Commit `55493bd0`, op 2026-11-09 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie.
 
 **Waarom.** De eigenaar vond dat het dashboard zijn volgorde kwijt was. Na de
 overstap naar het design "tegels" stond alles in twee losse rijen: de
