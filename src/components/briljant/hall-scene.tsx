@@ -15,6 +15,8 @@ type Props = {
   startId?: string;
   /** De sponsors met een logo, voor de bordjes aan de wand. */
   sponsors?: Array<{ id: string; name: string }>;
+  /** Het logo van de club aan de wand; zonder logo (0322) geen logobordjes. */
+  logoUrl?: string | null;
   labels: RefObject<Map<string, HTMLElement>>;
   onFailed: () => void;
   rotate: boolean;
@@ -27,19 +29,21 @@ type Props = {
  * weinig in de lucht zweeft. Kiezen opent de vergelijking. Sinds 2026-10-23 een
  * galerij in ZWB-kleuren: een petrol wand achter de rij, met het logo bij de ingang.
  */
-export default function HallScene({ stones, startId, sponsors = [], labels, onFailed, rotate }: Props) {
+export default function HallScene({ stones, startId, sponsors = [], logoUrl = null, labels, onFailed, rotate }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const rotating = useRef(rotate);
   useEffect(() => {
     rotating.current = rotate;
   }, [rotate]);
   const [failed, setFailed] = useState(false);
-  const key = `${startId ?? ""}|${stones.map((stone) => `${stone.id}:${stone.score}:${stone.level.n}`).join("|")}|${sponsors.map((sponsor) => sponsor.id).join(",")}`;
+  const key = `${startId ?? ""}|${stones.map((stone) => `${stone.id}:${stone.score}:${stone.level.n}`).join("|")}|${sponsors.map((sponsor) => sponsor.id).join(",")}|${logoUrl ?? ""}`;
   const current = useRef(stones);
   const currentSponsors = useRef(sponsors);
+  const currentLogo = useRef(logoUrl);
   useEffect(() => {
     current.current = stones;
     currentSponsors.current = sponsors;
+    currentLogo.current = logoUrl;
   });
 
   useEffect(() => {
@@ -223,16 +227,22 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
       spill.position.set(x, fullHeight * 0.75, wallZ + 0.02);
       scene.add(spill);
     });
-    // Aan de wand (eigenaar, 2026-10-23): bij de ingang en het einde het ZWB-logo,
-    // tussen de stenen om de beurt een spreuk van de website, een sponsor en weer
-    // het logo. Zonder sponsors wisselen spreuk en logo elkaar af.
+    // Aan de wand (eigenaar, 2026-10-23): bij de ingang en het einde het logo van
+    // de club, tussen de stenen om de beurt een spreuk van de website, een sponsor
+    // en weer het logo. Zonder sponsors wisselen spreuk en logo elkaar af; zonder
+    // logo (een club zonder eigen logo, 0322) blijven alleen spreuk en sponsor.
     const load = textureCache();
     const fonts = {
       serif: getComputedStyle(element).getPropertyValue("--serif").trim() || "Georgia, serif",
       sans: getComputedStyle(element).getPropertyValue("--sans").trim() || "system-ui, sans-serif",
     };
     const sponsorList = currentSponsors.current;
-    const kinds = sponsorList.length > 0 ? (["spreuk", "sponsor", "logo"] as const) : (["spreuk", "logo"] as const);
+    const logo = currentLogo.current;
+    const kinds: ReadonlyArray<"spreuk" | "sponsor" | "logo"> = [
+      "spreuk",
+      ...(sponsorList.length > 0 ? (["sponsor"] as const) : []),
+      ...(logo ? (["logo"] as const) : []),
+    ];
     const counts = { spreuk: 0, sponsor: 0 };
     // Boven de sokkels, rond de bovenkant van de stenen ernaast; op een staand
     // scherm lager, naast de steen, want daarboven staan de score en de klassenladder.
@@ -247,8 +257,10 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
       scene.add(light);
     };
     const boardWidth = spacing * 0.62;
-    hang(emblem(spacing * 0.9, load, track), minX - spacing * 0.95, true);
-    hang(emblem(spacing * 0.9, load, track), maxX + spacing * 0.95, true);
+    if (logo) {
+      hang(emblem(logo, spacing * 0.9, load, track), minX - spacing * 0.95, true);
+      hang(emblem(logo, spacing * 0.9, load, track), maxX + spacing * 0.95, true);
+    }
     xs.slice(1).forEach((x, index) => {
       const between = x - spacing / 2;
       const kind = kinds[index % kinds.length];
@@ -257,8 +269,8 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
       } else if (kind === "sponsor") {
         const sponsor = sponsorList[counts.sponsor++ % sponsorList.length];
         hang(board(`/api/briljant/sponsor-logo/${sponsor.id}`, boardWidth, boardWidth * 0.6, load, track), between, false);
-      } else {
-        hang(emblem(boardWidth, load, track), between, false);
+      } else if (logo) {
+        hang(emblem(logo, boardWidth, load, track), between, false);
       }
     });
     // De mist laat de wand ver opzij donkerder worden, niet de stenen voor je; hij

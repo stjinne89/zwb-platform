@@ -130,9 +130,12 @@ export function board(src: string, width: number, height: number, load: (src: st
   return group;
 }
 
-/** Het echte ZWB-logo (public/zwb-logo.png, 300 bij 104, met "Cycling Community") op een crème bordje. */
-export function emblem(width: number, load: (src: string) => Promise<THREE.Texture>, track: Track) {
-  return board("/zwb-logo.png", width, width * 0.48, load, track);
+/**
+ * Het logo van de club op een crème bordje. Bij ZWB het echte ZWB-logo
+ * (public/zwb-logo.png, 300 bij 104, met "Cycling Community").
+ */
+export function emblem(src: string, width: number, load: (src: string) => Promise<THREE.Texture>, track: Track) {
+  return board(src, width, width * 0.48, load, track);
 }
 
 /**

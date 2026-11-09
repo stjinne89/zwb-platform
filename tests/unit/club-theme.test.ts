@@ -18,7 +18,7 @@ import {
   themeColors,
   type ClubPalette,
 } from "@/lib/club-theme";
-import { ICON_VARIANTS, clubIconUrl, clubLogoUrl } from "@/lib/club-icons";
+import { ICON_VARIANTS, clubIconUrl, clubLogoUrl, clubPushIcons, hasClubIcons } from "@/lib/club-icons";
 
 // De huisstijl uit vijf kleuren (0314, fase 2 van docs/multi-club-ontwerp.md).
 
@@ -239,16 +239,37 @@ describe("lettertype (0315)", () => {
   });
 });
 
-describe("iconen (0315)", () => {
-  it("houdt zonder beeldmerk de vaste bestanden op hun oude adres", () => {
+describe("iconen (0315, 0322)", () => {
+  const zwb = { logoUrl: null, markUrl: null, staticBrand: true };
+  const blank = { logoUrl: null, markUrl: null, staticBrand: false };
+  const own = { logoUrl: "https://x/logo.png", markUrl: "https://x/mark.png", staticBrand: false };
+
+  it("houdt bij ZWB zonder beeldmerk de vaste bestanden op hun oude adres", () => {
     for (const [file, variant] of Object.entries(ICON_VARIANTS)) {
-      expect(clubIconUrl(null, file as keyof typeof ICON_VARIANTS)).toBe(variant.source);
+      expect(clubIconUrl(zwb, file as keyof typeof ICON_VARIANTS)).toBe(variant.source);
     }
-    expect(clubLogoUrl(null)).toBe("/zwb-logo.png");
+    expect(clubLogoUrl(zwb)).toBe("/zwb-logo.png");
+    expect(clubPushIcons(zwb)).toEqual({ icon: "/icon-192.png", badge: "/badge-96.png" });
+    expect(hasClubIcons(zwb)).toBe(true);
+  });
+
+  it("toont bij een andere club zonder logo of beeldmerk niets van ZWB", () => {
+    for (const file of Object.keys(ICON_VARIANTS)) {
+      expect(clubIconUrl(blank, file as keyof typeof ICON_VARIANTS)).toBeNull();
+    }
+    expect(clubLogoUrl(blank)).toBeNull();
+    expect(clubPushIcons(blank)).toEqual({ icon: null, badge: null });
+    expect(hasClubIcons(blank)).toBe(false);
+  });
+
+  it("gebruikt een eigen logo en beeldmerk, ook bij ZWB", () => {
+    expect(clubLogoUrl(own)).toBe("https://x/logo.png");
+    expect(clubLogoUrl({ ...own, staticBrand: true })).toBe("https://x/logo.png");
+    expect(clubPushIcons(own)).toEqual({ icon: "/club-icon/icon-192.png", badge: null });
   });
 
   it("wijst met een beeldmerk naar de gegenereerde iconen, die .png heten zodat de middleware ze overslaat", () => {
-    expect(clubIconUrl("https://x/mark.png", "icon-192.png")).toBe("/club-icon/icon-192.png");
+    expect(clubIconUrl(own, "icon-192.png")).toBe("/club-icon/icon-192.png");
     const middleware = readFileSync(join(ROOT, "src", "middleware.ts"), "utf8");
     expect(middleware).toContain("png");
     for (const file of Object.keys(ICON_VARIANTS)) expect(file).toMatch(/\.png$/);

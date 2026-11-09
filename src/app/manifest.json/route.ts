@@ -1,6 +1,6 @@
 import { getClub } from "@/lib/club";
 import { themeColors } from "@/lib/club-theme";
-import { clubIconUrl } from "@/lib/club-icons";
+import { clubIconUrl, type IconFile } from "@/lib/club-icons";
 import { clubDescription } from "@/lib/club-texts";
 
 // Het manifest van de app, met de kleuren van de club (0314). Tot 2026-11-09 een
@@ -11,7 +11,11 @@ import { clubDescription } from "@/lib/club-texts";
 export async function GET() {
   const { settings, texts } = await getClub();
   const colors = themeColors(settings.palette);
-  const icon = (file: Parameters<typeof clubIconUrl>[1]) => clubIconUrl(settings.markUrl, file);
+  // Zonder beeldmerk (en buiten ZWB, 0322) geen iconen.
+  const icon = (file: IconFile, sizes: string, purpose: "any" | "maskable") => {
+    const src = clubIconUrl(settings, file);
+    return src ? [{ src, sizes, type: "image/png", purpose }] : [];
+  };
   const manifest = {
     name: `${texts.name} Platform`,
     short_name: texts.shortName,
@@ -24,10 +28,10 @@ export async function GET() {
     theme_color: colors.light,
     lang: "nl",
     icons: [
-      { src: icon("icon-192.png"), sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: icon("icon-512.png"), sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: icon("icon-192-maskable.png"), sizes: "192x192", type: "image/png", purpose: "maskable" },
-      { src: icon("icon-512-maskable.png"), sizes: "512x512", type: "image/png", purpose: "maskable" },
+      ...icon("icon-192.png", "192x192", "any"),
+      ...icon("icon-512.png", "512x512", "any"),
+      ...icon("icon-192-maskable.png", "192x192", "maskable"),
+      ...icon("icon-512-maskable.png", "512x512", "maskable"),
     ],
   };
   return new Response(JSON.stringify(manifest, null, 2), {

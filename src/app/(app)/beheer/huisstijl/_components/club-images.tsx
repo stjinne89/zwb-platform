@@ -3,21 +3,36 @@
 import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { removeClubImage, uploadClubImage } from "../_actions";
+import { ICON_VARIANTS, STATIC_LOGO } from "@/lib/club-icons";
 
 type Kind = "logo" | "mark";
 type Status = { kind: "idle" } | { kind: "saved" } | { kind: "error"; msg: string };
 
+// De vaste bestanden gelden alleen bij ZWB (0322); anders blijft het vak leeg.
 const ROWS: { kind: Kind; label: string; fallback: string; square: boolean }[] = [
-  { kind: "logo", label: "Logo", fallback: "/zwb-logo.png", square: false },
-  { kind: "mark", label: "Beeldmerk", fallback: "/icon-512.png", square: true },
+  { kind: "logo", label: "Logo", fallback: STATIC_LOGO, square: false },
+  { kind: "mark", label: "Beeldmerk", fallback: ICON_VARIANTS["icon-512.png"].source, square: true },
 ];
 
-export function ClubImages({ logoUrl, markUrl }: { logoUrl: string | null; markUrl: string | null }) {
+export function ClubImages({
+  logoUrl,
+  markUrl,
+  staticBrand,
+}: {
+  logoUrl: string | null;
+  markUrl: string | null;
+  staticBrand: boolean;
+}) {
   return (
     <section className="space-y-4 rounded-lg border bg-card p-4">
       <h2 className="font-semibold">Logo en beeldmerk</h2>
       {ROWS.map((row) => (
-        <ImageRow key={row.kind} {...row} url={row.kind === "logo" ? logoUrl : markUrl} />
+        <ImageRow
+          key={row.kind}
+          {...row}
+          fallback={staticBrand ? row.fallback : null}
+          url={row.kind === "logo" ? logoUrl : markUrl}
+        />
       ))}
     </section>
   );
@@ -32,7 +47,7 @@ function ImageRow({
 }: {
   kind: Kind;
   label: string;
-  fallback: string;
+  fallback: string | null;
   square: boolean;
   url: string | null;
 }) {
@@ -69,8 +84,10 @@ function ImageRow({
           square ? "size-20" : "h-20 w-40"
         }`}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- een upload van de club, geen vaste afbeelding */}
-        <img src={current ?? fallback} alt={label} className="max-h-full max-w-full object-contain" />
+        {(current ?? fallback) && (
+          // eslint-disable-next-line @next/next/no-img-element -- een upload van de club, geen vaste afbeelding
+          <img src={current ?? fallback ?? undefined} alt={label} className="max-h-full max-w-full object-contain" />
+        )}
       </div>
       <div className="min-w-0 flex-1 space-y-2">
         <p className="text-sm font-medium">

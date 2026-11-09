@@ -33,13 +33,15 @@ type Props = {
   bekers: KastItem[];
   startId?: string;
   sponsors: Array<{ id: string; name: string }>;
+  /** Het logo van de club aan de wand, of null (0322). */
+  logoUrl: string | null;
   /** Je eigen voordrachten die nog niet in de kast staan. */
   ownOpen: number;
   /** Voor wie keurt: hoeveel voordrachten wachten; anders null. */
   waiting: number | null;
 };
 
-export function KastView({ bekers, startId, sponsors, ownOpen, waiting }: Props) {
+export function KastView({ bekers, startId, sponsors, logoUrl, ownOpen, waiting }: Props) {
   const clubTexts = useClubTexts();
   const labels = useRef(new Map<string, HTMLElement>());
   const moduleLabel = useModuleName("bekers");
@@ -82,6 +84,7 @@ export function KastView({ bekers, startId, sponsors, ownOpen, waiting }: Props)
             bekers={bekers.map(({ id, year, design }) => ({ id, year, design }))}
             startId={startId}
             sponsors={sponsors}
+            logoUrl={logoUrl}
             labels={labels}
             onFailed={() => setFailed(true)}
             rotate={!aiming}

@@ -32,6 +32,7 @@ import { mondayKey } from "@/lib/briljant/snapshot";
 import { moduleName } from "@/lib/club";
 import { getClub } from "@/lib/club";
 import { fillClubText } from "@/lib/club-texts";
+import { clubLogoUrl } from "@/lib/club-icons";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -270,6 +271,7 @@ export default async function BriljantPage({
         wins={tab === "ik" && !past ? bestWins(collected.input, live.consistency?.value ?? null).slice(0, 3) : []}
         hall={hall}
         sponsors={sponsors}
+        logoUrl={clubLogoUrl((await getClub()).settings)}
         hidden={!sharing}
       />
     </>

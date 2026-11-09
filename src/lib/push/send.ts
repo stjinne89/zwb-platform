@@ -11,13 +11,15 @@
 
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getClub } from "@/lib/club";
+import { clubPushIcons } from "@/lib/club-icons";
 
 export type PushPayload = {
   title: string;
   body: string;
   url?: string;
   icon?: string;
-  /** Monochroom silhouet voor de statusbalk; leeg laten pakt /badge-96.png. */
+  /** Monochroom silhouet voor de statusbalk; leeg laten pakt die van de club. */
   badge?: string;
   /** Grote afbeelding onder de tekst (Android). */
   image?: string;
@@ -135,7 +137,13 @@ export async function sendNotificationToMembers(
     return { sent: 0, pruned: 0, skipped: false, reachedProfileIds: [] };
   }
 
-  const payloadStr = JSON.stringify(payload);
+  // Icoon en badge van de club; null zegt de service worker: geen (0322).
+  const club = clubPushIcons((await getClub()).settings);
+  const payloadStr = JSON.stringify({
+    ...payload,
+    icon: payload.icon ?? club.icon,
+    badge: payload.badge ?? club.badge,
+  });
   let sent = 0;
   let pruned = 0;
   const toPruneIds: string[] = [];

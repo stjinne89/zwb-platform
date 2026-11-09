@@ -4,7 +4,8 @@ import { DEFAULT_PALETTE } from "@/lib/club-theme";
 import { ICON_VARIANTS, isIconFile } from "@/lib/club-icons";
 
 // App-iconen, favicons en de deelkaart uit het beeldmerk van de club (0315).
-// Zonder beeldmerk een redirect naar het vaste ZWB-bestand in public/. De
+// Zonder beeldmerk een redirect naar het vaste ZWB-bestand in public/, alleen
+// bij ZWB (0322); bij een andere club een 404. De
 // bestandsnaam eindigt op .png, zodat de middleware deze route overslaat (geen
 // sessie nodig: browsers en WhatsApp halen dit zonder cookie op).
 
@@ -15,6 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
 
   const { settings } = await getClub();
   if (!settings.markUrl) {
+    if (!settings.staticBrand) return new Response("Niet gevonden", { status: 404 });
     return Response.redirect(new URL(variant.source, request.url), 307);
   }
 

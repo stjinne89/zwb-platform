@@ -52,12 +52,20 @@ describe("baseline voor een nieuwe installatie", () => {
   });
 
   it("begint met een neutrale club zonder eigen modulenamen", async () => {
-    const { rows } = await fresh.query<{ name: string; short_name: string; team_tag: string | null }>(
-      "select name, short_name, team_tag from public.club_settings",
+    const { rows } = await fresh.query<{ name: string; short_name: string; team_tag: string | null; static_brand: boolean }>(
+      "select name, short_name, team_tag, static_brand from public.club_settings",
     );
-    expect(rows).toEqual([{ name: "Club", short_name: "Club", team_tag: null }]);
+    // static_brand uit (0322): geen ZWB-logo's als terugval.
+    expect(rows).toEqual([{ name: "Club", short_name: "Club", team_tag: null, static_brand: false }]);
     const labels = await fresh.query<{ n: number }>("select count(*)::int as n from public.club_modules where label is not null");
     expect(labels.rows[0].n).toBe(0);
+  });
+
+  it("houdt bij ZWB de vaste logo's en iconen aan (0322)", async () => {
+    const { rows } = await full.query<{ short_name: string; static_brand: boolean }>(
+      "select short_name, static_brand from public.club_settings",
+    );
+    expect(rows).toEqual([{ short_name: "ZWB", static_brand: true }]);
   });
 
   it("houdt de startinhoud", async () => {

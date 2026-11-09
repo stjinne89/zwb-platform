@@ -525,6 +525,29 @@ html.dark .app-shell[data-design="tegels"]::before {
 .dark .tg-logo-lg img {
   height: 2.875rem;
 }
+/* Zonder logo (0322): de clubnaam, even hoog als het logo. */
+.tg-logo-text {
+  display: block;
+  font-family: var(--tg-display);
+  font-weight: 700;
+  font-size: 1.375rem;
+  line-height: 2.125rem;
+  color: var(--tg-ink);
+  white-space: nowrap;
+}
+.dark .tg-logo-text {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+.tg-logo-lg .tg-logo-text {
+  font-size: 2.25rem;
+  line-height: 3.5rem;
+  white-space: normal;
+}
+.dark .tg-logo-lg .tg-logo-text {
+  font-size: 1.875rem;
+  line-height: 2.875rem;
+}
 /* Een bevestiging (mail verstuurd): een vlak paneel met de gouden lijn van
    "waar je nu bent", geen groene doos uit het oude design. */
 .tg-note {

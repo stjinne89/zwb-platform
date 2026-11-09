@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { IosViewportHerstel } from "@/components/ios-viewport-herstel";
 import { getClub } from "@/lib/club";
 import { clubStyleCss, themeColors } from "@/lib/club-theme";
-import { clubIconUrl } from "@/lib/club-icons";
+import { STATIC_FAVICON, clubIconUrl, type IconFile } from "@/lib/club-icons";
 import { clubCommunity, clubDescription } from "@/lib/club-texts";
 import { ClubTextsProvider } from "@/components/club-texts-provider";
 
@@ -24,15 +24,19 @@ const geistMono = localFont({
 });
 
 // De iconen en de deelkaart volgen het beeldmerk van de club (0315); zonder
-// beeldmerk de vaste ZWB-bestanden op hun oude adres. Naam en omschrijving
-// komen uit de clubinstellingen (fase 3).
+// beeldmerk de vaste ZWB-bestanden op hun oude adres, maar alleen bij ZWB
+// (0322). Een andere club zonder beeldmerk heeft geen iconen. Naam en
+// omschrijving komen uit de clubinstellingen (fase 3).
 export async function generateMetadata(): Promise<Metadata> {
   const { settings, texts } = await getClub();
-  const mark = settings.markUrl;
   const title = `${texts.name} Platform`;
   const description = clubDescription(texts);
-  const icon = (file: Parameters<typeof clubIconUrl>[1]) =>
-    clubIconUrl(mark, file);
+  const icon = (file: IconFile) => clubIconUrl(settings, file);
+  const png = (file: IconFile, sizes: string) => {
+    const url = icon(file);
+    return url ? [{ url, sizes, type: "image/png" }] : [];
+  };
+  const og = icon("og.png");
   return {
     // Zorgt dat relatieve OG-images (zoals /icon-512.png op /live/[id])
     // door scrapers als WhatsApp/Discord als absolute URLs kunnen worden
@@ -51,18 +55,16 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     icons: {
       icon: [
-        { url: icon("favicon-32.png"), sizes: "32x32", type: "image/png" },
-        { url: icon("favicon-16.png"), sizes: "16x16", type: "image/png" },
-        { url: icon("icon-192.png"), sizes: "192x192", type: "image/png" },
-        { url: icon("icon-512.png"), sizes: "512x512", type: "image/png" },
+        // Tot 0322 de favicon.ico van de app-map; nu een vast bestand, alleen bij ZWB.
+        ...(settings.staticBrand && !settings.markUrl
+          ? [{ url: STATIC_FAVICON, sizes: "256x256", type: "image/x-icon" }]
+          : []),
+        ...png("favicon-32.png", "32x32"),
+        ...png("favicon-16.png", "16x16"),
+        ...png("icon-192.png", "192x192"),
+        ...png("icon-512.png", "512x512"),
       ],
-      apple: [
-        {
-          url: icon("apple-touch-icon.png"),
-          sizes: "180x180",
-          type: "image/png",
-        },
-      ],
+      apple: png("apple-touch-icon.png", "180x180"),
     },
     // Zonder deze blokken heeft een gedeelde link geen og:image en pakt WhatsApp
     // zelf maar een favicon — dat was het blokkerige logo.
@@ -72,20 +74,13 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: "nl_NL",
       title,
       description,
-      images: [
-        {
-          url: icon("og.png"),
-          width: 1200,
-          height: 630,
-          alt: clubCommunity(texts),
-        },
-      ],
+      images: og ? [{ url: og, width: 1200, height: 630, alt: clubCommunity(texts) }] : [],
     },
     twitter: {
-      card: "summary_large_image",
+      card: og ? "summary_large_image" : "summary",
       title,
       description,
-      images: [icon("og.png")],
+      images: og ? [og] : [],
     },
   };
 }

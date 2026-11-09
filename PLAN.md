@@ -57,9 +57,14 @@ gaat stabiliteit voor nieuwe features.
    gecommit, niet gepusht.** Geen migratie voor ZWB. Proefproject
    `zwb-proefclub` ($10 per maand) staat nog aan. Migratiescript
    `scripts/migrate-installation.mjs`, de handleiding bijgewerkt. Open: het
-   ZWB-logo als terugval bij een andere club (voorstel nodig), en het
    proefproject pauzeren of verwijderen. Zie de ronde "fase 7:
    proefinstallatie".
+
+0. **Generieke versie: geen ZWB-logo's bij een andere club (2026-11-09):
+   lokaal gecommit, niet gepusht. Migratie `0322` niet toegepast op
+   productie** (wel op het proefproject). Bij het live zetten eerst `0322`,
+   dan pushen; daarna nalopen dat ZWB zijn logo, favicon en app-iconen houdt.
+   Zie de ronde "geen ZWB-logo's bij een andere club".
 
 0. **Generieke versie, fase 6: inrichtingsmodule (2026-11-09): gepusht naar
    main** (`ae323155`). Geen migratie. `/beheer/inrichting` met de stappen Club,
@@ -12047,6 +12052,105 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Generieke versie: geen ZWB-logo's bij een andere club
+
+**2026-11-09, commit `COMMITL`.** Op verzoek van de eigenaar ("Kun je ervoor
+zorgen dat een blanco app ook geen logo's van zwb meeneemt? Dat ze dan dus
+leegblijven"), daarna "Ja, bouwen" op het voorstel. Migratie
+`0322_club_static_brand.sql`, **niet toegepast op productie**; wel op het
+proefproject `zwb-proefclub`, met `scripts/migrate-installation.mjs` (de eerste
+keer dat het script een nieuwe migratie oppakte).
+
+Aanleiding: bevinding 6 van fase 7. Zonder eigen logo of beeldmerk toonde de
+app de vaste ZWB-bestanden, ook bij een andere club. ZWB zelf heeft geen logo
+in `club_settings` en leunde op dezelfde terugval, dus de terugval weghalen
+zou ZWB zijn logo kosten.
+
+Wat er is:
+
+- **Kolom `club_settings.static_brand`** (standaard uit). `0322` zet hem aan
+  voor de rij met `short_name = 'ZWB'`, zoals `0319` en `0320`. Aan: zonder
+  eigen logo of beeldmerk gelden de vaste bestanden in `public/`, precies als
+  eerst. Uit: dan blijft die plek leeg. Een eigen logo of beeldmerk gaat altijd
+  voor. Geen scherm: alleen ZWB heeft hem aan.
+- **Code vóór de migratie:** ontbreekt de kolom, dan leest `club.ts` hem als
+  aan, zodat ZWB niets verliest als de code eerder live staat dan `0322`. Bij
+  de terugval zonder clubrij (een leesfout) staat hij uit, net als de naam
+  "Club" dan.
+- **`src/lib/club-icons.ts`**: `clubIconUrl`, `clubLogoUrl` en het nieuwe
+  `clubPushIcons` nemen de instellingen en geven `null` als er niets is.
+- **Wat een blanco club nu toont**, zonder eigen logo of beeldmerk:
+  - de kop van de app, het inlogscherm en `/welkom`: de clubnaam als tekst
+    (`ClubLogo` in `src/components/tegels/club-logo.tsx`; kort in de kop, de
+    hele naam op het inlogscherm), in de maat van het logo;
+  - favicons, app-iconen en het manifest: geen;
+  - de deelkaart (og-image), ook op `/live/[id]`: geen, met een kleine
+    Twitter-kaart;
+  - `/favicon.ico`: een 404. Tot nu toe was dat `src/app/favicon.ico`, voor
+    iedereen. Het bestand staat nu als `public/zwb-favicon.ico`; een route
+    `src/app/favicon.ico/route.ts` stuurt ZWB erheen en een club met een
+    beeldmerk naar het gegenereerde icoon. ZWB krijgt dezelfde link in de
+    kop, nu naar `/zwb-favicon.ico`;
+  - `/club-icon/[file]`: een 404 in plaats van een redirect naar ZWB;
+  - pushmeldingen: geen icoon en geen badge. De server stuurt ze nu mee
+    (`lib/push/send.ts`); `public/sw-push.js` valt alleen terug op de
+    ZWB-bestanden als de sleutel ontbreekt (een oudere server);
+  - het merk naast de titel op `/live/[id]`, `/live/zrl/[id]` en de
+    omnium-site: het beeldmerk van de club, anders niets (`ClubMark`);
+  - de wand van de galerij in Rennersniveau en van de bekerkast: zonder logo
+    geen logobordjes, alleen spreuken en sponsors;
+  - het voorbeeld op `/beheer/huisstijl`: een leeg vak.
+- **Ook meegenomen:** de metadata van `/live/[id]` noemde "ZWB live", "ZWB
+  Cycling" en "ZWB Cycling Community" vast; nu de clubnaam. Bij ZWB levert
+  dat dezelfde tekst op (naam "ZWB Cycling", korte naam "ZWB", nagekeken op
+  productie).
+
+**Bewust niet:**
+
+- **Het ZWB-logo in de ZWB-rij zetten** in plaats van een kolom: dan maakt de
+  app de iconen van ZWB uit dat beeldmerk, en ziet ZWB andere favicons.
+- **Op "ZWB" controleren in de code**: werkt zonder migratie, maar zet een
+  clubnaam vast in de code.
+- **`/brochure`**: helemaal een ZWB-pagina, met ZWB-tekst en -beelden. Logo's
+  eruit halen maakt hem niet bruikbaar voor een andere club.
+- **De auth-mails**: de templates in
+  [supabase-auth-email-templates.md](docs/supabase-auth-email-templates.md)
+  noemen ZWB en `{{ .SiteURL }}/zwb-logo.png`, en dat bestand blijft voor elke
+  installatie bestaan. Ze staan in Supabase zelf, per project; een eigen
+  versie per club hoort bij de eigen SMTP (handleiding §1).
+- **Een badge uit het beeldmerk**: een badge is een wit silhouet, dat valt niet
+  uit een gekleurd beeldmerk af te leiden. Een club met een beeldmerk krijgt
+  dus wel een icoon maar geen badge (Android toont dan zijn eigen).
+- **Een beeldmerk met de hand op aan zetten** voor andere clubs: geen scherm,
+  het blijft een ZWB-kolom.
+
+**Niet meer waar:** fase 2 (ronde "clubkleuren", huisstijl deel 2) zei dat
+zonder logo het vaste `/zwb-logo.png` geldt en dat metadata en manifest zonder
+beeldmerk naar de vaste bestanden wijzen; fase 7 noemde dit als open punt. Die
+zinnen zijn aangepast.
+
+Lokaal: `tsc` en eslint zijn schoon; `next build` met de env van de proefclub
+slaagt. Tests: `baseline` (ZWB heeft `static_brand` aan, de seed uit),
+`club-theme` (iconen bij ZWB, blanco en eigen), `club`, `club-texts`,
+`club-setup`, de push-tests en de omnium- en briljant-tests: alle groen.
+`omnium-live` heeft `.env.local` nodig.
+
+**Bekeken op de proefclub** (lokaal, `next start`): blanco geen iconen in de
+kop, een leeg manifest, `/favicon.ico` en `/club-icon/icon-192.png` een 404,
+geen og-image, "TCU" in de kop en "Testclub Utrecht" op het inlogscherm, lege
+vakken op `/beheer/huisstijl`, en geen verwijzing naar een ZWB-bestand in de
+HTML van `/login`, `/welkom`, `/beheer/huisstijl`, `/stats/zwbriljant` en
+`/zwbekers`. Met `static_brand` even aan op het proefproject: dezelfde links
+in de kop als eerst (alleen `/favicon.ico?…` heet nu `/zwb-favicon.ico`), het
+ZWB-logo, het manifest met de vaste iconen en `/favicon.ico` naar het
+ZWB-bestand. Daarna weer uit gezet.
+
+**Niet bekeken:** een echte pushmelding (geen VAPID-sleutels lokaal), de
+3D-wanden van de galerij en de bekerkast in de browser, en ZWB zelf: de
+migratie staat niet op productie. **Volgorde bij het live zetten:** eerst
+`0322` toepassen, dan pushen. Andersom gaat ook goed, want zonder kolom geldt
+hij als aan.
+
 ### Gebouwd — Generieke versie, fase 7: proefinstallatie
 
 **2026-11-09, commit `b0836acb`.** Op verzoek van de eigenaar ("ga verder", na
@@ -12114,7 +12218,8 @@ Wat er is:
    ZWB-iconen** (`clubLogoUrl` en `ICON_VARIANTS` in `src/lib/club-icons.ts`).
    Bewust zo gebouwd in fase 2, zodat er bij ZWB niets veranderde, maar bij
    een andere club is het fout. De live-pagina's en de omnium-site tonen
-   `ZwbMark` vast. Niet opgelost: zie "Bewust niet".
+   `ZwbMark` vast. ~~Niet opgelost: zie "Bewust niet".~~ Opgelost in de ronde
+   "geen ZWB-logo's bij een andere club" (`0322`).
 7. **De inrichting werkt van begin tot eind**: Club (de titel volgt meteen),
    Namen en woorden (woord en modulenaam in `club_settings` en
    `club_modules`), Herkenning (teamtag `[TCU]` wordt `TCU`, markers als
@@ -12131,10 +12236,12 @@ Wat er is:
 
 **Bewust niet:**
 
-- **Het logo en de iconen neutraal maken** (punt 6). ZWB heeft geen logo in
+- ~~**Het logo en de iconen neutraal maken** (punt 6). ZWB heeft geen logo in
   `club_settings` en leunt op dezelfde terugval; wie hem aanpast, moet eerst
   het ZWB-logo in de database zetten. Dat raakt ZWB en vraagt een voorstel.
-  Tot dan zegt de handleiding: zet meteen een eigen logo en beeldmerk.
+  Tot dan zegt de handleiding: zet meteen een eigen logo en beeldmerk.~~
+  Inmiddels gebouwd, met een kolom `static_brand` in plaats van het logo in
+  de database: zie de ronde "geen ZWB-logo's bij een andere club".
 - **De eerste beheerder zonder trigger uit te zetten**, bijvoorbeeld met een
   functie die alleen werkt als er nog geen beheerder is: in fase 5 koos de
   eigenaar voor een SQL-regel in de handleiding, en die werkt nu.
@@ -13634,11 +13741,13 @@ service role). Daarna naar `main` gepusht.
 - **Logo en beeldmerk.** Upload op `/beheer/huisstijl`; elke upload krijgt een
   nieuwe bestandsnaam, het oude bestand wordt opgeruimd. Het logo staat in de
   kop van de schil, in het inlogkader (`TegelsAuthFrame`) en op `/welkom`;
-  zonder logo het vaste `/zwb-logo.png`. Uit het beeldmerk maakt
+  zonder logo het vaste `/zwb-logo.png` (sinds `0322` alleen bij ZWB; een
+  andere club toont dan de clubnaam). Uit het beeldmerk maakt
   `/club-icon/[file].png` (`next/og`) de favicons, de app-iconen (ook
   maskeerbaar), het Apple-icoon en de deelkaart, op de primaire kleur. Zonder
   beeldmerk wijzen metadata en manifest naar de vaste bestanden op hun oude
-  adres (`lib/club-icons.ts`), en geeft de route een redirect. De namen eindigen
+  adres (`lib/club-icons.ts`), en geeft de route een redirect; sinds `0322`
+  alleen bij ZWB, een andere club heeft dan geen iconen. De namen eindigen
   op .png, zodat de middleware ze overslaat.
 - **Kaarten.** `lib/use-club-colors.ts` leest de vijf kleuren als hex uit de
   pagina, voor Leaflet (dat kleuren als SVG-attribuut zet): de klimkleuren op de

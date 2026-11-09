@@ -136,8 +136,10 @@ afgerond, toont het dashboard de beheerder een balk ernaartoe. De stappen staan
 op `/hulp`, onder "De club inrichten". Teams maak je daarna in de app; de seed
 heeft er geen.
 
-Zonder eigen logo en beeldmerk (stap Huisstijl) toont de app het ZWB-logo en de
-ZWB-iconen. Zet ze dus meteen.
+Zonder eigen logo (stap Huisstijl) staat de clubnaam in de kop en op het
+inlogscherm; zonder eigen beeldmerk heeft de app geen favicon, app-iconen of
+deelkaart. Zet ze dus meteen. De vaste ZWB-bestanden gelden alleen bij ZWB
+(`static_brand`, migratie `0322`).
 
 ## 6. Koppelingen en geplande taken
 

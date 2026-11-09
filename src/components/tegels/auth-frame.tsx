@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
 import { tegelsFontVariables } from "./font";
 import { getClub } from "@/lib/club";
-import { clubLogoUrl } from "@/lib/club-icons";
+import { ClubLogo } from "./club-logo";
 import { clubCommunity } from "@/lib/club-texts";
 
 /** Kader van de schermen vóór het inloggen in het design "tegels": de
  * tenuebanen van de schil, het originele logo, één smalle kolom. */
 export async function TegelsAuthFrame({ children }: { children: ReactNode }) {
-  // Het logo van de club (0315), anders het ZWB-logo.
   const { settings } = await getClub();
   return (
     <div
@@ -16,8 +15,7 @@ export async function TegelsAuthFrame({ children }: { children: ReactNode }) {
     >
       <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 px-4 py-10">
         <div className="tg-logo tg-logo-lg self-start">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={clubLogoUrl(settings.logoUrl)} alt={settings.logoUrl ? settings.name : clubCommunity(settings)} />
+          <ClubLogo large alt={settings.logoUrl ? settings.name : clubCommunity(settings)} />
         </div>
         {children}
       </main>

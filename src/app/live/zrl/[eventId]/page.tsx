@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/app/omnium/_components/auto-refresh";
 import { BackLink } from "@/components/app-ui";
-import { ZwbMark } from "@/components/zwb-logo";
+import { ClubMark } from "@/components/club-mark";
 import { WTRL_ZRL_RESULTS_URL } from "@/lib/teams/wtrl-results";
 import { loadZrlLive, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import type { RiderScore, ZrlScoringFormat } from "@/lib/zrl-live/scoring";
@@ -71,7 +71,7 @@ function clock(ms: number) {
 function Header({ title }: { title: string }) {
   return (
     <header className="flex items-center gap-3">
-      <ZwbMark className="h-10 w-10" />
+      <ClubMark className="h-10 w-10" />
       <div>
         <p className="text-xs uppercase tracking-wide text-muted-foreground"><ClubName /> · ZRL live</p>
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>

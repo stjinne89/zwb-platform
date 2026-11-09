@@ -11,7 +11,10 @@ import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import type { ColLite, ClimbRange } from "@/lib/gpx-climbs";
 import { isPoiType, type EventPoi } from "@/app/(app)/events/[id]/_components/poi";
 import type { EventZone } from "@/app/(app)/events/[id]/_components/zone";
-import { ZwbMark } from "@/components/zwb-logo";
+import { ClubMark } from "@/components/club-mark";
+import { getClub } from "@/lib/club";
+import { clubIconUrl } from "@/lib/club-icons";
+import { clubCommunity } from "@/lib/club-texts";
 import { BackLink } from "@/components/app-ui";
 import { createClient } from "@/lib/supabase/server";
 import { ClubName, ClubShortName } from "@/components/club-texts-provider";
@@ -47,17 +50,20 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { eventId } = await params;
   const snapshot = await fetchEventLiveSnapshot(eventId);
+  const { settings, texts } = await getClub();
   if (!snapshot.event) {
     return {
-      title: "ZWB Live",
-      description: "Live volgen van ZWB Cycling-ritten.",
+      title: `${texts.shortName} Live`,
+      description: `Live volgen van ${texts.name}-ritten.`,
     };
   }
   const event = snapshot.event;
   const startLabel = formatStartLabel(new Date(event.start_at));
   const locationSuffix = event.location ? ` vanaf ${event.location}` : "";
   const description = `Volg ${event.title} live op ${startLabel}${locationSuffix}.`;
-  const title = `ZWB live: ${event.title}`;
+  const title = `${texts.shortName} live: ${event.title}`;
+  // De deelkaart van de club; zonder beeldmerk (en buiten ZWB, 0322) geen.
+  const og = clubIconUrl(settings, "og.png");
 
   return {
     title,
@@ -66,22 +72,15 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
-      siteName: "ZWB Cycling",
+      siteName: texts.name,
       locale: "nl_NL",
-      images: [
-        {
-          url: "/og-default.png",
-          width: 1200,
-          height: 630,
-          alt: "ZWB Cycling Community",
-        },
-      ],
+      images: og ? [{ url: og, width: 1200, height: 630, alt: clubCommunity(texts) }] : [],
     },
     twitter: {
-      card: "summary_large_image",
+      card: og ? "summary_large_image" : "summary",
       title,
       description,
-      images: ["/og-default.png"],
+      images: og ? [og] : [],
     },
     robots: {
       // Niet indexeren — dit is een share-link, geen publieke landing.
@@ -255,7 +254,7 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
       {user && <BackLink href={`/events/${eventId}`} label="Event" />}
       <header className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <ZwbMark className="h-10 w-10" />
+          <ClubMark className="h-10 w-10" />
           <div>
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               <ClubName /> · Live volgen

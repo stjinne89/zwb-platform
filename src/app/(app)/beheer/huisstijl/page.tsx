@@ -39,6 +39,8 @@ export default async function HuisstijlPage() {
   const font = resolveFont(row.font as string | null) ?? DEFAULT_FONT;
   const logoUrl = (row.logo_url as string | null) ?? null;
   const markUrl = (row.mark_url as string | null) ?? null;
+  // Ontbreekt de kolom (vóór 0322), dan is dit ZWB.
+  const staticBrand = (row.static_brand as boolean | undefined) ?? true;
 
   return (
     <div className="space-y-6">
@@ -56,7 +58,7 @@ export default async function HuisstijlPage() {
           <HuisstijlEditor stored={stored} />
           <div className="grid gap-4 lg:grid-cols-2">
             <FontPicker initial={font} />
-            <ClubImages logoUrl={logoUrl} markUrl={markUrl} />
+            <ClubImages logoUrl={logoUrl} markUrl={markUrl} staticBrand={staticBrand} />
           </div>
         </>
       )}

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { tegelsFontVariables } from "@/components/tegels/font";
 import type { PlaceId } from "@/lib/design-places";
 import { getClub } from "@/lib/club";
-import { clubLogoUrl } from "@/lib/club-icons";
+import { ClubLogo } from "@/components/tegels/club-logo";
 import { TegelsTabs } from "./tegels-tabs";
 import { clubCommunity } from "@/lib/club-texts";
 
@@ -26,8 +26,6 @@ export async function TegelsShell({
   hiddenPlaces?: PlaceId[];
 }) {
   const clubTexts = (await getClub()).texts;
-  // Het logo van de club (0315), anders het ZWB-logo.
-  const logo = clubLogoUrl((await getClub()).settings.logoUrl);
   return (
     <div
       data-design="tegels"
@@ -41,8 +39,7 @@ export async function TegelsShell({
             className="tg-logo flex shrink-0 items-center"
             aria-label={clubCommunity(clubTexts)}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logo} alt="" />
+            <ClubLogo />
           </Link>
           {back}
           <TegelsTabs position="top" hiddenPlaces={hiddenPlaces} />

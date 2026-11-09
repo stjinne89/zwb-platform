@@ -89,6 +89,8 @@ type Props = {
   hall: BriljantHallStone[] | null;
   /** De sponsors met een logo, voor de bordjes aan de wand van de galerij. */
   sponsors?: Array<{ id: string; name: string }>;
+  /** Het logo van de club aan de wand van de galerij, of null (0322). */
+  logoUrl?: string | null;
   /** Je verbergt je steen, en ziet dus ook die van andere leden niet. */
   hidden: boolean;
 };
@@ -508,7 +510,7 @@ function PanelBody({
   );
 }
 
-export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compare, lines, options, changes, wins, hall, sponsors, hidden }: Props) {
+export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compare, lines, options, changes, wins, hall, sponsors, logoUrl, hidden }: Props) {
   const clubTexts = useClubTexts();
   const labels = useRef(new Map<string, HTMLElement>());
   const moduleLabel = useModuleName("rennersniveau");
@@ -603,6 +605,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
             stones={hall.map((stone) => ({ ...sceneStone(stone.view), id: stone.id }))}
             startId="ik"
             sponsors={sponsors}
+            logoUrl={logoUrl}
             labels={labels}
             onFailed={() => setFailed(true)}
             rotate={!panel && !aiming}

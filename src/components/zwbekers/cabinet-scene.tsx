@@ -16,6 +16,8 @@ type Props = {
   startId?: string;
   /** De sponsors met een logo, voor de bordjes tussen de kasten (zoals in ZWBriljant). */
   sponsors?: Array<{ id: string; name: string }>;
+  /** Het logo van de club aan de wand; zonder logo (0322) geen logobordjes. */
+  logoUrl?: string | null;
   labels: RefObject<Map<string, HTMLElement>>;
   onFailed: () => void;
   rotate: boolean;
@@ -108,19 +110,21 @@ function crownPlate(text: string, width: number, height: number, serif: string) 
  * de kast breder. Scrollen, slepen of de pijltjes lopen van kast naar kast; op
  * de telefoon veeg je ook omhoog en omlaag langs de planken.
  */
-export default function CabinetScene({ bekers, startId, sponsors = [], labels, onFailed, rotate }: Props) {
+export default function CabinetScene({ bekers, startId, sponsors = [], logoUrl = null, labels, onFailed, rotate }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const rotating = useRef(rotate);
   useEffect(() => {
     rotating.current = rotate;
   }, [rotate]);
   const [failed, setFailed] = useState(false);
-  const key = `${startId ?? ""}|${bekers.map((beker) => `${beker.id}:${beker.year}:${JSON.stringify(beker.design)}`).join("|")}|${sponsors.map((sponsor) => sponsor.id).join(",")}`;
+  const key = `${startId ?? ""}|${bekers.map((beker) => `${beker.id}:${beker.year}:${JSON.stringify(beker.design)}`).join("|")}|${sponsors.map((sponsor) => sponsor.id).join(",")}|${logoUrl ?? ""}`;
   const current = useRef(bekers);
   const currentSponsors = useRef(sponsors);
+  const currentLogo = useRef(logoUrl);
   useEffect(() => {
     current.current = bekers;
     currentSponsors.current = sponsors;
+    currentLogo.current = logoUrl;
   });
 
   useEffect(() => {
@@ -324,11 +328,19 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
       object.position.set(at, totalHeight * 0.62, wallZ + 0.03);
       scene.add(object);
     };
-    hang(emblem(1.8, load, keep), minX - widths[0] / 2 - between / 2 - 0.4);
-    hang(emblem(1.8, load, keep), maxX + widths[widths.length - 1] / 2 + between / 2 + 0.4);
+    // Het logo van de club; zonder logo (0322) alleen spreuken en sponsors.
+    const logo = currentLogo.current;
+    if (logo) {
+      hang(emblem(logo, 1.8, load, keep), minX - widths[0] / 2 - between / 2 - 0.4);
+      hang(emblem(logo, 1.8, load, keep), maxX + widths[widths.length - 1] / 2 + between / 2 + 0.4);
+    }
     // Tussen de kasten om de beurt een spreuk, een sponsor en het logo.
     const sponsorList = currentSponsors.current;
-    const kinds = sponsorList.length > 0 ? (["spreuk", "sponsor", "logo"] as const) : (["spreuk", "logo"] as const);
+    const kinds: ReadonlyArray<"spreuk" | "sponsor" | "logo"> = [
+      "spreuk",
+      ...(sponsorList.length > 0 ? (["sponsor"] as const) : []),
+      ...(logo ? (["logo"] as const) : []),
+    ];
     const counts = { spreuk: 0, sponsor: 0 };
     for (let i = 1; i < centers.length; i++) {
       const at = (centers[i - 1] + widths[i - 1] / 2 + centers[i] - widths[i] / 2) / 2;
@@ -337,7 +349,7 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
       else if (kind === "sponsor") {
         const sponsor = sponsorList[counts.sponsor++ % sponsorList.length];
         hang(board(`/api/briljant/sponsor-logo/${sponsor.id}`, between * 0.6, between * 0.36, load, keep), at);
-      } else hang(emblem(between * 0.6, load, keep), at);
+      } else if (logo) hang(emblem(logo, between * 0.6, load, keep), at);
     }
 
     scene.add(new THREE.HemisphereLight(0xf2ead8, 0x55605c, 0.6));

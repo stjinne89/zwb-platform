@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ZwbMark } from "@/components/zwb-logo";
+import { ClubMark } from "@/components/club-mark";
 import { moduleName } from "@/lib/club";
 import { ClubName } from "@/components/club-texts-provider";
 
@@ -37,7 +37,7 @@ export default function OmniumLayout({
       <header className="border-b bg-card/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link href="/omnium" className="flex items-center gap-2">
-            <ZwbMark className="h-7 w-auto" />
+            <ClubMark className="h-7 w-auto" />
             <span className="text-sm font-semibold tracking-wide">OMNIUM</span>
           </Link>
           <nav className="flex flex-wrap gap-4 text-sm">

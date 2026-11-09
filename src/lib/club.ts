@@ -38,9 +38,11 @@ export type ClubSettings = {
   palette: ClubPalette | null;
   /** Eigen letter (0315), of null: Barlow Semi Condensed. */
   font: ClubFont | null;
-  /** Logo en beeldmerk (0315) als publieke URL, of null: de vaste ZWB-bestanden. */
+  /** Logo en beeldmerk (0315) als publieke URL, of null (lib/club-icons.ts). */
   logoUrl: string | null;
   markUrl: string | null;
+  /** Zonder eigen logo of beeldmerk de vaste bestanden in public/ (0322); alleen ZWB. */
+  staticBrand: boolean;
   /** Eigen woorden (0319), of null: het neutrale woord (lib/club-texts.ts). */
   appName: string | null;
   adviceName: string | null;
@@ -77,6 +79,7 @@ export const EMPTY_CLUB_SETTINGS: ClubSettings = {
   font: null,
   logoUrl: null,
   markUrl: null,
+  staticBrand: false,
   appName: null,
   adviceName: null,
   currencyNoun: null,
@@ -127,6 +130,9 @@ const loadClubRows = unstable_cache(
             font: resolveFont(s.font as string | null | undefined),
             logoUrl: (s.logo_url as string | null) ?? null,
             markUrl: (s.mark_url as string | null) ?? null,
+            // Ontbreekt de kolom (code live vóór 0322), dan is dit ZWB: houd de
+            // vaste bestanden. Na 0322 is hij nooit null.
+            staticBrand: (s.static_brand as boolean | undefined) ?? true,
             appName: (s.app_name as string | null | undefined) ?? null,
             adviceName: (s.advice_name as string | null | undefined) ?? null,
             currencyNoun: (s.currency_noun as string | null | undefined) ?? null,
@@ -144,7 +150,7 @@ const loadClubRows = unstable_cache(
       })),
     };
   },
-  ["club-settings", "v5"],
+  ["club-settings", "v6"],
   { revalidate: 60 * 60, tags: [CLUB_TAG] },
 );
 

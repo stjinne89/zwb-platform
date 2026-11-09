@@ -24,11 +24,14 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "ZWB Cycling";
   const options = {
     body: payload.body || "",
-    icon: payload.icon || "/icon-192.png",
+    // Sinds 0322 stuurt de server icoon en badge van de club mee; null is
+    // "geen" (een club zonder beeldmerk). Zonder sleutel (een oudere server)
+    // de vaste ZWB-bestanden, zoals eerder.
+    icon: "icon" in payload ? payload.icon || undefined : "/icon-192.png",
     // Android tekent de badge als alfamasker op ~24px: elke dekkende pixel
     // wordt wit. Met icon-192.png (een vol vierkant) leverde dat een massief
     // wit blok op. badge-96.png is transparant met alleen het merksilhouet.
-    badge: payload.badge || "/badge-96.png",
+    badge: "badge" in payload ? payload.badge || undefined : "/badge-96.png",
     image: payload.image || undefined,
     actions: Array.isArray(payload.actions) ? payload.actions : undefined,
     tag: payload.tag || undefined,

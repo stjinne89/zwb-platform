@@ -2,7 +2,8 @@ import { EmptyState } from "@/components/app-ui";
 import { KastView, type KastItem } from "@/components/zwbekers/kast-view";
 import { dayLabel, namesLabel } from "@/lib/zwbekers/nomination";
 import { loadKast, loadOwnNominations, requireBekerMember } from "@/lib/zwbekers/server";
-import { moduleName } from "@/lib/club";
+import { getClub, moduleName } from "@/lib/club";
+import { clubLogoUrl } from "@/lib/club-icons";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -66,6 +67,7 @@ export default async function ZwbekersPage({ searchParams }: { searchParams: Pro
       bekers={items}
       startId={start}
       sponsors={sponsors}
+      logoUrl={clubLogoUrl((await getClub()).settings)}
       ownOpen={own.length}
       waiting={waiting}
     />

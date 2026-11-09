@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { tegelsFontVariables } from "@/components/tegels/font";
 import { getClub } from "@/lib/club";
-import { clubLogoUrl } from "@/lib/club-icons";
+import { ClubLogo } from "@/components/tegels/club-logo";
 import type { PlaceTone } from "@/components/tegels/link-grid";
 import {
   helpVideo,
@@ -351,8 +351,7 @@ export default async function WelkomPage() {
             className="tg-logo flex shrink-0 items-center"
             aria-label={clubCommunity(clubTexts)}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={clubLogoUrl((await getClub()).settings.logoUrl)} alt="" />
+            <ClubLogo />
           </Link>
           <Link
             href={!user ? "/login" : isApproved ? "/dashboard" : "/wachten"}
