@@ -14,7 +14,7 @@ export type Place = {
 };
 
 export const PLACES: Place[] = [
-  { id: "vandaag", label: "Vandaag", href: "/dashboard", prefixes: ["/dashboard"] },
+  { id: "vandaag", label: "Dashboard", href: "/dashboard", prefixes: ["/dashboard"] },
   {
     id: "kalender",
     label: "Kalender",

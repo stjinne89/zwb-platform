@@ -1,5 +1,5 @@
 /**
- * Wie er nu live rijdt, als korte zin voor de tegel op Vandaag: "Jij en Anna",
+ * Wie er nu live rijdt, als korte zin voor de tegel op het dashboard: "Jij en Anna",
  * "Anna, Bert en Carla" of "Anna, Bert, Carla en 2 anderen". De kijker zelf
  * staat voorop als "Jij".
  */
