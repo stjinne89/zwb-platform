@@ -2,14 +2,7 @@ import Link from "next/link";
 import { BackLink } from "@/components/app-ui";
 import { formatPrivacyVersion } from "@/lib/privacy";
 import { aiProcessorName } from "@/lib/ai/settings";
-import {
-  ClubContactLink,
-  ClubName,
-  ClubShortName,
-  ClubText,
-  MemberNoun,
-  ModuleName,
-} from "@/components/club-texts-provider";
+import { ClubContactLink, ClubName, ClubShortName, ClubText, MemberNoun, ModuleName } from "@/components/club-texts-provider";
 import { getClub } from "@/lib/club";
 
 export async function generateMetadata() {
@@ -150,7 +143,7 @@ export default function PrivacyPage() {
             ploegleider kan de link intrekken.
           </li>
           <li id="racen" className="scroll-mt-20">
-            <strong>Analyse van Zwift-races (ZWBeter racen):</strong> na een
+            <strong><ClubText text="Analyse van Zwift-races ({beter} racen):" /></strong> na een
             ZRL-race bewaren we uit de uitslag en de segmentresultaten van Zwift
             per renner ook het gemiddelde vermogen, het gewicht, het soort
             vermogensmeter, het beste vermogen over 15 seconden en 1, 5 en 20
@@ -535,7 +528,7 @@ export default function PrivacyPage() {
             corelogboek en clubritten, je <ModuleName module="rennersniveau" />-steen (klasse, punten en
             het onderdeel waar je het meest wint, uit je bewaarde weeksteen), en of je het
             overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je
-            steen niet met leden deelt. Gebruik je ZWBeter voor je training, dan
+            steen niet met leden deelt. Gebruik je <ClubText text="{beter}" /> voor je training, dan
             gaat die samenvatting zonder je naam en zonder je steen naar {AI} om het oordeel van
             de coach te schrijven, samen met je beschikbaarheid, trainingen en
             events van de week erna. Het staat in je data-export en verdwijnt

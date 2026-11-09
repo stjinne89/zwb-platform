@@ -401,7 +401,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
       "Binnen rijden zonder ventilator is niet als zodanig onderzocht. Het werkt via dezelfde prikkel, een hogere kerntemperatuur. Zonder CORE-sensor weet je niet of je warm genoeg was.",
       "De winst geldt voor wedstrijden in de warmte. In koel weer liet de badstudie geen verschil zien.",
       "De CORE-sensor schat je kerntemperatuur vanaf de huid. In vier validatiestudies week hij vaak meer dan 0,3 °C af: soms te laag, vooral bij hoge temperaturen, soms te hoog, vooral later in de rit en bij meer onderhuids vet. Zie de waarde als richting.",
-      "Op 38,5 °C werkten renners in de hittepakstudies naartoe. Hoeveel minuten daarboven de app als sessie telt, is een eigen keuze van ZWB.",
+      "Op 38,5 °C werkten renners in de hittepakstudies naartoe. Hoeveel minuten daarboven de app als sessie telt, is een eigen keuze.",
     ],
     sources: [RACINAIS_2015, ZURAWLEW_2016, MCDONALD_2025, VERDEL_2021, GOODS_2023, MCLAUGHLIN_2025, DAANEN_2023],
     article: { href: "/zwbeter-worden/kennis/hittetraining", title: "Hittetraining" },
@@ -466,7 +466,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
       "De studies gebruikten een hittekamer van 38 tot 40 °C of een hittepak. Thuis met extra kleding fietsen maakte vrouwen in tien dagen beter bestand tegen hitte, maar verhoogde hun hemoglobine niet.",
       "Stop je, dan is de winst binnen twee weken weg. Drie sessies per week hielden de hemoglobine in een proef wel op peil.",
       "De CORE-sensor schat je kerntemperatuur vanaf de huid. In vier validatiestudies week hij vaak meer dan 0,3 °C af: soms te laag, vooral bij hoge temperaturen, soms te hoog, vooral later in de rit en bij meer onderhuids vet. Zie de waarde als richting.",
-      "Op 38,5 °C werkten renners in de hittepakstudies naartoe. Hoeveel minuten daarboven de app als sessie telt, is een eigen keuze van ZWB.",
+      "Op 38,5 °C werkten renners in de hittepakstudies naartoe. Hoeveel minuten daarboven de app als sessie telt, is een eigen keuze.",
     ],
     sources: [
       OBERHOLZER_2019,

@@ -89,7 +89,7 @@ export async function TrainingAdvice(props: StatusArgs) {
   return (
     <Link href="/zwbeter-worden" className="tg-tile tg-zwbeter col-span-2">
       <span className="tg-tile-small">
-        ZWBeter trainen{advice.level > 0 ? ` · niveau ${advice.level}` : ""}
+        <ClubText text="{beter} trainen" />{advice.level > 0 ? ` · niveau ${advice.level}` : ""}
       </span>
       <span className="tg-tile-title mt-0.5">{advice.title}</span>
       <span className="mt-1 text-sm opacity-90"><ClubText text={advice.description} /></span>

@@ -46,6 +46,7 @@ export type ClubSettings = {
   currencyNoun: string | null;
   currencyNounPlural: string | null;
   cupNoun: string | null;
+  betterWord: string | null;
 };
 
 type ClubRow = {
@@ -77,6 +78,7 @@ export const EMPTY_CLUB_SETTINGS: ClubSettings = {
   currencyNoun: null,
   currencyNounPlural: null,
   cupNoun: null,
+  betterWord: null,
 };
 
 const loadClubRows = unstable_cache(
@@ -124,6 +126,7 @@ const loadClubRows = unstable_cache(
             currencyNoun: (s.currency_noun as string | null | undefined) ?? null,
             currencyNounPlural: (s.currency_noun_plural as string | null | undefined) ?? null,
             cupNoun: (s.cup_noun as string | null | undefined) ?? null,
+            betterWord: (s.better_word as string | null | undefined) ?? null,
           }
         : null,
       modules: (modules.data ?? []).map((m) => ({

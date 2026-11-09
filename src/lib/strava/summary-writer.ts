@@ -47,6 +47,7 @@ import {
   composeDescription,
   pickPlannedWorkout,
   stripZwbSummary,
+  summaryHeader,
   summaryHash,
   type BriljantSummary,
 } from "@/lib/training/strava-summary";
@@ -333,6 +334,7 @@ export async function writeZwbSummariesForUser(
       : null;
     const block = buildZwbSummaryBlock({
       briljantName: clubTexts.modules.rennersniveau,
+      betterWord: clubTexts.words.beter,
       activityId: candidate.id,
       plannedTitle: matchedWorkout?.title ?? null,
       plannedIntensity: matchedWorkout?.intensity ?? null,
@@ -380,7 +382,11 @@ export async function writeZwbSummariesForUser(
       continue;
     }
 
-    const base = stripZwbSummary(detail.detail.description, existing?.summary_text);
+    const base = stripZwbSummary(
+      detail.detail.description,
+      existing?.summary_text,
+      summaryHeader(clubTexts.words.beter),
+    );
     const next = composeDescription(base, block);
     if (next === (detail.detail.description ?? "")) {
       // Staat er al goed. Claim bevestigen zonder Strava-call.

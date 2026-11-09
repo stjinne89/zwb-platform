@@ -42,9 +42,11 @@ export type ClubWords = {
   ballen: string;
   /** Eén beker van de prijzenkast, bv. "ZWBeker"; anders "beker". */
   beker: string;
+  /** Het woord voor de pijlers van de training, bv. "ZWBeter" ("ZWBeter racen"); anders "Beter". */
+  beter: string;
 };
 
-export const WORD_KEYS = ["app", "adviesnaam", "advies", "bal", "ballen", "beker"] as const satisfies readonly (keyof ClubWords)[];
+export const WORD_KEYS = ["app", "adviesnaam", "advies", "bal", "ballen", "beker", "beter"] as const satisfies readonly (keyof ClubWords)[];
 
 /** De eigen woorden uit club_settings (0318), aangevuld met de neutrale. */
 export function buildClubWords(club: {
@@ -54,6 +56,7 @@ export function buildClubWords(club: {
   currencyNoun?: string | null;
   currencyNounPlural?: string | null;
   cupNoun?: string | null;
+  betterWord?: string | null;
 }): ClubWords {
   const advice = club.adviceName?.trim();
   return {
@@ -63,6 +66,7 @@ export function buildClubWords(club: {
     bal: club.currencyNoun?.trim() || "bal",
     ballen: club.currencyNounPlural?.trim() || "ballen",
     beker: club.cupNoun?.trim() || "beker",
+    beter: club.betterWord?.trim() || "Beter",
   };
 }
 
@@ -83,6 +87,7 @@ export function buildClubTexts(
     currencyNoun?: string | null;
     currencyNounPlural?: string | null;
     cupNoun?: string | null;
+    betterWord?: string | null;
   },
   labelFor: (key: ModuleKey) => string,
   off: Iterable<ModuleKey> = [],
@@ -119,7 +124,8 @@ const CLUB_TOKEN = /\{([A-Za-z]+|m:[a-z_]+)\}/g;
  * Vult de clubwoorden in een vaste tekst in, voor teksten die als data in de
  * code staan (de hulp). `{club}` is de volledige naam, `{kort}` de korte naam,
  * `{lid}` en `{leden}` hoe een lid heet, `{m:sleutel}` de naam van een module
- * en `{app}`, `{advies}`, `{adviesnaam}`, `{bal}`, `{ballen}` en `{beker}` de
+ * en `{app}`, `{advies}`, `{adviesnaam}`, `{bal}`, `{ballen}`, `{beker}` en
+ * `{beter}` de
  * eigen woorden (ClubWords). Met een hoofdletter (`{Beker}`) begint het woord
  * met een hoofdletter, voor het begin van een zin of een titel. Een onbekende
  * sleutel blijft staan, zodat een fout zichtbaar is.

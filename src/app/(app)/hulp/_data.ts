@@ -224,7 +224,7 @@ export const GUIDES = [
       "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
       "Op zondagavond vanaf 18:00 opent je weekoverzicht: per scherm wat je die week deed (ritten, schema, belasting, vermogen, je {m:rennersniveau}-steen, teams, voeding en core, club), het oordeel van de coach, en als laatste je beschikbaarheid voor de week erna. Tik rechts voor verder, links voor terug, houd vast om te pauzeren. Wat je die week niet gebruikte, krijgt geen scherm. Reed je een ZRL-race met je team, dan toont het teamscherm je eigen race: je plek en punten tegenover de verwachting op je ZRS, je deel van de ploegpunten en waar je het meeste won of verloor; in een ploegentijdrit je W/kg naast de ploeg en of je bij de ploeg finishte. Daaronder de plaats van je ploeg.",
       "Op de laatste pagina van het weekoverzicht schuif je per dag je tijd; je ziet erbij voor welke events je al beschikbaar, opgesteld of aangemeld bent, en waar een event meer tijd vraagt dan je opgaf. Opslaan werkt je schema bij, net als op de schemapagina.",
-      "Het oordeel in het weekoverzicht schrijft de AI-coach als je ZWBeter voor je training gebruikt; anders is het een korte samenvatting uit vaste regels. De pop-up komt vanzelf tot en met woensdag; op het dashboard staat de hele week een ingang naar het overzicht van de laatst afgesloten week.",
+      "Het oordeel in het weekoverzicht schrijft de AI-coach als je {beter} voor je training gebruikt; anders is het een korte samenvatting uit vaste regels. De pop-up komt vanzelf tot en met woensdag; op het dashboard staat de hele week een ingang naar het overzicht van de laatst afgesloten week.",
       "Je trainer ziet bij een gereden training suggesties uit de uitvoering, en onder Races de tips uit je Zwift-races; hij beslist zelf wat hij je als feedback stuurt.",
     ],
   },
@@ -287,8 +287,8 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/stats/rankings", name: "{kort} Rankings", text: "De ranglijsten van deze en vorige week, de Hall of fame en het herberekenen van badges." },
   { href: "/zwbeter-worden", name: "{m:training}", text: "Schema's, AI-coach, je {advies}, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
-  { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden Zwift-races (ZRL, FRR, andere Zwift-races, ook buiten de kalender, of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu. Onder Racetips: tips van leden over racen in Zwift en buiten. Onder Kennisbank: tactiek in een Zwift-race, met bronnen." },
-  { href: "/zwbeter-worden/materiaal", name: "ZWBeter materiaal", text: "Kennisbank over materiaal en kleine winsten, met een rekenaar wat een verandering je oplevert, en je houding meten met de camera (bèta)." },
+  { href: "/zwbeter-worden/racen", name: "{beter} racen", text: "Je gereden Zwift-races (ZRL, FRR, andere Zwift-races, ook buiten de kalender, of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu. Onder Racetips: tips van leden over racen in Zwift en buiten. Onder Kennisbank: tactiek in een Zwift-race, met bronnen." },
+  { href: "/zwbeter-worden/materiaal", name: "{beter} materiaal", text: "Kennisbank over materiaal en kleine winsten, met een rekenaar wat een verandering je oplevert, en je houding meten met de camera (bèta)." },
   { href: "/mijn-garage", name: "Mijn garage", text: "Je fietsen en de slijtage van hun onderdelen, met een melding zodra er iets toe is aan vervanging." },
   { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de {kort}-ranglijst." },
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
@@ -484,7 +484,7 @@ export const INTERVALS_RIDE_NOTES = [
   "Oudere ritten: importeer het archief dat Strava je mailt (Settings → Download or delete your account) in intervals.icu, of upload activities.csv hieronder.",
   "Wat via intervals.icu niet kan: kudos en de kilometers per fiets in Mijn garage. Badges, weekstanden, {m:blokkenjacht}, cols en je trainingsschema werken wel. Segment- en coltijden meet {kort} zelf uit het spoor; die staan met GPS in het klassement.",
   "Heb je nu Strava gekoppeld? Op je profiel kun je overstappen. Je Strava-ritten verdwijnen dan en komen terug via intervals.icu, voor zover ze daar staan. Zo komt er een Strava-plek vrij voor een ander lid.",
-  "Wil je Strava houden maar je ritten uit intervals.icu? Zet op je profiel bij Strava Ritten via intervals.icu aan. Strava blijft dan gekoppeld voor de ZWBeter-samenvatting in je beschrijving en de kilometers per fiets. Ritten die al van Strava kwamen, blijven staan. Zet je het weer uit, dan haalt Strava je ritten opnieuw op.",
+  "Wil je Strava houden maar je ritten uit intervals.icu? Zet op je profiel bij Strava Ritten via intervals.icu aan. Strava blijft dan gekoppeld voor de {beter}-samenvatting in je beschrijving en de kilometers per fiets. Ritten die al van Strava kwamen, blijven staan. Zet je het weer uit, dan haalt Strava je ritten opnieuw op.",
 ];
 
 export const ADMIN_GUIDES = [

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PLACES, placeForPath, type PlaceId } from "@/lib/design-places";
+import { ClubText } from "@/components/club-texts-provider";
 
 /** De vier plekken van het design "tegels": onderin op de telefoon, bovenin op
  * een breed scherm. De actieve tab steekt uit. Een plek waarvan de module bij
@@ -32,7 +33,7 @@ export function TegelsTabs({
           aria-current={place.id === active ? "page" : undefined}
           className={`tg-tab tg-${place.id}`}
         >
-          {place.label}
+          <ClubText text={place.label} />
         </Link>
       ))}
     </nav>

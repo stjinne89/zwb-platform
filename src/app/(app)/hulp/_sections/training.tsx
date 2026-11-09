@@ -7,7 +7,6 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import { ZWB_SUMMARY_HEADER } from "@/lib/training/strava-summary";
 import {
   DATA_FRESHNESS_HELP,
   INTERVALS_CONNECT_STEPS,
@@ -15,6 +14,7 @@ import {
 import { BriljantHelp } from "./briljant";
 import { GuideCards } from "./guide-cards";
 import { HelpVideoLink } from "./help-video";
+import { StravaSummaryExample } from "./strava-summary-example";
 import { ClubShortName, ClubText, MemberNoun, ModuleName } from "@/components/club-texts-provider";
 
 export function TrainingHelp() {
@@ -409,7 +409,7 @@ export function TrainingHelp() {
           <FileText className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
             <h2 className="font-semibold">
-              ZWBeter-samenvatting in je Strava-omschrijving
+              <ClubText text="{beter}-samenvatting in je Strava-omschrijving" />
             </h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Na een rit zet <ClubShortName /> automatisch een blokje onderaan de omschrijving
@@ -422,8 +422,7 @@ export function TrainingHelp() {
 
         <div className="mt-5 rounded-md border bg-background p-4">
           <pre className="overflow-x-auto whitespace-pre text-xs text-muted-foreground">
-<ClubText text={`${ZWB_SUMMARY_HEADER}
-💎 {m:rennersniveau} Platina · 427 punten, nog 73 tot Amethist
+<StravaSummaryExample text={`💎 {m:rennersniveau} Platina · 427 punten, nog 73 tot Amethist
 🎯 3x10 min drempel (75 min) → gereden als drempel
 ⚡ 82 TSS, 8% boven plan
 🔋 Gereedscore 72, fris genoeg · fitheid stijgt

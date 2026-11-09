@@ -8,6 +8,7 @@ import {
   loadDeltaPct,
   pickPlannedWorkout,
   stripZwbSummary,
+  summaryHeader,
   unicodeBold,
   type BriljantSummary,
   type ZwbSummaryInput,
@@ -282,6 +283,13 @@ describe("stripZwbSummary", () => {
   it("gebruikt de laatste kopregel als die per ongeluk dubbel staat", () => {
     const doubled = `Boven\n\n${ZWB_SUMMARY_HEADER}\n\n${block}`;
     expect(stripZwbSummary(doubled, null)).toBe(`Boven\n\n${ZWB_SUMMARY_HEADER}`);
+  });
+
+  it("herkent de kop van een andere club en ook het oude ZWB-blok", () => {
+    const own = buildZwbSummaryBlock({ ...FULL, betterWord: "Beter" });
+    expect(own.split("\n")[0]).toBe(summaryHeader("Beter"));
+    expect(stripZwbSummary(`Lekkere rit!\n\n${own}`, null, summaryHeader("Beter"))).toBe("Lekkere rit!");
+    expect(stripZwbSummary(`Lekkere rit!\n\n${block}`, null, summaryHeader("Beter"))).toBe("Lekkere rit!");
   });
 });
 

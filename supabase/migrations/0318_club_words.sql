@@ -10,6 +10,8 @@
 --   currency_noun         het betaalmiddel van het      leeg: "bal"
 --   currency_noun_plural    voorspelspel                leeg: "ballen"
 --   cup_noun              één beker van de prijzenkast  leeg: "beker"
+--   better_word           het woord voor de pijlers     leeg: "Beter"
+--                         van de training ("ZWBeter racen", "ZWBeter-samenvatting")
 --
 -- De user agents gebruiken bewust de korte naam, niet app_name: zo blijft de
 -- gemeten user agent voor cyclingflash bij ZWB gelijk.
@@ -21,7 +23,8 @@ alter table public.club_settings
   add column if not exists advice_name text,
   add column if not exists currency_noun text,
   add column if not exists currency_noun_plural text,
-  add column if not exists cup_noun text;
+  add column if not exists cup_noun text,
+  add column if not exists better_word text;
 
 -- ZWB houdt zijn woorden. Alleen bij ZWB en alleen wat nog leeg is, zodat een
 -- andere installatie met deze migratie niets van ZWB krijgt.
@@ -32,11 +35,12 @@ set
   currency_noun = coalesce(currency_noun, 'ZWBal'),
   currency_noun_plural = coalesce(currency_noun_plural, 'ZWBallen'),
   cup_noun = coalesce(cup_noun, 'ZWBeker'),
+  better_word = coalesce(better_word, 'ZWBeter'),
   updated_at = now()
 where id and short_name = 'ZWB';
 
 notify pgrst, 'reload schema';
 
 -- Controle na toepassen:
--- select short_name, app_name, advice_name, currency_noun, currency_noun_plural, cup_noun
+-- select short_name, app_name, advice_name, currency_noun, currency_noun_plural, cup_noun, better_word
 --   from public.club_settings;

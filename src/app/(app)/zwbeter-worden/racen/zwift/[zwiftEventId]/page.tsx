@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getRequestUser } from "@/lib/auth/request";
 import { calendarEventForZwift, loadZwiftLinkRace } from "@/lib/zrl-analysis/load";
 import { PersonalRaceView } from "../../_components/personal-race";
+import { getClub } from "@/lib/club";
+import { fillClubText } from "@/lib/club-texts";
 
 type PageProps = { params: Promise<{ zwiftEventId: string }> };
 
@@ -12,7 +14,9 @@ export const dynamic = "force-dynamic";
 // segmenten pas als het lid meereed.
 export const maxDuration = 30;
 
-export const metadata: Metadata = { title: "ZWBeter racen" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: fillClubText("{beter} racen", (await getClub()).texts) };
+}
 
 /** Een Zwift-race buiten de kalender, via een geplakte link. */
 export default async function ZwiftRacePage({ params }: PageProps) {

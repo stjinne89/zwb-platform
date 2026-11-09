@@ -5,6 +5,7 @@ import { EVENT_TYPES, eventLabel } from "@/lib/event-types";
 import { NOTICE_INTEGRATIONS, noticeTemplate } from "@/lib/integrations/notices";
 import { defaultPacingPrompt } from "@/lib/pacing/prompt";
 import { COMMUNITY_PERMISSIONS } from "@/lib/permissions";
+import { summaryHeader, unicodeBold, ZWB_SUMMARY_HEADER } from "@/lib/training/strava-summary-header";
 import { conciseWorkoutTitle, intervalsWorkoutName } from "@/lib/training/workouts";
 import type { ModuleKey } from "@/lib/modules";
 
@@ -28,6 +29,7 @@ const zwb = buildClubTexts(
     currencyNoun: "ZWBal",
     currencyNounPlural: "ZWBallen",
     cupNoun: "ZWBeker",
+    betterWord: "ZWBeter",
   },
   (key: ModuleKey) => ZWB_LABELS[key] ?? neutralModuleNames()[key],
 );
@@ -82,6 +84,16 @@ describe("eigen woorden (0318)", () => {
     expect(fillClubText("{Beker} voordragen", other)).toBe("Beker voordragen");
     expect(fillClubText("{Beker} voordragen", zwb)).toBe("ZWBeker voordragen");
     expect(fillClubText("{Advies}", other)).toBe("Dagadvies");
+  });
+
+  it("vult het beter-woord in", () => {
+    expect(fillClubText("{beter} racen", zwb)).toBe("ZWBeter racen");
+    expect(fillClubText("{beter} racen", other)).toBe("Beter racen");
+  });
+
+  it("zet het beter-woord in de kop van het Strava-blok", () => {
+    expect(summaryHeader(zwb.words.beter)).toBe(ZWB_SUMMARY_HEADER);
+    expect(summaryHeader(other.words.beter)).toBe(unicodeBold("Beter workout-samenvatting"));
   });
 
   it("laat een onbekend woord staan", () => {

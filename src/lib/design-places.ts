@@ -21,7 +21,8 @@ export const PLACES: Place[] = [
     href: "/kalender",
     prefixes: ["/kalender", "/events", "/verjaardagen", "/ritverslagen"],
   },
-  { id: "zwbeter", label: "ZWBeter", href: "/zwbeter-worden", prefixes: ["/zwbeter-worden"] },
+  // Het label is een token (het woord van de club voor ZWBeter); de tabs vullen het.
+  { id: "zwbeter", label: "{beter}", href: "/zwbeter-worden", prefixes: ["/zwbeter-worden"] },
   {
     id: "club",
     label: "Club",

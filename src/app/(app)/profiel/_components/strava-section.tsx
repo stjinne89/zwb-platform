@@ -11,7 +11,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ConnectWithStrava, StravaAttribution } from "@/components/strava-brand";
 import { cn } from "@/lib/utils";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
-import { ModuleName } from "@/components/club-texts-provider";
+import { ClubText, ModuleName } from "@/components/club-texts-provider";
 import { useModuleName } from "@/components/club-texts-provider";
 import { ClubShortName } from "@/components/club-texts-provider";
 
@@ -117,7 +117,7 @@ export function StravaSection({
             <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               <p>
-                Koppel opnieuw om je ZWBeter-samenvatting in je
+                Koppel opnieuw om je <ClubText text="{beter}-samenvatting" /> in je
                 Strava-beschrijving te laten zetten.
               </p>
             </div>

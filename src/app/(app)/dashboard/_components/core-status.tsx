@@ -25,6 +25,7 @@ import {
   requireViewer,
   todayKeyAmsterdam,
 } from "../../zwbeter-worden/core/_data";
+import { ClubText } from "@/components/club-texts-provider";
 
 export async function CoreStatus() {
   const viewer = await requireViewer();
@@ -52,7 +53,7 @@ export async function CoreStatus() {
   return (
     <Link href={`/zwbeter-worden/core/series/${suggestion.slug}`} className="tg-tile tg-zwbeter">
       <span className="tg-tile-small">
-        ZWBeter kracht · {doneToday ? "vandaag gedaan" : "vandaag"}
+        <ClubText text="{beter} kracht · " />{doneToday ? "vandaag gedaan" : "vandaag"}
       </span>
       <span className="tg-tile-title mt-0.5">{suggestion.title}</span>
       <span className="mt-1 text-sm opacity-90">

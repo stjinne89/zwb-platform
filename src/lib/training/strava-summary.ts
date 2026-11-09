@@ -16,21 +16,8 @@ import { points, positionFor } from "@/lib/briljant/score";
 import { winsFromLevels } from "@/lib/briljant/view";
 import { mondayKey, shiftDay } from "@/lib/briljant/snapshot";
 
-/**
- * Strava kent geen opmaak; vet kan alleen met de vette letters uit Unicode
- * (Mathematical Sans-Serif Bold). Alleen A-Z, a-z en 0-9; de rest blijft staan.
- */
-export function unicodeBold(text: string): string {
-  return Array.from(text, (char) => {
-    const code = char.codePointAt(0)!;
-    if (code >= 65 && code <= 90) return String.fromCodePoint(0x1d5d4 + code - 65);
-    if (code >= 97 && code <= 122) return String.fromCodePoint(0x1d5ee + code - 97);
-    if (code >= 48 && code <= 57) return String.fromCodePoint(0x1d7ec + code - 48);
-    return char;
-  }).join("");
-}
-
-export const ZWB_SUMMARY_HEADER = unicodeBold("ZWBeter workout-samenvatting");
+export { summaryHeader, unicodeBold, ZWB_SUMMARY_HEADER } from "@/lib/training/strava-summary-header";
+import { summaryHeader, ZWB_SUMMARY_HEADER } from "@/lib/training/strava-summary-header";
 
 /** De kopregel van vóór 2026-10-25. Blijft herkend, zodat oude blokken netjes wijken. */
 const LEGACY_SUMMARY_HEADER = "📊 ZWBeter Worden";
@@ -69,6 +56,8 @@ export type BriljantSummary = {
 export type ZwbSummaryInput = {
   /** De naam van de steen bij de club (module rennersniveau); standaard ZWBriljant. */
   briljantName?: string;
+  /** Het beter-woord van de club voor de kopregel; standaard ZWBeter. */
+  betterWord?: string;
   /** Strava-id van de rit; kiest de variant van de tip. */
   activityId: number;
   plannedTitle: string | null;
@@ -221,7 +210,7 @@ export function buildZwbSummaryBlock(input: ZwbSummaryInput): string {
     growFacet: input.briljant?.growFacet ?? null,
   });
   return [
-    ZWB_SUMMARY_HEADER,
+    summaryHeader(input.betterWord),
     progressLine(input),
     planLine(input),
     loadLine(input),
@@ -255,6 +244,7 @@ export function summaryHash(block: string): string {
 export function stripZwbSummary(
   description: string | null | undefined,
   previousBlock?: string | null,
+  header: string = ZWB_SUMMARY_HEADER,
 ): string {
   const text = (description ?? "").replace(/\r\n/g, "\n");
   if (!text.trim()) return "";
@@ -271,6 +261,7 @@ export function stripZwbSummary(
 
   const lines = text.split("\n");
   const headerIndex = Math.max(
+    lines.lastIndexOf(header),
     lines.lastIndexOf(ZWB_SUMMARY_HEADER),
     lines.lastIndexOf(LEGACY_SUMMARY_HEADER),
   );

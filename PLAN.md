@@ -50,9 +50,9 @@ gaat stabiliteit voor nieuwe features.
    **Deel 3b** (eigen woorden, appnaam, user agents, neutrale kennisbanken) is
    lokaal gebouwd en nog niet gepusht, met migratie `0318` (nog **niet**
    toegepast). **Pas `0318` toe vóór de push**: zonder de kolommen ziet ZWB
-   "Dagadvies", "ballen" en "beker". Nog open bij de eigenaar: een eigen woord
-   voor "ZWBeter X" en vijf stroeve kennisbankzinnen. Zie de ronde "fase 3 deel
-   3b".
+   "Dagadvies", "ballen", "beker" en "Beter". De open punten (een woord voor
+   "ZWBeter X" en de stroeve kennisbankzinnen) zijn dezelfde dag beslist. Zie
+   de ronde "fase 3 deel 3b".
 
 0. **Inloglinks bestand tegen mailscanners (2026-11-09): gepusht naar `main`
    (`d48dd9c9`), samen met de bevestigingsmail-ronde.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
@@ -12018,7 +12018,7 @@ woorden.
 
 Wat er is:
 
-- **Eigen woorden (`0318`).** `club_settings` krijgt vijf kolommen. Elke lege
+- **Eigen woorden (`0318`).** `club_settings` krijgt zes kolommen. Elke lege
   kolom geeft een neutraal woord.
 
   | Kolom | Bij ZWB | Neutraal |
@@ -12028,14 +12028,15 @@ Wat er is:
   | `currency_noun` | ZWBal | bal |
   | `currency_noun_plural` | ZWBallen | ballen |
   | `cup_noun` | ZWBeker | beker |
+  | `better_word` | ZWBeter | Beter |
 
   - De migratie vult de ZWB-waarden alleen in als de korte naam "ZWB" is, en
     alleen in lege kolommen.
   - Een scherm om ze te bewerken komt er niet: dat hoort bij de
     inrichtingsmodule (fase 6), net als de naam en het lidwoord.
 - **Tokens.** `ClubTexts.words` (`buildClubWords()` in `lib/club-texts.ts`) en
-  zes nieuwe tokens: `{app}`, `{adviesnaam}`, `{advies}`, `{bal}`, `{ballen}`
-  en `{beker}`.
+  zeven nieuwe tokens: `{app}`, `{adviesnaam}`, `{advies}`, `{bal}`, `{ballen}`,
+  `{beker}` en `{beter}`.
   - `{advies}` is "ZWBeterWorden-advies" of "dagadvies".
   - Met een hoofdletter (`{Beker}`) begint het woord met een hoofdletter, voor
     titels.
@@ -12048,7 +12049,16 @@ Wat er is:
   - de beker in de prijzenkast, de bekerpagina en de voordracht (titels via
     `generateMetadata`), de pushmeldingen, het verhaalformulier, het beheer
     van het clubverhaal, de hulp en de privacyverklaring;
-  - de appnaam in de prompt van de app-updates.
+  - de appnaam in de prompt van de app-updates;
+  - het beter-woord ("ZWBeter X") in de tabbalk en de kop van ZWBeter Worden,
+    de tegels Vandaag en weekoverzicht, de trainingsmeldingen en
+    -statuskaartjes, de racepagina's (titels via `generateMetadata`), het
+    Strava-profielblok, de privacyverklaring en de hulp (koppen,
+    zoektitels, ZWBriljant, kennis en racen). De kop van het Strava-blok is
+    `summaryHeader(woord)` in het nieuwe `strava-summary-header.ts`; het
+    opruimen herkent de kop van de club, die van ZWB en de oude kop van vóór
+    2026-10-25. Het hulpvoorbeeld bouwt de kop in de browser
+    (`StravaSummaryExample`).
 - **Zonder keuze, voor ZWB gelijk:**
   - de notitie bij het event-blok ("Clubevent uit de ZWB-kalender") neemt de
     korte naam (`EventWorkoutOptions.clubShortName`);
@@ -12082,19 +12092,30 @@ Wat er is:
 3a de rolomschrijving met een rauw `{kort}`. De rolomschrijvingen kregen in 3a
 tokens, maar dit scherm vulde ze niet in. Dat is hersteld.
 
+**Open punten, dezelfde dag beslist** ("Eerst de open punten"):
+
+- **"ZWBeter X"** werd het zesde eigen woord, `better_word`, neutraal "Beter"
+  (zie hierboven). `club-texts-render.test.ts` laat niets meer door; de
+  uitzondering `NOT_YET` is weg.
+- **Stroeve kennisbankzinnen.** De eigenaar koos uit de voorstellen alleen
+  "is een eigen keuze.":
+  - `protocols/training.ts` (hittesessie, twee keer): "…de app als sessie
+    telt, is een eigen keuze." Geen "van ZWB" en geen "van de app" meer;
+  - "is een afleiding van ZWB" (`nutrition/library.ts` en
+    `protocols/nutrition.ts`) en "de ZWB-workouts" (`training-library.ts`)
+    blijven op "ZWB" staan. Het voorstel ("een eigen afleiding", "de workouts
+    van de app") is niet gekozen;
+  - de twee zinnen in `protocols/training.ts` met "de app" waarvoor "een eigen
+    vertaling" werd voorgesteld, blijven "de app".
+
 **Bewust niet:**
 
-- **"ZWBeter X"** (ZWBeter trainen, kracht, racen en materiaal, "in ZWBeter",
-  de ZWBeter-samenvatting en de Strava-kop "ZWBeter workout-samenvatting"),
-  ongeveer 20 plekken. Het is een woordspeling zonder eigen woord. De keuzes
-  van deze dag noemden hem niet, dus hij ligt bij de eigenaar.
-  `club-texts-render.test.ts` laat alleen dit nog door (`NOT_YET`).
-- **Vijf kennisbankzinnen** blijven op "ZWB" staan, omdat "de app" er stroef
-  leest. Die liggen bij de eigenaar:
-  - `protocols/training.ts` 404 en 469: "…de app als sessie telt, is een
-    eigen keuze van ZWB";
-  - "is een afleiding van ZWB" (voeding, twee keer);
-  - "de ZWB-workouts" (`training-library.ts`).
+- **Drie kennisbankzinnen** houden "ZWB" (zie hierboven). Een andere club
+  ziet daar dus nog ZWB, tot er een zin is die de eigenaar wil.
+- **De modulenaam "ZWBeter Worden"** in `nav-config.ts` en de standaardnaam
+  in `WORKOUT_TITLE_BRAND` blijven: de eerste is de naam van de module (die
+  komt uit `club_modules`), de tweede is de terugval en het oude voorvoegsel
+  dat er nog af moet.
 - **"durability in ZWBriljant"** in het durability-protocol: een modulenaam in
   kennistekst, die nergens wordt ingevuld. Die blijft staan.
 - **De weekawards ("ZWB-week")**: de getoonde tekst staat in de tabel `badges`
@@ -12103,12 +12124,13 @@ tokens, maar dit scherm vulde ze niet in. Dat is hersteld.
 - **Het adres in de LiveTrack-UA** (`zwb-platform.netlify.app`) is dat van de
   installatie: fase 5.
 
-**Niet meer waar:** de keuzelijst bovenaan noemde "één nieuw veld"; het zijn vijf
+**Niet meer waar:** de keuzelijst bovenaan noemde "één nieuw veld"; het zijn zes
 kolommen. Hij noemde ook de awards onder "zonder keuze"; die staan in de
 database en zijn niet aangepast.
 
-Lokaal: `tsc` en eslint zijn schoon op de geraakte bestanden. In de volledige
-suite falen deze tests:
+Lokaal: `tsc` en eslint zijn schoon op de geraakte bestanden. Na de open punten
+faalt in de volledige suite alleen `omnium-live` (4173 tests groen). Bij de
+eerste ronde faalden ook tests onder belasting:
 
 - `club-theme`, `modules`, `rls-initplan`, `training-plan-status-cleanup` en
   `intervals-ride-sync` lopen onder belasting in een time-out. Los gedraaid
@@ -12118,6 +12140,8 @@ suite falen deze tests:
 `club-texts-tokens.test.ts` dekt:
 
 - de nieuwe woorden voor ZWB en voor een testclub, en de hoofdletter;
+- het beter-woord en de Strava-kop (ook in `strava-summary.test.ts`: een blok
+  met de kop van een andere club en het oude ZWB-blok worden opgeruimd);
 - de eventsoort en de rechtenlabels;
 - de workout-titel met een andere naam (ook met regex-tekens).
 
@@ -12128,6 +12152,12 @@ de oude regel; buiten de kennisbanken is alles voor ZWB gelijk.
 komt via `club-ladder/rules.ts` ook in de browser terecht en mag dus geen
 `lib/club` (server-only) importeren. De clubnaam voor die user agent is daarom
 een parameter, die `teams/_actions.ts` meegeeft.
+
+**Migratienummer en samenvoegen.** De migratie heette eerst `0316`. Bij het
+samenvoegen met `origin/main` bleken `0316` en `0317` al vergeven door andere
+sessies (en op productie toegepast), dus hij is hernummerd naar `0318`
+(`49929c7f`, merge `dfe8fccc`). Conflicten in `training-status.tsx`,
+`claude.ts`, `training/ai.ts` en dit plan zijn met beide kanten opgelost.
 
 **Niet bekeken:**
 

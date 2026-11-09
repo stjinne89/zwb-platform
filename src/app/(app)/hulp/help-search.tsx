@@ -301,7 +301,7 @@ const HELP_INDEX: HelpResult[] = [
       "kracht krachttraining springen sprongen botten botdichtheid squat lunge step-up benen bilspieren klimmen eenbenig rustdag spierpijn gym sportschool halter halterstang leg press kabel dumbbell kettlebell weerstandsband band zwaar herhalingen opbouw onderhoud",
   },
   {
-    title: "ZWBeter racen",
+    title: "{beter} racen",
     text: "Analyse van een gereden Zwift-race (ZRL, FRR of een geplakte link): tips, de ploeg of je eigen race, en je rit.",
     href: "/hulp/racen#racen",
     terms:
@@ -329,7 +329,7 @@ const HELP_INDEX: HelpResult[] = [
       "voeding eten koolhydraten eiwit recept recepten menu dagmenu naleving eetdagboek gegeten bijhouden favoriet delen gel sportdrank herstel nevo reds supplementen cafeine hydratatie drinken zout calcium ijzer vezels",
   },
   {
-    title: "ZWBeter materiaal",
+    title: "{beter} materiaal",
     text: "Kennisbank over materiaal en kleine winsten, met een rekenaar.",
     href: "/hulp/kennis#materiaal",
     terms:
