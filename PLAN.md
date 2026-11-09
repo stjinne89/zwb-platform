@@ -7,8 +7,16 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Lettertypes in de repo (2026-11-09): gepusht naar `main` (`95a875bf`).**
-   Geen migratie. Na de push: de Netlify-deploy moet slagen, en ZWBriljant,
+0. **Generieke versie, fase 2 deel 1: clubkleuren (2026-11-09): lokaal
+   gecommit, niet gepusht; migratie `0314` niet toegepast.** Op verzoek van de
+   eigenaar ("ga verder" na fase 1). ZWB krijgt geen eigen kleuren, dus voor de
+   leden verandert er niets. Volgorde: eerst `0314` toepassen, dan pushen (de
+   code werkt ook zonder `0314`, alleen `/beheer/huisstijl` kan dan niet
+   opslaan). Eigen kleuren niet op productie uitproberen: dat ziet elk lid. Zie
+   de ronde "Generieke versie, fase 2 deel 1".
+
+0. **Lettertypes in de repo (2026-11-09): gepusht naar `main` (`95a875bf`);
+   de deploy slaagde.** Geen migratie. Nog nalopen: ZWBriljant,
    ZWBekers, het weekoverzicht, voorZpWelBokaal en het spiekbriefje tonen hun
    eigen letter. Zie de ronde "Lettertypes in de repo".
 
@@ -24,9 +32,9 @@ gaat stabiliteit voor nieuwe features.
    Besluiten eigenaar: één codebase met een eigen installatie per club, inrichten
    in de app zelf, neutrale modulenamen. Fase 1 gestart op verzoek van de eigenaar.
    ZWB staat in `0313` met alle modules aan, dus voor leden verandert er niets.
-   Nalopen na de deploy: op `/beheer/modules` één module uit- en weer aanzetten
-   (bijvoorbeeld Managerspel), en zien dat menu, tegels, dashboard en de 404 op
-   `/zwbgame` meegaan. Zie de rondes "Generieke versie,
+   Live sinds de deploy van `95a875bf`; de eigenaar ziet `/beheer/modules`.
+   Nog nalopen: één module uit- en weer aanzetten (bijvoorbeeld Managerspel),
+   en zien dat menu, tegels, dashboard en de 404 op `/zwbgame` meegaan. Zie de rondes "Generieke versie,
    fase 1" en "Generieke versie voor andere clubs", en
    [multi-club-ontwerp](docs/multi-club-ontwerp.md).
 
@@ -11905,6 +11913,58 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Generieke versie, fase 2 deel 1: clubkleuren
+
+**2026-11-09.** Op verzoek van de eigenaar ("ga verder"), na fase 1. Migratie
+`0314_club_colors.sql`, **niet toegepast**. Lokaal gecommit, niet gepusht.
+
+Een club kiest vijf kleuren (primair, secundair, neutraal, accent, donkere
+inkt). `0314` zet ze als `color_primary` … `color_ink` op `club_settings`,
+met een check op `#rrggbb` in kleine letters; leeg betekent de standaard.
+ZWB krijgt geen waarden.
+
+- **`src/lib/club-theme.ts`** leidt uit de vijf kleuren alle tokens af: de
+  shadcn-tokens licht en donker, `--zwb-*`, `--zwblok-*`, `--tg-*`, de
+  tekstkleur per tegelsoort en de tenuebanen. Rekent in OKLCH, met
+  WCAG-contrast: gewone tekst haalt altijd 4,5:1, en de Goudregel geldt (het
+  accent als tekst wordt donkerder tot 4,5:1 op papier).
+  `clubThemeCss()` maakt er CSS van waarin elke selector met `html` begint,
+  zodat hij zwaarder weegt dan dezelfde regel in `globals.css`.
+- **Root layout** zet die CSS in een `<style id="club-huisstijl">`, alleen als
+  er eigen kleuren zijn. `viewport` werd `generateViewport()` met de
+  clubkleur voor de browserbalk.
+- **Manifest** werd een route (`src/app/manifest.json/route.ts`) op hetzelfde
+  adres, zodat geïnstalleerde apps hun manifest blijven vinden; voor ZWB is de
+  inhoud gelijk aan het oude `public/manifest.json` (lokaal vergeleken). De
+  namen in het manifest volgen in fase 3.
+- **`/beheer/huisstijl`** (recht `roles.manage_permissions`, categorie App):
+  vijf kleurkiezers, een voorbeeld licht en donker (tegels, grafiek, knop), een
+  lijst van wat slecht leest, en "Standaardkleuren" om terug te gaan.
+- **`getClub()`** leest `club_settings` nu met `select("*")`, zodat de app
+  niet terugvalt op de neutrale naam als de code eerder live staat dan een
+  migratie die kolommen toevoegt. Cachesleutel `v2`.
+
+Besluit van de bouwer: het ontwerp zei "tokenblok herschrijven met
+`color-mix()`". Dat is niet gedaan: `globals.css` blijft de handmatige
+standaard en de afleiding zit in TypeScript. Zo ziet ZWB er gegarandeerd gelijk
+uit, en is de afleiding met tests vast te leggen.
+[multi-club-ontwerp](docs/multi-club-ontwerp.md) §2.5 en §8 zijn bijgewerkt.
+
+Lokaal: `tsc` en eslint schoon, `tests/unit/club-theme.test.ts` (afleiding
+voor vier paletten, contrast, selectors, PGlite-test van `0314`) groen, de
+volledige suite groen op de twee bekende uitvallers na (een time-out onder
+belasting, `omnium-live` zonder `.env.local`). `next build` slaagt;
+`next start` gaf voor ZWB dezelfde theme-color, hetzelfde manifest en geen
+`<style>`. **Niet bekeken: de app met eigen kleuren.** Dat kan niet op
+productie zonder dat elk lid het ziet; het hoort bij de proefinstallatie (fase
+7) of een lokale database.
+
+**Bewust niet in dit deel** (volgt in deel 2): logo-upload en iconen genereren,
+canvas en three.js die de variabelen uitlezen, een font kiezen, en het design
+"klassiek" weghalen. Dat laatste merken leden die klassiek gebruiken, en is dus
+eerst een keuze van de eigenaar. Ook nog vast in `globals.css`: een tiental
+losse kleuren buiten de tokenblokken (onder meer schaduwen en de ZWBlokken-kaart).
 
 ### Gebouwd — Lettertypes in de repo
 

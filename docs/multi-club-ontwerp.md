@@ -157,9 +157,13 @@ nagevraagd.
   - een eigen dark-set.
 
   Elke kleur staat dus meerdere keren hard in het bestand.
-- **Een club kiest straks 5 kleuren**: primair, secundair, neutraal, accent en
-  donkere inkt. De rest wordt afgeleid met `color-mix()` of relative color
-  syntax. Daarvoor moet het tokenblok één keer herschreven worden.
+- **Een club kiest 5 kleuren**: primair, secundair, neutraal, accent en
+  donkere inkt (`0314`, gebouwd 2026-11-09). Anders dan eerst gedacht is het
+  tokenblok **niet** herschreven: `globals.css` blijft de met de hand afgestelde
+  standaard (de ZWB-kleuren), en `src/lib/club-theme.ts` leidt bij eigen kleuren
+  alle tokens af in TypeScript (OKLCH, met contrastcontrole) en zet ze in een
+  `<style>` die zwaarder weegt. Zo verandert er voor ZWB niets, en is de
+  afleiding te testen.
 - Er zijn ~86 Tailwind-klassen `bg-zwb-*`. Die zijn geen probleem zolang de
   variabelen tijdens het draaien gevuld worden.
 - **Runtime-injectie kan.** De root layout is al dynamisch (cookies), dus een
@@ -175,9 +179,10 @@ nagevraagd.
      wizard en de PNG's genereren in een route (sharp staat al in de
      devDependencies; voor runtime moet die naar `dependencies`, of
      `ImageResponse` gebruiken).
-- **Fonts** worden bij de build geladen (`next/font/google`). Daarom een vaste
-  keuzelijst van een paar fonts, vooraf gedeclareerd met `preload:false`, en
-  per installatie één variabele omzetten. Een vrij te kiezen font zou een
+- **Fonts** staan sinds 2026-11-09 als bestand in `src/fonts` en laden met
+  `next/font/local` (de build haalde ze eerst bij Google, en faalde als dat
+  haperde). Daarom een vaste keuzelijst van een paar fonts, vooraf gedeclareerd
+  met `preload:false`, en per installatie één variabele omzetten. Een vrij te kiezen font zou een
   runtime-link naar Google Fonts vragen; dat stuit op de privacyregels en is
   daarom niet gekozen.
 - **Het oude design "klassiek" kan weg.** DESIGN.md noemt het al een vangnet. De
@@ -274,7 +279,8 @@ repo staan (Netlify secrets-scan).
 - **`club_settings`** (één rij):
   - identiteit: naam, korte naam, leden-aanduiding (bv. "ZWB'er"), logo en
     beeldmerk (Storage), contactadres en website;
-  - huisstijl: 5 kleuren, font uit de keuzelijst;
+  - huisstijl: 5 kleuren (`0314`, `color_primary` … `color_ink`, leeg = de
+    standaard), font uit de keuzelijst;
   - social: Instagram, YouTube, podcast-RSS;
   - clubherkenning: Zwift-club-ID, eventmarkers, teamtag;
   - inhoud: welkomtekst, en de contactgegevens van de verwerkingsverantwoordelijke
@@ -370,7 +376,7 @@ die fasen niets merken; dat is tegelijk de test.
 | Fase | Inhoud | Omvang | Migratie |
 |---|---|---|---|
 | 1. Fundament | `club_settings`, `club_modules`, `getClub()`, `src/lib/modules.ts`, gating in middleware, nav, beheer en crons; ZWB-waarden als seed | middel | ja |
-| 2. Huisstijl | tokens herschrijven naar 5 basiskleuren, runtime-`<style>`, `manifest.ts`, `generateViewport`, logo-upload, iconen genereren, canvas leest variabelen, klassiek weg | groot | klein |
+| 2. Huisstijl | deel 1 (gebouwd): 5 kleuren, afgeleide tokens in een runtime-`<style>`, manifest als route, `generateViewport`, `/beheer/huisstijl`. Deel 2: logo-upload, iconen genereren, canvas leest variabelen, font kiezen, klassiek weg | groot | klein (`0314`) |
 | 3. Teksten en namen | title-template, clubnaam en modulenamen via `getClub()` in UI, meldingen, AI-prompts en extern; privacy, voorwaarden en hulp als templates | groot | nee |
 | 4. Clubherkenning | Zwift-club-ID, markers, teamtag, WTRL- en ladderteams, SRC- en Omnium-defaults, social naar instellingen; ZWB-teams uit de code naar de DB | middel | ja |
 | 5. Schone installatie | baseline-migratie, generieke seed, bootstrap van de eerste beheerder, installatiehandleiding, migratiescript voor meerdere projecten | groot | baseline |

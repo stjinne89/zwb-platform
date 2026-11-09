@@ -229,6 +229,7 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
     items: [
       adminLink("rechten"),
       adminLink("modules"),
+      adminLink("huisstijl"),
       adminLink("notificaties"),
       adminLink("appUpdates"),
       adminLink("koppelingen"),

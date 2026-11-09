@@ -10,6 +10,7 @@ import {
   resolveDisabled,
   type ModuleKey,
 } from "@/lib/modules";
+import { resolvePalette, type ClubPalette } from "@/lib/club-theme";
 
 // De instellingen van deze installatie (0313): naam, contact en welke modules
 // aan staan. Fase 1 van de generieke versie (docs/multi-club-ontwerp.md).
@@ -31,6 +32,8 @@ export type ClubSettings = {
   instagramHandle: string | null;
   youtubeHandle: string | null;
   setupCompletedAt: string | null;
+  /** Eigen kleuren (0314), of null: dan de standaard huisstijl. */
+  palette: ClubPalette | null;
 };
 
 type ClubRow = {
@@ -53,6 +56,7 @@ export const EMPTY_CLUB_SETTINGS: ClubSettings = {
   instagramHandle: null,
   youtubeHandle: null,
   setupCompletedAt: null,
+  palette: null,
 };
 
 const loadClubRows = unstable_cache(
@@ -61,9 +65,10 @@ const loadClubRows = unstable_cache(
     const [settings, modules] = await Promise.all([
       supabase
         .from("club_settings")
-        .select(
-          "name, short_name, member_noun, member_noun_plural, contact_email, website_url, instagram_handle, youtube_handle, setup_completed_at",
-        )
+        // Alle kolommen: zo werkt dit vóór en na een migratie die er kolommen
+        // bij zet (0314), en valt de app niet terug op "Club" als de code eerder
+        // live staat dan de migratie.
+        .select("*")
         .maybeSingle(),
       supabase.from("club_modules").select("module_key, enabled, label"),
     ]);
@@ -84,6 +89,13 @@ const loadClubRows = unstable_cache(
             instagramHandle: (s.instagram_handle as string | null) ?? null,
             youtubeHandle: (s.youtube_handle as string | null) ?? null,
             setupCompletedAt: (s.setup_completed_at as string | null) ?? null,
+            palette: resolvePalette({
+              primary: s.color_primary as string | null | undefined,
+              secondary: s.color_secondary as string | null | undefined,
+              neutral: s.color_neutral as string | null | undefined,
+              accent: s.color_accent as string | null | undefined,
+              ink: s.color_ink as string | null | undefined,
+            }),
           }
         : null,
       modules: (modules.data ?? []).map((m) => ({
@@ -93,7 +105,7 @@ const loadClubRows = unstable_cache(
       })),
     };
   },
-  ["club-settings", "v1"],
+  ["club-settings", "v2"],
   { revalidate: 60 * 60, tags: [CLUB_TAG] },
 );
 

@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { IosViewportHerstel } from "@/components/ios-viewport-herstel";
+import { getClub } from "@/lib/club";
+import { clubThemeCss, themeColors } from "@/lib/club-theme";
 
 // De lettertypes staan in src/fonts, zodat de build niet van Google Fonts
 // afhangt (zie de README daar).
@@ -68,24 +70,36 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#004653" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a2b34" },
-  ],
-};
+// De kleur van de browserbalk volgt de huisstijl van de club (0314).
+export async function generateViewport(): Promise<Viewport> {
+  const colors = themeColors((await getClub()).settings.palette);
+  return {
+    themeColor: [
+      { media: "(prefers-color-scheme: light)", color: colors.light },
+      { media: "(prefers-color-scheme: dark)", color: colors.dark },
+    ],
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Eigen kleuren van de club (0314) overschrijven de standaard in globals.css;
+  // zonder eigen kleuren geen <style>.
+  const palette = (await getClub()).settings.palette;
   return (
     <html
       lang="nl"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      {palette && (
+        <head>
+          <style id="club-huisstijl" dangerouslySetInnerHTML={{ __html: clubThemeCss(palette) }} />
+        </head>
+      )}
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider
           attribute="class"
