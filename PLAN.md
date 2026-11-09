@@ -9,9 +9,9 @@ gaat stabiliteit voor nieuwe features.
 
 0. **AI-verbruik meten, fase 0 van ZWBrandstof (2026-11-09): lokaal op branch
    `claude/community-token-economy-6def6e`, niet gepusht.** Migratie
-   `0316_ai_usage` is niet toegepast en lokaal niet getest. **De privacytekst
-   wacht op akkoord van de eigenaar** en staat nog niet in de commit; niet
-   pushen zonder die tekst. Na toepassen en deploy: een coachvraag stellen en
+   `0316_ai_usage` is niet toegepast en lokaal niet getest. De privacytekst is
+   goedgekeurd (alleen tekst, geen nieuwe versie). Na toepassen en deploy: een
+   coachvraag stellen en
    zien dat hij op `/beheer/ai-verbruik` verschijnt. Zie de ronde "AI-verbruik
    meten".
 
@@ -12018,10 +12018,11 @@ Wat er is:
   dat het verbruik nog niet wordt bijgehouden.
 - **Data-export** bevat `ai_usage`.
 - **Privacytekst** (`/privacy`, onder Weekoverzicht): een blok "AI-verbruik".
-  **Nog niet in de commit; wacht op akkoord.** Aanbevolen: alleen tekst, geen
-  nieuwe privacyversie. Het zijn gegevens over aanroepen die het lid al doet,
-  zonder nieuwe ontvanger buiten het bestuur, net als de eerdere gevallen
-  waarin de eigenaar voor alleen tekst koos.
+  Goedgekeurd door de eigenaar ("Ja, zo goed"), in een tweede commit. **Bewust
+  alleen tekst, geen nieuwe privacyversie** in `src/lib/privacy.ts`: het zijn
+  gegevens over aanroepen die het lid al doet, zonder nieuwe ontvanger buiten
+  het bestuur, net als de eerdere gevallen waarin de eigenaar voor alleen tekst
+  koos.
 
 **Bewust niet:**
 
