@@ -10,7 +10,7 @@ gaat stabiliteit voor nieuwe features.
 0. **ZWBeter racen: races per lid, ook buiten de kalender (2026-11-09):
    gepusht naar `main` (`9a5f13d5`), migratie `0317` toegepast** (versie
    `20261109130648`, op verzoek van de eigenaar, vóór de push). Privacytekst
-   nog voorleggen aan de eigenaar. Na de deploy: het antwoord
+   goedgekeurd door de eigenaar. Na de deploy: het antwoord
    van `/api/briljant/zrs-history` (`races`) en `/api/zrl/freeze` bekijken, en
    na een dag "Jouw races" van een paar leden. Zie de ronde "ZWBeter racen:
    races per lid, ook buiten de kalender".
@@ -12055,7 +12055,8 @@ ze niet. SRC en buitenritten staan er bewust niet in.
   query een fout en blijft de lijst zoals hij was.
 - **Hulp** (`/hulp#racen`, hulpzoeker) en **privacytekst** (`/privacy#racen`):
   dat de app via je Zwift-ID je lijst met Zwift-races leest en per race het
-  event bewaart, zichtbaar alleen voor jou. **Voorleggen aan de eigenaar.**
+  event bewaart, zichtbaar alleen voor jou. Goedgekeurd door de eigenaar
+  ("Ja, zo goed", 2026-11-09, na de push; de tekst bleef ongewijzigd).
   Geen nieuwe privacyversie: de activiteitenlijst werd al gelezen en per race
   bewaard voor de ZRS-historie; nieuw is alleen welk event het was.
 - **Runbook:** de rijen van beide crons.
