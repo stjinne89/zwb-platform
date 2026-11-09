@@ -8,7 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Generieke versie, fase 3 deel 1 en 2: clubnaam, modulenamen, hulp,
-   privacy en voorwaarden (2026-11-09): lokaal gecommit, niet gepusht.** Geen
+   privacy en voorwaarden (2026-11-09): gepusht naar `main` (deel 1
+   `c8ed7cb3`, deel 2 `fdbdbd91`).** Geen
    migratie. Lokaal gecontroleerd dat manifest, titels, deelkaart, `/privacy` en
    `/voorwaarden` voor ZWB gelijk zijn aan de live site. Deel 3 (de overige
    "ZWB"-teksten, woordspelingen, enkelvouden) volgt. Zie de rondes "Generieke
