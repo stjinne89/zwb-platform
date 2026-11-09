@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-08)
+## Actieve volgorde (bijgewerkt 2026-11-09)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -11,6 +11,13 @@ gaat stabiliteit voor nieuwe features.
    migratie. Na de deploy: in een browser met lege opslag inloggen en zien
    dat de pop-up na de andere meldingen komt. Zie de ronde "Ledenvoordeel als
    pop-up".
+
+0. **Generieke versie voor andere clubs (2026-11-09): ontwerp klaar, nog niets
+   gebouwd.** Besluiten eigenaar: één codebase met een eigen installatie per club,
+   inrichten in de app zelf, neutrale modulenamen. Volgende stap: de eigenaar
+   kiest wanneer fase 1 (fundament) in de volgorde past, gezien de featurepauze.
+   Zie de ronde "Generieke versie voor andere clubs" en
+   [multi-club-ontwerp](docs/multi-club-ontwerp.md).
 
 0. **Laadtijd, deel 4: schema weer sneller (2026-11-08): gepusht naar `main`
    (`25e17429`), migratie `0312` toegepast** (versie `20261108205601`, op
@@ -11938,6 +11945,73 @@ volledige suite faalt in deze worktree op ontbrekende pakketten in de gedeelde
 
 **Niet geverifieerd.** De pop-up in de echte app (inloggen kon hier niet), op
 een telefoon, en samen met de app-update en de welkomstrondleiding.
+
+### Onderzocht — Generieke versie voor andere clubs
+
+**2026-11-09.** Alleen onderzoek en ontwerp, geen code. Lokaal gecommit, niet
+gepusht. Commit: de commit die dit blok toevoegt. Geen migratie. Uitwerking in
+[docs/multi-club-ontwerp.md](docs/multi-club-ontwerp.md).
+
+Vraag eigenaar: het platform beschikbaar maken voor andere clubs en teams, met
+een generieke versie met alle modules waar een club precies de onderdelen uit
+kiest die ze nodig heeft. Het inrichten (huisstijl, kleuren, inhoud) gebeurt in
+een aparte module met een vragenlijst.
+
+**Besluiten eigenaar (2026-11-09):**
+- **Eén codebase, eigen installatie per club.** Elke club krijgt een eigen
+  Netlify-site en een eigen Supabase-project. Niet gekozen:
+  - **Multi-tenant**: alle ~205 tabellen een club-kolom geven en alle RLS
+    herschrijven is te riskant voor de ZWB-data.
+  - **Een losse kopie per club**: CoachbyStijn liet zien dat die direct uit de
+    pas loopt.
+- **Inrichten in de app.** De instellingen staan in de database (`club_settings`
+  en `club_modules`), zodat een club ze kan aanpassen zonder deploy.
+- **Neutrale modulenamen**, met de ZWB-naam als instelling. Tabel-, functie- en
+  rechtnamen blijven zoals ze zijn; die ziet geen lid.
+
+**Wat de inventaris vond:**
+- Er is geen centrale plek voor naam, logo of contact. "ZWB" komt ~1.350 keer
+  voor in 428 bestanden.
+- De kleuren staan dubbel en hard in `globals.css`; de shadcn-tokens zijn niet
+  afgeleid van de tenuekleuren.
+- De clubherkenning staat deels in env (`ZWIFT_CLUB_ID`, `ZWB_EVENT_MARKERS`) en
+  deels in de code (teamtag `[ZWB]`, WTRL-teamnamen, "ZWB SRC").
+- `0005_roster_seed.sql` zet 93 ledennamen met Zwift-ID in elke nieuwe database.
+- Er is geen baseline-migratie, en de nummers 0066, 0067, 0172 en 0173 komen
+  dubbel voor.
+- Strava zit op 10 van 10 sporters, dus elke club heeft een eigen Strava-app
+  nodig.
+
+**Fasenplan** (zie §8 van het document):
+1. Fundament
+2. Huisstijl
+3. Teksten en namen
+4. Clubherkenning
+5. Schone installatie
+6. Inrichtingsmodule
+7. Proefinstallatie
+
+Fase 1 t/m 4 worden in de ZWB-app zelf gebouwd, met ZWB als eerste club; leden
+merken er niets van.
+
+**Bewust niet:**
+- Tabellen en routes hernoemen. Routes zijn een open vraag na fase 3.
+- Een vrij te kiezen font. Dat vraagt een runtime-link naar Google Fonts; het
+  wordt daarom een vaste keuzelijst.
+- Het design "klassiek" generiek maken; dat gaat eruit.
+- `/brochure` generiek maken; die blijft van ZWB.
+
+**Open, aan de eigenaar:**
+- wanneer dit werk in de volgorde past, gezien de featurepauze;
+- wie host en betaalt;
+- AI-sleutel per club;
+- een `release`-branch tegen het Netlify-verbruik;
+- de productnaam ("ZWBasis"?);
+- de verwerkersovereenkomst per club.
+
+**Niet lokaal te verifiëren:** of alle migraties op een leeg project aflopen, en
+of de dubbele nummers botsen. Er is geen Docker of `config.toml`; dat wordt pas
+in fase 7 getest, op een leeg Supabase-project.
 
 ### Gebouwd — Laadtijd, deel 4: schema, layout en de rechtencheck in RLS
 
