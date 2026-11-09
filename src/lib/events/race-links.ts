@@ -4,6 +4,7 @@
 
 import { routes as zwiftRoutes } from "zwift-data";
 import { zwiftEventUrl } from "@/lib/events/external-scan";
+import { isValidDiscordUrl } from "@/lib/discord";
 
 export const EVENT_LINK_KINDS = ["recon", "zwiftinsider", "zwb", "overig"] as const;
 export type EventLinkKind = (typeof EVENT_LINK_KINDS)[number];
@@ -29,7 +30,7 @@ export type RaceLinkIcon =
 
 export type RaceLink = {
   key: string;
-  kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing" | "zwifterbikes" | "racepass" | "frr" | "ladder";
+  kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing" | "zwifterbikes" | "racepass" | "frr" | "ladder" | "discord";
   label: string;
   url: string;
   icon?: RaceLinkIcon;
@@ -232,4 +233,39 @@ export function racepassFor(
       pass.team_id === teamId && pass.valid_from <= dateKey && dateKey <= pass.valid_until,
   );
   return match?.url ?? null;
+}
+
+// ── Discord van het team (migr. 0118) ───────────────────────────────────────
+// Eén kanaal per team, beheerd op de teampagina. Een subteam zonder eigen
+// kanaal gebruikt dat van zijn hoofdteam.
+
+export type TeamDiscordRow = {
+  id: string;
+  parent_team_id: string | null;
+  discord_url: string | null;
+};
+
+/** Het Discord-kanaal van dit team, anders dat van zijn hoofdteam. */
+export function teamDiscordUrl(
+  teams: TeamDiscordRow[],
+  teamId: string | null | undefined,
+): string | null {
+  if (!teamId) return null;
+  const valid = (url: string | null | undefined) =>
+    url && isValidDiscordUrl(url) ? url.trim() : null;
+  const team = teams.find((row) => row.id === teamId);
+  if (!team) return null;
+  const own = valid(team.discord_url);
+  if (own) return own;
+  const parent = teams.find((row) => row.id === team.parent_team_id);
+  return valid(parent?.discord_url);
+}
+
+/** De Discord-chip van dit team, of null als het team geen kanaal heeft. */
+export function teamDiscordLink(
+  teams: TeamDiscordRow[],
+  teamId: string | null | undefined,
+): RaceLink | null {
+  const url = teamDiscordUrl(teams, teamId);
+  return url ? { key: `discord-${teamId}`, kind: "discord", label: "Discord", url } : null;
 }

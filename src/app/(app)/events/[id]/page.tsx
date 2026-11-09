@@ -27,9 +27,11 @@ import {
   ladderRaceLinks,
   mergeLinks,
   racepassFor,
+  teamDiscordLink,
   type EventLinkRow,
   type RaceLink,
   type RacepassRow,
+  type TeamDiscordRow,
 } from "@/lib/events/race-links";
 import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
 import { ZrlTeamRank } from "./_components/zrl-team-rank";
@@ -639,6 +641,10 @@ export default async function EventDetailPage({
     }
   })();
 
+  const raceTeamIds = [event.team_id, ...subEvents.map((sub) => sub.teamId)].filter(
+    Boolean,
+  ) as string[];
+
   const [
     { data: rsvps },
     access,
@@ -652,6 +658,7 @@ export default async function EventDetailPage({
     { data: zoneRows },
     { data: linkRows },
     { data: racepassRows },
+    { data: discordTeamRows },
   ] = await Promise.all([
     supabase
       .from("event_rsvps")
@@ -717,12 +724,17 @@ export default async function EventDetailPage({
       ? supabase
           .from("team_racepasses")
           .select("team_id, url, valid_from, valid_until")
-          .in(
-            "team_id",
-            [event.team_id, ...subEvents.map((sub) => sub.teamId)].filter(Boolean) as string[],
-          )
+          .in("team_id", raceTeamIds)
           .lte("valid_from", raceDateKey)
           .gte("valid_until", raceDateKey)
+      : Promise.resolve({ data: [] }),
+    // Discord-kanaal per team (migr. 0118): de teams van deze race plus elk team
+    // met een kanaal, zodat een subteam dat van zijn hoofdteam kan overnemen.
+    raceTeamIds.length > 0
+      ? supabase
+          .from("teams")
+          .select("id, parent_team_id, discord_url")
+          .or(`id.in.(${raceTeamIds.join(",")}),discord_url.not.is.null`)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -814,10 +826,14 @@ export default async function EventDetailPage({
     ...link,
     label: fillClubText(link.label, clubTexts),
   }));
+  const discordTeams = (discordTeamRows ?? []) as TeamDiscordRow[];
   const raceLinks = [
     ...(event.type === "ladder" ? ladderRaceLinks(event, ownLinks) : []),
     ...ownLinks,
     ...(isFrr ? frrTourLinks() : []),
+    ...[teamDiscordLink(discordTeams, event.team_id)].filter(
+      (link): link is RaceLink => link !== null,
+    ),
   ];
 
   // Bij de ZRL meld je je aan met de racepass van je team, niet op Zwift. Op de
@@ -1645,6 +1661,9 @@ export default async function EventDetailPage({
                           (link): link is RaceLink => link !== null,
                         ),
                         ...sub.zwiftLinks,
+                        ...[teamDiscordLink(discordTeams, sub.teamId)].filter(
+                          (link): link is RaceLink => link !== null,
+                        ),
                       ]}
                       className="px-3 pb-3"
                     />

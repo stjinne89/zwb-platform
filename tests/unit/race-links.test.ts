@@ -8,6 +8,8 @@ import {
   normalizeLinkUrl,
   normalizeRacepassUrl,
   racepassFor,
+  teamDiscordLink,
+  teamDiscordUrl,
 } from "@/lib/events/race-links";
 import { withParentRoute } from "@/lib/events/route-source";
 import { zwifterBikesLinks, zwifterBikesRouteUrl } from "@/lib/events/zwifterbikes";
@@ -155,5 +157,35 @@ describe("ZwifterBikes", () => {
     expect(zwifterBikesLinks(String(route.id))).toMatchObject([
       { kind: "zwifterbikes", label: "ZwifterBikes", url: "https://zwifterbikes.web.app/route/makuri-40" },
     ]);
+  });
+});
+
+describe("teamDiscordLink", () => {
+  const teams = [
+    { id: "a", parent_team_id: null, discord_url: "https://discord.gg/teama" },
+    { id: "b", parent_team_id: null, discord_url: "https://discord.com/channels/1/2" },
+    { id: "b1", parent_team_id: "b", discord_url: null },
+    { id: "b2", parent_team_id: "b", discord_url: "https://discord.gg/eigenb2" },
+    { id: "c", parent_team_id: null, discord_url: null },
+    { id: "c1", parent_team_id: "c", discord_url: null },
+    { id: "x", parent_team_id: null, discord_url: "https://example.com/nep" },
+  ];
+
+  it("geeft het kanaal van het team als chip met Discord-logo", () => {
+    const link = teamDiscordLink(teams, "a");
+    expect(link).toMatchObject({ kind: "discord", label: "Discord", url: "https://discord.gg/teama" });
+    expect(linkLogo(link!.url)).toBe("/logos/discord.svg");
+  });
+
+  it("valt bij een subteam terug op het hoofdteam, maar een eigen kanaal gaat voor", () => {
+    expect(teamDiscordUrl(teams, "b1")).toBe("https://discord.com/channels/1/2");
+    expect(teamDiscordUrl(teams, "b2")).toBe("https://discord.gg/eigenb2");
+  });
+
+  it("geeft niets zonder kanaal, zonder team of met een ongeldige link", () => {
+    expect(teamDiscordLink(teams, "c1")).toBeNull();
+    expect(teamDiscordLink(teams, null)).toBeNull();
+    expect(teamDiscordLink(teams, "onbekend")).toBeNull();
+    expect(teamDiscordLink(teams, "x")).toBeNull();
   });
 });

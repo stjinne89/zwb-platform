@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Eventpagina: Discord-kanaal van het team (2026-11-09): lokaal gecommit,
+   niet gepusht.** Geen migratie. Open: na de deploy een race van ZRL A of een
+   ladderteam openen en de Discord-chip in Raceinfo zien. Zie de ronde
+   "Eventpagina: Discord-kanaal van het team".
+
 0. **Dashboard: zelf kiezen wat je ziet, fitheid in een tegel (2026-11-09):
    gepusht naar `main` (`07ceea93`), migratie `0318` toegepast** (versie
    `20261109131357`, op verzoek van de eigenaar). Open: na de deploy op het
@@ -12057,6 +12062,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Eventpagina: Discord-kanaal van het team
+
+**2026-11-09, commit HASH.** Op verzoek van de eigenaar ("Kun je de
+discordlink van elk team ook op elk passende eventpagina plaatsen?"), daarna
+"Ja, bouwen" op het voorstel. Geen migratie: `teams.discord_url` (migr. `0118`,
+`0119`) bestond al.
+
+Waarom: renners zoeken het teamkanaal vlak voor de race; tot nu toe stond de
+link alleen op de teampagina.
+
+Wat er is:
+
+- **Race van een team** (ZRL-race, ladderrace, elk event met `team_id`): een
+  chip "Discord" met het Discord-logo in Raceinfo, na de andere links.
+- **Raceweek** (hoofdevent met teams eronder): elke teamregel krijgt de chip,
+  naast de racepass en de Zwift-links.
+- **Terugval op het hoofdteam**: een subteam zonder eigen kanaal (B1, B2, Bdev)
+  toont dat van zijn hoofdteam. Een eigen kanaal gaat voor.
+- `teamDiscordUrl`/`teamDiscordLink` in `src/lib/events/race-links.ts`; een
+  link die niet door `isValidDiscordUrl` komt, valt weg. De eventpagina haalt
+  met één query de teams van de race op plus elk team met een kanaal, zodat
+  het hoofdteam erbij zit.
+- **Test** in `race-links.test.ts`: eigen kanaal, terugval, geen kanaal en een
+  ongeldige link.
+
+Stand bij het bouwen: vijf teams hebben een kanaal (ZRL A en de vier
+ladderteams). ZRL B, ZRL C, de Zwiftladies en SRC niet, dus daar verschijnt
+nog niets.
+
+**Bewust niet:** een Discord-link per event. Het blijft één kanaal per team,
+beheerd op de teampagina. Ook geen extra Discord-knop bovenaan de raceweek
+voor je eigen teams (zoals bij de racepass): de chip bij je teamregel volstaat.
+
+Lokaal: eslint schoon, `tsc` zonder fouten in de gewijzigde bestanden (de
+bestaande fouten in `lib/ai/claude.ts` en `lib/houding/vision.ts` staan los
+hiervan). `race-links.test.ts`: de drie nieuwe tests groen; de bestaande
+ZwifterBikes-test "linkt naar de routepagina" faalde al vóór deze ronde.
+
+**Niet bekeken:** de pagina in de browser. Deze worktree heeft geen
+`.env.local`, en de eventpagina vraagt inloggen op de productiedata.
 
 ### Gebouwd — Beheer: huisstijl en modules onder Inrichting
 
