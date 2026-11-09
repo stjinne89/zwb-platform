@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Inloglinks bestand tegen mailscanners (2026-11-09): lokaal gecommit,
-   niet gepusht.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
+0. **Inloglinks bestand tegen mailscanners (2026-11-09): gepusht naar `main`
+   (`d48dd9c9`), samen met de bevestigingsmail-ronde.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
    meer binnen. **Nog te doen door de eigenaar:** eigen SMTP instellen in
    Supabase (Authentication -> Emails -> SMTP); de ingebouwde mailer stuurt
    maar twee mails per uur voor de hele club. Na de deploy: Tino een nieuwe
@@ -11944,8 +11944,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 **2026-11-09.** Op verzoek van de eigenaar: elke mail van Supabase moet als ZWB
 herkenbaar zijn, ook bij wachtwoord vergeten. De ronde "Eigen bevestigingsmail
-na registreren" (branch `claude/supabase-registration-email-98e2d3`, nog niet
-op `main`) is hiervoor in deze branch overgenomen (cherry-pick), zodat alle
+na registreren" (branch `claude/supabase-registration-email-98e2d3`) is
+hiervoor overgenomen (cherry-pick) en zo mee naar `main` gegaan, zodat alle
 templates in één docs-bestand staan.
 
 [supabase-auth-email-templates](docs/supabase-auth-email-templates.md) heeft nu
@@ -11972,9 +11972,9 @@ HTML. *Confirm signup* is ongemoeid gebleven. Vóór deze ronde stond *Reset
 password* op een eigen Engelse template ("Reset your password") met dezelfde
 `token_hash`-link; die oude tekst is niet bewaard.
 
-Gevolg voor de live code: de magic link gaat nu naar `/auth/confirm` met een
-`token_hash`. Zolang de knop-pagina (`4c9877d1`) niet gepusht is, verzilvert
-de live versie dat token nog meteen bij openen, net als de resetlink.
+Gevolg voor de code: de magic link gaat nu naar `/auth/confirm` met een
+`token_hash`, en loopt dus ook via de knop op `/auth/doorgaan` (`d48dd9c9`,
+gepusht op 2026-11-09).
 
 **Maillimiet.** Stand op 2026-11-09: geen eigen SMTP, `rate_limit_email_sent`
 = 2 per uur. `zwbcycling.nl` heeft DMARC `p=reject`, dus versturen namens dat
