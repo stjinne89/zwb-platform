@@ -29,6 +29,7 @@ import { BokaalShell } from "@/components/bokaal/shell";
 import { BokaalBoard } from "@/components/bokaal/board";
 import { BOKAAL_ANSWERS, BOKAAL_NOW, BOKAAL_PLACED, BOKAAL_RACES } from "./bokaal-voorbeeld";
 import { RecentBekersList } from "../(app)/dashboard/_components/recent-bekers";
+import { FitnessTile } from "../(app)/dashboard/_components/training-status";
 import { ZWBEKERS_VOORBEELD } from "./zwbekers-voorbeeld";
 
 // De schermen van de app met voorbeelddata, zonder login. Alleen bij lokaal
@@ -176,6 +177,13 @@ export default async function OntwerpVoorbeeldPage({
               <WeekReviewDashboardLink />
             </TileRow>
             <TileRow label="Mijn fitheid">
+              <FitnessTile
+                stats={[
+                  { label: "Fitness", value: "62", sub: "CTL" },
+                  { label: "Vorm", value: "+4", sub: "TSB" },
+                  { label: "Herstel", value: "78", sub: "Vermoeid" },
+                ]}
+              />
               <BriljantTile
                 briljant={{ points: 1840, level: "Saffier", color: "#0f52ba", next: { name: "Smaragd", toGo: 160 } }}
               />

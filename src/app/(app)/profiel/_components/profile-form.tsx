@@ -7,6 +7,7 @@ import { EVENT_INTEREST_OPTIONS } from "@/lib/event-types";
 import { HOUSEHOLD_MAX, HOUSEHOLD_MOMENTS, type Household } from "@/lib/nutrition/shopping";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import { ModuleName } from "@/components/club-texts-provider";
+import type { DashboardPart } from "@/lib/dashboard-parts";
 
 type Initial = {
   id: string;
@@ -34,6 +35,7 @@ type Initial = {
   public_profile_enabled: boolean;
   share_briljant: boolean;
   profile_visibility: Record<string, boolean>;
+  dashboard_hidden: string[];
 };
 
 const FIELD =
@@ -70,7 +72,16 @@ const VISIBILITY_FIELDS = [
   { key: "badges", label: "Badges" },
 ] as const;
 
-export function ProfileForm({ email, initial }: { email: string; initial: Initial }) {
+export function ProfileForm({
+  email,
+  initial,
+  dashboardParts,
+}: {
+  email: string;
+  initial: Initial;
+  /** De dashboardonderdelen die deze club aanbiedt, in de volgorde van het dashboard. */
+  dashboardParts: DashboardPart[];
+}) {
   const [pending, startTransition] = useTransition();
   const [autoSyncPhysique, setAutoSyncPhysique] = useState(initial.auto_sync_physique);
   // Kent intervals.icu geen gewicht, dan blijft het veld open: anders staan er
@@ -407,6 +418,45 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
           </div>
         </fieldset>
       </section>
+
+      {dashboardParts.length > 0 && (
+        <section id="dashboard" className="scroll-mt-20 space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Dashboard
+          </h2>
+          {[...new Set(dashboardParts.map((part) => part.group))].map((group) => (
+            <fieldset key={group} className="space-y-2">
+              <legend className={LABEL}>{group}</legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {dashboardParts
+                  .filter((part) => part.group === group)
+                  .map((part) => (
+                    <label
+                      key={part.key}
+                      className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+                    >
+                      <input type="hidden" name="dashboard_offered" value={part.key} />
+                      <input
+                        type="checkbox"
+                        name="dashboard_show"
+                        value={part.key}
+                        defaultChecked={!initial.dashboard_hidden.includes(part.key)}
+                        className="size-4 accent-primary"
+                      />
+                      <span>
+                        {typeof part.label === "string" ? (
+                          part.label
+                        ) : (
+                          <ModuleName module={part.label.module} />
+                        )}
+                      </span>
+                    </label>
+                  ))}
+              </div>
+            </fieldset>
+          ))}
+        </section>
+      )}
 
       <section id="zichtbaarheid" className="scroll-mt-20 space-y-4">
         <div>
