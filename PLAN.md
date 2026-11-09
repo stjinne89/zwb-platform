@@ -24,8 +24,8 @@ gaat stabiliteit voor nieuwe features.
 0. **ZWBeter racen: diepere race-analyse (2026-11-09): gepusht naar `main`
    (`7fe8ba59`, merge `915a582c`); migratie `0321` toegepast; privacytekst
    goedgekeurd door de eigenaar.** Daarna de rit-grafiek (W′ bij het vermogen,
-   duidelijker hoogteprofiel) en beste vermogen over 5, 15 en 30 s: lokaal
-   gecommit, niet gepusht. Open: de eigenaar kijkt de pagina ingelogd na (ook
+   duidelijker hoogteprofiel) en beste vermogen over 5, 15 en 30 s: gepusht
+   (`a0fd872b`). Open: de eigenaar kijkt de pagina ingelogd na (ook
    de popovers op een telefoon). Zie de rondes "ZWBeter racen: rit-grafiek en
    korte besten" en "ZWBeter racen: diepere race-analyse".
 
@@ -12691,8 +12691,9 @@ race en als pagina aan de eigenaar voorgelegd:
 
 ### Gebouwd — ZWBeter racen: rit-grafiek en korte besten
 
-**2026-11-09.** Lokaal gecommit, niet gepusht. Geen migratie. Vraag van de
-eigenaar bij een schermafbeelding van "Jouw rit": "Kun je w bal in dezelfde
+**2026-11-09.** Commit `a0fd872b`, gepusht naar `main` op verzoek van de
+eigenaar ("Ja, push"). Geen migratie. Vraag van de eigenaar bij een
+schermafbeelding van "Jouw rit": "Kun je w bal in dezelfde
 grafiek weergeven als de vermogens? en kun je het hoogteprofiel iets
 duidelijker weergeven?", en daarna "Kun je daarnaast in de vermogens ook 5s,
 15s en 30s toevoegen?". Het voorstel (W′ op een rechteras, rood onder 0%,
