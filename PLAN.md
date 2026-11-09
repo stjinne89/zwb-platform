@@ -7,7 +7,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Lettertypes in de repo (2026-11-09): lokaal gecommit, nog niet gepusht.**
+0. **Lettertypes in de repo (2026-11-09): gepusht naar `main` (`95a875bf`).**
    Geen migratie. Na de push: de Netlify-deploy moet slagen, en ZWBriljant,
    ZWBekers, het weekoverzicht, voorZpWelBokaal en het spiekbriefje tonen hun
    eigen letter. Zie de ronde "Lettertypes in de repo".
