@@ -12072,7 +12072,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Teamraces alleen voor je eigen team
 
-**2026-11-09, commit HASH.** Op verzoek van de eigenaar ("Ik zie bij events af
+**2026-11-09, commit `0e6411cb`.** Op verzoek van de eigenaar ("Ik zie bij events af
 en toe leden die niet in het bepaalde team zitten op Nee staan. Kun je bekijken
 waarvan leden dit doen en hier een oplossing voor aandragen?"), daarna "Ja,
 alle drie" op het voorstel. Geen migratie.
