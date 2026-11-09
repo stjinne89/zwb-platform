@@ -35,8 +35,8 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Club Ladder: duren en watt in de verwachte uitslag (2026-11-09): lokaal
    gecommit op `claude/racebriefing-uitslag-filters-5170c3`, niet gepusht.**
-   Geen migratie. Eerst: de privacyzin over watt in de matchup uitbreiden naar
-   het racebriefje (voorstel ligt bij de eigenaar). Nalopen: op het racebriefje
+   Geen migratie. Privacyzin uitgebreid naar het racebriefje (akkoord eigenaar
+   2026-11-09). Nalopen: op het racebriefje
    van een ladderrace 15 s en 20 min aanzetten, naar Watt schakelen en op een
    duur sorteren. Zie de ronde "Club Ladder: duren en watt in de verwachte
    uitslag".
@@ -12230,10 +12230,12 @@ zien, in W/kg en in watt, als filter te kiezen, en erop sorteren.
 - De gekozen duren worden niet onthouden: elke briefing begint bij de
   zwaarste duur van dat parcours.
 
-**Privacy (open).** De privacyverklaring zegt dat watt naast W/kg per renner
-"in de matchup" staat. Het racebriefje toont nu hetzelfde (dezelfde gewichten,
-dezelfde renners). Voorstel aan de eigenaar: "in de matchup en de verwachte
-uitslag van het racebriefje". Niet pushen voordat die zin er staat.
+**Privacy.** De privacyverklaring zei dat watt naast W/kg per renner "in de
+matchup" staat; het racebriefje toont nu hetzelfde (dezelfde gewichten,
+dezelfde renners). De zin in de alinea Club Ladder luidt nu "in de matchup en
+de verwachte uitslag van het racebriefje per renner het vermogen in watt naast
+W/kg", akkoord eigenaar 2026-11-09, in een eigen commit. Zonder nieuwe
+privacyversie: het gaat om gewichten die al voor de matchup worden gebruikt.
 
 **Niet geverifieerd.** Het racebriefje in de browser: achter inloggen. Wel:
 tests (ladder, 6 nieuw), ESLint en typecheck schoon. In deze worktree moest
