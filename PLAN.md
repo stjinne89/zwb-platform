@@ -7,6 +7,38 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **ZWBeter racen: races per lid, ook buiten de kalender (2026-11-09):
+   gepusht naar `main` (`9a5f13d5`), migratie `0317` toegepast** (versie
+   `20261109130648`, op verzoek van de eigenaar, vóór de push). Privacytekst
+   nog voorleggen aan de eigenaar. Na de deploy: het antwoord
+   van `/api/briljant/zrs-history` (`races`) en `/api/zrl/freeze` bekijken, en
+   na een dag "Jouw races" van een paar leden. Zie de ronde "ZWBeter racen:
+   races per lid, ook buiten de kalender".
+
+0. **Dashboard: volgorde in groepen, "Vandaag" heet "Dashboard" (2026-11-09):
+   gepusht naar `main` (`55493bd0`).** Geen migratie. Open: na de deploy ingelogd
+   bekijken, met een dag met twee trainingen (veegrij) en een lopend event.
+   Zie "Dashboard: Mijn training, Mijn fitheid, Mijn events" hieronder.
+
+0. **AI-verbruik meten, fase 0 van ZWBrandstof (2026-11-09): gepusht naar
+   `main` (`35289cc2`, privacy `f60a9fdf`), migratie `0316` toegepast** (versie
+   `20261109123821`, op verzoek van de eigenaar). Na de deploy: een coachvraag
+   stellen en zien dat hij op `/beheer/ai-verbruik` verschijnt. Over een maand
+   de cijfers gebruiken voor de prijzen van ZWBrandstof (plannenboek). Zie de
+   ronde "AI-verbruik meten".
+
+0. **Club Ladder: rosternamen toevoegen aan puzzel en teams (2026-11-09):
+   gepusht naar `main` (`6bfa983e`).** Geen migratie. Nalopen na een deploy, met de rol teamcaptain:
+   onder de puzzel bij "Renner aan de puzzel toevoegen" een rosternaam kiezen en
+   in een team zetten, en op de pagina van een ladderteam onder het teamprofiel
+   een rosternaam toevoegen. Zie de ronde "Club Ladder: rosternamen toevoegen
+   aan puzzel en teams".
+
+0. **Zwift-garage: fietslijst voorbij 1000 rijen (2026-11-09): gepusht naar
+   `main` (`c01addc9`).** Geen migratie. Open: na de deploy de garage bekijken. Zwift TT, Steel, Safety en een deel van de Zwift
+   Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
+   ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
+
 0. **Generieke versie, fase 3 deel 1 en 2: clubnaam, modulenamen, hulp,
    privacy en voorwaarden (2026-11-09): gepusht naar `main` (deel 1
    `c8ed7cb3`, deel 2 `fdbdbd91`).** Geen
@@ -1112,7 +1144,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Wat.**
 > - **Dashboard.** In "tegels" is Q&A een tegel in de tegelrij bovenaan
->   (na jouw races, voor Instagram): sage ("Vraag over de app?") en met het
+>   (na jouw races, voor Instagram; sinds 2026-11-09 in een rij met alleen
+>   Instagram, na de bekers): sage ("Vraag over de app?") en met het
 >   aantal FAQ-vragen in de kleine regel; voor wie antwoordt goud met "N vragen
 >   wachten" zodra er open vragen zijn, en dan naar `/qa#open`. In "klassiek"
 >   een regel zoals die van het weekoverzicht, op de plek van het oude blok.
@@ -3635,9 +3668,13 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
 >
-> - Een andere race uit de kalender (geen ZRL, geen FRR) staat pas in de lijst als
+> - ~~Een andere race uit de kalender (geen ZRL, geen FRR) staat pas in de lijst als
 >   hij bewaard is, dus na één bezoek; zonder bewaarde uitslag weet de app niet
->   wie meereed. Op dit moment is er zo'n race niet (alleen een groepsrit).
+>   wie meereed. Op dit moment is er zo'n race niet (alleen een groepsrit).~~
+>   *Vervangen op 2026-11-09 (ronde "ZWBeter racen: races per lid, ook buiten
+>   de kalender"): de freeze-cron bewaart zo'n race zelf, en de racejob vindt
+>   per lid de eigen races via de Zwift-activiteiten. Op 2026-11-09 misten er
+>   7 van de 8 Zwift-kalenderraces van de afgelopen 120 dagen.*
 > - Bij FRR telt de eigen plek in het klassement na de laatst verwerkte etappe,
 >   niet die na deze etappe.
 >
@@ -3645,6 +3682,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > 2026-11-02 staan ladderwedstrijden wel als event in de kalender, zie de ronde
 > "Ladderwedstrijden in de kalender, met opstelling"*), SRC
 > (MyWhoosh), en zelf races zoeken buiten de kalender op de naam van een
+*(sinds 2026-11-09 wel races buiten de kalender, maar exact via het Zwift-event
+in het activiteitdetail, niet op de naam; zie de ronde "ZWBeter racen: races per
+lid, ook buiten de kalender")*
 > intervals-rit (zou raden zijn). Een tabel met de geplakte races per lid: de
 > bewaarde uitslag zegt al wie meereed.
 >
@@ -4915,7 +4955,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   vijf plekken in tenuekleur: Vandaag, Kalender, ZWBeter, Club, Meer. Onderin
 >   op de telefoon, bovenin op een breed scherm. Welke route bij welke plek
 >   hoort staat in `lib/design-places.ts`.
-> - Vandaag (`/dashboard`): bovenaan tegels voor de eerstvolgende training,
+> - Vandaag (`/dashboard`, sinds 2026-11-09 "Dashboard" en in groepen; zie
+>   "Dashboard: Mijn training, Mijn fitheid, Mijn events"): bovenaan tegels voor de eerstvolgende training,
 >   twee clubraces, twee andere events en de laatste teamstand. De blokken
 >   Clubraces, Teams en scorebord, Aankomende events en Ritverslagen vallen dan
 >   weg; de rest van het dashboard staat er ongewijzigd onder.
@@ -8122,6 +8163,10 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > stond twee blokken verderop, los van de races. Het eigen teamevent, met de
 > starttijd en de opstelling, stond helemaal niet op het dashboard, want daar staan
 > alleen hoofdevents. De live ZRL-stand was er ook niet te vinden.
+>
+> *(Sinds 2026-11-09 geldt een andere volgorde: Mijn training, Mijn fitheid,
+> Mijn events, Overige events en dan de rest; zie "Dashboard: Mijn training,
+> Mijn fitheid, Mijn events".)*
 >
 > **Nieuwe volgorde.** Groet · Zwift-ID-melding · **Jouw races** · trainingsstatus
 > + core · onderhoud · **Clubraces** · Teams en scorebord · Aankomende events · Nieuws
@@ -12225,6 +12270,285 @@ is groen, op deze tests na:
 - een club met andere namen (kan niet op productie). Voor de meldingen en de
   pacingprompt dekt de nieuwe test dat.
 
+### Gebouwd — ZWBeter racen: races per lid, ook buiten de kalender
+
+**2026-11-09.** Vraag van de eigenaar: "Bij ZWBeter racen zie ik niet alle races
+die op de kalender stonden, hoe komt dit en kunnen we per lid zijn afgelopen
+races niet automatisch ophalen?" Na de diagnose koos de eigenaar "Ook races per
+lid" (naast de kalender-cron). Commit `9a5f13d5`, op 2026-11-09 op verzoek van
+de eigenaar naar `main` gepusht. Migratie `0317_zwift_race_events` vóór de push
+toegepast (versie `20261109130648`) en in productie nagekeken: de vijf kolommen
+en de index staan er, RLS staat nog aan.
+
+**Waarom ze ontbraken** (productie, 2026-11-09, laatste 120 dagen). "Jouw races"
+kende alleen races waarvan de app wist dat het lid meereed: ZRL via de
+opstelling of de bewaarde uitslag, FRR via de FRR-uitslagen, en elke andere
+race alleen via een bewaarde uitslag. Die werd buiten de ZRL pas bewaard als
+iemand de race opende (besluit van de bouwer in de ronde over FRR en andere
+Zwift-races, nu vervangen). Daardoor hadden 7 van de 8 Zwift-kalenderraces geen
+uitslag (onder andere Fellowship Championship Stage 3 op 6 november en La Cyclo
+MedioFondo op 1 november; de rest groepsritten). Ook 14 ZRL-teamraces hadden
+geen bewaarde uitslag; wie daar zonder opstelling meereed (een invaller), zag
+ze niet. SRC en buitenritten staan er bewust niet in.
+
+**Wat er is:**
+
+- **`zwift_race_scores` krijgt het Zwift-event (0317):** `zwift_event_id`,
+  `event_name`, `event_looked_up_at`. Het detail van een activiteit noemt het
+  event in `eventInfo` (`id`, `name`, `eventSubGroupId`; gemeten 2026-11-09 op
+  een race van Tour of Watopia). `fetchActivitySubgroup` is vervangen door
+  `fetchActivityEvent`; de ZRS-historie bewaart het event nu gratis mee bij elke
+  race die ze opzoekt. `zwift_race_score_sync` krijgt `listed_until` (de start
+  van de oudste gelezen activiteit) en `races_checked_at`.
+- **Racejob** (`lib/racen/zwift-races.ts`): per lid met een Zwift-ID, wie het
+  langst wacht eerst en hooguit eens per 3 uur, nieuwe activiteiten bovenaan,
+  de lijst verder tot 120 dagen terug (`listed_until`), en per race daarin het
+  event. Zelfde lijst en cursor als de ZRS-historie, dus ook zelfde regels:
+  een 401/403/404 op de lijst is `refused` (niet gevolgd door het
+  serviceaccount) en wordt overgeslagen. Draait als eerste deel van
+  `/api/briljant/zrs-history` (elk uur, tot 12 s), **niet in een eigen cron**:
+  twee jobs tegelijk op dezelfde cursor kunnen hem terugzetten. Geen nieuwe
+  job op cron-job.org nodig.
+- **Freeze-cron** (`/api/zrl/freeze`): ook de andere Zwift-races uit de
+  kalender (type `zwift` en `ladder`; `zwift_event_type` leeg, `RACE`,
+  `TIME_TRIAL` of `TEAM_TIME_TRIAL`) zonder bewaarde uitslag, tot een dag na de
+  start. `freezeCalendarRace` bewaart ze zoals het openen dat deed (details
+  alleen van de ZWB'ers). Dan staan ze ook bij leden die het serviceaccount
+  niet volgt.
+- **Racelijst** (`listRaces`, `ownRaceIds`): de eigen events uit
+  `zwift_race_scores` tellen mee. Een kalenderrace gaat naar de kalenderpagina,
+  een ZRL-race van een eigen team telt als eigen race (invallers), en een race
+  buiten de kalender krijgt een regel naar `/zwbeter-worden/racen/zwift/[id]`
+  met de naam uit Zwift. De uitslag komt daar pas bij het openen, met de
+  bestaande controle dat het lid in de uitslag staat. Zonder 0317 geeft de
+  query een fout en blijft de lijst zoals hij was.
+- **Hulp** (`/hulp#racen`, hulpzoeker) en **privacytekst** (`/privacy#racen`):
+  dat de app via je Zwift-ID je lijst met Zwift-races leest en per race het
+  event bewaart, zichtbaar alleen voor jou. **Voorleggen aan de eigenaar.**
+  Geen nieuwe privacyversie: de activiteitenlijst werd al gelezen en per race
+  bewaard voor de ZRS-historie; nieuw is alleen welk event het was.
+- **Runbook:** de rijen van beide crons.
+
+**Bewust niet:**
+
+- **Geen FRR-tijdsloten in de freeze-cron.** Die staan er al via de
+  FRR-uitslagen, en het zijn er veel (41 zonder uitslag in 120 dagen).
+- **De uitslag niet meteen ophalen** voor races buiten de kalender. Een race
+  kost zo'n 8 s en een stuk van de Zwift-limiet; nu alleen bij het openen.
+- **Niet meer leden laten volgen.** Wie het serviceaccount niet volgt, krijgt
+  alleen de kalenderraces en de geplakte link. Volgen gebeurt al via de
+  event-scan.
+- **Geen ZRL-uitslagen achteraf bevriezen** voor de 14 ZRL-races zonder
+  uitslag; die verschijnen nu via de opstelling of de racejob, en de uitslag
+  komt bij het openen.
+
+**Niet lokaal te controleren:** de migratie (geen Docker en geen config; wel
+op productie nagekeken, zie boven), de crons op Netlify, en de pagina's in de browser (inloggen kan alleen de
+eigenaar). Hoe snel de achterstand binnen is, is een schatting: zo'n 50 leden
+en een paar honderd races, bij 12 s per uur ongeveer een dag. Lokaal: `tsc`
+zonder fouten in de gewijzigde bestanden (wel bestaande fouten over modules die
+in de gedeelde `node_modules` ontbreken), eslint schoon, en
+`racen-zwift-races.test.ts` (venster, bovenaan bijwerken, detail weg,
+complete lijst niet opnieuw lezen, budget, volgorde) en
+`briljant-zrs-history.test.ts` groen. `next build` is niet gedraaid.
+
+### Gebouwd — Dashboard: Mijn training, Mijn fitheid, Mijn events
+
+**2026-11-09.** Commit `55493bd0`, op 2026-11-09 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie.
+
+**Waarom.** De eigenaar vond dat het dashboard zijn volgorde kwijt was. Na de
+overstap naar het design "tegels" stond alles in twee losse rijen: de
+Vandaag-tegels (training, live, events, ZWBriljant en teamstand door elkaar)
+en daaronder een gemengde rij (weekoverzicht, Jouw races, Q&A, Jouw teams,
+Instagram). De bekers stonden ertussen, en het trainingsadvies en de
+fitheidscijfers kwamen pas daarna. De gewenste volgorde: eerst je eigen
+training, dan je fitheid en je ZWBriljant, dan je eigen events, dan de overige
+events en dan de rest.
+
+**Nieuwe volgorde** (`dashboard/page.tsx`). Kop "Dashboard" met de datum ·
+Zwift-ID- en gewichtmelding · **Mijn training** (eerstvolgende training(en),
+trainingsadvies, core, weekoverzicht) · **Mijn fitheid** (Fitness, Vorm,
+Herstel, ZWBriljant) · **Mijn events** (lopend event of Samen fietsen waarin je
+zelf rijdt, Jouw races, uitslag van je eigen team, Jouw teams) · **Overige
+events** (Samen fietsen en lopende events van anderen, aankomende events) ·
+bekers · Q&A en Instagram · onderhoud · FRR · SRC · ritverslagen · badges ·
+clubactiviteit · clubstats · polls en ledenvoordeel. Elke groep is een eigen
+tegelrij (`TileRow`, `grid-flow-row-dense`); een lege groep verdwijnt.
+
+- **Meerdere trainingen op een dag.** De dashboardquery haalt nu tot 6
+  trainingen vanaf vandaag op en toont alle trainingen van de eerstvolgende
+  trainingsdag (Amsterdamse dag). Bij meer dan één, zoals een warming-up voor
+  een race of twee events op een dag, wordt de brede tegel een veegrij
+  (CSS scroll-snap, geen JavaScript): de volgende steekt een stukje uit en de
+  kleine regel zegt "1 van 2".
+- **Advies en cijfers apart.** `TrainingStatus` is gesplitst in
+  `TrainingAdvice` (de brede advies-tegel, bij Mijn training) en
+  `FitnessStatus` (de drie cijfertegels, bij Mijn fitheid). Ze delen één
+  ophaalronde bij intervals.icu via React `cache`, met de losse waarden als
+  sleutel. De skeletten met de oude sectiekop zijn weg; beide wachten zonder
+  plaatshouder, zoals de andere tegels.
+- **Live: van jou of van anderen.** `VandaagLive` kreeg `mine`: rijd je zelf
+  mee, dan staat de tegel bij Mijn events, anders bij Overige events.
+- **Tegels los.** `components/tegels/vandaag.tsx` exporteert nu losse tegels
+  (`WorkoutTiles`, `LiveTogetherTile`, `LiveEventTile`, `EventTile`,
+  `BriljantTile`, `StandingTile`) plus `DashboardHeader` en `TileRow`, in
+  plaats van één `TegelsVandaag`. `/ontwerp-voorbeeld?scherm=vandaag` toont de
+  groepen met voorbeelddata, met twee trainingen op één dag.
+- **"Vandaag" heet "Dashboard".** "Vandaag" was zowel de startpagina als het
+  eerste tabblad van ZWBeter (`/zwbeter-worden`), en `/hulp` gebruikt "Vandaag"
+  voor dat tabblad en "dashboard" voor de startpagina. Nu: de tab in
+  `lib/design-places.ts`, de kop, "Naar dashboard" op `/welkom` en de
+  tegelkleur in Huisstijl. De interne naam `vandaag` (plek-id, `.tg-vandaag`,
+  de huisstijlsleutel) blijft; die is de goudkleur "jij, nu" en de naam
+  veranderen zou alleen code raken. De tekst bij Dashboard op `/hulp` noemt
+  de nieuwe volgorde.
+
+**Bewust niet gebouwd.** Geen kopjes boven de groepen: de tegels hebben al
+hun eigen label en het design houdt titels kort (voorgelegd, eigenaar
+akkoord). Geen pijltjes of stipjes bij de veegrij: de uitstekende rand en
+"1 van 2" zeggen genoeg, en zo blijft het zonder JavaScript. Geen instelbare
+volgorde per lid (zoals in de ronde van 2026-09-29).
+
+**Bekend open.** De ondertitels van de instructievideo's
+(`scripts/instructievideo/scenes.mjs`, scènes "Vandaag" en de tabs) noemen de
+startpagina nog "Vandaag", en de beelden tonen de oude indeling. Die kloppen
+pas weer als de video's opnieuw worden gemaakt.
+
+**Getest.** `tsc` en ESLint schoon. `tests/unit/design-places.test.ts` groen.
+`/ontwerp-voorbeeld?scherm=vandaag` in de browser bekeken op 375 px en
+1280 px; vegen tussen twee trainingen werkt. De volledige suite heeft
+fouten die niet bij deze wijziging horen: `zwift-route` (Spiral Summit),
+`race-links` (ZwifterBikes), time-outs en `.env.local`. In de worktree
+ontbraken pakketten (`@anthropic-ai/sdk`, `@mediapipe/tasks-vision`); die zijn
+met `npm install` bijgezet, zonder wijziging in `package.json` of de lockfile.
+**Niet lokaal te controleren:** het ingelogde dashboard met echte data
+(trainingen, intervals.icu, live sessies, races).
+
+### Gebouwd — AI-verbruik meten (fase 0 van ZWBrandstof)
+
+**2026-11-09.** Op verzoek van de eigenaar ("Doe beide": het voorstel in het
+plannenboek en fase 0 bouwen). Commits `35289cc2` (code) en `f60a9fdf`
+(privacytekst), gepusht naar `main` op 2026-11-09. Migratie `0316_ai_usage`
+toegepast op 2026-11-09 (versie `20261109123821`), op verzoek van de eigenaar.
+Daarna in productie gecontroleerd: RLS aan, geen policies, geen rechten voor
+`anon` en `authenticated`, en een proefinsert als `service_role` slaagt
+(teruggedraaid).
+
+**Waarom.** Het bestuur wil dat leden en sponsoren gaan bijdragen aan de app,
+met een verbruiksmunt (ZWBrandstof) en een munt voor hulp aan anderen
+(ZWBidons). Het voorstel staat in het plannenboek ("ZWBrandstof en ZWBidons:
+leden en sponsoren dragen bij"). Een prijs per actie kan pas kloppen als we
+weten wat elke actie kost en wie hem veroorzaakt. Dat was niet te zien:
+`ai_jobs` weet niet van wie een opdracht is en gooit hem na zeven dagen weg.
+
+**Wat er de week ervoor gemeten is** (2 tot en met 9 november, uit `ai_jobs`
+gekoppeld aan `training_ai_generations`, tegen de lijstprijs van Opus 5.5,
+$4 / $20 per miljoen tokens): zo'n $30 per week. Bijna alles zat in schema's: 120
+opdrachten voor ~$28,70. Daarvan waren 64 dagvoorstellen van de cron
+(15 leden, $6,68) en de rest vooral herzieningen na een wijziging
+(beschikbaarheid, opstelling, een eigen rit, een vervallen rit). Coachvragen
+kostten samen ~$0,55. Vandaar de regel in het voorstel dat alleen wat een lid
+zelf start ZWBrandstof kost.
+
+Wat er is:
+
+- **`ai_usage` (0316).** Eén rij per Claude-aanroep: lid (`on delete set
+  null`, zodat clubtotalen blijven kloppen), functie, soort (`AiKind`),
+  herkomst, model, stop-reden, de vier tokentellers en de kosten in dollars.
+  Geen prompt, geen antwoord. RLS aan, geen policies, `anon` en
+  `authenticated` zonder rechten; alleen de server leest en schrijft. Rijen
+  ouder dan dertien maanden ruimt `processClaudeJob` op.
+- **Meten in `runClaude`** (`lib/ai/claude.ts`), dus voor achtergrondopdrachten
+  en de synchrone aanroep. Ook een geweigerd of afgekapt antwoord telt, want dat
+  kost ook tokens. Een fout bij het schrijven laat de aanroep nooit mislukken.
+  `ClaudeRequest.meter` is **verplicht**, zodat een nieuwe aanroep niet
+  ongemeten kan blijven; de typecheck dwingt het af.
+- **Herkomst per aanroep** (`AiTrigger` in `lib/ai/usage.ts`):
+  - `member`, zelf gevraagd: nieuw schema, dag aanpassen, "schema bijwerken",
+    volgend blok uit het jaarplan, coachvraag, pacingplan, maaltijd herkennen.
+  - `follow_up`, na een wijziging: `replan.ts` en de uitgestelde herzieningen
+    die de cron uitvoert. `PlanUpdateArgs.trigger` is daarvoor verplicht. Of de
+    wijziging van het lid zelf of van een ander kwam (captain, organisator),
+    staat alleen in de reden bij de generatie, niet in `ai_usage`.
+  - `automatic`: dagvoorstel van de cron (`startBackgroundAdaptation`),
+    weekoverzicht, app-update (zonder lid).
+- **Prijzen** in `lib/ai/usage.ts`, de lijstprijzen van Anthropic per model;
+  cache schrijven telt als 1,25 keer invoer. Een model zonder prijs krijgt `null`
+  en de pagina meldt het aantal apart. Met een fallback rekent de rij met het
+  model dat het antwoord afmaakte.
+- **`/beheer/ai-verbruik`**, onder App, met het recht van de eigenaar
+  (`roles.manage_permissions`). Per maand: totaal en per herkomst, per soort
+  (aantal, gemiddeld, kosten) en per lid (`MemberLink`). Zonder tabel staat er
+  dat het verbruik nog niet wordt bijgehouden.
+- **Data-export** bevat `ai_usage`.
+- **Privacytekst** (`/privacy`, onder Weekoverzicht): een blok "AI-verbruik".
+  Goedgekeurd door de eigenaar ("Ja, zo goed"), in een tweede commit. **Bewust
+  alleen tekst, geen nieuwe privacyversie** in `src/lib/privacy.ts`: het zijn
+  gegevens over aanroepen die het lid al doet, zonder nieuwe ontvanger buiten
+  het bestuur, net als de eerdere gevallen waarin de eigenaar voor alleen tekst
+  koos.
+
+**Bewust niet:**
+
+- **Nog geen ZWBrandstof of ZWBidons**, geen saldo en geen prijzen in de app.
+  Eerst een maand meten, dan kiezen (plannenboek, fase 1 tot en met 3).
+- **Geen eigen verbruik voor het lid.** Dat hoort bij fase 2, als er een saldo
+  is.
+- **Geen terugrekening van de oude week.** `ai_jobs` en de generaties gaven het
+  lid wel, maar de herkomst alleen als vrije tekst. De meting begint pas bij de
+  deploy.
+- **Het OpenAI-pad wordt niet gemeten.** De app draait op Claude; `meter` geldt
+  alleen voor de Claude-aanroep.
+- **Geen euro's.** De kosten staan in dollars tegen de lijstprijs; de factuur
+  van Anthropic blijft leidend.
+
+**Niet lokaal te controleren:** de migratie (geen Docker en geen config; wel
+op productie nagekeken, zie boven), het schrijven door de app zelf na de
+deploy, en de pagina in de browser (niet bekeken). Lokaal
+waren `tsc` en eslint schoon, en waren de nieuwe tests (`tests/unit/ai-usage.test.ts`,
+prijzen, tellers, samenvatting en maand) groen. De volledige suite was groen op
+een paar migratietests na die onder belasting time-outen; los gedraaid zijn ze
+groen. `next build` is niet gedraaid.
+
+### Hersteld — Zwift-garage: fietslijst voorbij 1000 rijen
+
+**2026-11-09.** Commit `c01addc9`, gepusht naar `main` op 2026-11-09 (eigenaar).
+Geen migratie. Aanleiding: een lid meldde dat de Zwift TT niet
+in de garage staat.
+
+**Oorzaak.** `loadBikeParts` (`lib/pacing/ride-context.ts`) las
+`zwift_bike_parts` in één verzoek, op naam gesorteerd, met `.limit(2000)`.
+Supabase geeft per verzoek hoogstens 1000 rijen, wat de limit ook zegt. De
+tabel telt 1031 rijen (882 framerijen, nagekeken met de Supabase-connector),
+dus vielen de laatste 31 eraf: Zwift Mountain (deels), Zwift Safety, Zwift
+Steel en Zwift TT, en de wielsets Zwift Plain, Pride On, Pride On Disc, Safety,
+Supersonic en Tri Spoke // Disc. Dat gold niet alleen voor de garage maar voor
+alles wat `loadBikeParts` gebruikt: Snelste fiets in het pacingplan en de
+briefing konden deze fietsen niet kiezen. De tabel zelf was compleet; de fout
+zat sinds de lijst boven de 1000 rijen kwam (vóór 2026-10-26 al 1034).
+
+**Wat er is.** `loadBikeParts` leest per 1000 rijen (`.range`, gesorteerd op
+naam en `id`) tot een pagina korter is. Test: `tests/unit/load-bike-parts.test.ts`.
+
+**Volledigheid nagekeken.** De sheet van ZwiftInsider (opgehaald 2026-11-09)
+geeft na het afleiden 1032 rijen en 148 frames; alles staat in de tabel. Uit
+de sheet vallen alleen de funbikes weg (Brompton, Big Wheel, BMX Bandit,
+Handcycle, MX Rider, Recumbent Trike), bewust. `zwift-data` kent nog fietsen
+die ZwiftInsider niet apart test: skins en teamversies (Canyon Aeroad Team
+Edition 2021, Tarmac SL7 SRAM, Filante SLR ID2 Team, Buffalo Qhubeka, Golden
+Concept Z1, de MyCanyon-ontwerpen, Cello Team, Trek Team, Tarmac Mixtape,
+Aeroad Abell, Speedmax Team Edition) en een paar zonder meting (Canyon Aeroad
+CFR 2026, Canyon Ultimate Generation, Merida Scultura, Zwift Skeletal, Zwift
+Bat). **Niet gebouwd:** die namen op hun basisframe zetten. Dat vraagt per
+skin een keuze en meetgegevens die er niet zijn; eerst aan de eigenaar
+voorleggen.
+
+**Niet lokaal te controleren.** De garage in de browser met echte data; lokaal
+is er geen productiedatabase. De unit-test draait; de volledige suite faalt in
+deze worktree op ontbrekende pakketten (`@anthropic-ai/sdk`) en `.env.local`,
+niet op deze wijziging.
+
 ### Gebouwd — Generieke versie, fase 3 deel 2: hulp, privacy en voorwaarden
 
 **2026-11-09.** Op verzoek van de eigenaar ("Go on to deel 2"), na deel 1. Geen
@@ -12363,6 +12687,60 @@ en beheer gelijk, en een club zonder namen ziet geen "ZWB").
 `omnium-season-actions.test.ts` mockt nu `@/lib/club`. **Niet bekeken:** de
 schermen achter de login in de browser, en een club met andere namen. Dat laatste
 kan niet op productie zonder dat elk lid het ziet.
+
+### Gebouwd — Club Ladder: rosternamen toevoegen aan puzzel en teams
+
+**2026-11-09.** Commit `6bfa983e`, gepusht naar `main` op 2026-11-09. Geen
+migratie.
+
+**Waarom.** Eigenaar: "Ik wil rosternamen ook kunnen toevoegen aan de club
+ladder puzzel en teams". Een rosternaam zonder account kwam alleen in de puzzel
+via "Renner toevoegen" met een Zwift-ID; de keuzelijst onder de puzzel toonde
+alleen leden, en op de teampagina kon je niemand toevoegen. Op productie
+(2026-11-09) zijn er 54 ongeclaimde rosternamen, waarvan 4 in de ladder.
+
+**Wat.**
+- `addLadderRider(renner, team)` (`teams/club-ladder/_actions.ts`): lid of
+  rosternaam in een ladderteam, of bij de losse stukjes (`null`). Een rosternaam
+  krijgt een rij in `ladder_roster_riders` (upsert op `roster_entry_id`, dus een
+  rosternaam die al in een ander ladderteam stond, verhuist); een geclaimde
+  rosternaam wordt geweigerd. Een lid naar een puzzelteam gaat via
+  `moveLadderPuzzleRider` (uit de andere puzzelteams), naar een team buiten de
+  puzzel als `team_members` met herkomst `manual`, en naar de losse stukjes via
+  `addToLadderPool`.
+- Rechten zoals ze al waren: een puzzelteam alleen de rol teamcaptain
+  (`canEditLadderPuzzle`), een team buiten de puzzel `canAssignLadderRiders`,
+  een rosternaam bij de losse stukjes de rol teamcaptain (zoals "Renner
+  toevoegen"), een lid bij de losse stukjes een van beide.
+- `loadLadderAddOptions` (`_lib/load.ts`): goedgekeurde leden en ongeclaimde
+  rosternamen; een rosternaam met het Zwift-ID van een lid valt weg, zoals in de
+  puzzel.
+- Clubladderpagina: "Lid aan de puzzel toevoegen" heet "Renner aan de puzzel
+  toevoegen", met in de keuzelijst Leden en Rosternamen zonder account, en een
+  tweede keuze voor het team (Losse stukjes of een puzzelteam). Rosternamen en
+  de teamkeuze alleen voor de rol teamcaptain. Het formulier staat er voor wie
+  ladderteams indeelt of de rol teamcaptain heeft (eerst alleen het eerste).
+- Teampagina (`/teams/club-ladder/[teamId]`): onder het teamprofiel "Renner aan
+  <team> toevoegen", met leden en rosternamen die nog niet in dat team staan.
+- `/hulp` (Teams en wedstrijden) aangepast.
+
+**Bewust niet.** Geen nieuwe rosternamen vanuit deze keuzelijst: dat blijft
+"Renner toevoegen" in de puzzel, met Zwift-ID. Een lid dat in een team buiten
+de puzzel komt, blijft in zijn puzzelteam staan; alleen in de puzzel geldt één
+team per renner. Bij een rosternaam staat in de keuzelijst niet in welk
+ladderteam hij al zit. Geen privacytekst: ladderteam van renners zonder account
+staat er al sinds 0290.
+
+**Niet meer waar.** In de ronde "Ladderpuzzel: weergave, volgorde en renners
+weghalen" (2026-10-29) heette het formulier "Lid aan de ladderlijst toevoegen";
+daar staat nu een verwijzing naar deze ronde.
+
+**Gecontroleerd.** `tsc` zonder nieuwe fouten (alleen ontbrekende pakketten in
+deze worktree: `@anthropic-ai/sdk`, `@mediapipe/tasks-vision`,
+`modern-screenshot`), ESLint schoon op `teams/club-ladder` en `hulp/_data.ts`,
+Vitest `club-ladder*` 159 groen (`club-ladder-sync` laadt niet door
+`@anthropic-ai/sdk`). **Niet geverifieerd:** de formulieren in de browser en een
+echte toevoeging op productie.
 
 ### Gebouwd — Club Ladder: duren en watt in de verwachte uitslag
 
@@ -17473,7 +17851,9 @@ kunnen halen als iemand niet meer mee wil doen.
   puzzel niet meer bewerken, tenzij het ook de rol teamcaptain heeft. Captain
   van een ladderteam zijn telt niet mee. Op 2026-10-29 hebben negen leden die
   rol, onder wie de captains Jeroen en Femke en de eigenaar. De
-  Captain-selectie, "Lid aan de ladderlijst toevoegen" en captains aanwijzen
+  Captain-selectie, "Lid aan de ladderlijst toevoegen" (*sinds 2026-11-09
+  "Renner aan de puzzel toevoegen", ook met rosternamen; zie de ronde "Club
+  Ladder: rosternamen toevoegen aan puzzel en teams"*) en captains aanwijzen
   houden de oude regel (`canAssignLadderRiders`: `teams.manage_roster`, of
   captain van een ladderteam).
 
@@ -18087,7 +18467,8 @@ er gepresteerd is en de winnaars kunnen feliciteren".
   (`requireBekerMember`: goedgekeurd en privacyverklaring getekend), anders
   geen blok. Bij een storing ook geen blok.
 - Het blok "ZWBekers van deze week" (`dashboard/_components/recent-bekers.tsx`)
-  staat bovenaan het dashboard, in beide designs, na de begroeting. Per beker
+  staat bovenaan het dashboard, in beide designs, na de begroeting (sinds
+  2026-11-09 na de groepen training, fitheid en events). Per beker
   het plaatje op de donkere plank van het profiel, titel, team en winnaars,
   datum en een knop Feliciteren naar `/zwbekers/[id]#felicitaties`.
 - `BekerFeest` (`components/zwbekers/beker-feest.tsx`): zit er een beker bij die

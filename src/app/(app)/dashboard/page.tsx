@@ -34,7 +34,7 @@ import {
   INSTAGRAM_TAG_SOURCE,
 } from "@/lib/instagram-sync";
 import { ClubStats } from "./_components/club-stats";
-import { CoreStatus, CoreStatusSkeleton } from "./_components/core-status";
+import { CoreStatus } from "./_components/core-status";
 import { FrrStandings } from "./_components/frr-standings";
 import { MyRaces } from "./_components/my-races";
 import { MyTeams } from "./_components/my-teams";
@@ -43,10 +43,9 @@ import { RecentBekers } from "./_components/recent-bekers";
 import { InstagramStrip, type InstagramPost } from "./_components/instagram-strip";
 import { SrcResults } from "./_components/src-results";
 import {
-  TrainingStatus,
-  TrainingStatusSkeleton,
+  FitnessStatus,
+  TrainingAdvice,
   type TrainingStatusConn,
-  type TrainingStatusWorkout,
 } from "./_components/training-status";
 import type { WellnessDevice } from "@/lib/training/wellness";
 import { MaintenanceStatus } from "./_components/maintenance-status";
@@ -74,11 +73,19 @@ import { points as briljantPoints, positionFor as briljantPosition } from "@/lib
 import { SCALE_VERSION as BRILJANT_SCALE } from "@/lib/briljant/norms";
 import { storedScore as briljantStoredScore } from "@/lib/briljant/compare";
 import {
-  TegelsVandaag,
+  BriljantTile,
+  DashboardHeader,
+  EventTile,
+  LiveEventTile,
+  LiveTogetherTile,
+  StandingTile,
+  TileRow,
+  WorkoutTiles,
   type VandaagBriljant,
   type VandaagEvent,
   type VandaagLive,
   type VandaagLiveEvent,
+  type VandaagWorkout,
 } from "@/components/tegels/vandaag";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { liveRidersLabel } from "@/lib/live/riders-label";
@@ -458,13 +465,18 @@ async function loadLiveNow(
   return {
     together:
       split.together.length > 0
-        ? { count: split.together.length, riders: liveRidersLabel(split.together, viewerId) }
+        ? {
+            count: split.together.length,
+            riders: liveRidersLabel(split.together, viewerId),
+            mine: split.together.some((rider) => rider.profileId === viewerId),
+          }
         : null,
     events: split.byEvent.map(({ event, riders: eventRiders }) => ({
       id: event.id,
       title: event.title,
       count: eventRiders.length,
       riders: liveRidersLabel(eventRiders, viewerId),
+      mine: eventRiders.some((rider) => rider.profileId === viewerId),
     })),
   };
 }
@@ -622,12 +634,12 @@ export default async function DashboardPage({
     user && on("training")
       ? supabase
           .from("training_workouts")
-          .select("title, scheduled_at, intensity, duration_minutes, structure_json, test_type")
+          .select("id, title, scheduled_at, intensity, duration_minutes, structure_json, test_type")
           .is("superseded_at", null)
           .eq("profile_id", user.id)
           .gte("scheduled_at", `${todayKey}T00:00:00`)
           .order("scheduled_at", { ascending: true })
-          .limit(1)
+          .limit(6)
       : Promise.resolve({ data: null }),
     user
       ? supabase
@@ -703,20 +715,7 @@ export default async function DashboardPage({
   // heeft óf een geplande workout heeft. De trage intervals-fetch zit in het
   // gesuspende <TrainingStatus>, niet in deze pagina-render.
   const conn = (trainingConn ?? null) as TrainingStatusConn | null;
-  const nextWorkoutRow = (nextWorkoutRows ?? [])[0] ?? null;
-  const nextWorkout: TrainingStatusWorkout | null = nextWorkoutRow
-    ? (() => {
-        const ftp = Number((profile as { ftp_watts?: number | null } | null)?.ftp_watts);
-        const planned = plannedWorkoutIntensity(nextWorkoutRow, ftp > 0 ? ftp : null);
-        return {
-          title: nextWorkoutRow.title,
-          scheduled_at: nextWorkoutRow.scheduled_at,
-          duration_minutes: nextWorkoutRow.duration_minutes,
-          intensity: planned.intensity,
-          intensityLabel: planned.label,
-        };
-      })()
-    : null;
+  const workoutRows = nextWorkoutRows ?? [];
   const sex = (profile as { sex?: string | null } | null)?.sex ?? null;
   const zwiftProfile = profile as
     | { zwift_id?: string | null; zwift_opt_out?: boolean | null }
@@ -727,7 +726,7 @@ export default async function DashboardPage({
   const wellnessDevice =
     ((profile as { wellness_device?: string | null } | null)?.wellness_device ??
       null) as WellnessDevice | null;
-  const showTraining = on("training") && (Boolean(conn) || Boolean(nextWorkout));
+  const showTraining = on("training") && (Boolean(conn) || workoutRows.length > 0);
   // Syncen kan alleen met een koppeling die ook activiteiten mag lezen. Lukt
   // koppelen niet — de Strava-atletenlimiet raakt niet elk lid — dan blijft de
   // CSV/GPX-import de volwaardige route, dus die staat er altijd.
@@ -739,8 +738,9 @@ export default async function DashboardPage({
   const canSyncStrava =
     hasActivityScope(strava?.scope ?? null) && (rideStatus?.stravaActive ?? true);
 
-  // Bovenaan de tegels. Clubraces, scorebord en aankomende events staan in de
-  // tegels en in de kalender; ritverslagen staat er niet als los blok.
+  // Bovenaan de tegels, in groepen: Mijn training, Mijn fitheid, Mijn events en
+  // Overige events (eigenaar, 2026-11-09). Ritverslagen staat er niet als los
+  // blok.
   const amsterdam = { timeZone: "Europe/Amsterdam" } as const;
   const dayKeyOf = (iso: string) => new Date(iso).toLocaleDateString("en-CA", amsterdam);
   // eslint-disable-next-line react-hooks/purity
@@ -767,22 +767,35 @@ export default async function DashboardPage({
     }),
     place,
   });
-  // Het verloop van de eerstvolgende training voor de lijn in de tegel: per blok
-  // de duur en het midden van het doelvermogen, of van de zone als het blok geen
-  // eigen doel heeft.
-  const workoutProfile =
-    nextWorkoutRow
-      ? normalizeWorkoutBlocks(
-          nextWorkoutRow.structure_json,
-          nextWorkoutRow.intensity as WorkoutIntensity,
+  // De trainingen van de eerstvolgende trainingsdag, elk met het verloop voor de
+  // lijn in de tegel: per blok de duur en het midden van het doelvermogen, of van
+  // de zone als het blok geen eigen doel heeft. Meer dan een op die dag (een
+  // warming-up voor een race, twee events): de tegel wordt een veegrij.
+  const ftpWatts = Number((profile as { ftp_watts?: number | null } | null)?.ftp_watts);
+  const ftp = ftpWatts > 0 ? ftpWatts : null;
+  const firstWorkoutDay = workoutRows[0] ? dayKeyOf(workoutRows[0].scheduled_at) : null;
+  const workoutTiles: VandaagWorkout[] = workoutRows
+    .filter((row) => dayKeyOf(row.scheduled_at) === firstWorkoutDay)
+    .map((row) => {
+      const planned = plannedWorkoutIntensity(row, ftp);
+      return {
+        id: row.id,
+        title: row.title,
+        when: whenLabel(row.scheduled_at),
+        today: dayKeyOf(row.scheduled_at) === todayKey,
+        meta: [row.duration_minutes ? `${row.duration_minutes} min` : null, planned.label ?? null]
+          .filter(Boolean)
+          .join(" · "),
+        profile: normalizeWorkoutBlocks(
+          row.structure_json,
+          row.intensity as WorkoutIntensity,
         ).map((block) => {
-          const ftp = Number((profile as { ftp_watts?: number | null } | null)?.ftp_watts);
           const [low, high] =
-            powerRangePercentForBlock(block, ftp > 0 ? ftp : null) ??
-            INTENSITY_FTP_RANGE[block.intensity];
+            powerRangePercentForBlock(block, ftp) ?? INTENSITY_FTP_RANGE[block.intensity];
           return { minutes: block.durationMinutes, pct: (low + high) / 2 };
-        })
-      : undefined;
+        }),
+      };
+    });
   const liveNow = await livePromise;
   // Een event dat al een eigen live-tegel heeft, staat er niet nog eens bij.
   const liveEventIds = new Set((liveNow?.events ?? []).map((event) => event.id));
@@ -850,44 +863,13 @@ export default async function DashboardPage({
 
   return (
     <div className="tg-dash space-y-2">
-      <TegelsVandaag
+      <DashboardHeader
         weekday={new Date().toLocaleDateString("nl-NL", { weekday: "long", ...amsterdam })}
         date={new Date().toLocaleDateString("nl-NL", {
           day: "numeric",
           month: "long",
           ...amsterdam,
         })}
-        workout={
-          nextWorkout
-            ? {
-                title: nextWorkout.title,
-                profile: workoutProfile,
-                when: whenLabel(nextWorkout.scheduled_at),
-                today: dayKeyOf(nextWorkout.scheduled_at) === todayKey,
-                meta: [
-                  nextWorkout.duration_minutes ? `${nextWorkout.duration_minutes} min` : null,
-                  nextWorkout.intensityLabel ?? null,
-                ]
-                  .filter(Boolean)
-                  .join(" · "),
-              }
-            : null
-        }
-        events={tileEvents}
-        live={liveNow?.together ?? null}
-        liveEvents={liveNow?.events ?? []}
-        briljant={tileBriljant}
-        standing={
-          tileStanding && tileStanding.position
-            ? {
-                href: tileStanding.round_url ?? tileStanding.href,
-                team: tileStanding.team.name,
-                competition: tileStanding.competition,
-                position: tileStanding.position,
-                totalTeams: tileStanding.total_teams ?? null,
-              }
-            : null
-        }
       />
 
       {/* Blijft staan tot het ID er is: de dialoog bij inloggen mag weggeklikt
@@ -903,6 +885,74 @@ export default async function DashboardPage({
       )}
       {needsWeight && <MissingWeightNotice />}
 
+      <TileRow label="Mijn training">
+        <WorkoutTiles workouts={workoutTiles} />
+        {showTraining && (
+          <Suspense fallback={null}>
+            <TrainingAdvice conn={conn} sex={sex} wellnessDevice={wellnessDevice} />
+          </Suspense>
+        )}
+        {on("training") && (
+          <Suspense fallback={null}>
+            <CoreStatus />
+          </Suspense>
+        )}
+        {user && on("weekoverzicht") && <WeekReviewDashboardLink />}
+      </TileRow>
+
+      <TileRow label="Mijn fitheid">
+        {showTraining && (
+          <Suspense fallback={null}>
+            <FitnessStatus conn={conn} sex={sex} wellnessDevice={wellnessDevice} />
+          </Suspense>
+        )}
+        {tileBriljant && <BriljantTile briljant={tileBriljant} />}
+      </TileRow>
+
+      <TileRow label="Mijn events">
+        {liveNow?.together?.mine && <LiveTogetherTile live={liveNow.together} />}
+        {(liveNow?.events ?? [])
+          .filter((event) => event.mine)
+          .map((event) => (
+            <LiveEventTile key={event.id} event={event} />
+          ))}
+        {user && on("teams") && (
+          <Suspense fallback={null}>
+            <MyRaces userId={user.id} />
+          </Suspense>
+        )}
+        {tileStanding && tileStanding.position && (
+          <StandingTile
+            standing={{
+              href: tileStanding.round_url ?? tileStanding.href,
+              team: tileStanding.team.name,
+              competition: tileStanding.competition,
+              position: tileStanding.position,
+              totalTeams: tileStanding.total_teams ?? null,
+            }}
+          />
+        )}
+        {user && on("teams") && (
+          <Suspense fallback={null}>
+            <MyTeams userId={user.id} />
+          </Suspense>
+        )}
+      </TileRow>
+
+      <TileRow label="Overige events">
+        {liveNow?.together && !liveNow.together.mine && (
+          <LiveTogetherTile live={liveNow.together} />
+        )}
+        {(liveNow?.events ?? [])
+          .filter((event) => !event.mine)
+          .map((event) => (
+            <LiveEventTile key={event.id} event={event} />
+          ))}
+        {tileEvents.map((event) => (
+          <EventTile key={event.id} event={event} />
+        ))}
+      </TileRow>
+
       {/* Bekers van de afgelopen week, met een feestje als ze nieuw zijn. */}
       {user && on("bekers") && (
         <Suspense fallback={null}>
@@ -910,44 +960,15 @@ export default async function DashboardPage({
         </Suspense>
       )}
 
-      {/* Eén tegelrij: jouw races, Q&A, jouw teams en de Instagram-posts van
-          deze week. Dense: een brede teamtegel laat geen gat achter. */}
-      <div className="grid grid-flow-row-dense grid-cols-2 gap-2 empty:hidden md:grid-cols-4">
-        {user && on("weekoverzicht") && <WeekReviewDashboardLink />}
-        {user && on("teams") && (
-          <Suspense fallback={null}>
-            <MyRaces userId={user.id} />
-          </Suspense>
-        )}
+      {/* Q&A en de Instagram-posts van deze week. */}
+      <TileRow label="Club">
         <Suspense fallback={null}>
           <QaDashboard />
         </Suspense>
-        {user && on("teams") && (
-          <Suspense fallback={null}>
-            <MyTeams userId={user.id} />
-          </Suspense>
-        )}
         <InstagramStrip
           posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
         />
-      </div>
-
-      <div className="grid gap-2">
-        {showTraining && (
-          <Suspense fallback={<TrainingStatusSkeleton />}>
-            <TrainingStatus
-              conn={conn}
-              sex={sex}
-              wellnessDevice={wellnessDevice}
-            />
-          </Suspense>
-        )}
-        {on("training") && (
-          <Suspense fallback={<CoreStatusSkeleton />}>
-            <CoreStatus />
-          </Suspense>
-        )}
-      </div>
+      </TileRow>
 
       {user?.id && on("garage") && <MaintenanceStatus profileId={user.id} />}
 

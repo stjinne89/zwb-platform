@@ -524,6 +524,8 @@ export async function POST(request: Request) {
               planId: plan.id,
               actorId: plan.profile_id,
               reason: `${trigger.reason} Het schema is automatisch herzien.`,
+              // Uitgesteld, maar het blijft een herziening na een wijziging.
+              trigger: "follow_up",
               authorized: true,
               rollingWindow: true,
             });

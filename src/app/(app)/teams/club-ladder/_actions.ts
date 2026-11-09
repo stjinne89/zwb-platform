@@ -393,6 +393,83 @@ export async function addLadderRosterRider(input: {
   return { ok: true as const };
 }
 
+/**
+ * Een lid of een rosternaam zonder account in de ladder, in een ladderteam of
+ * bij de losse stukjes (`null`). Een puzzelteam deelt alleen de rol teamcaptain
+ * in; een team buiten de puzzel wie ladderteams mag indelen. Een rosternaam
+ * zonder team in de puzzel zetten gaat, net als "Renner toevoegen", via de rol
+ * teamcaptain; een lid bij de losse stukjes ook via `canAssignLadderRiders`.
+ */
+export async function addLadderRider(rider: PuzzleRiderRef, teamId: string | null) {
+  if (rider.kind !== "profile" && rider.kind !== "roster") {
+    return { ok: false as const, error: "Ongeldige renner." };
+  }
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  const userId = access.user.id;
+  const admin = createAdminClient();
+  const teamIds = await puzzleTeamIds(admin);
+
+  if (teamId) {
+    const { data: team } = await admin.from("teams").select("id").eq("id", teamId).eq("type", "ladder").maybeSingle();
+    if (!team) return { ok: false as const, error: "Geen ladderteam." };
+  }
+  const inPuzzle = teamId != null && teamIds.includes(teamId);
+  const allowed = inPuzzle
+    ? await canEditLadderPuzzle(access)
+    : teamId
+      ? await canAssignLadderRiders(access)
+      : rider.kind === "roster"
+        ? await canEditLadderPuzzle(access)
+        : (await canEditLadderPuzzle(access)) || (await canAssignLadderRiders(access));
+  if (!allowed) return { ok: false as const, error: "Geen recht om deze renner in te delen." };
+
+  if (rider.kind === "roster") {
+    const { data: entry } = await admin
+      .from("roster_entries")
+      .select("id, claimed_by")
+      .eq("id", rider.id)
+      .maybeSingle();
+    if (!entry) return { ok: false as const, error: "Rosternaam niet gevonden." };
+    if (entry.claimed_by) return { ok: false as const, error: "Deze rosternaam hoort al bij een lid." };
+    const { error } = await admin
+      .from("ladder_roster_riders")
+      .upsert(
+        { roster_entry_id: rider.id, team_id: teamId, added_by: userId },
+        { onConflict: "roster_entry_id" },
+      );
+    if (error) return { ok: false as const, error: error.message };
+    if (teamId) refresh(teamId);
+    revalidatePath("/teams/club-ladder");
+    return { ok: true as const };
+  }
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("id", rider.id)
+    .eq("is_approved", true)
+    .maybeSingle();
+  if (!profile) return { ok: false as const, error: "Geen goedgekeurd lid." };
+
+  // In de puzzel rijdt een lid in één team: dat regelt de puzzelverplaatsing.
+  if (inPuzzle) return moveLadderPuzzleRider(rider, teamId);
+  if (!teamId) {
+    return (await canAssignLadderRiders(access)) ? addToLadderPool(rider.id) : moveLadderPuzzleRider(rider, null);
+  }
+
+  await clearWithdrawn(admin, rider.id);
+  await admin.from("team_member_seed_overrides").delete().eq("team_id", teamId).eq("profile_id", rider.id);
+  const { error } = await admin.from("team_members").upsert(
+    { team_id: teamId, profile_id: rider.id, role: "member", assignment_source: "manual" },
+    { onConflict: "team_id,profile_id", ignoreDuplicates: true },
+  );
+  if (error) return { ok: false as const, error: error.message };
+  refresh(teamId);
+  return { ok: true as const };
+}
+
 /** Favoriet parcours van een ladderteam aan of uit; alleen de rol teamcaptain (0298). */
 export async function setLadderFavoriteRoute(teamId: string, routeSlug: string, favorite: boolean) {
   const check = await guard(teamId, true);

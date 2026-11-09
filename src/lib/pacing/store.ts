@@ -530,7 +530,7 @@ export async function startGeneration(
   if (error) throw new Error(error.message);
 
   try {
-    const started = await startPacingPlanBackground(input.aiInput);
+    const started = await startPacingPlanBackground(input.aiInput, input.profileId);
     await admin
       .from("event_pacing_generations")
       .update({

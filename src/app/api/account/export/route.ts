@@ -62,6 +62,8 @@ const PROFILE_TABLES: string[] = [
   "club_stories",
   // Kracht uit intervals.icu (0292): welke spieren je per training aantikte.
   "intervals_strength_muscles",
+  // AI-verbruik (0316): per aanroep de soort, de herkomst, tokens en kosten.
+  "ai_usage",
 ];
 
 export async function GET() {

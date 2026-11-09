@@ -15,6 +15,7 @@ import {
 } from "@/lib/ai/claude";
 import { claudeSettings, usesClaude, type AiKind } from "@/lib/ai/settings";
 import { withClubInstructions } from "@/lib/club";
+import type { AiMeter } from "@/lib/ai/usage";
 
 export type GeneratedWorkout = {
   date: string;
@@ -453,6 +454,9 @@ type GenerateTrainingPlanOptions = {
   kind?: AiKind;
 };
 
+/** Een generatie die echt naar de AI gaat, weet van wie hij is (ai_usage, 0316). */
+type MeteredTrainingOptions = GenerateTrainingPlanOptions & { meter: Omit<AiMeter, "kind"> };
+
 /**
  * Welk model deze generatie gebruikt. Geëxporteerd omdat startPlanUpdate de rij
  * in training_ai_generations aanmaakt vóórdat de call naar de AI vertrekt, en
@@ -467,15 +471,17 @@ export function getTrainingModel(options: GenerateTrainingPlanOptions = {}) {
 function trainingClaudeRequest(
   input: TrainingAiInput,
   promptText: string,
-  options: GenerateTrainingPlanOptions,
+  options: MeteredTrainingOptions,
 ): ClaudeRequest {
-  const { model, effort } = claudeSettings(options.kind ?? "nieuw_schema");
+  const kind = options.kind ?? "nieuw_schema";
+  const { model, effort } = claudeSettings(kind);
   return {
     model,
     effort,
     system: promptText,
     user: `${todayLine()}\n\nMaak een trainingsplan-concept op basis van deze intake en recente data:\n${JSON.stringify(input, null, 2)}`,
     schema: planSchema(options.minWorkouts ?? 3),
+    meter: { ...options.meter, kind },
   };
 }
 
@@ -561,11 +567,11 @@ async function fetchOpenAiResponse(
 
 export async function generateTrainingPlanDraft(
   input: TrainingAiInput,
-  promptText = defaultTrainingPrompt(),
-  options: GenerateTrainingPlanOptions = {},
+  promptText: string,
+  options: MeteredTrainingOptions,
 ): Promise<{ model: string; promptSummary: string; plan: GeneratedTrainingPlan }> {
   if (usesClaude()) {
-    const result = await runClaude(trainingClaudeRequest(input, promptText, options));
+    const result = await runClaude(trainingClaudeRequest(input, promptText, options), "training");
     return {
       model: result.model,
       promptSummary: JSON.stringify(input, null, 2),
@@ -603,8 +609,8 @@ export async function generateTrainingPlanDraft(
 
 export async function startTrainingPlanDraftBackground(
   input: TrainingAiInput,
-  promptText = defaultTrainingPrompt(),
-  options: GenerateTrainingPlanOptions = {},
+  promptText: string,
+  options: MeteredTrainingOptions,
 ): Promise<{ responseId: string; status: TrainingAiResponseStatus; model: string; promptSummary: string }> {
   if (usesClaude()) {
     const request = trainingClaudeRequest(input, promptText, options);
@@ -726,10 +732,17 @@ export function getCoachModel(kind: "coach" | "weekly" = "coach"): string {
 export async function startCoachAnswerBackground(
   instructions: string,
   userText: string,
-  options: { model?: string; timeoutMs?: number; kind?: "coach" | "weekly" } = {},
+  options: {
+    model?: string;
+    timeoutMs?: number;
+    kind?: "coach" | "weekly";
+    /** Van wie de vraag is (ai_usage, 0316). */
+    meter: Omit<AiMeter, "kind">;
+  },
 ): Promise<{ responseId: string; status: TrainingAiResponseStatus; model: string }> {
   if (usesClaude()) {
-    const { model, effort } = claudeSettings(options.kind ?? "coach");
+    const kind = options.kind ?? "coach";
+    const { model, effort } = claudeSettings(kind);
     // De instructies (met de kennisbanken) zijn voor iedereen gelijk; gecachet
     // kost elke volgende vraag een fractie van de invoer.
     const responseId = await createClaudeJob("coach", {
@@ -738,6 +751,7 @@ export async function startCoachAnswerBackground(
       system: instructions,
       user: `${todayLine()}\n\n${userText}`,
       cacheSystem: true,
+      meter: { ...options.meter, kind },
     });
     return { responseId, status: "queued", model };
   }

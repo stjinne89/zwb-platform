@@ -23,7 +23,7 @@ const LABELS: Record<PaletteKey, string> = {
 };
 
 const TILES: { key: TileKey; label: string }[] = [
-  { key: "vandaag", label: "Vandaag" },
+  { key: "vandaag", label: "Dashboard" },
   { key: "kalender", label: "Kalender" },
   { key: "zwbeter", label: "Training" },
   { key: "club", label: "Club" },
