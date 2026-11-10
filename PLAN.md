@@ -8,9 +8,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Subteam aanmaken gaf "DELETE requires a WHERE clause" (2026-11-10):
-   lokaal gecommit, niet gepusht.** Migratie **0323**, nog niet toegepast in
-   productie. Open: migratie toepassen, pushen, en daarna een subteam onder een
-   hoofdteam aanmaken. Zie de ronde "Subteam aanmaken gaf DELETE requires a
+   gepusht naar `main` (`47fbf4ac`).** Migratie **0323** is toegepast in
+   productie, op verzoek van de eigenaar ("Toepassen en pushen"). Open: Bart
+   maakt het subteam opnieuw aan. Zie de ronde "Subteam aanmaken gaf DELETE requires a
    WHERE clause".
 
 0. **Race of clubevent verdringt de zware training van die dag (2026-11-10):
@@ -12115,8 +12115,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Subteam aanmaken gaf "DELETE requires a WHERE clause"
 
-**2026-11-10, migratie 0323.** Op verzoek van de eigenaar: Bart kreeg die
-melding bij "Nieuw team".
+**2026-11-10, commit `47fbf4ac`, migratie 0323.** Op verzoek van de eigenaar:
+Bart kreeg die melding bij "Nieuw team". Op 10 november toegepast in productie.
+Nagekeken: de live functie heeft vier keer `where true`, geen kale DELETE meer,
+en dezelfde rechten als voorheen (alleen `postgres` en `service_role`).
 
 **Oorzaak.** De trigger `teams_become_umbrella` (migr. 0179) draait bij een
 nieuw team met een hoofdteam, en bij het wijzigen van `parent_team_id`. Hij
@@ -12135,8 +12137,8 @@ functie in `public` met een kale `delete from …;`.
 **Bewust niet:** de foutmelding in het formulier vertalen. Een databasefout die
 een gebruiker ziet, is een bug om te repareren, geen tekst om te verbergen.
 
-**Niet lokaal te controleren:** de migratie zelf (geen Docker of Supabase-config
-hier). `safeupdate` laten laden via de Supabase-connector mag niet ("access to
+**Niet gecontroleerd:** een subteam aanmaken via de app na de migratie.
+`safeupdate` laten laden via de Supabase-connector mag niet ("access to
 library is not allowed"). Dat `where true` erdoor komt, volgt uit hoe
 safeupdate werkt: het weigert alleen een DELETE of UPDATE zonder WHERE.
 
