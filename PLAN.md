@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Race of clubevent verdringt de zware training van die dag (2026-11-10):
-   lokaal gecommit, niet gepusht.** Geen migratie. Open: pushen; na de deploy
+   lokaal gecommit (`272f33b6`), niet gepusht.** Geen migratie. Open: pushen; na de deploy
    bij de volgende ladderopstelling of toezegging zien dat de zware training
    van die dag vervalt. Zie de ronde "Race of clubevent verdringt de zware
    training van die dag".
@@ -13195,8 +13195,8 @@ is groen, op deze tests na:
 
 ### Gebouwd — Race of clubevent verdringt de zware training van die dag
 
-**2026-11-10.** Lokaal gecommit, niet gepusht. Geen migratie. Eerst een
-voorstel, door de eigenaar goedgekeurd ("Ja, bouw het").
+**2026-11-10.** Commit `272f33b6`, lokaal, niet gepusht. Geen migratie. Eerst
+een voorstel, door de eigenaar goedgekeurd ("Ja, bouw het").
 
 **Aanleiding.** Karen van de Rakt had op 10 november `VO2max 5x4` (90 min) en
 's avonds een ladderrace, beide gepland. Nagelopen in productie (alleen
