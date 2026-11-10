@@ -306,7 +306,10 @@ tot 14,4 (donker petrol), donker 6,3 tot 12,2.
   Elk `bg-card`, elke rij van een `divide-y`-lijst, elk omkaderd vlak en elk
   veld wordt dit paneel. Het is doorzichtig, zodat de tenuebanen erdoorheen
   schijnen. Zwevende lagen (`absolute` of `fixed` met `bg-card`) blijven
-  dekkend.
+  dekkend. Op de telefoon (onder 768px) is er geen paneel in een paneel: een
+  `bg-card` met een blok-paneel erin (een kaart, `tg-stat`, een omkaderd vlak;
+  geen knop, link, veld of `divide-y`-rij) verliest zijn vlak en binnenruimte,
+  zodat de kaarten erin de volle breedte krijgen.
 - **Baan** (`--tg-band`): wit op 10%, een schuine strook (118°, van 64 tot 81%)
   over elke gekleurde tegel.
 

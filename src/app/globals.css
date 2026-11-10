@@ -484,6 +484,17 @@ html.dark .app-shell[data-design="tegels"]::before {
   background-color: var(--tg-panel);
   box-shadow: none;
 }
+/* Paneel in paneel, op de telefoon: het buitenste paneel wordt plat (geen
+   vlak, geen binnenruimte), zodat de kaarten erin de volle breedte krijgen in
+   plaats van 16 + 16 + 12px rand (audit 2026-11-10). Alleen blokken tellen:
+   knoppen, links en velden niet, en lijstrijen (divide-y) ook niet, want die
+   hebben zelf geen binnenruimte en zouden tegen de rand van het scherm staan. */
+@media (width < 48rem) {
+  [data-design="tegels"] main [class*="bg-card"]:not(:is(.absolute, .fixed).bg-card):has([class*="bg-card"]:not(a, button, input, select, textarea, .inline-flex), .tg-stat, .border[class*="bg-background"]:not(a, button, input, select, textarea, .inline-flex)) {
+    background-color: transparent;
+    padding: 0;
+  }
+}
 [data-design="tegels"] .section-header {
   margin-bottom: 0.625rem;
   border-bottom: 0;

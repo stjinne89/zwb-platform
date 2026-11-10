@@ -7,15 +7,20 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Telefoon: geen paneel in een paneel (2026-11-10): lokaal gecommit
+   (commit: zie de ronde), niet gepusht.** Geen migratie. Stap 3 van het
+   voorstel na de mobiele audit; alleen stap 5 (beheerknoppen op Teams) staat
+   nog open. Zie de ronde "Telefoon: geen paneel in een paneel".
+
 0. **Telefoon: lange lijsten korter (2026-11-10): lokaal gecommit (`8cd94243`), niet
    gepusht.** Geen migratie. Stap 4 van het voorstel na de
    mobiele audit. Zie de ronde "Telefoon: lange lijsten korter".
 
 0. **Telefoon: compactere tegels en cijferkaarten naast elkaar (2026-11-10):
    lokaal gecommit (`d771b273`), niet gepusht.** Geen migratie. Stap 1
-   en 2 van het voorstel na de mobiele audit; stap 3 en 5 (panelen in
-   panelen, beheerknoppen op Teams) staan nog open; stap 4 is de ronde
-   "Telefoon: lange lijsten korter". Zie de ronde
+   en 2 van het voorstel na de mobiele audit; stap 3 en 4 zijn de rondes
+   "Telefoon: geen paneel in een paneel" en "Telefoon: lange lijsten
+   korter"; stap 5 (beheerknoppen op Teams) staat nog open. Zie de ronde
    "Telefoon: compactere tegels en cijferkaarten naast elkaar".
 
 0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
@@ -12086,6 +12091,52 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Telefoon: geen paneel in een paneel
+
+**2026-11-10, commit: zie hieronder.** Stap 3 van het voorstel na de mobiele
+audit, op verzoek van de eigenaar ("Stap 3, panelen"). Geen migratie.
+
+Het probleem: een paneel (`bg-card`, 16 tot 24px binnenruimte) met daarin
+kaarten of statistieken die zelf weer een paneel met 12px zijn. Op 375px
+bleef er voor de tekst ±290px over, en twee lagen van 7% petrol over elkaar
+maakten een donkerder vlak.
+
+Wat er is: één regel in `globals.css` (vóór `.section-header`), onder 768px.
+Een `bg-card` in `main` die een blok-paneel bevat (`[class*="bg-card"]`,
+`.tg-stat` of een omkaderd vlak met `bg-background`) wordt plat: geen vlak en
+geen binnenruimte. De kaarten erin houden hun vlak en krijgen de volle breedte;
+de kop van het paneel staat dan op de lijn van de paginatitel.
+
+Gekozen tegenover wat het voorstel letterlijk zei ("de binnenste geen eigen
+binnenruimte"): dan staat de tekst van die kaarten tegen de rand van hun eigen
+vlak, of lopen rijen (zoals de rennerkaarten) in elkaar over als ook dat vlak
+weg moet. Het buitenste plat maken geeft dezelfde breedte en houdt de kaarten
+herkenbaar.
+
+Wat niet meetelt als binnenpaneel: knoppen, links, velden en alles met
+`inline-flex` (anders viel bijvoorbeeld Teamoverzicht plat om één knop), en
+`divide-y`-rijen (die hebben geen eigen binnenruimte en zouden tegen de rand
+van het scherm komen).
+
+Op 375px (licht, als beheerder) platgevallen: Herstel & belastbaarheid op
+ZWBeter Vandaag (statistiek 121 naar 165px breed), Renners op Teams, de
+profielkop, Fietsen, ZWBieb, "op de fiets" en de badge-kast op `/profiel`,
+Geregistreerd op `/leden`, de uitslag en de live chat op een eventpagina, en
+het ledenvoordeel op het dashboard. Op Stats en Kalender zat geen paneel in
+een paneel. Teams 3.245 naar 3.213px, profiel 10.937 naar 10.741px, Leden
+6.093 naar 5.432px; de winst zit vooral in breedte. Nergens zijwaarts
+scrollen. Bekeken in licht en donker. Op 1024px houden de panelen hun vlak
+en binnenruimte (nagemeten: Herstel 20px, Renners 16px). Alleen CSS; `tsc`
+niet nodig.
+
+**Bewust niet:** ook op de desktop platmaken; daar is ruimte genoeg en de
+panelen groeperen de inhoud. Ook geen aparte klasse per scherm: één regel
+dekt alle plekken, ook toekomstige.
+
+**Niet bekeken:** als gewoon lid, op een echte telefoon, Safari (`:has()`
+werkt vanaf Safari 15.4), en de pagina's buiten de negen hierboven (beheer,
+trainer, voeding, core): daar kan een paneel ook platvallen.
+
 ### Gebouwd — Telefoon: lange lijsten korter
 
 **2026-11-10, commit `8cd94243`.** Stap 4 van het voorstel na de mobiele
@@ -12177,9 +12228,8 @@ donker. Vanaf 768px gelijk gebleven (1024px nagemeten: tegel 164px, titel
 blijft de vijfde kaart één kolom breed). `DESIGN.md` bijgewerkt (Tile number,
 Tile title, Tegelvelden, Cijfers). Lokaal: `tsc` en eslint schoon.
 
-**Bewust niet (nog):** stap 3 tot 5 van het voorstel. Stap 3: een `bg-card`
-in een `bg-card` zonder eigen binnenruimte op de telefoon (nu 16 + 16 + 12px
-opzij). Stap 4 (lange lijsten) is daarna gebouwd: zie "Telefoon: lange lijsten
+**Bewust niet (nog):** stap 3 tot 5 van het voorstel. Stap 3 (paneel in
+paneel) is daarna gebouwd: zie "Telefoon: geen paneel in een paneel". Stap 4 (lange lijsten) is daarna gebouwd: zie "Telefoon: lange lijsten
 korter". Stap 5: de vijf beheerknoppen in de kop van
 Teams in één menu. Die staan klaar als volgende rondes; de lengte zit vooral
 daar, deze ronde haalt per scherm een paar honderd pixels.
