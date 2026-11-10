@@ -51,6 +51,16 @@ export const FIRST_SYNC_DAYS = 365;
 export const SYNC_WINDOW_DAYS = 30;
 /** Sporen per lid per run; de volgende run haalt de rest in. */
 export const MAX_TRACKS_PER_RUN = 5;
+/**
+ * Sporen van oudere ritten, buiten het venster van deze run. Zonder deze
+ * inhaalslag kregen ritten die bij de eerste run (een jaar, maar vijf sporen)
+ * geen spoor kregen er nooit een: daarna kijkt elke run nog maar 30 dagen terug.
+ * Op 2026-11-10 wachtten zo ruim 2.000 ritten van 11 leden, en telden ze niet
+ * mee voor ZWBlokken en de coltijden.
+ */
+export const OLD_TRACKS_PER_RUN = 20;
+/** De cron heeft 30 seconden voor vijf leden; de inhaalslag krijgt per lid dit. */
+export const OLD_TRACKS_BUDGET_MS = 4_000;
 
 export type IntervalsRideConnection = {
   profile_id: string;
@@ -165,6 +175,9 @@ export async function syncIntervalsRidesForProfile(
   opts: {
     now?: Date;
     maxTracks?: number;
+    /** Sporen van ritten buiten het venster; zie OLD_TRACKS_PER_RUN. */
+    maxOldTracks?: number;
+    oldTracksBudgetMs?: number;
     /** Venster in dagen in plaats van het standaardvenster; bij het aanzetten van de keuze. */
     days?: number;
   } = {},
@@ -299,6 +312,18 @@ export async function syncIntervalsRidesForProfile(
       if (error) throw new Error(error.message);
     }
 
+    // Oudere ritten zonder spoor, na de upsert zodat het venster voorgaat.
+    const older = await backfillOlderTracks(admin, connection, {
+      before: removeFrom,
+      skip: new Set(keep.map((row) => row.id)),
+      max: opts.maxOldTracks ?? OLD_TRACKS_PER_RUN,
+      budgetMs: opts.oldTracksBudgetMs ?? OLD_TRACKS_BUDGET_MS,
+      now,
+    });
+    result.tracks += older.checked;
+    withNewTrack.push(...older.withTrack);
+    timedTracks.push(...older.timedTracks);
+
     // Eigen segment- en coltijden uit het spoor met tijden. Na de upsert, want
     // een poging verwijst naar de rit.
     for (const track of timedTracks) {
@@ -338,7 +363,7 @@ export async function syncIntervalsRidesForProfile(
     // training die niet verhuisde, komt zo alsnog vrij.
     removedIds.push(...replacedIds);
 
-    if (result.stored > 0 || result.removed > 0) {
+    if (result.stored > 0 || result.removed > 0 || older.withTrack.length > 0) {
       await runPostSyncForProfile(admin, profileId, null, {
         workoutCompletion: true,
         colsDetector: true,
@@ -380,6 +405,73 @@ export async function syncIntervalsRidesForProfile(
       );
     return result;
   }
+}
+
+type OlderTracks = {
+  checked: number;
+  withTrack: number[];
+  timedTracks: Array<{ id: number; points: TimedPoint[] }>;
+};
+
+/**
+ * Haalt het spoor op van opgeslagen intervals-ritten van vóór het venster die
+ * er nog nooit om gevraagd zijn, de nieuwste eerst. Begrensd in aantal en tijd;
+ * de volgende run gaat verder.
+ *
+ * Een 404 telt als "geen spoor", anders vraagt elke run dezelfde rit opnieuw en
+ * komt de rest nooit aan de beurt. Bij elke andere fout (rate limit, sleutel)
+ * stopt de inhaalslag voor deze run.
+ */
+async function backfillOlderTracks(
+  admin: Admin,
+  connection: IntervalsRideConnection,
+  opts: { before: Date; skip: Set<number>; max: number; budgetMs: number; now: Date },
+): Promise<OlderTracks> {
+  const out: OlderTracks = { checked: 0, withTrack: [], timedTracks: [] };
+  if (opts.max <= 0) return out;
+  const { data, error } = await admin
+    .from("strava_activities")
+    .select("id, start_date, raw")
+    .eq("profile_id", connection.profile_id)
+    .eq("raw->>import_source", INTERVALS_IMPORT_SOURCE)
+    .is("raw->>track_checked_at", null)
+    .is("raw->map->>summary_polyline", null)
+    .lt("start_date", opts.before.toISOString())
+    .order("start_date", { ascending: false })
+    .limit(opts.max);
+  if (error) throw new Error(error.message);
+
+  const started = Date.now();
+  const rows = (data ?? []) as Array<{ id: number | string; start_date: string; raw: Record<string, unknown> | null }>;
+  for (const row of rows) {
+    if (Date.now() - started > opts.budgetMs) break;
+    const id = Number(row.id);
+    const raw = row.raw ?? {};
+    if (opts.skip.has(id) || !raw.intervals_id) continue;
+
+    let body: unknown;
+    try {
+      body = await fetchIntervalsActivityTrack(connection.api_key, String(raw.intervals_id));
+    } catch (err) {
+      if (!/intervals\.icu 404\b/.test(err instanceof Error ? err.message : "")) break;
+      body = null;
+    }
+    out.checked += 1;
+    const encoded = body ? encodeTrackPolyline(latLngFromStreams(body)) : null;
+    const map = (raw.map && typeof raw.map === "object" ? raw.map : {}) as Record<string, unknown>;
+    const { error: updateError } = await admin
+      .from("strava_activities")
+      .update({
+        raw: { ...raw, map: { ...map, summary_polyline: encoded }, track_checked_at: opts.now.toISOString() },
+      })
+      .eq("id", id);
+    if (updateError) throw new Error(updateError.message);
+    if (!encoded) continue;
+    out.withTrack.push(id);
+    const points = timedTrackFromStreams(body, Date.parse(row.start_date));
+    if (points.length >= 2) out.timedTracks.push({ id, points });
+  }
+  return out;
 }
 
 async function writeStravaSummaries(admin: Admin, profileId: string): Promise<void> {

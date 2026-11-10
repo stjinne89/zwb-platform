@@ -249,6 +249,66 @@ export async function clearDayForTest(
   return retire.length;
 }
 
+/** Zware sessies, zoals de regelmotor ze telt (engine/compose.ts). */
+const HARD_INTENSITIES = new Set(["threshold", "vo2max", "anaerobic", "race"]);
+
+/**
+ * De zware trainingen die naast een nieuw eventblok op `dayKey` staan. Dezelfde
+ * regels als bij een herziening (supersedableWorkouts), plus: alleen een zware
+ * sessie. Een rustige rit op een racedag mag blijven; de herziening van die
+ * nacht beslist erover.
+ */
+export function hardSessionsBesideEvent<T extends SupersedeCandidate & { intensity?: string | null }>(
+  candidates: T[],
+  dayKey: string,
+): T[] {
+  return supersedableWorkouts(candidates, {
+    newerPlanIds: new Set(),
+    dayKeys: new Set([dayKey]),
+    wholeRange: false,
+  }).filter((row) => HARD_INTENSITIES.has(String(row.intensity ?? "")));
+}
+
+/**
+ * Een race of clubevent verdringt de zware training van die dag.
+ *
+ * Tot november 2026 liet een toegezegd event dat over aan de herziening van die
+ * nacht. Bleef die hangen, of kwam de opstelling pas op de racedag zelf, dan
+ * stond de zware training gewoon naast de race: Karen had op 10 november
+ * VO2max 5x4 én een ladderrace. Dit kost geen AI-aanroep; de herziening zet
+ * daarna de rest van de week recht.
+ */
+export async function clearHardSessionsForEvent(
+  admin: Admin,
+  input: { profileId: string; dayKey: string; keepWorkoutId: string },
+): Promise<number> {
+  const { data: rows } = await admin
+    .from("training_workouts")
+    .select("id, plan_id, scheduled_at, intervals_event_id, status, origin, test_type, intensity")
+    .eq("profile_id", input.profileId)
+    .neq("id", input.keepWorkoutId)
+    .is("superseded_at", null)
+    .gte("scheduled_at", `${input.dayKey}T00:00:00`)
+    .lte("scheduled_at", `${input.dayKey}T23:59:59`);
+
+  const retire = hardSessionsBesideEvent(rows ?? [], input.dayKey);
+  if (retire.length === 0) return 0;
+
+  const { data: conn } = await admin
+    .from("intervals_connections")
+    .select("api_key, athlete_id")
+    .eq("profile_id", input.profileId)
+    .maybeSingle();
+  // Geen vervangend plan: een regel ruimt de dag op, net als bij een dag zonder tijd.
+  await retireWorkoutRows(
+    admin,
+    retire,
+    null,
+    conn?.api_key && conn.athlete_id ? { api_key: conn.api_key, athlete_id: conn.athlete_id } : null,
+  );
+  return retire.length;
+}
+
 /**
  * Markeert workouts als vervangen en haalt ze uit de intervals.icu-kalender.
  * `planId` is het plan dat ze vervangt; null als er geen plan maar een regel

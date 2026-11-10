@@ -1,32 +1,66 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-09)
+## Actieve volgorde (bijgewerkt 2026-11-10)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Telefoon: beheerknoppen op Teams achter één knop (2026-11-10): lokaal
-   gecommit (`3c7ca09b`), niet gepusht.** Geen migratie. Stap 5, de laatste van
+0. **Telefoon: beheerknoppen op Teams achter één knop (2026-11-10): gepusht
+   naar `main` (`3c7ca09b`).** Geen migratie. Stap 5, de laatste van
    het voorstel na de mobiele audit. Zie de ronde "Telefoon: beheerknoppen op
    Teams achter één knop".
 
-0. **Telefoon: geen paneel in een paneel (2026-11-10): lokaal gecommit
-   (`f00ace98`), niet gepusht.** Geen migratie. Stap 3 van het
+0. **Telefoon: geen paneel in een paneel (2026-11-10): gepusht naar
+   `main` (`f00ace98`).** Geen migratie. Stap 3 van het
    voorstel na de mobiele audit. Zie de ronde "Telefoon: geen paneel in een
    paneel".
 
-0. **Telefoon: lange lijsten korter (2026-11-10): lokaal gecommit (`8cd94243`), niet
-   gepusht.** Geen migratie. Stap 4 van het voorstel na de
+0. **Telefoon: lange lijsten korter (2026-11-10): gepusht naar `main` (`8cd94243`).** Geen migratie. Stap 4 van het voorstel na de
    mobiele audit. Zie de ronde "Telefoon: lange lijsten korter".
 
 0. **Telefoon: compactere tegels en cijferkaarten naast elkaar (2026-11-10):
-   lokaal gecommit (`d771b273`), niet gepusht.** Geen migratie. Stap 1
+   gepusht naar `main` (`d771b273`).** Geen migratie. Stap 1
    en 2 van het voorstel na de mobiele audit; stap 3 en 4 zijn de rondes
    "Telefoon: geen paneel in een paneel" en "Telefoon: lange lijsten
    korter"; stap 5 is "Telefoon: beheerknoppen op Teams achter één knop".
    Zie de ronde "Telefoon: compactere tegels en cijferkaarten naast elkaar".
+
+0. **Subteam aanmaken gaf "DELETE requires a WHERE clause" (2026-11-10):
+   gepusht naar `main` (`47fbf4ac`).** Migratie **0323** is toegepast in
+   productie, op verzoek van de eigenaar ("Toepassen en pushen"). Open: Bart
+   maakt het subteam opnieuw aan. Zie de ronde "Subteam aanmaken gaf DELETE requires a
+   WHERE clause".
+
+0. **Race of clubevent verdringt de zware training van die dag (2026-11-10):
+   gepusht naar `main` (`6f6555ab`).** Geen migratie. Open: na de deploy
+   bij de volgende ladderopstelling of toezegging zien dat de zware training
+   van die dag vervalt. Zie de ronde "Race of clubevent verdringt de zware
+   training van die dag".
+
+0. **Claude-opdrachten bleven in de rij staan (2026-11-10): gepusht naar
+   `main` (`0ebee5c8`), op verzoek van de eigenaar ("Push, Karen eerst").** Geen
+   migratie. Van 9 november 19:38 tot 10 november 09:00 startte geen
+   Claude-opdracht, en om 09:35 nog steeds niet. De 21 vastgelopen opdrachten
+   zijn in productie stilgezet, op verzoek van de eigenaar. Open:
+   - na de deploy de herzieningen starten via de trainerpagina (de eigenaar is
+     hun trainer): eerst Karen van de Rakt, want haar ladderrace van 10
+     november 20:02 staat naast VO2max 5x4. Daarna Jeroen, Joost en Stijn.
+     Wat dan nog niet gelukt is, gaat vannacht mee met de cron;
+   - Gina van Rossum vraagt zelf een nieuw schema aan (alleen zijzelf is haar
+     trainer);
+   - na de deploy zien dat een coachvraag klaar komt en in
+     `/beheer/ai-verbruik` staat.
+
+   Zie de ronde "Claude-opdrachten bleven in de rij staan".
+
+0. **Oude intervals-ritten krijgen alsnog hun spoor (2026-11-10): gepusht
+   naar `main` (`203645ef`).** Geen migratie. De achterstand is dezelfde dag in
+   productie weggewerkt met `scripts/backfill-intervals-tracks.mjs` (0 ritten
+   meer zonder `track_checked_at`). Open: na de deploy volgen of de cron met de
+   inhaalslag binnen zijn 30 seconden blijft. Zie de ronde "Oude intervals-ritten
+   krijgen alsnog hun spoor".
 
 0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
    naar `main` (`8932806c`).** Geen migratie. Open: na de deploy ingelogd bekijken of de
@@ -7650,10 +7684,13 @@ lid, ook buiten de kalender")*
 >   - Alleen nieuwe of gewijzigde ritten worden geschreven en krijgen nawerk.
 >     Anders zou elke uurlijkse run voor elk lid de col-detector en de badges
 >     opnieuw draaien.
->   - Per run hooguit 5 GPS-sporen per lid. Een trainerrit zonder GPS krijgt
->     `track_checked_at`, zodat we niet elke run opnieuw vragen.
->   - Een later spoor zet `blocks_processed_at` terug, want ZWBlokken werken
->     incrementeel.
+>   - Per run hooguit 5 GPS-sporen per lid voor ritten in het venster. Een
+>     trainerrit zonder GPS krijgt `track_checked_at`, zodat we niet elke run
+>     opnieuw vragen. Sinds 2026-11-10 daarnaast een inhaalslag voor oudere
+>     ritten zonder spoor (zie "Oude intervals-ritten krijgen alsnog hun spoor");
+>     tot dan kregen ritten buiten het venster er nooit een.
+>   - Een later spoor zet `blocks_processed_at` en `zwift_blocks_processed_at`
+>     terug, want ZWBlokken werken incrementeel.
 >   - Een rit die intervals.icu niet meer kent, gaat weg; een lege lijst wist
 >     niets.
 >   - Nawerk: `runPostSyncForProfile` zonder token (naleving, cols, ZWBlokken,
@@ -12280,6 +12317,212 @@ CSS-laag en wint van die Tailwind-klasse; het datumbereik staat daardoor op
 cijfermaat. Was al zo vóór deze ronde. **Niet bekeken:** als gewoon lid (de
 eigenaar ziet beheerknoppen), op een echte telefoon, en Safari.
 
+### Hersteld — Captain-selectie toont de profielcategorie bij de naam
+
+**2026-11-10.** Melding van de eigenaar: Remco Kuijpers stond bovenaan het
+team (en op zijn profiel) als A, in de Captain-selectie als B. Geen migratie.
+
+**Oorzaak.** De badge bij de naam in `team-lineup-planner.tsx` toonde
+`wtrl.category ?? category`: eerst de WTRL-categorie (uit zFTP/zMAP, bij Remco
+B), pas daarna de profielcategorie. De rostertabel bovenaan toont bij de naam de
+profielcategorie en de WTRL-categorie apart onder zFTP ("Cat B").
+
+**Wat.** De badge in de Captain-selectie toont nu alleen de profielcategorie,
+net als de rostertabel en het profiel. De WTRL-status blijft zichtbaar via de
+kleur van de naam en de waarschuwing onder zFTP/zMAP.
+
+**Niet gebouwd.** Geen extra WTRL-categoriekolom in de selectie: die staat al
+in de rostertabel op dezelfde pagina. De melding "DELETE requires a WHERE
+clause" bij een nieuw subteam is apart opgelost (commit `47fbf4ac`, migr. 0323,
+hieronder).
+
+### Hersteld — Subteam aanmaken gaf "DELETE requires a WHERE clause"
+
+**2026-11-10, commit `47fbf4ac`, migratie 0323.** Op verzoek van de eigenaar:
+Bart kreeg die melding bij "Nieuw team". Op 10 november toegepast in productie.
+Nagekeken: de live functie heeft vier keer `where true`, geen kale DELETE meer,
+en dezelfde rechten als voorheen (alleen `postgres` en `service_role`).
+
+**Oorzaak.** De trigger `teams_become_umbrella` (migr. 0179) draait bij een
+nieuw team met een hoofdteam, en bij het wijzigen van `parent_team_id`. Hij
+roept `convert_zrl_umbrella_races` aan. Die leegde zijn twee tijdelijke tabellen
+(`zrl_umbrellas`, `zrl_week_races`) met een `delete from …;` zonder WHERE. In
+productie laadt de rol `authenticator` (PostgREST) `safeupdate`, en dat weigert
+zo'n DELETE. Bij het toepassen van de migraties draaide alles als `postgres`,
+zonder safeupdate. Daarom viel het niet eerder op. Gevolg: elk subteam
+aanmaken, en een bestaand team onder een hoofdteam hangen, faalde met deze fout.
+Een team zonder hoofdteam aanmaken ging wel goed.
+
+**Reparatie.** 0323 herdefinieert de functie, gelijk aan 0184, alleen met
+`where true` op die vier DELETE's. Nagekeken in productie: het is de enige
+functie in `public` met een kale `delete from …;`.
+
+**Bewust niet:** de foutmelding in het formulier vertalen. Een databasefout die
+een gebruiker ziet, is een bug om te repareren, geen tekst om te verbergen.
+
+**Niet gecontroleerd:** een subteam aanmaken via de app na de migratie.
+`safeupdate` laten laden via de Supabase-connector mag niet ("access to
+library is not allowed"). Dat `where true` erdoor komt, volgt uit hoe
+safeupdate werkt: het weigert alleen een DELETE of UPDATE zonder WHERE.
+
+### Hersteld — Claude-opdrachten bleven in de rij staan
+
+**2026-11-10, commit `0ebee5c8`.** Op verzoek van de eigenaar ("Doordat het api budget op was,
+lijkt het alsof er geen ai verzoeken zijn gedaan. Wil je dit controleren?"),
+daarna "Ja, repareer het". Geen migratie.
+
+**Wat er aan de hand was.** Het lag niet aan het budget. In productie was
+`ai_usage` leeg. In `ai_jobs` was de laatste geslaagde opdracht van 9 november
+11:08 UTC. Vanaf 18:38 UTC stonden alle nieuwe opdrachten op `queued`, zonder
+`started_at`: dagvoorstellen, weekoverzichten, herzieningen en twee keer
+"nieuw schema". Bij een leeg tegoed had de functie ze opgepakt en als `failed`
+met de fout van Anthropic gemarkeerd. Ze werden dus nooit opgepakt.
+
+Op 10 november om 08:08 UTC kwam wel één opdracht door: het dagvoorstel van
+Stijn. Dat gaf ook de eerste rij in `ai_usage`. Het tegoed is dus niet op. Waarom
+die ene wel liep en de rest niet, is zonder de Netlify-logs niet verklaard.
+
+Waarschijnlijke oorzaak: deel 3a van de generieke versie (`2a38a977`). `lib/ai/claude.ts`
+kreeg toen `import { fillClub } from "@/lib/club"`. `lib/club` laadt
+`server-only` en `next/cache`. Die werken alleen binnen Next, en `server-only`
+is niet eens als pakket geïnstalleerd. Lokaal met esbuild en Node nagebootst:
+zo gebundeld stopt de achtergrondfunctie al bij het laden met
+`ERR_MODULE_NOT_FOUND`. Vitest zag het niet, omdat het `server-only` zelf
+afvangt. **Niet bewezen:** dat verklaart de opdracht van 08:08 niet. De Netlify-logs
+zijn niet bekeken; de reparatie hieronder klopt hoe dan ook.
+
+**Stilgezet in productie** (10 november 09:27, op verzoek van de eigenaar, "Ja,
+zet ze stil"). De 21 opdrachten die nog op `queued` stonden, zijn met
+`RETURNING` op `failed` gezet, met de fout "Stilgezet: bleef in de rij staan
+(9-10 november 2026)." en zonder `request`. Daarna stond er niets meer in de
+rij. Reden: hun invoer was tot vijftien uur oud. De uur-cron
+(`finishStaleGenerations`, tien per run) zou ze om 10:00 opnieuw aanstoten. Als
+de functie het dan deed, kwamen er betaalde schema's uit op verouderde
+gegevens, die het huidige schema konden overschrijven. De bijbehorende
+generaties worden `failed` bij het eerstvolgende ophalen. Per lid nagelopen
+wat nog nodig is:
+
+- **Gina van Rossum**: twee keer zelf een nieuw schema gevraagd en ze heeft er
+  nog geen. Dat komt niet vanzelf terug: zij drukt opnieuw, of het bestuur
+  start het.
+- **Jeroen Janssen, Karen van de Rakt, Joost van der Meulen, Stijn**: hun
+  wijziging staat nog in `training_replan_requests` (nagekeken na het
+  stilzetten). De nachtelijke cron maakt er per lid één verse herziening van.
+  Jeroens twee "Schema bijwerken" van 9 november vallen daaronder.
+- **Bart, Friso, Harmen, Kevin, Mathijs, Pim, Remco, Rolf**: alleen het
+  dagvoorstel van vandaag. De cron maakt morgen een nieuw.
+- **Weekoverzichten** van Joost en Mathijs (week van 2 november): niet opnieuw
+  gestart. Die van Gina stond al op `failed`.
+
+Daarna zijn ook de 18 generaties die bij die opdrachten hoorden op `failed`
+gezet. Anders bleef de app denken dat er nog een generatie liep, en dat houdt
+onder meer een nieuw schema voor Gina tegen. De eigenaar vroeg daarna om de vier
+herzieningen direct te laten draaien. Joosts herziening is om 09:34 via de
+trainerpagina gestart, maar bleef meer dan twee minuten op `queued` staan,
+ook nadat de pagina hem opnieuw had aangestoten. De versie die nu live staat,
+pakt dus niets op. Die opdracht is ook stilgezet, en zijn verzoek in
+`training_replan_requests` staat er nog. De andere drie zijn niet gestart:
+eerst moet de reparatie live staan.
+
+Wat er is:
+
+- **`lib/ai/claude-core.ts`**: de kern met de aanroep, de opdrachten in
+  `ai_jobs` en de meting in `ai_usage`. Hij heeft alleen relatieve imports en
+  niets dat alleen binnen Next laadt. De achtergrondfunctie importeert alleen
+  deze kern.
+- **`lib/ai/claude.ts`**: de Next-laag. `runClaude` en `createClaudeJob` vullen
+  eerst de clubwoorden in de systeemprompt in en geven de vraag dan door aan de
+  kern. Een opdracht in `ai_jobs` bevat dus al de ingevulde prompt. De
+  aanroepers hoefden niet te veranderen.
+- **Een opdracht die niet start, wacht niet eeuwig.** `readClaudeJob` stoot een
+  opdracht na een minuut opnieuw aan, zoals eerst. Staat hij na tien minuten
+  nog in de rij, dan wordt hij `failed` ("Claude-opdracht is niet gestart.").
+  Zo ziet het lid een fout in plaats van een schema dat altijd "bezig" blijft.
+- **Test** `tests/unit/ai-job-bundle.test.ts` bundelt de functie met esbuild,
+  zonder de `@/`-aliassen. De test faalt als er een import van `@/…`,
+  `server-only`, `next/…` of `react` overblijft. Nagekeken: met de oude import
+  faalt hij.
+
+**Bewust niet:**
+
+- **Een mislukte aanroep telt niet mee in `ai_usage`**, ook niet bij een leeg
+  tegoed. Die kost niets. De fout staat bij de opdracht in `ai_jobs.error`.
+- **De vastgelopen opdrachten niet opnieuw laten draaien**, ook niet de
+  herzieningen. Hun invoer was verouderd. Een verse herziening via het open
+  verzoek is beter dan een oude afmaken.
+
+Lokaal: `tsc` zonder fouten, eslint schoon op de gewijzigde bestanden. De
+nieuwe test en die van `ai-claude` en `ai-usage` zijn groen. De gebundelde
+functie laadt in Node. In de volledige suite liepen vijf bestanden onder
+belasting op tijd uit; los gedraaid slagen ze. `omnium-live` mist
+`.env.local` in deze worktree.
+
+**Niet lokaal te controleren:** de functie op Netlify zelf, en waarom één
+opdracht op 10 november wel liep. Het tegoed is niet op: die opdracht is door
+Claude beantwoord.
+
+### Hersteld — Oude intervals-ritten krijgen alsnog hun spoor
+
+**2026-11-10, commits `203645ef` (code) en `2ba47f9e` (bulkscript).** Op verzoek van de eigenaar ("Kun je ZWBlokken eens
+controleren of dit werkt zoals het hoort? Vooral in de Zwiftwereld lijkt niet
+altijd goed te gaan"), daarna "Ja, bouw het" op het voorstel. Geen migratie.
+
+**Controle van ZWBlokken in Zwift, in productie (2026-11-10).** De berekening
+zelf klopt:
+- de wereld volgt het startpunt; van ruim 8.000 ritten met een eindpunt eindigen
+  er 6 buiten hun wereld, 2 daarvan in een andere wereld. Te weinig om de regel
+  "een rit blijft in één wereld" los te laten;
+- geen enkel blok ligt buiten de wereldgrenzen (migratie 0220 werkt);
+- de 45 Zwift-ritten met routelijn maar zonder wereld zijn allemaal Zwifts
+  nieuwe "in Video"-routes (Glen Canyon, Chapman's Peak, Eggum …): echte
+  coördinaten, terecht geen Zwift-wereld;
+- geen VirtualRide wacht nog op de Zwift-sync.
+
+**Oorzaak van wat er wél misging.** `syncIntervalsRidesForProfile` haalde alleen
+sporen op voor ritten in het venster van de run, hooguit 5 per lid. De eerste
+run haalt een jaar op, dus maar 5 sporen voor een jaar aan ritten; daarna kijkt
+elke run nog 30 dagen terug. De rest van dat jaar kreeg nooit een spoor. Op
+2026-11-10 stonden er zo 1.102 VirtualRides en 938 buitenritten van 11 leden
+zonder spoor en zonder `track_checked_at`, allemaal ouder dan 30 dagen. Zonder
+spoor geen blokken (buiten en in Zwift), geen kilometers per Zwift-wereld (de
+beslisser bij een gelijke titelstand) en geen eigen coltijden.
+
+**Gebouwd.** `backfillOlderTracks` in `lib/intervals/ride-sync.ts`: na de ritten
+in het venster nog hooguit 20 oudere intervals-ritten zonder spoor per lid per
+run, de nieuwste eerst, binnen 4 seconden. Een gevonden spoor zet beide
+ZWBlokken-cursors terug en geeft eigen segment- en coltijden, net als in het
+venster; het nawerk draait nu ook als er alleen oude sporen bijkwamen. Een 404
+telt als "geen spoor", anders vraagt elke run dezelfde rit opnieuw en komt de
+rest nooit aan de beurt. Elke andere fout stopt de inhaalslag voor die run. De
+cron doet 5 leden per uur; de achterstand zou zo in een paar dagen weg moeten
+zijn. `tests/unit/fake-db.ts` kent nu filters op JSON-paden (`raw->>x`), die
+gingen eerder ongemerkt altijd op.
+
+**Bewust niet gebouwd.**
+- Geen vangnet voor Zwift-ritten die Strava als gewone `Ride` opsloeg: het zijn
+  er 5 (2018 en 2023). Ze vallen buiten de blokken buiten en in Zwift.
+- Blokken van een verwijderde rit blijven staan (~2.300 Zwift-blokken verwijzen
+  naar een eerste rit die er niet meer is). Dat is de bestaande keuze uit
+  `lib/strava/retention.ts`: afgeleide clubdata blijft.
+
+**Achterstand in één keer weggewerkt (2026-11-10).** Op vraag van de eigenaar
+("Kun je dit nu ook in bulk ophalen?") draaide
+`scripts/backfill-intervals-tracks.mjs` lokaal tegen productie: 2.027 ritten van
+13 leden nagekeken, 1.947 kregen een spoor en eigen segment- en coltijden, 80
+hadden geen GPS, geen enkele 404. Daarna per lid ZWBlokken opnieuw doorgerekend:
+~7.100 nieuwe blokken buiten en 2.335 in Zwift (14.235 → 16.570 rijen); 941 van
+de ritten kregen een Zwift-wereld. Rond 3 verzoeken per seconde; intervals.icu
+gaf één keer een 429 en ging na een minuut wachten verder. Het forum noemt een
+grens van 10 per seconde per IP, maar dat was een concept; een officiële grens
+staat niet in de API-documentatie. De query over de hele tabel liep tegen de
+statement-timeout, dus het script vraagt per lid op, net als de cron. De
+col-detector (`profile_climbed_cols`) heeft het script niet gedraaid: die scant
+bij het eerstvolgende nawerk van elk lid alle ritten opnieuw.
+
+**Niet lokaal te controleren.** Hoe lang 20 sporen ophalen in productie duurt
+naast de 30 seconden van de cron. Een 404 voor een verwijderde rit kwam in de
+bulkrun niet voor, dus die tak is alleen in de test gezien.
+
 ### Gebouwd — Teamraces alleen voor je eigen team
 
 **2026-11-09, commit `0e6411cb`.** Op verzoek van de eigenaar ("Ik zie bij events af
@@ -13114,7 +13357,10 @@ Wat er is:
 - **AI-prompts.** De prompts dragen tokens in de code (`{club}`, `{kort}`,
   `{m:…}`), zodat er geen clubnaam vastzit. Ze worden centraal gevuld op het
   moment van verzenden:
-  - `runClaude` vult het systeemdeel;
+  - `runClaude` en `createClaudeJob` in `lib/ai/claude.ts` vullen het
+    systeemdeel, vóór de vraag in `ai_jobs` gaat (sinds 2026-11-10; eerst deed
+    `runClaude` het in de achtergrondfunctie, die daar waarschijnlijk op stukliep, zie
+    "Claude-opdrachten bleven in de rij staan");
   - `fetchOpenAiResponse` en de pacing-aanroep vullen `instructions` via
     `withClubInstructions()` (`lib/club.ts`, naast `fillClub()`);
   - de doelenpagina van de trainer vult de standaardprompt die in de editor
@@ -13204,6 +13450,63 @@ is groen, op deze tests na:
 - echte Telegram-berichten en AI-antwoorden;
 - een club met andere namen (kan niet op productie). Voor de meldingen en de
   pacingprompt dekt de nieuwe test dat.
+
+### Gebouwd — Race of clubevent verdringt de zware training van die dag
+
+**2026-11-10.** Commit `6f6555ab`, op 2026-11-10 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie. Eerst
+een voorstel, door de eigenaar goedgekeurd ("Ja, bouw het").
+
+**Aanleiding.** Karen van de Rakt had op 10 november `VO2max 5x4` (90 min) en
+'s avonds een ladderrace, beide gepland. Nagelopen in productie (alleen
+gelezen): de herziening van 9 november 01:00 UTC zette de VO2max neer toen de
+race nog niet bestond. Om 20:28 UTC zette de ladder-sync haar in de opstelling;
+`applyEventBlock` voegde de race toe en `requestReplan` legde een verzoek vast.
+De herziening van 23:00 UTC had de race goed in `fixedWorkouts` (kind
+`clubevent`), maar is nooit gedraaid: de Claude-wachtrij lag stil (zie de ronde
+"Claude-opdrachten bleven in de rij staan", `0ebee5c8`, andere sessie).
+`loadFixedWorkouts` en het aanvragen van de herziening deden dus wat ze moesten.
+
+**Het gat, los van die storing.** Een nieuw eventblok liet een zware training op
+dezelfde dag staan en liet het opruimen helemaal over aan de herziening van die
+nacht. Ook met een werkende wachtrij was zo'n dag dus tot ongeveer 01:00 dubbel.
+En een opstelling die op de racedag zelf binnenkomt, werd pas de nacht ná de
+race herzien, want de cron start na 09:00 geen herziening meer.
+
+**Wat er is.** `clearHardSessionsForEvent()` in `publish.ts`, aangeroepen vanuit
+`applyEventBlock` direct na het invoegen van een nieuw eventblok (toezegging,
+ladderopstelling, ZRL-reservering). Dit vervangt de zware trainingen
+(threshold, vo2max, anaerobic of race, dezelfde set als `engine/compose.ts`) op
+de Amsterdamse dag van het event, met dezelfde regels als een herziening
+(`supersedableWorkouts`): nooit een eigen rit, ander event, test of gereden
+sessie. De rijen krijgen `superseded_at` zonder vervangend plan (zoals bij een
+dag zonder tijd) en gaan uit intervals.icu. Er komt geen AI-aanroep aan te pas.
+Het verzoek voor de herziening blijft staan; die zet de rest van de week recht.
+Mislukt het opruimen, dan staat het event er toch.
+
+**Bewust niet gebouwd.**
+- Een rustige rit (recovery, endurance, tempo) blijft staan. Een sweet spot
+  draagt `tempo` en blijft dus ook staan. Zo'n rit hoeft niet weg voor een
+  race; de herziening beslist erover. Dat is wat het voorstel noemde: alleen de
+  zware sessie.
+- Bij afmelden komt de oude training niet terug; de herziening van die nacht
+  vult de dag.
+- Een herziening direct starten (`now: true`) bij een opstelling vlak voor de
+  race: dat kost wel geld, en het opruimen hier dekt het ergste geval.
+- Een blok dat er al stond (tweede keer "ja") ruimt niets op; alleen een nieuw
+  blok doet dat.
+
+**Getest.** `tests/unit/supersede.test.ts`, het blok
+`hardSessionsBesideEvent`: zwaar weg, rustig blijft, afspraken, tests en gereden
+sessies blijven, alleen de eigen dag. Getest zijn alleen de regels zelf;
+de databasekant van `clearHardSessionsForEvent` en het wissen in intervals.icu
+zijn niet lokaal getest. Na de deploy nakijken: bij de volgende
+ladderopstelling of toezegging staat er op die dag geen zware training meer
+naast.
+
+**Niet hiermee opgelost.** Karens VO2max van 10 november staat er nog: die race
+kwam vóór deze code. Weghalen kan alleen met de hand, op verzoek van de
+eigenaar.
 
 ### Gebouwd — Dashboard: groep Uitslagen
 
@@ -13669,7 +13972,9 @@ Wat er is:
   Geen prompt, geen antwoord. RLS aan, geen policies, `anon` en
   `authenticated` zonder rechten; alleen de server leest en schrijft. Rijen
   ouder dan dertien maanden ruimt `processClaudeJob` op.
-- **Meten in `runClaude`** (`lib/ai/claude.ts`), dus voor achtergrondopdrachten
+- **Meten in `runClaude`** (sinds 2026-11-10 in `lib/ai/claude-core.ts`; tot
+  die dag schreef de app geen enkele rij, omdat de opdrachten in de rij bleven
+  staan, zie "Claude-opdrachten bleven in de rij staan"), dus voor achtergrondopdrachten
   en de synchrone aanroep. Ook een geweigerd of afgekapt antwoord telt, want dat
   kost ook tokens. Een fout bij het schrijven laat de aanroep nooit mislukken.
   `ClaudeRequest.meter` is **verplicht**, zodat een nieuwe aanroep niet
@@ -21677,7 +21982,8 @@ bijwerkingen op effort `low`, model per soort instelbaar.
   (`aij_…`) staat waar het response-id van OpenAI stond; de ophaal-code kiest op
   het id, zodat lopende OpenAI-opdrachten na de overstap nog worden opgehaald.
   Blijft een opdracht een minuut in de rij, dan stoot het ophalen hem opnieuw
-  aan; na 16 minuten bezig geldt hij als mislukt. De prompt en invoer in
+  aan; na tien minuten in de rij (sinds 2026-11-10) of 16 minuten bezig geldt
+  hij als mislukt. De achtergrondfunctie laadt alleen `lib/ai/claude-core.ts`. De prompt en invoer in
   `ai_jobs.request` gaan leeg zodra de opdracht klaar is; rijen ouder dan zeven
   dagen ruimt de functie op.
 - Elke Claude-vraag begint met "Vandaag is <weekdag> <datum>." (zie het
