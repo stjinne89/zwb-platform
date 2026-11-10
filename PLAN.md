@@ -7,9 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Databasecheck 2026-11-10: trage opruimfunctie en RLS-policy: lokaal
-   gecommit (`f4cd39a9`), niet gepusht.** Migratie **0325**, nog niet toegepast in productie.
-   Open: migratie toepassen, pushen, en in de volgende databasecheck nagaan of
+0. **Databasecheck 2026-11-10: trage opruimfunctie en RLS-policy: gepusht
+   naar `main` (`f4cd39a9`).** Migratie **0325** is toegepast in productie, op
+   verzoek van de eigenaar ("Toepassen en pushen").
+   Open: in de volgende databasecheck nagaan of
    `prune_superseded_training_workouts` uit de top is. Zie de ronde
    "Databasecheck 2026-11-10: opruimfunctie en RLS-policy".
 
@@ -12567,8 +12568,11 @@ niet eens geraakt; de index zou niets doen.
 **Niet verklaard:** dezelfde select liep met de hand eerst 1.025 ms en direct
 daarna 7 ms, terwijl de RPC structureel boven 600 ms blijft. Waarom de scan in
 de RPC zo traag is, is niet vastgesteld; de index en de lagere frequentie
-omzeilen het. **Niet lokaal te controleren:** de migratie (geen Docker of
-Supabase-config hier). Typecheck geeft dezelfde 30 bestaande fouten als zonder
+omzeilen het. Op 10 november toegepast in productie. Nagekeken: de policy
+heeft `( SELECT auth.uid() AS uid)` in `using` en `with check`, en de select van
+de functie gebruikt `training_workouts_prune_idx` (Index Only Scan, 3 ms).
+Niet gemeten: de duur van de RPC zelf via de cron; dat moet uit de volgende
+databasecheck komen. Typecheck geeft dezelfde 30 bestaande fouten als zonder
 deze wijziging; lint op de route is schoon.
 
 ### Hersteld — Subteam aanmaken gaf "DELETE requires a WHERE clause"
