@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Databasecheck 2026-11-10: trage opruimfunctie en RLS-policy: lokaal
-   gecommit, niet gepusht.** Migratie **0325**, nog niet toegepast in productie.
+   gecommit (`f4cd39a9`), niet gepusht.** Migratie **0325**, nog niet toegepast in productie.
    Open: migratie toepassen, pushen, en in de volgende databasecheck nagaan of
    `prune_superseded_training_workouts` uit de top is. Zie de ronde
    "Databasecheck 2026-11-10: opruimfunctie en RLS-policy".
@@ -12544,7 +12544,7 @@ hieronder).
 
 ### Databasecheck 2026-11-10: opruimfunctie en RLS-policy
 
-**2026-11-10, migratie 0325.** Op verzoek van de eigenaar, naar aanleiding van
+**2026-11-10, commit `f4cd39a9`, migratie 0325.** Op verzoek van de eigenaar, naar aanleiding van
 de wekelijkse databasecheck (0 ACTIE, 2 LET OP; database 268 MB, disk ~29%,
 egress 1,07 GB na 8 dagen in de Pro-cyclus van 02-11).
 
