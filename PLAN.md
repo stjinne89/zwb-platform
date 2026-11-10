@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Telefoon: ladder-uitslag als tabel zoals de matchup (2026-11-10): lokaal
-   gecommit (commit: zie de ronde), niet gepusht.** Geen migratie. Zie de ronde
+   gecommit (`206a5d45`), niet gepusht.** Geen migratie. Zie de ronde
    "Telefoon: ladder-uitslag als tabel zoals de matchup".
 
 0. **Telefoon: beheerknoppen op Teams achter één knop (2026-11-10): gepusht
@@ -12139,7 +12139,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Telefoon: ladder-uitslag als tabel zoals de matchup
 
-**2026-11-10, commit: zie hieronder.** Op verzoek van de eigenaar ("de blokken
+**2026-11-10, commit `206a5d45`.** Op verzoek van de eigenaar ("de blokken
 per renner van de uitslag echt te groot, qua grootte zou dat mobiel toch best
 op de matchup kunnen lijken?"; voorstel, daarna "Ja, bouwen"). Geen migratie.
 
