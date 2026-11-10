@@ -7,15 +7,15 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Claude-opdrachten bleven in de rij staan (2026-11-10): lokaal gecommit
-   (`0ebee5c8`), nog niet gepusht.** Geen migratie. Van 9 november 19:38 tot 10
-   november 09:00 startte geen Claude-opdracht, en om 09:35 nog steeds niet. De
-   21 vastgelopen opdrachten zijn in productie stilgezet, op verzoek van de
-   eigenaar. Open:
-   - pushen;
-   - na de deploy de herzieningen van Jeroen, Karen, Joost en Stijn starten via
-     de trainerpagina (de eigenaar is hun trainer); anders gaan ze vannacht mee
-     met de cron;
+0. **Claude-opdrachten bleven in de rij staan (2026-11-10): gepusht naar
+   `main` (`0ebee5c8`), op verzoek van de eigenaar ("Push, Karen eerst").** Geen
+   migratie. Van 9 november 19:38 tot 10 november 09:00 startte geen
+   Claude-opdracht, en om 09:35 nog steeds niet. De 21 vastgelopen opdrachten
+   zijn in productie stilgezet, op verzoek van de eigenaar. Open:
+   - na de deploy de herzieningen starten via de trainerpagina (de eigenaar is
+     hun trainer): eerst Karen van de Rakt, want haar ladderrace van 10
+     november 20:02 staat naast VO2max 5x4. Daarna Jeroen, Joost en Stijn.
+     Wat dan nog niet gelukt is, gaat vannacht mee met de cron;
    - Gina van Rossum vraagt zelf een nieuw schema aan (alleen zijzelf is haar
      trainer);
    - na de deploy zien dat een coachvraag klaar komt en in
