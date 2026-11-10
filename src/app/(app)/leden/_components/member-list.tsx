@@ -53,11 +53,16 @@ export function MemberList({
   regions,
   canManageRoles,
   canGrantBoard,
+  canDeleteMembers,
+  currentUserId,
 }: {
   profiles: MemberListProfile[];
   regions: string[];
   canManageRoles: boolean;
   canGrantBoard: boolean;
+  /** Rechtenbeheer: mag een lid volledig verwijderen (niet zichzelf, geen admin). */
+  canDeleteMembers: boolean;
+  currentUserId: string;
 }) {
   const clubTexts = useClubTexts();
   const [region, setRegion] = useState<string>("");
@@ -238,6 +243,11 @@ export function MemberList({
                     profileId={p.id}
                     roles={p.community_roles}
                     canGrantBoard={canGrantBoard}
+                    deleteName={
+                      canDeleteMembers && !p.is_admin && p.id !== currentUserId
+                        ? p.display_name
+                        : null
+                    }
                   />
                 )}
               </div>

@@ -12,6 +12,7 @@ import {
 } from "@/lib/permissions";
 import { PermissionsEditor } from "./_components/permissions-editor";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { ClubText } from "@/components/club-texts-provider";
 
 type PermissionRow = {
   role: string;
@@ -76,7 +77,9 @@ export default async function RechtenPage() {
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {COMMUNITY_ROLES.map((role) => (
           <div key={role} className="rounded-lg border bg-card p-4">
-            <p className="font-semibold">{COMMUNITY_ROLE_META[role].label}</p>
+            <p className="font-semibold">
+              <ClubText text={COMMUNITY_ROLE_META[role].label} />
+            </p>
             <p className="mt-1 text-2xl font-semibold">
               {matrix[role].length}
             </p>

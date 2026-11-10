@@ -92,7 +92,7 @@ export function PermissionsEditor({ initial }: { initial: Matrix }) {
             <section key={role} className="rounded-lg border bg-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-semibold">{meta.label}</h3>
+                  <h3 className="font-semibold"><ClubText text={meta.label} /></h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     <ClubText text={meta.description} />
                   </p>

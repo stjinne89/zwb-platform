@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { deleteAccount } from "@/lib/account-deletion";
 import {
   accessTokenFor,
   refreshStravaAthleteInfo,
@@ -51,10 +52,8 @@ export async function refreshMyStravaProfile() {
 
 /**
  * G3 — Recht op vergetelheid (AVG art. 17). Verwijdert het account van de
- * ingelogde gebruiker zelf: storage-bestanden (avatar + eventfoto's) worden
- * best-effort opgeruimd en daarna wordt de auth-gebruiker verwijderd, wat via
- * de FK-cascades alle profielgekoppelde data wist. De gebruiker moet ter
- * bevestiging zijn e-mailadres exact intypen.
+ * ingelogde gebruiker zelf via deleteAccount (lib/account-deletion). De
+ * gebruiker moet ter bevestiging zijn e-mailadres exact intypen.
  */
 export async function deleteMyAccount(confirmEmail: string) {
   const supabase = await createClient();
@@ -71,60 +70,8 @@ export async function deleteMyAccount(confirmEmail: string) {
     };
   }
 
-  const admin = createAdminClient();
-
-  // Best-effort: storage-objecten opruimen (worden niet via FK gecascadeerd).
-  try {
-    const { data: avatarFiles } = await admin.storage
-      .from("avatars")
-      .list(user.id);
-    if (avatarFiles?.length) {
-      await admin.storage
-        .from("avatars")
-        .remove(avatarFiles.map((f) => `${user.id}/${f.name}`));
-    }
-  } catch {
-    // niet kritiek
-  }
-  try {
-    const { data: photos } = await admin
-      .from("event_photos")
-      .select("storage_path")
-      .eq("profile_id", user.id);
-    const paths = (photos ?? [])
-      .map((p) => p.storage_path as string)
-      .filter(Boolean);
-    if (paths.length) await admin.storage.from("event-photos").remove(paths);
-  } catch {
-    // niet kritiek
-  }
-  // Je verhalen voor /verhaal verdwijnen mee (0288, cascade); hun foto's hier.
-  try {
-    const { data: photos } = await admin
-      .from("club_story_photos")
-      .select("path, story:club_stories!inner(profile_id)")
-      .eq("story.profile_id", user.id);
-    const paths = (photos ?? []).map((p) => p.path as string).filter(Boolean);
-    if (paths.length) await admin.storage.from("club-story-photos").remove(paths);
-  } catch {
-    // niet kritiek
-  }
-
-  // Strava's toestemming intrekken vóór de cascade. Zonder dit blijft de grant bij
-  // Strava bestaan terwijl wij zeggen dat alles weg is: een AVG-hiaat, én de
-  // atleet blijft een plek in onze athlete cap bezetten zonder dat we er nog bij
-  // kunnen. Best-effort: een falende Strava-call mag een accountverwijdering niet
-  // blokkeren, en de rij verdwijnt zo meteen toch.
-  try {
-    const { revokeStravaConnection } = await import("@/lib/strava/sweep");
-    await revokeStravaConnection(admin, user.id, "account_deleted");
-  } catch {
-    // niet kritiek voor de verwijdering zelf
-  }
-
-  // Auth-gebruiker verwijderen → cascade ruimt profiel + gekoppelde data op.
-  const { error } = await admin.auth.admin.deleteUser(user.id);
-  if (error) return { ok: false as const, error: error.message };
+  const res = await deleteAccount(createAdminClient(), user.id);
+  if (!res.ok) return { ok: false as const, error: res.error };
 
   await supabase.auth.signOut();
   return { ok: true as const };

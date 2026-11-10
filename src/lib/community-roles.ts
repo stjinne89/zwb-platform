@@ -49,8 +49,8 @@ export const COMMUNITY_ROLE_META: Record<CommunityRole, CommunityRoleMeta> = {
     className: "border-zwb-petrol/25 bg-zwb-petrol/10 text-zwb-petrol dark:text-zwb-sage",
   },
   paying_member: {
-    label: "Betalend lid",
-    shortLabel: "Betalend",
+    label: "{kort}-lid",
+    shortLabel: "{kort}-lid",
     description: "Lid met betaalde {kort}-lidmaatschapsstatus.",
     className: "border-foreground/15 bg-card text-foreground",
   },

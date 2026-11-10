@@ -44,7 +44,7 @@ export function CommunityRoleBadges({
               compact ? "px-1.5 py-0.5 text-xs" : "px-2 py-0.5 text-xs",
             )}
           >
-            {compact ? meta.shortLabel : meta.label}
+            {fillClubText(compact ? meta.shortLabel : meta.label, clubTexts)}
           </span>
         );
       })}

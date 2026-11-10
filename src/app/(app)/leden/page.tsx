@@ -6,6 +6,7 @@ import { EmptyState, PageHeader } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { ApproveButton } from "./_components/approve-button";
+import { DeleteMemberButton } from "./_components/delete-member-button";
 import { ClaimButton } from "./_components/claim-button";
 import {
   MemberList,
@@ -125,6 +126,7 @@ export default async function LedenPage() {
   const myName = me?.display_name ?? "";
   const canApproveMembers = access.has("members.approve");
   const canManageRoles = access.has("members.manage_roles");
+  const canDeleteMembers = access.has("roles.manage_permissions");
   const allProfiles: Profile[] = profiles ?? [];
   const pendingProfiles = allProfiles.filter((p) => !p.is_approved);
   const profileList = allProfiles.filter((p) => p.is_approved);
@@ -228,7 +230,12 @@ export default async function LedenPage() {
                     })}
                   </p>
                 </div>
-                <ApproveButton profileId={p.id} />
+                <div className="flex flex-col items-end gap-2">
+                  <ApproveButton profileId={p.id} />
+                  {canDeleteMembers && !p.is_admin && p.id !== user.id && (
+                    <DeleteMemberButton profileId={p.id} displayName={p.display_name} />
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -320,6 +327,8 @@ export default async function LedenPage() {
             regions={regions}
             canManageRoles={canManageRoles}
             canGrantBoard={access.has("roles.manage_permissions")}
+            canDeleteMembers={canDeleteMembers}
+            currentUserId={user.id}
           />
         );
       })()}

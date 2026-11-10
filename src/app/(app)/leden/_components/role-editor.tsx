@@ -9,16 +9,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { updateMemberRoles } from "../_actions";
 import { ClubText } from "@/components/club-texts-provider";
+import { DeleteMemberButton } from "./delete-member-button";
 
 export function RoleEditor({
   profileId,
   roles,
   canGrantBoard,
+  deleteName,
 }: {
   profileId: string;
   roles: readonly string[] | null | undefined;
   /** De rol Bestuur geeft alle rechten; alleen met rechtenbeheer (migr. 0205). */
   canGrantBoard: boolean;
+  /** Weergavenaam als dit lid verwijderd mag worden; anders geen verwijderknop. */
+  deleteName?: string | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -77,7 +81,7 @@ export function RoleEditor({
                     className="mt-1 size-4"
                   />
                   <span>
-                    <span className="block font-medium">{meta.label}</span>
+                    <span className="block font-medium"><ClubText text={meta.label} /></span>
                     <span className="block text-xs text-muted-foreground">
                       <ClubText text={meta.description} />
                     </span>
@@ -99,6 +103,11 @@ export function RoleEditor({
               <span className="text-xs text-destructive">{status.msg}</span>
             )}
           </div>
+          {deleteName && (
+            <div className="mt-3 flex justify-end border-t pt-3">
+              <DeleteMemberButton profileId={profileId} displayName={deleteName} />
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -12162,6 +12162,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Lid verwijderen; "Betalend lid" heet "ZWB-lid"
+
+**2026-11-10, commit volgt.** Op verzoek van de eigenaar ("Er is per ongeluk een
+lid toegevoegd [...] Kun je een verwijderknop inbouwen? Daarnaast wil ik de rol
+van betalend lid veranderen in naam naar ZWB lid"). Geen migratie.
+
+- **Verwijderknop.** Op `/leden` staat onderaan het vak Rollen van elk lid een
+  knop Verwijderen, en bij "Wachten op goedkeuring" naast Goedkeuren. Bevestigen
+  gaat door de weergavenaam over te typen. De serveractie `deleteMember`
+  (`leden/_actions.ts`) eist `roles.manage_permissions` (in de praktijk het
+  bestuur), weigert jezelf en systeemadmins, en controleert de naam opnieuw op
+  de server.
+- **Eén verwijderroute.** De opruiming uit `deleteMyAccount` (avatar,
+  eventfoto's, verhaalfoto's, Strava-grant intrekken, dan
+  `auth.admin.deleteUser` met de FK-cascades) staat nu in `deleteAccount`
+  (`src/lib/account-deletion.ts`). Eigen account verwijderen en lid verwijderen
+  doen daardoor precies hetzelfde.
+- **Rolnaam.** `paying_member` heet in beeld `{kort}-lid` (bij ZWB "ZWB-lid"),
+  kort én lang. Alleen het label: de rolsleutel, de rechten en de
+  databaseconstraints blijven `paying_member`. Rollabels gaan nu door
+  `fillClubText`/`ClubText` op de vier plekken waar ze verschijnen (rolbadges,
+  rollenbewerker, `/beheer/rechten` kaarten en editor).
+
+**Bewust niet:**
+- Geen apart recht "Leden verwijderen": dat vraagt een migratie (de
+  constraint `community_role_permissions_allowed`), en een account wissen is
+  zwaarder dan goedkeuren of rollen wijzigen; rechtenbeheer volstaat.
+- Geen zachte verwijdering of archief: het doel is een verkeerde aanmelding
+  weg te halen, en dezelfde volledige verwijdering bestaat al voor je eigen
+  account.
+- De rolsleutel niet hernoemd: dat raakt constraints, seed, migraties en
+  opgeslagen rollen zonder zichtbaar verschil.
+- Privacyverklaring niet aangepast (dat het bestuur een account kan
+  verwijderen): eerst voorleggen.
+- `docs/gebruiksanalyse-2026-09-17.md` noemt nog "betalend lid"; dat is een
+  momentopname en blijft zo.
+
+**Niet lokaal gecontroleerd:** eslint op de gewijzigde bestanden is schoon;
+`tsc` geeft alleen de bekende fouten over pakketten die in deze worktree
+ontbreken (`modern-screenshot`, `@mediapipe/tasks-vision`,
+`@anthropic-ai/sdk`). De knop en de verwijdering zijn niet in de browser of
+tegen productie geprobeerd; of `deleteUser` voor een lid met veel data door alle
+FK's komt, is niet nagegaan, maar het is dezelfde aanroep als bij eigen account
+verwijderen.
+
 ### Hersteld — Ledenvoordeel op het dashboard nieuw naar oud
 
 **2026-11-10, commit `a3a4e883`.** Op verzoek van de eigenaar ("Het ledenvoordeel op
@@ -20151,7 +20196,8 @@ kwam erbij: vanaf een prestatie doorlinken naar het verhaal ervan.
 - Ingangen: Club → Clubverhaal in het menu en op de clubpagina, beheer onder
   Community, `/hulp/club#clubverhaal`.
 - Data-export (verhalen en foto-rijen), accountverwijdering (verhalen gaan via
-  de cascade mee, de foto's ruimt `deleteMyAccount` op), privacytekst
+  de cascade mee, de foto's ruimt `deleteAccount` in `lib/account-deletion.ts`
+  op), privacytekst
   `/privacy#clubverhaal`.
 
 **Bewust zo.**
