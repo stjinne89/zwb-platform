@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Telefoon: compactere tegels en cijferkaarten naast elkaar (2026-11-10):
-   lokaal gecommit, niet gepusht (commit: zie de ronde).** Geen migratie. Stap 1
+   lokaal gecommit (`d771b273`), niet gepusht.** Geen migratie. Stap 1
    en 2 van het voorstel na de mobiele audit; stap 3 tot 5 (panelen in
    panelen, lange lijsten, beheerknoppen op Teams) staan nog open. Zie de ronde
    "Telefoon: compactere tegels en cijferkaarten naast elkaar".
@@ -12083,7 +12083,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Telefoon: compactere tegels en cijferkaarten naast elkaar
 
-**2026-11-10, commit: zie hieronder.** Op verzoek van de eigenaar: pagina's
+**2026-11-10, commit `d771b273`.** Op verzoek van de eigenaar: pagina's
 waren op de telefoon slecht te bekijken "door de grote blokken". Een audit op
 375px (ingelogd, echte data) vond geen zijwaarts scrollen en tikdoelen van
 44px; het probleem is lengte (profiel ±20.000px, Teams 12.700px, dashboard
