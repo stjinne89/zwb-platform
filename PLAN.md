@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **ZWBlokken: Zwift-ranglijst en melding voor ritten zonder route
-   (2026-11-10): lokaal gecommit, niet gepusht.** Geen migratie. Open: na de
+   (2026-11-10): gepusht naar `main` (`590a166b`).** Geen migratie. Open: na de
    deploy als Kevin Plasmans (of een van de andere vier) inloggen en de melding
    zien; het Zwift-tabblad van /zwblokken bekijken. Zie de ronde "ZWBlokken:
    Zwift-ranglijst en melding voor ritten zonder route".
@@ -12469,7 +12469,7 @@ Claude beantwoord.
 
 ### Gebouwd — ZWBlokken: Zwift-ranglijst en melding voor ritten zonder route
 
-**2026-11-10, commit f3509165.** Op vraag van de eigenaar ("Bart en Kevin lijken mij
+**2026-11-10, commit 590a166b.** Op vraag van de eigenaar ("Bart en Kevin lijken mij
 hoger te moeten staan?", daarna "ik zie hele andere getallen bij de ZWBlokken
 dan dat jij nu noemt? En kunnen we voor deze 5 leden een popup melding maken
 met instructie wat ze moeten doen en wat het oplevert?"); gekozen uit een
