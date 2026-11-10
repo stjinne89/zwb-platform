@@ -7,6 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Telefoon: ladder-uitslag als tabel zoals de matchup (2026-11-10): lokaal
+   gecommit (commit: zie de ronde), niet gepusht.** Geen migratie. Zie de ronde
+   "Telefoon: ladder-uitslag als tabel zoals de matchup".
+
 0. **Telefoon: beheerknoppen op Teams achter één knop (2026-11-10): gepusht
    naar `main` (`3c7ca09b`).** Geen migratie. Stap 5, de laatste van
    het voorstel na de mobiele audit. Zie de ronde "Telefoon: beheerknoppen op
@@ -12132,6 +12136,40 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Telefoon: ladder-uitslag als tabel zoals de matchup
+
+**2026-11-10, commit: zie hieronder.** Op verzoek van de eigenaar ("de blokken
+per renner van de uitslag echt te groot, qua grootte zou dat mobiel toch best
+op de matchup kunnen lijken?"; voorstel, daarna "Ja, bouwen"). Geen migratie.
+
+Het probleem: de uitslag van een gereden ladderrace (`ladder-result.tsx`)
+gebruikte de gewone kaarten van `ResponsiveTable`: per renner naam, teamnaam,
+een lijn en vijf waarden over drie regels, 174px. Negen renners waren samen
+1.845px, terwijl de matchup eronder vijf renners in 166px zet. Stap 4 ("lange
+lijsten korter") maakte alleen de uitslag van gewone events compact.
+
+Wat er is: onder 640px een eigen tabel (`PhoneResultTable`) in de vorm van de
+matchup-tabel: 12px, `tabular-nums`, één regel van 28px per renner met plek
+en naam (vult de breedte, kapt af met `truncate`), Punten, ±, Tijd en W/kg.
+Eigen renners vet met `bg-primary/5`. De `ResponsiveTable` staat er vanaf
+640px, ongewijzigd. Teamnaam en Verwacht vallen op de telefoon weg: de tint
+geeft het team, en ± zegt al hoe ver iemand van de verwachte plek zat.
+
+Op 375px (ZWBeasts – SRT Thundercats Hoo!, 9 november, als beheerder): uitslag
+1.845 naar 468px, pagina 6.251 naar 4.725px; geen naam afgekapt, niet
+zijwaarts scrollen. Bekeken in licht en donker. Op 1024px nagemeten: de tabel
+met acht kolommen, geen telefoontabel. Lokaal: `tsc` en eslint schoon.
+
+**Bewust niet:** een algemene tabelvorm in `ResponsiveTable` voor de telefoon.
+Andere uitslagen hebben langere waarden (tijd, categorie, knoppen); deze past
+alleen omdat de vijf waarden kort zijn. Verwacht als eigen kolom kan, maar
+kapt namen eerder af; aan de eigenaar voorgelegd, zonder antwoord gebouwd
+zoals voorgesteld.
+
+**Open, gezien tijdens het nakijken:** de parcourssectie van dit event geeft
+in de console "two children with the same key" (`montmartre-kom`); bestond al.
+**Niet bekeken:** als gewoon lid, op een echte telefoon, Safari.
 
 ### Gebouwd — Telefoon: beheerknoppen op Teams achter één knop
 

@@ -23,6 +23,45 @@ function Delta({ value }: { value: number | null }) {
   );
 }
 
+/**
+ * De uitslag op de telefoon (onder 640px): één regel per renner, in de vorm
+ * van de matchup. Teamnaam en verwachte plek vallen weg; de eigen renners
+ * hebben een tint en ± zegt hoe ver iemand van de verwachting zat.
+ */
+function PhoneResultTable({ rows, showDelta }: { rows: LadderResultRow[]; showDelta: boolean }) {
+  return (
+    <table className="w-full text-xs tabular-nums sm:hidden">
+      <thead className="text-muted-foreground">
+        <tr className="border-b">
+          <th className="py-1 pr-2 text-left font-medium">Renner</th>
+          <th className="px-1.5 py-1 text-right font-medium">Punten</th>
+          {showDelta && <th className="px-1.5 py-1 text-right font-medium">±</th>}
+          <th className="px-1.5 py-1 text-right font-medium">Tijd</th>
+          <th className="py-1 pl-1.5 text-right font-medium">W/kg</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.position} className={cn("border-b last:border-0", row.own && "bg-primary/5")}>
+            <td className={cn("w-full max-w-0 truncate py-1 pr-2", row.own && "font-medium")}>
+              <span className="mr-1 text-muted-foreground">{row.position}.</span>
+              <MemberLink id={row.profileId}>{row.name}</MemberLink>
+            </td>
+            <td className="px-1.5 py-1 text-right">{row.points}</td>
+            {showDelta && (
+              <td className="px-1.5 py-1 text-right">
+                <Delta value={row.delta} />
+              </td>
+            )}
+            <td className="px-1.5 py-1 text-right">{clock(row.timeS)}</td>
+            <td className="py-1 pl-1.5 text-right">{row.avgWkg == null ? "–" : row.avgWkg.toFixed(2)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 /** Uitslag van een gereden ladderrace: plek per renner, naast de verwachting. */
 export function LadderResultView({ result }: { result: LadderEventResult }) {
   const { ourName, opponent, ourScore, theirScore, won, expectedScore, rows } = result;
@@ -57,7 +96,10 @@ export function LadderResultView({ result }: { result: LadderEventResult }) {
           )}
         </div>
 
+        {rows.length > 0 && <PhoneResultTable rows={rows} showDelta={showExpected} />}
+
         <ResponsiveTable<LadderResultRow>
+          className={rows.length > 0 ? "hidden sm:block" : undefined}
           rows={rows}
           rowKey={(row) => String(row.position)}
           rowClassName={(row) => (row.own ? "bg-primary/5" : undefined)}
