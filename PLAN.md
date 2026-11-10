@@ -15,7 +15,7 @@ gaat stabiliteit voor nieuwe features.
    Zwift".
 
 0. **Racebriefje: nieuwe volgorde, belangrijke punten en fiets (2026-11-11):
-   lokaal gecommit, niet gepusht.** Geen migratie. Open: na de deploy een echte
+   gepusht naar `main` (`635c55fd`).** Geen migratie. Open: na de deploy een echte
    ZRL-briefing met login bekijken, en Deel als plaatje op de telefoon. Zie de
    ronde "Racebriefje: volgorde, belangrijke punten en de fiets".
 
@@ -12255,7 +12255,7 @@ dat blijkt pas als de Zwift-events gekoppeld zijn.
 
 ### Gebouwd — Racebriefje: volgorde, belangrijke punten en de fiets
 
-**2026-11-11, commit volgt.** Geen migratie. Vraag van de eigenaar: de
+**2026-11-11, commit `635c55fd`, gepusht naar `main` op 2026-11-11.** Geen migratie. Vraag van de eigenaar: de
 volgorde van het racebriefje "mss niet helemaal logisch"; profiel, belangrijke
 punten en de beste fietskeuze horen erop. Na het voorstel: "de snelste fiets
 algemeen [...] en de snelste fiets in de garage van het lid", en "het
