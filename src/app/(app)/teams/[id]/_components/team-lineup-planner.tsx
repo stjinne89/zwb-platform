@@ -167,9 +167,9 @@ export function TeamLineupPlanner({
                       niet geregistreerd
                     </span>
                   )}
-                  {(rider.wtrl?.category ?? rider.category) && (
+                  {rider.category && (
                     <span className="ml-1 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
-                      {rider.wtrl?.category ?? rider.category}
+                      {rider.category}
                     </span>
                   )}
                 </span>

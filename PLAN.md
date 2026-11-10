@@ -12113,6 +12113,25 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Captain-selectie toont de profielcategorie bij de naam
+
+**2026-11-10.** Melding van de eigenaar: Remco Kuijpers stond bovenaan het
+team (en op zijn profiel) als A, in de Captain-selectie als B. Geen migratie.
+
+**Oorzaak.** De badge bij de naam in `team-lineup-planner.tsx` toonde
+`wtrl.category ?? category`: eerst de WTRL-categorie (uit zFTP/zMAP, bij Remco
+B), pas daarna de profielcategorie. De rostertabel bovenaan toont bij de naam de
+profielcategorie en de WTRL-categorie apart onder zFTP ("Cat B").
+
+**Wat.** De badge in de Captain-selectie toont nu alleen de profielcategorie,
+net als de rostertabel en het profiel. De WTRL-status blijft zichtbaar via de
+kleur van de naam en de waarschuwing onder zFTP/zMAP.
+
+**Niet gebouwd.** Geen extra WTRL-categoriekolom in de selectie: die staat al
+in de rostertabel op dezelfde pagina. De melding "DELETE requires a WHERE
+clause" bij een nieuw subteam is apart opgelost (commit `47fbf4ac`, migr. 0323,
+hieronder).
+
 ### Hersteld — Subteam aanmaken gaf "DELETE requires a WHERE clause"
 
 **2026-11-10, commit `47fbf4ac`, migratie 0323.** Op verzoek van de eigenaar:
