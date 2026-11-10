@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Race of clubevent verdringt de zware training van die dag (2026-11-10):
+   lokaal gecommit, niet gepusht.** Geen migratie. Open: pushen; na de deploy
+   bij de volgende ladderopstelling of toezegging zien dat de zware training
+   van die dag vervalt. Zie de ronde "Race of clubevent verdringt de zware
+   training van die dag".
+
 0. **Claude-opdrachten bleven in de rij staan (2026-11-10): gepusht naar
    `main` (`0ebee5c8`), op verzoek van de eigenaar ("Push, Karen eerst").** Geen
    migratie. Van 9 november 19:38 tot 10 november 09:00 startte geen
@@ -13186,6 +13192,62 @@ is groen, op deze tests na:
 - echte Telegram-berichten en AI-antwoorden;
 - een club met andere namen (kan niet op productie). Voor de meldingen en de
   pacingprompt dekt de nieuwe test dat.
+
+### Gebouwd — Race of clubevent verdringt de zware training van die dag
+
+**2026-11-10.** Lokaal gecommit, niet gepusht. Geen migratie. Eerst een
+voorstel, door de eigenaar goedgekeurd ("Ja, bouw het").
+
+**Aanleiding.** Karen van de Rakt had op 10 november `VO2max 5x4` (90 min) en
+'s avonds een ladderrace, beide gepland. Nagelopen in productie (alleen
+gelezen): de herziening van 9 november 01:00 UTC zette de VO2max neer toen de
+race nog niet bestond. Om 20:28 UTC zette de ladder-sync haar in de opstelling;
+`applyEventBlock` voegde de race toe en `requestReplan` legde een verzoek vast.
+De herziening van 23:00 UTC had de race goed in `fixedWorkouts` (kind
+`clubevent`), maar is nooit gedraaid: de Claude-wachtrij lag stil (zie de ronde
+"Claude-opdrachten bleven in de rij staan", `0ebee5c8`, andere sessie).
+`loadFixedWorkouts` en het aanvragen van de herziening deden dus wat ze moesten.
+
+**Het gat, los van die storing.** Een nieuw eventblok liet een zware training op
+dezelfde dag staan en liet het opruimen helemaal over aan de herziening van die
+nacht. Ook met een werkende wachtrij was zo'n dag dus tot ongeveer 01:00 dubbel.
+En een opstelling die op de racedag zelf binnenkomt, werd pas de nacht ná de
+race herzien, want de cron start na 09:00 geen herziening meer.
+
+**Wat er is.** `clearHardSessionsForEvent()` in `publish.ts`, aangeroepen vanuit
+`applyEventBlock` direct na het invoegen van een nieuw eventblok (toezegging,
+ladderopstelling, ZRL-reservering). Dit vervangt de zware trainingen
+(threshold, vo2max, anaerobic of race, dezelfde set als `engine/compose.ts`) op
+de Amsterdamse dag van het event, met dezelfde regels als een herziening
+(`supersedableWorkouts`): nooit een eigen rit, ander event, test of gereden
+sessie. De rijen krijgen `superseded_at` zonder vervangend plan (zoals bij een
+dag zonder tijd) en gaan uit intervals.icu. Er komt geen AI-aanroep aan te pas.
+Het verzoek voor de herziening blijft staan; die zet de rest van de week recht.
+Mislukt het opruimen, dan staat het event er toch.
+
+**Bewust niet gebouwd.**
+- Een rustige rit (recovery, endurance, tempo) blijft staan. Een sweet spot
+  draagt `tempo` en blijft dus ook staan. Zo'n rit hoeft niet weg voor een
+  race; de herziening beslist erover. Dat is wat het voorstel noemde: alleen de
+  zware sessie.
+- Bij afmelden komt de oude training niet terug; de herziening van die nacht
+  vult de dag.
+- Een herziening direct starten (`now: true`) bij een opstelling vlak voor de
+  race: dat kost wel geld, en het opruimen hier dekt het ergste geval.
+- Een blok dat er al stond (tweede keer "ja") ruimt niets op; alleen een nieuw
+  blok doet dat.
+
+**Getest.** `tests/unit/supersede.test.ts`, het blok
+`hardSessionsBesideEvent`: zwaar weg, rustig blijft, afspraken, tests en gereden
+sessies blijven, alleen de eigen dag. Getest zijn alleen de regels zelf;
+de databasekant van `clearHardSessionsForEvent` en het wissen in intervals.icu
+zijn niet lokaal getest. Na de deploy nakijken: bij de volgende
+ladderopstelling of toezegging staat er op die dag geen zware training meer
+naast.
+
+**Niet hiermee opgelost.** Karens VO2max van 10 november staat er nog: die race
+kwam vóór deze code. Weghalen kan alleen met de hand, op verzoek van de
+eigenaar.
 
 ### Gebouwd — Dashboard: groep Uitslagen
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { supersedableWorkouts } from "@/lib/training/publish";
+import { hardSessionsBesideEvent, supersedableWorkouts } from "@/lib/training/publish";
 
 function workout(planId: string, date: string, status = "planned", origin = "ai") {
   return { plan_id: planId, scheduled_at: `${date}T09:00:00+01:00`, status, origin };
@@ -142,6 +142,50 @@ describe("supersedableWorkouts en een zelf gekozen duur", () => {
       now: nu,
     });
     expect(result.map((row) => row.scheduled_at.slice(0, 10))).toEqual(["2026-08-12"]);
+  });
+});
+
+describe("hardSessionsBesideEvent", () => {
+  // Karen, 10 november 2026: VO2max 5x4 om 09:00 en 's avonds een ladderrace.
+  const dag = "2026-11-10";
+  const rij = (intensity: string, extra: Record<string, unknown> = {}) => ({
+    plan_id: "schema",
+    scheduled_at: "2026-11-10 08:00:00+00",
+    status: "planned",
+    origin: "ai",
+    intensity,
+    ...extra,
+  });
+
+  it("haalt een zware training van de racedag weg", () => {
+    const result = hardSessionsBesideEvent([rij("vo2max"), rij("threshold"), rij("anaerobic")], dag);
+    expect(result).toHaveLength(3);
+  });
+
+  it("laat een rustige rit op de racedag staan", () => {
+    const result = hardSessionsBesideEvent([rij("endurance"), rij("recovery"), rij("tempo")], dag);
+    expect(result).toHaveLength(0);
+  });
+
+  it("laat afspraken, tests en gereden sessies staan", () => {
+    const result = hardSessionsBesideEvent(
+      [
+        rij("race", { origin: "event" }),
+        rij("threshold", { origin: "member" }),
+        rij("vo2max", { test_type: "ramp" }),
+        rij("vo2max", { status: "completed" }),
+      ],
+      dag,
+    );
+    expect(result).toHaveLength(0);
+  });
+
+  it("raakt alleen de dag van het event", () => {
+    const result = hardSessionsBesideEvent(
+      [rij("vo2max", { scheduled_at: "2026-11-11 08:00:00+00" })],
+      dag,
+    );
+    expect(result).toHaveLength(0);
   });
 });
 

@@ -14,7 +14,7 @@ import { withoutParentEvents } from "@/lib/events/sub-events";
 import { scheduleEventsFilter, teamIdsForRaces, TEAM_RACE_TYPES } from "@/lib/events/team-races";
 import { routeFromZwiftId } from "@/lib/events/zwift-route";
 import { activeBasePlan } from "@/lib/training/active-plan";
-import { pushWorkoutToIntervals } from "@/lib/training/publish";
+import { clearHardSessionsForEvent, pushWorkoutToIntervals } from "@/lib/training/publish";
 import { removeRaceWarmup } from "@/lib/training/race-warmup";
 import { zwiftRaceModelMinutes, type ZwiftRaceKind } from "@/lib/training/race-model";
 import {
@@ -22,6 +22,7 @@ import {
   type WorkoutBlock,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { getClub } from "@/lib/club";
 
 // Het racetijdmodel staat in race-model.ts; hier doorgegeven voor bestaande imports.
@@ -793,6 +794,15 @@ export async function applyEventBlock(
     .select("id")
     .single();
   if (error) throw new Error(error.message);
+
+  // De zware training van die dag gaat er meteen af, niet pas bij de herziening
+  // van vannacht; zie clearHardSessionsForEvent(). Mislukt dit, dan staat het
+  // event er toch en ruimt de herziening de dag op.
+  await clearHardSessionsForEvent(admin, {
+    profileId,
+    dayKey: amsterdamDayKey(new Date(event.start_at as string)),
+    keepWorkoutId: created.id,
+  }).catch(() => 0);
 
   // Meteen doorzetten naar intervals.icu. Zonder dit bleef het blok op
   // 'pending' staan: het hangt aan het lópende basisplan, terwijl de herziening
