@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Telefoon: Renners en Leden zoals de matchup (2026-11-10): lokaal
-   gecommit (`c59461bf`), niet gepusht.** Geen migratie. Zie de ronde
+0. **Telefoon: Renners en Leden zoals de matchup (2026-11-10): gepusht
+   naar `main` (`c59461bf`).** Geen migratie. Zie de ronde
    "Telefoon: Renners en Leden zoals de matchup".
 
 0. **Telefoon: ladder-uitslag als tabel zoals de matchup (2026-11-10): gepusht
