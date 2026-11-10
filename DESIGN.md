@@ -428,12 +428,15 @@ krijgt elke sectie 28px lucht erboven.
 ertussen, die niet breder groeit dan zijn kaart (`minmax(0, 1fr)`), zodat
 `truncate` werkt. Een lange lijst stopt op de telefoon na een paar rijen met
 een knop "Alle N tonen" van 44px (`PhoneMoreList`: Nieuwste badges na 3,
-clubritten na 4, Nog niet geregistreerd na 5; Renners op Teams na 10, tenzij
-je zoekt of filtert); vanaf 768px staat alles er. Een kaart per rij in een
+clubritten na 4, Nog niet geregistreerd na 5); vanaf 768px staat alles er. Een kaart per rij in een
 uitslag is één regel waarden onder de naam (`ResponsiveTable` met `dense`).
 Een ladder-uitslag is op de telefoon geen kaarten maar een kleine tabel zoals
 de matchup: 12px, één regel van 28px per renner (plek en naam, Punten, ±,
-Tijd, W/kg), eigen renners vet met een tint. Een agendarij is een raster van dagvak (56px), tekst en
+Tijd, W/kg), eigen renners vet met een tint. Renners op Teams en op een
+teampagina net zo: Renner met categorie, FTP, 5m, 1m, 15s, zonder eenheid (die
+staat in de schakelaar), koppen sorteren met een tik. Een ledenrij op de
+telefoon: avatar van 28px, naam, categorie en regio, met de rolchips erachter
+of eronder; badges en Zwift-ID alleen vanaf 640px. Een agendarij is een raster van dagvak (56px), tekst en
 tijd, minstens 62px hoog.
 
 **Tabellen:** 16px, `nowrap`, en een vaste minimumbreedte wordt

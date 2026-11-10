@@ -160,7 +160,7 @@ export function MemberList({
               <div className="flex min-w-0 gap-3">
                 <Link
                   href={`/leden/${p.id}`}
-                  className={`mt-0.5 flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zwb-petrol text-xs font-semibold text-white ${
+                  className={`flex size-7 shrink-0 items-center sm:mt-0.5 sm:size-10 justify-center overflow-hidden rounded-full bg-zwb-petrol text-xs font-semibold text-white ${
                     p.zwb
                       ? `ring-2 ring-offset-2 ring-offset-card ${p.zwb.ring}`
                       : ""
@@ -186,7 +186,7 @@ export function MemberList({
                     initials(p.display_name)
                   )}
                 </Link>
-                <div className="min-w-0">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:block">
                   <p>
                     <Link
                       href={`/leden/${p.id}`}
@@ -205,7 +205,7 @@ export function MemberList({
                       </span>
                     )}
                   </p>
-                  <div className="mt-1">
+                  <div className="sm:mt-1">
                     <CommunityRoleBadges
                       roles={p.community_roles}
                       isAdmin={p.is_admin}
@@ -213,7 +213,7 @@ export function MemberList({
                     />
                   </div>
                   {p.awards.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1 hidden flex-wrap gap-1 sm:flex">
                       {p.awards.map((badge) => (
                         <AchievementBadge
                           key={badge.id}
@@ -229,7 +229,7 @@ export function MemberList({
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">
                 {p.zwift_id && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="hidden text-xs text-muted-foreground sm:inline">
                     Zwift {p.zwift_id}
                   </span>
                 )}

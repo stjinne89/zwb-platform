@@ -7,6 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Telefoon: Renners en Leden zoals de matchup (2026-11-10): lokaal
+   gecommit (commit: zie de ronde), niet gepusht.** Geen migratie. Zie de ronde
+   "Telefoon: Renners en Leden zoals de matchup".
+
 0. **Telefoon: ladder-uitslag als tabel zoals de matchup (2026-11-10): gepusht
    naar `main` (`206a5d45`).** Geen migratie. Zie de ronde
    "Telefoon: ladder-uitslag als tabel zoals de matchup".
@@ -9793,7 +9797,8 @@ lid, ook buiten de kalender")*
 >   zie "WTRL-import: uitgenodigde renners worden ook ingedeeld".
 > - **Eén tabel:** de rostertabel (teampagina én `/teams`) heeft een kolom
 >   "zFTP · zMAP" met categorie, W, w/kg, zMAP w/kg, advies en "Te sterk"; op de
->   telefoon als regel op de rennerkaart. Niet-geregistreerde renners staan sinds de
+>   telefoon als regel op de rennerkaart (sinds 2026-11-10 niet meer: daar is het
+>   een tabel zonder WTRL, "te sterk" alleen aan de kleur van de naam). Niet-geregistreerde renners staan sinds de
 >   ronde hierboven in diezelfde tabel. Het aparte WTRL-blok is weg. Staat iemand in twee WTRL-teams, dan telt
 >   "te sterk" als hij in één ervan niet past (`summarizeWtrlRiders`).
 >
@@ -12150,6 +12155,45 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Telefoon: Renners en Leden zoals de matchup
+
+**2026-11-10, commit: zie hieronder.** Op verzoek van de eigenaar ("hetzelfde
+probleem op de leden pagina en teamspagina, kunnen die een zelfde richting
+volgen?"; voorstel, daarna "rolchips wil ik wel zien en bouw beide"). Geen
+migratie.
+
+**Renners** (`team-roster-table.tsx`, op `/teams` en op een teampagina): onder
+640px geen kaart per renner meer maar een tabel in de vorm van de matchup: 12px,
+één regel van 28px, met Renner (naam en categorie, vult de breedte en kapt af),
+FTP, 5m, 1m en 15s. De waarden volgen Watt/W/kg zonder eenheid erachter; elke
+kop sorteert met een tik (dezelfde sortering als de desktoptabel). Profieltype,
+regio, teamchips en de WTRL-regel vallen op de telefoon weg; "bijna te sterk"
+en "te sterk" blijven zichtbaar aan de kleur van de naam. Een niet-geregistreerde
+renner staat in deze tabel grijs, zonder chipje (dat kapte de categorie af). De
+knop "Alle N tonen" en de grens van 10 kaarten zijn weg: alle renners passen.
+Op 375px: Renners op `/teams` 1.914px voor 10 kaarten naar 1.675px voor alle 50,
+pagina 3.057 naar 2.818px; teampagina ZRL A: 11 renners in 334px.
+
+**Leden** (`member-list.tsx`, Geregistreerd): onder 640px een avatar van 28px
+(was 40), naam, categorie en regio met de rolchips erachter in één rij die
+afbreekt; badges en het Zwift-ID alleen vanaf 640px. Rollen blijft rechts. Op
+375px: rijen zonder rolchips 44px, met rolchips 67px (bleef gelijk: de chips
+staan dan op een tweede regel, want naam plus chips past niet naast Rollen; een
+chip is 25px omdat tegels `text-xs` op 14px zet). Pagina 5.432 naar 4.837px.
+Minder dan voorgesteld (±2.500px gold voor rijen zonder rolchips; de eigenaar
+koos voor de chips).
+
+Vanaf 640px gelijk gebleven, nagemeten op 1024px tegen de vorige versie:
+`/teams` 4.744px en de rostertabel 51 rijen van 7 kolommen, 3.746px; `/leden`
+7.243px, rijen 67px. Bekeken in licht en donker. Lokaal: `tsc` en eslint schoon.
+
+**Bewust niet:** de WTRL-gegevens (zFTP, zMAP, advies) als kolom op de
+telefoon; dan past de naam niet meer. Ze staan op de desktop en op het profiel.
+Ook de rolchips niet kleiner gemaakt dan de tegelmaat.
+
+**Niet bekeken:** als gewoon lid (ziet geen Rollen; rijen worden dan breder
+voor de chips), op een echte telefoon, Safari.
+
 ### Gebouwd — Telefoon: ladder-uitslag als tabel zoals de matchup
 
 **2026-11-10, commit `206a5d45`.** Op verzoek van de eigenaar ("de blokken
@@ -12389,7 +12433,9 @@ Wat er is:
   geldt ook op Teams-detail, dat dezelfde lijst gebruikt. De
   kaart zelf is compacter: FTP, 5m, 1m en 15s als één rij van vier (label
   boven waarde), zonder scheidslijn, en zonder rij als er geen enkele waarde
-  is; WTRL als één regel eronder.
+  is; WTRL als één regel eronder. *Achterhaald op dezelfde dag:* de kaarten
+  zijn een tabel geworden en de grens van 10 is weg, zie "Telefoon: Renners en
+  Leden zoals de matchup".
 - **Badge-kast op `/profiel`**: per prestatie één kaart met de vier treden op
   één rij (was twee bij twee). De tredenaam (Brons, Zilver...) staat op de
   telefoon alleen voor schermlezers en in de tooltip; de kleur van de rand en

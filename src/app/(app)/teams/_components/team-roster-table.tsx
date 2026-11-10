@@ -61,7 +61,6 @@ export type TeamRosterRow = {
 };
 
 const CATEGORIES = ["A", "B", "C", "D", "E"];
-const PHONE_CARDS = 10;
 const TYPES = ["sprinter", "puncher", "tter", "climber", "allrounder", "unknown"];
 const ROLE_LABELS: Record<string, string> = {
   captain: "Captain",
@@ -121,7 +120,6 @@ export function TeamRosterTable({
   const [riderType, setRiderType] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [allCards, setAllCards] = useState(false);
   const { unit } = usePowerUnit();
 
   const filtered = useMemo(() => {
@@ -143,8 +141,6 @@ export function TeamRosterTable({
   }, [rows, query, teamId, category, riderType, sortKey, sortDirection, unit]);
 
   const hasFilters = Boolean(query || teamId || category || riderType);
-  // Op de telefoon eerst een handvol kaarten; zoeken of filteren toont alles.
-  const cards = allCards || hasFilters ? filtered : filtered.slice(0, PHONE_CARDS);
 
   return (
     <section className="space-y-3 rounded-lg border bg-card p-4">
@@ -234,77 +230,36 @@ export function TeamRosterTable({
         </select>
       </div>
 
-      {/* Op telefoonbreedte is 1300px tabel drie schermen scrollen; daar tonen
-          we per renner een kaart met de kerncijfers. */}
-      <ul className="space-y-2 sm:hidden">
-        {cards.map((row) => {
-          const power = row.power;
-          const values = (
-            [
-              ["FTP", power?.ftpWatts ?? row.ftpWatts, power?.ftpWkg],
-              ["5m", power?.watts5m, power?.wkg5m],
-              ["1m", power?.watts1m, power?.wkg1m],
-              ["15s", power?.watts15s, power?.wkg15s],
-            ] as const
-          ).filter(([, watts, wkg]) => powerText(watts, wkg, unit) !== "-");
-          return (
-            <li key={row.id} className="rounded-lg border bg-card p-3">
-              <div className="flex items-start justify-between gap-2">
-                <RiderName row={row} />
-                {row.zrlCategory && (
-                  <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
-                    {row.zrlCategory}
-                  </span>
-                )}
-              </div>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {riderTypeLabel(power?.riderType)}
-                {row.region ? ` · ${row.region}` : ""}
-              </p>
-              {row.teams.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {row.teams.map((team) => (
-                    <Link
-                      key={team.id}
-                      href={teamHref({ id: team.id, type: typeById.get(team.id) })}
-                      className="rounded-full border px-2 py-0.5 text-xs hover:bg-muted"
-                    >
-                      {team.name}
-                      {ROLE_LABELS[team.role] ? ` · ${ROLE_LABELS[team.role]}` : ""}
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {values.length > 0 && (
-                <dl className="mt-2 grid grid-cols-4 gap-x-2 text-sm">
-                  {values.map(([label, watts, wkg]) => (
-                    <div key={label} className="min-w-0">
-                      <dt className="text-xs text-muted-foreground">{label}</dt>
-                      <dd className="tabular-nums">{powerText(watts, wkg, unit)}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-              {row.wtrl && (
-                <p className="mt-1.5 text-sm tabular-nums">
-                  <span className="text-muted-foreground">WTRL </span>
-                  <WtrlSummary wtrl={row.wtrl} unit={unit} />
-                </p>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {cards.length < filtered.length && (
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 w-full sm:hidden"
-          onClick={() => setAllCards(true)}
-        >
-          Alle {filtered.length} tonen
-        </Button>
-      )}
+      {/* Op telefoonbreedte is 1300px tabel drie schermen scrollen; daar staat
+          per renner één regel met de kerncijfers, in de vorm van de matchup. */}
+      <table className="w-full text-xs tabular-nums sm:hidden">
+        <thead className="text-muted-foreground">
+          <tr className="border-b">
+            <PhoneHeader label="Renner" sortKey="name" align="left" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+            <PhoneHeader label="FTP" sortKey="ftp" align="right" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+            <PhoneHeader label="5m" sortKey="5m" align="right" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+            <PhoneHeader label="1m" sortKey="1m" align="right" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+            <PhoneHeader label="15s" sortKey="15s" align="right" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map((row) => {
+            const power = row.power;
+            return (
+              <tr key={row.id} className="border-b last:border-0">
+                <td className="w-full max-w-0 truncate py-1 pr-2">
+                  <RiderName row={row} compact />
+                  {row.zrlCategory && <span className="ml-1 text-muted-foreground">{row.zrlCategory}</span>}
+                </td>
+                <td className="px-1.5 py-1 text-right">{phonePower(power?.ftpWatts ?? row.ftpWatts, power?.ftpWkg, unit)}</td>
+                <td className="px-1.5 py-1 text-right">{phonePower(power?.watts5m, power?.wkg5m, unit)}</td>
+                <td className="px-1.5 py-1 text-right">{phonePower(power?.watts1m, power?.wkg1m, unit)}</td>
+                <td className="py-1 pl-1.5 text-right">{phonePower(power?.watts15s, power?.wkg15s, unit)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
 
       <div className="hidden overflow-x-auto sm:block">
         <table className={`w-full text-sm ${showCurve ? "min-w-[1300px]" : "min-w-[820px]"}`}>
@@ -462,8 +417,16 @@ function SortableHeader({
   );
 }
 
-function RiderName({ row }: { row: TeamRosterRow }) {
+function RiderName({ row, compact = false }: { row: TeamRosterRow; compact?: boolean }) {
   const status = row.wtrl?.status ?? "ok";
+  // In de telefoontabel geen chipje (dat kapte de regel af): de naam grijs.
+  if (row.unregistered && compact) {
+    return (
+      <span title="Niet geregistreerd" className="font-medium text-muted-foreground">
+        {row.name}
+      </span>
+    );
+  }
   if (!row.unregistered) {
     return (
       <Link
@@ -487,16 +450,50 @@ function RiderName({ row }: { row: TeamRosterRow }) {
   );
 }
 
-/** Op de rennerkaart (telefoon) alles op één regel. */
-function WtrlSummary({ wtrl, unit }: { wtrl: WtrlRiderSummary; unit: PowerUnit }) {
+/** Kop van de telefoontabel: sorteert met een tik, zoals de matchup. */
+function PhoneHeader({
+  label,
+  sortKey,
+  align,
+  activeKey,
+  direction,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  align: "left" | "right";
+  activeKey: SortKey;
+  direction: SortDirection;
+  onSort: (key: SortKey) => void;
+}) {
+  const active = sortKey === activeKey;
   return (
-    <>
-      {wtrl.category && <span className="font-medium">{wtrl.category} · </span>}
-      zFTP {zftpText(wtrl, unit)}
-      <StatusNote wtrl={wtrl} metric="zftp" /> · zMAP {zmapText(wtrl, unit)}
-      <StatusNote wtrl={wtrl} metric="zmap" /> · {wtrl.advice ?? "-"}
-    </>
+    <th
+      className={`py-1 font-medium ${align === "left" ? "pr-2 text-left" : "px-1.5 text-right last:pr-0"}`}
+      aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-0.5 rounded hover:text-foreground ${
+          align === "right" ? "flex-row-reverse" : ""
+        } ${active ? "text-foreground" : ""}`}
+      >
+        {label}
+        {active && (direction === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />)}
+      </button>
+    </th>
   );
+}
+
+/** Waarde in de telefoontabel: zonder eenheid, die staat in de schakelaar. */
+function phonePower(
+  watts: number | null | undefined,
+  wkg: number | null | undefined,
+  unit: PowerUnit,
+) {
+  if (unit === "wkg") return wkg ? fmt(wkg, 2) : "–";
+  return watts ? fmt(watts) : "–";
 }
 
 function powerText(
