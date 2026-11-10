@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Oude intervals-ritten krijgen alsnog hun spoor (2026-11-10): lokaal
-   gecommit, niet gepusht.** Geen migratie. De achterstand is dezelfde dag in
+0. **Oude intervals-ritten krijgen alsnog hun spoor (2026-11-10): gepusht
+   naar `main` (`203645ef`).** Geen migratie. De achterstand is dezelfde dag in
    productie weggewerkt met `scripts/backfill-intervals-tracks.mjs` (0 ritten
    meer zonder `track_checked_at`). Open: na de deploy volgen of de cron met de
    inhaalslag binnen zijn 30 seconden blijft. Zie de ronde "Oude intervals-ritten
@@ -12087,7 +12087,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Oude intervals-ritten krijgen alsnog hun spoor
 
-**2026-11-10, commit `f3fc5515`.** Op verzoek van de eigenaar ("Kun je ZWBlokken eens
+**2026-11-10, commits `203645ef` (code) en `2ba47f9e` (bulkscript).** Op verzoek van de eigenaar ("Kun je ZWBlokken eens
 controleren of dit werkt zoals het hoort? Vooral in de Zwiftwereld lijkt niet
 altijd goed te gaan"), daarna "Ja, bouw het" op het voorstel. Geen migratie.
 
