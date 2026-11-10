@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 const BACKDROP = "#0a2b34";
 const PAD_X = 18;
 const PAD_Y = 22;
+/** Wat dit attribuut heeft, zoals de fiets uit je eigen garage, staat niet op het plaatje. */
+const SHARE_HIDE = "data-share-hide";
 
 export function ShareableSheet({ children, fileName, title }: { children: React.ReactNode; fileName: string; title: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -26,13 +28,16 @@ export function ShareableSheet({ children, fileName, title }: { children: React.
       const { domToBlob } = await import("modern-screenshot");
       await document.fonts.ready;
       const width = node.offsetWidth;
-      const height = node.offsetHeight;
+      // Zonder de regels die wegvallen; ze staan in de flow, zonder marge.
+      const hidden = [...node.querySelectorAll<HTMLElement>(`[${SHARE_HIDE}]`)].reduce((sum, el) => sum + el.offsetHeight, 0);
+      const height = node.offsetHeight - hidden;
       const options = {
         scale: 2,
         backgroundColor: BACKDROP,
         width: width + 2 * PAD_X,
         height: height + 2 * PAD_Y,
         style: { width: `${width}px`, padding: `${PAD_Y}px ${PAD_X}px`, boxSizing: "content-box", margin: "0" },
+        filter: (el: Node) => !(el instanceof Element && el.hasAttribute(SHARE_HIDE)),
       };
       const blob = await domToBlob(node, options);
       if (!blob) throw new Error("leeg");

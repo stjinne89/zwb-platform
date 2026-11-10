@@ -14,6 +14,11 @@ gaat stabiliteit voor nieuwe features.
    Trial" houden en week 2 een format krijgt. Zie de ronde "ZRL: het format komt uit
    Zwift".
 
+0. **Racebriefje: nieuwe volgorde, belangrijke punten en fiets (2026-11-11):
+   lokaal gecommit, niet gepusht.** Geen migratie. Open: na de deploy een echte
+   ZRL-briefing met login bekijken, en Deel als plaatje op de telefoon. Zie de
+   ronde "Racebriefje: volgorde, belangrijke punten en de fiets".
+
 0. **Databasecheck 2026-11-10: trage opruimfunctie en RLS-policy: gepusht
    naar `main` (`f4cd39a9`).** Migratie **0325** is toegepast in productie, op
    verzoek van de eigenaar ("Toepassen en pushen").
@@ -12247,6 +12252,62 @@ modules.
 
 **Niet lokaal te verifiëren.** Of de sync de titels van ronde 2 echt bijwerkt:
 dat blijkt pas als de Zwift-events gekoppeld zijn.
+
+### Gebouwd — Racebriefje: volgorde, belangrijke punten en de fiets
+
+**2026-11-11, commit volgt.** Geen migratie. Vraag van de eigenaar: de
+volgorde van het racebriefje "mss niet helemaal logisch"; profiel, belangrijke
+punten en de beste fietskeuze horen erop. Na het voorstel: "de snelste fiets
+algemeen [...] en de snelste fiets in de garage van het lid", en "het
+racebriefje mag gepersonaliseerd worden dus, maar een captain kan nog wel een
+algemene uitdraaien tot plaatje voor leden zonder de app".
+
+**Waarom de volgorde.** De momenten stonden zonder kop onder de schets en
+leken een bijschrift; Let op (de opstelling) stond onderaan, terwijl het vóór
+de start telt; de segmenten stonden los onderaan, terwijl ze net als de
+momenten per kilometer gaan; de fiets en de steilheid van de klimmen stonden
+alleen onder het briefje. Nu: eerst wat vóór de start telt, dan het parcours,
+dan de tactiek.
+
+**Nu** (`race-sheet.tsx`):
+- Volgorde: Let op → **Profiel** (was "De route"; met afstand en hoogtemeters,
+  zonder tunnelsprongen) → powerups → **fiets** → in twee kolommen links
+  **Belangrijke punten** (de momenten, nu met kop) en Segmenten (één kolom),
+  rechts Plan, Onthouden, Rollen, Volgen. Op de telefoon in die volgorde onder
+  elkaar.
+- **Fiets**: de regel "fiets" is de snelste uit `view.bikes.advice` (zelfde renner en
+  vermogen als Snelste fiets, stage 0) met de winst op de Zwift Carbon; "garage" is de
+  snelste uit de garage van wie kijkt, met de achterstand op de snelste. Het
+  is dezelfde berekening als Snelste fiets onder het parcours.
+- **Persoonlijk in de app, algemeen op het plaatje.** De garageregel heeft
+  `data-share-hide`; `ShareableSheet` laat zulke elementen weg uit de PNG
+  (`filter` van modern-screenshot) en trekt hun hoogte af van de maat.
+- **Elke klim een regel** (`briefingMoments` in `tips.ts`): hoogte, gemiddelde
+  en steilste helling ("126 m · 4,1 %, max 6,9 % · ±5 min"). Een klim zonder
+  tactiek krijgt een regel met alleen de cijfers. Een KOM over een klim telt
+  als zijn regel. Daarmee is de klimmentabel onder het briefje op papier niet
+  meer nodig; op de pagina blijft hij.
+- In "Briefje bewerken" heet het blok nu Belangrijke punten. Een race waarvan
+  de captain de momenten al had aangepast, houdt die versie (zonder de
+  nieuwe klimregels); de rest volgt het nieuwe voorstel.
+
+**Bewust niet.**
+- Geen tweede, echt profiel op het briefje: de getekende schets ís het
+  profiel, en één plaatje moet passen. Het echte profiel staat onder het
+  briefje.
+- Geen rangschikking van drie fietsen op het briefje: één regel is genoeg om
+  te kiezen; de lijst staat onder het parcours.
+- Het plaatje heeft geen eigen "persoonlijke" variant: wie zijn eigen fiets
+  wil zien, opent de app.
+
+**Gecontroleerd.** Een tijdelijke voorbeeldpagina met Green to Screen uit de
+testfixture en verzonnen renners (niet gecommit), op desktop en 375 px, scratch
+en puntenrace; het plaatje via Deel als plaatje: zonder de garageregel en
+zonder lege strook onderaan. `tsc` schoon, ESLint schoon, `race-briefing.test.ts`
+32 tests (één nieuwe). In de volle unit-run vielen een paar tests op een
+time-out en `omnium-live` op een ontbrekende `.env.local`; los gedraaid slagen
+ze. **Niet geverifieerd:** de echte briefingpagina met login en echte
+garagegegevens, en het deelmenu op een telefoon.
 
 ### Gebouwd — Lid verwijderen; "Betalend lid" heet "ZWB-lid"
 
@@ -25757,7 +25818,9 @@ spiekbriefje van de TTT".
   "Let op" voor de opstelling. De schets gebruikt hetzelfde profiel zonder
   tunnelsprongen als de route-herkenning (`profilePoints` is geëxporteerd).
 - Het blok Tactiek, het blok Regels, de gele waarschuwingen en de regel Volgen
-  bij het veld zijn opgegaan in het briefje. Onder het briefje: het formulier
+  bij het veld zijn opgegaan in het briefje. (Sinds 2026-11-11 is de volgorde
+  anders en staan de fiets en de steilheid van elke klim erop: zie de ronde
+  "Racebriefje: volgorde, belangrijke punten en de fiets".) Onder het briefje: het formulier
   Plan en rollen (alleen voor wie mag bewerken), het parcours, onze ploeg en het
   veld. Bij een ploegentijdrit staat onder het briefje de link naar de TTT
   Planner; papier heeft geen links (zoals bij de TTT).

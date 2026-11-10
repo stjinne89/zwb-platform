@@ -275,6 +275,13 @@ describe("momenten zonder dubbelingen", () => {
     expect(at(20.9)).toEqual(["voluit tot de top"]);
     expect(at(19.1)[0]).toContain("naar voren");
   });
+
+  it("geeft elke klim een regel met hoogte en steilheid, ook zonder tactiek", () => {
+    const side = { ...climb(16, 16.6, 18), name: "Fox Hill KOM" };
+    const moments = briefingMoments({ format: "scratch", category: "B", route: { ...route, climbs: [early, middle, side, last] }, powerups: [], own: [] });
+    expect(moments.filter((m) => m.km === 16)).toEqual([{ km: 16, what: "Fox Hill 18 m · 3,5 %, max 5 % · ±80 s", todo: "" }]);
+    expect(moments.find((m) => m.km === 20.9)?.what).toMatch(/^slotklim 22 m · 3,5 %, max 5 % · /);
+  });
 });
 
 describe("racebriefje aanpassen", () => {

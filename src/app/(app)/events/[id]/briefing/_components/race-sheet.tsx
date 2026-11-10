@@ -1,7 +1,10 @@
 // Het racebriefje: de briefing als handgeschreven spiekbriefje, zoals in de TTT
-// Planner. Een getekend profiel met de beslissende stukken, de momenten per
-// kilometer, wat je onthoudt, het plan van de captain, de rollen en wie je volgt.
-// Papier heeft geen links; het werkmateriaal staat onder het briefje.
+// Planner. Eerst wat vóór de start telt (Let op, het profiel met powerups en de
+// fiets), dan de belangrijke punten per kilometer en de segmenten, en daarnaast
+// het plan, wat je onthoudt, de rollen en wie je volgt. Papier heeft geen links;
+// het werkmateriaal staat onder het briefje. De fiets uit je eigen garage staat
+// alleen in de app: het gedeelde plaatje is voor iedereen hetzelfde
+// (data-share-hide, zie share-sheet.tsx).
 
 import { Gauge, Mountain, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +19,8 @@ import type { ArchPowerup, PowerupOdds } from "@/lib/race-briefing/arches";
 import { ZWIFT_POWERUP_ICONS, ZWIFT_POWERUP_LABELS, type ArchReward } from "@/lib/zwift/powerups";
 import type { PacingSegment } from "@/lib/pacing/route-profile";
 import { profilePoints, type Point } from "@/lib/race-briefing/route";
+import type { BikeChoice } from "@/lib/pacing/bike-advice";
+import { gap } from "../../_components/bike-advice-list";
 
 const dateLabel = new Intl.DateTimeFormat("nl-NL", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Amsterdam" });
 const nl = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 1 });
@@ -61,6 +66,14 @@ function sketchPoints(segments: PacingSegment[]): Point[] {
   const pts = profilePoints(segments);
   const step = Math.max(1, Math.floor(pts.length / 140));
   return pts.filter((_, i) => i % step === 0 || i === pts.length - 1);
+}
+
+/** Hoogtemeters van de route, zonder tunnelsprongen; op 10 m. */
+function ascentM(segments: PacingSegment[]): number {
+  const pts = profilePoints(segments);
+  let up = 0;
+  for (let i = 1; i < pts.length; i++) up += Math.max(0, pts[i].m - pts[i - 1].m);
+  return Math.round(up / 10) * 10;
 }
 
 function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: SketchMark[] }) {
@@ -344,27 +357,77 @@ function ArchPowerups({ arches, odds }: { arches: ArchPowerup[]; odds: PowerupOd
   );
 }
 
+const bikeName = (bike: BikeChoice) => [bike.frame, bike.wheels].filter(Boolean).join(" · ");
+
+/**
+ * Onder de powerups: de snelste fiets voor de ploeg (op de middelste zFTP, stage 0)
+ * en, als je je garage hebt ingevuld, de snelste die jij hebt. Die tweede regel
+ * valt weg uit het gedeelde plaatje.
+ */
+function Bikes({ view }: { view: BriefingView }) {
+  if (!view.bikes) return null;
+  const { advice, own } = view.bikes;
+  const best = advice.best[0];
+  const sameAsReference = best.frame === advice.current.frame && best.wheels === advice.current.wheels;
+  const toReference = Math.round(best.seconds - advice.current.seconds);
+  const toBest = own ? Math.round(own.seconds - best.seconds) : 0;
+  const row = "grid grid-cols-[4.25rem_minmax(0,1fr)] gap-2 py-0.5 leading-snug";
+  return (
+    <dl className="mt-1 text-sm" aria-label="Fiets">
+      <div className={row}>
+        <dt className="font-bold">fiets</dt>
+        <dd>
+          {bikeName(best)}
+          {!sameAsReference && toReference < 0 && (
+            <span className="tabular-nums" style={{ color: PENCIL }}>
+              {" "}
+              {gap(toReference)} op de {advice.current.frame}
+            </span>
+          )}
+        </dd>
+      </div>
+      {own && (
+        <div className={row} data-share-hide="">
+          <dt className="font-bold">garage</dt>
+          <dd>
+            {bikeName(own)}
+            {toBest > 0 && (
+              <span className="tabular-nums" style={{ color: PENCIL }}>
+                {" "}
+                {gap(toBest)}
+              </span>
+            )}
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
 function Moments({ view }: { view: BriefingView }) {
   const moments = view.sheet.moments;
   if (moments.length === 0) return null;
   return (
-    <dl className="mt-1">
-      {moments.map((moment) => (
-        <div key={`${moment.km}-${moment.what}-${moment.todo}`} className={cn("grid grid-cols-[4.25rem_minmax(0,1fr)] gap-2 border-b py-1 leading-snug", RULE)}>
-          <dt className="whitespace-nowrap font-bold tabular-nums">{nl.format(moment.km)} km</dt>
-          <dd>
-            {moment.what && <span className={cn(moment.key && "font-bold")}>{moment.what}</span>}
-            {moment.what && moment.todo && (
-              <>
-                {" "}
-                <span style={{ color: PENCIL }}>→</span>{" "}
-              </>
-            )}
-            {moment.todo && <span className={cn(moment.key && HIGHLIGHT)}>{moment.todo}</span>}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div>
+      <Title>Belangrijke punten</Title>
+      <dl className="mt-1">
+        {moments.map((moment) => (
+          <div key={`${moment.km}-${moment.what}-${moment.todo}`} className={cn("grid grid-cols-[4.25rem_minmax(0,1fr)] gap-2 border-b py-1 leading-snug", RULE)}>
+            <dt className="whitespace-nowrap font-bold tabular-nums">{nl.format(moment.km)} km</dt>
+            <dd>
+              {moment.what && <span className={cn(moment.key && "font-bold")}>{moment.what}</span>}
+              {moment.what && moment.todo && (
+                <>
+                  {" "}
+                  <span style={{ color: PENCIL }}>→</span>{" "}
+                </>
+              )}
+              {moment.todo && <span className={cn(moment.key && HIGHLIGHT)}>{moment.todo}</span>}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 
@@ -515,7 +578,7 @@ function Notes({ view }: { view: BriefingView }) {
   const notes = view.sheet.notes;
   if (notes.length === 0) return null;
   return (
-    <div className="mt-4">
+    <div className="mt-3">
       <Title>Let op</Title>
       <ul>
         {notes.map((note) => (
@@ -600,11 +663,9 @@ function SegmentRecords({ view }: { view: BriefingView }) {
   return (
     <div className="mt-4">
       <Title>Segmenten</Title>
-      <div className="grid gap-x-10 md:grid-cols-2">
-        {view.segmentRecords.map((record) => (
-          <SegmentRecordBlock key={record.segmentId} record={record} />
-        ))}
-      </div>
+      {view.segmentRecords.map((record) => (
+        <SegmentRecordBlock key={record.segmentId} record={record} />
+      ))}
     </div>
   );
 }
@@ -622,31 +683,37 @@ export function RaceSheet({ view }: { view: BriefingView }) {
       <p className="mt-2 text-sm" style={{ color: PENCIL }}>
         {meta.join(" · ")}
       </p>
+      <Notes view={view} />
       {view.route && loaded && (
         <div className="mt-3">
-          <Title>De route</Title>
+          <Title>
+            Profiel{" "}
+            <span className="text-sm font-normal tabular-nums" style={{ color: PENCIL }}>
+              {nl.format(Math.round(loaded.route.totalKm * 10) / 10)} km · {ascentM(loaded.route.segments)} hm
+            </span>
+          </Title>
           <RouteSketch segments={loaded.route.segments} marks={view.sheet.sketch} />
           <ArchPowerups arches={view.archPowerups} odds={view.powerupOdds} />
+          <Bikes view={view} />
         </div>
       )}
-      <div className="mt-3 grid gap-x-10 md:grid-cols-2">
+      <div className="mt-4 grid gap-x-10 md:grid-cols-2">
         <div>
           <Moments view={view} />
+          <SegmentRecords view={view} />
+        </div>
+        <div className="mt-4 md:mt-0">
           {view.plan?.text && (
-            <div className="mt-4">
+            <div className="mb-4">
               <Title>Plan</Title>
               <p className={cn("mt-1 whitespace-pre-line leading-snug", HAND_TEXT)}>{view.plan.text}</p>
             </div>
           )}
-        </div>
-        <div className="mt-4 md:mt-0">
           <Rules view={view} />
           <Roles view={view} />
           <Watch view={view} />
-          <Notes view={view} />
         </div>
       </div>
-      <SegmentRecords view={view} />
     </SpiekPaper>
   );
 }

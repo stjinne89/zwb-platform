@@ -147,7 +147,7 @@ export function briefingTips(input: {
 /** Een moment op de route voor het racebriefje: waar, wat, en wat je doet. */
 export type BriefingMoment = { km: number; what: string; todo: string; key?: boolean };
 
-/** De route als lijst momenten in spiekbrieftaal, op volgorde van de kilometer. */
+/** De route als lijst momenten in spiekbrieftaal, op volgorde van de kilometer. Elke klim krijgt een regel met zijn hoogte, steilheid en duur; wat je doet staat er alleen waar het telt. */
 export function briefingMoments(input: {
   format: BriefingFormat;
   category: string | null;
@@ -158,8 +158,17 @@ export function briefingMoments(input: {
   const { format, category, route } = input;
   if (!route) return [];
   const short = (climb: BriefingClimb) => (climb.name ?? "klim").replace(/\s+(KOM|QOM)$/i, "");
-  const time = (climb: BriefingClimb) => durationLabel(climbSeconds(climb, category));
+  /** "126 m · 4,1 %, max 6,9 % · ±5 min" */
+  const facts = (climb: BriefingClimb) => `${climb.gainM} m · ${pct(climb.avgGradient)}, max ${pct(climb.maxGradient)} · ${durationLabel(climbSeconds(climb, category))}`;
   const out: BriefingMoment[] = [];
+  /** De klimmen die al een regel hebben. */
+  const told = new Set<BriefingClimb>();
+  const climbMoment = (climb: BriefingClimb, todo: string, opts: { label?: string; key?: boolean } = {}): BriefingMoment => {
+    told.add(climb);
+    return { km: climb.startKm, what: `${opts.label ?? short(climb)} ${facts(climb)}`, todo, ...(opts.key ? { key: true } : {}) };
+  };
+  /** De klimmen zonder eigen regel, met alleen de cijfers. */
+  const remainingClimbs = () => route.climbs.filter((climb) => !told.has(climb)).map((climb) => climbMoment(climb, ""));
   const has = (p: Powerup) => input.powerups.some((x) => x.powerup === p);
   /**
    * De sprints, KOM's en ronden met punten, behalve een KOM over een klim die al een
@@ -172,18 +181,15 @@ export function briefingMoments(input: {
       .filter((s) => s.endKm < route.totalKm - 0.3 && !(s.kind === "kom" && covered.some((c) => c && overlaps(s, c))))
       .flatMap((s) => {
         const climb = s.kind === "kom" ? route.climbs.find((c) => overlaps(s, c)) : undefined;
-        const what = climb ? `${segmentLabel(s)} ${climb.gainM} m · ${time(climb)}` : s.kind === "lap" ? `${segmentLabel(s)} ${km(s.endKm - s.startKm)}` : segmentLabel(s);
+        if (climb) return [{ ...climbMoment(climb, todo.kom, { label: segmentLabel(s) }), km: s.startKm }];
+        const what = s.kind === "lap" ? `${segmentLabel(s)} ${km(s.endKm - s.startKm)}` : segmentLabel(s);
         const start = { km: s.startKm, what, todo: todo[s.kind] };
         return s.kind === "lap" ? [start, { km: s.endKm, what: `eind ${segmentLabel(s)}`, todo: todo.lapEnd }] : [start];
       });
 
   if (format === "ttt" || format === "rot") {
     for (const climb of route.climbs) {
-      out.push({
-        km: climb.startKm,
-        what: `${short(climb)} ${climb.gainM} m · ${time(climb)}`,
-        todo: format === "ttt" ? "W/kg-doel, bij elkaar blijven" : "niet harder dan je drempel",
-      });
+      out.push(climbMoment(climb, format === "ttt" ? "W/kg-doel, bij elkaar blijven" : "niet harder dan je drempel"));
     }
     if (format === "rot") {
       const both = "telt voor FAL en FTS";
@@ -196,16 +202,14 @@ export function briefingMoments(input: {
   const finaleClimb = route.finale.kind === "climb" ? route.finale.climb : null;
   // Eén moment per klim: een vroege klim na een afdaling krijgt de afdaling, de slotklim zijn eigen regel.
   const afterDescent = route.descentsIntoClimbs.some((d) => d.climb === route.earlyClimb);
-  if (route.earlyClimb && !afterDescent) out.push({ km: route.earlyClimb.startKm, what: `${short(route.earlyClimb)} ${route.earlyClimb.gainM} m`, todo: "voorste derde, eerste selectie" });
+  if (route.earlyClimb && !afterDescent) out.push(climbMoment(route.earlyClimb, "voorste derde, eerste selectie"));
   for (const { descent, climb } of route.descentsIntoClimbs) {
     out.push({ km: descent.startKm, what: `afdaling ${descent.dropM} m`, todo: `naar voren, plek 3–8${positie.length ? ` (${positie.join(", ")})` : ""}`, key: true });
-    if (climb !== finaleClimb) out.push({ km: climb.startKm, what: `${short(climb)} ${climb.gainM} m · ${time(climb)}`, todo: "het lint breekt: lossen doe je niet", key: true });
+    if (climb !== finaleClimb) out.push(climbMoment(climb, "het lint breekt: lossen doe je niet", { key: true }));
   }
   const hardest = route.hardestClimb;
   const hardestOwn = hardest && hardest !== finaleClimb && hardest !== route.earlyClimb && !route.descentsIntoClimbs.some((d) => d.climb === hardest);
-  if (hardest && hardestOwn) {
-    out.push({ km: hardest.startKm, what: `${short(hardest)} ${hardest.gainM} m · ${time(hardest)}`, todo: "doortrappen over de top" });
-  }
+  if (hardest && hardestOwn) out.push(climbMoment(hardest, "doortrappen over de top"));
   if (format === "points") {
     const covered = [route.earlyClimb, finaleClimb, hardestOwn ? hardest : null, ...route.descentsIntoClimbs.map((d) => d.climb)];
     out.push(
@@ -221,10 +225,11 @@ export function briefingMoments(input: {
   if (route.lastArchKm !== null) out.push({ km: route.lastArchKm, what: "laatste boog", todo: "powerup vóór de boog op" });
   if (route.finale.kind === "climb") {
     const { climb, runInKm } = route.finale;
-    out.push({ km: climb.startKm, what: `${climb.name ? short(climb) : "slotklim"} ${climb.gainM} m · ${time(climb)}`, todo: `voluit tot de top${has("veer") ? ", veer aan" : ""}`, key: true });
+    out.push(climbMoment(climb, `voluit tot de top${has("veer") ? ", veer aan" : ""}`, { label: climb.name ? short(climb) : "slotklim", key: true }));
     if (runInKm >= 0.5) out.push({ km: climb.endKm, what: `nog ${km(runInKm)}`, todo: `sprint uit het wiel${has("aerohelm") ? ", helm op ±200 m" : ""}` });
   } else {
     out.push({ km: Math.max(0, route.totalKm - 0.5), what: "vlakke finish", todo: `wiel, niet als eerste aan${has("aerohelm") ? ", helm op ±200 m" : ""}` });
   }
+  out.push(...remainingClimbs());
   return out.sort((a, b) => a.km - b.km);
 }

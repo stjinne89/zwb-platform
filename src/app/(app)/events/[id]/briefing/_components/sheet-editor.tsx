@@ -45,7 +45,7 @@ function fromDraft(draft: Draft): SheetContent {
 
 const SECTION_TITLES: Record<SheetSection, string> = {
   sketch: "Profiel",
-  moments: "Momenten",
+  moments: "Belangrijke punten",
   rules: "Onthouden",
   watch: "Volgen",
   notes: "Let op",

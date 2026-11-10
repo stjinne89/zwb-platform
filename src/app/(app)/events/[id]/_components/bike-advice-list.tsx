@@ -14,7 +14,8 @@ function clock(seconds: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
 }
 
-function gap(seconds: number): string {
+/** "−24 s", "+1:02"; nul is "—". */
+export function gap(seconds: number): string {
   const rounded = Math.round(seconds);
   if (rounded === 0) return "—";
   const sign = rounded < 0 ? "−" : "+";
