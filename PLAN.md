@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Telefoon: geen paneel in een paneel (2026-11-10): lokaal gecommit
-   (commit: zie de ronde), niet gepusht.** Geen migratie. Stap 3 van het
+   (`f00ace98`), niet gepusht.** Geen migratie. Stap 3 van het
    voorstel na de mobiele audit; alleen stap 5 (beheerknoppen op Teams) staat
    nog open. Zie de ronde "Telefoon: geen paneel in een paneel".
 
@@ -12093,7 +12093,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Telefoon: geen paneel in een paneel
 
-**2026-11-10, commit: zie hieronder.** Stap 3 van het voorstel na de mobiele
+**2026-11-10, commit `f00ace98`.** Stap 3 van het voorstel na de mobiele
 audit, op verzoek van de eigenaar ("Stap 3, panelen"). Geen migratie.
 
 Het probleem: een paneel (`bg-card`, 16 tot 24px binnenruimte) met daarin
