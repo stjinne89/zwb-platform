@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **ZRL: het format komt uit Zwift (2026-11-11): lokaal gecommit, niet
-   gepusht.** Geen migratie. De events van ronde 2 week 1 zijn al in productie
+0. **ZRL: het format komt uit Zwift (2026-11-11): gepusht naar `main`
+   (`e8f6f3a8`).** Geen migratie. De events van ronde 2 week 1 zijn al in productie
    rechtgezet. Open: na de deploy, zodra WTRL de Zwift-events van ronde 2
    klaarzet en de sync ze koppelt, nagaan of de titels van week 1 "— Team Time
    Trial" houden en week 2 een format krijgt. Zie de ronde "ZRL: het format komt uit
@@ -12176,7 +12176,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — ZRL: het format komt uit Zwift
 
-**2026-11-11, lokaal gecommit op `claude/zrl-events-fix-c8de0b`, niet gepusht.**
+**2026-11-11, commit `e8f6f3a8`, gepusht naar `main`** (eigenaar: "Ja, push").
 Op verzoek van de eigenaar ("In de events van de ZRL van komende ronde zit een
 fout, kun je die bijwerken en kunnen we kijken of we dit in de toekomst
 voorkomen?"); variant A uit het voorstel ("Ja, bouw A"). Geen migratie.
