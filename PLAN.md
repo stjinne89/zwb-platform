@@ -7,12 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gereedheid en schema zeggen hetzelfde (2026-11-10): lokaal gecommit, niet
-   gepusht.** Migratie `0324` is geschreven maar **niet toegepast**; zonder die
-   migratie doet de late herkansing niets en werkt de rest gewoon. Open: pushen
-   en `0324` toepassen (beide op verzoek van de eigenaar), daarna op een ochtend
-   met een lage Whoop-score kijken of er na het voorstel van negen uur een
-   tweede dagvoorstel komt. Zie de ronde "Gereedheid en schema zeggen hetzelfde".
+0. **Gereedheid en schema zeggen hetzelfde (2026-11-10): gepusht naar `main`
+   (`a6db8301`), migratie `0324` toegepast** (versie `20261110091834`, op
+   verzoek van de eigenaar: "Push en migratie"). Open: op een ochtend met een
+   lage Whoop-score kijken of er na het voorstel van negen uur een tweede
+   dagvoorstel komt (`late_readiness = true`). Zie de ronde "Gereedheid en
+   schema zeggen hetzelfde".
 
 0. **ZWBlokken: Zwift-ranglijst en melding voor ritten zonder route
    (2026-11-10): gepusht naar `main` (`590a166b`).** Geen migratie. Open: na de
@@ -12148,7 +12148,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Gereedheid en schema zeggen hetzelfde
 
-**2026-11-10, commit volgt.** Migratie `0324` (niet toegepast). Op vraag van de
+**2026-11-10, commit `a6db8301`.** Migratie `0324`, toegepast in productie
+(versie `20261110091834`, op verzoek van de eigenaar). Eerst als `0323`
+geschreven; dat nummer ging intussen naar `0323_umbrella_safeupdate`. Op vraag van de
 eigenaar ("Er is best wat discrepantie tussen de gereedheidscore en welke
 training er op het programma staat"); Karen meldde hetzelfde. Na het onderzoek
 "Ja, bouw alle drie" op het voorstel.
@@ -12234,8 +12236,12 @@ Volledige suite: 4256 groen. De 3 rode tests (`admin-areas`,
 `intervals-ride-sync` en `omnium-live`, die `.env.local` mist) staan los van deze
 ronde; de eerste twee slagen los gedraaid.
 
-**Niet lokaal te verifiëren:** de migratie (geen Docker of Supabase-config
-hier) en de cron tegen productie. De herkansing is alleen in unit-tests
+**Na het toepassen nagekeken:** de kolom `late_readiness` (boolean, standaard
+false) en de nieuwe index bestaan, en er zijn 0 dubbele voorstellen onder de
+nieuwe sleutel.
+
+**Niet lokaal te verifiëren:** de migratie zelf (geen Docker of Supabase-config
+hier; alleen na het toepassen gecontroleerd) en de cron tegen productie. De herkansing is alleen in unit-tests
 getoetst, niet in een echte run. Herstelkaart en /hulp niet in de browser
 bekeken.
 
