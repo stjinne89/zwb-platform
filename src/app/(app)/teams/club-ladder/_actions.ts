@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
+import type { ChallengeOpponent } from "@/lib/club-ladder/challenge-post";
+import { fetchLadderCaptains } from "@/lib/club-ladder/directory";
 import { parseLadderBand, parseLadderRank } from "@/lib/club-ladder/puzzle";
 import { loadLadderRouteProfile } from "@/lib/club-ladder/route-profile";
 import { ladderRouteBySlug } from "@/lib/club-ladder/routes";
+import { ladderCookie } from "@/lib/ladder";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -492,4 +495,39 @@ export async function getLadderRouteProfile(routeSlug: string) {
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return null;
   return loadLadderRouteProfile(supabase, routeSlug);
+}
+
+const MAX_CHALLENGE_OPPONENTS = 10;
+
+/**
+ * Captains van de ploegen die je mag uitdagen, uit de captain-directory van de
+ * ladder. De pagina geeft de ploegen mee; hier alleen opgezocht, niet bewaard.
+ */
+export async function loadChallengeCaptains(
+  opponents: Array<{ name: string; ladderTeamId: number | null; position: number }>,
+): Promise<{ ok: true; opponents: ChallengeOpponent[] } | { ok: false; error: string }> {
+  const check = await guardAccess();
+  if (!check.ok) return check;
+  const cookie = ladderCookie();
+  if (!cookie) return { ok: false, error: "LADDER_COOKIE ontbreekt." };
+
+  const teams = (Array.isArray(opponents) ? opponents : [])
+    .slice(0, MAX_CHALLENGE_OPPONENTS)
+    .map((row) => ({
+      name: typeof row?.name === "string" ? row.name.trim().slice(0, 80) : "",
+      ladderTeamId: Number.isSafeInteger(row?.ladderTeamId) && Number(row.ladderTeamId) > 0 ? Number(row.ladderTeamId) : null,
+      position: Number.isSafeInteger(row?.position) ? Number(row.position) : 0,
+    }))
+    .filter((row) => row.name.length >= 2);
+
+  const result: ChallengeOpponent[] = [];
+  try {
+    // Na elkaar: de ladder is een kleine site van vrijwilligers.
+    for (const team of teams) {
+      result.push({ ...team, captains: await fetchLadderCaptains(team, cookie) });
+    }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Captains niet opgehaald." };
+  }
+  return { ok: true, opponents: result };
 }

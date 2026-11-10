@@ -16,6 +16,7 @@ import { ChoiceTabs } from "@/components/choice-tabs";
 import { parseLadderRiderSort, sortLadderRiders } from "@/lib/club-ladder/riders";
 import { loadLadderSelections } from "@/lib/club-ladder/selection";
 import { ladderRouteOptions, ROUTE_CLASS_LABELS, worldLabel } from "@/lib/club-ladder/routes";
+import { raceOrganisationUrl } from "@/lib/club-ladder/challenge-post";
 import { CHALLENGE_RANGE, challengeableTeams } from "@/lib/club-ladder/rules";
 import { storeLadderResults } from "@/lib/club-ladder/store";
 import { ladderResultUrl, ladderTeamResults, type TeamMatchResult } from "@/lib/club-ladder/event-result";
@@ -40,6 +41,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { DeleteResultButton, TeamChatLinksForm, TeamResultForm } from "../../[id]/_components/admin-panel";
 import { LadderAdviceRoutes } from "../_components/ladder-advice-routes";
+import { LadderChallengePost } from "../_components/ladder-challenge-post";
 import { LadderPoolAdd } from "../_components/ladder-pool-add";
 import { LadderRoutes, type LadderRouteRow } from "../_components/ladder-routes";
 import { Metric, StandingsTable, TeamRidersTable } from "../_components/team-tables";
@@ -152,6 +154,7 @@ export default async function ClubLadderTeamPage({
   const unrankedRows = fixtureRegions.size > 0 ? standings.filter((row) => fixtureRegions.has(row.region)) : standings;
   const rankingRows = match ? challengeWindow(standings, match) : standings.length > 0 ? unrankedRows : window;
   const planned = teamFixtures.flatMap((fixture) => [fixture.home, fixture.away]);
+  const plannedNames = new Set(planned.map(normalizeTeamName));
   // Het event dat de sync per wedstrijd aanmaakt (migr. 0300).
   const fixtureIds = teamFixtures.map((fixture) => fixture.fixtureId).filter((id): id is number => id !== null);
   const { data: fixtureEvents } = fixtureIds.length
@@ -389,6 +392,20 @@ export default async function ClubLadderTeamPage({
       <section className="rounded-lg border bg-card p-4">
         <h2 className="font-semibold">Ranking</h2>
         {!match && <p className="text-sm text-muted-foreground">Niet in de live stand gevonden.</p>}
+        {match && canAssign && challengeable.length > 0 && (
+          <div className="mt-3">
+            <LadderChallengePost
+              teamName={match.name}
+              channelUrl={raceOrganisationUrl(match.region)}
+              candidates={challengeable.map((row) => ({
+                name: row.name,
+                ladderTeamId: row.ladderTeamId,
+                position: row.position,
+                planned: plannedNames.has(normalizeTeamName(row.name)),
+              }))}
+            />
+          </div>
+        )}
         <StandingsTable
           rows={rankingRows}
           selectedAliases={aliases}

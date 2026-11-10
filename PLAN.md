@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Club Ladder: uitdaging klaarzetten voor Discord (2026-11-11): gepusht
+   naar `main`.** Geen migratie. `LADDER_COOKIE` op Netlify werkt nog (eigenaar,
+   2026-11-11). Open: de knop na de deploy als captain proberen. Zie de ronde
+   "Club Ladder: uitdaging klaarzetten voor Discord".
+
 0. **ZRL: het format komt uit Zwift (2026-11-11): gepusht naar `main`
    (`e8f6f3a8`).** Geen migratie. De events van ronde 2 week 1 zijn al in productie
    rechtgezet. Open: na de deploy, zodra WTRL de Zwift-events van ronde 2
@@ -12178,6 +12183,67 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: uitdaging klaarzetten voor Discord
+
+**2026-11-11, gepusht naar `main`** (eigenaar: "push maar"). Op verzoek van de eigenaar ("de
+captains ophalen die je kan uitdagen [...] en daarmee direct een automatische
+post op discord te kunnen maken in het juiste kanaal"), met een screenshot van
+een post van Jeroen in `emea-race-organisation`. Geen migratie.
+
+- **Captains van de ladder.** Ingelogd heeft ladder.cycleracing.club een
+  Directory met captain en vice-captain per ploeg. Daarachter zit
+  `/directory/search?q=<teamnaam>` (JSON, alleen met sessie): voornaam,
+  achternaam, rol, verified, `discordName` (de Discord-gebruikersnaam, geen
+  Discord-ID) en het hele team met `team.id`, hetzelfde ID als `data-team-id`
+  in de summary. `fetchLadderCaptains` (`lib/club-ladder/directory.ts`) zoekt
+  per ploeg op de naam uit de stand en houdt alleen rijen met dat ladder-ID
+  (`parseDirectoryCaptains` in `lib/club-ladder/challenge-post.ts`), want de
+  zoekfunctie geeft ook andere ploegen met die naam erin. Met `LADDER_COOKIE`,
+  na elkaar, en niets wordt bewaard. Getest tegen de echte directory voor de
+  zeven ploegen uit de screenshot: dezelfde captains.
+- **Knop op de ladderteampagina.** Onder Ranking staat voor wie ladderteams
+  indeelt (`canAssignLadderRiders`: rooster beheren of captain van een
+  ladderteam) de knop Uitdaging klaarzetten. Die haalt pas bij een klik de
+  captains op (serveractie `loadChallengeCaptains`), zodat de pagina niet op
+  de ladder wacht. Daarna kies je dagen en een tijd, vink je ploegen aan (een
+  ploeg met een geplande wedstrijd staat uit) en kopieer je titel en tekst
+  apart, want een Discord-forumpost heeft die twee velden. De titel is
+  "<ploeg> vs ?? On the 18th or 19th", de tekst "We are looking for a race on
+  ... approx 20:00 CET" met per ploeg `@discordnaam (ploeg)`: de captain, of de
+  vice-captain als de captain geen Discord-naam heeft. CET of CEST volgt uit
+  de eerste dag. Open Discord opent het kanaal uit
+  `RACE_ORGANISATION_CHANNELS` per regio: voor EMEA `emea-race-organisation`
+  (link van de eigenaar). Voor AMER, APAC en WOMENS is het kanaal niet bekend;
+  daar opent de knop de Club Ladder-server (ID uit de Discord-links op het
+  ladderdashboard). Een geplakte `@gebruikersnaam` wordt in Discord een echte
+  tag (eigenaar, 2026-11-11: "De tag lijkt te werken").
+
+**Bewust niet:**
+- Geen echte automatische post. Het kanaal hoort bij de Discord-server van de
+  Club Ladder, niet bij ZWB. Een bot of webhook daar vraagt een beheerder van
+  die server, en posten via het eigen account van een lid (self-bot) is tegen
+  de voorwaarden van Discord en kost het account.
+- Geen Discord-ID's. De directory geeft alleen gebruikersnamen, en een
+  geplakte `@gebruikersnaam` tagt al; ID's per captain bijhouden is handwerk
+  zonder winst.
+- Geen bewerkbare tekst in ZWB: aanpassen kan in Discord voor je verstuurt.
+- Niets bewaard van de directory (geen tabel, geen migratie): de captains van
+  andere clubs veranderen, en een vers antwoord kost één klik.
+- Privacyverklaring niet aangepast (dat ZWB namen en Discord-namen van captains
+  van andere clubs toont, niet bewaart): voorgelegd, de eigenaar vond het goed
+  zo ("Privacy is goed"). Het zijn gegevens die de ladder zelf aan elke
+  ingelogde captain toont.
+
+**Niet lokaal gecontroleerd:** de knop en de dialoog zijn niet in de browser
+gezien: deze worktree heeft geen `.env.local` en er was geen ZWB-sessie. De
+directory-aanroep vanaf de server is niet gedraaid, omdat de lokale
+`LADDER_COOKIE` verlopen was (die op Netlify werkt volgens de eigenaar nog); de vorm van het antwoord en het filter op
+ladder-ID zijn wel tegen de echte directory nagelopen, in een ingelogde
+browser. Vitest `club-ladder*` 169 groen, waarvan 10 nieuw in
+`club-ladder-challenge-post` (`club-ladder-sync` laadt niet door het
+ontbrekende `@anthropic-ai/sdk`), eslint schoon; `tsc`
+geeft alleen de bekende fouten over ontbrekende pakketten in deze worktree.
 
 ### Hersteld — ZRL: het format komt uit Zwift
 
