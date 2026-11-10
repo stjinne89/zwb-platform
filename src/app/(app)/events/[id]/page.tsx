@@ -1940,6 +1940,7 @@ export default async function EventDetailPage({
             </p>
           ) : (
             <ResponsiveTable
+              dense
               rows={results}
               rowKey={(r) => r.id}
               columns={[
@@ -2003,6 +2004,7 @@ export default async function EventDetailPage({
                         key: "actions",
                         header: <span className="sr-only">Acties</span>,
                         align: "right" as const,
+                        cardAction: true,
                         cell: (r: (typeof results)[number]) => (
                           <RemoveResultButton resultId={r.id} />
                         ),

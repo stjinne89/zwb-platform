@@ -12,6 +12,8 @@ export type ResponsiveColumn<T> = {
   secondary?: boolean;
   /** Laat deze kolom weg uit de kaartweergave. */
   hideOnCard?: boolean;
+  /** Op de kaart rechts naast de titel, zonder label (bv. een verwijderknop). */
+  cardAction?: boolean;
   headerClassName?: string;
   cellClassName?: string;
 };
@@ -32,6 +34,7 @@ export function ResponsiveTable<T>({
   minWidth,
   className,
   rowClassName,
+  dense = false,
 }: {
   columns: Array<ResponsiveColumn<T>>;
   rows: T[];
@@ -42,6 +45,9 @@ export function ResponsiveTable<T>({
   minWidth?: number;
   className?: string;
   rowClassName?: (row: T, index: number) => string | undefined;
+  /** Kaart als één regel waarden onder de titel, zonder scheidslijn: voor
+   * lange lijsten met korte waarden, zoals een uitslag. */
+  dense?: boolean;
 }) {
   if (rows.length === 0) {
     return empty ? <div className="text-sm text-muted-foreground">{empty}</div> : null;
@@ -49,8 +55,10 @@ export function ResponsiveTable<T>({
 
   const primary = columns.find((column) => column.primary);
   const secondary = columns.find((column) => column.secondary);
+  const action = columns.find((column) => column.cardAction);
   const details = columns.filter(
-    (column) => !column.primary && !column.secondary && !column.hideOnCard,
+    (column) =>
+      !column.primary && !column.secondary && !column.hideOnCard && !column.cardAction,
   );
 
   return (
@@ -60,9 +68,18 @@ export function ResponsiveTable<T>({
         {rows.map((row, index) => (
           <li
             key={rowKey(row, index)}
-            className={cn("rounded-lg border bg-card p-3", rowClassName?.(row, index))}
+            className={cn(
+              "rounded-lg border bg-card",
+              dense ? "px-3 py-2" : "p-3",
+              rowClassName?.(row, index),
+            )}
           >
-            {primary ? (
+            {primary && action ? (
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 font-medium leading-snug">{primary.cell(row, index)}</p>
+                <div className="shrink-0">{action.cell(row, index)}</div>
+              </div>
+            ) : primary ? (
               <p className="font-medium leading-snug">{primary.cell(row, index)}</p>
             ) : null}
             {secondary ? (
@@ -73,12 +90,18 @@ export function ResponsiveTable<T>({
             {details.length > 0 ? (
               <dl
                 className={cn(
-                  "grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm",
-                  (primary || secondary) && "mt-2.5 border-t pt-2.5",
+                  "text-sm",
+                  dense
+                    ? "mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5"
+                    : "grid grid-cols-2 gap-x-4 gap-y-1.5",
+                  !dense && (primary || secondary) && "mt-2.5 border-t pt-2.5",
                 )}
               >
                 {details.map((column) => (
-                  <div key={column.key} className="flex items-baseline justify-between gap-2">
+                  <div
+                    key={column.key}
+                    className={cn("flex items-baseline gap-2", !dense && "justify-between")}
+                  >
                     <dt className="text-muted-foreground">{column.header}</dt>
                     <dd className="tabular-nums">{column.cell(row, index)}</dd>
                   </div>

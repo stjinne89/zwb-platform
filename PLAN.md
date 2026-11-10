@@ -7,10 +7,15 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Telefoon: lange lijsten korter (2026-11-10): lokaal gecommit (commit: zie
+   de ronde), niet gepusht.** Geen migratie. Stap 4 van het voorstel na de
+   mobiele audit. Zie de ronde "Telefoon: lange lijsten korter".
+
 0. **Telefoon: compactere tegels en cijferkaarten naast elkaar (2026-11-10):
    lokaal gecommit (`d771b273`), niet gepusht.** Geen migratie. Stap 1
-   en 2 van het voorstel na de mobiele audit; stap 3 tot 5 (panelen in
-   panelen, lange lijsten, beheerknoppen op Teams) staan nog open. Zie de ronde
+   en 2 van het voorstel na de mobiele audit; stap 3 en 5 (panelen in
+   panelen, beheerknoppen op Teams) staan nog open; stap 4 is de ronde
+   "Telefoon: lange lijsten korter". Zie de ronde
    "Telefoon: compactere tegels en cijferkaarten naast elkaar".
 
 0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
@@ -12081,6 +12086,58 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Telefoon: lange lijsten korter
+
+**2026-11-10, commit: zie hieronder.** Stap 4 van het voorstel na de mobiele
+audit, op verzoek van de eigenaar ("Ja, stap 4"). De lengte van de schermen
+op een staande telefoon zat vooral in lange lijsten. Geen migratie. Alles
+geldt onder 768px (de rennerkaarten en de uitslagkaarten bestonden al alleen
+onder 640px); vanaf 768px staat alles er zoals het stond.
+
+Wat er is:
+
+- **`PhoneMoreList`** (`src/components/phone-more-list.tsx`): een `<ul>` die op
+  de telefoon na `limit` rijen stopt, met een knop "Alle N tonen" van 44px.
+  De rijen erna krijgen `max-md:hidden`, dus de server levert nog steeds
+  alles en de desktop toont alles. Gebruikt voor Nieuwste badges (3 van 8) en
+  de clubritten (4 van 8) op het dashboard, en Nog niet geregistreerd op
+  `/leden` (5 van 54).
+- **Renners op Teams** (`team-roster-table.tsx`): op de telefoon eerst 10
+  kaarten met dezelfde knop; zoeken of een filter toont alle treffers. Dat
+  geldt ook op Teams-detail, dat dezelfde lijst gebruikt. De
+  kaart zelf is compacter: FTP, 5m, 1m en 15s als één rij van vier (label
+  boven waarde), zonder scheidslijn, en zonder rij als er geen enkele waarde
+  is; WTRL als één regel eronder.
+- **Badge-kast op `/profiel`**: per prestatie één kaart met de vier treden op
+  één rij (was twee bij twee). De tredenaam (Brons, Zilver...) staat op de
+  telefoon alleen voor schermlezers en in de tooltip; de kleur van de rand en
+  de eis eronder ("50 km") blijven. Minder binnenruimte op de telefoon (paneel
+  16 in plaats van 24px, kaart 12 bij 8px).
+- **Uitslag op de eventpagina**: `ResponsiveTable` kreeg `dense` (de waarden
+  als één regel onder de naam, zonder scheidslijn) en `cardAction` (een kolom
+  rechts naast de naam zonder label, voor de verwijderknop van beheer). Alleen
+  de uitslag gebruikt ze; de andere 18 plekken met `ResponsiveTable` zijn
+  ongewijzigd.
+
+Gemeten op 375px (licht, als beheerder): profiel 19.943 naar 10.937px
+(badge-kast 14.738 naar 5.732px), Teams 12.505 naar 3.245px (met alle 50
+renners 10.703px), Leden 8.915 naar 6.093px, dashboard 5.159 naar 4.279px,
+uitslag met 7 renners 854 naar 709px (een kaart 68px, was 92 tot 110px).
+Nergens zijwaarts scrollen, geen afgeknipte eis in de badge-kast. Bekeken in
+licht en donker; de knoppen "Alle 8 tonen" en "Alle 50 tonen" getest. Op
+1024px nagemeten: 8 badges zonder knop, badge-kast met 24/12/8px
+binnenruimte en tredenamen, alle 54 namen, uitslag als tabel. Lokaal: `tsc`
+en eslint schoon.
+
+**Bewust niet:** de ledenlijst "Geregistreerd" op `/leden` inkorten; dat is
+de lijst waar de pagina om draait, en een beheerder ziet er rolknoppen en
+rollabels die een gewoon lid niet ziet. Ook niet de badge-kast inklapbaar per
+prestatie maken: met de eis onder elke trede is één rij van vier al kort, en
+dan blijft de kast in één keer te overzien. De data blijft volledig geladen;
+alleen de weergave stopt eerder.
+
+**Niet bekeken:** als gewoon lid, op een echte telefoon, en Safari.
+
 ### Gebouwd — Telefoon: compactere tegels en cijferkaarten naast elkaar
 
 **2026-11-10, commit `d771b273`.** Op verzoek van de eigenaar: pagina's
@@ -12122,9 +12179,8 @@ Tile title, Tegelvelden, Cijfers). Lokaal: `tsc` en eslint schoon.
 
 **Bewust niet (nog):** stap 3 tot 5 van het voorstel. Stap 3: een `bg-card`
 in een `bg-card` zonder eigen binnenruimte op de telefoon (nu 16 + 16 + 12px
-opzij). Stap 4: lange lijsten inkorten (badge-kast op `/profiel` ±14.700px,
-Renners op Teams, Leden, de uitslag op de eventpagina, Nieuwste badges en
-Clubactiviteit op het dashboard). Stap 5: de vijf beheerknoppen in de kop van
+opzij). Stap 4 (lange lijsten) is daarna gebouwd: zie "Telefoon: lange lijsten
+korter". Stap 5: de vijf beheerknoppen in de kop van
 Teams in één menu. Die staan klaar als volgende rondes; de lengte zit vooral
 daar, deze ronde haalt per scherm een paar honderd pixels.
 

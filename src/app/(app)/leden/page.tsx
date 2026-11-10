@@ -19,6 +19,7 @@ import { computeZwbStatus } from "@/lib/training/zwbeterworden";
 import { WELLNESS_SUMMARY_DAYS, type WellnessDevice } from "@/lib/training/wellness";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { ModuleName } from "@/components/club-texts-provider";
+import { PhoneMoreList } from "@/components/phone-more-list";
 
 type Profile = {
   id: string;
@@ -330,7 +331,7 @@ export default async function LedenPage() {
         {otherUnclaimed.length === 0 ? (
           <EmptyState>Alle bekende leden zijn geregistreerd.</EmptyState>
         ) : (
-          <ul className="divide-y">
+          <PhoneMoreList limit={5} className="divide-y">
             {otherUnclaimed.map((r) => (
               <li
                 key={r.id}
@@ -340,7 +341,7 @@ export default async function LedenPage() {
                 <ClaimButton entryId={r.id} variant="claim" />
               </li>
             ))}
-          </ul>
+          </PhoneMoreList>
         )}
       </section>
     </div>

@@ -61,6 +61,7 @@ export type TeamRosterRow = {
 };
 
 const CATEGORIES = ["A", "B", "C", "D", "E"];
+const PHONE_CARDS = 10;
 const TYPES = ["sprinter", "puncher", "tter", "climber", "allrounder", "unknown"];
 const ROLE_LABELS: Record<string, string> = {
   captain: "Captain",
@@ -120,6 +121,7 @@ export function TeamRosterTable({
   const [riderType, setRiderType] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [allCards, setAllCards] = useState(false);
   const { unit } = usePowerUnit();
 
   const filtered = useMemo(() => {
@@ -141,6 +143,8 @@ export function TeamRosterTable({
   }, [rows, query, teamId, category, riderType, sortKey, sortDirection, unit]);
 
   const hasFilters = Boolean(query || teamId || category || riderType);
+  // Op de telefoon eerst een handvol kaarten; zoeken of filteren toont alles.
+  const cards = allCards || hasFilters ? filtered : filtered.slice(0, PHONE_CARDS);
 
   return (
     <section className="space-y-3 rounded-lg border bg-card p-4">
@@ -233,8 +237,16 @@ export function TeamRosterTable({
       {/* Op telefoonbreedte is 1300px tabel drie schermen scrollen; daar tonen
           we per renner een kaart met de kerncijfers. */}
       <ul className="space-y-2 sm:hidden">
-        {filtered.map((row) => {
+        {cards.map((row) => {
           const power = row.power;
+          const values = (
+            [
+              ["FTP", power?.ftpWatts ?? row.ftpWatts, power?.ftpWkg],
+              ["5m", power?.watts5m, power?.wkg5m],
+              ["1m", power?.watts1m, power?.wkg1m],
+              ["15s", power?.watts15s, power?.wkg15s],
+            ] as const
+          ).filter(([, watts, wkg]) => powerText(watts, wkg, unit) !== "-");
           return (
             <li key={row.id} className="rounded-lg border bg-card p-3">
               <div className="flex items-start justify-between gap-2">
@@ -250,7 +262,7 @@ export function TeamRosterTable({
                 {row.region ? ` · ${row.region}` : ""}
               </p>
               {row.teams.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
+                <div className="mt-1.5 flex flex-wrap gap-1">
                   {row.teams.map((team) => (
                     <Link
                       key={team.id}
@@ -263,33 +275,36 @@ export function TeamRosterTable({
                   ))}
                 </div>
               )}
-              <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1.5 border-t pt-2.5 text-sm">
-                {(
-                  [
-                    ["FTP", power?.ftpWatts ?? row.ftpWatts, power?.ftpWkg],
-                    ["5m", power?.watts5m, power?.wkg5m],
-                    ["1m", power?.watts1m, power?.wkg1m],
-                    ["15s", power?.watts15s, power?.wkg15s],
-                  ] as const
-                ).map(([label, watts, wkg]) => (
-                  <div key={label} className="flex items-baseline justify-between gap-2">
-                    <dt className="text-muted-foreground">{label}</dt>
-                    <dd className="tabular-nums">{powerText(watts, wkg, unit)}</dd>
-                  </div>
-                ))}
-                {row.wtrl && (
-                  <div className="col-span-2 flex items-baseline justify-between gap-2">
-                    <dt className="text-muted-foreground">WTRL</dt>
-                    <dd className="tabular-nums">
-                      <WtrlSummary wtrl={row.wtrl} unit={unit} />
-                    </dd>
-                  </div>
-                )}
-              </dl>
+              {values.length > 0 && (
+                <dl className="mt-2 grid grid-cols-4 gap-x-2 text-sm">
+                  {values.map(([label, watts, wkg]) => (
+                    <div key={label} className="min-w-0">
+                      <dt className="text-xs text-muted-foreground">{label}</dt>
+                      <dd className="tabular-nums">{powerText(watts, wkg, unit)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {row.wtrl && (
+                <p className="mt-1.5 text-sm tabular-nums">
+                  <span className="text-muted-foreground">WTRL </span>
+                  <WtrlSummary wtrl={row.wtrl} unit={unit} />
+                </p>
+              )}
             </li>
           );
         })}
       </ul>
+      {cards.length < filtered.length && (
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full sm:hidden"
+          onClick={() => setAllCards(true)}
+        >
+          Alle {filtered.length} tonen
+        </Button>
+      )}
 
       <div className="hidden overflow-x-auto sm:block">
         <table className={`w-full text-sm ${showCurve ? "min-w-[1300px]" : "min-w-[820px]"}`}>

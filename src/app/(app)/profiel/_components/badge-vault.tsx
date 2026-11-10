@@ -93,7 +93,7 @@ export function BadgeVault({
   const totalBadges = badges.length;
 
   return (
-    <section id="badges" className="scroll-mt-20 rounded-lg border bg-card p-6">
+    <section id="badges" className="scroll-mt-20 rounded-lg border bg-card p-4 md:p-6">
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -109,7 +109,7 @@ export function BadgeVault({
         </p>
       </div>
 
-      <ul className="grid gap-3 sm:grid-cols-2">
+      <ul className="grid gap-2 sm:grid-cols-2 md:gap-3">
         {codeOrder.map((code) => {
           const tiers = byCode.get(code) ?? [];
           const first = tiers[0];
@@ -121,9 +121,9 @@ export function BadgeVault({
           return (
             <li
               key={code}
-              className="rounded-md border bg-background p-3 transition hover:border-foreground/20"
+              className="rounded-md border bg-background px-3 py-2 transition hover:border-foreground/20 md:p-3"
             >
-              <div className="mb-2 flex items-baseline justify-between gap-2">
+              <div className="mb-1 flex items-baseline justify-between gap-2 md:mb-2">
                 <h3 className="truncate text-sm font-semibold">
                   {achievementName}
                 </h3>
@@ -132,7 +132,7 @@ export function BadgeVault({
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-4">
+              <div className="grid grid-cols-4 gap-1 md:gap-2">
                 {tiers.map((badge) => {
                   const earned = earnedSet.has(badge.id);
                   const requirement = requirementFor(badge);
@@ -140,7 +140,7 @@ export function BadgeVault({
                   return (
                     <div
                       key={badge.id}
-                      className="flex min-w-0 flex-col items-center gap-1 rounded-md border border-transparent p-2 text-center"
+                      className="flex min-w-0 flex-col items-center gap-1 rounded-md border border-transparent p-0.5 text-center md:p-2"
                       title={`${badge.title} - ${requirement}${earned ? " (behaald)" : " (nog niet)"}`}
                     >
                       <AchievementBadge
@@ -150,10 +150,10 @@ export function BadgeVault({
                         size="md"
                         locked={!earned}
                       />
-                      <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground max-md:sr-only">
                         {TIER_LABELS[badge.tier]}
                       </span>
-                      <span className="line-clamp-2 min-h-[2rem] text-[0.68rem] leading-tight text-foreground">
+                      <span className="line-clamp-2 text-[0.68rem] leading-tight text-foreground md:min-h-[2rem]">
                         {requirement}
                       </span>
                     </div>

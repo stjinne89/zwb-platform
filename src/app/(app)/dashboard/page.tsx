@@ -103,6 +103,7 @@ import {
   type RunningEvent,
 } from "@/lib/live/event-riders";
 import { ClubShortName } from "@/components/club-texts-provider";
+import { PhoneMoreList } from "@/components/phone-more-list";
 
 const INSTAGRAM_NON_POST_SOURCES = [INSTAGRAM_STORY_SOURCE, INSTAGRAM_TAG_HIDDEN_SOURCE];
 
@@ -1117,7 +1118,7 @@ export default async function DashboardPage({
             title="Nieuwste badges"
             action={<InlineMoreLink href="/stats/rankings"><ClubShortName /> Rankings</InlineMoreLink>}
           />
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <PhoneMoreList limit={3} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {awards.map((award) => {
               const badge = awardBadge(award);
               const profileName = singleProfileName(award.profiles) ?? clubTexts.memberNoun;
@@ -1152,7 +1153,7 @@ export default async function DashboardPage({
                 </li>
               );
             })}
-          </ul>
+          </PhoneMoreList>
         </section>
       )}
 
@@ -1214,7 +1215,7 @@ export default async function DashboardPage({
         {activities.length === 0 ? (
           <EmptyState>Geen recente clubritten.</EmptyState>
         ) : (
-          <ul className="divide-y rounded-lg border bg-card">
+          <PhoneMoreList limit={4} className="divide-y rounded-lg border bg-card">
             {activities.map((activity) => (
               <li key={activity.id}>
                 <ActivityRow activityId={activity.id}>
@@ -1263,7 +1264,7 @@ export default async function DashboardPage({
                 </ActivityRow>
               </li>
             ))}
-          </ul>
+          </PhoneMoreList>
         )}
         <StravaAttribution />
       </section>

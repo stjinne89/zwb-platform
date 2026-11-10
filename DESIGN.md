@@ -423,7 +423,11 @@ krijgt elke sectie 28px lucht erboven.
 
 **Lijsten:** een `divide-y`-lijst wordt een kolom losse paneelrijen met 6px
 ertussen, die niet breder groeit dan zijn kaart (`minmax(0, 1fr)`), zodat
-`truncate` werkt. Een agendarij is een raster van dagvak (56px), tekst en
+`truncate` werkt. Een lange lijst stopt op de telefoon na een paar rijen met
+een knop "Alle N tonen" van 44px (`PhoneMoreList`: Nieuwste badges na 3,
+clubritten na 4, Nog niet geregistreerd na 5; Renners op Teams na 10, tenzij
+je zoekt of filtert); vanaf 768px staat alles er. Een kaart per rij in een
+uitslag is één regel waarden onder de naam (`ResponsiveTable` met `dense`). Een agendarij is een raster van dagvak (56px), tekst en
 tijd, minstens 62px hoog.
 
 **Tabellen:** 16px, `nowrap`, en een vaste minimumbreedte wordt
