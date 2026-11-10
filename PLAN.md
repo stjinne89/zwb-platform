@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Telefoon: Renners en Leden zoals de matchup (2026-11-10): lokaal
-   gecommit (commit: zie de ronde), niet gepusht.** Geen migratie. Zie de ronde
+   gecommit (`c59461bf`), niet gepusht.** Geen migratie. Zie de ronde
    "Telefoon: Renners en Leden zoals de matchup".
 
 0. **Telefoon: ladder-uitslag als tabel zoals de matchup (2026-11-10): gepusht
@@ -12157,7 +12157,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Telefoon: Renners en Leden zoals de matchup
 
-**2026-11-10, commit: zie hieronder.** Op verzoek van de eigenaar ("hetzelfde
+**2026-11-10, commit `c59461bf`.** Op verzoek van de eigenaar ("hetzelfde
 probleem op de leden pagina en teamspagina, kunnen die een zelfde richting
 volgen?"; voorstel, daarna "rolchips wil ik wel zien en bouw beide"). Geen
 migratie.
