@@ -7,12 +7,18 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Claude-achtergrondfunctie crashte bij het laden (2026-11-10): lokaal
-   gecommit (`0ebee5c8`), nog niet gepusht.** Geen migratie. Sinds 9 november 19:38 is geen
-   enkele Claude-opdracht gestart (22 in de rij); daardoor is ook `ai_usage` nog
-   leeg. Open: pushen, en na de deploy zien dat een nieuwe coachvraag klaar komt
-   en in `/beheer/ai-verbruik` staat. Zie de ronde "Claude-achtergrondfunctie
-   laadt weer".
+0. **Claude-opdrachten bleven in de rij staan (2026-11-10): lokaal gecommit
+   (`0ebee5c8`), nog niet gepusht.** Geen migratie. Van 9 november 19:38 tot 10
+   november 09:00 startte geen Claude-opdracht. De 21 vastgelopen opdrachten
+   zijn in productie stilgezet, op verzoek van de eigenaar. Open:
+   - pushen;
+   - Gina van Rossum een nieuw schema laten maken (ze heeft er geen);
+   - morgen nakijken dat de open verzoeken van Jeroen, Karen, Joost en Stijn
+     vannacht een herziening gaven;
+   - na de deploy zien dat een coachvraag klaar komt en in
+     `/beheer/ai-verbruik` staat.
+
+   Zie de ronde "Claude-opdrachten bleven in de rij staan".
 
 0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
    naar `main` (`8932806c`).** Geen migratie. Open: na de deploy ingelogd bekijken of de
@@ -12082,7 +12088,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Hersteld — Claude-achtergrondfunctie laadt weer
+### Hersteld — Claude-opdrachten bleven in de rij staan
 
 **2026-11-10, commit `0ebee5c8`.** Op verzoek van de eigenaar ("Doordat het api budget op was,
 lijkt het alsof er geen ai verzoeken zijn gedaan. Wil je dit controleren?"),
@@ -12090,18 +12096,46 @@ daarna "Ja, repareer het". Geen migratie.
 
 **Wat er aan de hand was.** Het lag niet aan het budget. In productie was
 `ai_usage` leeg. In `ai_jobs` was de laatste geslaagde opdracht van 9 november
-11:08 UTC. Sinds 18:38 UTC stonden alle 22 nieuwe opdrachten op `queued`, zonder
+11:08 UTC. Vanaf 18:38 UTC stonden alle nieuwe opdrachten op `queued`, zonder
 `started_at`: dagvoorstellen, weekoverzichten, herzieningen en twee keer
 "nieuw schema". Bij een leeg tegoed had de functie ze opgepakt en als `failed`
 met de fout van Anthropic gemarkeerd. Ze werden dus nooit opgepakt.
 
-De oorzaak zat in deel 3a van de generieke versie (`2a38a977`). `lib/ai/claude.ts`
+Op 10 november om 08:08 UTC kwam wel één opdracht door: het dagvoorstel van
+Stijn. Dat gaf ook de eerste rij in `ai_usage`. Het tegoed is dus niet op. Waarom
+die ene wel liep en de rest niet, is zonder de Netlify-logs niet verklaard.
+
+Waarschijnlijke oorzaak: deel 3a van de generieke versie (`2a38a977`). `lib/ai/claude.ts`
 kreeg toen `import { fillClub } from "@/lib/club"`. `lib/club` laadt
 `server-only` en `next/cache`. Die werken alleen binnen Next, en `server-only`
-is niet eens als pakket geïnstalleerd. De Netlify-achtergrondfunctie bundelt
-`claude.ts` buiten Next en stopte daardoor al bij het laden met
-`ERR_MODULE_NOT_FOUND`. Lokaal nagebootst met esbuild en Node. Vitest zag het
-niet, omdat het `server-only` zelf afvangt. De Netlify-logs zijn niet bekeken.
+is niet eens als pakket geïnstalleerd. Lokaal met esbuild en Node nagebootst:
+zo gebundeld stopt de achtergrondfunctie al bij het laden met
+`ERR_MODULE_NOT_FOUND`. Vitest zag het niet, omdat het `server-only` zelf
+afvangt. **Niet bewezen:** dat verklaart de opdracht van 08:08 niet. De Netlify-logs
+zijn niet bekeken; de reparatie hieronder klopt hoe dan ook.
+
+**Stilgezet in productie** (10 november 09:27, op verzoek van de eigenaar, "Ja,
+zet ze stil"). De 21 opdrachten die nog op `queued` stonden, zijn met
+`RETURNING` op `failed` gezet, met de fout "Stilgezet: bleef in de rij staan
+(9-10 november 2026)." en zonder `request`. Daarna stond er niets meer in de
+rij. Reden: hun invoer was tot vijftien uur oud. De uur-cron
+(`finishStaleGenerations`, tien per run) zou ze om 10:00 opnieuw aanstoten. Als
+de functie het dan deed, kwamen er betaalde schema's uit op verouderde
+gegevens, die het huidige schema konden overschrijven. De bijbehorende
+generaties worden `failed` bij het eerstvolgende ophalen. Per lid nagelopen
+wat nog nodig is:
+
+- **Gina van Rossum**: twee keer zelf een nieuw schema gevraagd en ze heeft er
+  nog geen. Dat komt niet vanzelf terug: zij drukt opnieuw, of het bestuur
+  start het.
+- **Jeroen Janssen, Karen van de Rakt, Joost van der Meulen, Stijn**: hun
+  wijziging staat nog in `training_replan_requests` (nagekeken na het
+  stilzetten). De nachtelijke cron maakt er per lid één verse herziening van.
+  Jeroens twee "Schema bijwerken" van 9 november vallen daaronder.
+- **Bart, Friso, Harmen, Kevin, Mathijs, Pim, Remco, Rolf**: alleen het
+  dagvoorstel van vandaag. De cron maakt morgen een nieuw.
+- **Weekoverzichten** van Joost en Mathijs (week van 2 november): niet opnieuw
+  gestart. Die van Gina stond al op `failed`.
 
 Wat er is:
 
@@ -12117,8 +12151,6 @@ Wat er is:
   opdracht na een minuut opnieuw aan, zoals eerst. Staat hij na tien minuten
   nog in de rij, dan wordt hij `failed` ("Claude-opdracht is niet gestart.").
   Zo ziet het lid een fout in plaats van een schema dat altijd "bezig" blijft.
-  Dit ruimt ook de 22 vastgelopen opdrachten op zodra ze worden opgehaald.
-  Opnieuw starten zou ze met niet-ingevulde clubwoorden naar Claude sturen.
 - **Test** `tests/unit/ai-job-bundle.test.ts` bundelt de functie met esbuild,
   zonder de `@/`-aliassen. De test faalt als er een import van `@/…`,
   `server-only`, `next/…` of `react` overblijft. Nagekeken: met de oude import
@@ -12128,9 +12160,9 @@ Wat er is:
 
 - **Een mislukte aanroep telt niet mee in `ai_usage`**, ook niet bij een leeg
   tegoed. Die kost niets. De fout staat bij de opdracht in `ai_jobs.error`.
-- **De 22 vastgelopen opdrachten niet in SQL op `failed` gezet.** De nieuwe
-  time-out doet dat bij het eerstvolgende ophalen. Opdrachten die niemand
-  ophaalt, verdwijnen na zeven dagen met de gewone opruiming.
+- **De vastgelopen opdrachten niet opnieuw laten draaien**, ook niet de
+  herzieningen. Hun invoer was verouderd. Een verse herziening via het open
+  verzoek is beter dan een oude afmaken.
 
 Lokaal: `tsc` zonder fouten, eslint schoon op de gewijzigde bestanden. De
 nieuwe test en die van `ai-claude` en `ai-usage` zijn groen. De gebundelde
@@ -12138,9 +12170,9 @@ functie laadt in Node. In de volledige suite liepen vijf bestanden onder
 belasting op tijd uit; los gedraaid slagen ze. `omnium-live` mist
 `.env.local` in deze worktree.
 
-**Niet lokaal te controleren:** de functie op Netlify zelf, en of het tegoed bij
-Anthropic werkelijk op is. Dat laatste staat in de Anthropic Console. Is het op,
-dan krijgen nieuwe opdrachten na de deploy `failed` met de fout van Anthropic.
+**Niet lokaal te controleren:** de functie op Netlify zelf, en waarom één
+opdracht op 10 november wel liep. Het tegoed is niet op: die opdracht is door
+Claude beantwoord.
 
 ### Gebouwd — Teamraces alleen voor je eigen team
 
@@ -12979,7 +13011,7 @@ Wat er is:
   - `runClaude` en `createClaudeJob` in `lib/ai/claude.ts` vullen het
     systeemdeel, vóór de vraag in `ai_jobs` gaat (sinds 2026-11-10; eerst deed
     `runClaude` het in de achtergrondfunctie, en die crashte daarop, zie
-    "Claude-achtergrondfunctie laadt weer");
+    "Claude-opdrachten bleven in de rij staan");
   - `fetchOpenAiResponse` en de pacing-aanroep vullen `instructions` via
     `withClubInstructions()` (`lib/club.ts`, naast `fillClub()`);
   - de doelenpagina van de trainer vult de standaardprompt die in de editor
@@ -13536,7 +13568,7 @@ Wat er is:
   ouder dan dertien maanden ruimt `processClaudeJob` op.
 - **Meten in `runClaude`** (sinds 2026-11-10 in `lib/ai/claude-core.ts`; tot
   die dag schreef de app door de crash van de achtergrondfunctie geen enkele
-  rij, zie "Claude-achtergrondfunctie laadt weer"), dus voor achtergrondopdrachten
+  rij, zie "Claude-opdrachten bleven in de rij staan"), dus voor achtergrondopdrachten
   en de synchrone aanroep. Ook een geweigerd of afgekapt antwoord telt, want dat
   kost ook tokens. Een fout bij het schrijven laat de aanroep nooit mislukken.
   `ClaudeRequest.meter` is **verplicht**, zodat een nieuwe aanroep niet
