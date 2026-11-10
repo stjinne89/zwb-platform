@@ -12469,7 +12469,7 @@ Claude beantwoord.
 
 ### Gebouwd — ZWBlokken: Zwift-ranglijst en melding voor ritten zonder route
 
-**2026-11-10, commit HASH.** Op vraag van de eigenaar ("Bart en Kevin lijken mij
+**2026-11-10, commit f3509165.** Op vraag van de eigenaar ("Bart en Kevin lijken mij
 hoger te moeten staan?", daarna "ik zie hele andere getallen bij de ZWBlokken
 dan dat jij nu noemt? En kunnen we voor deze 5 leden een popup melding maken
 met instructie wat ze moeten doen en wat het oplevert?"); gekozen uit een
