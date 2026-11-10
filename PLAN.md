@@ -12086,7 +12086,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Oude intervals-ritten krijgen alsnog hun spoor
 
-**2026-11-10, commit HASH.** Op verzoek van de eigenaar ("Kun je ZWBlokken eens
+**2026-11-10, commit `f3fc5515`.** Op verzoek van de eigenaar ("Kun je ZWBlokken eens
 controleren of dit werkt zoals het hoort? Vooral in de Zwiftwereld lijkt niet
 altijd goed te gaan"), daarna "Ja, bouw het" op het voorstel. Geen migratie.
 
