@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Telefoon: beheerknoppen op Teams achter één knop (2026-11-10): lokaal
-   gecommit (commit: zie de ronde), niet gepusht.** Geen migratie. Stap 5, de laatste van
+   gecommit (`3c7ca09b`), niet gepusht.** Geen migratie. Stap 5, de laatste van
    het voorstel na de mobiele audit. Zie de ronde "Telefoon: beheerknoppen op
    Teams achter één knop".
 
@@ -12098,7 +12098,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Telefoon: beheerknoppen op Teams achter één knop
 
-**2026-11-10, commit: zie hieronder.** Stap 5, de laatste van het voorstel na de
+**2026-11-10, commit `3c7ca09b`.** Stap 5, de laatste van het voorstel na de
 mobiele audit, op verzoek van de eigenaar ("Ja, stap 5"). Geen migratie.
 
 Het probleem: voor een beheerder stonden in de kop van `/teams` op 375px vijf
