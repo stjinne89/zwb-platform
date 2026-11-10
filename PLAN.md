@@ -8,10 +8,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Oude intervals-ritten krijgen alsnog hun spoor (2026-11-10): lokaal
-   gecommit, niet gepusht.** Geen migratie. Open: na de deploy een paar dagen
-   volgen of het aantal intervals-ritten zonder `track_checked_at` (2.040 op
-   2026-11-10) zakt, en of de cron binnen zijn 30 seconden blijft. Zie de ronde
-   "Oude intervals-ritten krijgen alsnog hun spoor".
+   gecommit, niet gepusht.** Geen migratie. De achterstand is dezelfde dag in
+   productie weggewerkt met `scripts/backfill-intervals-tracks.mjs` (0 ritten
+   meer zonder `track_checked_at`). Open: na de deploy volgen of de cron met de
+   inhaalslag binnen zijn 30 seconden blijft. Zie de ronde "Oude intervals-ritten
+   krijgen alsnog hun spoor".
 
 0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
    naar `main` (`8932806c`).** Geen migratie. Open: na de deploy ingelogd bekijken of de
@@ -12128,9 +12129,23 @@ gingen eerder ongemerkt altijd op.
   naar een eerste rit die er niet meer is). Dat is de bestaande keuze uit
   `lib/strava/retention.ts`: afgeleide clubdata blijft.
 
-**Niet lokaal te controleren.** Dat intervals.icu voor een verwijderde rit echt
-404 geeft en voor een rit zonder GPS een leeg spoor, en hoe lang 20 sporen
-ophalen in productie duurt naast de 30 seconden van de cron.
+**Achterstand in één keer weggewerkt (2026-11-10).** Op vraag van de eigenaar
+("Kun je dit nu ook in bulk ophalen?") draaide
+`scripts/backfill-intervals-tracks.mjs` lokaal tegen productie: 2.027 ritten van
+13 leden nagekeken, 1.947 kregen een spoor en eigen segment- en coltijden, 80
+hadden geen GPS, geen enkele 404. Daarna per lid ZWBlokken opnieuw doorgerekend:
+~7.100 nieuwe blokken buiten en 2.335 in Zwift (14.235 → 16.570 rijen); 941 van
+de ritten kregen een Zwift-wereld. Rond 3 verzoeken per seconde; intervals.icu
+gaf één keer een 429 en ging na een minuut wachten verder. Het forum noemt een
+grens van 10 per seconde per IP, maar dat was een concept; een officiële grens
+staat niet in de API-documentatie. De query over de hele tabel liep tegen de
+statement-timeout, dus het script vraagt per lid op, net als de cron. De
+col-detector (`profile_climbed_cols`) heeft het script niet gedraaid: die scant
+bij het eerstvolgende nawerk van elk lid alle ritten opnieuw.
+
+**Niet lokaal te controleren.** Hoe lang 20 sporen ophalen in productie duurt
+naast de 30 seconden van de cron. Een 404 voor een verwijderde rit kwam in de
+bulkrun niet voor, dus die tak is alleen in de test gezien.
 
 ### Gebouwd — Teamraces alleen voor je eigen team
 
