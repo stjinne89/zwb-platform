@@ -23,6 +23,13 @@ gaat stabiliteit voor nieuwe features.
 
    Zie de ronde "Claude-opdrachten bleven in de rij staan".
 
+0. **Oude intervals-ritten krijgen alsnog hun spoor (2026-11-10): gepusht
+   naar `main` (`203645ef`).** Geen migratie. De achterstand is dezelfde dag in
+   productie weggewerkt met `scripts/backfill-intervals-tracks.mjs` (0 ritten
+   meer zonder `track_checked_at`). Open: na de deploy volgen of de cron met de
+   inhaalslag binnen zijn 30 seconden blijft. Zie de ronde "Oude intervals-ritten
+   krijgen alsnog hun spoor".
+
 0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
    naar `main` (`8932806c`).** Geen migratie. Open: na de deploy ingelogd bekijken of de
    team- en ledentegels de races van de afgelopen week tonen. Zie de ronde
@@ -7645,10 +7652,13 @@ lid, ook buiten de kalender")*
 >   - Alleen nieuwe of gewijzigde ritten worden geschreven en krijgen nawerk.
 >     Anders zou elke uurlijkse run voor elk lid de col-detector en de badges
 >     opnieuw draaien.
->   - Per run hooguit 5 GPS-sporen per lid. Een trainerrit zonder GPS krijgt
->     `track_checked_at`, zodat we niet elke run opnieuw vragen.
->   - Een later spoor zet `blocks_processed_at` terug, want ZWBlokken werken
->     incrementeel.
+>   - Per run hooguit 5 GPS-sporen per lid voor ritten in het venster. Een
+>     trainerrit zonder GPS krijgt `track_checked_at`, zodat we niet elke run
+>     opnieuw vragen. Sinds 2026-11-10 daarnaast een inhaalslag voor oudere
+>     ritten zonder spoor (zie "Oude intervals-ritten krijgen alsnog hun spoor");
+>     tot dan kregen ritten buiten het venster er nooit een.
+>   - Een later spoor zet `blocks_processed_at` en `zwift_blocks_processed_at`
+>     terug, want ZWBlokken werken incrementeel.
 >   - Een rit die intervals.icu niet meer kent, gaat weg; een lege lijst wist
 >     niets.
 >   - Nawerk: `runPostSyncForProfile` zonder token (naleving, cols, ZWBlokken,
@@ -12186,6 +12196,68 @@ belasting op tijd uit; los gedraaid slagen ze. `omnium-live` mist
 **Niet lokaal te controleren:** de functie op Netlify zelf, en waarom één
 opdracht op 10 november wel liep. Het tegoed is niet op: die opdracht is door
 Claude beantwoord.
+
+### Hersteld — Oude intervals-ritten krijgen alsnog hun spoor
+
+**2026-11-10, commits `203645ef` (code) en `2ba47f9e` (bulkscript).** Op verzoek van de eigenaar ("Kun je ZWBlokken eens
+controleren of dit werkt zoals het hoort? Vooral in de Zwiftwereld lijkt niet
+altijd goed te gaan"), daarna "Ja, bouw het" op het voorstel. Geen migratie.
+
+**Controle van ZWBlokken in Zwift, in productie (2026-11-10).** De berekening
+zelf klopt:
+- de wereld volgt het startpunt; van ruim 8.000 ritten met een eindpunt eindigen
+  er 6 buiten hun wereld, 2 daarvan in een andere wereld. Te weinig om de regel
+  "een rit blijft in één wereld" los te laten;
+- geen enkel blok ligt buiten de wereldgrenzen (migratie 0220 werkt);
+- de 45 Zwift-ritten met routelijn maar zonder wereld zijn allemaal Zwifts
+  nieuwe "in Video"-routes (Glen Canyon, Chapman's Peak, Eggum …): echte
+  coördinaten, terecht geen Zwift-wereld;
+- geen VirtualRide wacht nog op de Zwift-sync.
+
+**Oorzaak van wat er wél misging.** `syncIntervalsRidesForProfile` haalde alleen
+sporen op voor ritten in het venster van de run, hooguit 5 per lid. De eerste
+run haalt een jaar op, dus maar 5 sporen voor een jaar aan ritten; daarna kijkt
+elke run nog 30 dagen terug. De rest van dat jaar kreeg nooit een spoor. Op
+2026-11-10 stonden er zo 1.102 VirtualRides en 938 buitenritten van 11 leden
+zonder spoor en zonder `track_checked_at`, allemaal ouder dan 30 dagen. Zonder
+spoor geen blokken (buiten en in Zwift), geen kilometers per Zwift-wereld (de
+beslisser bij een gelijke titelstand) en geen eigen coltijden.
+
+**Gebouwd.** `backfillOlderTracks` in `lib/intervals/ride-sync.ts`: na de ritten
+in het venster nog hooguit 20 oudere intervals-ritten zonder spoor per lid per
+run, de nieuwste eerst, binnen 4 seconden. Een gevonden spoor zet beide
+ZWBlokken-cursors terug en geeft eigen segment- en coltijden, net als in het
+venster; het nawerk draait nu ook als er alleen oude sporen bijkwamen. Een 404
+telt als "geen spoor", anders vraagt elke run dezelfde rit opnieuw en komt de
+rest nooit aan de beurt. Elke andere fout stopt de inhaalslag voor die run. De
+cron doet 5 leden per uur; de achterstand zou zo in een paar dagen weg moeten
+zijn. `tests/unit/fake-db.ts` kent nu filters op JSON-paden (`raw->>x`), die
+gingen eerder ongemerkt altijd op.
+
+**Bewust niet gebouwd.**
+- Geen vangnet voor Zwift-ritten die Strava als gewone `Ride` opsloeg: het zijn
+  er 5 (2018 en 2023). Ze vallen buiten de blokken buiten en in Zwift.
+- Blokken van een verwijderde rit blijven staan (~2.300 Zwift-blokken verwijzen
+  naar een eerste rit die er niet meer is). Dat is de bestaande keuze uit
+  `lib/strava/retention.ts`: afgeleide clubdata blijft.
+
+**Achterstand in één keer weggewerkt (2026-11-10).** Op vraag van de eigenaar
+("Kun je dit nu ook in bulk ophalen?") draaide
+`scripts/backfill-intervals-tracks.mjs` lokaal tegen productie: 2.027 ritten van
+13 leden nagekeken, 1.947 kregen een spoor en eigen segment- en coltijden, 80
+hadden geen GPS, geen enkele 404. Daarna per lid ZWBlokken opnieuw doorgerekend:
+~7.100 nieuwe blokken buiten en 2.335 in Zwift (14.235 → 16.570 rijen); 941 van
+de ritten kregen een Zwift-wereld. Rond 3 verzoeken per seconde; intervals.icu
+gaf één keer een 429 en ging na een minuut wachten verder. Het forum noemt een
+grens van 10 per seconde per IP, maar dat was een concept; een officiële grens
+staat niet in de API-documentatie. De query over de hele tabel liep tegen de
+statement-timeout, dus het script vraagt per lid op, net als de cron. De
+col-detector (`profile_climbed_cols`) heeft het script niet gedraaid: die scant
+bij het eerstvolgende nawerk van elk lid alle ritten opnieuw.
+
+**Niet lokaal te controleren.** Hoe lang 20 sporen ophalen in productie duurt
+naast de 30 seconden van de cron. Een 404 voor een verwijderde rit kwam in de
+bulkrun niet voor, dus die tak is alleen in de test gezien.
 
 ### Gebouwd — Teamraces alleen voor je eigen team
 

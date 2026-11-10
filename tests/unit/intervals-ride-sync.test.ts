@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   activities: [] as Array<Record<string, unknown>>,
   fetchError: null as Error | null,
   trackCalls: [] as string[],
+  trackErrors: {} as Record<string, Error>,
   postSync: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({})),
   awards: vi.fn(async () => ({ awarded: 0 })),
   summaries: vi.fn(async () => ({ written: 0, skipped: 0, rateLimited: false, errors: [] })),
@@ -29,6 +30,7 @@ vi.mock("@/lib/intervals/client", async (importOriginal) => {
     }),
     fetchIntervalsActivityTrack: vi.fn(async (_key: string, id: string) => {
       mocks.trackCalls.push(id);
+      if (mocks.trackErrors[id]) throw mocks.trackErrors[id];
       return [{ type: "latlng", data: [52, 52.01, 52.02], data2: [5, 5.01, 5.02] }];
     }),
   };
@@ -75,6 +77,7 @@ beforeEach(() => {
   mocks.activities = structuredClone(fixture) as Array<Record<string, unknown>>;
   mocks.fetchError = null;
   mocks.trackCalls = [];
+  mocks.trackErrors = {};
   mocks.postSync.mockClear();
   mocks.awards.mockClear();
   mocks.summaries.mockClear();
@@ -123,6 +126,99 @@ describe("syncIntervalsRidesForProfile", () => {
     expect(again.removed).toBe(0);
     expect(mocks.trackCalls).toHaveLength(0);
     expect(mocks.postSync).not.toHaveBeenCalled();
+  });
+
+  describe("sporen van oudere ritten", () => {
+    // Een rit van vóór het venster van 30 dagen, opgeslagen zonder spoor: bij de
+    // eerste run (een jaar, vijf sporen) niet aan de beurt gekomen.
+    function olderRide(intervalsId: string, startDate: string) {
+      return {
+        id: -1_000_000_000_000 - Number(intervalsId.slice(1)),
+        profile_id: A,
+        name: "Zwift - Watopia",
+        sport_type: "VirtualRide",
+        start_date: startDate,
+        distance_m: 30000,
+        blocks_processed_at: "2026-06-01T00:00:00Z",
+        zwift_blocks_processed_at: "2026-06-01T00:00:00Z",
+        raw: { import_source: "intervals", intervals_id: intervalsId, map: { summary_polyline: null } },
+      };
+    }
+    const later = () => connection({ rides_backfilled_at: "2026-01-01T00:00:00Z" });
+    const rideOf = (db: ReturnType<typeof fakeDb>, intervalsId: string) =>
+      db.tables.strava_activities.find(
+        (ride) => (ride.raw as Record<string, unknown>).intervals_id === intervalsId,
+      )!;
+
+    it("haalt het spoor alsnog op en zet de rit terug voor ZWBlokken", async () => {
+      const { db } = setup();
+      db.tables.strava_activities.push(olderRide("i70000000", "2026-05-01T07:00:00Z"));
+      const result = await syncIntervalsRidesForProfile(db, later(), { now: NOW });
+
+      expect(result.error).toBeUndefined();
+      expect(mocks.trackCalls).toContain("i70000000");
+      const ride = rideOf(db, "i70000000");
+      const raw = ride.raw as { map: { summary_polyline: string | null }; track_checked_at: string };
+      expect(raw.map.summary_polyline).toBeTruthy();
+      expect(raw.track_checked_at).toBe(NOW.toISOString());
+      expect(ride.blocks_processed_at).toBeNull();
+      expect(ride.zwift_blocks_processed_at).toBeNull();
+      expect(mocks.postSync).toHaveBeenCalledTimes(1);
+      expect(mocks.postSync.mock.calls[0][3]).toMatchObject({ zwblokken: true, colsDetector: true });
+    });
+
+    it("rekent ook na zonder nieuwe rit in het venster", async () => {
+      const { db } = setup();
+      await syncIntervalsRidesForProfile(db, later(), { now: NOW });
+      mocks.postSync.mockClear();
+      db.tables.strava_activities.push(olderRide("i70000000", "2026-05-01T07:00:00Z"));
+
+      const result = await syncIntervalsRidesForProfile(db, later(), { now: NOW });
+      expect(result.stored).toBe(0);
+      expect(mocks.postSync).toHaveBeenCalledTimes(1);
+    });
+
+    it("neemt de nieuwste eerst en houdt zich aan het maximum", async () => {
+      const { db } = setup();
+      db.tables.strava_activities.push(
+        olderRide("i70000001", "2026-03-01T07:00:00Z"),
+        olderRide("i70000002", "2026-07-01T07:00:00Z"),
+      );
+      await syncIntervalsRidesForProfile(db, later(), { now: NOW, maxOldTracks: 1 });
+      expect(mocks.trackCalls).toContain("i70000002");
+      expect(mocks.trackCalls).not.toContain("i70000001");
+    });
+
+    it("vinkt een rit af die intervals.icu niet meer kent, en vraagt hem niet opnieuw", async () => {
+      const { db } = setup();
+      db.tables.strava_activities.push(olderRide("i70000003", "2026-05-01T07:00:00Z"));
+      mocks.trackErrors.i70000003 = new Error("intervals.icu 404: not found");
+      await syncIntervalsRidesForProfile(db, later(), { now: NOW });
+
+      const ride = rideOf(db, "i70000003");
+      const raw = ride.raw as { map: { summary_polyline: string | null }; track_checked_at: string };
+      expect(raw.map.summary_polyline).toBeNull();
+      expect(raw.track_checked_at).toBe(NOW.toISOString());
+      expect(ride.zwift_blocks_processed_at).not.toBeNull();
+
+      mocks.trackCalls = [];
+      await syncIntervalsRidesForProfile(db, later(), { now: NOW });
+      expect(mocks.trackCalls).not.toContain("i70000003");
+    });
+
+    it("stopt bij een andere fout en probeert het de volgende run opnieuw", async () => {
+      const { db } = setup();
+      db.tables.strava_activities.push(
+        olderRide("i70000004", "2026-03-01T07:00:00Z"),
+        olderRide("i70000005", "2026-07-01T07:00:00Z"),
+      );
+      mocks.trackErrors.i70000005 = new Error("intervals.icu 429: too many requests");
+      const result = await syncIntervalsRidesForProfile(db, later(), { now: NOW });
+
+      expect(result.error).toBeUndefined();
+      expect(mocks.trackCalls).not.toContain("i70000004");
+      expect((rideOf(db, "i70000005").raw as Record<string, unknown>).track_checked_at).toBeUndefined();
+    });
   });
 
   it("verwijdert een rit die intervals.icu niet meer kent", async () => {
