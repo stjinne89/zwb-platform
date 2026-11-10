@@ -2,7 +2,8 @@
 // query per tabel doen. Kent alleen wat de geteste code gebruikt: select, eq,
 // neq, gt, gte, lt, lte, in, is, like, not(col, "is" | "like", …), order,
 // limit, range, maybeSingle, single, insert, upsert (onConflict), update en
-// delete. Filters op JSON-paden kent hij niet.
+// delete. Een kolom mag een JSON-pad zijn (`raw->map->>summary_polyline`); `->>`
+// geeft net als in Postgres tekst terug.
 
 type Row = Record<string, unknown>;
 type Filter = (row: Row) => boolean;
@@ -12,6 +13,20 @@ function compare(a: unknown, b: unknown): number {
   const nb = typeof b === "number" ? b : Number.NaN;
   if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
   return String(a ?? "").localeCompare(String(b ?? ""));
+}
+
+/** Waarde van een kolom of JSON-pad, zoals PostgREST hem filtert. */
+function field(row: Row, column: string): unknown {
+  if (!column.includes("->")) return row[column];
+  const parts = column.split(/->>?/);
+  let value: unknown = row[parts[0]];
+  for (const key of parts.slice(1)) {
+    if (value == null || typeof value !== "object") return null;
+    value = (value as Row)[key];
+  }
+  if (value == null) return null;
+  if (!/->>[^>]*$/.test(column)) return value;
+  return typeof value === "object" ? JSON.stringify(value) : String(value);
 }
 
 function likePattern(pattern: string): RegExp {
@@ -72,8 +87,8 @@ export function fakeDb(
       if (orderBy) {
         const { column, ascending, nullsFirst } = orderBy;
         data.sort((a, b) => {
-          const va = a[column];
-          const vb = b[column];
+          const va = field(a, column);
+          const vb = field(b, column);
           if (va == null || vb == null) {
             if (va == null && vb == null) return 0;
             return (va == null) === nullsFirst ? -1 : 1;
@@ -99,27 +114,27 @@ export function fakeDb(
         return builder;
       },
       eq: (column: string, value: unknown) =>
-        add(`eq ${column}`, (row) => row[column] === value),
+        add(`eq ${column}`, (row) => field(row, column) === value),
       neq: (column: string, value: unknown) =>
-        add(`neq ${column}`, (row) => row[column] !== value),
+        add(`neq ${column}`, (row) => field(row, column) !== value),
       gt: (column: string, value: unknown) =>
-        add(`gt ${column}`, (row) => compare(row[column], value) > 0),
+        add(`gt ${column}`, (row) => compare(field(row, column), value) > 0),
       gte: (column: string, value: unknown) =>
-        add(`gte ${column}`, (row) => compare(row[column], value) >= 0),
+        add(`gte ${column}`, (row) => compare(field(row, column), value) >= 0),
       lt: (column: string, value: unknown) =>
-        add(`lt ${column}`, (row) => compare(row[column], value) < 0),
+        add(`lt ${column}`, (row) => compare(field(row, column), value) < 0),
       lte: (column: string, value: unknown) =>
-        add(`lte ${column}`, (row) => compare(row[column], value) <= 0),
+        add(`lte ${column}`, (row) => compare(field(row, column), value) <= 0),
       in: (column: string, values: unknown[]) =>
-        add(`in ${column}`, (row) => values.includes(row[column])),
+        add(`in ${column}`, (row) => values.includes(field(row, column))),
       is: (column: string, value: unknown) =>
-        add(`is ${column}`, (row) => (row[column] ?? null) === value),
+        add(`is ${column}`, (row) => (field(row, column) ?? null) === value),
       like: (column: string, pattern: string) =>
-        add(`like ${column}`, (row) => likePattern(pattern).test(String(row[column] ?? ""))),
+        add(`like ${column}`, (row) => likePattern(pattern).test(String(field(row, column) ?? ""))),
       not: (column: string, operator: string, value: unknown) =>
         operator === "like"
-          ? add(`not like ${column}`, (row) => !likePattern(String(value)).test(String(row[column] ?? "")))
-          : add(`not ${column}`, (row) => (row[column] ?? null) !== value),
+          ? add(`not like ${column}`, (row) => !likePattern(String(value)).test(String(field(row, column) ?? "")))
+          : add(`not ${column}`, (row) => (field(row, column) ?? null) !== value),
       order: (column: string, opts?: { ascending?: boolean; nullsFirst?: boolean }) => {
         orderBy = {
           column,

@@ -1,11 +1,17 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-09)
+## Actieve volgorde (bijgewerkt 2026-11-10)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Oude intervals-ritten krijgen alsnog hun spoor (2026-11-10): lokaal
+   gecommit, niet gepusht.** Geen migratie. Open: na de deploy een paar dagen
+   volgen of het aantal intervals-ritten zonder `track_checked_at` (2.040 op
+   2026-11-10) zakt, en of de cron binnen zijn 30 seconden blijft. Zie de ronde
+   "Oude intervals-ritten krijgen alsnog hun spoor".
 
 0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
    naar `main` (`8932806c`).** Geen migratie. Open: na de deploy ingelogd bekijken of de
@@ -7629,10 +7635,13 @@ lid, ook buiten de kalender")*
 >   - Alleen nieuwe of gewijzigde ritten worden geschreven en krijgen nawerk.
 >     Anders zou elke uurlijkse run voor elk lid de col-detector en de badges
 >     opnieuw draaien.
->   - Per run hooguit 5 GPS-sporen per lid. Een trainerrit zonder GPS krijgt
->     `track_checked_at`, zodat we niet elke run opnieuw vragen.
->   - Een later spoor zet `blocks_processed_at` terug, want ZWBlokken werken
->     incrementeel.
+>   - Per run hooguit 5 GPS-sporen per lid voor ritten in het venster. Een
+>     trainerrit zonder GPS krijgt `track_checked_at`, zodat we niet elke run
+>     opnieuw vragen. Sinds 2026-11-10 daarnaast een inhaalslag voor oudere
+>     ritten zonder spoor (zie "Oude intervals-ritten krijgen alsnog hun spoor");
+>     tot dan kregen ritten buiten het venster er nooit een.
+>   - Een later spoor zet `blocks_processed_at` en `zwift_blocks_processed_at`
+>     terug, want ZWBlokken werken incrementeel.
 >   - Een rit die intervals.icu niet meer kent, gaat weg; een lege lijst wist
 >     niets.
 >   - Nawerk: `runPostSyncForProfile` zonder token (naleving, cols, ZWBlokken,
@@ -12074,6 +12083,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Oude intervals-ritten krijgen alsnog hun spoor
+
+**2026-11-10, commit HASH.** Op verzoek van de eigenaar ("Kun je ZWBlokken eens
+controleren of dit werkt zoals het hoort? Vooral in de Zwiftwereld lijkt niet
+altijd goed te gaan"), daarna "Ja, bouw het" op het voorstel. Geen migratie.
+
+**Controle van ZWBlokken in Zwift, in productie (2026-11-10).** De berekening
+zelf klopt:
+- de wereld volgt het startpunt; van ruim 8.000 ritten met een eindpunt eindigen
+  er 6 buiten hun wereld, 2 daarvan in een andere wereld. Te weinig om de regel
+  "een rit blijft in één wereld" los te laten;
+- geen enkel blok ligt buiten de wereldgrenzen (migratie 0220 werkt);
+- de 45 Zwift-ritten met routelijn maar zonder wereld zijn allemaal Zwifts
+  nieuwe "in Video"-routes (Glen Canyon, Chapman's Peak, Eggum …): echte
+  coördinaten, terecht geen Zwift-wereld;
+- geen VirtualRide wacht nog op de Zwift-sync.
+
+**Oorzaak van wat er wél misging.** `syncIntervalsRidesForProfile` haalde alleen
+sporen op voor ritten in het venster van de run, hooguit 5 per lid. De eerste
+run haalt een jaar op, dus maar 5 sporen voor een jaar aan ritten; daarna kijkt
+elke run nog 30 dagen terug. De rest van dat jaar kreeg nooit een spoor. Op
+2026-11-10 stonden er zo 1.102 VirtualRides en 938 buitenritten van 11 leden
+zonder spoor en zonder `track_checked_at`, allemaal ouder dan 30 dagen. Zonder
+spoor geen blokken (buiten en in Zwift), geen kilometers per Zwift-wereld (de
+beslisser bij een gelijke titelstand) en geen eigen coltijden.
+
+**Gebouwd.** `backfillOlderTracks` in `lib/intervals/ride-sync.ts`: na de ritten
+in het venster nog hooguit 20 oudere intervals-ritten zonder spoor per lid per
+run, de nieuwste eerst, binnen 4 seconden. Een gevonden spoor zet beide
+ZWBlokken-cursors terug en geeft eigen segment- en coltijden, net als in het
+venster; het nawerk draait nu ook als er alleen oude sporen bijkwamen. Een 404
+telt als "geen spoor", anders vraagt elke run dezelfde rit opnieuw en komt de
+rest nooit aan de beurt. Elke andere fout stopt de inhaalslag voor die run. De
+cron doet 5 leden per uur; de achterstand zou zo in een paar dagen weg moeten
+zijn. `tests/unit/fake-db.ts` kent nu filters op JSON-paden (`raw->>x`), die
+gingen eerder ongemerkt altijd op.
+
+**Bewust niet gebouwd.**
+- Geen vangnet voor Zwift-ritten die Strava als gewone `Ride` opsloeg: het zijn
+  er 5 (2018 en 2023). Ze vallen buiten de blokken buiten en in Zwift.
+- Blokken van een verwijderde rit blijven staan (~2.300 Zwift-blokken verwijzen
+  naar een eerste rit die er niet meer is). Dat is de bestaande keuze uit
+  `lib/strava/retention.ts`: afgeleide clubdata blijft.
+
+**Niet lokaal te controleren.** Dat intervals.icu voor een verwijderde rit echt
+404 geeft en voor een rit zonder GPS een leeg spoor, en hoe lang 20 sporen
+ophalen in productie duurt naast de 30 seconden van de cron.
 
 ### Gebouwd — Teamraces alleen voor je eigen team
 
