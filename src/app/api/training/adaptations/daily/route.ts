@@ -32,6 +32,15 @@ import { onePlanPerProfile } from "@/lib/training/active-plan";
 import { refreshEventWorkouts } from "@/lib/training/events";
 import { reconcileZrlReservations } from "@/lib/training/zrl-reservation";
 import { getClub } from "@/lib/club";
+import { isKeyWorkout } from "@/lib/training/engine/daily";
+import type { WellnessSummary } from "@/lib/training/wellness";
+import {
+  LATE_CHECK_LAST_HOUR,
+  LATE_READINESS_REASON,
+  lateColumnMissing,
+  lowCurrentDeviceReadiness,
+  promptHadCurrentReadiness,
+} from "@/lib/training/late-readiness";
 
 /**
  * Hoe lang een voorstel blijft staan. Daarna is het achterhaald: het ging over
@@ -165,7 +174,8 @@ async function latestPlanCandidates(admin: ReturnType<typeof createAdminClient>)
  *
  * Dit is een snelle voorselectie, geen grendel: tussen deze check en de insert
  * zitten seconden. Twee overlappende runs houdt de unieke index uit migratie 0153
- * uit elkaar; startBackgroundAdaptation meldt dat als `duplicate`.
+ * uit elkaar (sinds 0324 met de late herkansing als eigen sleutel);
+ * startBackgroundAdaptation meldt dat als `duplicate`.
  */
 async function handledToday(
   admin: ReturnType<typeof createAdminClient>,
@@ -229,6 +239,252 @@ async function readinessSettled(
   // Geen wellness of geen readiness-bron: dan valt er niets af te wachten.
   if (!wellness?.readinessDate) return true;
   return wellness.readinessDate >= today;
+}
+
+/**
+ * Leden die vandaag een sleutelsessie hebben staan, in één query voor alle
+ * kandidaten. De late herkansing gaat alleen over hen; zo kost hij de andere
+ * leden geen enkele query per uur.
+ */
+async function profilesWithKeyWorkoutToday(
+  admin: ReturnType<typeof createAdminClient>,
+  profileIds: string[],
+  today: string,
+): Promise<Set<string>> {
+  if (profileIds.length === 0) return new Set();
+  const { data } = await admin
+    .from("training_workouts")
+    .select("profile_id, intensity")
+    .in("profile_id", profileIds)
+    .is("superseded_at", null)
+    .eq("status", "planned")
+    .not("origin", "in", "(member,event)")
+    .is("test_type", null)
+    .gte("scheduled_at", `${today}T00:00:00`)
+    .lte("scheduled_at", `${today}T23:59:59`);
+  return new Set(
+    (data ?? [])
+      .filter((row) => isKeyWorkout({ intensity: String(row.intensity ?? "") }))
+      .map((row) => String(row.profile_id)),
+  );
+}
+
+/**
+ * Late herkansing op de readiness van vandaag; waarom, zie late-readiness.ts.
+ *
+ * Eén keer per dag, alleen als het ertoe doet: de meting van het apparaat is
+ * van vandaag en laag (`lowCurrentDeviceReadiness`), het lid heeft nog niet
+ * gereden, er staat vandaag een sleutelsessie (de beller filtert daarop), en
+ * geen generatie van vandaag had deze meting al. Geeft de verse samenvatting
+ * terug als de herkansing moet lopen, anders null.
+ */
+async function lateReadinessDue(
+  admin: ReturnType<typeof createAdminClient>,
+  plan: PlanRow,
+  dayStart: string,
+): Promise<WellnessSummary | null> {
+  const { getWellnessSummary, wellnessForAi } = await import("@/lib/training/wellness");
+  // Eerst de kopie: een Garmin-lid valt hier al af, en alleen wie nog op de
+  // meting van vandaag wacht, kost een call naar intervals.icu.
+  const stored = await getWellnessSummary(admin, plan.profile_id).catch(() => null);
+  if (stored?.readinessSource !== "device") return null;
+  const wellness = stored.readinessCurrent
+    ? stored
+    : await wellnessForAi(admin, plan.profile_id, { fresh: true }).catch(() => null);
+  if (!wellness || !lowCurrentDeviceReadiness(wellness)) return null;
+
+  const { data: generations } = await admin
+    .from("training_ai_generations")
+    .select("adaptation_reason, prompt_summary")
+    .eq("parent_plan_id", plan.id)
+    .eq("adaptation_kind", "daily")
+    .gte("created_at", dayStart);
+  for (const row of generations ?? []) {
+    if (row.adaptation_reason === LATE_READINESS_REASON) return null;
+    if (promptHadCurrentReadiness(row.prompt_summary)) return null;
+  }
+
+  const rides = await buildTodayRides(admin, plan.profile_id).catch(() => null);
+  if (rides == null || rides.length > 0) return null;
+  return wellness;
+}
+
+/**
+ * Zet de late herkansing uit als hij nodig is. Null als er niets te doen was;
+ * `attempted` telt mee voor het plafond per run, net als een gewoon voorstel.
+ */
+async function runLateReadinessCheck(
+  admin: ReturnType<typeof createAdminClient>,
+  plan: PlanRow,
+  today: string,
+  dayStart: string,
+  shortName: string,
+): Promise<{ status: string; attempted: boolean; error?: string } | null> {
+  try {
+    const wellness = await lateReadinessDue(admin, plan, dayStart);
+    if (!wellness) return null;
+
+    const built = await buildDailyInput(admin, plan, shortName, {
+      requireActivity: false,
+      wellness,
+    });
+    if (!built.ok) return null;
+
+    const started = await startBackgroundAdaptation({
+      admin,
+      input: built.input,
+      prompt: adaptiveDailyPrompt(),
+      profileId: plan.profile_id,
+      trainerId: plan.trainer_id,
+      goalId: plan.goal_id,
+      parentPlanId: plan.id,
+      adaptationKind: "daily",
+      adaptationReason: LATE_READINESS_REASON,
+      adaptFromDate: today,
+      lateReadiness: true,
+      options: { reasoningEffort: "low", minWorkouts: 0 },
+    });
+    if (started.ok) return { status: "late_readiness_queued", attempted: true };
+    if (started.duplicate) return { status: "already_started", attempted: false };
+    if (lateColumnMissing(started.error)) {
+      return { status: "late_readiness_unavailable", attempted: false };
+    }
+    await admin.from("training_adaptation_runs").insert({
+      profile_id: plan.profile_id,
+      trainer_id: plan.trainer_id,
+      source_plan_id: plan.id,
+      status: "failed",
+      input_json: { reason: LATE_READINESS_REASON },
+      error: started.error,
+    });
+    return { status: "failed", attempted: true, error: started.error };
+  } catch (err) {
+    return {
+      status: "failed",
+      attempted: false,
+      error: err instanceof Error ? err.message : "Late herkansing faalde.",
+    };
+  }
+}
+
+type DailyInput =
+  | { ok: true; input: TrainingAiInput }
+  | { ok: false; reason: string };
+
+/**
+ * De invoer van een dagvoorstel. Gedeeld door het ochtendvoorstel en de late
+ * herkansing; die laatste vraagt geen rit van gisteren, want daar is de meting
+ * de aanleiding.
+ */
+async function buildDailyInput(
+  admin: ReturnType<typeof createAdminClient>,
+  plan: PlanRow,
+  shortName: string,
+  options: { requireActivity: boolean; wellness?: WellnessSummary | null },
+): Promise<DailyInput> {
+  const [{ data: recentActivities }, { data: goal }, { data: profile }] = await Promise.all([
+    options.requireActivity
+      ? admin
+          .from("strava_activities")
+          .select("distance_m, total_elevation_gain_m, moving_time_seconds")
+          .eq("profile_id", plan.profile_id)
+          .gte("start_date", since(1))
+      : Promise.resolve({ data: null }),
+    plan.goal_id
+      ? admin.from("training_goals").select("*").eq("id", plan.goal_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    admin
+      .from("profiles")
+      .select("display_name, ftp_watts, weight_kg, zrl_category, sex")
+      .eq("id", plan.profile_id)
+      .single(),
+  ]);
+
+  if (options.requireActivity && (!recentActivities || recentActivities.length === 0)) {
+    return { ok: false, reason: "Geen nieuwe activiteit of geen doel/profiel." };
+  }
+  if (!goal || !profile) return { ok: false, reason: "Geen nieuwe activiteit of geen doel/profiel." };
+
+  // De activiteiten van gisteren zijn alleen de trigger; de AI krijgt de
+  // trainingsbelasting over 28 dagen, net als de andere flows.
+  const today = amsterdamDayKey();
+  const planEnd = String(plan.end_date).slice(0, 10);
+  const { wellnessForAi, wellnessInputForAi } = await import("@/lib/training/wellness");
+  const [wellness, yesterday, todayRides, recent, intervalsLoad, availability, fixedWorkouts, ftpTests] =
+    await Promise.all([
+      // Altijd vers. Om negen uur gaat het voorstel uit zonder te wachten, en
+      // de kopie mocht dan tot zes uur oud zijn: een meting die om half negen
+      // binnenkwam, zag het voorstel van negen uur niet.
+      options.wellness !== undefined
+        ? Promise.resolve(options.wellness)
+        : wellnessForAi(admin, plan.profile_id, { fresh: true }).catch(() => null),
+      buildYesterdayContext(admin, plan.profile_id).catch(() => null),
+      buildTodayRides(admin, plan.profile_id).catch(() => []),
+      buildRecentLoad(admin, plan.profile_id),
+      buildIntervalsLoad(admin, plan.profile_id),
+      availabilityForAi(admin, plan.profile_id, today, planEnd),
+      loadFixedWorkouts(admin, plan.profile_id, today, planEnd).catch(() => []),
+      loadFtpTests(admin, plan.profile_id, 1).catch(() => []),
+    ]);
+
+  // Wat er nog gepland staat vanaf vandaag; zonder dit verzint de AI de
+  // resterende week opnieuw in plaats van hem aan te passen. Op profiel en
+  // datum, niet op plan_id: eerdere aanpassingen wonen in afgeleide plannen.
+  // Zonder de vaste afspraken: die staan al in fixedWorkouts. Stonden ze hier
+  // óók, dan gaf de AI de ZRL-race van vandaag terug als "de aangepaste
+  // training" en kwam er een kopie naast het clubevent (22 september 2026).
+  const { data: planned } = await admin
+    .from("training_workouts")
+    .select("scheduled_at, title, duration_minutes, intensity")
+    .eq("profile_id", plan.profile_id)
+    .is("superseded_at", null)
+    .eq("status", "planned")
+    .not("origin", "in", "(member,event)")
+    .is("test_type", null)
+    .gte("scheduled_at", `${today}T00:00:00`)
+    .lte("scheduled_at", `${planEnd}T23:59:59`)
+    .order("scheduled_at", { ascending: true });
+
+  return {
+    ok: true,
+    input: {
+      athleteName: profile.display_name ?? `${shortName}-lid`,
+      goal: {
+        title: goal.title,
+        type: goal.goal_type,
+        targetDate: goal.target_date,
+        availableDays: goal.available_days ?? [],
+        maxHoursPerWeek: goal.max_hours_per_week ? Number(goal.max_hours_per_week) : null,
+        preferredMode: goal.preferred_mode,
+        experienceLevel: goal.experience_level,
+        desiredIntensity: goal.desired_intensity,
+        riskNotes: goal.risk_notes,
+      },
+      profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
+      symptoms: await loadSymptomLoadForAi(admin, plan.profile_id),
+      recentLoad: recent,
+      currentLoad: currentWeeklyLoad({ recentLoad: recent, intervalsLoad }),
+      wellness: wellnessInputForAi(wellness),
+      intervalsLoad,
+      availability,
+      fixedWorkouts,
+      preferences: await preferencesForAi(admin, plan.profile_id),
+      protocols: await loadProtocolsForAi(admin, plan.profile_id, today, planEnd),
+      todayRides,
+      yesterday,
+      currentPlan: {
+        title: plan.title,
+        fromDate: today,
+        toDate: planEnd,
+        workouts: (planned ?? []).map((workout) => ({
+          date: String(workout.scheduled_at).slice(0, 10),
+          title: workout.title as string,
+          durationMinutes: Number(workout.duration_minutes ?? 0),
+          intensity: workout.intensity as string,
+        })),
+      },
+    },
+  };
 }
 
 /** Hoeveel generaties de cron vandaag al heeft uitgezet; voor de noodrem. */
@@ -491,6 +747,17 @@ export async function POST(request: Request) {
       ),
     );
 
+    // Voor de late herkansing: alleen wie vandaag een sleutelsessie heeft, en
+    // alleen zolang een tweede voorstel nog zin heeft.
+    const lateCandidates =
+      hour < LATE_CHECK_LAST_HOUR && dailyStartedToday < MAX_GENERATIONS_STARTED_PER_DAY
+        ? await profilesWithKeyWorkoutToday(
+            admin,
+            candidates.map((plan) => plan.profile_id),
+            today,
+          ).catch(() => new Set<string>())
+        : new Set<string>();
+
     for (const plan of candidates) {
       // Plafond of budget bereikt: de rest komt volgend uur. Niet doorgaan, want
       // elke start kost tot vijftien seconden en de invocatie stopt na een
@@ -499,7 +766,20 @@ export async function POST(request: Request) {
       if (Date.now() > deadline) break;
 
       const handled = await handledToday(admin, plan, dayStart);
-      if (handled.daily) continue;
+      if (handled.daily) {
+        if (
+          lateCandidates.has(plan.profile_id) &&
+          dailyStartedToday < MAX_GENERATIONS_STARTED_PER_DAY
+        ) {
+          const outcome = await runLateReadinessCheck(admin, plan, today, dayStart, clubTexts.shortName);
+          if (outcome) {
+            if (outcome.attempted) generationsStarted += 1;
+            if (outcome.status === "late_readiness_queued") dailyStartedToday += 1;
+            results.push({ profileId: plan.profile_id, status: outcome.status, error: outcome.error });
+          }
+        }
+        continue;
+      }
 
       // Wat het lid overdag veranderde, verwerkt de cron 's nachts in één
       // herziening (replan.ts bundelt de verzoeken), alleen over de weken die het
@@ -583,107 +863,21 @@ export async function POST(request: Request) {
       }
 
       try {
-        const [{ data: recentActivities }, { data: goal }, { data: profile }] =
-          await Promise.all([
-            admin
-              .from("strava_activities")
-              .select("distance_m, total_elevation_gain_m, moving_time_seconds")
-              .eq("profile_id", plan.profile_id)
-              .gte("start_date", since(1)),
-            plan.goal_id
-              ? admin.from("training_goals").select("*").eq("id", plan.goal_id).maybeSingle()
-              : Promise.resolve({ data: null }),
-            admin
-              .from("profiles")
-              .select("display_name, ftp_watts, weight_kg, zrl_category, sex")
-              .eq("id", plan.profile_id)
-              .single(),
-          ]);
-
-        if (!recentActivities || recentActivities.length === 0 || !goal || !profile) {
+        const built = await buildDailyInput(admin, plan, clubTexts.shortName, {
+          requireActivity: true,
+        });
+        if (!built.ok) {
           await admin.from("training_adaptation_runs").insert({
             profile_id: plan.profile_id,
             trainer_id: plan.trainer_id,
             source_plan_id: plan.id,
             status: "skipped",
-            input_json: { reason: "Geen nieuwe activiteit of geen doel/profiel." },
+            input_json: { reason: built.reason },
           });
           results.push({ profileId: plan.profile_id, status: "skipped" });
           continue;
         }
-
-        // De activiteiten van gisteren zijn alleen de trigger; de AI krijgt de
-        // trainingsbelasting over 28 dagen, net als de andere flows.
-        const today = amsterdamDayKey();
-        const planEnd = String(plan.end_date).slice(0, 10);
-        const { wellnessForAi, wellnessInputForAi } = await import("@/lib/training/wellness");
-        const [wellness, yesterday, todayRides, recent, intervalsLoad, availability, fixedWorkouts, ftpTests] =
-          await Promise.all([
-            wellnessForAi(admin, plan.profile_id).catch(() => null),
-            buildYesterdayContext(admin, plan.profile_id).catch(() => null),
-            buildTodayRides(admin, plan.profile_id).catch(() => []),
-            buildRecentLoad(admin, plan.profile_id),
-            buildIntervalsLoad(admin, plan.profile_id),
-            availabilityForAi(admin, plan.profile_id, today, planEnd),
-            loadFixedWorkouts(admin, plan.profile_id, today, planEnd).catch(() => []),
-            loadFtpTests(admin, plan.profile_id, 1).catch(() => []),
-          ]);
-
-        // Wat er nog gepland staat vanaf vandaag; zonder dit verzint de AI de
-        // resterende week opnieuw in plaats van hem aan te passen. Op profiel en
-        // datum, niet op plan_id: eerdere aanpassingen wonen in afgeleide plannen.
-        // Zonder de vaste afspraken: die staan al in fixedWorkouts. Stonden ze hier
-        // óók, dan gaf de AI de ZRL-race van vandaag terug als "de aangepaste
-        // training" en kwam er een kopie naast het clubevent (22 september 2026).
-        const { data: planned } = await admin
-          .from("training_workouts")
-          .select("scheduled_at, title, duration_minutes, intensity")
-          .eq("profile_id", plan.profile_id)
-          .is("superseded_at", null)
-          .eq("status", "planned")
-          .not("origin", "in", "(member,event)")
-          .is("test_type", null)
-          .gte("scheduled_at", `${today}T00:00:00`)
-          .lte("scheduled_at", `${planEnd}T23:59:59`)
-          .order("scheduled_at", { ascending: true });
-
-        const input: TrainingAiInput = {
-          athleteName: profile.display_name ?? `${clubTexts.shortName}-lid`,
-          goal: {
-            title: goal.title,
-            type: goal.goal_type,
-            targetDate: goal.target_date,
-            availableDays: goal.available_days ?? [],
-            maxHoursPerWeek: goal.max_hours_per_week ? Number(goal.max_hours_per_week) : null,
-            preferredMode: goal.preferred_mode,
-            experienceLevel: goal.experience_level,
-            desiredIntensity: goal.desired_intensity,
-            riskNotes: goal.risk_notes,
-          },
-          profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
-          symptoms: await loadSymptomLoadForAi(admin, plan.profile_id),
-          recentLoad: recent,
-          currentLoad: currentWeeklyLoad({ recentLoad: recent, intervalsLoad }),
-          wellness: wellnessInputForAi(wellness),
-          intervalsLoad,
-          availability,
-          fixedWorkouts,
-          preferences: await preferencesForAi(admin, plan.profile_id),
-          protocols: await loadProtocolsForAi(admin, plan.profile_id, today, planEnd),
-          todayRides,
-          yesterday,
-          currentPlan: {
-            title: plan.title,
-            fromDate: today,
-            toDate: planEnd,
-            workouts: (planned ?? []).map((workout) => ({
-              date: String(workout.scheduled_at).slice(0, 10),
-              title: workout.title as string,
-              durationMinutes: Number(workout.duration_minutes ?? 0),
-              intensity: workout.intensity as string,
-            })),
-          },
-        };
+        const { input } = built;
 
         // Uitzetten, niet uitvoeren. Het voorstel wordt een schema zodra
         // finishStaleGenerations 'm ophaalt, een van de volgende uren.
@@ -717,7 +911,7 @@ export async function POST(request: Request) {
             trainer_id: plan.trainer_id,
             source_plan_id: plan.id,
             status: "failed",
-            input_json: { recent },
+            input_json: { recent: input.recentLoad },
             error: started.error,
           });
           results.push({ profileId: plan.profile_id, status: "failed", error: started.error });

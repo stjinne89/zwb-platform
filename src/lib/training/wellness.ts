@@ -3,6 +3,8 @@
 // writes via service-role naar profile_wellness.
 
 import { fetchIntervalsWellness, type IntervalsWellness } from "@/lib/intervals/client";
+// Eén set drempels voor het scherm en de regelmotor; zie signals.ts.
+import { READINESS_LOW, TSB_FATIGUED } from "@/lib/training/engine/signals";
 
 export type WellnessSummary = {
   days: number; // hoeveel dagen met data in het venster
@@ -412,7 +414,7 @@ function clamp(value: number, min: number, max: number) {
  * 50 duwen, en dan op "herstel voorrang" zetten, terwijl de staffel dat alleen
  * bij structureel minder dan 5,5 uur doet.
  *
- * De schaal volgt de bestaande drempels (≤50 laag, <70 middelmatig, ≥75 goed),
+ * De schaal volgt de bestaande drempels (<50 laag, <70 middelmatig, ≥75 goed),
  * zodat een afgeleide waarde net zo leest als die van een Whoop of Polar.
  * Alles wordt afgezet tegen de eigen band, niet tegen een absolute norm: een
  * HRV van 95 zegt niets zonder te weten wat voor dit lid gewoon is, en 5 %
@@ -632,7 +634,9 @@ export function summarizeWellness(
       `Readiness van vandaag nog niet binnen; laatste meting ${readinessRow?.date} (${Math.round(deviceReadiness)}).`,
     );
   } else if (deviceReadiness != null) {
-    if (deviceReadiness <= 50) {
+    // Zelfde grens als de regelmotor (signals.ts); tot november 2026 telde 50
+    // hier al als laag en daar niet.
+    if (deviceReadiness < READINESS_LOW) {
       state = "fatigued";
       notes.push(`Readiness laag (${Math.round(deviceReadiness)}).`);
     } else if (deviceReadiness < 70) {
@@ -720,6 +724,28 @@ export function summarizeWellness(
   };
 }
 
+/**
+ * Van welke dag de getoonde readiness is, als het niet vandaag is: "gisteren"
+ * of een korte datum. Null bij een meting van vandaag en bij een berekende
+ * readiness, die een weektrend is. Een Whoop- of Polar-lid zag 's ochtends tot
+ * november 2026 het getal van gisteren als groot getal, alsof het van vandaag
+ * was, terwijl het advies het terecht negeerde.
+ */
+export function readinessAgeLabel(
+  wellness: Pick<WellnessSummary, "readiness" | "readinessSource" | "readinessDate" | "readinessCurrent"> | null,
+  today: string = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" }),
+): string | null {
+  if (!wellness || wellness.readiness == null || wellness.readinessSource !== "device") return null;
+  if (wellness.readinessCurrent || !wellness.readinessDate) return null;
+  const age = daysBetween(wellness.readinessDate, today);
+  if (age == null || age <= 0) return null;
+  if (age === 1) return "gisteren";
+  return new Date(`${wellness.readinessDate}T12:00:00`).toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
 export function summarizeTrainingReadiness({
   tsb,
   wellness,
@@ -735,12 +761,15 @@ export function summarizeTrainingReadiness({
   let recoveryState: TrainingReadinessSummary["state"] = "unknown";
   let score = 72;
 
-  // De TSB-grenzen (-25, -10, +8) en SEVERE_TSB zijn conventie, geen
+  // De TSB-grenzen (TSB_FATIGUED, -10, +8) en SEVERE_TSB zijn conventie, geen
   // fysiologie: de tijdconstanten van het onderliggende Banister-model zijn per
   // sporter erg onzeker (Hellard 2006). Zie docs/wetenschappelijke-toets.md, 1A.
+  // De herstelgrens is die van de regelmotor (signals.ts). Tot november 2026
+  // stond hier -25: bij een TSB van -26 zei het scherm "Herstel voorrang" en
+  // liet het schema terecht een VO2max-sessie staan.
   if (tsb == null || !Number.isFinite(tsb)) {
     notes.push("TSB ontbreekt, dus trainingsbelasting telt niet mee.");
-  } else if (tsb <= -25) {
+  } else if (tsb <= TSB_FATIGUED) {
     loadState = "recovery";
     score -= 32;
     notes.push(`TSB ${tsb.toFixed(1)}: hoge trainingsvermoeidheid.`);
@@ -764,13 +793,20 @@ export function summarizeTrainingReadiness({
     // Een meting van een eerdere dag weegt niet mee; de notitie van de
     // samenvatting noemt hem wel.
     const readiness = wellness.readinessCurrent === false ? null : wellness.readiness;
-    if (wellness.state === "fatigued" || (readiness != null && readiness <= 50)) {
+    if (wellness.state === "fatigued" || (readiness != null && readiness < READINESS_LOW)) {
       recoveryState = "recovery";
       score -= 28;
     } else if (readiness != null && readiness < 70) {
       recoveryState = "caution";
       score -= 16;
-    } else if (wellness.state === "fresh" && (readiness == null || readiness >= 75)) {
+    } else if (
+      (wellness.state === "fresh" && (readiness == null || readiness >= 75)) ||
+      // HRV in de eigen band met een goede readiness is ook ruimte. Tot november
+      // 2026 vroeg "ruimte" een HRV boven de band; bij de meeste Garmin-leden
+      // ligt die er netjes binnen, en de berekende readiness komt uit dezelfde
+      // HRV. Zo bleef een lid met readiness 87 en TSB +11 op "beperkt" staan.
+      (wellness.state === "normal" && readiness != null && readiness >= 75)
+    ) {
       recoveryState = "ready";
       score += 8;
     } else if (wellness.state === "normal" || readiness != null) {
@@ -782,7 +818,7 @@ export function summarizeTrainingReadiness({
       notes.push(`Readiness ${Math.round(readiness)}${
         wellness.readinessSource === "afgeleid" ? " (berekend)" : ""
       }: ${
-        readiness >= 75 ? "goed" : readiness >= 70 ? "ok" : readiness >= 51 ? "matig" : "laag"
+        readiness >= 75 ? "goed" : readiness >= 70 ? "ok" : readiness >= READINESS_LOW ? "matig" : "laag"
       }.`);
     }
 
