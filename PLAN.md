@@ -12164,7 +12164,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Lid verwijderen; "Betalend lid" heet "ZWB-lid"
 
-**2026-11-10, commit volgt.** Op verzoek van de eigenaar ("Er is per ongeluk een
+**2026-11-10, commit `1c2558e5`, gepusht naar `main`.** Op verzoek van de eigenaar ("Er is per ongeluk een
 lid toegevoegd [...] Kun je een verwijderknop inbouwen? Daarnaast wil ik de rol
 van betalend lid veranderen in naam naar ZWB lid"). Geen migratie.
 
