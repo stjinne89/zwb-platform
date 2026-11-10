@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Databasecheck 2026-11-10: trage opruimfunctie en RLS-policy: lokaal
+   gecommit, niet gepusht.** Migratie **0325**, nog niet toegepast in productie.
+   Open: migratie toepassen, pushen, en in de volgende databasecheck nagaan of
+   `prune_superseded_training_workouts` uit de top is. Zie de ronde
+   "Databasecheck 2026-11-10: opruimfunctie en RLS-policy".
+
 0. **Telefoon: Renners en Leden zoals de matchup (2026-11-10): gepusht
    naar `main` (`c59461bf`).** Geen migratie. Zie de ronde
    "Telefoon: Renners en Leden zoals de matchup".
@@ -599,8 +605,8 @@ gaat stabiliteit voor nieuwe features.
    `live_positions` ging van 0 naar 9.327 rijen en dat klopt: de tabel is op
    2026-10-01 met de hand geleegd en de bewaartermijn is 30 dagen, dus tot
    ongeveer 2026-10-31 wordt er niets gewist. Wel negeert `/api/live/cleanup` een
-   fout bij het wissen en antwoordt altijd `ok: true`; pas na die datum is te zien
-   of het wissen echt werkt.
+   fout bij het wissen en antwoordt altijd `ok: true`. (Bijgewerkt 2026-11-10:
+   het wissen werkt; de tabel zakte van 17.638 rijen op 27-10 naar 9.492.)
    De regel "wordt zonder filter opgehaald" in `scripts/db-health.mjs` gaf bij
    `nutrition_foods` vals alarm: de query stond in een variabele en kreeg zijn
    filter pas op de regels eronder. Verholpen op 2026-10-13: de controle
@@ -12535,6 +12541,35 @@ kleur van de naam en de waarschuwing onder zFTP/zMAP.
 in de rostertabel op dezelfde pagina. De melding "DELETE requires a WHERE
 clause" bij een nieuw subteam is apart opgelost (commit `47fbf4ac`, migr. 0323,
 hieronder).
+
+### Databasecheck 2026-11-10: opruimfunctie en RLS-policy
+
+**2026-11-10, migratie 0325.** Op verzoek van de eigenaar, naar aanleiding van
+de wekelijkse databasecheck (0 ACTIE, 2 LET OP; database 268 MB, disk ~29%,
+egress 1,07 GB na 8 dagen in de Pro-cyclus van 02-11).
+
+**Wat.**
+- `prune_superseded_training_workouts` (0304) was de zwaarste query: 671 runs,
+  minimaal 619 ms, gemiddeld 1,2 s, ~18% van de databasetijd. Hij draaide elk
+  kwartier mee met `/api/live/cleanup`. Elke run scande heel
+  `training_workouts`; er waren 0 kandidaten. 0325 zet een partiële index op
+  `superseded_at` met precies de filter van de functie, en de route draait de
+  functie nog maar in het eerste kwartier van 03:00 UTC (`?prune=1` forceert).
+  Buiten dat venster geeft het antwoord `prunedSupersededWorkouts: null`.
+- De policy `intervals_strength_muscles_own` (0292) gebruikte een kale
+  `auth.uid()` (advisor `auth_rls_initplan`, drie checks op rij gemeld). 0325
+  maakt er `(select auth.uid())` van, zoals 0210.
+
+**Bewust niet:** de index op `strava_activity_summaries.workout_id` die het
+eerste checkrapport voorstelde. Die tabel heeft 420 rijen en wordt in het plan
+niet eens geraakt; de index zou niets doen.
+
+**Niet verklaard:** dezelfde select liep met de hand eerst 1.025 ms en direct
+daarna 7 ms, terwijl de RPC structureel boven 600 ms blijft. Waarom de scan in
+de RPC zo traag is, is niet vastgesteld; de index en de lagere frequentie
+omzeilen het. **Niet lokaal te controleren:** de migratie (geen Docker of
+Supabase-config hier). Typecheck geeft dezelfde 30 bestaande fouten als zonder
+deze wijziging; lint op de route is schoon.
 
 ### Hersteld — Subteam aanmaken gaf "DELETE requires a WHERE clause"
 

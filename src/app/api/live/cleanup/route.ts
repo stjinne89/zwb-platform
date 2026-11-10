@@ -79,18 +79,23 @@ export async function POST(request: NextRequest) {
 
   // 6. Vervangen trainingsvoorstellen na 30 dagen weg (0304). De fout komt in
   //    het antwoord, zodat een geslaagde cron-run niet stil maskeert dat er
-  //    niets gewist wordt.
-  const { data: prunedWorkouts, error: pruneError } = await admin.rpc(
-    "prune_superseded_training_workouts",
-    { keep_days: 30 },
-  );
+  //    niets gewist wordt. Eén keer per dag (eerste kwartier van 03:00 UTC):
+  //    elk kwartier kostte ~1,2 s databasetijd per run voor een bewaartermijn
+  //    van 30 dagen (databasecheck 2026-11-10). `?prune=1` forceert een run.
+  const runPrune =
+    request.nextUrl.searchParams.get("prune") === "1" ||
+    (new Date(now).getUTCHours() === 3 && new Date(now).getUTCMinutes() < 15);
+  const { data: prunedWorkouts, error: pruneError } = runPrune
+    ? await admin.rpc("prune_superseded_training_workouts", { keep_days: 30 })
+    : { data: null, error: null };
 
   return NextResponse.json({
     ok: true,
     closedStaleSessions: (closedCount ?? 0) + (closedExternal ?? 0),
     deletedOldPositions: deletedPositions ?? 0,
     deletedOldChat: deletedChat,
-    prunedSupersededWorkouts: pruneError ? null : (prunedWorkouts ?? 0),
+    prunedSupersededWorkouts:
+      !runPrune || pruneError ? null : (prunedWorkouts ?? 0),
     ...(pruneError ? { pruneError: pruneError.message } : {}),
   });
 }
