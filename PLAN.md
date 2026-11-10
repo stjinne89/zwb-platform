@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Club Ladder: uitdaging klaarzetten voor Discord (2026-11-11): gepusht
-   naar `main`.** Geen migratie. `LADDER_COOKIE` op Netlify werkt nog (eigenaar,
+   naar `main` (`8b8223f3`).** Geen migratie. `LADDER_COOKIE` op Netlify werkt nog (eigenaar,
    2026-11-11). Open: de knop na de deploy als captain proberen. Zie de ronde
    "Club Ladder: uitdaging klaarzetten voor Discord".
 
@@ -12186,7 +12186,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: uitdaging klaarzetten voor Discord
 
-**2026-11-11, gepusht naar `main`** (eigenaar: "push maar"). Op verzoek van de eigenaar ("de
+**2026-11-11, commit `8b8223f3`, gepusht naar `main`** (eigenaar: "push maar"). Op verzoek van de eigenaar ("de
 captains ophalen die je kan uitdagen [...] en daarmee direct een automatische
 post op discord te kunnen maken in het juiste kanaal"), met een screenshot van
 een post van Jeroen in `emea-race-organisation`. Geen migratie.
