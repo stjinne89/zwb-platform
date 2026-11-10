@@ -615,6 +615,7 @@ export default async function DashboardPage({
       )
       .eq("active", true)
       .order("display_order")
+      .order("created_at", { ascending: false })
       .limit(3),
     supabase
       .from("events")

@@ -12162,6 +12162,26 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Ledenvoordeel op het dashboard nieuw naar oud
+
+**2026-11-10, commit volgt.** Op verzoek van de eigenaar ("Het ledenvoordeel op
+het dashboard moet in volgorde nieuw-oud, nu staat het oud-nieuw"). Geen
+migratie.
+
+Het blok Ledenvoordeel op `/dashboard` sorteerde alleen op `display_order`. In
+productie staan alle vier de voordelen op de standaardwaarde 100, dus de
+volgorde was die van de database: oud naar nieuw. Met `limit(3)` viel daardoor
+juist het nieuwste voordeel (Zwift, 2026-11-09) van het dashboard. Nu sorteert
+het blok op `display_order` en daarbinnen op `created_at` aflopend.
+
+**Bewust niet:** `display_order` loslaten. Wie in Sponsors een sortering invult,
+houdt die voorrang. Ook de lijst op `/sponsors` niet aangepast; de vraag ging
+over het dashboard.
+
+**Niet lokaal gecontroleerd:** deze worktree heeft geen `node_modules`, dus
+geen `tsc` of eslint gedraaid; de wijziging is één extra `.order()`. Niet in de
+browser bekeken.
+
 ### Gebouwd — Telefoon: Renners en Leden zoals de matchup
 
 **2026-11-10, commit `c59461bf`.** Op verzoek van de eigenaar ("hetzelfde
