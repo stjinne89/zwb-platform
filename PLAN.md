@@ -7,10 +7,15 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Telefoon: beheerknoppen op Teams achter één knop (2026-11-10): lokaal
+   gecommit (commit: zie de ronde), niet gepusht.** Geen migratie. Stap 5, de laatste van
+   het voorstel na de mobiele audit. Zie de ronde "Telefoon: beheerknoppen op
+   Teams achter één knop".
+
 0. **Telefoon: geen paneel in een paneel (2026-11-10): lokaal gecommit
    (`f00ace98`), niet gepusht.** Geen migratie. Stap 3 van het
-   voorstel na de mobiele audit; alleen stap 5 (beheerknoppen op Teams) staat
-   nog open. Zie de ronde "Telefoon: geen paneel in een paneel".
+   voorstel na de mobiele audit. Zie de ronde "Telefoon: geen paneel in een
+   paneel".
 
 0. **Telefoon: lange lijsten korter (2026-11-10): lokaal gecommit (`8cd94243`), niet
    gepusht.** Geen migratie. Stap 4 van het voorstel na de
@@ -20,8 +25,8 @@ gaat stabiliteit voor nieuwe features.
    lokaal gecommit (`d771b273`), niet gepusht.** Geen migratie. Stap 1
    en 2 van het voorstel na de mobiele audit; stap 3 en 4 zijn de rondes
    "Telefoon: geen paneel in een paneel" en "Telefoon: lange lijsten
-   korter"; stap 5 (beheerknoppen op Teams) staat nog open. Zie de ronde
-   "Telefoon: compactere tegels en cijferkaarten naast elkaar".
+   korter"; stap 5 is "Telefoon: beheerknoppen op Teams achter één knop".
+   Zie de ronde "Telefoon: compactere tegels en cijferkaarten naast elkaar".
 
 0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
    naar `main` (`8932806c`).** Geen migratie. Open: na de deploy ingelogd bekijken of de
@@ -12091,6 +12096,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Telefoon: beheerknoppen op Teams achter één knop
+
+**2026-11-10, commit: zie hieronder.** Stap 5, de laatste van het voorstel na de
+mobiele audit, op verzoek van de eigenaar ("Ja, stap 5"). Geen migratie.
+
+Het probleem: voor een beheerder stonden in de kop van `/teams` op 375px vijf
+knoppen onder elkaar (Mijn waarden, Alle waarden, Teams en resultaten,
+Teamarchief, Nieuw team); de kop was 240px hoog.
+
+Wat er is: `HeaderAdminActions` (`teams/_components/header-admin-actions.tsx`).
+Onder 768px staan "Mijn waarden ophalen" en een knop "Beheer" naast elkaar;
+Beheer klapt de andere vier eronder open (`aria-expanded`). Vanaf 768px is de
+houder `display: contents` en de knop Beheer verborgen, dus staan de knoppen
+los in de rij zoals voorheen. Wie geen `teams.sync_sources` of `teams.create`
+heeft, ziet geen knop Beheer.
+
+Openklappen in plaats van een uitklapmenu: de ophaalknoppen tonen hun
+resultaat (aantallen, fouten per bron) onder zich, en een menu dat na de klik
+sluit zou dat weghalen. Verborgen met CSS, niet ontkoppeld, zodat een lopende
+synchronisatie en haar melding blijven als je dichtklapt.
+
+Op 375px (licht, als beheerder): kop 240 naar 84px dicht, Teams 3.213 naar
+3.057px. Open zijn het weer de vijf knoppen. Bekeken in licht en donker. Op
+1024px nagemeten tegen de vorige versie: kop 52px, alle knoppen op dezelfde
+plek en breedte. Op 700px staat de rij naast de titel en klapt Beheer net zo
+open. Lokaal: `tsc` en eslint schoon.
+
+**Bewust niet:** "Nieuw team" uit de kop halen omdat hij ook bij Teamoverzicht
+staat; dat verandert de desktop. Ook de knoppen in het menu niet even breed
+of even hoog gemaakt (Teamarchief is `size="sm"`, de rest 32px): dat is
+bestaand en hoort bij een eigen ronde over raakvlakken van 44px.
+
+**Niet bekeken:** als gewoon lid (ziet alleen "Mijn waarden ophalen"), op een
+echte telefoon, en Safari. Een synchronisatie zelf niet gestart.
+
 ### Gebouwd — Telefoon: geen paneel in een paneel
 
 **2026-11-10, commit `f00ace98`.** Stap 3 van het voorstel na de mobiele
@@ -12230,9 +12270,9 @@ Tile title, Tegelvelden, Cijfers). Lokaal: `tsc` en eslint schoon.
 
 **Bewust niet (nog):** stap 3 tot 5 van het voorstel. Stap 3 (paneel in
 paneel) is daarna gebouwd: zie "Telefoon: geen paneel in een paneel". Stap 4 (lange lijsten) is daarna gebouwd: zie "Telefoon: lange lijsten
-korter". Stap 5: de vijf beheerknoppen in de kop van
-Teams in één menu. Die staan klaar als volgende rondes; de lengte zit vooral
-daar, deze ronde haalt per scherm een paar honderd pixels.
+korter". Stap 5 (beheerknoppen op Teams) is daarna gebouwd: zie "Telefoon:
+beheerknoppen op Teams achter één knop". De lengte zat vooral in stap 3 tot 5;
+deze ronde haalt per scherm een paar honderd pixels.
 
 **Open:** het cijfer van de weekoverzichttegel (`dashboard-link.tsx`, "2–8 nov")
 heeft `text-[1.25rem]`, maar de regel voor `.tg-tile-num` staat buiten een

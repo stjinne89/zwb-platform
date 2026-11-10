@@ -506,7 +506,11 @@ van 2.75rem.
 
 ### Paginakop
 Geen kaart en geen tenuebalk: alleen de grote lichte titel (Display), met
-hooguit een regel eronder en knoppen rechts op één lijn.
+hooguit een regel eronder en knoppen rechts op één lijn. Op de telefoon
+(onder 768px) staan beheerknoppen achter één knop "Beheer" die ze eronder
+openklapt (`HeaderAdminActions` op Teams); de knop voor jezelf blijft los.
+Openklappen en geen uitklapmenu, omdat zulke knoppen hun resultaat onder zich
+tonen.
 
 ### Sectiekop
 Section-typografie, zonder pictogram en zonder lijn eronder, 10px boven de

@@ -8,6 +8,7 @@ import { SyncResultsButton } from "./_components/sync-results-button";
 import { loadWtrlSummaries } from "@/lib/teams/wtrl-summary";
 import { SyncGraveyardButton } from "./_components/sync-graveyard-button";
 import { SyncPowerButton } from "./_components/sync-power-button";
+import { HeaderAdminActions } from "./_components/header-admin-actions";
 import {
   TeamRosterTable,
   type TeamOption,
@@ -253,22 +254,26 @@ export default async function TeamsPage() {
       <PageHeader
         title="Teams"
         actions={
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <div className="flex flex-wrap items-start gap-2 md:flex-nowrap">
             <SyncPowerButton scope="self" />
-            {canSyncTeams && (
-              <>
-                <SyncPowerButton scope="all" />
-                <SyncResultsButton />
-                <SyncGraveyardButton />
-              </>
-            )}
-            {canCreateTeams && (
-              <Link href="/teams/nieuw">
-                <Button>
-                  <Plus data-icon="inline-start" />
-                  Nieuw team
-                </Button>
-              </Link>
+            {(canSyncTeams || canCreateTeams) && (
+              <HeaderAdminActions>
+                {canSyncTeams && (
+                  <>
+                    <SyncPowerButton scope="all" />
+                    <SyncResultsButton />
+                    <SyncGraveyardButton />
+                  </>
+                )}
+                {canCreateTeams && (
+                  <Link href="/teams/nieuw">
+                    <Button>
+                      <Plus data-icon="inline-start" />
+                      Nieuw team
+                    </Button>
+                  </Link>
+                )}
+              </HeaderAdminActions>
             )}
           </div>
         }
