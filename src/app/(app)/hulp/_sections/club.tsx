@@ -85,8 +85,12 @@ export function ClubHelp() {
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
-              De blokken komen uit je Strava-ritten. Zonder Strava-koppeling
-              blijft je eigen laag leeg; de clubkaart zie je wel.
+              De blokken komen uit de route van je ritten: via Strava,
+              intervals.icu of een geüploade GPX of FIT. Een rit uit
+              activities.csv heeft geen route en telt pas mee als je het
+              bestand uit de map activities van je Strava-export uploadt (zie
+              Koppelen). Heb je veel van zulke Zwift-ritten, dan wijst een
+              melding je daarop.
             </span>
           </li>
           <li className="flex gap-2">
@@ -95,7 +99,8 @@ export function ClubHelp() {
               <strong className="text-foreground">Zwift-ritten staan onder
               Zwift, los van de kaart buiten.</strong> Per Zwift-wereld kleuren
               blokken van ongeveer 600 meter in, en wie de meeste blokken in een
-              wereld heeft, draagt daar de titel. Staan leden gelijk, bijvoorbeeld
+              wereld heeft, draagt daar de titel. De ranglijst onderaan telt op
+              het tabblad Zwift alle werelden samen. Staan leden gelijk, bijvoorbeeld
               omdat meerdere leden een wereld helemaal gereden hebben, dan wint
               wie daar de meeste kilometers reed. Het percentage gaat over de
               wegen die we van die wereld kennen: rijdt iemand een nieuwe weg,

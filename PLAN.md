@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **ZWBlokken: Zwift-ranglijst en melding voor ritten zonder route
+   (2026-11-10): lokaal gecommit, niet gepusht.** Geen migratie. Open: na de
+   deploy als Kevin Plasmans (of een van de andere vier) inloggen en de melding
+   zien; het Zwift-tabblad van /zwblokken bekijken. Zie de ronde "ZWBlokken:
+   Zwift-ranglijst en melding voor ritten zonder route".
+
 0. **Telefoon: beheerknoppen op Teams achter één knop (2026-11-10): gepusht
    naar `main` (`3c7ca09b`).** Geen migratie. Stap 5, de laatste van
    het voorstel na de mobiele audit. Zie de ronde "Telefoon: beheerknoppen op
@@ -12460,6 +12466,58 @@ belasting op tijd uit; los gedraaid slagen ze. `omnium-live` mist
 **Niet lokaal te controleren:** de functie op Netlify zelf, en waarom één
 opdracht op 10 november wel liep. Het tegoed is niet op: die opdracht is door
 Claude beantwoord.
+
+### Gebouwd — ZWBlokken: Zwift-ranglijst en melding voor ritten zonder route
+
+**2026-11-10, commit HASH.** Op vraag van de eigenaar ("Bart en Kevin lijken mij
+hoger te moeten staan?", daarna "ik zie hele andere getallen bij de ZWBlokken
+dan dat jij nu noemt? En kunnen we voor deze 5 leden een popup melding maken
+met instructie wat ze moeten doen en wat het oplevert?"); gekozen uit een
+voorstel: de ranglijst wordt het Zwift-totaal, en de melding komt automatisch.
+Geen migratie.
+
+**Waarom de getallen niet klopten.** De lijst "Meeste blokken" onder de kaart
+stond in `page.tsx` buiten de weergave, en telde altijd `profile_blocks`: ook
+op het tabblad Zwift. Bart stond daar 6e (3.794 blokken buiten) en Kevin 20e
+(610), terwijl ze in Zwift 4e (805) en ver onder de top (409) staan. Een totaal
+over alle Zwift-werelden stond nergens. Ook de ledenkiezer toonde het aantal
+blokken buiten.
+
+**Kevin stond in Zwift ook echt te laag.** 1.658 van zijn 1.713 Zwift-ritten
+(33.255 km, vanaf 2015) komen uit `activities.csv`, zonder route; intervals.icu
+heeft van hem alleen de 55 ritten uit 2026, en die hebben er al een. Hetzelfde
+bij Moniek Groothuis (1.159), Rolf Buunk (422), Jeroen Janssen (385) en Remco
+Kuijpers (204). De bestanden met route staan in de map `activities` van hun
+Strava-export (`raw.filename`), en de import koppelt ze al aan de CSV-rit. Bart
+klopt: historie compleet sinds 2017, en van de blokken die 15+ leden hebben mist
+hij er 9.
+
+**Gebouwd.**
+- `/zwblokken`: de ranglijst staat nu in `ZwblokkenView` en volgt het tabblad.
+  Op Zwift heet hij "Meeste blokken in Zwift" en telt hij alle werelden samen
+  (`lib/zwblokken/leaderboard.ts`); de ledenkiezer toont daar ook het
+  Zwift-aantal. De lijsten per wereld blijven.
+- Melding "Je Zwift-ritten tellen nog niet mee" (`zwift-tracks-notice-dialog.tsx`,
+  tekst goedgekeurd): voor wie ten minste 25 virtuele ritten uit
+  `activities.csv` heeft met een FIT- of GPX-bestand en zonder route
+  (`lib/zwblokken/missing-tracks.ts`). Met het aantal ritten en kilometers, een
+  knop naar het uploadformulier op het dashboard en de uitleg op
+  `/hulp/koppelen#strava-import`. Sluiten verbergt hem 30 dagen op dat apparaat; de
+  server wordt hooguit één keer per browsersessie gevraagd. Na het uploaden
+  heeft het lid zulke ritten niet meer en verdwijnt de melding vanzelf.
+- `/hulp` (ZWBlokken): de zin "Zonder Strava-koppeling blijft je eigen laag
+  leeg" klopte al niet meer (intervals.icu en geüploade bestanden tellen ook);
+  vervangen, met de CSV-uitzondering en de Zwift-ranglijst.
+
+**Bewust niet gebouwd.**
+- Geen melding via `/beheer/koppelingen` (0307): die zou een migratie vragen en
+  moet met de hand verstuurd worden; deze melding vindt ook toekomstige leden.
+- Geen naamfilter op "Zwift": bij Rolf en Remco staat Zwift in geen enkele
+  ritnaam. Andere platforms leveren na het uploaden gewoon geen Zwift-blokken.
+- Geen TCX: de import leest dat niet.
+
+**Niet lokaal te controleren.** Hoe de melding er voor een echt lid uitziet:
+lokaal is er geen lid met zulke ritten.
 
 ### Hersteld — Oude intervals-ritten krijgen alsnog hun spoor
 

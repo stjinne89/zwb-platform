@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StravaAttribution } from "@/components/strava-brand";
 import { EmptyState, PageHeader } from "@/components/app-ui";
-import { MemberLink } from "@/components/member-link";
 import {
   countNewThisYear,
   fetchClubBlocks,
@@ -30,8 +29,6 @@ import { ModuleName } from "@/components/club-texts-provider";
 import { moduleName } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
-
-const nl = (n: number) => n.toLocaleString("nl-NL");
 
 export default async function ZwblokkenPage() {
   const supabase = await createClient();
@@ -151,19 +148,14 @@ export default async function ZwblokkenPage() {
       id: p.id,
       name: p.display_name ?? "Naamloos lid",
       blocks: counts.get(p.id) ?? 0,
+      zwiftBlocks: zwiftTotals.get(p.id) ?? 0,
     }))
-    .filter((m) => m.blocks > 0 || (zwiftTotals.get(m.id) ?? 0) > 0 || m.id === user.id)
+    .filter((m) => m.blocks > 0 || m.zwiftBlocks > 0 || m.id === user.id)
     .sort((a, b) => {
       if (a.id === user.id) return -1;
       if (b.id === user.id) return 1;
       return b.blocks - a.blocks;
     });
-
-  // Eigen sortering: de kiezer zet jou bovenaan, maar in een ranglijst hoort
-  // iedereen gewoon op zijn eigen plek te staan.
-  const leaderboard = [...members]
-    .filter((m) => m.blocks > 0)
-    .sort((a, b) => b.blocks - a.blocks);
 
   return (
     <div className="space-y-6">
@@ -179,60 +171,33 @@ export default async function ZwblokkenPage() {
           heeft, verschijnen ze hier.
         </EmptyState>
       ) : (
-        <>
-          <ZwblokkenView
-            club={club.packed}
-            clubRegions={Object.fromEntries(club.regions)}
-            clubTotal={club.total}
-            maxRiders={club.maxRiders}
-            // Alleen de metadata; de omtrekken uit regions.json blijven op de
-            // server, die zijn ruim anderhalve megabyte.
-            regions={REGIONS}
-            rulers={rulers}
-            members={members}
-            selectedId={user.id}
-            initial={{
-              blocks: own.packed,
-              regions: Object.fromEntries(own.regions),
-              total: own.total,
-              newThisYear,
-              zwift: zwiftOwn,
-            }}
-            zwift={{
-              worlds: zwiftWorlds,
-              blockZoom: ZWIFT_BLOCK_ZOOM,
-              club: zwiftClub.blocks,
-              maxRiders: zwiftClub.maxRiders,
-              rulers: zwiftRulers,
-              leaderboards: zwiftLeaderboards,
-            }}
-          />
-
-          {leaderboard.length > 0 && (
-            <section className="rounded-lg border bg-card/90 p-4">
-              <h2 className="text-sm font-semibold">Meeste blokken</h2>
-              {/* Tien rijen hoog (10 × 1,25rem + 9 × 0,375rem); de rest scrolt. */}
-              <ol className="mt-3 max-h-[15.875rem] space-y-1.5 overflow-y-auto pr-2">
-                {leaderboard.map((m, i) => (
-                  <li key={m.id} className="flex items-baseline gap-3 text-sm">
-                    <span className="w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-                      {i + 1}
-                    </span>
-                    <MemberLink
-                      id={m.id}
-                      className={m.id === user.id ? "font-semibold" : undefined}
-                    >
-                      {m.name}
-                    </MemberLink>
-                    <span className="ml-auto tabular-nums text-muted-foreground">
-                      {nl(m.blocks)}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          )}
-        </>
+        <ZwblokkenView
+          club={club.packed}
+          clubRegions={Object.fromEntries(club.regions)}
+          clubTotal={club.total}
+          maxRiders={club.maxRiders}
+          // Alleen de metadata; de omtrekken uit regions.json blijven op de
+          // server, die zijn ruim anderhalve megabyte.
+          regions={REGIONS}
+          rulers={rulers}
+          members={members}
+          selectedId={user.id}
+          initial={{
+            blocks: own.packed,
+            regions: Object.fromEntries(own.regions),
+            total: own.total,
+            newThisYear,
+            zwift: zwiftOwn,
+          }}
+          zwift={{
+            worlds: zwiftWorlds,
+            blockZoom: ZWIFT_BLOCK_ZOOM,
+            club: zwiftClub.blocks,
+            maxRiders: zwiftClub.maxRiders,
+            rulers: zwiftRulers,
+            leaderboards: zwiftLeaderboards,
+          }}
+        />
       )}
 
       <StravaAttribution />
