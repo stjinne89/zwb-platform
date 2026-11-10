@@ -12164,7 +12164,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Ledenvoordeel op het dashboard nieuw naar oud
 
-**2026-11-10, commit volgt.** Op verzoek van de eigenaar ("Het ledenvoordeel op
+**2026-11-10, commit `a3a4e883`.** Op verzoek van de eigenaar ("Het ledenvoordeel op
 het dashboard moet in volgorde nieuw-oud, nu staat het oud-nieuw"). Geen
 migratie.
 
