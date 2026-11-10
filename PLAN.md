@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Subteam aanmaken gaf "DELETE requires a WHERE clause" (2026-11-10):
+   lokaal gecommit, niet gepusht.** Migratie **0323**, nog niet toegepast in
+   productie. Open: migratie toepassen, pushen, en daarna een subteam onder een
+   hoofdteam aanmaken. Zie de ronde "Subteam aanmaken gaf DELETE requires a
+   WHERE clause".
+
 0. **Race of clubevent verdringt de zware training van die dag (2026-11-10):
    gepusht naar `main` (`6f6555ab`).** Geen migratie. Open: na de deploy
    bij de volgende ladderopstelling of toezegging zien dat de zware training
@@ -12106,6 +12112,33 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Subteam aanmaken gaf "DELETE requires a WHERE clause"
+
+**2026-11-10, migratie 0323.** Op verzoek van de eigenaar: Bart kreeg die
+melding bij "Nieuw team".
+
+**Oorzaak.** De trigger `teams_become_umbrella` (migr. 0179) draait bij een
+nieuw team met een hoofdteam, en bij het wijzigen van `parent_team_id`. Hij
+roept `convert_zrl_umbrella_races` aan. Die leegde zijn twee tijdelijke tabellen
+(`zrl_umbrellas`, `zrl_week_races`) met een `delete from …;` zonder WHERE. In
+productie laadt de rol `authenticator` (PostgREST) `safeupdate`, en dat weigert
+zo'n DELETE. Bij het toepassen van de migraties draaide alles als `postgres`,
+zonder safeupdate. Daarom viel het niet eerder op. Gevolg: elk subteam
+aanmaken, en een bestaand team onder een hoofdteam hangen, faalde met deze fout.
+Een team zonder hoofdteam aanmaken ging wel goed.
+
+**Reparatie.** 0323 herdefinieert de functie, gelijk aan 0184, alleen met
+`where true` op die vier DELETE's. Nagekeken in productie: het is de enige
+functie in `public` met een kale `delete from …;`.
+
+**Bewust niet:** de foutmelding in het formulier vertalen. Een databasefout die
+een gebruiker ziet, is een bug om te repareren, geen tekst om te verbergen.
+
+**Niet lokaal te controleren:** de migratie zelf (geen Docker of Supabase-config
+hier). `safeupdate` laten laden via de Supabase-connector mag niet ("access to
+library is not allowed"). Dat `where true` erdoor komt, volgt uit hoe
+safeupdate werkt: het weigert alleen een DELETE of UPDATE zonder WHERE.
 
 ### Hersteld — Claude-opdrachten bleven in de rij staan
 
