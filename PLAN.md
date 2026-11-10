@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Telefoon: compactere tegels en cijferkaarten naast elkaar (2026-11-10):
+   lokaal gecommit, niet gepusht (commit: zie de ronde).** Geen migratie. Stap 1
+   en 2 van het voorstel na de mobiele audit; stap 3 tot 5 (panelen in
+   panelen, lange lijsten, beheerknoppen op Teams) staan nog open. Zie de ronde
+   "Telefoon: compactere tegels en cijferkaarten naast elkaar".
+
 0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
    naar `main` (`8932806c`).** Geen migratie. Open: na de deploy ingelogd bekijken of de
    team- en ledentegels de races van de afgelopen week tonen. Zie de ronde
@@ -12074,6 +12080,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Telefoon: compactere tegels en cijferkaarten naast elkaar
+
+**2026-11-10, commit: zie hieronder.** Op verzoek van de eigenaar: pagina's
+waren op de telefoon slecht te bekijken "door de grote blokken". Een audit op
+375px (ingelogd, echte data) vond geen zijwaarts scrollen en tikdoelen van
+44px; het probleem is lengte (profiel ±20.000px, Teams 12.700px, dashboard
+5.500px). Van de vijf voorgestelde stappen koos de eigenaar stap 1 en 2 ("Ja,
+1 en 2"). Geen migratie.
+
+Wat er is, alleen onder 768px:
+
+- **Tegels** (`globals.css`, na `.tg-tile-num`): minstens 120px in plaats van
+  164px, titel 1.25rem in plaats van 1.5rem, cijfer 2.5rem in plaats van
+  3.375rem. Een tegel zonder `.tg-tile-num` (Q&A, Alle teams) minstens 80px.
+  De titel van de trainingstegel (`vandaag.tsx`) 1.625rem in plaats van 2rem.
+- **Tegelvelden met vaste rijen** (`TegelsLinkGrid` op Club, de categorieën op
+  `/hulp`): rijen van 80px in plaats van 104px. Titels van twee regels passen.
+- **Cijferkaarten twee naast elkaar** in plaats van onder elkaar: Teams
+  (Renners, Hoofdteams, Vermogensdata, Profieltypes) en ZWBeter Vandaag
+  (Fitness, Form, Trainingsruimte, eFTP, 7 dagen), en hetzelfde raster in het
+  belastingpaneel van de trainer. De oneven vijfde kaart ("7 dagen totaal",
+  "CTL doel") is op de telefoon twee kolommen breed; `MetricCard` kreeg
+  daarvoor een `className`. Het grafiekpaneel van Fitness/Form is daar nu
+  altijd twee kolommen breed (was `sm:col-span-2`). Clubstats op het
+  dashboard stond al op twee kolommen.
+- **Hersteld onderweg:** de klikbare metrics Fitness en Form (`button.tg-metric`,
+  ook op Belasting en bij de trainer) waren een licht paneel met papierwitte
+  tekst, nauwelijks leesbaar: de paneelregel voor `bg-card` is specifieker dan
+  de tealregel. Die regel heeft nu een driedubbele klasse en is weer teal.
+
+Gemeten op 375px (licht, als beheerder): dashboard 5.465 naar 5.159px, Club
+1.572 naar 1.308px, Teams 12.722 naar 12.505px (cijferblok 422 naar 205px),
+ZWBeter Vandaag 4.599 naar 4.345px (cijferblok 637 naar 383px). Nergens
+zijwaarts scrollen, geen tegel met afgesneden tekst. Bekeken in licht en
+donker. Vanaf 768px gelijk gebleven (1024px nagemeten: tegel 164px, titel
+24px, cijfer 54px, rijen 104px, vijf en vier kolommen; tussen 768 en 1023px
+blijft de vijfde kaart één kolom breed). `DESIGN.md` bijgewerkt (Tile number,
+Tile title, Tegelvelden, Cijfers). Lokaal: `tsc` en eslint schoon.
+
+**Bewust niet (nog):** stap 3 tot 5 van het voorstel. Stap 3: een `bg-card`
+in een `bg-card` zonder eigen binnenruimte op de telefoon (nu 16 + 16 + 12px
+opzij). Stap 4: lange lijsten inkorten (badge-kast op `/profiel` ±14.700px,
+Renners op Teams, Leden, de uitslag op de eventpagina, Nieuwste badges en
+Clubactiviteit op het dashboard). Stap 5: de vijf beheerknoppen in de kop van
+Teams in één menu. Die staan klaar als volgende rondes; de lengte zit vooral
+daar, deze ronde haalt per scherm een paar honderd pixels.
+
+**Open:** het cijfer van de weekoverzichttegel (`dashboard-link.tsx`, "2–8 nov")
+heeft `text-[1.25rem]`, maar de regel voor `.tg-tile-num` staat buiten een
+CSS-laag en wint van die Tailwind-klasse; het datumbereik staat daardoor op
+cijfermaat. Was al zo vóór deze ronde. **Niet bekeken:** als gewoon lid (de
+eigenaar ziet beheerknoppen), op een echte telefoon, en Safari.
 
 ### Gebouwd — Teamraces alleen voor je eigen team
 

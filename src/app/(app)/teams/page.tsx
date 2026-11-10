@@ -274,7 +274,7 @@ export default async function TeamsPage() {
         }
       />
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricCard icon={<Users className="size-4" />} label="Renners" value={rows.length} />
         <MetricCard icon={<LinkIcon className="size-4" />} label="Hoofdteams" value={parentTeamOptions.length} />
         <MetricCard icon={<Activity className="size-4" />} label="Vermogensdata" value={powerSynced} />

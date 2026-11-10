@@ -8,14 +8,16 @@ export function MetricCard({
   label,
   value,
   hint,
+  className = "",
 }: {
   icon: typeof Activity;
   label: string;
   value: React.ReactNode;
   hint?: string;
+  className?: string;
 }) {
   return (
-    <div className="tg-metric rounded-md border bg-card p-4">
+    <div className={`tg-metric rounded-md border bg-card p-4 ${className}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>

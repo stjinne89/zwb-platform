@@ -6,7 +6,7 @@ import { ClubText, ModuleGate } from "@/components/club-texts-provider";
 export function HelpCategoriesGrid() {
   return (
     <nav aria-label="Hulp per onderwerp">
-      <ul className="grid auto-rows-[6.5rem] grid-cols-2 gap-2 md:grid-cols-4">
+      <ul className="grid auto-rows-[5rem] grid-cols-2 gap-2 md:auto-rows-[6.5rem] md:grid-cols-4">
         {HELP_CATEGORIES.map((category) => (
           <ModuleGate key={category.id} module={"module" in category ? category.module : null}>
           <li>

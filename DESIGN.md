@@ -371,11 +371,13 @@ kleur; gewicht gaat juist omlaag naarmate iets groter wordt.
   de paginatitel (`PageHeader`, of een eigen `h1` met `text-2xl`/`text-3xl`), in
   primary bij licht en in de tekstkleur bij donker. Met knoppen ernaast
   `clamp(2.5rem, 10vw, 3.25rem)`.
-- **Tile number** (300, 3.375rem, tabelcijfers): het cijfer onderaan een tegel.
-  Cijferkaarten en metrics 2.5rem, losse statistieken 1.75rem, alle in 300.
+- **Tile number** (300, 3.375rem, tabelcijfers): het cijfer onderaan een tegel;
+  onder 768px 2.5rem. Cijferkaarten en metrics 2.5rem, losse statistieken
+  1.75rem, alle in 300.
 - **Section** (300, 1.625rem): sectiekoppen, zonder pictogram en zonder lijn.
   Kleine koppen in hoofdletters worden gewone koppen van 1.375rem in 500.
-- **Tile title** (500, 1.5rem): de naam op een tegel.
+- **Tile title** (500, 1.5rem): de naam op een tegel; onder 768px 1.25rem. De
+  titel van de trainingstegel is 2rem, onder 768px 1.625rem.
 - **Body** (400, 1.0625rem): de basismaat van de schil.
 - **Small** (1rem) en **Caption** (0.875rem): `text-sm` en `text-xs` staan een
   stap groter dan in Tailwind, omdat de smalle letter op dezelfde maat kleiner
@@ -412,9 +414,11 @@ tab actief en is de plekkleur donker petrol.
 
 **Tegelvelden:** twee kolommen, vier vanaf 768px, 8px tussenruimte. Een tegel
 is minstens 164px hoog met 12 bij 14px binnenruimte; tekst bovenin, het cijfer
-onderin. Op Club (`TegelsLinkGrid`) zijn de rijen 104px en kan een
-tegel breed (twee kolommen) of groot (twee bij twee) zijn, zodat het veld geen
-egaal rooster is. Op het dashboard staan de tegelrijen dicht op elkaar en
+onderin. Op een staande telefoon (onder 768px) is hij minstens 120px, en een
+tegel zonder cijfer (Q&A, Alle teams) minstens 80px, zodat een scherm meer
+tegels toont. Op Club (`TegelsLinkGrid`) en `/hulp` zijn de rijen 104px, op de
+telefoon 80px, en kan een tegel breed (twee kolommen) of groot (twee bij twee)
+zijn, zodat het veld geen egaal rooster is. Op het dashboard staan de tegelrijen dicht op elkaar en
 krijgt elke sectie 28px lucht erboven.
 
 **Lijsten:** een `divide-y`-lijst wordt een kolom losse paneelrijen met 6px
@@ -543,7 +547,9 @@ is `tg-tile tg-meer` met de duur als cijfer onderaan.
 Een rij gelijke cijferkaarten (`tg-metric-row`) is één paneel met drie
 kolommen, cijfer boven label, zonder pictogram. Een klikbare metric
 (`tg-metric`) is een teal tegel met de baan; een losse statistiek (`tg-stat`)
-een paneel.
+een paneel. Losse cijferkaarten met één getal (Teams, ZWBeter Vandaag) staan
+ook op de telefoon twee naast elkaar; een oneven laatste kaart is daar twee
+kolommen breed.
 
 ### Inputs / Fields
 Een paneel zonder rand, schaduw of afronding. Focus: een rand van 2px in de

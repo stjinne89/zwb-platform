@@ -47,7 +47,7 @@ export function AthleteLoadPanel({
         <TrendingUp className="size-4 text-primary" />
         Belasting
       </h2>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <TrainingLoadMetrics
           points={loadPoints}
           ctl={ctl}
@@ -65,6 +65,7 @@ export function AthleteLoadPanel({
         <MetricCard
           icon={TrendingUp}
           label="CTL doel"
+          className="col-span-2 md:col-span-1"
           value={formatNumber(ctlProjection ?? undefined, 1)}
         />
       </div>

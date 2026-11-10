@@ -246,7 +246,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
 
       {!conn && <ConnectIntervalsForm />}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <TrainingLoadMetrics
           points={toTrainingLoadPoints(snapshot.wellness)}
           ctl={zwbStatus.ctl}
@@ -268,6 +268,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
         <MetricCard
           icon={Calendar}
           label="7 dagen totaal"
+          className="col-span-2 md:col-span-1"
           value={formatKm(totals7.distance)}
           hint={
             activities.length > 0

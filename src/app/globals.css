@@ -667,6 +667,14 @@ a.tg-row:focus-visible,
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
+/* Staande telefoon: kleinere tegels, zodat een scherm meer dan vier tegels
+   toont. Een tegel zonder cijfer is half zo hoog (audit 2026-11-10). */
+@media (width < 48rem) {
+  .tg-tile { min-height: 7.5rem; }
+  .tg-tile:not(:has(.tg-tile-num)) { min-height: 5rem; }
+  .tg-tile-title { font-size: 1.25rem; }
+  .tg-tile-num { font-size: 2.5rem; }
+}
 /* Agendarij: een vlak paneel met vooraan een dagvak in de afgesproken
    eventkleur (lib/event-types.ts). */
 .tg-row {
@@ -1212,7 +1220,9 @@ html[data-viewport-fout] .tg-tabs-bottom {
   line-height: 1.05;
   letter-spacing: -0.02em;
 }
-[data-design="tegels"] :is(button, a).tg-metric {
+/* Driedubbele klasse: de paneelregel voor bg-card is specifieker en maakte de
+   knop een licht paneel met papierwitte tekst (gezien 2026-11-10). */
+[data-design="tegels"] :is(button, a).tg-metric.tg-metric.tg-metric {
   position: relative;
   overflow: hidden;
   border: 0;

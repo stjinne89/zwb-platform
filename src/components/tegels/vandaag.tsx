@@ -150,7 +150,7 @@ function WorkoutTile({
         <ClubText text="{beter} trainen · " />{workout.when}
         {position ? ` · ${position}` : ""}
       </span>
-      <span className="mt-0.5 line-clamp-2 text-[2rem] font-light leading-[1.05] tracking-tight">
+      <span className="mt-0.5 line-clamp-2 text-[1.625rem] font-light leading-[1.05] tracking-tight md:text-[2rem]">
         {workout.title}
       </span>
       {workout.profile && <WorkoutProfile blocks={workout.profile} />}

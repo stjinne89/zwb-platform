@@ -103,7 +103,7 @@ export function TrainingLoadMetrics({
   ctl,
   tsb,
   today,
-  panelClassName = "order-first rounded-lg border bg-card p-4 sm:col-span-2 lg:col-span-5",
+  panelClassName = "order-first col-span-2 rounded-lg border bg-card p-4 lg:col-span-5",
   idSuffix,
 }: {
   points: TrainingLoadPoint[];

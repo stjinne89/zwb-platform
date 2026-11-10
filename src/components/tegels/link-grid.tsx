@@ -33,7 +33,7 @@ export function TegelsLinkGrid({
   return (
     <section className="space-y-2">
       {label && <h2 className="text-sm font-semibold text-muted-foreground">{label}</h2>}
-      <ul className="grid auto-rows-[6.5rem] grid-flow-dense grid-cols-2 gap-2 md:grid-cols-4">
+      <ul className="grid auto-rows-[5rem] grid-flow-dense grid-cols-2 gap-2 md:auto-rows-[6.5rem] md:grid-cols-4">
         {links.map((link) => (
           <li key={link.href} className={link.size ? SIZE_CLASS[link.size] : undefined}>
             <Link
