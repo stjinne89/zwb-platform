@@ -13010,7 +13010,7 @@ Wat er is:
   moment van verzenden:
   - `runClaude` en `createClaudeJob` in `lib/ai/claude.ts` vullen het
     systeemdeel, vóór de vraag in `ai_jobs` gaat (sinds 2026-11-10; eerst deed
-    `runClaude` het in de achtergrondfunctie, en die crashte daarop, zie
+    `runClaude` het in de achtergrondfunctie, die daar waarschijnlijk op stukliep, zie
     "Claude-opdrachten bleven in de rij staan");
   - `fetchOpenAiResponse` en de pacing-aanroep vullen `instructions` via
     `withClubInstructions()` (`lib/club.ts`, naast `fillClub()`);
@@ -13567,8 +13567,8 @@ Wat er is:
   `authenticated` zonder rechten; alleen de server leest en schrijft. Rijen
   ouder dan dertien maanden ruimt `processClaudeJob` op.
 - **Meten in `runClaude`** (sinds 2026-11-10 in `lib/ai/claude-core.ts`; tot
-  die dag schreef de app door de crash van de achtergrondfunctie geen enkele
-  rij, zie "Claude-opdrachten bleven in de rij staan"), dus voor achtergrondopdrachten
+  die dag schreef de app geen enkele rij, omdat de opdrachten in de rij bleven
+  staan, zie "Claude-opdrachten bleven in de rij staan"), dus voor achtergrondopdrachten
   en de synchrone aanroep. Ook een geweigerd of afgekapt antwoord telt, want dat
   kost ook tokens. Een fout bij het schrijven laat de aanroep nooit mislukken.
   `ClaudeRequest.meter` is **verplicht**, zodat een nieuwe aanroep niet
