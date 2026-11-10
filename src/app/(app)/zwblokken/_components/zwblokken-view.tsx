@@ -5,6 +5,8 @@
 
 import { useEffect, useState } from "react";
 import { Crown, Grid3x3, Landmark, MapPin, Sparkles } from "lucide-react";
+import { MemberLink } from "@/components/member-link";
+import { leaderboardRows, type LeaderboardMember } from "@/lib/zwblokken/leaderboard";
 import { countryOfProvince } from "@/lib/zwblokken/titles";
 import {
   BlocksMap,
@@ -19,7 +21,8 @@ import {
   type ZwiftWorldMeta,
 } from "./zwift-view";
 
-export type MemberOption = { id: string; name: string; blocks: number };
+/** `blocks` buiten, `zwiftBlocks` alle Zwift-werelden samen. */
+export type MemberOption = LeaderboardMember;
 
 /** Wat de API per lid teruggeeft. */
 type MemberData = {
@@ -137,6 +140,37 @@ function Titles({
   );
 }
 
+/** Wie de meeste blokken heeft, buiten of in Zwift (alle werelden samen). */
+function Leaderboard({
+  members,
+  mode,
+  selectedId,
+}: {
+  members: MemberOption[];
+  mode: "buiten" | "zwift";
+  selectedId: string;
+}) {
+  const rows = leaderboardRows(members, mode);
+  if (rows.length === 0) return null;
+  return (
+    <section className="rounded-lg border bg-card/90 p-4">
+      <h2 className="text-sm font-semibold">{mode === "zwift" ? "Meeste blokken in Zwift" : "Meeste blokken"}</h2>
+      {/* Tien rijen hoog (10 × 1,25rem + 9 × 0,375rem); de rest scrolt. */}
+      <ol className="mt-3 max-h-[15.875rem] space-y-1.5 overflow-y-auto pr-2">
+        {rows.map((m, i) => (
+          <li key={m.id} className="flex items-baseline gap-3 text-sm">
+            <span className="w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{i + 1}</span>
+            <MemberLink id={m.id} className={m.id === selectedId ? "font-semibold" : undefined}>
+              {m.name}
+            </MemberLink>
+            <span className="ml-auto tabular-nums text-muted-foreground">{nl(m.count)}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 export function ZwblokkenView({
   club,
   clubRegions,
@@ -159,6 +193,14 @@ export function ZwblokkenView({
   const data = memberId === selectedId ? initial : fetched[memberId] ?? EMPTY;
   const memberName =
     members.find((m) => m.id === memberId)?.name ?? "Geselecteerd lid";
+  const shown = mode === "zwift" && hasZwift ? "zwift" : "buiten";
+  const count = (m: MemberOption) => (shown === "zwift" ? m.zwiftBlocks : m.blocks);
+  // De kiezer: jijzelf bovenaan, de rest op het aantal van dit tabblad.
+  const pickerMembers = [...members].sort((a, b) => {
+    if (a.id === selectedId) return -1;
+    if (b.id === selectedId) return 1;
+    return count(b) - count(a);
+  });
 
   useEffect(() => {
     if (memberId === selectedId || fetched[memberId]) return;
@@ -217,9 +259,9 @@ export function ZwblokkenView({
           onChange={(e) => setMemberId(e.target.value)}
           className="rounded-md border border-border bg-card px-3 py-2 text-sm"
         >
-          {members.map((m) => (
+          {pickerMembers.map((m) => (
             <option key={m.id} value={m.id}>
-              {m.name} ({nl(m.blocks)})
+              {m.name} ({nl(count(m))})
             </option>
           ))}
         </select>
@@ -290,6 +332,8 @@ export function ZwblokkenView({
           />
         </>
       )}
+
+      <Leaderboard members={members} mode={shown} selectedId={selectedId} />
     </div>
   );
 }

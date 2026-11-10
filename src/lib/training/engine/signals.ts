@@ -8,6 +8,9 @@
 // - Readiness van het apparaat onder 50. Afgeleide readiness telt niet apart:
 //   die komt uit dezelfde HRV, rust-hartslag en slaap als wellness.state.
 // - Klachtenscore boven 0,65, zoals in de prompt.
+//
+// wellness.ts (Trainingsruimte op het scherm) en late-readiness.ts gebruiken
+// TSB_FATIGUED en READINESS_LOW ook, zodat scherm en schema hetzelfde zeggen.
 
 import type { EngineReason, TrainingAiInput } from "@/lib/training/engine/types";
 

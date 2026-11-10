@@ -566,6 +566,11 @@ export function SchemaHelp() {
               De aanpassing van de dag zelf wacht op de meting van je horloge van
               die nacht. Vanaf vijf uur kijkt <ClubShortName /> elk uur of die binnen is, en
               past dan meteen aan; om negen uur in elk geval, met wat er dan is.
+              Komt de readiness van je Whoop of Polar later binnen en is die
+              lager dan 50, dan kijkt <ClubShortName />{" "}
+              tot vijf uur &apos;s middags nog één keer naar je sleutelsessie van vandaag, zolang je
+              nog niet hebt gereden. Staat er een meting van gisteren, dan zie
+              je dat bij het getal.
               Je horloge moet daarvoor wel met je telefoon hebben gesynchroniseerd,
               en dat kan <ClubShortName /> niet afdwingen: open zo nodig even de app van je
               horloge.

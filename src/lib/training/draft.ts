@@ -1807,6 +1807,12 @@ export async function startBackgroundAdaptation(args: {
   adaptationKind: string;
   adaptationReason: string;
   adaptFromDate: string;
+  /**
+   * De late herkansing op de readiness van vandaag (late-readiness.ts). Hij mag
+   * naast het ochtendvoorstel bestaan; de unieke index uit migratie 0324 houdt
+   * er per schema per dag één van elk.
+   */
+  lateReadiness?: boolean;
   options?: {
     reasoningEffort?: "low" | "medium" | "high";
     minWorkouts?: number;
@@ -1835,6 +1841,9 @@ export async function startBackgroundAdaptation(args: {
       adaptation_reason: args.adaptationReason,
       adaptation_kind: args.adaptationKind,
       adapt_from_date: args.adaptFromDate,
+      // Alleen meesturen als hij aan staat: zonder migratie 0324 kent de tabel
+      // de kolom niet, en dan moet het gewone voorstel gewoon blijven werken.
+      ...(args.lateReadiness ? { late_readiness: true } : {}),
       model: getTrainingModel(options),
       status: "queued",
       prompt_text: args.prompt,

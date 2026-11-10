@@ -7,9 +7,22 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Telefoon: ladder-uitslag als tabel zoals de matchup (2026-11-10): lokaal
-   gecommit (`206a5d45`), niet gepusht.** Geen migratie. Zie de ronde
+0. **Telefoon: ladder-uitslag als tabel zoals de matchup (2026-11-10): gepusht
+   naar `main` (`206a5d45`).** Geen migratie. Zie de ronde
    "Telefoon: ladder-uitslag als tabel zoals de matchup".
+
+0. **Gereedheid en schema zeggen hetzelfde (2026-11-10): gepusht naar `main`
+   (`a6db8301`), migratie `0324` toegepast** (versie `20261110091834`, op
+   verzoek van de eigenaar: "Push en migratie"). Open: op een ochtend met een
+   lage Whoop-score kijken of er na het voorstel van negen uur een tweede
+   dagvoorstel komt (`late_readiness = true`). Zie de ronde "Gereedheid en
+   schema zeggen hetzelfde".
+
+0. **ZWBlokken: Zwift-ranglijst en melding voor ritten zonder route
+   (2026-11-10): gepusht naar `main` (`590a166b`).** Geen migratie. Open: na de
+   deploy als Kevin Plasmans (of een van de andere vier) inloggen en de melding
+   zien; het Zwift-tabblad van /zwblokken bekijken. Zie de ronde "ZWBlokken:
+   Zwift-ranglijst en melding voor ritten zonder route".
 
 0. **Telefoon: beheerknoppen op Teams achter één knop (2026-11-10): gepusht
    naar `main` (`3c7ca09b`).** Geen migratie. Stap 5, de laatste van
@@ -12171,6 +12184,109 @@ zoals voorgesteld.
 in de console "two children with the same key" (`montmartre-kom`); bestond al.
 **Niet bekeken:** als gewoon lid, op een echte telefoon, Safari.
 
+### Gebouwd — Gereedheid en schema zeggen hetzelfde
+
+**2026-11-10, commit `a6db8301`.** Migratie `0324`, toegepast in productie
+(versie `20261110091834`, op verzoek van de eigenaar). Eerst als `0323`
+geschreven; dat nummer ging intussen naar `0323_umbrella_safeupdate`. Op vraag van de
+eigenaar ("Er is best wat discrepantie tussen de gereedheidscore en welke
+training er op het programma staat"); Karen meldde hetzelfde. Na het onderzoek
+"Ja, bouw alle drie" op het voorstel.
+
+**Oorzaak, drie dingen** (uit productie, 20 oktober tot 10 november):
+
+1. **De readiness van Whoop en Polar komt te laat.** Whoop zet de meting pas na
+   het wakker worden door naar intervals.icu, vaak na acht uur. Het dagvoorstel
+   gaat om negen uur in elk geval uit. Van 6 tot en met 9 november stond in elk
+   voorstel van de eigenaar "readiness van vandaag nog niet binnen", en de
+   prompt zegt dan terecht niet voorzichtiger te plannen op het getal van
+   gisteren. Daarna deed niets meer iets met de meting: op 8 november een
+   Whoop-score van 41 en een intensieve duurrit die bleef staan. Daarbij haalde
+   het voorstel om negen uur de wellness niet vers op; de kopie van acht uur
+   mocht tot zes uur oud zijn, dus een meting van half negen zag het niet.
+   Bovendien stond op de herstelkaart 's ochtends het getal van gisteren groot,
+   alsof het van vandaag was.
+2. **Twee sets drempels.** Trainingsruimte (`summarizeTrainingReadiness`) zette
+   een TSB van −25 of lager op "Herstel voorrang"; de regelmotor (`signals.ts`)
+   en de AI pas bij −30. Met een TSB van −26 tot −27 (8 tot 10 november) zei het
+   scherm "herstel" en liet het schema VO2max staan. Readiness 50 telde op het
+   scherm als laag en in de regelmotor niet.
+3. **Een Garmin-lid kwam nooit boven "beperkt".** "Ruimte voor kwaliteit" vroeg
+   een HRV boven de eigen band. Bij een Garmin-lid ligt die er meestal netjes
+   binnen, en de berekende readiness komt uit dezelfde HRV. Karen had van 4 tot
+   9 november een berekende readiness van 76 tot 87 en TSB tot +11, en stond elke
+   dag op "Beperkte trainingsruimte" (45 tot 69) terwijl haar schema vol
+   kwaliteit stond.
+
+Bereik op 10 november: 12 leden met verse hersteldata, waarvan 3 met readiness
+van het apparaat (2 Whoop, 1 Polar) en 9 zonder (8 Garmin, 1 onbekend).
+
+Wat er is:
+
+- **Late herkansing** (`src/lib/training/late-readiness.ts`, de cron in
+  `adaptations/daily/route.ts`): na het dagvoorstel kijkt de cron elk uur tot
+  17:00 of de meting van het apparaat alsnog binnenkomt. Is die van vandaag en
+  lager dan 50 (`READINESS_LOW`), heeft het lid nog niet gereden, staat er
+  vandaag een sleutelsessie en had geen voorstel van vandaag deze meting al,
+  dan gaat er één extra dagvoorstel uit met reden "Bijstelling op je readiness
+  van vandaag." Een afgeleide readiness telt niet: die is er 's ochtends al.
+  Kost hooguit één AI-aanroep per lid per dag, en valt onder het dagplafond.
+  Ook na een dag zonder rit, als het ochtendvoorstel was overgeslagen.
+- **Migratie `0324`**: kolom `late_readiness` op `training_ai_generations`, en
+  de unieke index uit `0153` krijgt die kolom in de sleutel. Zo blijft het één
+  gewoon voorstel en één herkansing per schema per dag. Zonder de migratie
+  weigert PostgREST alleen de insert van de herkansing; de cron meldt dan
+  `late_readiness_unavailable` en logt geen fout.
+- **Dagvoorstel haalt de wellness altijd vers op**, ook om negen uur.
+- **De opbouw van de invoer** staat in `buildDailyInput`, gedeeld door het
+  ochtendvoorstel en de herkansing.
+- **Herstelkaart en dashboardtegel**: een meting van een eerdere dag krijgt
+  "gisteren" of de datum erbij (`readinessAgeLabel`).
+- **Eén set drempels**: `summarizeTrainingReadiness` en `summarizeWellness`
+  gebruiken `TSB_FATIGUED` (−30) en `READINESS_LOW` (onder de 50) uit
+  `signals.ts`. HRV in de band met een readiness van 75 of meer is weer
+  "ruimte voor kwaliteit". Een meting van gisteren telt daar niet voor.
+- **/hulp**: de drempels in "ZWBeterWorden" en de late herkansing in "Een dag
+  aanpassen".
+- **Tests** in `readiness-alignment.test.ts`, met de gevallen van 8 november
+  (Whoop 41) en Karen (readiness 87, TSB +10,9). In `wellness.test.ts` staat
+  "zware belasting" nu op TSB −32,4 in plaats van −26,4, omdat −26 bewust geen
+  herstelzone meer is.
+
+**Bewust niet:**
+
+- **Het dagvoorstel later laten uitgaan in plaats van een herkansing.** Dat kost
+  geen extra aanroep, maar wie om half tien rijdt krijgt dan ook de bijstelling
+  op de rit van gisteren niet. Een herkansing alleen bij een lage meting is
+  goedkoop en laat het ochtendvoorstel staan.
+- **Een herkansing op een hoge meting** (meer ruimte). Het advies remt alleen
+  automatisch af; meer belasting blijft een keuze van het lid of de trainer.
+- **De prompt aanpassen.** Die regel ("niet voorzichtiger op een meting van
+  gisteren") klopt; het probleem was dat er later niets meer kwam.
+- **Readiness 50 tot 69 als signaal in de regelmotor.** Op het scherm blijft
+  dat "beperkt"; het schema verandert er niet door. Dat is geen tegenspraak:
+  "beperkt" betekent geen extra kwaliteit, niet minder.
+
+Lokaal: `tsc` zonder fouten, eslint schoon op de gewijzigde bestanden. In
+`daily-adaptation-concurrency.test.ts` 9 nieuwe gevallen tegen de route zelf,
+met de index uit `0324` nagebootst in de stub (ook: zonder migratie geen fout).
+Volledige suite: 4256 groen. De 3 rode tests (`admin-areas`,
+`intervals-ride-sync` en `omnium-live`, die `.env.local` mist) staan los van deze
+ronde; de eerste twee slagen los gedraaid.
+
+**Na het toepassen nagekeken:** de kolom `late_readiness` (boolean, standaard
+false) en de nieuwe index bestaan, en er zijn 0 dubbele voorstellen onder de
+nieuwe sleutel.
+
+**Niet lokaal te verifiëren:** de migratie zelf (geen Docker of Supabase-config
+hier; alleen na het toepassen gecontroleerd) en de cron tegen productie. De herkansing is alleen in unit-tests
+getoetst, niet in een echte run. Herstelkaart en /hulp niet in de browser
+bekeken.
+
+**Bijvangst:** Karen had op 10 november VO2max 5x4 én een Club Ladder-race op
+dezelfde dag. Opgelost in een aparte sessie: "Race of clubevent verdringt de zware
+training van die dag" (`6f6555ab`).
+
 ### Gebouwd — Telefoon: beheerknoppen op Teams achter één knop
 
 **2026-11-10, commit `3c7ca09b`.** Stap 5, de laatste van het voorstel na de
@@ -12498,6 +12614,58 @@ belasting op tijd uit; los gedraaid slagen ze. `omnium-live` mist
 **Niet lokaal te controleren:** de functie op Netlify zelf, en waarom één
 opdracht op 10 november wel liep. Het tegoed is niet op: die opdracht is door
 Claude beantwoord.
+
+### Gebouwd — ZWBlokken: Zwift-ranglijst en melding voor ritten zonder route
+
+**2026-11-10, commit 590a166b.** Op vraag van de eigenaar ("Bart en Kevin lijken mij
+hoger te moeten staan?", daarna "ik zie hele andere getallen bij de ZWBlokken
+dan dat jij nu noemt? En kunnen we voor deze 5 leden een popup melding maken
+met instructie wat ze moeten doen en wat het oplevert?"); gekozen uit een
+voorstel: de ranglijst wordt het Zwift-totaal, en de melding komt automatisch.
+Geen migratie.
+
+**Waarom de getallen niet klopten.** De lijst "Meeste blokken" onder de kaart
+stond in `page.tsx` buiten de weergave, en telde altijd `profile_blocks`: ook
+op het tabblad Zwift. Bart stond daar 6e (3.794 blokken buiten) en Kevin 20e
+(610), terwijl ze in Zwift 4e (805) en ver onder de top (409) staan. Een totaal
+over alle Zwift-werelden stond nergens. Ook de ledenkiezer toonde het aantal
+blokken buiten.
+
+**Kevin stond in Zwift ook echt te laag.** 1.658 van zijn 1.713 Zwift-ritten
+(33.255 km, vanaf 2015) komen uit `activities.csv`, zonder route; intervals.icu
+heeft van hem alleen de 55 ritten uit 2026, en die hebben er al een. Hetzelfde
+bij Moniek Groothuis (1.159), Rolf Buunk (422), Jeroen Janssen (385) en Remco
+Kuijpers (204). De bestanden met route staan in de map `activities` van hun
+Strava-export (`raw.filename`), en de import koppelt ze al aan de CSV-rit. Bart
+klopt: historie compleet sinds 2017, en van de blokken die 15+ leden hebben mist
+hij er 9.
+
+**Gebouwd.**
+- `/zwblokken`: de ranglijst staat nu in `ZwblokkenView` en volgt het tabblad.
+  Op Zwift heet hij "Meeste blokken in Zwift" en telt hij alle werelden samen
+  (`lib/zwblokken/leaderboard.ts`); de ledenkiezer toont daar ook het
+  Zwift-aantal. De lijsten per wereld blijven.
+- Melding "Je Zwift-ritten tellen nog niet mee" (`zwift-tracks-notice-dialog.tsx`,
+  tekst goedgekeurd): voor wie ten minste 25 virtuele ritten uit
+  `activities.csv` heeft met een FIT- of GPX-bestand en zonder route
+  (`lib/zwblokken/missing-tracks.ts`). Met het aantal ritten en kilometers, een
+  knop naar het uploadformulier op het dashboard en de uitleg op
+  `/hulp/koppelen#strava-import`. Sluiten verbergt hem 30 dagen op dat apparaat; de
+  server wordt hooguit één keer per browsersessie gevraagd. Na het uploaden
+  heeft het lid zulke ritten niet meer en verdwijnt de melding vanzelf.
+- `/hulp` (ZWBlokken): de zin "Zonder Strava-koppeling blijft je eigen laag
+  leeg" klopte al niet meer (intervals.icu en geüploade bestanden tellen ook);
+  vervangen, met de CSV-uitzondering en de Zwift-ranglijst.
+
+**Bewust niet gebouwd.**
+- Geen melding via `/beheer/koppelingen` (0307): die zou een migratie vragen en
+  moet met de hand verstuurd worden; deze melding vindt ook toekomstige leden.
+- Geen naamfilter op "Zwift": bij Rolf en Remco staat Zwift in geen enkele
+  ritnaam. Andere platforms leveren na het uploaden gewoon geen Zwift-blokken.
+- Geen TCX: de import leest dat niet.
+
+**Niet lokaal te controleren.** Hoe de melding er voor een echt lid uitziet:
+lokaal is er geen lid met zulke ritten.
 
 ### Hersteld — Oude intervals-ritten krijgen alsnog hun spoor
 
@@ -32753,8 +32921,9 @@ niet in dit plan.
 slaapstaffel van `SLEEP_STEPS` af van het berekende getal. Een weekgemiddelde
 van ongeveer zes uur slaap kostte zo 14 punten binnen de readiness. Samen met
 een HRV en rust-HR die vrijwel op baseline lagen, zakte de readiness daardoor
-onder de 50. Een readiness van 50 of lager zet `summarizeTrainingReadiness` op
-"recovery". Met een ruime TSB geeft dat altijd score 44, dus niveau 2. Bij een
+onder de 50. Een readiness van 50 of lager zette `summarizeTrainingReadiness` op
+"recovery" (sinds 2026-11-10 is dat onder de 50, zie "Gereedheid en schema
+zeggen hetzelfde"). Met een ruime TSB geeft dat altijd score 44, dus niveau 2. Bij een
 apparaat dat zelf readiness levert (Oura, Whoop, Polar) is dezelfde slaap
 alleen een aftrek van 14 op de trainingsruimte en kan hij de status niet
 omzetten. Alleen minder dan 5,5 uur slaap zet de status om. Voor Garmin-,

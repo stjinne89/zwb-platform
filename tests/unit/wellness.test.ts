@@ -655,14 +655,14 @@ describe("summarizeTrainingReadiness — belasting tegen herstel", () => {
   }
 
   it("laat HRV en rust-HR in de eigen band een zware TSB verzachten", () => {
-    const result = summarizeTrainingReadiness({ tsb: -26.4, wellness: wellness() });
+    const result = summarizeTrainingReadiness({ tsb: -32.4, wellness: wellness() });
     expect(result.state).toBe("caution");
     expect(result.notes.join(" ")).toContain("geen herstelrust nodig");
   });
 
   it("verzacht niet als het herstel maar middelmatig is", () => {
     const result = summarizeTrainingReadiness({
-      tsb: -26.4,
+      tsb: -32.4,
       wellness: wellness({ state: "normal", readiness: 62 }),
     });
     expect(result.state).toBe("recovery");
@@ -683,13 +683,13 @@ describe("summarizeTrainingReadiness — belasting tegen herstel", () => {
 
   it("houdt de zwaarte zichtbaar in de score", () => {
     // Verzacht naar 'caution', maar wel onderin die band: de belasting is echt.
-    const zwaar = summarizeTrainingReadiness({ tsb: -26.4, wellness: wellness() });
+    const zwaar = summarizeTrainingReadiness({ tsb: -32.4, wellness: wellness() });
     const lichter = summarizeTrainingReadiness({ tsb: -11, wellness: wellness() });
     expect(zwaar.score!).toBeLessThan(lichter.score!);
   });
 
   it("verzacht niet zonder hersteldata", () => {
-    const result = summarizeTrainingReadiness({ tsb: -26.4, wellness: null });
+    const result = summarizeTrainingReadiness({ tsb: -32.4, wellness: null });
     expect(result.state).toBe("recovery");
   });
 
@@ -697,7 +697,7 @@ describe("summarizeTrainingReadiness — belasting tegen herstel", () => {
     // Bij overbelaste sporters steeg het weekgemiddelde juist (Le Meur 2013;
     // Manresa-Rocamora 2021). Tot 2026-10-16 verzachtte dit naar 'caution'.
     const result = summarizeTrainingReadiness({
-      tsb: -26.4,
+      tsb: -32.4,
       wellness: wellness({ hrvBand: "above", state: "fresh", readiness: 92 }),
     });
     expect(result.state).toBe("recovery");
@@ -706,11 +706,11 @@ describe("summarizeTrainingReadiness — belasting tegen herstel", () => {
 
   it("verzacht niet bij een verhoogde rust-hartslag of korte nachten", () => {
     expect(
-      summarizeTrainingReadiness({ tsb: -26.4, wellness: wellness({ restingHrRaised: true }) })
+      summarizeTrainingReadiness({ tsb: -32.4, wellness: wellness({ restingHrRaised: true }) })
         .state,
     ).toBe("recovery");
     expect(
-      summarizeTrainingReadiness({ tsb: -26.4, wellness: wellness({ sleepPenalty: 6 }) }).state,
+      summarizeTrainingReadiness({ tsb: -32.4, wellness: wellness({ sleepPenalty: 6 }) }).state,
     ).toBe("recovery");
   });
 });
@@ -748,9 +748,9 @@ describe("summarizeTrainingReadiness — gevoel van het lid", () => {
 
   it("verzacht een zware TSB niet als het lid zich slecht voelt", () => {
     const inBand = { ...fris, hrvBand: "within" as const, state: "normal" as const, readiness: 80 };
-    expect(summarizeTrainingReadiness({ tsb: -26.4, wellness: inBand }).state).toBe("caution");
+    expect(summarizeTrainingReadiness({ tsb: -32.4, wellness: inBand }).state).toBe("caution");
     expect(
-      summarizeTrainingReadiness({ tsb: -26.4, wellness: inBand, subjective: zwaar }).state,
+      summarizeTrainingReadiness({ tsb: -32.4, wellness: inBand, subjective: zwaar }).state,
     ).toBe("recovery");
   });
 });

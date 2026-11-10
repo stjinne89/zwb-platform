@@ -5,7 +5,7 @@ import { computeZwbStatus } from "@/lib/training/zwbeterworden";
 import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestUser } from "@/lib/auth/request";
-import type { WellnessDevice } from "@/lib/training/wellness";
+import { readinessAgeLabel, type WellnessDevice } from "@/lib/training/wellness";
 import { ClubText } from "@/components/club-texts-provider";
 
 export type TrainingStatusConn = {
@@ -114,9 +114,10 @@ export async function FitnessStatus(props: StatusArgs) {
     {
       label: "Herstel",
       value: recovery,
+      // Een meting van gisteren zegt dat erbij, anders leest hij als vandaag.
       sub:
         recoverySummary?.readiness != null
-          ? (RECOVERY_LABELS[recoverySummary.state] ?? "")
+          ? (readinessAgeLabel(recoverySummary) ?? RECOVERY_LABELS[recoverySummary.state] ?? "")
           : "",
     },
   ];

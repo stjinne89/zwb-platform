@@ -14,6 +14,7 @@ import { PrivacyConsentDialog } from "./_components/privacy-consent-dialog";
 import { ZwiftIdDialog, type RosterClaim } from "./_components/zwift-id-dialog";
 import { DurabilitySetupDialog } from "./_components/durability-setup-dialog";
 import { TrainingNoticeDialog } from "./_components/training-notice-dialog";
+import { ZwiftTracksNoticeDialog } from "./_components/zwift-tracks-notice-dialog";
 import { AppUpdateDialog } from "./_components/app-update-dialog";
 import { IntegrationNoticeDialog } from "./_components/integration-notice-dialog";
 import { BenefitPopupDialog } from "./_components/benefit-popup-dialog";
@@ -130,6 +131,9 @@ export default async function AppLayout({
   // "Nieuw in ZWBeter trainen": zelf eenmalig per apparaat, nooit boven op de
   // twee vragen hierboven. Of het lid ZWBeter gebruikt, vraagt hij zelf na.
   const trainingNotice = showNotices && club.isEnabled("training") ? <TrainingNoticeDialog /> : null;
+  // Zwift-ritten uit activities.csv zonder route; vraagt zelf na of dat speelt.
+  const zwiftTracksNotice =
+    showNotices && club.isEnabled("blokkenjacht") ? <ZwiftTracksNoticeDialog /> : null;
 
   const appUpdate =
     latestUpdate && inPopupWindow(latestUpdate.publishAt) ? (
@@ -191,6 +195,7 @@ export default async function AppLayout({
           {weekReview}
           {durabilityDialog}
           {trainingNotice}
+          {zwiftTracksNotice}
           {appUpdate}
           {integrationNotice}
           {benefitPopup}

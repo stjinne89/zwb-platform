@@ -4,7 +4,7 @@
 
 import { Activity } from "lucide-react";
 import type { ZwbAdvice } from "@/lib/training/zwbeterworden";
-import type { WellnessSummary } from "@/lib/training/wellness";
+import { readinessAgeLabel, type WellnessSummary } from "@/lib/training/wellness";
 import { RecoveryStat, recoveryStateLabel } from "./ui";
 import { WellnessOptInToggle } from "./wellness-optin-toggle";
 import { ClubShortName, ClubText } from "@/components/club-texts-provider";
@@ -39,7 +39,13 @@ export function RecoveryCard({
               <RecoveryStat
                 label="Readiness"
                 value={summary.readiness != null ? `${summary.readiness}` : "-"}
-                hint={summary.readinessSource === "afgeleid" ? <>berekend door <ClubShortName /></> : undefined}
+                hint={
+                  summary.readinessSource === "afgeleid" ? (
+                    <>berekend door <ClubShortName /></>
+                  ) : (
+                    (readinessAgeLabel(summary) ?? undefined)
+                  )
+                }
               />
               <RecoveryStat
                 label="HRV (7d gem.)"

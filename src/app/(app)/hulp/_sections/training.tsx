@@ -138,10 +138,11 @@ export function TrainingHelp() {
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
               <ClubShortName /> combineert belasting en herstel tot één advies in vijf
-              niveaus. Een sterk negatieve Form of readiness van 50 of lager duwt
-              je naar een laag niveau (rust/herstel). Readiness 51-69 telt als
-              matig. Pas wanneer belasting én herstel gunstig zijn, klim je naar
-              de hoogste niveaus met ruimte voor kwaliteit.
+              niveaus. Een Form van -30 of lager of een readiness onder de 50
+              duwt je naar een laag niveau (rust/herstel). Readiness 50-69 telt
+              als matig. Pas wanneer belasting én herstel gunstig zijn, klim je
+              naar de hoogste niveaus met ruimte voor kwaliteit. Dezelfde
+              grenzen gebruikt je schema.
             </p>
           </article>
         </div>
