@@ -9,12 +9,15 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Claude-opdrachten bleven in de rij staan (2026-11-10): lokaal gecommit
    (`0ebee5c8`), nog niet gepusht.** Geen migratie. Van 9 november 19:38 tot 10
-   november 09:00 startte geen Claude-opdracht. De 21 vastgelopen opdrachten
-   zijn in productie stilgezet, op verzoek van de eigenaar. Open:
+   november 09:00 startte geen Claude-opdracht, en om 09:35 nog steeds niet. De
+   21 vastgelopen opdrachten zijn in productie stilgezet, op verzoek van de
+   eigenaar. Open:
    - pushen;
-   - Gina van Rossum een nieuw schema laten maken (ze heeft er geen);
-   - morgen nakijken dat de open verzoeken van Jeroen, Karen, Joost en Stijn
-     vannacht een herziening gaven;
+   - na de deploy de herzieningen van Jeroen, Karen, Joost en Stijn starten via
+     de trainerpagina (de eigenaar is hun trainer); anders gaan ze vannacht mee
+     met de cron;
+   - Gina van Rossum vraagt zelf een nieuw schema aan (alleen zijzelf is haar
+     trainer);
    - na de deploy zien dat een coachvraag klaar komt en in
      `/beheer/ai-verbruik` staat.
 
@@ -12136,6 +12139,16 @@ wat nog nodig is:
   dagvoorstel van vandaag. De cron maakt morgen een nieuw.
 - **Weekoverzichten** van Joost en Mathijs (week van 2 november): niet opnieuw
   gestart. Die van Gina stond al op `failed`.
+
+Daarna zijn ook de 18 generaties die bij die opdrachten hoorden op `failed`
+gezet. Anders bleef de app denken dat er nog een generatie liep, en dat houdt
+onder meer een nieuw schema voor Gina tegen. De eigenaar vroeg daarna om de vier
+herzieningen direct te laten draaien. Joosts herziening is om 09:34 via de
+trainerpagina gestart, maar bleef meer dan twee minuten op `queued` staan,
+ook nadat de pagina hem opnieuw had aangestoten. De versie die nu live staat,
+pakt dus niets op. Die opdracht is ook stilgezet, en zijn verzoek in
+`training_replan_requests` staat er nog. De andere drie zijn niet gestart:
+eerst moet de reparatie live staan.
 
 Wat er is:
 
