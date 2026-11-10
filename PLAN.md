@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gebouwd,
-   niet gepusht.** Geen migratie. Open: na de deploy ingelogd bekijken of de
+0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
+   naar `main` (`8932806c`).** Geen migratie. Open: na de deploy ingelogd bekijken of de
    team- en ledentegels de races van de afgelopen week tonen. Zie de ronde
    "Dashboard: groep Uitslagen".
 
@@ -13002,8 +13002,8 @@ is groen, op deze tests na:
 
 ### Gebouwd — Dashboard: groep Uitslagen
 
-**2026-11-10.** Commit: de commit die dit blok toevoegt. Niet gepusht. Geen
-migratie.
+**2026-11-10.** Commit `8932806c`, op 2026-11-10 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie.
 
 **Waarom.** De eigenaar miste de uitslagen van leden en teams. Het oude blok
 "Teams en scorebord" (alle clubteams van de afgelopen week) viel weg toen de
