@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Claude-achtergrondfunctie crashte bij het laden (2026-11-10): lokaal
-   gecommit, nog niet gepusht.** Geen migratie. Sinds 9 november 19:38 is geen
+   gecommit (`0ebee5c8`), nog niet gepusht.** Geen migratie. Sinds 9 november 19:38 is geen
    enkele Claude-opdracht gestart (22 in de rij); daardoor is ook `ai_usage` nog
    leeg. Open: pushen, en na de deploy zien dat een nieuwe coachvraag klaar komt
    en in `/beheer/ai-verbruik` staat. Zie de ronde "Claude-achtergrondfunctie
@@ -12084,7 +12084,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Claude-achtergrondfunctie laadt weer
 
-**2026-11-10.** Op verzoek van de eigenaar ("Doordat het api budget op was,
+**2026-11-10, commit `0ebee5c8`.** Op verzoek van de eigenaar ("Doordat het api budget op was,
 lijkt het alsof er geen ai verzoeken zijn gedaan. Wil je dit controleren?"),
 daarna "Ja, repareer het". Geen migratie.
 
