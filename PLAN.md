@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Telefoon: lange lijsten korter (2026-11-10): lokaal gecommit (commit: zie
-   de ronde), niet gepusht.** Geen migratie. Stap 4 van het voorstel na de
+0. **Telefoon: lange lijsten korter (2026-11-10): lokaal gecommit (`8cd94243`), niet
+   gepusht.** Geen migratie. Stap 4 van het voorstel na de
    mobiele audit. Zie de ronde "Telefoon: lange lijsten korter".
 
 0. **Telefoon: compactere tegels en cijferkaarten naast elkaar (2026-11-10):
@@ -12088,7 +12088,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Telefoon: lange lijsten korter
 
-**2026-11-10, commit: zie hieronder.** Stap 4 van het voorstel na de mobiele
+**2026-11-10, commit `8cd94243`.** Stap 4 van het voorstel na de mobiele
 audit, op verzoek van de eigenaar ("Ja, stap 4"). De lengte van de schermen
 op een staande telefoon zat vooral in lange lijsten. Geen migratie. Alles
 geldt onder 768px (de rennerkaarten en de uitslagkaarten bestonden al alleen
