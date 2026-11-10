@@ -3,16 +3,19 @@
 // Waarom genereren en niet ophalen: WTRL verbiedt scraping en het aanroepen van
 // hun endpoints van buiten hun domein zonder schriftelijke toestemming
 // (https://www.wtrl.racing/terms-of-service.php). Dat hoeft ook niet — de
-// structuur is een patroon. ZRL rijdt op dinsdag, een ronde is een reeks
-// opeenvolgende weken, en de eerste race van elke ronde is een Race of Truth
-// (puntenrace zonder stayeren). Uit die drie gegevens volgt de hele ronde.
+// structuur is een patroon. ZRL rijdt op dinsdag en een ronde is een reeks
+// opeenvolgende weken; uit die twee gegevens volgt de hele ronde.
+//
+// Het format per week (punten, Race of Truth, scratch, ploegentijdrit) zit er
+// niet in: WTRL maakt het per ronde bekend. Tot 2026-11-11 zette dit week 1 vast
+// op Race of Truth; ronde 2 van 2026/27 opende met een ploegentijdrit. De
+// Zwift-sync zet het format achter de titel zodra het Zwift-event gekoppeld is
+// (src/lib/events/zrl-format.ts).
 //
 // Gevolg: één formulier per ronde in plaats van elke week handwerk, en niemands
 // voorwaarden geschonden.
 
 import { amsterdamWallTimeToIso } from "@/lib/birthdays";
-
-export type ZrlRaceFormat = "race_of_truth" | "race";
 
 export type ZrlRoundSpec = {
   /** Bijvoorbeeld "2026/27". */
@@ -31,7 +34,6 @@ export type ZrlRoundSpec = {
 
 export type GeneratedZrlEvent = {
   week: number;
-  format: ZrlRaceFormat;
   title: string;
   startAtIso: string;
   /** yyyy-mm-dd, handig voor weergave en tests. */
@@ -74,12 +76,7 @@ export function validateRoundSpec(spec: ZrlRoundSpec): ZrlSpecError[] {
   return errors;
 }
 
-/**
- * De weken van één ronde. Week 1 is de Race of Truth; daarna gewone races.
- * Het formaat per week (scratch, punten, TTT) wordt door WTRL pas per ronde
- * bekendgemaakt, dus dat vullen we niet in — behalve de Race of Truth, want die
- * staat vast als opener.
- */
+/** De weken van één ronde, zonder format (zie boven). */
 export function generateZrlRound(spec: ZrlRoundSpec): GeneratedZrlEvent[] {
   if (validateRoundSpec(spec).length > 0) return [];
 
@@ -89,15 +86,9 @@ export function generateZrlRound(spec: ZrlRoundSpec): GeneratedZrlEvent[] {
     const startAtIso = amsterdamWallTimeToIso(dateKey, spec.timeLocal);
     if (!startAtIso) continue;
 
-    const format: ZrlRaceFormat = week === 1 ? "race_of_truth" : "race";
     const parts = [`ZRL ${spec.season}`, `R${spec.round}`, `W${week}`];
     if (spec.teamName) parts.push(spec.teamName);
-    const title =
-      format === "race_of_truth"
-        ? `${parts.join(" · ")} — Race of Truth`
-        : parts.join(" · ");
-
-    events.push({ week, format, title, startAtIso, dateKey });
+    events.push({ week, title: parts.join(" · "), startAtIso, dateKey });
   }
   return events;
 }

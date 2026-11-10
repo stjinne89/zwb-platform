@@ -30,6 +30,7 @@ import {
 import { extractTeamTag, pickTeamLabel, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
 import { freezeZrlTeamResult } from "@/lib/zrl-live/team-result";
 import { getClub } from "@/lib/club";
+import { zrlFormatFromZwift } from "@/lib/events/zrl-format";
 
 /** Geen nieuwe passage of uitslag meer: dan noemen we de stand definitief. */
 const QUIET_BEFORE_FINAL_MS = 15 * 60 * 1000;
@@ -122,25 +123,12 @@ function parseSubgroups(event: unknown): ZwiftSubgroup[] {
 }
 
 /**
- * Het format staat niet in onze kalender, wel bij Zwift. WTRL zet een tag (`pts`,
- * `rot`, `scr`, `ttt`) en het format tussen haakjes achter de beschrijving,
- * "Race: 1 of 5 (SCRATCH RACE)"; een TTT is bovendien een Zwift-event van het type
- * TEAM_TIME_TRIAL (gezien 2026-09-29, en bij de TTT van april 2026). Onbekend
- * telt als puntenrace, net als de Race of Truth.
+ * Het format voor de telling, uit wat Zwift opgeeft (zie zrlFormatFromZwift).
+ * Onbekend telt als puntenrace, net als de Race of Truth.
  */
 export function zrlFormatOf(event: unknown): ZrlScoringFormat {
-  const { tags, description, eventType } = (event ?? {}) as {
-    tags?: unknown;
-    description?: unknown;
-    eventType?: unknown;
-  };
-  const tagSet = new Set(Array.isArray(tags) ? tags.map((tag) => String(tag).toLowerCase()) : []);
-  const text = typeof description === "string" ? description : "";
-  if (tagSet.has("ttt") || eventType === "TEAM_TIME_TRIAL" || /\((ttt|team time trial)\)/i.test(text)) {
-    return "ttt";
-  }
-  if (tagSet.has("scr") || /\(scratch( race)?\)/i.test(text)) return "scratch";
-  return "points";
+  const format = zrlFormatFromZwift(event);
+  return format === "ttt" || format === "scratch" ? format : "points";
 }
 
 type RaceSubgroup = RaceData["subgroups"][number];

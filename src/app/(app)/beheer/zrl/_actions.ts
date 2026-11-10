@@ -10,7 +10,6 @@ import {
   generateZrlRound,
   validateRoundSpec,
   ZRL_2026_27_ROUNDS,
-  type ZrlRaceFormat,
   type ZrlRoundSpec,
 } from "@/lib/teams/zrl-season";
 import { adminAreaPermission } from "@/lib/admin-areas";
@@ -90,7 +89,7 @@ export async function importZrlRound(input: ImportInput) {
         missingParents.map((week) => ({
           type: "zrl",
           title: week.title,
-          description: zrlDescription(week.format, input.round, week.week),
+          description: `Ronde ${input.round}, week ${week.week}.`,
           start_at: week.startAtIso,
           created_by: access.user!.id,
         })),
@@ -182,12 +181,6 @@ export async function importZrlRound(input: ImportInput) {
     skipped: rows.length - fresh.length,
     message: null,
   };
-}
-
-function zrlDescription(format: ZrlRaceFormat, round: number, week: number) {
-  return format === "race_of_truth"
-    ? "Race of Truth: puntenrace zonder stayeren, geen TT-fiets."
-    : `Ronde ${round}, week ${week}.`;
 }
 
 /**

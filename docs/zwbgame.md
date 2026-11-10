@@ -173,9 +173,9 @@ heb je geen uitslag en geen leaguepunten. Leaguepunten: evenveel als er ploegen 
 voor de winnaar, dan één minder per plek; bij een gelijke stand dezelfde plek.
 **Niet overgenomen:** de regel dat een ploeg met drie starters achter ploegen met vier
 eindigt (in de game starten altijd vijf), echte WTRL-tegenstanders, en een klassement
-over een hele ronde. Het format van een raceweek staat niet in onze kalender (WTRL
-maakt het per ronde bekend), dus je kiest het zelf. Alleen "Race of Truth" in de
-titel zet het vooraf.
+over een hele ronde. Het format van een raceweek staat achter de titel zodra het
+Zwift-event gekoppeld is ("— Team Time Trial", sinds 2026-11-11; zie
+`src/lib/events/zrl-format.ts`). Dat is de beginkeuze; zonder format kies je het zelf.
 
 De ZRL-route van de week komt uit de clubkalender: een event van het type `zrl` in de
 komende 14 dagen met `zwift_route_id`, waarbij je eigen team voorgaat, uitgerold over

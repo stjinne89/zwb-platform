@@ -1,6 +1,7 @@
 import "server-only";
 import { routes as zwiftRoutes } from "zwift-data";
 import { accentsForRoute } from "@/lib/events/zwift-route";
+import { zrlFormatFromTitle } from "@/lib/events/zrl-format";
 import type { RouteProfile } from "@/lib/events/zwift-route-streams";
 import { pacingRouteFromZwift } from "@/lib/pacing/route-profile";
 import { SHAPE_STEP_M, type RouteShape } from "@/lib/events/zwift-route-streams";
@@ -58,5 +59,5 @@ export async function loadZrlRace(client: Client, teamId: string | null, now = D
   const laps = Math.max(1, Math.min(20, Math.round(Number(event.laps) || 1)));
   const game = routeFromRow(route.data as Row, laps, `zrl:${(route.data as Row).slug}:${laps}`);
   if (!game) return null;
-  return { route: game, title: event.title, date: event.start_at, format: /race of truth/i.test(event.title) ? "rot" : null };
+  return { route: game, title: event.title, date: event.start_at, format: zrlFormatFromTitle(event.title) };
 }

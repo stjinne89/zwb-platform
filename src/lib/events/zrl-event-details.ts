@@ -7,6 +7,10 @@
 // al op elk teamevent eronder toont. Alleen lege velden: wat een captain zelf
 // invult blijft staan.
 //
+// Uitzondering is het format achter de titel ("— Team Time Trial"): dat komt
+// altijd uit Zwift en vervangt een verkeerd format. Een met de hand hernoemde
+// titel blijft staan (zrl-format.ts).
+//
 // WTRL gebruikt één banner voor alle divisies van een ronde. Die staat daarom
 // één keer in de opslag, onder een naam uit de URL, en elk event wijst ernaar.
 // Een event verwijderen ruimt alleen zijn eigen map op, niet `covers/`.
@@ -19,6 +23,7 @@ import {
   zwiftLocation,
 } from "@/lib/events/link-prefill";
 import type { ZwiftEventInfo } from "@/lib/events/zwift-route";
+import { zrlFormatFromZwift, zrlTitleWithFormat } from "@/lib/events/zrl-format";
 
 type AdminClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,6 +39,7 @@ type StoredDetails = {
 };
 
 export type ZrlDetailUpdate = {
+  title?: string;
   location?: string;
   description?: string;
   cover_image_path?: string;
@@ -92,7 +98,22 @@ export function zwiftCoverStore(admin: AdminClient) {
   };
 }
 
-type DetailRow = StoredDetails & { id: string; parent_event_id: string | null };
+type DetailRow = StoredDetails & { id: string; title: string; parent_event_id: string | null };
+
+/** De titel met het format van het Zwift-event, of niets als die al klopt. Puur. */
+export function zrlTitleUpdate(
+  title: string,
+  info: Pick<ZwiftEventInfo, "tags" | "description" | "eventType">,
+): { title: string } | null {
+  const format = zrlFormatFromZwift(info);
+  const next = format ? zrlTitleWithFormat(title, format) : null;
+  return next ? { title: next } : null;
+}
+
+function merge(...parts: Array<ZrlDetailUpdate | null>): ZrlDetailUpdate | null {
+  const update = Object.assign({}, ...parts.filter(Boolean)) as ZrlDetailUpdate;
+  return Object.keys(update).length > 0 ? update : null;
+}
 
 /**
  * Vult de lege velden van gekoppelde ZRL-teamevents en hun raceweek. Leest
@@ -112,10 +133,13 @@ export async function fillZrlEventDetails(
       parentInfo.set(row.parent_event_id, info);
     }
     const coverPath = blank(row.cover_image_path) ? await cover(info) : null;
-    const update = zrlDetailUpdate(
-      { location: row.location, cover_image_path: row.cover_image_path },
-      info,
-      coverPath,
+    const update = merge(
+      zrlDetailUpdate(
+        { location: row.location, cover_image_path: row.cover_image_path },
+        info,
+        coverPath,
+      ),
+      zrlTitleUpdate(row.title, info),
     );
     if (!update) continue;
     const { error } = await admin.from("events").update(update).eq("id", row.id);
@@ -125,16 +149,17 @@ export async function fillZrlEventDetails(
   if (parentInfo.size === 0) return;
   const { data: parents, error } = await admin
     .from("events")
-    .select("id, location, description, cover_image_path")
+    .select("id, title, location, description, cover_image_path")
     .in("id", [...parentInfo.keys()]);
   if (error) {
     notes.push(error.message);
     return;
   }
-  for (const parent of (parents ?? []) as Array<StoredDetails & { id: string }>) {
+  for (const parent of (parents ?? []) as Array<StoredDetails & { id: string; title: string }>) {
     const info = parentInfo.get(parent.id)!;
     const coverPath = blank(parent.cover_image_path) ? await cover(info) : null;
-    const update = zrlDetailUpdate(parent, info, coverPath);
+    const { title, ...stored } = parent;
+    const update = merge(zrlDetailUpdate(stored, info, coverPath), zrlTitleUpdate(title, info));
     if (!update) continue;
     const { error: updateError } = await admin
       .from("events")

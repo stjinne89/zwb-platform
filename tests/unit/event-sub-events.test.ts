@@ -45,7 +45,7 @@ describe("subEventLabel", () => {
     ).toBe("ZRL A");
   });
 
-  it("werkt ook bij de Race of Truth", () => {
+  it("werkt ook met een format achter de titel", () => {
     const [parent] = generateZrlRound({
       season: "2026/27",
       round: 1,
@@ -61,8 +61,10 @@ describe("subEventLabel", () => {
       timeLocal: "20:00",
       teamName: "ZWB Cycling B1",
     });
-    expect(parent.title).toBe("ZRL 2026/27 · R1 · W1 — Race of Truth");
-    expect(subEventLabel(child.title, parent.title)).toBe("ZWB Cycling B1");
+    expect(parent.title).toBe("ZRL 2026/27 · R1 · W1");
+    expect(subEventLabel(`${child.title} — Race of Truth`, `${parent.title} — Race of Truth`)).toBe(
+      "ZWB Cycling B1",
+    );
   });
 
   it("laat een hernoemd teamevent met rust", () => {

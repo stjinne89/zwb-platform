@@ -33,11 +33,11 @@ describe("generateZrlRound", () => {
     expect(events.every((e) => isTuesday(e.dateKey))).toBe(true);
   });
 
-  it("zet week 1 op Race of Truth en de rest niet", () => {
+  it("raadt het format niet, ook niet in week 1", () => {
+    // Ronde 2 van 2026/27 opende met een ploegentijdrit, niet met een Race of Truth.
     const events = generateZrlRound(RONDE1);
-    expect(events[0].format).toBe("race_of_truth");
-    expect(events[0].title).toContain("Race of Truth");
-    expect(events.slice(1).every((e) => e.format === "race")).toBe(true);
+    expect(events[0].title).toBe("ZRL 2026/27 · R1 · W1 · ZWB Cycling B1");
+    expect(events.every((e) => !e.title.includes(" — "))).toBe(true);
   });
 
   it("zet de teamnaam in de titel", () => {

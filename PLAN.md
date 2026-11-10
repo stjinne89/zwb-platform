@@ -1,11 +1,18 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-10)
+## Actieve volgorde (bijgewerkt 2026-11-11)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **ZRL: het format komt uit Zwift (2026-11-11): lokaal gecommit, niet
+   gepusht.** Geen migratie. De events van ronde 2 week 1 zijn al in productie
+   rechtgezet. Open: na de deploy, zodra WTRL de Zwift-events van ronde 2
+   klaarzet en de sync ze koppelt, nagaan of de titels van week 1 "— Team Time
+   Trial" houden en week 2 een format krijgt. Zie de ronde "ZRL: het format komt uit
+   Zwift".
 
 0. **Databasecheck 2026-11-10: trage opruimfunctie en RLS-policy: gepusht
    naar `main` (`f4cd39a9`).** Migratie **0325** is toegepast in productie, op
@@ -8447,7 +8454,9 @@ lid, ook buiten de kalender")*
 > WTRL-tegenstanders, de drie-starters-regel (in de game starten er altijd vijf),
 > aparte wisselknoppen in de ploegentijdrit, de gespreide start (komt met FRR), en
 > FRR zelf. Het format van een raceweek staat niet in de kalender, dus je kiest het
-> zelf; alleen "Race of Truth" in de titel zet het vooraf.
+> zelf; alleen "Race of Truth" in de titel zet het vooraf. *Sinds 2026-11-11 zet
+> de Zwift-sync elk format achter de titel en neemt de game dat als beginkeuze;
+> zie "ZRL: het format komt uit Zwift".*
 >
 > **Niet lokaal te verifiëren.** Of de ZRL-events op productie een route met profiel
 > hebben. Zonder route of profiel speelt ZRL op de ladderroutes.
@@ -9944,7 +9953,8 @@ lid, ook buiten de kalender")*
 >
 > **Nu.** `events.parent_event_id` (nullable, `on delete set null`). De ZRL-import
 > op `/beheer/zrl-kalender` maakt per raceweek één hoofdevent zonder team, met de
-> omschrijving (Race of Truth of "Ronde x, week y"), en hangt de teamevents eronder.
+> omschrijving "Ronde x, week y" (tot 2026-11-11 bij week 1 een Race of Truth-tekst,
+> zie "ZRL: het format komt uit Zwift"), en hangt de teamevents eronder.
 > Hoofdevents worden herkend aan de dag, teamevents aan (team, starttijd); een
 > teamevent zonder hoofdevent wordt bij opnieuw importeren alsnog gekoppeld.
 > De migratie groepeert de bestaande teamevents op het titelpatroon
@@ -12134,8 +12144,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
   gekozen team een hele ZRL-ronde in `events` zet. WTRL verbiedt scrapen en het
   aanroepen van hun endpoints van buiten hun domein zonder schriftelijke
   toestemming; dat hoeft ook niet, want de kalender is een patroon. ZRL rijdt op
-  dinsdag, een ronde is een reeks opeenvolgende weken, en de eerste race van elke
-  ronde is een Race of Truth. `src/lib/teams/zrl-season.ts` leidt daar de hele
+  dinsdag en een ronde is een reeks opeenvolgende weken. *Tot 2026-11-11 stond
+  hier ook "de eerste race van elke ronde is een Race of Truth"; dat klopte niet
+  (ronde 2 van 2026/27 opent met een ploegentijdrit), zie de ronde "ZRL: het
+  format komt uit Zwift".* `src/lib/teams/zrl-season.ts` leidt daar de hele
   ronde uit af, met de regels in `tests/unit/zrl-season.test.ts`. Er is geen
   migratie nodig: `events.type` kent `'zrl'` al sinds migr. `0001`. Het vullen is
   idempotent op team en dag (tot 2026-09-28 op team en exacte starttijd, zie de
@@ -12161,6 +12173,80 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — ZRL: het format komt uit Zwift
+
+**2026-11-11, lokaal gecommit op `claude/zrl-events-fix-c8de0b`, niet gepusht.**
+Op verzoek van de eigenaar ("In de events van de ZRL van komende ronde zit een
+fout, kun je die bijwerken en kunnen we kijken of we dit in de toekomst
+voorkomen?"); variant A uit het voorstel ("Ja, bouw A"). Geen migratie.
+
+**Wat er mis was.** Week 1 van ronde 2 (17 november) is een ploegentijdrit, maar
+het hoofdevent en de zes teamevents heetten "— Race of Truth", met de
+omschrijving "Race of Truth: puntenrace zonder stayeren, geen TT-fiets." Iemand
+had het hoofdevent al met de hand hernoemd naar "— Team Time Trail" (met
+typfout). De oorzaak: `generateZrlRound` zette week 1 van elke ronde vast op
+Race of Truth. Dat klopte in ronde 1, maar het is geen regel. Het raakte ook
+ZWBgame, dat "Race of Truth" in de titel las als rijden zonder slipstream.
+
+**Data rechtgezet (productie, 2026-11-11, via de Supabase-connector).** De zeven
+events van R2 W1 heten nu `… — Team Time Trial`; de omschrijving van het
+hoofdevent is "Ronde 2, week 1."
+
+**Nu.**
+- **De import raadt niets meer.** `generateZrlRound` maakt elke week
+  `ZRL <seizoen> · R<n> · W<n>[ · team]`, zonder format; het hoofdevent krijgt
+  als omschrijving "Ronde x, week y." Het type `ZrlRaceFormat` en
+  `zrlDescription` zijn weg.
+- **Het format komt uit Zwift** (`src/lib/events/zrl-format.ts`, puur).
+  `zrlFormatFromZwift` leest de tag (`rot`, `pts`/`zrl_points`,
+  `scr`/`zrl_scr`, `ttt`/`zrl_ttt`, zoals gemeten in ronde 1), het eventtype
+  TEAM_TIME_TRIAL, of het format tussen haakjes in de beschrijving; zegt Zwift
+  niets, dan null. `zrlTitleWithFormat` zet "— Race of Truth", "— Points Race",
+  "— Scratch Race" of "— Team Time Trial" achter een geïmporteerde titel, en
+  vervangt een format dat er al staat, ook een verkeerd.
+- **De sync vult het in.** `fillZrlEventDetails` (bij het automatisch koppelen,
+  7 dagen vooruit, en bij de uurlijkse routecontrole, 3 dagen vooruit) zet nu ook
+  de titel van het teamevent en van de raceweek erboven. Anders dan locatie en
+  cover overschrijft dit: een verkeerd format moet weg. Een met de hand hernoemde
+  titel (die niet op het importpatroon lijkt) blijft staan.
+- **Live-telling:** `zrlFormatOf` gebruikt dezelfde lezer, en telt daardoor nu
+  ook de tag `zrl_scr` (ronde 1, week 5) als scratch. Daar ging het eerder alleen
+  goed dankzij "(SCRATCH RACE)" in de beschrijving.
+- **ZWBgame** neemt elk format uit de titel als beginkeuze
+  (`zrlFormatFromTitle`), niet alleen de Race of Truth. De speler kan het nog
+  steeds wijzigen.
+
+**Bewust niet gebouwd.**
+- Geen keuzelijst per week in het importformulier (de variant naast A). Het
+  format komt pas bij Zwift te staan als WTRL de events klaarzet, enkele dagen
+  voor de race; tot die tijd staat er geen format, en dat is beter dan een
+  verkeerd. Komt WTRL de formats eerder bekendmaken en wil de eigenaar ze
+  eerder zien, dan is dat de volgende stap.
+- Geen format bij het koppelen met de hand in het eventformulier ("Ophalen"):
+  de uurlijkse sync zet het in de drie dagen voor de race alsnog.
+- Geen apart formatveld in `events`: dat vraagt een migratie, en de titel is al
+  waar ZWBgame en de kalender het lezen.
+
+**Niet meer waar.** "De eerste race van elke ronde is een Race of Truth" (ronde
+"ZRL-racekalender per ronde vullen"), "omschrijving (Race of Truth of ...)"
+(ronde over `parent_event_id`) en "alleen Race of Truth in de titel zet het
+vooraf" (ZWBgame ZRL) zijn verbeterd, net als `docs/zwbgame.md` en
+`docs/zwbgame-zrl-frr.md`.
+
+**Getest.** Nieuw: `zrl-format.test.ts` (elke tag uit ronde 1, eventtype en
+beschrijving, niets als Zwift niets zegt, titel aanvullen, verkeerd format
+vervangen, hernoemde titel met rust, terug lezen uit de titel, `zrl_scr` in de
+live-telling). Aangepast: `zrl-season.test.ts` (geen format, ook niet in week 1)
+en `event-sub-events.test.ts` (teamlabel met een format achter beide titels).
+Volle unitsuite in deze worktree: 25 bestanden rood. 21 laden niet door
+`@anthropic-ai/sdk`, dat in deze worktree ontbreekt; drie tests (`intervals-ride-sync`,
+`race-links`, `zwift-route` Spiral Summit) falen ook op een schone HEAD;
+`ai-job-bundle` faalde alleen onder de volle belasting en slaagt los. `tsc` geeft alleen die ontbrekende
+modules.
+
+**Niet lokaal te verifiëren.** Of de sync de titels van ronde 2 echt bijwerkt:
+dat blijkt pas als de Zwift-events gekoppeld zijn.
 
 ### Gebouwd — Lid verwijderen; "Betalend lid" heet "ZWB-lid"
 

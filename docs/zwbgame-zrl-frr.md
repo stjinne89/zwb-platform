@@ -64,8 +64,9 @@ wtrl.racing/zrl/resources op 22 september 2026), puntenrace:
 | DNF | Punten vervallen en schuiven niet door. |
 | Team | Som van de renners; volle leaguepunten alleen met 4 starters. |
 
-Ploeg: maximaal 10 op de roster, 5 per race (`MAX_PER_RACE`). Week 1 van een ronde
-is altijd een Race of Truth (puntenrace zonder stayeren).
+Ploeg: maximaal 10 op de roster, 5 per race (`MAX_PER_RACE`). Het format per week
+maakt WTRL per ronde bekend; week 1 is niet altijd een Race of Truth (ronde 2 van
+2026/27 opende met een ploegentijdrit).
 
 **Hergebruik.** `scoreRace` uit `src/lib/zrl-live/scoring.ts` rekent de puntenrace
 al uit passages: de engine levert `Passage` (athleteId = renner-index, `ts` =
