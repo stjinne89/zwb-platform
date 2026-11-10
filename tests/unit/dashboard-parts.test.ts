@@ -26,15 +26,15 @@ describe("offeredDashboardParts", () => {
     expect(offeredDashboardParts(() => true)).toHaveLength(DASHBOARD_PARTS.length);
   });
 
-  it("laat onderdelen van uitgezette modules weg, maar houdt de events", () => {
+  it("laat onderdelen van uitgezette modules weg, maar houdt events en uitslagen", () => {
     const keys = offeredDashboardParts(() => false).map((part) => part.key);
-    expect(keys).toEqual(["mijn_events", "overige_events", "club_tegels"]);
+    expect(keys).toEqual(["mijn_events", "overige_events", "standen", "club_tegels"]);
   });
 
   it("biedt een onderdeel met meerdere modules aan zodra er een aan staat", () => {
-    const on = new Set<ModuleKey>(["src"]);
+    const on = new Set<ModuleKey>(["sponsors"]);
     const keys = offeredDashboardParts((key) => on.has(key)).map((part) => part.key);
-    expect(keys).toContain("standen");
+    expect(keys).toContain("polls");
     expect(keys).not.toContain("training");
   });
 

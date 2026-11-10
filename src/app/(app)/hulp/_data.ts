@@ -279,7 +279,7 @@ export const GUIDES = [
 
 // Volledige wegwijzer: wat doet elke pagina/sectie van de app.
 export const OVERVIEW: { href: string; name: string; text: string }[] = [
-  { href: "/dashboard", name: "Dashboard", text: "Je startscherm: je training, je fitheid, je events en daarna de rest van de club. Hier koppel en synchroniseer je ook je ritten, of importeer je ze (CSV/GPX)." },
+  { href: "/dashboard", name: "Dashboard", text: "Je startscherm: je training, je fitheid, je events, de uitslagen van de afgelopen week (teams, en per race de beste plek van onze leden per categorie) en daarna de rest van de club. Hier koppel en synchroniseer je ook je ritten, of importeer je ze (CSV/GPX)." },
   { href: "/kalender", name: "Kalender", text: "Alle events: groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien, en filter met Voor mij op wat bij je past, of per label op soort event of programma." },
   { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via je Garmin of Wahoo." },
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },

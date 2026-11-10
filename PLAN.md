@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gebouwd,
+   niet gepusht.** Geen migratie. Open: na de deploy ingelogd bekijken of de
+   team- en ledentegels de races van de afgelopen week tonen. Zie de ronde
+   "Dashboard: groep Uitslagen".
+
 0. **Teamraces alleen voor je eigen team (2026-11-09): gepusht naar `main`
    (`0e6411cb`).** Geen migratie; 87 oude "Nee"-antwoorden van niet-teamleden in
    productie verwijderd (op verzoek van de eigenaar). Open: na de deploy het
@@ -12995,6 +13000,68 @@ is groen, op deze tests na:
 - een club met andere namen (kan niet op productie). Voor de meldingen en de
   pacingprompt dekt de nieuwe test dat.
 
+### Gebouwd — Dashboard: groep Uitslagen
+
+**2026-11-10.** Commit: de commit die dit blok toevoegt. Niet gepusht. Geen
+migratie.
+
+**Waarom.** De eigenaar miste de uitslagen van leden en teams. Het oude blok
+"Teams en scorebord" (alle clubteams van de afgelopen week) viel weg toen de
+Vandaag-tegels kwamen; daarna stond er alleen nog een tegel met de nieuwste
+uitslag van je eigen team. Uitslagen van leden stonden er nooit. Eerst een
+voorstel, door de eigenaar goedgekeurd.
+
+**Wat de app heeft** (productie, 14 dagen tot 2026-11-10): 17
+ZRL-teamuitslagen (`zrl_team_results`), 1 Ladder-uitslag (`team_results`), 13
+bevroren races in `zrl_race_snapshots` met de plek per renner, en 82 races van
+36 leden buiten de kalender in `zwift_race_scores` (alleen event en ZRS, geen
+plek). Van de bevroren races van de afgelopen week staan er 5 in de kalender
+met ZWB'ers in de uitslag; de rest is buiten de kalender bevroren.
+
+**Wat er is.**
+- **Groep Uitslagen** na Overige events en voor de bekers. Volgorde nu: Mijn
+  training · Mijn fitheid · Mijn events · Overige events · **Uitslagen** ·
+  bekers · Q&A en Instagram · onderhoud · nieuws · badges · clubactiviteit ·
+  clubstats · polls en ledenvoordeel.
+- **Teamtegels:** de bestaande teamuitslagen van het dashboard (een per team per
+  competitie, 7 dagen; `latestStandings`), eigen teams eerst ("Jouw team" in de
+  kleine regel, ook subteams van een paraplu) en dan de nieuwste, hooguit 4.
+  `StandingTile` kreeg `mine` en de ronde; "Zwift Racing League" heet in de tegel
+  "ZRL". Zijn er meer, dan een tegel "Alle teams" naar `/teams`. De losse
+  teamuitslag onder Mijn events is weg (stond er anders twee keer).
+- **Ledentegels** (`_components/member-results.tsx`, achter een Suspense): per
+  bevroren race uit de kalender van de afgelopen 7 dagen hoeveel leden een plek
+  hebben en de beste ZWB'er per categorie ("4e B Anna", hooguit 3 regels),
+  nieuwste eerst, hooguit 4. De titel linkt naar het event (bij een teamevent de
+  raceweek erboven), de namen via `MemberLink` naar het profiel.
+  `lib/racen/club-results.ts`: `clubRaceResults` (puur, getest) en
+  `loadClubRaceResults`, met de admin-client en 10 minuten gedeeld gecachet
+  (`unstable_cache`), want de uitslag is voor de hele club gelijk. Groepsritten
+  (`GROUP_RIDE`, `GROUP_WORKOUT`) tellen niet; alleen goedgekeurde leden met een
+  Zwift-ID worden herkend.
+- **FRR- en SRC-stand** staan in dezelfde groep, onder de tegels (nog als kaart
+  in de oude stijl).
+- **Profiel:** het vinkje "FRR- en SRC-standen" (groep Club) heet nu
+  "Uitslagen" en staat bij Events; het geldt voor de hele groep en wordt ook
+  aangeboden als de club geen teams of SRC heeft. De sleutel bleef `standen`,
+  dus wie het eerder uitvinkte, ziet de hele groep niet.
+- `/hulp` noemt de uitslagen bij de beschrijving van het dashboard.
+
+**Bewust niet gebouwd.** Races buiten de kalender: zonder plek is er geen
+uitslag, en er is geen eventpagina om naar te linken (ook niet voor bevroren
+races buiten de kalender; die analyse op ZWBeter racen is persoonlijk). Geen
+ZRS-stijgers per lid: dat zet de score van een ander op ieders dashboard en
+vraagt eerst een toets aan de privacyverklaring. FRR en SRC niet omgebouwd
+naar tegels. Geen nieuwe ophaaljob: alles komt uit wat de freeze-cron en de
+racejob al bewaren.
+
+**Getest.** `tsc` en ESLint schoon; `tests/unit/club-race-results.test.ts`
+(filter, beste per categorie, link naar de raceweek) en `dashboard-parts` groen.
+De tegels bekeken op `/ontwerp-voorbeeld?scherm=vandaag` op 375 px. Met SQL op
+productie nagekeken dat de bevroren races van de afgelopen week kalenderevents
+en ZWB-plekken hebben. **Niet lokaal te controleren:** het ingelogde dashboard
+met de echte tegels en de cache.
+
 ### Gebouwd — Dashboard: zelf kiezen wat je ziet
 
 **2026-11-09.** Commit `07ceea93`, op 2026-11-09 op verzoek van de eigenaar
@@ -13013,7 +13080,8 @@ kunnen samen in een tegel.
 **Wat er is.**
 - **Profiel, bij het potlood:** een blok "Dashboard" tussen Gezin en
   Zichtbaarheid, met een vinkje per onderdeel in vier groepen (Training,
-  Fitheid, Events, Club). Het register staat in `lib/dashboard-parts.ts`:
+  Fitheid, Events, Club; *sinds 2026-11-10 heet "FRR- en SRC-standen"
+  "Uitslagen" en staat het bij Events*). Het register staat in `lib/dashboard-parts.ts`:
   sleutel, groep, naam (vast of de clubnaam van een module) en de modules
   waarvan er minstens een aan moet staan. Een onderdeel van een uitgezette
   module wordt niet aangeboden.
@@ -13305,7 +13373,8 @@ events en dan de rest.
 Zwift-ID- en gewichtmelding · **Mijn training** (eerstvolgende training(en),
 trainingsadvies, core, weekoverzicht) · **Mijn fitheid** (Fitness, Vorm,
 Herstel, ZWBriljant) · **Mijn events** (lopend event of Samen fietsen waarin je
-zelf rijdt, Jouw races, uitslag van je eigen team, Jouw teams) · **Overige
+zelf rijdt, Jouw races, uitslag van je eigen team, Jouw teams; *de teamuitslag
+staat sinds 2026-11-10 in de groep Uitslagen*) · **Overige
 events** (Samen fietsen en lopende events van anderen, aankomende events) ·
 bekers · Q&A en Instagram · onderhoud · FRR · SRC · ritverslagen · badges ·
 clubactiviteit · clubstats · polls en ledenvoordeel. Elke groep is een eigen

@@ -30,6 +30,7 @@ import { BokaalBoard } from "@/components/bokaal/board";
 import { BOKAAL_ANSWERS, BOKAAL_NOW, BOKAAL_PLACED, BOKAAL_RACES } from "./bokaal-voorbeeld";
 import { RecentBekersList } from "../(app)/dashboard/_components/recent-bekers";
 import { FitnessTile } from "../(app)/dashboard/_components/training-status";
+import { MemberResultTiles } from "../(app)/dashboard/_components/member-results";
 import { ZWBEKERS_VOORBEELD } from "./zwbekers-voorbeeld";
 
 // De schermen van de app met voorbeelddata, zonder login. Alleen bij lokaal
@@ -192,9 +193,6 @@ export default async function OntwerpVoorbeeldPage({
               <LiveEventTile
                 event={{ id: "4", title: "Legacy Gravel", count: 2, riders: "Jij en Dirk", mine: true }}
               />
-              <StandingTile
-                standing={{ href: "#", team: "ZWB B1", competition: "ZRL", position: 3, totalTeams: 12 }}
-              />
             </TileRow>
             <TileRow label="Overige events">
               <LiveTogetherTile live={{ count: 3, riders: "Anna, Bert en Carla", mine: false }} />
@@ -203,6 +201,44 @@ export default async function OntwerpVoorbeeldPage({
               />
               <EventTile
                 event={{ id: "3", title: "Clubrit Veluwezoom", when: "za 17 okt", time: "09:00", place: "kalender" }}
+              />
+            </TileRow>
+            <TileRow label="Uitslagen">
+              <StandingTile
+                standing={{
+                  href: "#",
+                  team: "ZWB B1",
+                  competition: "Zwift Racing League",
+                  position: 3,
+                  totalTeams: 12,
+                  mine: true,
+                  round: "ZRL ronde 4 · TTT",
+                }}
+              />
+              <StandingTile
+                standing={{
+                  href: "#",
+                  team: "ZWB Ladies",
+                  competition: "Club Ladder",
+                  position: 1,
+                  totalTeams: 2,
+                  round: "Ronde 7",
+                }}
+              />
+              <MemberResultTiles
+                races={[
+                  {
+                    key: "r1",
+                    href: "#",
+                    title: "Tour Ignite · etappe 3",
+                    startAt: "2026-10-08T18:00:00Z",
+                    riders: 5,
+                    best: [
+                      { profileId: "", name: "Anna", rank: 4, label: "B" },
+                      { profileId: "", name: "Bert", rank: 11, label: "C" },
+                    ],
+                  },
+                ]}
               />
             </TileRow>
           </div>

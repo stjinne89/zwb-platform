@@ -47,10 +47,12 @@ export const DASHBOARD_PARTS: readonly DashboardPart[] = [
   { key: "briljant", group: "Fitheid", label: { module: "rennersniveau" }, modules: ["rennersniveau"] },
   { key: "mijn_events", group: "Events", label: "Mijn events", modules: [] },
   { key: "overige_events", group: "Events", label: "Overige events", modules: [] },
+  // Heette tot 2026-11-10 "FRR- en SRC-standen" (groep Club); de sleutel bleef,
+  // zodat wie het toen uitvinkte nu de hele groep Uitslagen niet ziet.
+  { key: "standen", group: "Events", label: "Uitslagen", modules: [] },
   { key: "bekers", group: "Club", label: { module: "bekers" }, modules: ["bekers"] },
   { key: "club_tegels", group: "Club", label: "Q&A en Instagram", modules: [] },
   { key: "onderhoud", group: "Club", label: "Onderhoud fietsen", modules: ["garage"] },
-  { key: "standen", group: "Club", label: "FRR- en SRC-standen", modules: ["teams", "src"] },
   { key: "nieuws", group: "Club", label: "Nieuws en mededelingen", modules: ["media"] },
   { key: "badges", group: "Club", label: "Badges", modules: ["bekers"] },
   { key: "clubstats", group: "Club", label: "Clubstats", modules: ["stats"] },

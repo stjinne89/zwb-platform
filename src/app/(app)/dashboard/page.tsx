@@ -37,6 +37,7 @@ import {
 import { ClubStats } from "./_components/club-stats";
 import { CoreStatus } from "./_components/core-status";
 import { FrrStandings } from "./_components/frr-standings";
+import { MemberResults } from "./_components/member-results";
 import { MyRaces } from "./_components/my-races";
 import { MyTeams } from "./_components/my-teams";
 import { QaDashboard } from "./_components/qa";
@@ -75,6 +76,7 @@ import { points as briljantPoints, positionFor as briljantPosition } from "@/lib
 import { SCALE_VERSION as BRILJANT_SCALE } from "@/lib/briljant/norms";
 import { storedScore as briljantStoredScore } from "@/lib/briljant/compare";
 import {
+  AllResultsTile,
   BriljantTile,
   DashboardHeader,
   EventTile,
@@ -831,11 +833,12 @@ export default async function DashboardPage({
     .filter((event) => !liveEventIds.has(event.id))
     .slice(0, 3)
     .map((event) => toTile(event, "kalender"));
-  // De uitslagtegel toont de nieuwste uitslag van een eigen team. Wie in een
-  // paraplu zit, telt de subteams als eigen team (zelfde regel als MyRaces en de
-  // kalender, migr. 0179). Geen eigen team met een uitslag: geen tegel.
-  let tileStanding: TeamStandingWithTeam | null = null;
-  if (user && standings.length > 0 && show("mijn_events")) {
+  // Uitslagen: de teamuitslagen van de afgelopen week (een per team per
+  // competitie), eigen teams eerst en dan de nieuwste. Wie in een paraplu zit,
+  // telt de subteams als eigen team (zelfde regel als MyRaces en de kalender,
+  // migr. 0179).
+  let ownTeamIds = new Set<string>();
+  if (user && standings.length > 0 && show("standen")) {
     const { data: memberRows } = await supabase
       .from("team_members")
       .select("team_id")
@@ -845,17 +848,19 @@ export default async function DashboardPage({
       directTeamIds.length > 0
         ? await supabase.from("teams").select("id").in("parent_team_id", directTeamIds)
         : { data: [] };
-    const ownTeamIds = new Set([
+    ownTeamIds = new Set([
       ...directTeamIds,
       ...(subteamRows ?? []).map((row) => row.id as string),
     ]);
-    tileStanding =
-      standings
-        .filter((standing) => ownTeamIds.has(standing.team_id))
-        .sort((x, y) =>
-          (y.round_at ?? y.created_at).localeCompare(x.round_at ?? x.created_at),
-        )[0] ?? null;
   }
+  const resultStandings: TeamStandingWithTeam[] = show("standen")
+    ? [...standings].sort(
+        (x, y) =>
+          Number(ownTeamIds.has(y.team_id)) - Number(ownTeamIds.has(x.team_id)) ||
+          (y.round_at ?? y.created_at).localeCompare(x.round_at ?? x.created_at),
+      )
+    : [];
+  const MAX_TEAM_RESULTS = 4;
 
   // ZWBriljant: de score van de laatste snapshot (die van deze week komt bij het
   // openen van de pagina of uit de wekelijkse job). Zonder snapshot of zonder
@@ -966,17 +971,6 @@ export default async function DashboardPage({
               <MyRaces userId={user.id} />
             </Suspense>
           )}
-          {tileStanding && tileStanding.position && (
-            <StandingTile
-              standing={{
-                href: tileStanding.round_url ?? tileStanding.href,
-                team: tileStanding.team.name,
-                competition: tileStanding.competition,
-                position: tileStanding.position,
-                totalTeams: tileStanding.total_teams ?? null,
-              }}
-            />
-          )}
           {user && on("teams") && (
             <Suspense fallback={null}>
               <MyTeams userId={user.id} />
@@ -1001,6 +995,47 @@ export default async function DashboardPage({
         </TileRow>
       )}
 
+      {/* Uitslagen van de afgelopen week: teams (eigen teams eerst) en leden
+          (per race de beste ZWB-plek per categorie), dan de FRR- en SRC-stand. */}
+      {show("standen") && (
+        <>
+          <TileRow label="Uitslagen">
+            {resultStandings.slice(0, MAX_TEAM_RESULTS).map((standing) => (
+              <StandingTile
+                key={`${standing.competition}|${standing.team_id}`}
+                standing={{
+                  href: standing.round_url ?? standing.href,
+                  team: standing.team.name,
+                  // Kort, anders valt de kleine regel naast "Jouw team" weg.
+                  competition:
+                    standing.competition === "Zwift Racing League" ? "ZRL" : standing.competition,
+                  position: standing.position ?? 0,
+                  totalTeams: standing.total_teams ?? null,
+                  mine: ownTeamIds.has(standing.team_id),
+                  round: standing.round_label ?? null,
+                }}
+              />
+            ))}
+            <Suspense fallback={null}>
+              <MemberResults />
+            </Suspense>
+            {resultStandings.length > MAX_TEAM_RESULTS && <AllResultsTile />}
+          </TileRow>
+
+          {on("teams") && (
+            <Suspense fallback={null}>
+              <FrrStandings userId={user?.id ?? null} />
+            </Suspense>
+          )}
+
+          {on("src") && (
+            <Suspense fallback={null}>
+              <SrcResults userId={user?.id ?? null} />
+            </Suspense>
+          )}
+        </>
+      )}
+
       {/* Bekers van de afgelopen week, met een feestje als ze nieuw zijn. */}
       {user && on("bekers") && show("bekers") && (
         <Suspense fallback={null}>
@@ -1023,18 +1058,6 @@ export default async function DashboardPage({
 
       {user?.id && on("garage") && show("onderhoud") && (
         <MaintenanceStatus profileId={user.id} />
-      )}
-
-      {on("teams") && show("standen") && (
-        <Suspense fallback={null}>
-          <FrrStandings userId={user?.id ?? null} />
-        </Suspense>
-      )}
-
-      {on("src") && show("standen") && (
-        <Suspense fallback={null}>
-          <SrcResults userId={user?.id ?? null} />
-        </Suspense>
       )}
 
       {mediaItems.length > 0 && show("nieuws") && (

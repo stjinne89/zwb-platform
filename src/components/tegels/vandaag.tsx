@@ -85,6 +85,10 @@ export type VandaagStanding = {
   competition: string;
   position: number;
   totalTeams: number | null;
+  /** Een team van de kijker (ook een subteam van de paraplu). */
+  mine?: boolean;
+  /** De ronde of het event, zoals "ZRL ronde 4 · TTT". */
+  round?: string | null;
 };
 
 /** De laatste score van ZWBriljant, als de steen er al is. */
@@ -249,8 +253,13 @@ export function BriljantTile({ briljant }: { briljant: VandaagBriljant }) {
 export function StandingTile({ standing }: { standing: VandaagStanding }) {
   return (
     <Link href={standing.href} className="tg-tile tg-kalender">
-      <span className="tg-tile-small line-clamp-1">Club · {standing.competition}</span>
+      <span className="tg-tile-small line-clamp-1">
+        {standing.mine ? "Jouw team" : "Club"} · {standing.competition}
+      </span>
       <span className="tg-tile-title mt-0.5 line-clamp-2">{standing.team}</span>
+      {standing.round && (
+        <span className="mt-1 line-clamp-1 text-[0.9375rem]">{standing.round}</span>
+      )}
       <span className="tg-tile-num">
         {standing.position}e
         {standing.totalTeams ? (
@@ -259,6 +268,16 @@ export function StandingTile({ standing }: { standing: VandaagStanding }) {
           </span>
         ) : null}
       </span>
+    </Link>
+  );
+}
+
+/** Laatste tegel van Uitslagen als er meer teamuitslagen zijn dan er passen. */
+export function AllResultsTile() {
+  return (
+    <Link href="/teams" className="tg-tile tg-meer">
+      <span className="tg-tile-small">Uitslagen</span>
+      <span className="tg-tile-title mt-0.5">Alle teams</span>
     </Link>
   );
 }
