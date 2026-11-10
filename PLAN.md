@@ -1,11 +1,18 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-09)
+## Actieve volgorde (bijgewerkt 2026-11-10)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Claude-achtergrondfunctie crashte bij het laden (2026-11-10): lokaal
+   gecommit, nog niet gepusht.** Geen migratie. Sinds 9 november 19:38 is geen
+   enkele Claude-opdracht gestart (22 in de rij); daardoor is ook `ai_usage` nog
+   leeg. Open: pushen, en na de deploy zien dat een nieuwe coachvraag klaar komt
+   en in `/beheer/ai-verbruik` staat. Zie de ronde "Claude-achtergrondfunctie
+   laadt weer".
 
 0. **Dashboard: groep Uitslagen voor teams en leden (2026-11-10): gepusht
    naar `main` (`8932806c`).** Geen migratie. Open: na de deploy ingelogd bekijken of de
@@ -12075,6 +12082,66 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Claude-achtergrondfunctie laadt weer
+
+**2026-11-10.** Op verzoek van de eigenaar ("Doordat het api budget op was,
+lijkt het alsof er geen ai verzoeken zijn gedaan. Wil je dit controleren?"),
+daarna "Ja, repareer het". Geen migratie.
+
+**Wat er aan de hand was.** Het lag niet aan het budget. In productie was
+`ai_usage` leeg. In `ai_jobs` was de laatste geslaagde opdracht van 9 november
+11:08 UTC. Sinds 18:38 UTC stonden alle 22 nieuwe opdrachten op `queued`, zonder
+`started_at`: dagvoorstellen, weekoverzichten, herzieningen en twee keer
+"nieuw schema". Bij een leeg tegoed had de functie ze opgepakt en als `failed`
+met de fout van Anthropic gemarkeerd. Ze werden dus nooit opgepakt.
+
+De oorzaak zat in deel 3a van de generieke versie (`2a38a977`). `lib/ai/claude.ts`
+kreeg toen `import { fillClub } from "@/lib/club"`. `lib/club` laadt
+`server-only` en `next/cache`. Die werken alleen binnen Next, en `server-only`
+is niet eens als pakket geïnstalleerd. De Netlify-achtergrondfunctie bundelt
+`claude.ts` buiten Next en stopte daardoor al bij het laden met
+`ERR_MODULE_NOT_FOUND`. Lokaal nagebootst met esbuild en Node. Vitest zag het
+niet, omdat het `server-only` zelf afvangt. De Netlify-logs zijn niet bekeken.
+
+Wat er is:
+
+- **`lib/ai/claude-core.ts`**: de kern met de aanroep, de opdrachten in
+  `ai_jobs` en de meting in `ai_usage`. Hij heeft alleen relatieve imports en
+  niets dat alleen binnen Next laadt. De achtergrondfunctie importeert alleen
+  deze kern.
+- **`lib/ai/claude.ts`**: de Next-laag. `runClaude` en `createClaudeJob` vullen
+  eerst de clubwoorden in de systeemprompt in en geven de vraag dan door aan de
+  kern. Een opdracht in `ai_jobs` bevat dus al de ingevulde prompt. De
+  aanroepers hoefden niet te veranderen.
+- **Een opdracht die niet start, wacht niet eeuwig.** `readClaudeJob` stoot een
+  opdracht na een minuut opnieuw aan, zoals eerst. Staat hij na tien minuten
+  nog in de rij, dan wordt hij `failed` ("Claude-opdracht is niet gestart.").
+  Zo ziet het lid een fout in plaats van een schema dat altijd "bezig" blijft.
+  Dit ruimt ook de 22 vastgelopen opdrachten op zodra ze worden opgehaald.
+  Opnieuw starten zou ze met niet-ingevulde clubwoorden naar Claude sturen.
+- **Test** `tests/unit/ai-job-bundle.test.ts` bundelt de functie met esbuild,
+  zonder de `@/`-aliassen. De test faalt als er een import van `@/…`,
+  `server-only`, `next/…` of `react` overblijft. Nagekeken: met de oude import
+  faalt hij.
+
+**Bewust niet:**
+
+- **Een mislukte aanroep telt niet mee in `ai_usage`**, ook niet bij een leeg
+  tegoed. Die kost niets. De fout staat bij de opdracht in `ai_jobs.error`.
+- **De 22 vastgelopen opdrachten niet in SQL op `failed` gezet.** De nieuwe
+  time-out doet dat bij het eerstvolgende ophalen. Opdrachten die niemand
+  ophaalt, verdwijnen na zeven dagen met de gewone opruiming.
+
+Lokaal: `tsc` zonder fouten, eslint schoon op de gewijzigde bestanden. De
+nieuwe test en die van `ai-claude` en `ai-usage` zijn groen. De gebundelde
+functie laadt in Node. In de volledige suite liepen vijf bestanden onder
+belasting op tijd uit; los gedraaid slagen ze. `omnium-live` mist
+`.env.local` in deze worktree.
+
+**Niet lokaal te controleren:** de functie op Netlify zelf, en of het tegoed bij
+Anthropic werkelijk op is. Dat laatste staat in de Anthropic Console. Is het op,
+dan krijgen nieuwe opdrachten na de deploy `failed` met de fout van Anthropic.
+
 ### Gebouwd — Teamraces alleen voor je eigen team
 
 **2026-11-09, commit `0e6411cb`.** Op verzoek van de eigenaar ("Ik zie bij events af
@@ -12909,7 +12976,10 @@ Wat er is:
 - **AI-prompts.** De prompts dragen tokens in de code (`{club}`, `{kort}`,
   `{m:…}`), zodat er geen clubnaam vastzit. Ze worden centraal gevuld op het
   moment van verzenden:
-  - `runClaude` vult het systeemdeel;
+  - `runClaude` en `createClaudeJob` in `lib/ai/claude.ts` vullen het
+    systeemdeel, vóór de vraag in `ai_jobs` gaat (sinds 2026-11-10; eerst deed
+    `runClaude` het in de achtergrondfunctie, en die crashte daarop, zie
+    "Claude-achtergrondfunctie laadt weer");
   - `fetchOpenAiResponse` en de pacing-aanroep vullen `instructions` via
     `withClubInstructions()` (`lib/club.ts`, naast `fillClub()`);
   - de doelenpagina van de trainer vult de standaardprompt die in de editor
@@ -13464,7 +13534,9 @@ Wat er is:
   Geen prompt, geen antwoord. RLS aan, geen policies, `anon` en
   `authenticated` zonder rechten; alleen de server leest en schrijft. Rijen
   ouder dan dertien maanden ruimt `processClaudeJob` op.
-- **Meten in `runClaude`** (`lib/ai/claude.ts`), dus voor achtergrondopdrachten
+- **Meten in `runClaude`** (sinds 2026-11-10 in `lib/ai/claude-core.ts`; tot
+  die dag schreef de app door de crash van de achtergrondfunctie geen enkele
+  rij, zie "Claude-achtergrondfunctie laadt weer"), dus voor achtergrondopdrachten
   en de synchrone aanroep. Ook een geweigerd of afgekapt antwoord telt, want dat
   kost ook tokens. Een fout bij het schrijven laat de aanroep nooit mislukken.
   `ClaudeRequest.meter` is **verplicht**, zodat een nieuwe aanroep niet
@@ -21472,7 +21544,8 @@ bijwerkingen op effort `low`, model per soort instelbaar.
   (`aij_…`) staat waar het response-id van OpenAI stond; de ophaal-code kiest op
   het id, zodat lopende OpenAI-opdrachten na de overstap nog worden opgehaald.
   Blijft een opdracht een minuut in de rij, dan stoot het ophalen hem opnieuw
-  aan; na 16 minuten bezig geldt hij als mislukt. De prompt en invoer in
+  aan; na tien minuten in de rij (sinds 2026-11-10) of 16 minuten bezig geldt
+  hij als mislukt. De achtergrondfunctie laadt alleen `lib/ai/claude-core.ts`. De prompt en invoer in
   `ai_jobs.request` gaan leeg zodra de opdracht klaar is; rijen ouder dan zeven
   dagen ruimt de functie op.
 - Elke Claude-vraag begint met "Vandaag is <weekdag> <datum>." (zie het

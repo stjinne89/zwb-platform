@@ -5,8 +5,11 @@
 // genoeg voor een schema-bijwerking (4 tot 6 minuten). Wie hem aanroept kan
 // alleen een opdracht laten draaien die al in de rij staat; processClaudeJob
 // claimt hem eerst, dus een tweede aanroep doet niets.
+//
+// Alleen claude-core.ts: claude.ts haalt lib/club binnen, dat buiten Next niet
+// laadt (tests/unit/ai-job-bundle.test.ts).
 
-import { processClaudeJob } from "../../src/lib/ai/claude";
+import { processClaudeJob } from "../../src/lib/ai/claude-core";
 
 const handler = async (req: Request): Promise<void> => {
   let id: unknown;
