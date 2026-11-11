@@ -1,10 +1,12 @@
 # Kopman als bordspel — ontwerp
 
 Opgesteld op 2026-11-11. Op dezelfde dag is een eerste speelbare versie
-gebouwd. Die staat alleen in de preview (`npm run kopman:preview`, dan
-`?bordspel`) en nog niet in de app of op de Next-pagina. Hoe die versie werkt
-en waar ze van dit ontwerp afwijkt, staat onder "Eerste speelbare versie:
-gebouwd" onderaan.
+gebouwd. Hoe die werkt en waar ze van dit ontwerp afwijkt, staat onder "Eerste
+speelbare versie: gebouwd" onderaan.
+
+Sinds fase 4 (ook 2026-11-11) is het bordspel dé koers van het spel, ook voor
+de tijdrit. Zie "Fase 4: het bordspel als koers, en de tijdrit" onderaan. De
+preview `?bordspel` bestaat nog om elke koers los te testen.
 
 ## Aanleiding
 
@@ -184,7 +186,7 @@ Het volgen van een aanval, het achtervolgen, de vlucht van de dag, de lead-out
 en de sprint blijven werken zoals in de live koers.
 
 **De preview** leest je save (opstelling, kopman en personeel), maar schrijft
-er niets in. Je kiest een koers; tijdritten tellen niet mee.
+er niets in. Je kiest een koers; sinds fase 4 kan dat ook de tijdrit zijn.
 
 **Hoe het nu werkt, en waar het afwijkt van het ontwerp hierboven:**
 - **Sectoren.** Er zijn 10 even lange sectoren. Het terrein volgt uit wat er
@@ -263,12 +265,101 @@ Kaarten spelen helpt dus, en goed spelen zou nog meer moeten helpen. Hoe het
 voelt als je zelf speelt, is niet gemeten.
 
 **Bewust nog niet gebouwd:**
-- beloningen, het seizoen, en het bordspel in de app zelf;
+- beloningen, het seizoen, en het bordspel in de app zelf (sinds fase 4 wel
+  gebouwd, zie hieronder);
 - intenties voor alle 11 ploegen;
 - een reactiemoment midden in een sector;
 - zelf kiezen wie Herstel krijgt;
 - rennervermoeidheid tussen koersen;
 - 3D.
+
+## Fase 4: het bordspel als koers, en de tijdrit
+
+Gebouwd op 2026-11-11, nadat de eigenaar zei: "het spel speelt prima tot nog
+toe ga maar verder".
+
+**Het bordspel is de koers.**
+- De knop Start op het tabblad Koers opent het bord en niet meer de live koers.
+- De uitslag loopt door dezelfde afrekening als voorheen (`finishRace`). Je
+  krijgt dus dezelfde munten, punten, een pakket binnen de daglimiet en de
+  seizoensbeloning.
+- De seed is die van de live koers. Herlaad je de pagina midden in een koers,
+  dan begin je die koers opnieuw, met dezelfde kaarten.
+- De live koers met radio-orders (`race-view.tsx`, `radio.ts`) wordt in het
+  spel niet meer gebruikt. De code staat er nog.
+
+**De tijdrit als bordspel.** De eigenaar vroeg: "board game en meer opties,
+beter aero zitten, pacing beter voor elkaar, dingen die bij TT passen".
+- **Sectoren.** De Polderchrono gaat heen en terug door de polder. Op de
+  heenweg waait het de ene kant op, op de terugweg de andere: kopwind of
+  rugwind, gekozen uit de seed. Bij het keerpunt in sector 6 zijn bochten, en
+  ook in een of twee dorpskernen.
+- **Wind.** Kopwind maakt de luchtweerstand 25% groter, rugwind 20% kleiner.
+  In de kopwind rijd je langzamer en ben je dus langer onderweg. Daar levert
+  extra vermogen de meeste tijd op. Dat zit in de physics, niet in een regel.
+- **Je stuurt alleen de kopman.** In een tijdrit rijdt iedereen alleen, dus
+  knechten kunnen hem niet helpen. Hun kaarten zijn wat de ploeg aan zijn rit
+  bijdraagt. Alle kaarten kosten kracht van de kopman. De knechten rijden hun
+  eigen tijdrit op standaardtempo.
+- **Tempo.** Iedereen rijdt standaard net onder zijn limiet (96% van zijn
+  drempelvermogen). Kaarten laten je dichter bij de limiet rijden, of juist
+  sparen. Per sector kies je één tempo.
+
+  | Kaart | Soort | Kost | Wat het doet |
+  | --- | --- | --- | --- |
+  | Gedoseerd starten | pacing | 0 | eerste 4 sectoren: 90%, +1 kracht, tot 2 boven je start |
+  | Vol gas | pacing | 2 | 104% deze sector |
+  | Diep in de kopwind | pacing | 2 | alleen in de kopwind: 108% |
+  | Op adem in de rugwind | pacing | 0 | alleen in de rugwind: 90%, +1 kracht |
+  | Alles geven | pacing | 3 | alleen in de finale: 115% |
+  | Plat op de fiets | aero | 1 | 8% minder luchtweerstand deze sector |
+  | Bochten strak | techniek | 1 | in de bochten: een kwart van het tijdverlies, 15% kans op een val (−2 kracht en 200 m) |
+
+- **Per renner:**
+
+  | Type | Kaarten |
+  | --- | --- |
+  | tijdrijder | Vol gas, Diep in de kopwind, Plat op de fiets |
+  | allrounder | Vol gas, Gedoseerd starten, Plat op de fiets |
+  | klimmer | Gedoseerd starten, Op adem in de rugwind, Vol gas |
+  | sprinter | Alles geven, Op adem in de rugwind, Bochten strak |
+  | klassieker | Bochten strak, Diep in de kopwind, Gedoseerd starten |
+
+  De stafkaarten zijn dezelfde als in de wegkoers. Een kaart staat nooit twee
+  keer in je hand: een tweede exemplaar voor dezelfde renner voegt niets toe.
+  Dat geldt sinds deze ronde ook in de wegkoers. Twee keer Demarrage van twee
+  verschillende renners kan nog wel.
+- **Bochten** kosten iedereen tijd. Een goede daler verliest minder, tot de
+  helft.
+- **Een lekke band** heeft per sector 8% kans. Je verliest dan 25 s, tenzij je
+  een reservewiel hebt.
+- **Rivalen doseren ook.** Ze rijden harder in de kopwind (de helft van de
+  keren), sparen in de rugwind en geven alles in de finale.
+- **Kracht** is in de tijdrit een budget voor tempo. Wie leeg is, rijdt tot 8%
+  zwakker. Vroeg uitgeven kost je dus de rest van de rit.
+
+**Balansmeting tijdrit van 2026-11-11.** Plek van de kopman, gemeten met 6
+seeds, vlak voordat de regel tegen dubbele kaarten erbij kwam. De test die
+slim tegen verspillen meet, slaagt ook daarna:
+
+| Ploeg | Geen kaarten | Elke beurt de eerste kaart | Slim doseren |
+| --- | --- | --- | --- |
+| vijf zilveren tijdrijders | 14e, ongeveer +1:55 | 15e–21e, ongeveer +2:15 | 11e–12e, ongeveer +1:35 |
+| startploeg (brons) | ongeveer 57e | ongeveer 58e | ongeveer 57e |
+
+Bij "slim doseren" spaar je vroeg, rijd je hard in de kopwind in de tweede
+helft, neem je de bochten strak en geef je alles in de finale. Het verschil
+tussen goed en slecht spelen is ongeveer 40 s. Een bronzen ploeg kan in de
+tijdrit weinig, net als in de live koers.
+
+**Bewust niet gebouwd:**
+- **Een tijdrit met gespreide starttijden.** Iedereen start tegelijk, zonder
+  wiel, zoals de live tijdrit al deed. Zo kun je tussenstanden laten zien
+  zonder starttijden.
+- **Tussentijden van knechten die eerder starten.** Dat werkt pas met
+  gespreide starts.
+- **Knechten sturen in de tijdrit.** Met vijf renners en twee kaarten per
+  sector werd het te druk, en hun plek levert weinig op.
 
 ## Nog niet bekend
 

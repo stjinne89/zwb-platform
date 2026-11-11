@@ -13,7 +13,8 @@ import { CALENDAR, raceById } from "../engine/world";
 import { loadSave, SAVE_KEY, storeSave } from "../engine/save";
 import { ItemCardView, SlotTile } from "./item-card";
 import { Profile } from "./profile";
-import { clock, RaceView, riderName, teamColor, teamName } from "./race-view";
+import { BoardView } from "./board-view";
+import { clock, riderName, teamColor, teamName } from "./race-view";
 import { Portrait, type Mood } from "./portrait";
 import { RiderCardView } from "./rider-card";
 import styles from "./kopman.module.css";
@@ -131,7 +132,11 @@ export function KopmanApp() {
       {tab === "pakketten" ? <PacksTab save={save} update={update} onOpen={open} onTrade={trade} onPick={setPicking} /> : null}
       {tab === "seizoen" ? <SeasonTab save={save} update={update} /> : null}
 
-      {racing ? <RaceView raceId={racing.raceId} seed={racing.seed} lineup={{ riders: racing.riders, kopman: racing.kopman, bonus: racing.bonus }} own={save.teamName} onFinish={onFinish} /> : null}
+      {racing ? (
+        <div className={styles.race} role="region" aria-label={raceById.get(racing.raceId)?.name}>
+          <BoardView raceId={racing.raceId} seed={racing.seed} lineup={{ riders: racing.riders, kopman: racing.kopman, bonus: racing.bonus }} items={save.items} own={save.teamName} onFinish={onFinish} />
+        </div>
+      ) : null}
       {result ? <ResultView result={result} own={save.teamName} onClose={() => setResult(null)} onPacks={() => { setResult(null); setTab("pakketten"); }} /> : null}
       {picking ? <TradePicker save={save} tier={picking} onTrade={tradePicked} onClose={() => setPicking(null)} /> : null}
       {reveal ? <PackReveal reveal={reveal} owned={{ ...save.collection, ...save.items }} onClose={() => setReveal(null)} /> : null}

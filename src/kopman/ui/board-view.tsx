@@ -1,12 +1,12 @@
 "use client";
 
 import { Crown, Flag, Play, RotateCcw, Undo2, Wrench } from "lucide-react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, HAZARD_LABELS, HAZARD_ODDS, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
 import { cardById } from "../engine/cards";
 import { newSave, type Save } from "../engine/economy";
-import { STAFF } from "../engine/items";
-import { groupsOf, kopmanOf, results, riding, type Lineup } from "../engine/race";
+import { STAFF, teamBonus } from "../engine/items";
+import { groupsOf, kopmanOf, results, riding, type Lineup, type RaceState } from "../engine/race";
 import { loadSave } from "../engine/save";
 import { PLAYER_TEAM } from "../engine/types";
 import { CALENDAR, PLAYER_COLOR, raceById } from "../engine/world";
@@ -18,7 +18,7 @@ import styles from "./kopman.module.css";
 /** Real seconds one sector takes on screen. */
 const SECTOR_SECONDS = 3.5;
 
-const KIND_LABELS: Record<CardKind, string> = { aanval: "Aanval", tempo: "Tempo", bescherming: "Bescherming", verstoring: "Verstoring", reactie: "Reactie", steun: "Staf" };
+const KIND_LABELS: Record<CardKind, string> = { aanval: "Aanval", tempo: "Tempo", bescherming: "Bescherming", verstoring: "Verstoring", reactie: "Reactie", steun: "Staf", pacing: "Pacing", aero: "Aero", techniek: "Techniek" };
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 const km = (m: number) => `${(Math.max(0, m) / 1000).toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km`;
@@ -27,13 +27,13 @@ function store() {
   try { return typeof window === "undefined" ? null : window.localStorage; } catch { return null; }
 }
 
-/** `?bordspel`: a board race with your current lineup and staff. Reads your save, never writes it. */
+/** `?bordspel`: a board race with your current lineup and staff, any race. Reads your save, never writes it. */
 export function BoardApp() {
   const [save] = useState<Save>(() => loadSave(store()) ?? newSave(1, "2026-11-11"));
-  const races = CALENDAR.filter((r) => r.kind !== "tijdrit");
+  const races = CALENDAR;
   const [raceId, setRaceId] = useState(races[0].id);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
-  const lineup: Lineup = { riders: save.lineup, kopman: save.kopman ?? save.lineup[0] };
+  const lineup: Lineup = { riders: save.lineup, kopman: save.kopman ?? save.lineup[0], bonus: teamBonus(save.items) };
   return (
     <div className={styles.app}>
       <header className={styles.header}>
@@ -60,11 +60,20 @@ function sectorTitle(sector: BoardSector) {
   return `${sector.finale ? "Finale · " : ""}${TERRAIN_LABELS[sector.terrain]}${sector.name ? ` · ${sector.name}` : ""}`;
 }
 
-export function BoardView({ raceId, seed, lineup, items, own, onAgain }: { raceId: string; seed: number; lineup: Lineup; items: Record<string, number>; own: string; onAgain: () => void }) {
+/** The race as a board game. In the app `onFinish` hands the result on; in the preview `onAgain` starts a new one. */
+export function BoardView({ raceId, seed, lineup, items, own, onAgain, onFinish }: { raceId: string; seed: number; lineup: Lineup; items: Record<string, number>; own: string; onAgain?: () => void; onFinish?: (state: RaceState) => void }) {
   // The engine is mutable on purpose (race.ts steps in place); a counter redraws.
   const [board] = useState(() => createBoard(raceId, seed, lineup, items));
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   const riding_ = board.phase === "rijden";
+  const finished = useRef(false);
+  const done = board.phase === "klaar";
+
+  useEffect(() => {
+    if (!done || !onFinish || finished.current) return;
+    finished.current = true;
+    onFinish(board.race);
+  }, [done, onFinish, board]);
 
   useEffect(() => {
     if (!riding_) return;
@@ -96,10 +105,10 @@ export function BoardView({ raceId, seed, lineup, items, own, onAgain }: { raceI
   const ahead = board.sectors.slice(board.sector + 1, board.sector + 1 + board.lookahead);
   const lastEvents = board.events.filter((e) => e.sector === (riding_ ? board.sector : board.sector - 1)).slice(-6);
   const mine = state.riders.filter((r) => r.team === PLAYER_TEAM).sort((a, b) => Number(b.kopman) - Number(a.kopman));
-  const dekking = riding(kopman) ? matesOf(state, kopman).length : 0;
+  const dekking = riding(kopman) && !board.tt ? matesOf(state, kopman).length : 0;
   const act = (fn: () => unknown) => { fn(); redraw(); };
 
-  if (board.phase === "klaar") return <BoardResult board={board} own={own} name={def.name} onAgain={onAgain} />;
+  if (done) return onFinish ? null : <BoardResult board={board} own={own} name={def.name} onAgain={onAgain} />;
 
   return (
     <div className={styles.stack}>
@@ -170,9 +179,9 @@ export function BoardView({ raceId, seed, lineup, items, own, onAgain }: { raceI
                   <span className={`${styles.riderFace} ${styles[r.card.tier]}`}><Portrait card={r.card} mood={mood} crop /></span>
                   <span className={styles.riderInfo}>
                     <span><b>{riderName(r.id)}</b>{r.kopman ? <> <Crown size={13} aria-label="kopman" /></> : null}</span>
-                    <small>{(() => { const w = standing(state, r); return `${w.label}${w.gap >= 5 ? ` +${clock(w.gap)}` : ""}`; })()}{r.kopman && riding(r) ? ` · dekking ${dekking}` : ""}</small>
-                    <span className={styles.pips} role="meter" aria-label="Kracht" aria-valuemin={0} aria-valuemax={start} aria-valuenow={k}>
-                      {Array.from({ length: start }, (_, i) => <span key={i} className={i < k ? styles.pipOn : undefined} />)}
+                    <small>{(() => { const w = standing(state, r); return `${w.label}${w.gap >= 5 ? ` +${clock(w.gap)}` : ""}`; })()}{r.kopman && riding(r) && !board.tt ? ` · dekking ${dekking}` : ""}</small>
+                    <span className={styles.pips} role="meter" aria-label="Kracht" aria-valuemin={0} aria-valuemax={Math.max(start, k)} aria-valuenow={k}>
+                      {Array.from({ length: Math.max(start, k) }, (_, i) => <span key={i} className={i < k ? styles.pipOn : undefined} />)}
                     </span>
                   </span>
                 </div>
@@ -202,7 +211,7 @@ function BoardCardView({ board, c, onPlay }: { board: BoardState; c: HandCard; o
   );
 }
 
-function BoardResult({ board, own, name, onAgain }: { board: BoardState; own: string; name: string; onAgain: () => void }) {
+function BoardResult({ board, own, name, onAgain }: { board: BoardState; own: string; name: string; onAgain?: () => void }) {
   const placings = results(board.race);
   const top = placings.slice(0, 10);
   const mine = placings.filter((p) => p.team === PLAYER_TEAM && (p.place > 10 || p.place === 0));
@@ -223,7 +232,7 @@ function BoardResult({ board, own, name, onAgain }: { board: BoardState; own: st
           <tbody>{top.map(row)}{mine.map(row)}</tbody>
         </table>
       </div>
-      <div><button type="button" className={styles.primary} onClick={onAgain}><RotateCcw size={18} aria-hidden />Nog een keer</button></div>
+      {onAgain ? <div><button type="button" className={styles.primary} onClick={onAgain}><RotateCcw size={18} aria-hidden />Nog een keer</button></div> : null}
     </div>
   );
 }

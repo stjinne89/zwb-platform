@@ -7,6 +7,7 @@ import { CALENDAR } from "@/kopman/engine/world";
 const save = newSave(97, "2026-11-11");
 const lineup = { riders: save.lineup, kopman: save.kopman! };
 const raceId = CALENDAR.find((r) => r.kind !== "tijdrit")!.id;
+const ttId = CALENDAR.find((r) => r.kind === "tijdrit")!.id;
 const playable = (b: BoardState) => b.hand.filter((c) => !blockedReason(b, c));
 
 describe("Kopman: bordspel", () => {
@@ -73,6 +74,39 @@ describe("Kopman: bordspel", () => {
     expect(a.race.finished).toBe(true);
     expect(results(a.race)).toEqual(results(b.race));
     expect(a.events).toEqual(b.events);
+  });
+
+  it("maakt van een tijdrit een bord met wind, bochten en kaarten voor de kopman", () => {
+    const b = createBoard(ttId, 4, lineup, { "p-fysio-brons": 1 });
+    expect(b.tt).toBe(true);
+    expect(b.intents).toEqual([]);
+    const terrains = b.sectors.map((s) => s.terrain);
+    expect(terrains[BOARD_SECTORS / 2]).toBe("bochten");
+    expect(b.sectors[BOARD_SECTORS / 2].name).toBe("Keerpunt");
+    expect(new Set(terrains.filter((t) => t !== "bochten"))).toEqual(new Set(["kopwind", "rugwind"]));
+    expect(terrains[0]).not.toBe(terrains.at(-1));
+    for (const c of [...b.deck, ...b.hand]) expect(c.rider === null || c.rider === lineup.kopman).toBe(true);
+    for (const c of b.hand) expect(blockedReason(b, c)).toBeNull();
+  });
+
+  it("laat in een tijdrit één tempokeuze per sector toe", () => {
+    const b = createBoard(ttId, 4, lineup);
+    b.hand = [{ uid: "a", card: "volgas", rider: lineup.kopman }, { uid: "b", card: "volgas", rider: lineup.kopman }];
+    expect(playCard(b, "a")).toBe(true);
+    expect(blockedReason(b, b.hand[0])).toBe("Al een tempo gekozen");
+  });
+
+  it("beloont slim doseren in een tijdrit en straft verkeerd doseren", () => {
+    const finish = (policy: (b: BoardState) => string[]) => autoplay(createBoard(ttId, 3, lineup), policy).race.riders.find((r) => r.id === lineup.kopman)!.finishTime!;
+    const none = finish(() => []);
+    const smart = finish((b) => {
+      const s = currentSector(b);
+      const late = s.index >= BOARD_SECTORS - 4;
+      return playable(b).filter((c) => c.card === "allesgeven" || c.card === "bochtstrak" || c.card === "doseren" || (late && (c.card === "inwind" || c.card === "aero"))).slice(0, 2).map((c) => c.uid);
+    });
+    const wasteful = finish((b) => playable(b).filter((c) => c.card === "doseren" || c.card === "rugherstel").slice(0, 1).map((c) => c.uid));
+    expect(smart).toBeLessThan(none);
+    expect(wasteful).toBeGreaterThan(none);
   });
 
   it("speelt geen kaarten terwijl een sector rijdt", () => {

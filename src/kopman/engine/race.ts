@@ -236,7 +236,7 @@ function decide(state: RaceState, r: Rider, ctx: Context, index: number) {
     if ((o.untilTime !== undefined && state.time >= o.untilTime) || (o.untilDistance !== undefined && r.distance >= o.untilDistance)) r.override = null;
     else return;
   }
-  if (state.scripted && r.team === PLAYER_TEAM) {
+  if (state.scripted && r.team === PLAYER_TEAM && !state.course.tt) {
     if (r.mode === "sprint") return;
     // Dropped and a group in sight: ride back at threshold, as any rider would.
     const gi = ctx.groupIndex.get(r.id) ?? 0;

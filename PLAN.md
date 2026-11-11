@@ -12,10 +12,12 @@ gaat stabiliteit voor nieuwe features.
    `4eb8fd52`; stripstijl in de hele app daarna), niet gepusht.** Geen migratie. Een wielermanager met
    rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
-   over pushen en ronde 2. De eerste speelbare bordspelversie staat in de
-   preview (`?bordspel`); de eigenaar speelt die eerst. Zie
+   over pushen en ronde 2. Sinds fase 4 is het bordspel de koers in het spel,
+   ook in de tijdrit. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md) en de rondes "Kopman:
-   eerste speelbare bordspelversie", "Kopman: bordspelontwerp", "Kopman: zelf kaarten kiezen om te
+   het bordspel als koers en de tijdrit als bordspel", "Kopman: bordspel, een
+   hand met alleen bruikbare kaarten", "Kopman: eerste speelbare
+   bordspelversie", "Kopman: bordspelontwerp", "Kopman: zelf kaarten kiezen om te
    ruilen", "Kopman: dubbele kaarten ruilen of verkopen", "Kopman: materiaal en personeel in
    de pakketten", "Kopman: een afdaling na elke helling", "Kopman: de
    stripstijl in de hele app", "Kopman: stripportretten en
@@ -12233,6 +12235,64 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kopman: het bordspel als koers en de tijdrit als bordspel
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie. De
+eigenaar zei: "het spel speelt prima tot nog toe ga maar verder". Over de
+tijdrit zei de eigenaar: "board game en meer opties, beter aero zitten, pacing
+beter voor elkaar, dingen die bij TT passen".
+
+- **De koers in het spel is nu het bordspel.**
+  - Start op het tabblad Koers opent `BoardView` in plaats van `RaceView`.
+  - De beloning loopt ongewijzigd via `finishRace`.
+  - Dit geldt ook voor de Next-pagina `/zwbgame/kopman`, want die toont
+    dezelfde `KopmanApp`.
+- **De tijdrit is een eigen bord** (`board.tt`):
+  - heen en terug met kopwind en rugwind, bochten bij het keerpunt en in de
+    dorpen;
+  - 7 kaarten voor pacing, aero en bochten, die allemaal op de kopman werken;
+  - iedereen rijdt standaard op 96% van zijn drempelvermogen, en de rivalen
+    doseren ook.
+
+  `race.ts` kreeg één kleine wijziging: de `scripted`-regel voor eigen
+  renners geldt niet in een tijdrit, want daar rijden ze tempo.
+- **Een kaart staat nooit twee keer in je hand** als het dezelfde kaart van
+  dezelfde renner is.
+- **Waarom de tijdrit zo werkt.** Een eerste versie met kaarten per renner en
+  standaardtempo op 99% maakte ongeveer 10 s verschil. De physics laat een
+  renner maar kort boven zijn drempelvermogen rijden (W′). Met 96% als
+  standaard en alle kaarten op de kopman scheelt goed tegenover slecht spelen
+  ongeveer 40 s. Bij vijf zilveren tijdrijders is dat de 11e tegenover de 15e
+  tot 21e plek. De meting staat in
+  [docs/kopman-bordspel.md](docs/kopman-bordspel.md#fase-4-het-bordspel-als-koers-en-de-tijdrit).
+- **Niet meer waar:**
+  - de bordspelversie staat niet meer "alleen in de preview";
+  - het bordspel "speel je niet als tijdrit";
+  - "de radio-orders zijn hoe je ingrijpt" in [docs/kopman.md](docs/kopman.md);
+  - de bonus van de ploegleider op de duur van orders werkt niet meer.
+
+  Alle vier zijn in de docs aangepast.
+- **Bewust niet gebouwd:**
+  - gespreide starttijden en tussentijden in de tijdrit;
+  - knechten sturen in de tijdrit;
+  - intenties voor alle 11 ploegen;
+  - `race-view.tsx` en `radio.ts` opruimen. Die wachten tot zeker is dat het
+    bordspel blijft.
+- **Geverifieerd:**
+  - vitest: 44 tests, waarvan 3 nieuwe voor de tijdrit: sectoren en stapel,
+    één tempo per sector, en dat slim doseren sneller is dan geen kaarten en
+    verspillen trager;
+  - tsc en eslint;
+  - in de preview op 127.0.0.1, met een testsave en niet de save van de
+    eigenaar: een hele wegkoers via het tabblad Koers, met beloning
+    (munten, punten en pakket) en de volgende koers klaar, en een hele
+    tijdrit tot de uitslag.
+- **Niet geverifieerd:**
+  - de Next-pagina in de browser (alleen tsc);
+  - een heel seizoen met de seizoensbeloning;
+  - hoe de tijdrit voelt als je zelf speelt.
 
 ### Gebouwd — Kopman: bordspel, een hand met alleen bruikbare kaarten
 

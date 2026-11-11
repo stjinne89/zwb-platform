@@ -339,5 +339,8 @@
 .k_verstoring { --kind: #c9894f; }
 .k_reactie { --kind: #8cc39c; }
 .k_steun { --kind: var(--paper-3); }
+.k_pacing { --kind: #f08a4b; }
+.k_aero { --kind: #8fd0cf; }
+.k_techniek { --kind: #b8a2d8; }
 .playedChip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-radius: 999px; border: 2px solid var(--ink); background: var(--yellow); font-size: 0.82rem; font-weight: 750; }
 .playedChip button { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 99px; border: 1.5px solid var(--ink); background: var(--paper); }

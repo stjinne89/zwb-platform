@@ -50,6 +50,11 @@ De vraag was die opzet naar het wielrennen te halen. De eigenaar koos daarbij:
   2026-11-11 kon je alle drie de kaarten van een hand spelen; de eigenaar vond
   dat de keuze daardoor zijn waarde verloor. In de tijdrit krijg je geen
   kaarten.
+  **Niet meer zo sinds 2026-11-11 (fase 4):** de koers is nu het bordspel uit
+  [kopman-bordspel.md](kopman-bordspel.md), ook in de tijdrit. De radio-orders
+  en de live koers worden in het spel niet meer gebruikt. Daarmee doet ook de
+  bonus van de ploegleider op de duur van orders niets meer. In het bordspel
+  geeft de ploegleider de kaart Vooruitkijken.
 - **Portretten.** Elke renner heeft een getekend portret in de stijl van een
   Belgisch stripalbum: een inktlijn in een dikke en een dunne lijndikte, vlakke
   kleuren en rasterpunten als schaduw. `src/kopman/ui/portrait.tsx` maakt het
