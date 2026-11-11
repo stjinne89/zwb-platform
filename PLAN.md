@@ -8,12 +8,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): gepusht naar
-   `main` (`b282f1cd`); secret daarna op `BRILJANT_WEEKLY_SECRET` gezet.** Geen
-   migratie. Open: op cron-job.org de job "ZWB ZwiftRacing ladder"
-   (`POST /api/zwiftracing/sync`, elke 30 minuten) opslaan met de header van
-   "ZWBriljant weekly", nagaan dat een run vanaf Netlify `fetched` > 0 geeft, en dan de
-   geplande Chrome-taak `ladder-vermogen-zwiftracing` uitzetten. Zie de ronde
-   "ZwiftRacing: 90 dagen en vELO1 door de server".
+   `main` (`b282f1cd`); secret daarna op `BRILJANT_WEEKLY_SECRET` gezet
+   (`8ed655ee`).** Geen migratie. In productie: de job "ZWB ZwiftRacing ladder"
+   op cron-job.org (`POST`, elke 30 minuten) draait; de eerste run schreef 16
+   renners, allemaal met vermogen en vELO1. De Chrome-taak
+   `ladder-vermogen-zwiftracing` staat uit. Open: over een paar dagen nagaan of
+   de runs blijven slagen (geen `stopped`). Zie de ronde "ZwiftRacing: 90 dagen
+   en vELO1 door de server".
 
 0. **Club Ladder: heatmap in de matchup (2026-11-11): gepusht naar `main`
    (`d7bb3f0f`).** Geen migratie. Open: na de deploy een matchup met renners aan
@@ -12308,9 +12309,13 @@ een voorstel ("Ja, bouw het").
   voor de ladder niet uitdrukkelijk; dat gold al voor de Chrome-taak. Niet
   aangepast: eerst voorleggen.
 
-**Niet geverifieerd:** of zwiftracing.app verzoeken vanaf Netlify net zo
-doorlaat als vanaf de pc van de eigenaar, en een volledige run met
-databaseschrijven (vraagt een deploy). Lokaal: de lezer op de twee pagina's die
+**In productie nagegaan (2026-11-11, na `8ed655ee`):** zwiftracing.app laat
+verzoeken vanaf Netlify door. De test-run van de nieuwe cronjob schreef 16
+renners in `zwift_rider_metrics` (alle 16 met vermogen) en `zwift_legacy_velo`
+(74 rijen, was 64). Daarna is de Chrome-taak `ladder-vermogen-zwiftracing` op
+verzoek van de eigenaar uitgezet. **Eerder niet geverifieerd, en daarmee
+achterhaald:** of Netlify werd doorgelaten en een volledige run met
+databaseschrijven. Lokaal: de lezer op de twee pagina's die
 op 2026-11-11 zijn opgehaald (zelfde waarden als in productie), Vitest
 `zwiftracing-rider-page` (8) en `middleware-public-paths`, ESLint schoon, `tsc`
 zonder fouten in de nieuwe bestanden (de bestaande fouten zijn pakketten die in
