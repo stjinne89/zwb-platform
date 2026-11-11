@@ -22,6 +22,7 @@ import {
   type ClubLadderStanding,
 } from "@/lib/club-ladder/summary";
 import { normalizeTeamName } from "@/lib/ladder";
+import { adviceSelectionQuery, parseAdviceSelection } from "@/lib/club-ladder/advice-selection";
 import { ladderRouteRows, loadLadderRouteAdvice, type AdviceCandidate, type LadderRouteAdvice } from "@/lib/club-ladder/route-advice";
 import { getRequestAccess } from "@/lib/auth/request";
 import { loadWeightMissing } from "@/lib/teams/missing-weight";
@@ -31,6 +32,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { DeleteResultButton, TeamChatLinksForm, TeamResultForm } from "../../[id]/_components/admin-panel";
 import { LadderRouteAdviceView } from "../_components/ladder-route-advice";
+import { LadderAdviceSelection } from "../_components/ladder-advice-selection";
 import { LadderChallengePost } from "../_components/ladder-challenge-post";
 import { LadderPoolAdd } from "../_components/ladder-pool-add";
 import { LadderRoutes } from "../_components/ladder-routes";
@@ -72,9 +74,9 @@ export default async function ClubLadderTeamPage({
   searchParams,
 }: {
   params: Promise<{ teamId: string }>;
-  searchParams: Promise<{ sort?: string; tegen?: string }>;
+  searchParams: Promise<{ sort?: string; tegen?: string; met?: string | string[] }>;
 }) {
-  const [{ teamId }, { sort: sortParam, tegen }] = await Promise.all([params, searchParams]);
+  const [{ teamId }, { sort: sortParam, tegen, met }] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/i.test(teamId)) notFound();
   const riderSort = parseLadderRiderSort(sortParam);
   const supabase = await createClient();
@@ -211,6 +213,8 @@ export default async function ClubLadderTeamPage({
     ...((teamResults ?? []) as TeamResult[]).map((row) => ({ kind: "team" as const, key: row.id, at: row.round_at ?? "9999", row })),
   ].sort((a, b) => b.at.localeCompare(a.at));
   const isCaptain = (captainRows ?? []).length > 0;
+  // Wie op het event de selectie maakt, mag hier ook een eigen selectie voor het advies aanvinken.
+  const canSelect = access.has("teams.manage_roster") || isCaptain;
   const canEditChat = access.has("teams.manage_roster") || isCaptain;
   const canEditResults = access.has("teams.manage_results") || isCaptain;
   const opponent = tegen ? standings.find((row) => normalizeTeamName(row.name) === normalizeTeamName(tegen)) ?? null : null;
@@ -238,24 +242,34 @@ export default async function ClubLadderTeamPage({
     : undefined;
   const adviceSelection = opponentFixture ? selectionFor(opponentFixture) : null;
   const hasSelection = (adviceSelection?.riders.length ?? 0) > 0;
+  // Een eigen selectie uit de URL (`met=`) gaat voor: dan rekent het advies met precies die renners (2026-11-11).
+  const riderKey = (rider: TeamProfileRider) => `${rider.rosterEntryId ? "roster" : "profile"}:${rider.id}`;
+  const customKeys = opponent ? parseAdviceSelection(met, teamRiders.map(riderKey)) : [];
+  const customSet = new Set(customKeys);
+  const customQuery = adviceSelectionQuery(customKeys);
   if (opponent) {
     // Eerst de verse uitslagen bewaren, dan de renners van beide teams aanvullen.
     await storeLadderResults(admin, ladderResults);
-    // De selectie, anders wie nu in de ploeg zit, tegen wie de laatste wedstrijden van de
-    // tegenstander reed; niet de oude opstelling uit eerdere ladderraces (2026-11-03).
-    const candidates: AdviceCandidate[] = hasSelection
-      ? adviceSelection!.riders.map((rider) => ({
-          key: `${rider.kind}:${rider.id}`,
-          name: rider.name,
-          zwiftId: rider.zwiftId,
-          profileId: rider.kind === "profile" ? rider.id : null,
-        }))
-      : teamRiders.map((rider) => ({
-          key: `${rider.rosterEntryId ? "roster" : "profile"}:${rider.id}`,
-          name: rider.name,
-          zwiftId: rider.zwiftId,
-          profileId: rider.rosterEntryId ? null : rider.id,
-        }));
+    // De eigen selectie, anders de selectie op het event, anders wie nu in de ploeg zit,
+    // tegen wie de laatste wedstrijden van de tegenstander reed; niet de oude opstelling
+    // uit eerdere ladderraces (2026-11-03).
+    const asCandidate = (rider: TeamProfileRider): AdviceCandidate => ({
+      key: riderKey(rider),
+      name: rider.name,
+      zwiftId: rider.zwiftId,
+      profileId: rider.rosterEntryId ? null : rider.id,
+    });
+    const candidates: AdviceCandidate[] =
+      customKeys.length > 0
+        ? teamRiders.filter((rider) => customSet.has(riderKey(rider))).map(asCandidate)
+        : hasSelection
+          ? adviceSelection!.riders.map((rider) => ({
+              key: `${rider.kind}:${rider.id}`,
+              name: rider.name,
+              zwiftId: rider.zwiftId,
+              profileId: rider.kind === "profile" ? rider.id : null,
+            }))
+          : teamRiders.map(asCandidate);
     routeAdvice = await loadLadderRouteAdvice(admin, {
       ourNames: [...aliases, ...(match ? [match.name] : [])],
       opponent: opponent.name,
@@ -275,8 +289,10 @@ export default async function ClubLadderTeamPage({
     teamRiders.some((rider) => rider.rosterEntryId == null && rider.id === userId) &&
     (await loadWeightMissing(supabase, userId));
 
-  const adviceHref = (name: string) =>
-    `/teams/club-ladder/${team.id}?tegen=${encodeURIComponent(name)}${sortParam ? `&sort=${sortParam}` : ""}#advies`;
+  const adviceBase = (name: string) =>
+    `/teams/club-ladder/${team.id}?tegen=${encodeURIComponent(name)}${sortParam ? `&sort=${sortParam}` : ""}`;
+  // De eigen selectie gaat mee naar een andere tegenstander: het blijven dezelfde renners van ons.
+  const adviceHref = (name: string) => `${adviceBase(name)}${customQuery}#advies`;
   const opponentHref = (row: ClubLadderStanding) => adviceHref(row.name);
   // Een geplande wedstrijd met event: advies, selectie en matchup staan op het event (2026-11-11).
   const plannedHref = (row: ClubLadderStanding) => {
@@ -350,11 +366,32 @@ export default async function ClubLadderTeamPage({
       {opponent && (
         <section id="advies" className="scroll-mt-20 rounded-lg border bg-card p-4">
           <h2 className="font-semibold">Advies tegen {opponent.name}</h2>
+          {canSelect && teamRiders.length > 0 && (
+            <div className="mt-3">
+              <LadderAdviceSelection
+                // Na het toepassen rekent de pagina opnieuw; een nieuwe sleutel klapt de keuzelijst dicht.
+                key={customKeys.join(",")}
+                href={adviceBase(opponent.name)}
+                options={[...teamRiders]
+                  .sort((a, b) => a.name.localeCompare(b.name, "nl"))
+                  .map((rider) => ({ key: riderKey(rider), name: rider.name }))}
+                selected={
+                  customKeys.length > 0
+                    ? customKeys
+                    : hasSelection
+                      ? adviceSelection!.riders.map((rider) => `${rider.kind}:${rider.id}`)
+                      : []
+                }
+                custom={customKeys.length > 0}
+                resetLabel={hasSelection ? "Selectie van het event" : "Beste vijf"}
+              />
+            </div>
+          )}
           <LadderRouteAdviceView
             routeAdvice={routeAdvice}
             opponent={opponent.name}
             options={routeRows}
-            selection={hasSelection}
+            selection={hasSelection || customKeys.length > 0}
           />
         </section>
       )}
@@ -381,6 +418,7 @@ export default async function ClubLadderTeamPage({
           scoreLabel={scoreLabel}
           canRemove={canAssign && !inPuzzle}
           opponent={opponent?.name ?? null}
+          adviceQuery={customQuery}
         />
       </section>
 

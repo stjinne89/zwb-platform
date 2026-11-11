@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Club Ladder: eigen selectie in het advies (2026-11-11): gecommit op
+   branch `ccr-c9e5f509-nitzaf`, nog niet op `main`.** Geen migratie. Open:
+   de eigenaar beslist over naar `main`; daarna als captain op de teampagina
+   een advies openen, renners aanvinken en Toepassen, ook op een telefoon. Zie
+   de ronde "Club Ladder: eigen selectie in het advies".
+
 0. **Kopman (2026-11-11): op 2026-11-11 gepusht naar `main`, met alle rondes
    van ronde 1 tot en met spelen op de telefoon (`382dd83e` tot en met de
    commit van de ronde "Kopman: online gezet").** Geen migratie. Een
@@ -12234,6 +12240,62 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: eigen selectie in het advies
+
+**2026-11-11, gecommit op branch `ccr-c9e5f509-nitzaf` (de commit met deze
+ronde), nog niet naar `main`.** Geen migratie. Op verzoek van de eigenaar:
+"Kun je op de teamleider bij het advies voor parcours ook de mogelijkheid
+maken om de eigen selectie aan te vinken in plaats van de beste 5". Gelezen
+als: op de Club Ladder-teampagina (Advies tegen …) laat een captain zelf
+aanvinken met welke renners het advies rekent.
+
+**Wat er was.** Op de teampagina rekende het advies zonder selectie per
+parcours met onze vijf sterksten voor dat parcours (`chooseFive` in
+`rank-pairs.ts`). Een selectie kon alleen op het event van een geplande
+wedstrijd; tegen een ploeg die je nog wilt uitdagen is er geen event, dus ook
+geen selectie.
+
+**Wat er is:**
+- Onder de kop **Advies tegen …** staat voor wie op het event de selectie mag
+  maken (`teams.manage_roster`, of captain/co-captain van dit team, dezelfde
+  regel als `setLadderSelection`) de knop **Eigen selectie**: een keuzelijst
+  van de renners van het team, met Toepassen, Annuleren en, als er een eigen
+  selectie staat, **Beste vijf** om terug te gaan. Dicht staan de gekozen
+  namen naast de knop.
+- De keuze staat alleen in de URL (`&met=profile:<id>,roster:<id>`), niet in
+  de database. Toepassen navigeert naar die URL en de pagina rekent opnieuw.
+  Daardoor rekent het advies met precies die renners: met vijf of minder zijn
+  het die renners, met meer dan vijf de sterkste vijf van hen per parcours
+  (zoals een selectie op het event). Het blok toont "Selectie ·".
+- De eigen selectie gaat voor de selectie op het event. Ze blijft staan bij
+  een andere tegenstander in de ranking, bij Advies onder Komende matchups
+  zonder event en bij sorteren van het teamprofiel.
+- `lib/club-ladder/advice-selection.ts` leest en schrijft de parameter en
+  houdt alleen renners van dit team (`parseAdviceSelection`), met unit-test.
+  De keuzelijst is `club-ladder/_components/ladder-advice-selection.tsx`.
+- `/hulp` (Club Ladder, Advies) bijgewerkt.
+
+**Keuzes:** een gewoon lid ziet de knop niet, maar een link met `met=` werkt
+voor iedereen: het is een proefopstelling, niets wordt bewaard, en de captain
+kan de link zo delen. Geen opslag in de database: dan zou een proef van één
+captain het advies van de anderen veranderen, en voor een geplande wedstrijd
+is er al de selectie op het event.
+
+**Bewust niet:** de knop op het Parcoursadvies van het event. Daar rekent het
+advies al met de selectie van het event, en die zet een captain in het blok
+Selectie erboven; een tweede, losse keuze daarnaast zou twee selecties voor
+dezelfde wedstrijd geven.
+
+**Geverifieerd:** `tsc`, eslint op de gewijzigde bestanden, alle unit-tests
+(op `omnium-live` na, die `.env.local` nodig heeft en hier niet draait). De
+keuzelijst los in Chromium op 375px en breed (aanvinken, Toepassen geeft de
+juiste URL, Beste vijf haalt `met=` weg, Toepassen zonder wijziging sluit
+zonder te laden, geen zijwaarts scrollen).
+
+**Niet geverifieerd:** de echte teampagina met data: hier is geen
+`.env.local`, dus het advies met een eigen selectie is niet tegen echte
+renners bekeken. Ook niet als gewoon lid, op een echte telefoon of in Safari.
 
 ### Gebouwd — Kopman: de ploegnaam echt te wijzigen
 

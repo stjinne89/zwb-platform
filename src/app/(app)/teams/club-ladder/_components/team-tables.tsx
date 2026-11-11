@@ -18,6 +18,7 @@ export function TeamRidersTable({
   scoreLabel,
   canRemove,
   opponent = null,
+  adviceQuery = "",
 }: {
   riders: TeamProfileRider[];
   sort: LadderRiderSort;
@@ -28,9 +29,11 @@ export function TeamRidersTable({
   canRemove: boolean;
   /** Gekozen tegenstander, zodat sorteren het advies laat staan. */
   opponent?: string | null;
+  /** De eigen selectie van het advies (`&met=…`), zodat sorteren die ook laat staan. */
+  adviceQuery?: string;
 }) {
   const sortHref = (key: LadderRiderSort) =>
-    `/teams/club-ladder/${teamId}?sort=${key}${opponent ? `&tegen=${encodeURIComponent(opponent)}` : ""}#teamprofiel`;
+    `/teams/club-ladder/${teamId}?sort=${key}${opponent ? `&tegen=${encodeURIComponent(opponent)}${adviceQuery}` : ""}#teamprofiel`;
   // Op telefoonbreedte is de kop het label in de kaart; sorteren gaat daar via de knoppen.
   const header = (key: LadderRiderSort, label: string) => (
     <>
