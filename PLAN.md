@@ -7,23 +7,17 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Kopman, ronde 1 en stripportretten (2026-11-11): lokaal gecommit op
-   `claude/zwbgame-autoracer-concepts-8d80d3` (`382dd83e`; portretten in
-   `4eb8fd52`; stripstijl in de hele app daarna), niet gepusht.** Geen migratie. Een wielermanager met
-   rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
-   de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
-   over pushen en ronde 2. Sinds fase 4 is het bordspel de koers in het spel,
-   ook in de tijdrit. Fase 5 begon met een proef van het getekende
-   koersbeeld. Op een telefoon vult het bord sindsdien het scherm, met het
-   koersbeeld als podium. Zie
-   [docs/kopman-bordspel.md](docs/kopman-bordspel.md) en de rondes "Kopman:
-   het bord op een telefoon", "Kopman: proef met het getekende koersbeeld", "Kopman: het bordspel als koers en de tijdrit als bordspel", "Kopman: bordspel, een
-   hand met alleen bruikbare kaarten", "Kopman: eerste speelbare
-   bordspelversie", "Kopman: bordspelontwerp", "Kopman: zelf kaarten kiezen om te
-   ruilen", "Kopman: dubbele kaarten ruilen of verkopen", "Kopman: materiaal en personeel in
-   de pakketten", "Kopman: een afdaling na elke helling", "Kopman: de
-   stripstijl in de hele app", "Kopman: stripportretten en
-   één order per hand" en "Kopman, ronde 1", en [docs/kopman.md](docs/kopman.md).
+0. **Kopman (2026-11-11): op 2026-11-11 gepusht naar `main`, met alle rondes
+   van ronde 1 tot en met spelen op de telefoon (`382dd83e` tot en met de
+   commit van de ronde "Kopman: online gezet").** Geen migratie. Een
+   wielermanager met rennerkaarten op `/zwbgame/kopman`, alleen voor wie
+   ZWBgame beheert. Het bordspel is de koers, ook in de tijdrit, met het
+   getekende koersbeeld. Op een telefoon vult het bord het scherm. Open: na de
+   deploy op de telefoon inloggen en een koers spelen; daarna beslist de
+   eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
+   [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
+   [docs/kopman.md](docs/kopman.md) en de rondes die met "Kopman" beginnen,
+   van "Kopman: online gezet" tot en met "Kopman, ronde 1".
 
 0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): gepusht naar
    `main` (`b282f1cd`); secret daarna op `BRILJANT_WEEKLY_SECRET` gezet
@@ -12238,10 +12232,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: online gezet
+
+**2026-11-11, commit: de commit die dit blok toevoegt, gepusht naar `main`
+samen met alle Kopman-rondes ervoor (fast-forward, 21 commits).** Geen
+migratie.
+
+- **De vraag.** Het spel was niet bereikbaar op het thuisnetwerk (zie de ronde
+  hieronder). Een APK bouwen vroeg ongeveer 1 GB aan downloads: Java, de
+  Android SDK en Gradle. De eigenaar koos: "Liever online zetten".
+- **Wat er is.** Kopman staat op `/zwbgame/kopman`, alleen voor wie ZWBgame
+  beheert. Op de telefoon werkt het na inloggen overal, ook via 4G.
+- **Geverifieerd vóór de push:**
+  - `next build` slaagt, met `/zwbgame/kopman`;
+  - tsc;
+  - alle 47 Kopman-tests;
+  - geen waarde uit `.env.local` staat in de commits (de secrets-scan van
+    Netlify);
+  - de branch lag 0 commits achter `main`.
+- **Niet door deze branch, wel rood lokaal:**
+  - vijf testbestanden falen: `club-theme`, `omnium-live`,
+    `rls-initplan-migration`, `training-plan-status-cleanup-migration` en
+    `training-storage-retention`. In deze worktree ontbreekt `.env.local`, of
+    een hook loopt over de tijd. Geen van die bestanden is door Kopman
+    aangeraakt;
+  - eslint vindt 16 fouten, allemaal in `.tmp/kopman-preview/game.js`. Dat is
+    de gebundelde preview. Die staat in `.gitignore` en hoort niet bij de code.
+- **Niet geverifieerd:**
+  - de pagina in productie, ingelogd;
+  - een echte telefoon.
+
+  Dat doet de eigenaar na de deploy.
+
 ### Gebouwd — Kopman: spelen op je telefoon
 
-**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+**2026-11-11, commit `ab1e2e36`, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`.** Geen migratie.
 
 - **De vraag.** Na fase 5 stond alleen nog "tegen mensen spelen" open. De
   eigenaar: "ik wil live nog even overslaan, ik wil het liever kunnen spelen op
@@ -12279,15 +12305,26 @@ link naar `/live/[eventId]`, zie de update hierboven).
   - de syntax van het script;
   - tsc, eslint en 47 tests.
 - **Niet geverifieerd:**
-  - `kopman:telefoon` zelf. Ik heb hem niet gestart, omdat luisteren op het
-    netwerk de vraag van de Windows-firewall oproept, en die is aan de
-    eigenaar;
   - een echte telefoon en Safari.
+- **Op het thuisnetwerk werkte het niet.** De eigenaar startte
+  `kopman:telefoon`, maar de telefoon kreeg "site niet bereikbaar".
+  - Aan de kant van de pc klopte alles:
+    - de preview luisterde op `0.0.0.0:3198` en antwoordde op het adres in
+      het netwerk;
+    - de Windows-firewall laat Node binnen op dit netwerk, dat als "Openbaar"
+      staat;
+    - de VPN was niet verbonden;
+    - er draait geen tweede firewall.
+  - Twee minuten meekijken gaf **0 verbindingen** van buiten. De telefoon
+    bereikte de pc dus niet. Vermoedelijk houdt het netwerk apparaten van
+    elkaar gescheiden. Dat is niet verder uitgezocht, omdat de eigenaar
+    koos voor online zetten.
+  - Het script blijft, voor een netwerk waar het wel kan.
 
 ### Gebouwd — Kopman: getekende knoppen en de stripletter overal
 
 **2026-11-11, commit `9d8d80b5`, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`.** Geen migratie.
 
 - **De vraag.** Na de tabtegels uit `943ba2f5` (zie hieronder) schreef de
   eigenaar: "nee je hebt nu juist de andere kant op gewerkt, de knoppen zijn
@@ -12332,7 +12369,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Kopman: de weergaveknoppen in de stijl van de app
 
 **2026-11-11, commits `890a0b2a` en `943ba2f5`, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`.** Geen migratie.
 Afgekeurd en vervangen door de ronde hierboven.
 
 - **De vraag.** "Kun je de knoppen ook in de stijl van de app maken?"
@@ -12355,7 +12392,7 @@ Afgekeurd en vervangen door de ronde hierboven.
 ### Gebouwd — Kopman: het bord op een telefoon
 
 **2026-11-11, commit `63a753f3`, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`.** Geen migratie.
 
 - **De vraag.** De eigenaar schreef: "Om het speelbaar te maken op mobiel lijkt
   het mij dat de elementen allemaal in het koersbeeld moeten passen, want je
@@ -12395,7 +12432,7 @@ Afgekeurd en vervangen door de ronde hierboven.
 ### Gebouwd — Kopman: proef met het getekende koersbeeld (fase 5)
 
 **2026-11-11, commit `e5a4bd7f`, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`.** Geen migratie.
 
 - **De vraag.** De eigenaar wilde geen van de voorgestelde aanpassingen aan
   het bordspel: geen reactiemoment, geen Herstel kiezen, geen extra
@@ -12437,7 +12474,7 @@ Afgekeurd en vervangen door de ronde hierboven.
 ### Gebouwd — Kopman: het bordspel als koers en de tijdrit als bordspel
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie. De
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`.** Geen migratie. De
 eigenaar zei: "het spel speelt prima tot nog toe ga maar verder". Over de
 tijdrit zei de eigenaar: "board game en meer opties, beter aero zitten, pacing
 beter voor elkaar, dingen die bij TT passen".
@@ -12495,7 +12532,7 @@ beter voor elkaar, dingen die bij TT passen".
 ### Gebouwd — Kopman: bordspel, een hand met alleen bruikbare kaarten
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie. De
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`.** Geen migratie. De
 eigenaar zei: "Het is leuker maar je kan vaak niet kiezen omdat kaarten niet
 van toepassing zijn. Kun je daar meer variatie in maken en als kaarten niet
 bruikbaar zijn vervangen door bruikbare kaarten?"
@@ -12536,7 +12573,7 @@ bruikbaar zijn vervangen door bruikbare kaarten?"
 ### Gebouwd — Kopman: eerste speelbare bordspelversie (alleen preview)
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie. De
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`.** Geen migratie. De
 eigenaar zei "Ja, bouwen" op het ontwerp hieronder.
 
 - **Wat er is.**
@@ -12583,7 +12620,7 @@ eigenaar zei "Ja, bouwen" op het ontwerp hieronder.
 ### Ontwerp — Kopman: bordspelontwerp (geen code)
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Er is geen code
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`.** Er is geen code
 en geen migratie. De eigenaar zei: "het spel zelf is niet zo leuk. Misschien
 moeten we meer richting een bordspel idee, waarbij je met verschillende
 krachten kaarten speelt die het spel kunnen beinvloeden en hoe je je kopman
@@ -12607,7 +12644,7 @@ kan beschermen".
 ### Gebouwd — Kopman: zelf kaarten kiezen om te ruilen
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "Ik wil
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`** (eigenaar: "Ik wil
 ook enkele kaarten hierin kunnen ruilen", "niet alleen dubbele"; gekozen: zelf
 5 kaarten aantikken). Geen migratie.
 
@@ -12651,7 +12688,7 @@ ook enkele kaarten hierin kunnen ruilen", "niet alleen dubbele"; gekozen: zelf
 ### Gebouwd — Kopman: dubbele kaarten ruilen of verkopen
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "Kun je
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`** (eigenaar: "Kun je
 ook maken dat je bij dubbele kaarten (3 bronzen wordt 1 zilveren ofzo) ze weer
 kan ruilen om zo door te blijven bouwen?"; gekozen: bewaren of verkopen, en
 5-1 door elkaar). Geen migratie: Kopman bewaart alles in `localStorage`.
@@ -12700,7 +12737,7 @@ kan ruilen om zo door te blijven bouwen?"; gekozen: bewaren of verkopen, en
 ### Gebouwd — Kopman: materiaal en personeel in de pakketten
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "Nu
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`** (eigenaar: "Nu
 zitten in de pakketten alleen renners, maar hier kan veel meer in", en na het
 voorstel: "Ik zou het personeel graag als bonussen zien op het geheel, een
 trainer maakt de hele opstelling x procent beter een mechanieker maakt het
@@ -12763,7 +12800,7 @@ pakket openen en het ploegscherm.
 ### Gebouwd — Kopman: een afdaling na elke helling
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "de
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`** (eigenaar: "de
 profielen zijn wel gek in dit spel door een gebrek aan afdalingen", en daarna:
 "ja na elke klim een afdaling, die mag wel afwijken van de beklimming zoals in
 het echt"). Geen migratie.
@@ -12799,7 +12836,7 @@ Het profiel is bekeken in de preview-bundel; vitest `kopman` geeft 25 groen.
 ### Gebouwd — Kopman: de stripstijl in de hele app (nachteditie)
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "Ik vind
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`** (eigenaar: "Ik vind
 dit een mooie stijl voor de gehele app van de kaarten, kun je dat
 doortrekken?"). Geen migratie.
 
@@ -12937,7 +12974,7 @@ koers met één order, uitslag en het testblad. Vitest `kopman` geeft 24 groen.
 ### Gebouwd — Kopman, ronde 1: wielermanager met rennerkaarten
 
 **2026-11-11, commit `382dd83e`, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "Ja, bouw ronde 1"). Geen migratie. Ontwerp,
+`claude/zwbgame-autoracer-concepts-8d80d3`, op 2026-11-11 gepusht naar `main`** (eigenaar: "Ja, bouw ronde 1"). Geen migratie. Ontwerp,
 fysica, economie en bronnen staan in [docs/kopman.md](docs/kopman.md).
 
 **Waarom.** De eigenaar zag het spel *Autoracer* (munten, pakketten, een
