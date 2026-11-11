@@ -83,6 +83,11 @@ export type RaceState = {
   radioHand: number;
   /** How much longer the player's radio orders last (assistant directeur sportif). */
   orderScale: number;
+  /**
+   * Board game: attacks come from cards and intents, not from chance, and the
+   * player's riders only ride along unless a card tells them otherwise.
+   */
+  scripted?: boolean;
 };
 
 export type Lineup = { riders: string[]; kopman: string; bonus?: TeamBonus };
@@ -231,6 +236,15 @@ function decide(state: RaceState, r: Rider, ctx: Context, index: number) {
     if ((o.untilTime !== undefined && state.time >= o.untilTime) || (o.untilDistance !== undefined && r.distance >= o.untilDistance)) r.override = null;
     else return;
   }
+  if (state.scripted && r.team === PLAYER_TEAM) {
+    if (r.mode === "sprint") return;
+    // Dropped and a group in sight: ride back at threshold, as any rider would.
+    const gi = ctx.groupIndex.get(r.id) ?? 0;
+    const ahead = gi > 0 ? ctx.groups[gi - 1] : null;
+    const alone = ctx.groups[gi].length <= 2;
+    setMode(r, ahead && alone && ahead[ahead.length - 1].distance - r.distance < 600 ? "tempo" : "mee");
+    return;
+  }
   const course = state.course;
   if (course.tt) { setMode(r, "tempo"); return; }
   const remaining = course.length - r.distance;
@@ -277,7 +291,7 @@ function decide(state: RaceState, r: Rider, ctx: Context, index: number) {
   const lastClimb = lastClimbOf(course);
   const onLastClimb = !!climb && climb === lastClimb;
   // Attacks: climbers on the decisive climbs, strong men on the cobbles, punchers late.
-  if (state.time > r.cooldown && r.wbal > 0.7 * r.wprime) {
+  if (!state.scripted && state.time > r.cooldown && r.wbal > 0.7 * r.wprime) {
     const s = r.card.stats;
     let p = 0;
     if (climb && grade >= 0.035 && climb.end - r.distance > 300 && (frac > 0.5 || onLastClimb) && (r.kopman || s.klim >= 74)) p = 0.05 * clamp((s.klim - 55) / 35, 0, 1.2) * (onLastClimb ? 2.5 : 1);

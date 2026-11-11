@@ -1,6 +1,10 @@
 # Kopman als bordspel — ontwerp
 
-Opgesteld op 2026-11-11. Nog niets van dit ontwerp is gebouwd.
+Opgesteld op 2026-11-11. Op dezelfde dag is een eerste speelbare versie
+gebouwd. Die staat alleen in de preview (`npm run kopman:preview`, dan
+`?bordspel`) en nog niet in de app of op de Next-pagina. Hoe die versie werkt
+en waar ze van dit ontwerp afwijkt, staat onder "Eerste speelbare versie:
+gebouwd" onderaan.
 
 ## Aanleiding
 
@@ -163,6 +167,80 @@ nu blijven ongemoeid.
 - een koers speelbaar is in ongeveer 5 minuten;
 - elke beurt een echte keuze heeft;
 - je kopman kan winnen of verliezen door hoe je je knechten inzet.
+
+## Eerste speelbare versie: gebouwd
+
+**Code:**
+- `src/kopman/engine/board.ts` is de spelmotor;
+- `src/kopman/ui/board-view.tsx` is het bord;
+- `tests/unit/kopman-board.test.ts` bevat de tests.
+
+`race.ts` kreeg één vlag, `scripted`. Als die aan staat:
+- vallen de computerrenners niet meer op eigen houtje aan; aanvallen komen
+  alleen uit kaarten en intenties;
+- rijden je eigen renners mee tenzij een kaart iets anders zegt.
+
+Het volgen van een aanval, het achtervolgen, de vlucht van de dag, de lead-out
+en de sprint blijven werken zoals in de live koers.
+
+**De preview** leest je save (opstelling, kopman en personeel), maar schrijft
+er niets in. Je kiest een koers; tijdritten tellen niet mee.
+
+**Hoe het nu werkt, en waar het afwijkt van het ontwerp hierboven:**
+- **Sectoren.** Er zijn 10 even lange sectoren. Het terrein volgt uit wat er
+  in een sector het meest voorkomt: kasseien vanaf 20%, klim vanaf 30%,
+  afdaling vanaf 35%, anders vlak. De laatste sector is de finale. Die rijdt
+  door tot de finish.
+- **Kracht.** De beginwaarden zijn zoals ontworpen (10 voor de kopman, 6 voor
+  een knecht, ±1 voor goud en brons). Wie kracht verliest, verliest ook
+  vermogen in de physics, tot 8% bij 0 kracht. Rivalen hebben ook kracht.
+  Hun aanvallen en gevaren kosten die net zo.
+- **Gevaren** worden getrokken nadat de sector gereden is. De kansen staan in
+  `HAZARD_ODDS`.
+  - Een lekke band treft één kopman, in 30% van de gevallen de jouwe.
+    Valpartij en zijwind treffen elke kopman die te weinig dekking heeft.
+  - Krijgt je kopman een lekke band of valt hij met dekking, dan wachten
+    knechten op hem. Ze trekken hem terug met de rijstand `wachten` die al in
+    `race.ts` zat.
+  - Een eigen renner die gelost is, rijdt op drempeltempo terug als er een
+    groep binnen 600 m rijdt.
+- **Waaier trekken** maakt de sector winderig. Dan heb je 2 ploeggenoten om
+  je heen nodig in plaats van 1, en jouw ploeg is beschermd.
+- **Reactiekaarten** ("In het wiel" en "Gat dichtrijden") werken alleen als
+  een rivaal in die sector echt aanvalt binnen 250 m. Zo niet, dan gaan ze
+  terug in je hand en krijg je je kracht terug. Ze gaan bij het begin van de
+  sector af, niet midden in de animatie.
+- **Je hand.**
+  - Je hebt 4 kaarten, of 5 met een buschauffeur. Na elke sector trek je
+    minstens één nieuwe kaart. Is je hand dan te vol, dan gaat de oudste
+    weg. Zo raakt je hand niet verstopt met kaarten die niet passen.
+  - Rennerkaarten kun je terugnemen tot je op Rijden drukt. Stafkaarten
+    werken meteen.
+- **De snelle wielwissel** speel je niet: als hij in je hand zit, vangt hij
+  vanzelf een lekke band op.
+- **Herstel** gaat altijd naar de kopman.
+- **Rivalen.** Alleen de 4 ploegen met de best passende kopman krijgen
+  intenties, en er staan er hooguit 3 op het scherm. Elke ploeg valt hooguit
+  2 keer per koers aan. Van de intenties gaat 20% niet door.
+
+**Balansmeting van 2026-11-11.** De beste eigen plek, gemeten over 5
+klassiekers met 6 seeds per koers:
+
+| Ploeg | Live koers | Bordspel zonder kaarten | Bordspel, elke beurt de eerste speelbare kaarten |
+| --- | --- | --- | --- |
+| startploeg (brons) | meestal 30–50 | meestal 25–45 | meestal 15–35 |
+| vijf beste zilveren | meestal 4–15 | meestal 10–20 | meestal 2–12, soms een zege |
+
+Kaarten spelen helpt dus, en goed spelen zou nog meer moeten helpen. Hoe het
+voelt als je zelf speelt, is niet gemeten.
+
+**Bewust nog niet gebouwd:**
+- beloningen, het seizoen, en het bordspel in de app zelf;
+- intenties voor alle 11 ploegen;
+- een reactiemoment midden in een sector;
+- zelf kiezen wie Herstel krijgt;
+- rennervermoeidheid tussen koersen;
+- 3D.
 
 ## Nog niet bekend
 

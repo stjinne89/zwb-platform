@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import { pool } from "../../../src/kopman/engine/cards";
 import { ITEMS } from "../../../src/kopman/engine/items";
 import { RIDER_TYPES } from "../../../src/kopman/engine/types";
+import { BoardApp } from "../../../src/kopman/ui/board-view";
 import { ItemCardView, SlotTile } from "../../../src/kopman/ui/item-card";
 import { KopmanApp } from "../../../src/kopman/ui/kopman-app";
 import { faceOf, Portrait, type Mood } from "../../../src/kopman/ui/portrait";
@@ -71,4 +72,4 @@ function ItemSheet() {
 }
 
 const query = new URLSearchParams(location.search);
-createRoot(document.getElementById("root")!).render(query.has("portretten") ? <PortraitSheet /> : query.has("materiaal") ? <ItemSheet /> : <KopmanApp />);
+createRoot(document.getElementById("root")!).render(query.has("portretten") ? <PortraitSheet /> : query.has("materiaal") ? <ItemSheet /> : query.has("bordspel") ? <BoardApp /> : <KopmanApp />);

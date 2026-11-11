@@ -6,9 +6,11 @@ const INK = "#1b1712";
 const FEATURE_FILL = { klim: "rgb(255 197 61 / 0.42)", kasseien: "rgb(176 106 52 / 0.32)", grind: "rgb(196 160 78 / 0.34)" } as const;
 
 export type Marker = { distance: number; color: string; size: number; mine?: boolean };
+/** Board sectors: dividers, and the current one lit. */
+export type Band = { start: number; end: number; active?: boolean };
 
 /** The course drawn as a strip landscape, with climbs, cobbles and gravel marked, and optionally the riders on it. */
-export function Profile({ course, markers = [], height = 120 }: { course: Course; markers?: Marker[]; height?: number }) {
+export function Profile({ course, markers = [], height = 120, bands = [] }: { course: Course; markers?: Marker[]; height?: number; bands?: Band[] }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const dots = `pd${uid}`;
   const width = 600;
@@ -37,6 +39,8 @@ export function Profile({ course, markers = [], height = 120 }: { course: Course
       {course.features.map((f) => (
         <rect key={`${f.name}-${f.start}`} x={x(f.start)} y={0} width={Math.max(2, x(f.end) - x(f.start))} height={height} fill={FEATURE_FILL[f.kind]} />
       ))}
+      {bands.filter((b) => b.active).map((b) => <rect key={`a${b.start}`} x={x(b.start)} y={0} width={x(b.end) - x(b.start)} height={height} fill="rgb(255 250 240 / 0.55)" />)}
+      {bands.slice(1).map((b) => <line key={`l${b.start}`} x1={x(b.start)} x2={x(b.start)} y1={0} y2={height} stroke={INK} strokeWidth={1.2} strokeDasharray="3 4" opacity={0.55} />)}
       <path d={`M${points.join(" L")}`} fill="none" stroke={INK} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" />
       {markers.map((m, i) => (
         <circle key={i} cx={x(Math.max(0, Math.min(course.length, m.distance)))} cy={y(elevAt(m.distance)) - 4 - (m.mine ? 4 : 0)} r={m.size} fill={m.color} stroke={INK} strokeWidth={m.mine ? 2 : 1.5} />

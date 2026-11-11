@@ -12,9 +12,10 @@ gaat stabiliteit voor nieuwe features.
    `4eb8fd52`; stripstijl in de hele app daarna), niet gepusht.** Geen migratie. Een wielermanager met
    rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
-   over pushen en ronde 2. Volgende stap: een speelbare bordspelversie, zie
-   [docs/kopman-bordspel.md](docs/kopman-bordspel.md). Zie de rondes
-   "Kopman: bordspelontwerp", "Kopman: zelf kaarten kiezen om te
+   over pushen en ronde 2. De eerste speelbare bordspelversie staat in de
+   preview (`?bordspel`); de eigenaar speelt die eerst. Zie
+   [docs/kopman-bordspel.md](docs/kopman-bordspel.md) en de rondes "Kopman:
+   eerste speelbare bordspelversie", "Kopman: bordspelontwerp", "Kopman: zelf kaarten kiezen om te
    ruilen", "Kopman: dubbele kaarten ruilen of verkopen", "Kopman: materiaal en personeel in
    de pakketten", "Kopman: een afdaling na elke helling", "Kopman: de
    stripstijl in de hele app", "Kopman: stripportretten en
@@ -12233,6 +12234,52 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: eerste speelbare bordspelversie (alleen preview)
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie. De
+eigenaar zei "Ja, bouwen" op het ontwerp hieronder.
+
+- **Wat er is.**
+  - `src/kopman/engine/board.ts`: een bord van 10 sectoren, kracht per
+    renner en dekking voor de kopman, een stapel uit je opstelling en je
+    personeel (14 soorten kaarten), gevaren per sector en rivalen met
+    zichtbare intenties.
+  - De physics van `race.ts` rijdt elke sector, en je ziet dat als een
+    animatie van ongeveer 3,5 seconde.
+  - `src/kopman/ui/board-view.tsx` is het bord. Het staat in de preview onder
+    `?bordspel` en leest je save zonder erin te schrijven.
+- **Waarom alleen in de preview.** De eigenaar moet eerst voelen of dit
+  leuker is. De gewone koers, de saves en de app blijven ongemoeid.
+- **Wijziging in `race.ts`: de vlag `scripted`.**
+  - Computerrenners vallen niet meer op eigen houtje aan.
+  - Eigen renners rijden mee, en rijden op drempeltempo terug naar een groep
+    binnen 600 m.
+  - Zonder die vlag verandert er niets aan de live koers. De bestaande tests
+    slagen.
+- **Afwijkingen van het ontwerp en de balansmeting:** zie [Eerste speelbare
+  versie: gebouwd](docs/kopman-bordspel.md#eerste-speelbare-versie-gebouwd).
+  Kort:
+  - de gevaren komen na de sector;
+  - reactiekaarten gaan terug in je hand als niemand aanvalt;
+  - je trekt elke sector minstens één nieuwe kaart.
+- **Bewust niet gebouwd:**
+  - beloningen, het seizoen en een plek in de app;
+  - intenties voor alle ploegen;
+  - een reactiemoment midden in de animatie;
+  - 3D.
+- **Geverifieerd:**
+  - vitest: 6 nieuwe tests (sectoren, stapel, kosten en terugnemen,
+    terrein, herhaalbaarheid en het rijden), en de 34 bestaande tests;
+  - tsc en eslint;
+  - de preview op desktop en op 375 px: een hele koers gespeeld tot de
+    uitslag.
+- **Niet geverifieerd:**
+  - of het leuk is;
+  - de balans bij echt spelen;
+  - Safari en een trage telefoon;
+  - de Next-pagina (het bordspel staat daar niet in).
+
 ### Ontwerp — Kopman: bordspelontwerp (geen code)
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
@@ -12254,9 +12301,8 @@ kan beschermen".
   - een stapel uit je opstelling en je personeel;
   - vijf soorten kaarten, gevaren per sector en rivalen met zichtbare
     intenties.
-- **Bewust nog niet gebouwd.** De eerste speelbare versie wacht op een ja
-  van de eigenaar. Die komt naast de huidige koers in de preview
-  (`?bordspel`).
+- **De eerste speelbare versie** is dezelfde dag gebouwd. Zie de ronde
+  hierboven.
 
 ### Gebouwd — Kopman: zelf kaarten kiezen om te ruilen
 

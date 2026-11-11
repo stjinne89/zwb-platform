@@ -64,6 +64,8 @@
 .app .filters button,
 .app .speed button,
 .app .cardActions button,
+.app .bcard,
+.app .playedChip,
 .app .nameInput {
   --fg: var(--ink);
   --muted: var(--ink-soft);
@@ -308,3 +310,34 @@
 .reward b { font-family: var(--letter); font-size: 1.3rem; font-weight: 800; }
 .notice { padding: 9px 12px; border-radius: 8px; background: #ffe1d6; border: 2px solid var(--ink); font-size: 0.88rem; font-weight: 600; }
 .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* Board game (?bordspel): sector, intents, kracht pips and a hand of cards. */
+.boardSelect { font: inherit; font-weight: 750; background: transparent; border: 0; color: var(--ink); max-width: 46vw; }
+.boardGrid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 760px) { .boardGrid { grid-template-columns: 1fr; } }
+.sectorPanel { display: grid; gap: 6px; }
+.intents { display: grid; gap: 6px; margin-top: 6px; }
+.intent { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 9px; border-radius: 8px; background: #ffe1d6; border: 1.5px solid var(--ink); font-size: 0.85rem; }
+.intent .teamDot { margin-right: 0; }
+.ticker div.tickerBad { background: #ffb8a6; }
+.pips { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 2px; }
+.pips span { width: 9px; height: 9px; border-radius: 2px; border: 1.5px solid var(--ink); background: #fffaf0; }
+.pips span.pipOn { background: var(--yellow); }
+.boardHand { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.bcard { position: relative; text-align: left; display: grid; gap: 3px; align-content: start; min-height: 128px; padding: 26px 11px 11px; border-radius: 12px; border: 2px solid var(--ink); background: var(--paper); box-shadow: var(--lift); overflow: hidden; transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease-out; }
+.bcard:not(:disabled):hover { transform: translateY(-3px) rotate(-0.6deg); background: #fffaf0; }
+.app .bcard:disabled { opacity: 0.55; box-shadow: none; }
+.bcard strong { font-family: var(--letter); font-size: 1rem; font-weight: 800; line-height: 1.1; }
+.bcardKind { position: absolute; inset: 0 0 auto 0; padding: 3px 11px; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 2px solid var(--ink); background: var(--kind, var(--paper-3)); color: var(--kind-ink, var(--ink)); }
+.bcardWho { font-size: 0.78rem; font-weight: 750; }
+.bcardText { font-size: 0.78rem; color: var(--muted); }
+.bcardCost { display: flex; gap: 3px; margin-top: auto; padding-top: 4px; }
+.bcardCost span { width: 10px; height: 10px; border-radius: 99px; background: var(--yellow); border: 1.5px solid var(--ink); }
+.k_aanval { --kind: var(--red); --kind-ink: #fff; }
+.k_tempo { --kind: var(--yellow); }
+.k_bescherming { --kind: #7fb2d6; }
+.k_verstoring { --kind: #c9894f; }
+.k_reactie { --kind: #8cc39c; }
+.k_steun { --kind: var(--paper-3); }
+.playedChip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-radius: 999px; border: 2px solid var(--ink); background: var(--yellow); font-size: 0.82rem; font-weight: 750; }
+.playedChip button { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 99px; border: 1.5px solid var(--ink); background: var(--paper); }
