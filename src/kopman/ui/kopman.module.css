@@ -344,3 +344,16 @@
 .k_techniek { --kind: #b8a2d8; }
 .playedChip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-radius: 999px; border: 2px solid var(--ink); background: var(--yellow); font-size: 0.82rem; font-weight: 750; }
 .playedChip button { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 99px; border: 1.5px solid var(--ink); background: var(--paper); }
+
+/* Koersbeeld: the race from the camera bike (chase-view.tsx). */
+.chase { position: relative; height: clamp(210px, 46vw, 340px); border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; background: #dcebf0; }
+.chase canvas { display: block; width: 100%; height: 100%; }
+.chaseCaption, .chaseGrade { position: absolute; top: 10px; padding: 4px 10px; border: 2px solid var(--ink); background: var(--yellow); color: var(--ink); font-family: var(--letter); font-weight: 800; font-size: 0.85rem; line-height: 1.2; box-shadow: 0 3px 8px rgb(0 0 0 / 0.25); }
+.chaseCaption { left: 10px; border-radius: 4px; transform: rotate(-1.5deg); }
+.chaseGrade { right: 10px; border-radius: 999px; background: var(--paper); font-variant-numeric: tabular-nums; }
+.viewToggle { display: inline-flex; border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; background: var(--paper); box-shadow: var(--lift); }
+.viewToggle button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; font-size: 0.84rem; font-weight: 750; color: var(--ink); background: transparent; transition: background-color 0.15s ease-out; }
+.viewToggle button + button { border-left: 2px solid var(--ink); }
+.viewToggle button[aria-pressed="true"] { background: var(--yellow); }
+.viewToggle button:not([aria-pressed="true"]):hover { background: var(--yellow-soft); }
+.viewToggle button:focus-visible { outline: 3px solid var(--yellow); outline-offset: -5px; }

@@ -214,8 +214,10 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
 - Diamanten, een seizoenspas en trainen (met dubbele kaarten als
   grondstof). Ruilen en verkopen van dubbele kaarten is er sinds 2026-11-11. Die horen bij de volgende rondes. Materiaal en personeel zijn
   er sinds 2026-11-11 als kaarten, zie hieronder.
-- 3D, waaiers, wind en valpartijen. Voor een getekend beeld van achter de
-  renners dat als 3D aanvoelt, staat een plan in het plannenboek.
+- 3D, waaiers, wind en valpartijen. Sinds 2026-11-11 zitten waaiers, wind en
+  valpartijen in het bordspel. Een getekend beeld van achter de renners dat
+  als 3D aanvoelt, staat er als proef in: het koersbeeld, zie
+  [kopman-bordspel.md](kopman-bordspel.md).
 - Portretten als foto of AI-afbeelding: 320 losse plaatjes zijn zwaar, ze
   laten zich niet per stemming animeren en kunnen op een echte renner lijken.
   Gezichten van een kant-en-klare bibliotheek: die hebben per stijl een andere

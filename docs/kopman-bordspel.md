@@ -148,8 +148,9 @@ vooruit denken en reageren. Een ploeg wijkt soms af van zijn intentie
     kaarten.
 - **Komt later:**
   - spelen tegen mensen;
-  - de getekende 3D-weergave. Die staat nu nog als plan in het
-    ZWB-plannenboek. Volgens de keuze van de eigenaar hoort hij hier.
+  - de getekende 3D-weergave. Die stond als plan in het ZWB-plannenboek.
+    Volgens de keuze van de eigenaar hoort hij hier. Een eerste proef is
+    gebouwd in fase 5, zie onderaan.
 
 ## Eerste speelbare versie
 
@@ -360,6 +361,75 @@ tijdrit weinig, net als in de live koers.
   gespreide starts.
 - **Knechten sturen in de tijdrit.** Met vijf renners en twee kaarten per
   sector werd het te druk, en hun plek levert weinig op.
+
+## Fase 5, proef: het koersbeeld
+
+Gebouwd op 2026-11-11. De eigenaar zei: "Ga gewoon verder met de fases". Het
+plan in het plannenboek ("Kopman: de koers in een getekend 3D-beeld") vroeg
+om eerst een korte proef.
+
+**Wat het is.**
+- Boven het bord kies je **Overzicht** (het profiel van nu) of
+  **Koersbeeld**. Je keuze wordt onthouden op dit apparaat.
+- Het koersbeeld toont de koers zoals de motorcamera hem ziet. De camera
+  rijdt 9 m achter je kopman.
+- Alles is getekend in de stijl van Kopman: inktlijnen, papierkleuren en
+  rasterpunten in de lucht en het gras.
+  - Elke renner draagt zijn ploegkleur. Jouw renners zijn geel met een zwarte
+    helm, en je kopman heeft een rood driehoekje boven zijn hoofd.
+  - Wie aanvalt of sprint, krijgt snelheidslijnen.
+  - Kasseien tekenen we als stenen en grind als korrels.
+  - Bij een klim of kasseistrook verschijnt de naam in een geel kader, met
+    het stijgingspercentage in een rond label.
+- Onder het beeld blijft een smal profiel staan, zodat je ziet waar je bent.
+
+**Hoe het werkt.**
+- Eén canvas, zonder 3D-bibliotheek (2,5D, zoals oude racespellen).
+  - `src/kopman/ui/chase-scene.ts` rekent de geometrie uit en heeft tests;
+  - `src/kopman/ui/chase-view.tsx` tekent.
+- De koersberekening is niet veranderd. Wat de engine niet kent, verzint het
+  beeld:
+  - de bochten komen uit de seed;
+  - de plek op de weg volgt uit je plek in de groep. Een groep rijdt breder
+    naarmate hij groter is; in de tijdrit rijdt ieder zijn eigen lijn.
+
+  Het beeld schrijft niets terug naar de koers.
+- **Hoogte** komt uit het echte profiel en is iets aangedikt. De camera kantelt
+  half mee met de helling, zoals een camera op een motor. Een muur als de
+  Koppenberg tekenen we op hooguit 16% ten opzichte van de camera, zodat hij
+  in beeld blijft.
+- **Snelheid.** Een sector van een paar kilometer gaat in 3,5 s voorbij. Een
+  kasseistrook zie je dus maar een seconde. De bochten zijn daarom
+  kilometers lang, zodat de weg zwiept in plaats van trilt. De wegstrepen en
+  stenen schuiven op een rustiger tempo dan de koers zelf.
+- **Wanneer het tekent.** Het beeld tekent alleen terwijl een sector rijdt.
+  Tussen de sectoren tekent het één keer opnieuw. Het stopt buiten beeld en
+  als het tabblad verborgen is. Met "beweging beperken" staan de trappers
+  stil en schuift de weg niet; de koers zelf loopt wel.
+
+**Geverifieerd:**
+- 3 tests voor de geometrie;
+- in de preview op desktop en op 375 px: een vlakke start, de Trouée
+  d'Arenberg op de kasseien en de Koppenberg op 13%;
+- op desktop meet een gemiddeld beeld 16,7 ms, en 95% van de beelden blijft
+  onder 17,8 ms. Dat is 60 beelden per seconde.
+
+**Niet geverifieerd:**
+- **Een echte, gewone telefoon.** De eis uit het plan was "soepel op een
+  gewone telefoon". Dat is alleen nagebootst op 375 px breed in Chrome op
+  desktop.
+- **Safari.**
+- **De Next-pagina.** Daar is alleen tsc gedraaid.
+
+**Bewust niet gebouwd:**
+- **Echte 3D of een bibliotheek als three.js.** Het plan vroeg om het zonder
+  te proberen, en dat lukt.
+- **Renners naast elkaar in de koersberekening.** De plek op de weg is alleen
+  beeld.
+- **Een tragere animatie in het koersbeeld.** Dat zou de duur van een koers
+  veranderen, en daar is niet om gevraagd.
+- **Andere camerastandpunten.** Bijvoorbeeld de helikopter of de kopgroep
+  volgen.
 
 ## Nog niet bekend
 

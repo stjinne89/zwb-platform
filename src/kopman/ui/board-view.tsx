@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown, Flag, Play, RotateCcw, Undo2, Wrench } from "lucide-react";
+import { Crown, Flag, Mountain, Play, RotateCcw, Undo2, Video, Wrench } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, HAZARD_LABELS, HAZARD_ODDS, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
 import { cardById } from "../engine/cards";
@@ -10,6 +10,7 @@ import { groupsOf, kopmanOf, results, riding, type Lineup, type RaceState } from
 import { loadSave } from "../engine/save";
 import { PLAYER_TEAM } from "../engine/types";
 import { CALENDAR, PLAYER_COLOR, raceById } from "../engine/world";
+import { ChaseView } from "./chase-view";
 import { Portrait, type Mood } from "./portrait";
 import { Profile } from "./profile";
 import { clock, riderName, teamColor, teamName } from "./race-view";
@@ -25,6 +26,12 @@ const km = (m: number) => `${(Math.max(0, m) / 1000).toLocaleString("nl-NL", { m
 
 function store() {
   try { return typeof window === "undefined" ? null : window.localStorage; } catch { return null; }
+}
+
+type View = "overzicht" | "beeld";
+const VIEW_KEY = "kopman:koersbeeld";
+function savedView(): View {
+  try { return store()?.getItem(VIEW_KEY) === "beeld" ? "beeld" : "overzicht"; } catch { return "overzicht"; }
 }
 
 /** `?bordspel`: a board race with your current lineup and staff, any race. Reads your save, never writes it. */
@@ -64,7 +71,12 @@ function sectorTitle(sector: BoardSector) {
 export function BoardView({ raceId, seed, lineup, items, own, onAgain, onFinish }: { raceId: string; seed: number; lineup: Lineup; items: Record<string, number>; own: string; onAgain?: () => void; onFinish?: (state: RaceState) => void }) {
   // The engine is mutable on purpose (race.ts steps in place); a counter redraws.
   const [board] = useState(() => createBoard(raceId, seed, lineup, items));
-  const [, redraw] = useReducer((n: number) => n + 1, 0);
+  const [tick, redraw] = useReducer((n: number) => n + 1, 0);
+  const [view, setView] = useState<View>(savedView);
+  const pickView = (v: View) => {
+    setView(v);
+    try { store()?.setItem(VIEW_KEY, v); } catch { /* the choice just is not remembered */ }
+  };
   const riding_ = board.phase === "rijden";
   const finished = useRef(false);
   const done = board.phase === "klaar";
@@ -117,8 +129,19 @@ export function BoardView({ raceId, seed, lineup, items, own, onAgain, onFinish 
         <span className={styles.chip}><span className={styles.stat}>Sector {board.sector + 1}/{BOARD_SECTORS}</span></span>
         <span className={styles.chip}><span className={styles.stat}>{km(state.course.length - leader.distance)}</span></span>
         <span className={styles.chip}><span className={styles.stat}>{clock(state.time)}</span></span>
+        <span className={styles.viewToggle} role="group" aria-label="Weergave">
+          <button type="button" aria-pressed={view === "overzicht"} onClick={() => pickView("overzicht")}><Mountain size={15} aria-hidden />Overzicht</button>
+          <button type="button" aria-pressed={view === "beeld"} onClick={() => pickView("beeld")}><Video size={15} aria-hidden />Koersbeeld</button>
+        </span>
       </div>
-      <div className={styles.panel}><Profile course={state.course} markers={markers} bands={bands} height={120} /></div>
+      <div className={styles.panel}>
+        {view === "beeld" ? (
+          <div className={styles.stack} style={{ gap: 8 }}>
+            <ChaseView state={state} moving={riding_} frame={tick} />
+            <Profile course={state.course} markers={markers} bands={bands} height={52} />
+          </div>
+        ) : <Profile course={state.course} markers={markers} bands={bands} height={120} />}
+      </div>
 
       <div className={styles.boardGrid}>
         <div className={styles.stack}>

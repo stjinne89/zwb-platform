@@ -13,9 +13,10 @@ gaat stabiliteit voor nieuwe features.
    rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
    over pushen en ronde 2. Sinds fase 4 is het bordspel de koers in het spel,
-   ook in de tijdrit. Zie
+   ook in de tijdrit. Fase 5 begon met een proef van het getekende
+   koersbeeld. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md) en de rondes "Kopman:
-   het bordspel als koers en de tijdrit als bordspel", "Kopman: bordspel, een
+   proef met het getekende koersbeeld", "Kopman: het bordspel als koers en de tijdrit als bordspel", "Kopman: bordspel, een
    hand met alleen bruikbare kaarten", "Kopman: eerste speelbare
    bordspelversie", "Kopman: bordspelontwerp", "Kopman: zelf kaarten kiezen om te
    ruilen", "Kopman: dubbele kaarten ruilen of verkopen", "Kopman: materiaal en personeel in
@@ -12235,6 +12236,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kopman: proef met het getekende koersbeeld (fase 5)
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+
+- **De vraag.** De eigenaar wilde geen van de voorgestelde aanpassingen aan
+  het bordspel: geen reactiemoment, geen Herstel kiezen, geen extra
+  intenties, geen vermoeidheid tussen koersen. De vraag was: "Ga gewoon verder
+  met de fases". Fase 5 is het plan "Kopman: de koers in een getekend
+  3D-beeld" uit het plannenboek. Dat plan vroeg eerst om een korte proef.
+- **Wat er is.**
+  - Boven het bord wissel je tussen **Overzicht** en **Koersbeeld**. Het
+    koersbeeld is een getekende 2,5D-weg op één canvas, gezien vanaf de motor
+    achter je kopman. Het staat in `chase-scene.ts` en `chase-view.tsx`.
+  - Op het beeld zie je de bochten uit de seed, de hoogte uit het profiel,
+    kasseien en grind, en renners in ploegkleuren met trappende benen.
+    Aanvallers krijgen snelheidslijnen, en een geel kader toont de naam van
+    de klim.
+  - De koersberekening is ongewijzigd. Details en keuzes staan in
+    [docs/kopman-bordspel.md](docs/kopman-bordspel.md#fase-5-proef-het-koersbeeld).
+- **Niet meer waar.** In [docs/kopman.md](docs/kopman.md) staat dat 3D, wind
+  en valpartijen ontbreken en dat het beeld een plan in het plannenboek is.
+  Dat is aangepast. Het plan zelf staat nog in het ZWB-plannenboek, met
+  "nog niets gebouwd". Dat is niet bijgewerkt, omdat Kopman niet bij ZWB
+  hoort; het plan kan daar weg.
+- **Bewust niet gebouwd:**
+  - een 3D-bibliotheek;
+  - renners naast elkaar in de engine;
+  - een tragere animatie;
+  - andere camera's.
+- **Geverifieerd:**
+  - vitest: 47 tests, waarvan 3 nieuw voor de geometrie;
+  - tsc en eslint;
+  - de preview op desktop en op 375 px, op het vlak, op de kasseien en op de
+    Koppenberg;
+  - op desktop 60 beelden per seconde (16,7 ms per beeld).
+- **Niet geverifieerd:**
+  - een echte telefoon, wat de eis "klaar wanneer" uit het plan is;
+  - Safari;
+  - de Next-pagina.
 
 ### Gebouwd — Kopman: het bordspel als koers en de tijdrit als bordspel
 
