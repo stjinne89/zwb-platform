@@ -9,7 +9,7 @@ const out = path.join(root, ".tmp", "kopman-preview");
 await mkdir(out, { recursive: true });
 await build({
   entryPoints: [path.join(root, "tests", "fixtures", "kopman", "entry.tsx")], outfile: path.join(out, "game.js"), bundle: true, format: "esm", jsx: "automatic", sourcemap: true,
-  define: { "process.env.NODE_ENV": '"production"' }, logLevel: "warning",
+  define: { "process.env.NODE_ENV": '"production"' }, loader: { ".woff2": "dataurl" }, logLevel: "warning",
 });
 const html = `<!doctype html><html lang="nl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kopman · lokale demo</title><link rel="stylesheet" href="/game.css"><body><div id="root"></div><script type="module" src="/game.js"></script></body></html>`;
 const types = { ".js": "application/javascript", ".css": "text/css", ".map": "application/json" };

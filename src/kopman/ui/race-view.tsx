@@ -72,7 +72,7 @@ function snapshot(state: RaceState, handElapsed: number): View {
     groups: groups.slice(0, 6).map((g, i) => ({ key: g[0].id, label: label(i), size: g.length, gap: i === 0 ? 0 : (groups[0][0].distance - g[0].distance) / Math.max(4, g[0].speed), dots: g.slice(0, 30).map((r) => ({ id: r.id, team: r.team })) })),
     more: Math.max(0, groups.length - 6),
     markers: groups.flatMap((g) => [
-      { distance: g[0].distance, color: "#cfe3f7", size: Math.min(9, 3 + Math.sqrt(g.length)) },
+      { distance: g[0].distance, color: "#fffaf0", size: Math.min(9, 3 + Math.sqrt(g.length)) },
       ...g.filter((r) => r.team === PLAYER_TEAM).map((r) => ({ distance: r.distance, color: PLAYER_COLOR, size: 4, mine: true })),
     ]),
     mine: state.riders.filter((r) => r.team === PLAYER_TEAM).map((r) => {

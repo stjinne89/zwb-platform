@@ -1,10 +1,16 @@
+import { useId } from "react";
 import type { Course } from "../engine/types";
 import styles from "./kopman.module.css";
 
+const INK = "#1b1712";
+const FEATURE_FILL = { klim: "rgb(255 197 61 / 0.42)", kasseien: "rgb(176 106 52 / 0.32)", grind: "rgb(196 160 78 / 0.34)" } as const;
+
 export type Marker = { distance: number; color: string; size: number; mine?: boolean };
 
-/** The course as an elevation profile, with climbs, cobbles and gravel marked, and optionally the riders on it. */
+/** The course drawn as a strip landscape, with climbs, cobbles and gravel marked, and optionally the riders on it. */
 export function Profile({ course, markers = [], height = 120 }: { course: Course; markers?: Marker[]; height?: number }) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const dots = `pd${uid}`;
   const width = 600;
   const min = Math.min(...course.elevation);
   const max = Math.max(...course.elevation);
@@ -21,13 +27,19 @@ export function Profile({ course, markers = [], height = 120 }: { course: Course
   };
   return (
     <svg className={styles.profile} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Profiel, ${Math.round(course.length / 1000)} km, ${Math.round(max - min)} m hoogteverschil`}>
-      <path d={area} fill="#22374f" />
+      <defs>
+        <pattern id={dots} width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <circle cx={3} cy={3} r={1.25} fill="#7f9f6c" />
+        </pattern>
+      </defs>
+      <path d={area} fill="#a9c58f" />
+      <path d={area} fill={`url(#${dots})`} />
       {course.features.map((f) => (
-        <rect key={`${f.name}-${f.start}`} x={x(f.start)} y={0} width={Math.max(2, x(f.end) - x(f.start))} height={height} fill={f.kind === "klim" ? "rgb(255 197 61 / 0.12)" : f.kind === "kasseien" ? "rgb(201 138 85 / 0.32)" : "rgb(214 186 110 / 0.28)"} />
+        <rect key={`${f.name}-${f.start}`} x={x(f.start)} y={0} width={Math.max(2, x(f.end) - x(f.start))} height={height} fill={FEATURE_FILL[f.kind]} />
       ))}
-      <path d={`M${points.join(" L")}`} fill="none" stroke="#7fb2e5" strokeWidth={2} />
+      <path d={`M${points.join(" L")}`} fill="none" stroke={INK} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" />
       {markers.map((m, i) => (
-        <circle key={i} cx={x(Math.max(0, Math.min(course.length, m.distance)))} cy={y(elevAt(m.distance)) - 4 - (m.mine ? 4 : 0)} r={m.size} fill={m.color} stroke={m.mine ? "#fff" : "rgb(0 0 0 / 0.5)"} strokeWidth={m.mine ? 2 : 1} />
+        <circle key={i} cx={x(Math.max(0, Math.min(course.length, m.distance)))} cy={y(elevAt(m.distance)) - 4 - (m.mine ? 4 : 0)} r={m.size} fill={m.color} stroke={INK} strokeWidth={m.mine ? 2 : 1.5} />
       ))}
     </svg>
   );

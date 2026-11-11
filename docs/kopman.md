@@ -192,8 +192,6 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
   laten zich niet per stemming animeren en kunnen op een echte renner lijken.
   Gezichten van een kant-en-klare bibliotheek: die hebben per stijl een andere
   licentie en laten de stemmingen niet toe.
-- Een eigen letterfont voor de namen in stripstijl: dat vraagt een font om te
-  downloaden en zelf te hosten. Dat hoort bij de losse app.
 - Echte renners, ploegen of koersnamen: rechten en het verzoek van de
   eigenaar.
 - Opslag op de server en een ranglijst tussen leden. Het spel draait volledig
@@ -205,6 +203,30 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
   herlaadt, rijdt dus dezelfde koers met dezelfde hand opnieuw en kan alleen
   andere keuzes maken. De uitslag telt pas na de finish.
 - Een tekst op `/hulp`: de pagina is alleen voor beheerders.
+
+## Stripstijl in de hele app
+
+De hele app is een nachteditie van een stripalbum:
+- **Ondergrond:** inktblauw met rasterpunten.
+- **Daarop:** papieren panelen met een inktlijn.
+- **Accenten:** geel voor de keuze en de hoofdknop, rood voor monumenten en
+  het lint om een pakket.
+- **Koers:** de radio-orders zijn tekstballonnen en het koersnieuws staat in
+  gele vertelkaders.
+- **Profiel:** getekend als landschap.
+
+Titels, namen en scores staan in Shantell Sans, een handgeletterde letter
+onder de SIL Open Font License. Het font is zelf gehost in
+`src/kopman/ui/fonts/`, met de licentie ernaast, en heeft alleen de Latijnse
+sets. Lopende tekst houdt de letter van de pagina.
+
+De kleuren staan als variabelen op `.app` in `kopman.module.css`:
+- Wat op papier ligt, zet `--fg` en `--muted` op inkt, zodat `.muted` overal
+  leesbaar blijft.
+- Er zijn geen harde schuine schaduwen.
+
+Open: de profielen lopen als een trap omhoog, want een afdaling bestaat alleen
+waar een koers er expliciet een heeft.
 
 ## Bronnen
 
@@ -241,7 +263,8 @@ npx vitest run tests/unit/kopman.test.ts
 
 - De echte Next-pagina `/zwbgame/kopman`. In deze worktree staan geen
   `.env.local` en geen lokale Supabase, dus alleen de preview-bundel is in de
-  browser bekeken (desktop en 375 px breed).
+  browser bekeken (desktop en 375 px breed). Daarmee is ook niet bekeken of
+  Next het font via de relatieve `url()` in de CSS-module meeneemt.
 - Het speelgevoel over een heel seizoen en de balans van de economie: hoe snel
   je zilver en goud verzamelt.
 - Op een echte telefoon en in Safari. De koers is wel deterministisch

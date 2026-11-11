@@ -9,11 +9,12 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Kopman, ronde 1 en stripportretten (2026-11-11): lokaal gecommit op
    `claude/zwbgame-autoracer-concepts-8d80d3` (`382dd83e`; portretten in
-   `4eb8fd52`), niet gepusht.** Geen migratie. Een wielermanager met
+   `4eb8fd52`; stripstijl in de hele app daarna), niet gepusht.** Geen migratie. Een wielermanager met
    rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
-   over pushen en ronde 2. Zie de rondes "Kopman: stripportretten en één order
-   per hand" en "Kopman, ronde 1", en [docs/kopman.md](docs/kopman.md).
+   over pushen en ronde 2. Open vraag: afdalingen na de hellingen. Zie de
+   rondes "Kopman: de stripstijl in de hele app", "Kopman: stripportretten en
+   één order per hand" en "Kopman, ronde 1", en [docs/kopman.md](docs/kopman.md).
 
 0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): gepusht naar
    `main` (`b282f1cd`); secret daarna op `BRILJANT_WEEKLY_SECRET` gezet
@@ -12228,6 +12229,67 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: de stripstijl in de hele app (nachteditie)
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "Ik vind
+dit een mooie stijl voor de gehele app van de kaarten, kun je dat
+doortrekken?"). Geen migratie.
+
+De eigenaar koos uit twee ondergronden de **nachteditie**: de donkere
+inktblauwe grond blijft, nu met rasterpunten, en alles wat erop ligt wordt
+papier met een inktrand. Een lichte papieren pagina was het alternatief.
+- **Panelen, tabs, chips en knoppen** zijn crèmekleurig papier met een
+  inktlijn van 2 px. De gekozen tab en de hoofdknop zijn geel. De
+  portemonnee bestaat uit scheve stickers.
+- **Pakketten** zijn ingepakte pakjes met een rood lint.
+- **Koers:** de radio-orders zijn tekstballonnen. De gekozen ballon wordt
+  geel, de andere twee grijs. De timer is een gele lont. Het koersnieuws staat
+  in gele vertelkaders, het nieuwste voorop. Groepen en rennerrijen liggen op
+  papier, en de stippen hebben een inktrand.
+- **Hoogteprofiel:** getekend als landschap: een lichtblauwe lucht, groen land
+  met rasterpunten en een inktlijn, met de klimmen, kasseien en het grind als
+  gekleurde banen. De stippen van de groepen zijn papier met een inktrand.
+- **Uitslag:** de tabel ligt op papier, en je eigen renners staan op een gele
+  rij. De beloningen zijn stickers. De overlays zijn nu helemaal dekkend.
+- **Letter:** titels, namen, scores en het kopmanlabel staan in **Shantell
+  Sans**, een handgeletterde letter onder de SIL Open Font License. Die zit
+  zelf gehost in `src/kopman/ui/fonts/`, met `OFL.txt`, en heeft alleen de
+  Latijnse sets, met de uitgebreide set voor namen als Anže en Kovač. Gewone
+  tekst houdt de letter van de pagina. De eigenaar gaf toestemming om het
+  font te downloaden.
+- **Browserelementen:** de focusring is inkt met een gele rand, zodat hij op
+  papier en op donker zichtbaar is. De tekstselectie is geel. De scrollbalken
+  van de koers en de overlays zijn smal en in papiertint.
+- **Kleine kaart:** op een smalle volle kaart verdwijnt de landcode, zodat die
+  niet over het scorerondje loopt. Het icoon blijft staan.
+
+`scripts/kopman-preview.mjs` laadt woff2 nu als data-URL.
+
+**Bewust niet:**
+- Een lichte papieren pagina als ondergrond: de eigenaar koos de nachteditie.
+- Harde schuine schaduwen in strip-pop-artstijl. Alles heeft een zachte
+  schaduw.
+- Het font voor de lopende tekst: alleen titels en namen zijn handgeletterd,
+  zodat tabellen en uitleg rustig leesbaar blijven.
+
+**Open, door de eigenaar aangekaart:** de profielen lopen als een trap omhoog.
+Een afdaling bestaat alleen waar een koers er in `world.ts` expliciet een
+heeft, dus na de meeste hellingen gaat het niet omlaag. Daar is nog niets aan
+veranderd.
+
+**Niet geverifieerd:**
+- De echte Next-pagina, dus ook niet of de bundel van Next het font via de
+  relatieve `url()` in de CSS-module laadt.
+- Safari, en een trage telefoon.
+- Er is deze ronde geen losse ontwerpreview gedaan.
+
+Wel bekeken in de preview-bundel, op desktop en op 375 px breed: alle vier
+de tabs, een pakket openen, de koers met een order, en de uitslag. De
+testkoersen zijn gereden op `127.0.0.1`, met een eigen opslag, zodat het spel
+van de eigenaar op `localhost` niet veranderde. Vitest `kopman` geeft 24
+groen; `tsc` en ESLint zijn schoon.
+
 ### Gebouwd — Kopman: stripportretten en één order per hand
 
 **2026-11-11, commit `4eb8fd52`, lokaal op `claude/zwbgame-autoracer-concepts-8d80d3`, niet
@@ -12281,16 +12343,17 @@ oordeel "fix". Verwerkt:
 
 In een tweede ronde bevestigde de previewer goud, brons, rasterpunten, de
 knipperende ogen en de koerskop. De rest is daarna op het testblad bekeken:
-de bril, de koersgezichten van 52 px en lange namen op 150 px. Niet verwerkt
-en dus open: een handgeletterd stripfont (zie hieronder).
+de bril, de koersgezichten van 52 px en lange namen op 150 px. Het
+handgeletterde stripfont kwam er in de volgende ronde ("de stripstijl in de
+hele app").
 
 **Bewust niet:**
 - Foto's of AI-portretten: zwaar, niet per stemming te animeren, en ze kunnen
   op echte renners lijken.
 - Een gezichtenbibliotheek: per stijl een andere licentie, en geen
   stemmingen.
-- Een eigen stripfont: dat moet gedownload en zelf gehost worden. Dat hoort
-  bij de losse app.
+- Een eigen stripfont. Dat was toen geparkeerd; sinds de ronde "de
+  stripstijl in de hele app" staat Shantell Sans er wel in.
 - Portretten voor de renners van andere ploegen in de koers: alleen je eigen
   ploeg heeft er een.
 - Het ZWB-ontwerpsysteem (DESIGN.md) op Kopman toepassen. Kopman heeft een eigen
