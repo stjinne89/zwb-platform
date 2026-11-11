@@ -7,8 +7,9 @@ import { runZwiftRacingSync } from "@/lib/zwiftracing/rider-sync";
 // Ladder (src/lib/zwiftracing/rider-sync.ts). Elke run gaat verder met wie nog
 // aan de beurt is; `remaining` zegt hoeveel er nog wachten.
 //
-// Bearer-token via TEAM_RESULTS_SYNC_SECRET, hetzelfde als de ladder-sync van
-// Teams. Draait op cron-job.org (zie docs/runbook.md).
+// Bearer-token via BRILJANT_WEEKLY_SECRET, gedeeld met de ZWBriljant-jobs: dat
+// stond al op Netlify, `TEAM_RESULTS_SYNC_SECRET` niet (keuze eigenaar 2026-11-11).
+// Draait op cron-job.org (zie docs/runbook.md).
 
 export const maxDuration = 30;
 
@@ -16,7 +17,7 @@ export const maxDuration = 30;
 const BUDGET_MS = 20_000;
 
 export async function POST(request: NextRequest) {
-  const auth = checkCronSecret(request, "TEAM_RESULTS_SYNC_SECRET");
+  const auth = checkCronSecret(request, "BRILJANT_WEEKLY_SECRET");
   if (!auth.ok) return new NextResponse(auth.message, { status: 403 });
 
   const started = Date.now();

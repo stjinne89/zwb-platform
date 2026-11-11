@@ -8,9 +8,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): gepusht naar
-   `main` (`b282f1cd`).** Geen migratie. Open: op cron-job.org
-   `POST /api/zwiftracing/sync` elke 30 minuten met `TEAM_RESULTS_SYNC_SECRET`
-   aanmaken, nagaan dat een run vanaf Netlify `fetched` > 0 geeft, en dan de
+   `main` (`b282f1cd`); secret daarna op `BRILJANT_WEEKLY_SECRET` gezet.** Geen
+   migratie. Open: op cron-job.org de job "ZWB ZwiftRacing ladder"
+   (`POST /api/zwiftracing/sync`, elke 30 minuten) opslaan met de header van
+   "ZWBriljant weekly", nagaan dat een run vanaf Netlify `fetched` > 0 geeft, en dan de
    geplande Chrome-taak `ladder-vermogen-zwiftracing` uitzetten. Zie de ronde
    "ZwiftRacing: 90 dagen en vELO1 door de server".
 
@@ -12274,7 +12275,7 @@ een voorstel ("Ja, bouw het").
   bijgewerkt. Eén pagina per seconde. Schrijft `zwift_rider_metrics.power_wkg`
   en `velo_fetched_at` (zoals de Chrome-taak, `velo` blijft leeg) en
   `zwift_legacy_velo`. Een 429, 5xx, time-out of onbekende pagina stopt de run.
-- `POST /api/zwiftracing/sync` (ook GET), met `TEAM_RESULTS_SYNC_SECRET`,
+- `POST /api/zwiftracing/sync` (ook GET), met `BRILJANT_WEEKLY_SECRET`,
   20 s budget, in `PUBLIC_PATHS`. Runbook bijgewerkt.
 
 **Keuzes:**
@@ -12288,8 +12289,12 @@ een voorstel ("Ja, bouw het").
   (404) krijgt alleen `velo_fetched_at`, zodat hij niet elke run terugkomt.
 - **Geen vELO1 meer** laat de laatste rating in `zwift_legacy_velo` staan, zoals
   bij het ophalen met de hand (0301); alleen `fetched_at` schuift.
-- **Hetzelfde secret als de ladder-sync van Teams**, zodat er op Netlify niets
-  bij hoeft.
+- **Het secret van ZWBriljant** (`BRILJANT_WEEKLY_SECRET`), keuze van de
+  eigenaar. Eerst was dat `TEAM_RESULTS_SYNC_SECRET`, in de veronderstelling
+  dat dat op Netlify stond; na de deploy gaf de route "niet gezet op de server"
+  (op cron-job.org staat ook geen job voor `/api/team-results/sync`). Het
+  Briljant-secret stond er al, dus er hoeft op Netlify niets bij; het nadeel is
+  dat twee losse jobs één sleutel delen.
 
 **Bewust niet:**
 - **vELO2 in `zwift_rider_metrics.velo`**: dan schakelt het racebriefje
