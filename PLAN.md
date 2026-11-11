@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Losse apps buiten ZWB (2026-11-11): onderzocht, lokaal gecommit.** Geen
+   code, geen migratie. Open: voorstel voor een lokale meetpagina die inloggen
+   bij Zwift en de segmentresultaten vanuit de browser test. Zie de ronde
+   "Losse apps buiten ZWB".
+
 0. **ZWBekers: emoji in de gravure (2026-11-11): gepusht naar `main` (`bcb9193b`).** Open: na de deploy een gravure met emoji opslaan en op een iPhone bekijken. Geen
    migratie. Zie de ronde "ZWBekers: emoji in de gravure".
 
@@ -12197,6 +12202,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Onderzocht — Losse apps buiten ZWB
+
+**2026-11-11.** Alleen onderzoek, geen code. Lokaal gecommit, niet gepusht.
+Commit: de commit die dit blok toevoegt. Geen migratie. Uitwerking in
+[docs/losse-apps-onderzoek-2026-11-11.md](docs/losse-apps-onderzoek-2026-11-11.md).
+
+**Vraag eigenaar.** Welke onderdelen kunnen als losse app bestaan voor
+fietsers buiten ZWB?
+
+**Uitkomst.** Een paar onderdelen kunnen los (houding, pacing, de Club
+Ladder-tool via de laddermakers), maar geen enkel onderdeel is nu een sterke
+app voor de wereld. De generieke versie per club blijft het product. De rem is
+de toegang tot data: Zwift heeft geen publieke API, WTRL verbiedt aanroepen,
+Strava zit op 10 sporters, en Garmin knijpt sinds oktober de doorgifte via
+intervals.icu af (Intervals Pro stopte op 12 oktober).
+
+**Besluiten eigenaar (2026-11-11).**
+- Houding als losse app: geparkeerd tot de meetproef slaagt.
+- Live ZRL-stand en een racescherm in Sauce-stijl zouden één app worden.
+- **Geen eigen spelclient** zoals Sauce' monitoraccount: te groot voor wat het
+  oplevert. Het vraagt een server die altijd aan staat met TCP/UDP, een tweede
+  Zwift-account per gevolgde renner en het volgen van Zwifts protocol. Daarmee
+  valt het racescherm af; ZWB DS blijft zoals het is.
+- Wat blijft: **het live dashboard als losse app**, met inloggen met het eigen
+  Zwift-account in de browser. De browser haalt op en rekent, onze server deelt
+  alleen de stand. Plan in het plannenboek.
+
+**Bewust niet.**
+- Een losse trainings-app: afhankelijk van intervals.icu en Garmin, en een
+  kopie loopt uit de pas (CoachbyStijn).
+- De server laten inloggen met het account van de gebruiker: wachtwoorden of
+  tokens op onze server, een accountpool richting Zwift, en het risico bij de
+  gebruiker.
+- De live-stand voor iedereen hosten op het ZWB-serviceaccount: past niet
+  door de limieten en zet de Zwift-koppeling van ZWB op het spel.
+
+**Gezien, niet bewezen.** ZwiftRacing logt in via Zwifts eigen OAuth met een
+toegekende client en alleen `profile:read`. Een CORS-voorcontrole op Zwifts
+token- en segment-endpoint staat elke origin toe; een echte login of aanroep
+vanuit de browser is **niet** getest.
 
 ### Hersteld — ZWBekers: emoji in de gravure
 
