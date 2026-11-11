@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { pool } from "../../../src/kopman/engine/cards";
 import { RIDER_TYPES } from "../../../src/kopman/engine/types";
 import { KopmanApp } from "../../../src/kopman/ui/kopman-app";
-import { Portrait, type Mood } from "../../../src/kopman/ui/portrait";
+import { faceOf, Portrait, type Mood } from "../../../src/kopman/ui/portrait";
 import { RiderCardView } from "../../../src/kopman/ui/rider-card";
 import "./reset.css";
 
@@ -28,6 +28,23 @@ function PortraitSheet() {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10, maxWidth: 820 }}>
         {(["brons", "zilver", "goud"] as const).flatMap((tier) => pool().pool.filter((c) => c.tier === tier).slice(0, 2)).map((card) => <RiderCardView key={card.id} card={card} />)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, maxWidth: 440 }}>
+        {MOODS.map((mood) => (
+          <div key={mood} style={{ border: "2px solid #1b1712", borderRadius: 8, overflow: "hidden", aspectRatio: "1" }}>
+            <Portrait card={pool().pool.find((c) => faceOf(c).glasses === 2 && c.tier === "goud")!} mood={mood} />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {MOODS.map((mood, i) => (
+          <div key={mood} style={{ width: 52, height: 52, border: "2px solid #1b1712", borderRadius: 8, overflow: "hidden" }}>
+            <Portrait card={riders[i]} mood={mood} crop />
+          </div>
+        ))}
+      </div>
+      <div style={{ width: 150 }}>
+        <RiderCardView card={pool().pool.find((c) => c.last === "Van Leeuwen" || c.last === "van Leeuwen") ?? pool().pool[0]} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 100px))", gap: 8 }}>
         {(["brons", "zilver", "goud"] as const).flatMap((tier) => pool().pool.filter((c) => c.tier === tier && c.last.length > 9).slice(0, 2)).slice(0, 5).map((card, i) => <RiderCardView key={card.id} card={card} small live kopman={i === 0} />)}

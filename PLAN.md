@@ -8,8 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Kopman, ronde 1 en stripportretten (2026-11-11): lokaal gecommit op
-   `claude/zwbgame-autoracer-concepts-8d80d3` (`382dd83e`, daarna de
-   portretten), niet gepusht.** Geen migratie. Een wielermanager met
+   `claude/zwbgame-autoracer-concepts-8d80d3` (`382dd83e`; portretten in
+   `4eb8fd52`), niet gepusht.** Geen migratie. Een wielermanager met
    rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
    over pushen en ronde 2. Zie de rondes "Kopman: stripportretten en één order
@@ -12230,7 +12230,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: stripportretten en één order per hand
 
-**2026-11-11, lokaal op `claude/zwbgame-autoracer-concepts-8d80d3`, niet
+**2026-11-11, commit `4eb8fd52`, lokaal op `claude/zwbgame-autoracer-concepts-8d80d3`, niet
 gepusht** (eigenaar: "Kunnen de kaarten ook geanimeerde gezichten krijgen?",
 na een eerste schets "Nee veel mooier dan dit! gebruik /impeccable", en tijdens
 het bouwen: "Eigenlijk moet het idee zijn dat je elke 20 seconden een keuze
@@ -12268,8 +12268,9 @@ oordeel "fix". Verwerkt:
 - **Bril:** een zonnebril over de ogen alleen in rust; in de andere
   stemmingen staat hij op de helm, zodat de ogen de stemming dragen. Dat
   geldt nu voor 10% van de renners.
-- **Goud:** een echt geel kader, met een lichte lucht in de plaat zodat het
-  gele shirt loskomt.
+- **Goud:** een echt geel kader, met een lichtere lucht in de plaat en
+  verzadigde stralen achter het hoofd, zodat het gele shirt en een bleke huid
+  loskomen.
 - **Brons:** een saliegroene lucht, zodat lichte huid niet wegvalt.
 - **Rasterpunten:** in een donkere tint van de kleur eronder in plaats van
   grijze inkt. Op het kleine koersportret wordt dat een vlakke schaduw.
@@ -12278,7 +12279,10 @@ oordeel "fix". Verwerkt:
 - **Uitslag:** de plaats staat als rondje op het gezicht.
 - **Koerskop:** de regel boven de koersnaam staat nu eronder.
 
-Niet verwerkt: een handgeletterd stripfont (zie hieronder).
+In een tweede ronde bevestigde de previewer goud, brons, rasterpunten, de
+knipperende ogen en de koerskop. De rest is daarna op het testblad bekeken:
+de bril, de koersgezichten van 52 px en lange namen op 150 px. Niet verwerkt
+en dus open: een handgeletterd stripfont (zie hieronder).
 
 **Bewust niet:**
 - Foto's of AI-portretten: zwaar, niet per stemming te animeren, en ze kunnen

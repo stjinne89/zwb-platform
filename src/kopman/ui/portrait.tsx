@@ -28,10 +28,10 @@ const LENSES = ["#23313f", "#2f6fa8", "#d8692a", "#3b2a4f"];
 const SKY: Record<Tier, { sky: string; far: string; near: string; ray: string }> = {
   brons: { sky: "#d3e6dc", far: "#e2a676", near: "#c4804f", ray: "#e2efe8" },
   zilver: { sky: "#d6e8f2", far: "#a8c6d9", near: "#7ea4bd", ray: "#e6f1f7" },
-  goud: { sky: "#fff3cf", far: "#e9c27a", near: "#cf9a45", ray: "#ffe08a" },
+  goud: { sky: "#ffe9a8", far: "#e9c27a", near: "#cf9a45", ray: "#ffd23a" },
 };
 
-type Face = {
+export type Face = {
   skin: string;
   hair: string;
   brow: string;
@@ -72,7 +72,7 @@ function pickWeighted<T>(random: () => number, items: [T, number][]): T {
   return items[items.length - 1][0];
 }
 
-function faceOf(card: RiderCard): Face {
+export function faceOf(card: RiderCard): Face {
   const r = rng(hashSeed("gezicht", card.id));
   const build = BUILD[card.type];
   const w = build.w[0] + r() * (build.w[1] - build.w[0]);
