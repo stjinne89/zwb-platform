@@ -154,8 +154,11 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
     (`trades`), dus herladen geeft geen andere kaart.
   - **Verkopen.** Alle reservekaarten van één niveau tegelijk, voor 150
     (brons), 500 (zilver) of 2.000 (goud) munten per stuk.
-  - Bij het ruilen en verkopen gaan eerst de kaarten weg waarvan je de meeste
-    hebt. Het laatste exemplaar van een kaart blijft altijd.
+  - Bij de snelknop en bij verkopen gaan eerst de kaarten weg waarvan je de
+    meeste hebt. Het laatste exemplaar van een kaart blijft dan altijd.
+  - **Zelf kiezen.** Met "Kies 5" tik je zelf 5 kaarten van één niveau aan,
+    ook kaarten waarvan je er maar één hebt. Alleen het laatste exemplaar van
+    een renner in je opstelling is beschermd.
   - Een verzameling raakt zo nooit "vol".
 - **Koersbeloning.** Er is prijzengeld voor de top 10 (1.500 tot 140) en 80
   munten voor plek 11–20. Elke start levert 300 munten op. Punten krijgt de

@@ -4,8 +4,8 @@ import { CalendarDays, Coins, Crown, Flag, Gift, Package, Play, Trophy, Users, W
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cardById, TIER_LABELS, TYPE_LABELS } from "../engine/cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "../engine/course";
-import { bestLineup, buyPack, currentRace, DAILY_PACK_RACES, DUPLICATE_COINS, finishRace, LINEUP_SIZE, newSave, newSeason, NEXT_TIER, openPackOf, packsLeftToday, raceSeed, seasonDone, seasonStandings, sellSpares, setKopman, sparesByTier, today, toggleLineup, TRADE_COST, tradeUp, type Pull, type RaceReward, type Save } from "../engine/economy";
-import { bestItems, GEAR_SLOTS, isItem, STAFF_ROLES, teamBonus, type TeamBonus } from "../engine/items";
+import { bestLineup, buyPack, currentRace, DAILY_PACK_RACES, DUPLICATE_COINS, finishRace, LINEUP_SIZE, newSave, newSeason, NEXT_TIER, openPackOf, packsLeftToday, raceSeed, seasonDone, seasonStandings, sellSpares, setKopman, sparesByTier, today, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save } from "../engine/economy";
+import { bestItems, GEAR_SLOTS, isItem, ITEMS, STAFF_ROLES, teamBonus, type TeamBonus } from "../engine/items";
 import { KIND_ODDS, PACK_LABELS, PACK_ODDS, PACK_PRICE, PITY_PACKS } from "../engine/packs";
 import { results, type Placing, type RaceState } from "../engine/race";
 import { PLAYER_TEAM, RIDER_TYPES, TIERS, type PackType, type RiderType, type Tier } from "../engine/types";
@@ -44,6 +44,7 @@ export function KopmanApp() {
   const [racing, setRacing] = useState<{ raceId: string; seed: number; riders: string[]; kopman: string; bonus: TeamBonus } | null>(null);
   const [result, setResult] = useState<{ raceId: string; placings: Placing[]; reward: RaceReward } | null>(null);
   const [reveal, setReveal] = useState<{ title: string; pulls: Pull[] } | null>(null);
+  const [picking, setPicking] = useState<Tier | null>(null);
 
   const update = useCallback((next: Save) => {
     saveRef.current = next;
@@ -99,6 +100,13 @@ export function KopmanApp() {
     update(traded.save);
     setReveal({ title: "Ruil", pulls: [traded.pull] });
   };
+  const tradePicked = (picks: Record<string, number>) => {
+    const traded = tradeCards(save, picks);
+    if (!traded) return;
+    update(traded.save);
+    setPicking(null);
+    setReveal({ title: "Ruil", pulls: [traded.pull] });
+  };
 
   return (
     <div className={styles.app}>
@@ -120,11 +128,12 @@ export function KopmanApp() {
       </div>
       {tab === "koers" ? <RaceTab save={save} update={update} onStart={start} /> : null}
       {tab === "ploeg" ? <TeamTab save={save} update={update} /> : null}
-      {tab === "pakketten" ? <PacksTab save={save} update={update} onOpen={open} onTrade={trade} /> : null}
+      {tab === "pakketten" ? <PacksTab save={save} update={update} onOpen={open} onTrade={trade} onPick={setPicking} /> : null}
       {tab === "seizoen" ? <SeasonTab save={save} update={update} /> : null}
 
       {racing ? <RaceView raceId={racing.raceId} seed={racing.seed} lineup={{ riders: racing.riders, kopman: racing.kopman, bonus: racing.bonus }} own={save.teamName} onFinish={onFinish} /> : null}
       {result ? <ResultView result={result} own={save.teamName} onClose={() => setResult(null)} onPacks={() => { setResult(null); setTab("pakketten"); }} /> : null}
+      {picking ? <TradePicker save={save} tier={picking} onTrade={tradePicked} onClose={() => setPicking(null)} /> : null}
       {reveal ? <PackReveal reveal={reveal} owned={{ ...save.collection, ...save.items }} onClose={() => setReveal(null)} /> : null}
     </div>
   );
@@ -260,10 +269,11 @@ function OddsLine({ type }: { type: PackType }) {
   );
 }
 
-function PacksTab({ save, update, onOpen, onTrade }: { save: Save; update: (s: Save) => void; onOpen: (type: PackType) => void; onTrade: (tier: Tier) => void }) {
+function PacksTab({ save, update, onOpen, onTrade, onPick }: { save: Save; update: (s: Save) => void; onOpen: (type: PackType) => void; onTrade: (tier: Tier) => void; onPick: (tier: Tier) => void }) {
   const counts = TIERS.map((t) => ({ type: t as PackType, n: save.packs.filter((p) => p === t).length })).filter((x) => x.n > 0);
   const spares = sparesByTier(save);
-  const spareTiers = TIERS.filter((t) => spares[t] > 0);
+  const forTrade = tradeableByTier(save);
+  const tradeTiers = TIERS.filter((t) => spares[t] > 0 || (NEXT_TIER[t] && forTrade[t] > 0));
   return (
     <div className={styles.stack}>
       <div className={styles.panel}>
@@ -281,11 +291,11 @@ function PacksTab({ save, update, onOpen, onTrade }: { save: Save; update: (s: S
         ) : <div className={styles.muted}>Geen pakketten</div>}
         <div className={styles.muted} style={{ marginTop: 10 }}>Goud gegarandeerd binnen {Math.max(1, PITY_PACKS - save.pity)} pakketten</div>
       </div>
-      {spareTiers.length ? (
+      {tradeTiers.length ? (
         <div className={styles.panel}>
-          <div className={styles.h3} style={{ marginBottom: 10 }}>Reservekaarten</div>
+          <div className={styles.h3} style={{ marginBottom: 10 }}>Ruilen</div>
           <div className={styles.packRow}>
-            {spareTiers.map((tier) => {
+            {tradeTiers.map((tier) => {
               const up = NEXT_TIER[tier];
               const value = spares[tier] * DUPLICATE_COINS[tier];
               const sell = () => {
@@ -295,9 +305,10 @@ function PacksTab({ save, update, onOpen, onTrade }: { save: Save; update: (s: S
               };
               return (
                 <div key={tier} className={`${styles.pack} ${styles.spare} ${styles[tier]}`}>
-                  <div className={styles.h3}>{TIER_LABELS[tier]} ×{spares[tier]}</div>
-                  {up ? <button type="button" disabled={spares[tier] < TRADE_COST} onClick={() => onTrade(tier)}>{spares[tier] < TRADE_COST ? `Nog ${TRADE_COST - spares[tier]} voor ${TIER_LABELS[up].toLowerCase()}` : `Ruil ${TRADE_COST} → ${TIER_LABELS[up].toLowerCase()}`}</button> : null}
-                  <button type="button" className={styles.sell} onClick={sell}><Coins size={14} aria-hidden /> Verkoop · {value.toLocaleString("nl-NL")}</button>
+                  <div className={styles.h3}>{TIER_LABELS[tier]}{spares[tier] ? ` · ${spares[tier]} reserve` : ""}</div>
+                  {up ? <button type="button" disabled={forTrade[tier] < TRADE_COST} onClick={() => onPick(tier)}>Kies {TRADE_COST} → {TIER_LABELS[up].toLowerCase()}</button> : null}
+                  {up && spares[tier] >= TRADE_COST ? <button type="button" className={styles.sell} onClick={() => onTrade(tier)}>Ruil {TRADE_COST} reserves</button> : null}
+                  {spares[tier] ? <button type="button" className={styles.sell} onClick={sell}><Coins size={14} aria-hidden /> Verkoop reserves · {value.toLocaleString("nl-NL")}</button> : null}
                 </div>
               );
             })}
@@ -319,6 +330,53 @@ function PacksTab({ save, update, onOpen, onTrade }: { save: Save; update: (s: S
               </div>
             );
           })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Copies per tier that may go into a trade you pick yourself. */
+function tradeableByTier(save: Save): Record<Tier, number> {
+  const out: Record<Tier, number> = { brons: 0, zilver: 0, goud: 0 };
+  for (const id of Object.keys(save.collection)) out[cardById(id).tier] += tradeable(save, id);
+  for (const item of ITEMS) out[item.tier] += tradeable(save, item.id);
+  return out;
+}
+
+function TradePicker({ save, tier, onTrade, onClose }: { save: Save; tier: Tier; onTrade: (picks: Record<string, number>) => void; onClose: () => void }) {
+  const [picks, setPicks] = useState<Record<string, number>>({});
+  const up = NEXT_TIER[tier]!;
+  const total = Object.values(picks).reduce((sum, n) => sum + n, 0);
+  const riders = Object.keys(save.collection).map(cardById).filter((c) => c.tier === tier)
+    .sort((a, b) => Number(save.lineup.includes(a.id)) - Number(save.lineup.includes(b.id)) || a.overall - b.overall || a.id.localeCompare(b.id));
+  const items = ITEMS.filter((x) => x.tier === tier && save.items[x.id]);
+  const pick = (id: string) => {
+    const n = picks[id] ?? 0;
+    setPicks({ ...picks, [id]: n < tradeable(save, id) && total < TRADE_COST ? n + 1 : 0 });
+  };
+  const actions = (id: string, owned: number) => {
+    const n = picks[id] ?? 0;
+    const free = tradeable(save, id);
+    return (
+      <div className={styles.cardActions}>
+        <button type="button" aria-pressed={n > 0} disabled={!free || (!n && total >= TRADE_COST)} onClick={() => pick(id)}>{!free ? "In ploeg" : !n ? "Kiezen" : free > 1 ? `Gekozen ×${n}` : "Gekozen"}</button>
+        {owned > 1 ? <span className={styles.badge}>×{owned}</span> : null}
+      </div>
+    );
+  };
+  return (
+    <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={`Ruil ${TIER_LABELS[tier].toLowerCase()} naar ${TIER_LABELS[up].toLowerCase()}`}>
+      <div className={styles.reveal}>
+        <div className={styles.h2}>Ruil {TIER_LABELS[tier].toLowerCase()} → {TIER_LABELS[up].toLowerCase()}</div>
+        <div className={styles.pickBar}>
+          <span className={styles.stat}>{total}/{TRADE_COST}</span>
+          <button type="button" className={styles.primary} disabled={total !== TRADE_COST} onClick={() => onTrade(picks)}>Ruil</button>
+          <button type="button" className={styles.secondary} onClick={onClose}>Terug</button>
+        </div>
+        <div className={`${styles.cardGrid} ${styles.pickGrid}`}>
+          {riders.map((card) => <RiderCardView key={card.id} card={card} kopman={card.id === save.kopman}>{actions(card.id, save.collection[card.id])}</RiderCardView>)}
+          {items.map((item) => <ItemCardView key={item.id} id={item.id}>{actions(item.id, save.items[item.id])}</ItemCardView>)}
         </div>
       </div>
     </div>

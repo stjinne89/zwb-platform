@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildPool, cardById, overallOf, pool, statsFor, tierOf } from "@/kopman/engine/cards";
 import { buildCourse, courseWeights, fitFor } from "@/kopman/engine/course";
-import { buyPack, DAILY_PACK_RACES, DUPLICATE_COINS, finishRace, newSave, newSeason, openPackOf, packFor, seasonDone, sellSpares, sparesByTier, toggleLineup, tradeUp, type Save } from "@/kopman/engine/economy";
+import { buyPack, DAILY_PACK_RACES, DUPLICATE_COINS, finishRace, newSave, newSeason, openPackOf, packFor, seasonDone, sellSpares, sparesByTier, toggleLineup, tradeCards, tradeUp, type Save } from "@/kopman/engine/economy";
 import { ITEMS, itemById, NO_BONUS, teamBonus, type TeamBonus } from "@/kopman/engine/items";
 import { KIND_ODDS, openPack, PACK_SIZE, PITY_PACKS } from "@/kopman/engine/packs";
 import { createRace, results, runToEnd, stepRace } from "@/kopman/engine/race";
@@ -180,6 +180,23 @@ describe("Kopman: economie", () => {
     expect(tradeUp(save, "brons")).toEqual(traded);
     expect(tradeUp(traded.save, "brons")).toBeNull();
     expect(tradeUp({ ...base, collection: { ...base.collection, [a]: 9 } }, "goud")).toBeNull();
+  });
+
+  it("ruilt vijf zelfgekozen kaarten, ook enkele, maar nooit het laatste exemplaar van een renner in de ploeg", () => {
+    const base = starter();
+    const extra = pool().pool.filter((c) => c.tier === "brons" && !base.collection[c.id]).slice(0, 3).map((c) => c.id);
+    const save: Save = { ...base, collection: { ...base.collection, ...Object.fromEntries(extra.map((id) => [id, 1])), [base.lineup[0]]: 2 }, items: { "m-banden-brons": 1 } };
+    const picks = { [extra[0]]: 1, [extra[1]]: 1, [extra[2]]: 1, [base.lineup[0]]: 1, "m-banden-brons": 1 };
+    const traded = tradeCards(save, picks)!;
+    expect(traded).not.toBeNull();
+    for (const id of extra) expect(traded.save.collection[id]).toBeUndefined();
+    expect(traded.save.items["m-banden-brons"]).toBeUndefined();
+    expect(traded.save.collection[base.lineup[0]]).toBe(1);
+    expect(parseSave(JSON.stringify(traded.save))).not.toBeNull();
+    expect(tradeCards(save, { ...picks, [base.lineup[0]]: 2, "m-banden-brons": 0 })).toBeNull();
+    expect(tradeCards(save, { [base.lineup[1]]: 1, [extra[0]]: 1, [extra[1]]: 1, [extra[2]]: 1, "m-banden-brons": 1 })).toBeNull();
+    expect(tradeCards(save, { [extra[0]]: 1, [extra[1]]: 1, [extra[2]]: 1, "m-banden-brons": 1 })).toBeNull();
+    expect(tradeCards(save, { ...picks, "m-banden-brons": 0, "p-trainer-zilver": 1 })).toBeNull();
   });
 
   it("verkoopt alle reservekaarten van een niveau, nooit het laatste exemplaar", () => {

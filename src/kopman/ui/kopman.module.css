@@ -228,6 +228,9 @@
 .overlay { position: absolute; inset: 0; background: var(--halftone), var(--night); z-index: 10; display: grid; place-items: start center; padding: 20px 16px; overflow-y: auto; scrollbar-color: var(--paper-3) var(--night); scrollbar-width: thin; }
 .reveal { display: grid; gap: 16px; justify-items: center; width: min(680px, 100%); }
 .reveal > .h2 { font-size: 1.7rem; text-transform: uppercase; transform: rotate(-1.5deg); }
+.pickBar { position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 12; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 10px; background: var(--paper); color: var(--ink); box-shadow: var(--lift); }
+.pickGrid { width: 100%; padding-bottom: 72px; }
+.pickBar .stat { font-size: 1.1rem; font-weight: 800; min-width: 3ch; }
 .revealCards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
 .revealCards.revealOne { grid-template-columns: minmax(0, 1fr); width: max(calc((100% - 20px) / 3), min(100%, 12rem)); }
 .flip { animation: flipIn 0.55s ease-out both; }

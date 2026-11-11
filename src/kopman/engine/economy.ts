@@ -147,7 +147,35 @@ export function sellSpares(save: Save, tier: Tier): { save: Save; coins: number 
 export function tradeUp(save: Save, tier: Tier): { save: Save; pull: Pull } | null {
   const up = NEXT_TIER[tier];
   if (!up || sparesByTier(save)[tier] < TRADE_COST) return null;
-  const taken = takeSpares(save, tier, TRADE_COST)!;
+  return drawUp(save, takeSpares(save, tier, TRADE_COST)!, up);
+}
+
+/** How many copies of this card may go into a trade: all of them, except the last copy of a rider in the lineup. */
+export const tradeable = (save: Save, id: string) => (itemById.has(id) ? save.items[id] ?? 0 : Math.max(0, (save.collection[id] ?? 0) - (save.lineup.includes(id) ? 1 : 0)));
+
+/**
+ * Trades cards you pick yourself, singles as well as spares: card id → copies,
+ * TRADE_COST in total, all of one tier. A card whose last copy goes leaves the collection.
+ */
+export function tradeCards(save: Save, picks: Record<string, number>): { save: Save; pull: Pull } | null {
+  const ids = Object.keys(picks).filter((id) => picks[id] > 0);
+  if (!ids.length || ids.some((id) => !itemById.has(id) && !save.collection[id])) return null;
+  const tier = tierOfId(ids[0]);
+  const up = NEXT_TIER[tier];
+  const total = ids.reduce((sum, id) => sum + picks[id], 0);
+  if (!up || total !== TRADE_COST || ids.some((id) => tierOfId(id) !== tier || !Number.isInteger(picks[id]) || picks[id] > tradeable(save, id))) return null;
+  const collection = { ...save.collection };
+  const items = { ...save.items };
+  for (const id of ids) {
+    const owned = itemById.has(id) ? items : collection;
+    owned[id] -= picks[id];
+    if (owned[id] <= 0) delete owned[id];
+  }
+  return drawUp(save, { collection, items }, up);
+}
+
+/** One card of the tier above. The kind follows the pack odds; a card you do not have yet comes first. */
+function drawUp(save: Save, taken: { collection: Record<string, number>; items: Record<string, number> }, up: Tier): { save: Save; pull: Pull } {
   const random = rng(hashSeed(save.seed, "ruil", save.trades));
   const r = random();
   const kind = r < KIND_ODDS.renner ? "renner" : r < KIND_ODDS.renner + KIND_ODDS.materiaal ? "materiaal" : "personeel";

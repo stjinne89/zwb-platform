@@ -12,8 +12,8 @@ gaat stabiliteit voor nieuwe features.
    `4eb8fd52`; stripstijl in de hele app daarna), niet gepusht.** Geen migratie. Een wielermanager met
    rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
-   over pushen en ronde 2. Zie de rondes "Kopman: dubbele kaarten ruilen of
-   verkopen", "Kopman: materiaal en personeel in
+   over pushen en ronde 2. Zie de rondes "Kopman: zelf kaarten kiezen om te
+   ruilen", "Kopman: dubbele kaarten ruilen of verkopen", "Kopman: materiaal en personeel in
    de pakketten", "Kopman: een afdaling na elke helling", "Kopman: de
    stripstijl in de hele app", "Kopman: stripportretten en
    één order per hand" en "Kopman, ronde 1", en [docs/kopman.md](docs/kopman.md).
@@ -12231,6 +12231,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: zelf kaarten kiezen om te ruilen
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "Ik wil
+ook enkele kaarten hierin kunnen ruilen", "niet alleen dubbele"; gekozen: zelf
+5 kaarten aantikken). Geen migratie.
+
+- **Wat er veranderde.** Het paneel "Reservekaarten" heet nu "Ruilen". Per
+  niveau staat er:
+  - de knop **Kies 5 → zilver/goud**: die opent je kaarten van dat niveau,
+    renners en materiaal en personeel samen. Je tikt er 5 aan, en daarna
+    **Ruil**;
+  - bij 5 of meer reservekaarten ook de snelknop **Ruil 5 reserves**;
+  - de knop **Verkoop reserves**.
+- **Hoe het kiezen werkt.**
+  - Je mag ook een kaart kiezen waarvan je er maar één hebt. Die verdwijnt
+    dan uit je verzameling.
+  - Van een dubbele kaart tik je meer exemplaren aan: "Gekozen ×2".
+  - Het laatste exemplaar van een renner in je opstelling kun je niet kiezen
+    ("In ploeg"). Zo blijft de opstelling altijd compleet.
+  - De balk met de teller en Ruil staat vast onderaan het scherm. De overlay
+    is langer dan een telefoonscherm.
+  - De zwakste renners buiten je ploeg staan bovenaan.
+- **In de code.** `tradeCards` en `tradeable` in `economy.ts`. De trekking
+  is gedeeld met de snelknop (`drawUp`). Er is een test bij die
+  controleert: enkele kaarten mogen weg, de opstelling blijft beschermd,
+  niveaus mogen niet door elkaar en het totaal moet precies 5 zijn.
+- **Bewust niet gebouwd:**
+  - geen waarschuwing als je je beste materiaal of personeel inruilt. De
+    bonus van dat vak valt dan terug naar je volgende kaart, of naar niets.
+    Dat zie je op het tabblad Ploeg.
+  - geen ruil vanuit het tabblad Ploeg. Ruilen staat op één plek.
+- **Niet meer waar.** In de vorige ronde staat de knop "Nog 3 voor zilver".
+  Die is vervangen door "Kies 5": zolang je 5 kaarten van een niveau kunt
+  missen, kun je ruilen.
+- **Geverifieerd:**
+  - vitest (34 tests), tsc en eslint;
+  - in de preview op een smal scherm: het kiesscherm, 5 kaarten kiezen
+    (waaronder enkele en een ×2), de ruil met de opgeslagen verzameling (4
+    kaarten weg, 1 erbij, opstelling intact) en de vaste balk.
+- **Niet geverifieerd:**
+  - de echte Next-pagina en Safari;
+  - de balans: enkele bronzen kaarten zijn nu een directe weg naar zilver.
+
 ### Gebouwd — Kopman: dubbele kaarten ruilen of verkopen
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
@@ -12243,10 +12287,10 @@ kan ruilen om zo door te blijven bouwen?"; gekozen: bewaren of verkopen, en
   meer op. Ze blijft als reservekaart staan. Op het tabblad Pakketten staat
   een paneel "Reservekaarten" met het aantal per niveau en twee knoppen:
   - **Ruil 5 → hoger niveau.** De nieuwe kaart verschijnt in dezelfde
-    onthulling als een pakket, met de titel "Ruil". Heb je er nog geen 5, dan
-    staat er bijvoorbeeld "Nog 3 voor zilver". De eigenaar zag eerst alleen
-    een uitgeschakelde knop "Ruil 5 → zilver" bij 2 reservekaarten en dacht
-    dat het ruilen ontbrak.
+    onthulling als een pakket, met de titel "Ruil". De eigenaar zag eerst
+    alleen een uitgeschakelde knop "Ruil 5 → zilver" bij 2 reservekaarten en
+    dacht dat het ruilen ontbrak. Daarna stond er "Nog 3 voor zilver". Sinds
+    de ronde "zelf kaarten kiezen" is dat vervangen door "Kies 5".
   - **Verkoop.** Het bedrag is gelijk aan de oude munten voor een dubbele
     kaart. Je bevestigt het eerst, want verkopen is niet terug te draaien.
 - **Waarom.** Dubbele kaarten waren alleen munten waard. Nu kun je met
@@ -12260,7 +12304,8 @@ kan ruilen om zo door te blijven bouwen?"; gekozen: bewaren of verkopen, en
 - **Bewust niet gebouwd:**
   - geen ruil van goud naar iets hogers, want er is geen hoger niveau;
   - geen keuze welke reservekaarten je inlevert: de meest dubbele gaan eerst
-    en het laatste exemplaar blijft altijd;
+    en het laatste exemplaar blijft altijd. (Dat geldt nog voor de snelknop.
+    Zelf kiezen kan sinds de volgende ronde.);
   - geen keuze van de soort die je terugkrijgt, want dat zou het pakket
     overbodig maken;
   - geen "3 wordt 1", want 5-1 houdt goud schaars.
