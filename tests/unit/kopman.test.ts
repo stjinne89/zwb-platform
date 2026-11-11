@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildPool, cardById, overallOf, pool, statsFor, tierOf } from "@/kopman/engine/cards";
 import { buildCourse, courseWeights, fitFor } from "@/kopman/engine/course";
-import { buyPack, DAILY_PACK_RACES, finishRace, newSave, newSeason, openPackOf, packFor, seasonDone, toggleLineup, type Save } from "@/kopman/engine/economy";
+import { buyPack, DAILY_PACK_RACES, DUPLICATE_COINS, finishRace, newSave, newSeason, openPackOf, packFor, seasonDone, sellSpares, sparesByTier, toggleLineup, tradeUp, type Save } from "@/kopman/engine/economy";
 import { ITEMS, itemById, NO_BONUS, teamBonus, type TeamBonus } from "@/kopman/engine/items";
 import { KIND_ODDS, openPack, PACK_SIZE, PITY_PACKS } from "@/kopman/engine/packs";
 import { createRace, results, runToEnd, stepRace } from "@/kopman/engine/race";
@@ -153,16 +153,43 @@ describe("Kopman: economie", () => {
     expect(save.kopman).toBe(save.lineup[0]);
   });
 
-  it("maakt van een dubbele kaart munten", () => {
+  it("bewaart een dubbele kaart als reserve, zonder munten", () => {
     let save = starter();
     const first = openPack("zilver", save.seed, 0, 0).cards[0];
     save = { ...save, collection: { ...save.collection, [first]: 1 } };
     const opened = openPackOf(save, "zilver")!;
     const dup = opened.pulls.find((p) => p.id === first)!;
     expect(dup.duplicate).toBe(true);
-    expect(dup.coins).toBeGreaterThan(0);
+    expect(opened.save.coins).toBe(save.coins);
     expect(opened.save.collection[first]).toBe(2);
     expect(opened.save.packs).toEqual([]);
+  });
+
+  it("ruilt vijf reservekaarten van een niveau in voor een kaart van het niveau erboven", () => {
+    const base = starter();
+    const [a, b] = base.lineup;
+    const save: Save = { ...base, collection: { ...base.collection, [a]: 4 }, items: { "m-frame-brons": 3 } };
+    expect(sparesByTier(save).brons).toBe(5);
+    const traded = tradeUp(save, "brons")!;
+    expect(traded.save.collection[a]).toBe(1);
+    expect(traded.save.items["m-frame-brons"]).toBe(1);
+    expect(traded.save.collection[b]).toBe(1);
+    const got = traded.pull.id;
+    expect(itemById.get(got)?.tier ?? cardById(got).tier).toBe("zilver");
+    expect(traded.save.trades).toBe(1);
+    expect(tradeUp(save, "brons")).toEqual(traded);
+    expect(tradeUp(traded.save, "brons")).toBeNull();
+    expect(tradeUp({ ...base, collection: { ...base.collection, [a]: 9 } }, "goud")).toBeNull();
+  });
+
+  it("verkoopt alle reservekaarten van een niveau, nooit het laatste exemplaar", () => {
+    const base = starter();
+    const save: Save = { ...base, collection: { ...base.collection, [base.lineup[0]]: 3 } };
+    const sold = sellSpares(save, "brons")!;
+    expect(sold.coins).toBe(2 * DUPLICATE_COINS.brons);
+    expect(sold.save.coins).toBe(save.coins + sold.coins);
+    expect(sold.save.collection[base.lineup[0]]).toBe(1);
+    expect(sellSpares(sold.save, "brons")).toBeNull();
   });
 
   it("verkoopt geen pakket zonder genoeg munten", () => {

@@ -220,11 +220,16 @@
 .odds { font-size: 0.78rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .pack button { justify-self: start; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: 2px solid var(--ink); background: var(--ink); color: var(--yellow) !important; font-weight: 800; }
 .pack button:not(:disabled):hover { background: #2c261e; }
+.pack button.sell { background: rgb(255 255 255 / 0.35); color: var(--ink) !important; }
+.pack button.sell:not(:disabled):hover { background: rgb(255 255 255 / 0.6); }
+.pack.spare { padding-right: 14px; }
+.pack.spare::after { display: none; }
 
 .overlay { position: absolute; inset: 0; background: var(--halftone), var(--night); z-index: 10; display: grid; place-items: start center; padding: 20px 16px; overflow-y: auto; scrollbar-color: var(--paper-3) var(--night); scrollbar-width: thin; }
 .reveal { display: grid; gap: 16px; justify-items: center; width: min(680px, 100%); }
 .reveal > .h2 { font-size: 1.7rem; text-transform: uppercase; transform: rotate(-1.5deg); }
 .revealCards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
+.revealCards.revealOne { grid-template-columns: minmax(0, 1fr); width: max(calc((100% - 20px) / 3), min(100%, 12rem)); }
 .flip { animation: flipIn 0.55s ease-out both; }
 .flip:nth-child(2) { animation-delay: 0.35s; }
 .flip:nth-child(3) { animation-delay: 0.7s; }

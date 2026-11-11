@@ -1,7 +1,7 @@
 import { cardById, pool } from "./cards";
 import { buildCourse, courseWeights, fitFor } from "./course";
-import { itemById, teamBonus } from "./items";
-import { openPack } from "./packs";
+import { ITEMS, itemById, teamBonus } from "./items";
+import { KIND_ODDS, openPack } from "./packs";
 import type { Placing } from "./race";
 import { hashSeed, rng } from "./rng";
 import { rivalTeams } from "./teams";
@@ -20,7 +20,11 @@ export const START_FEE = 300;
 /** Season points per place, top 15, by team. Monuments count half again. */
 export const POINTS = [100, 80, 65, 55, 45, 35, 30, 26, 22, 19, 16, 13, 10, 7, 5];
 export const MONUMENT_FACTOR = 1.5;
+/** What a spare copy sells for. */
 export const DUPLICATE_COINS: Record<Tier, number> = { brons: 150, zilver: 500, goud: 2000 };
+/** Spare copies of one tier that trade in for one card of the tier above, of any kind. */
+export const TRADE_COST = 5;
+export const NEXT_TIER: Partial<Record<Tier, Tier>> = { brons: "zilver", zilver: "goud" };
 /** End of season, by team rank: coins and a pack. */
 export const SEASON_REWARDS: { upTo: number; coins: number; pack: PackType }[] = [
   { upTo: 1, coins: 8000, pack: "goud" },
@@ -40,6 +44,8 @@ export type Save = {
   collection: Record<string, number>;
   /** Equipment and staff card id → copies owned. Per slot the best one counts. */
   items: Record<string, number>;
+  /** Trade-ins so far: seeds the next one, so a reload cannot reroll it. */
+  trades: number;
   lineup: string[];
   kopman: string | null;
   packs: PackType[];
@@ -69,6 +75,7 @@ export function newSave(seed: number, date: string): Save {
     coins: START_COINS,
     collection: Object.fromEntries(starters.map((id) => [id, 1])),
     items: {},
+    trades: 0,
     lineup: starters,
     kopman: starters[0],
     packs: ["zilver"],
@@ -82,27 +89,76 @@ export function newSave(seed: number, date: string): Save {
   };
 }
 
-export type Pull = { id: string; duplicate: boolean; coins: number };
+export type Pull = { id: string; duplicate: boolean };
 
-/** Opens the first unopened pack of this type. Duplicates turn into coins. */
+/** Opens the first unopened pack of this type. A duplicate stays as a spare copy, to trade in or sell. */
 export function openPackOf(save: Save, type: PackType): { save: Save; type: PackType; pulls: Pull[]; guaranteed: boolean } | null {
   const index = save.packs.indexOf(type);
   if (index < 0) return null;
   const { cards, pity, guaranteed } = openPack(type, save.seed, save.packsOpened, save.pity);
   const collection = { ...save.collection };
   const items = { ...save.items };
-  let coins = save.coins;
   const pulls = cards.map((id) => {
-    const item = itemById.get(id);
-    const owned = item ? items : collection;
+    const owned = itemById.has(id) ? items : collection;
     const duplicate = !!owned[id];
-    const refund = duplicate ? DUPLICATE_COINS[item ? item.tier : cardById(id).tier] : 0;
     owned[id] = (owned[id] ?? 0) + 1;
-    coins += refund;
-    return { id, duplicate, coins: refund };
+    return { id, duplicate };
   });
   const packs = save.packs.filter((_, i) => i !== index);
-  return { save: { ...save, collection, items, coins, packs, packsOpened: save.packsOpened + 1, pity }, type, pulls, guaranteed };
+  return { save: { ...save, collection, items, packs, packsOpened: save.packsOpened + 1, pity }, type, pulls, guaranteed };
+}
+
+const tierOfId = (id: string) => itemById.get(id)?.tier ?? cardById(id).tier;
+
+/** Spare copies per tier: every copy beyond the first, riders and equipment and staff together. */
+export function sparesByTier(save: Save): Record<Tier, number> {
+  const out: Record<Tier, number> = { brons: 0, zilver: 0, goud: 0 };
+  for (const owned of [save.collection, save.items]) for (const [id, n] of Object.entries(owned)) out[tierOfId(id)] += n - 1;
+  return out;
+}
+
+/** Takes `count` spare copies of this tier, the most-held cards first, and never a last copy. */
+function takeSpares(save: Save, tier: Tier, count: number) {
+  const collection = { ...save.collection };
+  const items = { ...save.items };
+  const held = [...Object.keys(collection).map((id) => ({ id, owned: collection })), ...Object.keys(items).map((id) => ({ id, owned: items }))]
+    .filter(({ id }) => tierOfId(id) === tier);
+  for (let left = count; left > 0; left--) {
+    const next = held.filter(({ id, owned }) => owned[id] > 1).sort((a, b) => b.owned[b.id] - a.owned[a.id] || a.id.localeCompare(b.id))[0];
+    if (!next) return null;
+    next.owned[next.id]--;
+  }
+  return { collection, items };
+}
+
+/** Sells every spare copy of this tier. */
+export function sellSpares(save: Save, tier: Tier): { save: Save; coins: number } | null {
+  const n = sparesByTier(save)[tier];
+  if (n <= 0) return null;
+  const taken = takeSpares(save, tier, n)!;
+  const coins = n * DUPLICATE_COINS[tier];
+  return { save: { ...save, ...taken, coins: save.coins + coins }, coins };
+}
+
+/**
+ * Trades TRADE_COST spare copies of one tier for one card of the tier above.
+ * The kind follows the pack odds; a card you do not have yet comes first.
+ */
+export function tradeUp(save: Save, tier: Tier): { save: Save; pull: Pull } | null {
+  const up = NEXT_TIER[tier];
+  if (!up || sparesByTier(save)[tier] < TRADE_COST) return null;
+  const taken = takeSpares(save, tier, TRADE_COST)!;
+  const random = rng(hashSeed(save.seed, "ruil", save.trades));
+  const r = random();
+  const kind = r < KIND_ODDS.renner ? "renner" : r < KIND_ODDS.renner + KIND_ODDS.materiaal ? "materiaal" : "personeel";
+  const options = kind === "renner" ? pool().pool.filter((c) => c.tier === up).map((c) => c.id) : ITEMS.filter((x) => x.group === kind && x.tier === up).map((x) => x.id);
+  const owned = kind === "renner" ? taken.collection : taken.items;
+  const fresh = options.filter((id) => !owned[id]);
+  const from = fresh.length ? fresh : options;
+  const choice = from[Math.floor(random() * from.length)];
+  const duplicate = !!owned[choice];
+  owned[choice] = (owned[choice] ?? 0) + 1;
+  return { save: { ...save, ...taken, trades: save.trades + 1 }, pull: { id: choice, duplicate } };
 }
 
 export function buyPack(save: Save, type: PackType, price: number | undefined): Save | null {

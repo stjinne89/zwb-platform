@@ -20,6 +20,7 @@ const schema = z.object({
   collection: z.record(cardId, z.number().int().min(1).max(999)),
   // Saves from before equipment and staff have none yet.
   items: z.record(itemId, z.number().int().min(1).max(999)).default({}),
+  trades: count.default(0),
   lineup: z.array(cardId).max(LINEUP_SIZE),
   kopman: cardId.nullable(),
   packs: z.array(pack).max(500),

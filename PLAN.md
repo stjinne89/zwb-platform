@@ -12,7 +12,8 @@ gaat stabiliteit voor nieuwe features.
    `4eb8fd52`; stripstijl in de hele app daarna), niet gepusht.** Geen migratie. Een wielermanager met
    rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
-   over pushen en ronde 2. Zie de rondes "Kopman: materiaal en personeel in
+   over pushen en ronde 2. Zie de rondes "Kopman: dubbele kaarten ruilen of
+   verkopen", "Kopman: materiaal en personeel in
    de pakketten", "Kopman: een afdaling na elke helling", "Kopman: de
    stripstijl in de hele app", "Kopman: stripportretten en
    één order per hand" en "Kopman, ronde 1", en [docs/kopman.md](docs/kopman.md).
@@ -12229,6 +12230,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kopman: dubbele kaarten ruilen of verkopen
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "Kun je
+ook maken dat je bij dubbele kaarten (3 bronzen wordt 1 zilveren ofzo) ze weer
+kan ruilen om zo door te blijven bouwen?"; gekozen: bewaren of verkopen, en
+5-1 door elkaar). Geen migratie: Kopman bewaart alles in `localStorage`.
+
+- **Wat er veranderde.** Een dubbele kaart levert bij het openen geen munten
+  meer op. Ze blijft als reservekaart staan. Op het tabblad Pakketten staat
+  een paneel "Reservekaarten" met het aantal per niveau en twee knoppen:
+  - **Ruil 5 → hoger niveau.** De nieuwe kaart verschijnt in dezelfde
+    onthulling als een pakket, met de titel "Ruil".
+  - **Verkoop.** Het bedrag is gelijk aan de oude munten voor een dubbele
+    kaart. Je bevestigt het eerst, want verkopen is niet terug te draaien.
+- **Waarom.** Dubbele kaarten waren alleen munten waard. Nu kun je met
+  geluk in pakketten blijven doorbouwen naar een hoger niveau. Renners,
+  materiaal en personeel tellen samen. Anders zou personeel (10% van de
+  kaarten) bijna nooit tot een ruil komen.
+- **De regels in de code.** Ze staan in `economy.ts`: `sparesByTier`,
+  `tradeUp`, `sellSpares`, `TRADE_COST = 5` en `NEXT_TIER`. Ze staan ook in
+  [docs/kopman.md](docs/kopman.md). De ruil is deterministisch uit de seed en
+  het nieuwe veld `trades`. Oude saves krijgen `trades: 0`.
+- **Bewust niet gebouwd:**
+  - geen ruil van goud naar iets hogers, want er is geen hoger niveau;
+  - geen keuze welke reservekaarten je inlevert: de meest dubbele gaan eerst
+    en het laatste exemplaar blijft altijd;
+  - geen keuze van de soort die je terugkrijgt, want dat zou het pakket
+    overbodig maken;
+  - geen "3 wordt 1", want 5-1 houdt goud schaars.
+- **Niet meer waar.** Eerder stond in docs/kopman.md "Dubbele kaarten worden
+  munten". Dat is aangepast. In bestaande saves telde het openen ook toen al
+  elk exemplaar mee (×2, ×3). Die oude dubbele kaarten zijn dus al in munten
+  uitbetaald en zijn nu ook reservekaarten. Dat is een eenmalig voordeel voor
+  testsaves. Er is bewust geen correctie gebouwd, want er spelen nog geen
+  echte spelers.
+- **Geverifieerd:**
+  - vitest (33 tests), tsc en eslint;
+  - de preview op desktop en 375 px: het paneel, de ruil met de onthulling,
+    het opslaan van de telling en de lege plekken na de ruil.
+- **Niet geverifieerd:**
+  - de knop Verkopen in de browser (wel in de unittest);
+  - de echte Next-pagina en Safari;
+  - de balans: of 5-1 te snel of te traag naar goud leidt.
 
 ### Gebouwd — Kopman: materiaal en personeel in de pakketten
 

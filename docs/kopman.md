@@ -144,8 +144,19 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
   Een gouden pakket bevat altijd minstens één gouden kaart.
 - **Vangnet.** Na 8 pakketten zonder goud is de volgende kaart goud. De teller
   gaat terug naar nul zodra je goud trekt.
-- **Dubbele kaarten** worden munten: 150 voor brons, 500 voor zilver en 2.000
-  voor goud. Een verzameling raakt zo nooit "vol".
+- **Dubbele kaarten** blijven als reservekaart in je verzameling. Renners,
+  materiaal en personeel tellen samen per niveau. Je kunt ze op twee manieren
+  gebruiken (sinds 2026-11-11):
+  - **Ruilen.** 5 reservekaarten van hetzelfde niveau worden 1 kaart van het
+    niveau erboven: brons → zilver, zilver → goud. De soort volgt de
+    pakketkansen (renner 60%, materiaal 30%, personeel 10%). Een kaart die je
+    nog niet hebt gaat voor. De ruil is uit de seed bepaald en telt door
+    (`trades`), dus herladen geeft geen andere kaart.
+  - **Verkopen.** Alle reservekaarten van één niveau tegelijk, voor 150
+    (brons), 500 (zilver) of 2.000 (goud) munten per stuk.
+  - Bij het ruilen en verkopen gaan eerst de kaarten weg waarvan je de meeste
+    hebt. Het laatste exemplaar van een kaart blijft altijd.
+  - Een verzameling raakt zo nooit "vol".
 - **Koersbeloning.** Er is prijzengeld voor de top 10 (1.500 tot 140) en 80
   munten voor plek 11–20. Elke start levert 300 munten op. Punten krijgt de
   top 15, ×1,5 in een monument. Een pakket hangt af van de uitslag:
@@ -190,7 +201,7 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
 ## Bewust niet in ronde 1
 
 - Diamanten, een seizoenspas en trainen (met dubbele kaarten als
-  grondstof). Die horen bij de volgende rondes. Materiaal en personeel zijn
+  grondstof). Ruilen en verkopen van dubbele kaarten is er sinds 2026-11-11. Die horen bij de volgende rondes. Materiaal en personeel zijn
   er sinds 2026-11-11 als kaarten, zie hieronder.
 - 3D, waaiers, wind en valpartijen. Voor een getekend beeld van achter de
   renners dat als 3D aanvoelt, staat een plan in het plannenboek.
