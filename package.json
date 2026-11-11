@@ -19,7 +19,8 @@
     "zwbgame:preview": "node scripts/zwbgame-preview.mjs",
     "zwbgame:balance": "node scripts/zwbgame-balance.mjs",
     "test:zwbgame:browser": "playwright test -c playwright.zwbgame.config.ts",
-    "kopman:preview": "node scripts/kopman-preview.mjs"
+    "kopman:preview": "node scripts/kopman-preview.mjs",
+    "kopman:telefoon": "node scripts/kopman-preview.mjs --telefoon"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

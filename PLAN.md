@@ -12238,9 +12238,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — Kopman: getekende knoppen en de stripletter overal
+### Gebouwd — Kopman: spelen op je telefoon
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+
+- **De vraag.** Na fase 5 stond alleen nog "tegen mensen spelen" open. De
+  eigenaar: "ik wil live nog even overslaan, ik wil het liever kunnen spelen op
+  mijn mobiel eerst".
+- **Wat er is.**
+  - **`npm run kopman:telefoon`** start de preview ook op het thuisnetwerk en
+    toont het adres voor de telefoon. Gewoon `kopman:preview` blijft alleen
+    op de pc. Zie [docs/kopman.md](docs/kopman.md#lokaal-spelen-en-testen).
+  - **De pagina hoort bij de telefoon:** de kleur van de balk, de veilige
+    randen (`viewport-fit=cover`) en "op beginscherm" zonder adresbalk.
+  - **Knoppen reageren direct** op een tik (`touch-action: manipulation`), dus
+    zonder te wachten op een dubbeltik om in te zoomen.
+  - **Tabbladen op een smal scherm:** "Pakketten (2)" liep over twee regels.
+    Het aantal is nu een rode sticker op de hoek van de tab, ook op desktop.
+    Op de telefoon staat de tabtekst kleiner.
+- **Niet meer waar.** De regel `.app button { font: inherit }` won van de
+  klasse van elke knop. Daardoor deden de lettergroottes van tabs, Start en
+  Beste opstelling niets: alles stond op 16 px, ook na de ronde hieronder. De
+  regel staat nu op `:where(.app) button`, zodat de klasse van de knop
+  beslist. Tabs zijn nu 16 px (telefoon 12,5 px), Start 17 px en Beste
+  opstelling 14,7 px.
+- **Bewust niet gebouwd:**
+  - **Tegen mensen spelen.** Ook niet samen op één toestel of met een code.
+    De eigenaar slaat het over.
+  - **Een installeerbare app met manifest en icoon.** Dat werkt alleen via
+    https. Over het thuisnetwerk is het http. "Op beginscherm" werkt wel.
+  - **Online zetten.** Pushen naar main kost Netlify-tegoed en gebeurt alleen
+    op verzoek. Het spel staat dan op `/zwbgame/kopman`.
+- **Geverifieerd:**
+  - in Chrome nagebootst op 360×740, 375×667 en 375×812:
+    - geen scherm is breder dan de telefoon;
+    - de tabtekst past;
+    - het bord past zonder scroll;
+  - desktop;
+  - de syntax van het script;
+  - tsc, eslint en 47 tests.
+- **Niet geverifieerd:**
+  - `kopman:telefoon` zelf. Ik heb hem niet gestart, omdat luisteren op het
+    netwerk de vraag van de Windows-firewall oproept, en die is aan de
+    eigenaar;
+  - een echte telefoon en Safari.
+
+### Gebouwd — Kopman: getekende knoppen en de stripletter overal
+
+**2026-11-11, commit `9d8d80b5`, lokaal op
 `claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
 
 - **De vraag.** Na de tabtegels uit `943ba2f5` (zie hieronder) schreef de

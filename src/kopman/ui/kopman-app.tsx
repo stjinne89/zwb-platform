@@ -123,7 +123,7 @@ export function KopmanApp() {
       <div className={styles.tabs} role="tablist">
         {TABS.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={styles.tab} onClick={() => setTab(t.id)}>
-            <t.icon size={18} aria-hidden />{t.label}{t.id === "pakketten" && save.packs.length ? ` (${save.packs.length})` : ""}
+            <t.icon size={18} aria-hidden />{t.label}{t.id === "pakketten" && save.packs.length ? <span className={styles.tabCount}><span className={styles.srOnly}>, te openen: </span>{save.packs.length}</span> : null}
           </button>
         ))}
       </div>

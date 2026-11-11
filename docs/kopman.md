@@ -325,6 +325,25 @@ npm run kopman:preview
 npx vitest run tests/unit/kopman.test.ts
 ```
 
+**Op je telefoon spelen.** Start de preview met:
+
+```sh
+npm run kopman:telefoon
+```
+
+De preview luistert dan ook op het thuisnetwerk en toont het adres voor je
+telefoon, bijvoorbeeld `http://192.168.0.12:3198`. De telefoon moet op dezelfde
+wifi zitten. Hoe dat werkt:
+- Windows vraagt de eerste keer of Node het netwerk op mag. Sta dat alleen
+  toe voor een privénetwerk.
+- Zolang de preview draait, kan iedereen op dat netwerk het spel openen. Er
+  staan geen gegevens op de pc in, en de pc slaat niets op.
+- De telefoon heeft een eigen save, los van die op de pc. Je begint daar dus
+  met een nieuwe ploeg.
+- Via "Zet op beginscherm" opent het spel zonder adresbalk.
+
+Gewoon `npm run kopman:preview` blijft alleen op de pc bereikbaar.
+
 ## Niet geverifieerd
 
 - De echte Next-pagina `/zwbgame/kopman`. In deze worktree staan geen

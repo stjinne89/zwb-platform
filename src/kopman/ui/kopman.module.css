@@ -49,7 +49,8 @@
   --wobble: 11px 8px 12px 9px / 9px 12px 8px 11px;
   overflow: hidden;
 }
-.app button { font: inherit; font-weight: 700; color: inherit; cursor: pointer; }
+/* Low specificity on purpose: a button's own class sets its size and weight. */
+:where(.app) button { font: inherit; font-weight: 700; color: inherit; cursor: pointer; touch-action: manipulation; }
 .app button:disabled { cursor: default; opacity: 0.45; }
 .app :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; box-shadow: 0 0 0 6px var(--yellow); }
 .app ::selection { background: var(--yellow); color: var(--ink); }
@@ -85,14 +86,16 @@
 .wallet .chip:nth-child(odd) { transform: rotate(-1.5deg); }
 .wallet .chip:nth-child(even) { transform: rotate(1.5deg); }
 
-.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+.tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
 /*
  * Drawn controls: an ink outline that is heavier underneath, the way an inker
  * weights the shadow side, and a corner that is not quite round. What is
  * chosen turns yellow with print dots and tilts, like a caption box.
  */
-.tab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px 7px; border-radius: var(--wobble); background: var(--paper-2); border: 2px solid var(--ink); border-bottom-width: 3.5px; font-size: 1.02rem; transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s ease-out; }
+.tab { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px 7px; border-radius: var(--wobble); background: var(--paper-2); border: 2px solid var(--ink); border-bottom-width: 3.5px; font-size: 1.02rem; transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s ease-out; }
 .tab:hover { background-color: var(--paper); }
+/* Unopened packs: a sticker on the corner of the tab. */
+.tabCount { position: absolute; top: -9px; right: -7px; min-width: 1.6em; height: 1.6em; padding: 0 0.3em; display: grid; place-items: center; border-radius: 99px; background: var(--red); color: #fff; border: 2px solid var(--ink); font-size: 0.74rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; transform: rotate(8deg); }
 .app .tab[aria-selected="true"] { background: var(--dots), var(--yellow); font-weight: 800; transform: translateY(-3px) rotate(-1.2deg); box-shadow: var(--lift); }
 
 .panel { position: relative; background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; padding: 14px; box-shadow: var(--lift); }
@@ -128,6 +131,8 @@
 .lineupGrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
 @media (max-width: 640px) {
   .app { padding: 12px; border-radius: 14px; }
+  .tabs { gap: 6px; }
+  .tab { font-size: 0.78rem; padding: 8px 2px 6px; white-space: nowrap; }
   .lineupGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cardGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
