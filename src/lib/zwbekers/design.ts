@@ -154,11 +154,28 @@ export function gravureLines(design: BekerDesign): string[] {
   return (show.regioPeriode ? [design.regio, design.periode] : show.gravure ? [design.gravure] : []).filter(Boolean);
 }
 
-/** Wat de gravure mag bevatten: letters (ook met accent), cijfers, spatie en wat leestekens. */
-const GRAVURE_CHARS = /^[\p{L}\p{N} .,'’&+\-–!?:/#()]*$/u;
+/**
+ * Wat de gravure mag bevatten: letters (ook met accent), cijfers, spatie, wat
+ * leestekens en emoji, met wat die aan elkaar plakt (huidskleur, vlag, ZWJ;
+ * wens eigenaar 2026-11-11).
+ */
+const GRAVURE_CHARS =
+  /^[\p{L}\p{N} .,'’&+\-–!?:/#()\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}‍️⃣\u{E0020}-\u{E007F}]*$/u;
 
 export function cleanGravure(text: string): string {
   return text.replace(/\s+/g, " ").trim();
+}
+
+/** Of de tekst op het plaatje mag. */
+export function gravureAllowed(text: string): boolean {
+  return GRAVURE_CHARS.test(text);
+}
+
+/** Hooguit `max` tekens, zonder een emoji doormidden te knippen. */
+function cutGravure(text: string, max = GRAVURE_MAX): string {
+  if (text.length <= max) return text;
+  const code = text.charCodeAt(max);
+  return text.slice(0, code >= 0xdc00 && code <= 0xdfff ? max - 1 : max);
 }
 
 /**
@@ -171,7 +188,7 @@ export function gravureFromTitle(title: string): string {
   );
   if (text.length <= GRAVURE_MAX) return text;
   const cut = text.slice(0, GRAVURE_MAX + 1).lastIndexOf(" ");
-  return (cut > 0 ? text.slice(0, cut) : text.slice(0, GRAVURE_MAX)).trim();
+  return (cut > 0 ? text.slice(0, cut) : cutGravure(text)).trim();
 }
 
 const engraving = z
@@ -212,7 +229,7 @@ export function readDesign(stored: unknown): BekerDesign {
   const pick = <T extends string>(options: readonly T[], value: unknown, fallback: T): T =>
     typeof value === "string" && (options as readonly string[]).includes(value) ? (value as T) : fallback;
   const engraved = (value: unknown) => {
-    const text = typeof value === "string" ? cleanGravure(value).slice(0, GRAVURE_MAX) : "";
+    const text = typeof value === "string" ? cutGravure(cleanGravure(value)) : "";
     return GRAVURE_CHARS.test(text) ? text : "";
   };
   return {

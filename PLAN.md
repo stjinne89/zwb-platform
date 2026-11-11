@@ -7,6 +7,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **ZWBekers: emoji in de gravure (2026-11-11): nog niet gepusht.** Geen
+   migratie. Zie de ronde "ZWBekers: emoji in de gravure".
+
 0. **Club Ladder: parcoursadvies op het event (2026-11-11): gepusht naar
    `main` (`159c2d18`).** Open: na de deploy als gewoon lid en op een telefoon bekijken. Geen migratie. Zie de ronde "Club Ladder: parcoursadvies op
    het event".
@@ -12195,6 +12198,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — ZWBekers: emoji in de gravure
+
+**2026-11-11, nog niet gepusht.** Geen migratie.
+
+**Waarom.** Een lid zette "Top of the World" met een ladder-emoji in de gravure
+en kreeg bij opslaan alleen "Er klopt iets niet in het formulier." De gravure
+liet alleen letters, cijfers en wat leestekens toe; een emoji gaf een ZodError,
+en die vertaalt de actie naar die vage zin. De eigenaar wil emoji kunnen
+gebruiken.
+
+**Wat.**
+- `GRAVURE_CHARS` (`lib/zwbekers/design.ts`) laat nu ook emoji toe, met wat ze
+  aan elkaar plakt: huidskleur, vlaggen, ZWJ-reeksen, keycaps en de tags van
+  bijvoorbeeld de Engelse vlag. Dat geldt ook voor regio en periode bij de 1.
+- `gravureFromTitle` laat emoji uit de titel nu staan.
+- Afkappen op 24 tekens (`cutGravure`, ook in `readDesign`) knipt geen emoji
+  doormidden; een half emoji zou de controle laten falen.
+- Een ander teken dat niet op het plaatje kan (zoals `<`) geeft nu "Dat teken
+  kan niet in de gravure." in plaats van de vage melding (`parseNomination`).
+
+Het 3D-plaatje tekent met canvas `fillText`, dus de emoji staat er in kleur op,
+niet als gravure in het messing. Het SVG-plaatje (`beker-icon.tsx`) toont geen
+tekst en verandert niet.
+
+**Bewust niet.** Titel, verhaal en felicitaties lieten emoji al toe; daar
+verandert niets. De 24 tekens tellen zoals het invoerveld telt (UTF-16), dus een
+emoji kost er twee of meer.
+
+**Gecontroleerd.** Vitest `zwbekers.test.ts` groen (28 tests, nieuw: emoji in de
+gravure, afkappen zonder half emoji, de foutzin), `tsc` en ESLint zonder fouten.
+Lokaal als admin: de titel met emoji komt in de gravure en staat zo op het
+3D-plaatje. **Niet geverifieerd:** echt opslaan (de lokale app draait op
+productie, dus geen testvoordracht ingestuurd) en hoe het emoji op een iPhone
+op het plaatje staat.
+
 ### Gebouwd — Club Ladder: parcoursadvies op het event
 
 **2026-11-11, commit `159c2d18`, gepusht naar `main`** (eigenaar: "Main push"). Op verzoek van de eigenaar
@@ -20792,7 +20830,8 @@ gravure".
 is aan wat uit de vorige titel kwam. Verandert of wist het lid de gravure, dan
 stopt het volgen. Bij aanpassen volgt hij alleen als de bewaarde gravure al de
 titel was. `gravureFromTitle` (`lib/zwbekers/design.ts`, puur) laat tekens weg
-die niet op het plaatje mogen en kapt een titel van meer dan 24 tekens af op
+die niet op het plaatje mogen (emoji mogen sinds 2026-11-11 wel, zie "ZWBekers:
+emoji in de gravure") en kapt een titel van meer dan 24 tekens af op
 het laatste hele woord (de titel mag 60 tekens zijn).
 
 **Bewust niet.** Niets aan de server: wat binnenkomt, controleert `parseDesign`

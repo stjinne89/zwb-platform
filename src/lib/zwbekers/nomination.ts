@@ -2,7 +2,7 @@
 // 2026-10-28). De server-acties gebruiken dit; de tests ook.
 
 import { z } from "zod";
-import { parseDesign, type BekerDesign } from "./design";
+import { cleanGravure, gravureAllowed, parseDesign, type BekerDesign } from "./design";
 
 export const KINDS = ["individueel", "team"] as const;
 export type BekerKind = (typeof KINDS)[number];
@@ -110,6 +110,17 @@ export function parseNomination(input: unknown, today: string): Nomination {
   const zrlRound = raw.zrlRound?.trim() || null;
   if (zrlRound && !ZRL_ROUND.test(zrlRound)) throw new NominationError("Kies een ZRL-ronde uit de lijst.");
   if (zrlRound && eventId) throw new NominationError("Kies een event of een ZRL-ronde, niet allebei.");
+
+  // Een teken dat niet op het plaatje kan: een zin in plaats van "Er klopt iets niet".
+  if (raw.design && typeof raw.design === "object") {
+    const engraved = raw.design as Record<string, unknown>;
+    for (const key of ["gravure", "regio", "periode"]) {
+      const value = engraved[key];
+      if (typeof value === "string" && !gravureAllowed(cleanGravure(value))) {
+        throw new NominationError("Dat teken kan niet in de gravure.");
+      }
+    }
+  }
 
   return {
     kind: raw.kind,

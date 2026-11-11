@@ -68,6 +68,10 @@ describe("ZWBekers: ontwerp", () => {
     expect(() => parseDesign({ ...DEFAULT_DESIGN, gravure: "x".repeat(GRAVURE_MAX + 1) })).toThrow(ZodError);
     expect(() => parseDesign({ ...DEFAULT_DESIGN, gravure: "<script>" })).toThrow(ZodError);
     expect(parseDesign({ ...DEFAULT_DESIGN, gravure: "Één & 2e - top!" }).gravure).toBe("Één & 2e - top!");
+    // Emoji mogen op het plaatje, ook samengestelde (2026-11-11).
+    for (const gravure of ["Top of the World 🪜", "👍🏽 🇳🇱 1️⃣", "👨‍👩‍👧 🏴󠁧󠁢󠁥󠁮󠁧󠁿"]) {
+      expect(parseDesign({ ...DEFAULT_DESIGN, gravure }).gravure).toBe(gravure);
+    }
   });
 
   it("maakt van een oud of kapot ontwerp toch een beker", () => {
@@ -75,6 +79,8 @@ describe("ZWBekers: ontwerp", () => {
     expect(readDesign({ vorm: "medaille", metaal: "platina", gravure: 7 })).toEqual({ ...DEFAULT_DESIGN, vorm: "medaille" });
     expect(readDesign({ gravure: "<b>hoi</b>" }).gravure).toBe("");
     expect(readDesign({ gravure: "y".repeat(40) }).gravure).toHaveLength(GRAVURE_MAX);
+    // Afkappen knipt geen emoji doormidden.
+    expect(readDesign({ gravure: `${"y".repeat(GRAVURE_MAX - 1)}🚀` }).gravure).toBe("y".repeat(GRAVURE_MAX - 1));
   });
 
   it("geeft elke vorm een gesloten, staand profiel", () => {
@@ -151,8 +157,9 @@ describe("ZWBekers: gravure uit de titel", () => {
     expect(gravureFromTitle("  Koning van\nde Muur ")).toBe("Koning van de Muur");
     expect(gravureFromTitle("Promotie naar A1 in ronde 2 van ZRL")).toBe("Promotie naar A1 in");
     expect(gravureFromTitle("Onafgebrokenwoordzonderspaties!")).toBe("Onafgebrokenwoordzonders");
-    expect(gravureFromTitle("Snelste <ooit> 🚀")).toBe("Snelste ooit");
-    for (const title of ["Promotie naar A1 in ronde 2 van ZRL", "Snelste <ooit> 🚀", ""]) {
+    expect(gravureFromTitle("Snelste <ooit> 🚀")).toBe("Snelste ooit 🚀");
+    expect(gravureFromTitle("Onafgebrokenwoordzonders🚀")).toBe("Onafgebrokenwoordzonders");
+    for (const title of ["Promotie naar A1 in ronde 2 van ZRL", "Snelste <ooit> 🚀", "Onafgebrokenwoordzonder🚀", ""]) {
       expect(parseDesign({ ...DEFAULT_DESIGN, gravure: gravureFromTitle(title) }).gravure).toBe(gravureFromTitle(title));
     }
   });
@@ -286,6 +293,15 @@ describe("ZWBekers: voordracht", () => {
     expect(() => parseNomination({ ...base, winners: [A, B] }, TODAY)).toThrow(NominationError);
     expect(() => parseNomination({ ...base, winners: [] }, TODAY)).toThrow(NominationError);
     expect(() => parseNomination({ ...base, teamId: TEAM }, TODAY)).toThrow(NominationError);
+  });
+
+  it("zegt welk veld het is bij een teken dat niet op het plaatje kan", () => {
+    expect(() => parseNomination({ ...base, design: { ...DEFAULT_DESIGN, gravure: "Top <1>" } }, TODAY)).toThrow(
+      "Dat teken kan niet in de gravure.",
+    );
+    expect(parseNomination({ ...base, design: { ...DEFAULT_DESIGN, gravure: "Top of the World 🪜" } }, TODAY).design.gravure).toBe(
+      "Top of the World 🪜",
+    );
   });
 
   it("weigert een datum in de toekomst of te ver terug", () => {
