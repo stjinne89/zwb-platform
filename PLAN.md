@@ -12243,7 +12243,10 @@ kan ruilen om zo door te blijven bouwen?"; gekozen: bewaren of verkopen, en
   meer op. Ze blijft als reservekaart staan. Op het tabblad Pakketten staat
   een paneel "Reservekaarten" met het aantal per niveau en twee knoppen:
   - **Ruil 5 → hoger niveau.** De nieuwe kaart verschijnt in dezelfde
-    onthulling als een pakket, met de titel "Ruil".
+    onthulling als een pakket, met de titel "Ruil". Heb je er nog geen 5, dan
+    staat er bijvoorbeeld "Nog 3 voor zilver". De eigenaar zag eerst alleen
+    een uitgeschakelde knop "Ruil 5 → zilver" bij 2 reservekaarten en dacht
+    dat het ruilen ontbrak.
   - **Verkoop.** Het bedrag is gelijk aan de oude munten voor een dubbele
     kaart. Je bevestigt het eerst, want verkopen is niet terug te draaien.
 - **Waarom.** Dubbele kaarten waren alleen munten waard. Nu kun je met

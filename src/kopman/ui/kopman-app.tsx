@@ -296,7 +296,7 @@ function PacksTab({ save, update, onOpen, onTrade }: { save: Save; update: (s: S
               return (
                 <div key={tier} className={`${styles.pack} ${styles.spare} ${styles[tier]}`}>
                   <div className={styles.h3}>{TIER_LABELS[tier]} ×{spares[tier]}</div>
-                  {up ? <button type="button" disabled={spares[tier] < TRADE_COST} onClick={() => onTrade(tier)}>Ruil {TRADE_COST} → {TIER_LABELS[up].toLowerCase()}</button> : null}
+                  {up ? <button type="button" disabled={spares[tier] < TRADE_COST} onClick={() => onTrade(tier)}>{spares[tier] < TRADE_COST ? `Nog ${TRADE_COST - spares[tier]} voor ${TIER_LABELS[up].toLowerCase()}` : `Ruil ${TRADE_COST} → ${TIER_LABELS[up].toLowerCase()}`}</button> : null}
                   <button type="button" className={styles.sell} onClick={sell}><Coins size={14} aria-hidden /> Verkoop · {value.toLocaleString("nl-NL")}</button>
                 </div>
               );
