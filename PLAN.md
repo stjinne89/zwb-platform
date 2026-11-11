@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Kopman, ronde 1 (2026-11-11): lokaal gecommit op
+   `claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+   Een wielermanager met rennerkaarten op `/zwbgame/kopman`, alleen voor wie
+   ZWBgame beheert. Open: de eigenaar speelt een paar koersen
+   (`npm run kopman:preview`) en beslist over pushen en ronde 2. Zie de ronde
+   "Kopman, ronde 1" en [docs/kopman.md](docs/kopman.md).
+
 0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): gepusht naar
    `main` (`b282f1cd`); secret daarna op `BRILJANT_WEEKLY_SECRET` gezet
    (`8ed655ee`).** Geen migratie. In productie: de job "ZWB ZwiftRacing ladder"
@@ -12219,6 +12226,86 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kopman, ronde 1: wielermanager met rennerkaarten
+
+**2026-11-11, lokaal gecommit op `claude/zwbgame-autoracer-concepts-8d80d3`,
+niet gepusht** (eigenaar: "Ja, bouw ronde 1"). Geen migratie. Ontwerp,
+fysica, economie en bronnen staan in [docs/kopman.md](docs/kopman.md).
+
+**Waarom.** De eigenaar zag het spel *Autoracer* (munten, pakketten, een
+Grand Prix, elke 20 s een kaart) en wilde die opzet in het wielrennen. Hij
+koos voor:
+- de echte wereld in plaats van Zwift, met een verkleinde WorldTour-kalender;
+- vijf renners per koers en geen vermoeidheid;
+- renners als kaarten in brons, zilver en goud, die je wint door goed te
+  spelen;
+- alles fictief, behalve de beklimmingen;
+- een beloningsstructuur zoals in spellen met pakketten en passen. Dat is
+  eerst onderzocht.
+
+Eerst binnen ZWB, later mogelijk als losse app. Werktitel: Kopman.
+
+**Wat er is:**
+- `src/kopman` (engine en ui) staat los van het platform. Het importeert
+  alleen `react`, `lucide-react` en `zod`; `tests/unit/kopman.test.ts`
+  bewaakt dat.
+- **Kaarten.** 320 fictieve renners in een vaste pool, met vijf types en zes
+  eigenschappen. Ze zijn brons, zilver (totaal vanaf 65) of goud (vanaf 75).
+- **Pakketten.** 3 kaarten per pakket, met de kansen in de winkel. Na 8
+  pakketten zonder goud volgt goud (vangnet). Een dubbele kaart wordt munten.
+  Brons kost 1.000 munten en zilver 3.000; goud is alleen te winnen.
+- **Kalender.** 16 fictieve koersen over 22 echte beklimmingen en 5 echte
+  kassei- en grindstroken.
+- **Koers.** 60 renners in 12 ploegen van 5. De simulatie rekent met een
+  vermogensbalans, W′, slipstream en bot-tactiek (ontsnapping, achtervolging,
+  aanvallen, lead-out). Elke 20 s krijg je een hand van 3 radiokaarten. Je
+  volgt de koers op een 2D-profiel met de groepen. Een seed maakt elke koers
+  reproduceerbaar.
+- **Beloning.** Munten en punten na elke koers, een pakket alleen voor de
+  eerste 3 koersen per dag, en een seizoensbeloning na 16 koersen.
+- **Opslag.** Alles op het apparaat (`localStorage` `kopman:v1`, gecontroleerd
+  met zod). Een beschadigde opslag gaat naar `kopman:v1:kapot`.
+- **Pagina.** `src/app/(app)/zwbgame/kopman/page.tsx` geeft een 404 zonder
+  `zwbgame.manage`. Er is geen link in het menu.
+- `npm run kopman:preview` (`scripts/kopman-preview.mjs`) bundelt de app met
+  esbuild en serveert hem op `localhost:3198`, zonder Next en zonder inloggen.
+
+**Keuzes.**
+- Alleen verdiende munten, geen betaalvaluta. Betaalde pakketten zijn in
+  België verboden, Apple eist vooraf zichtbare kansen, en de EU werkt aan de
+  Digital Fairness Act.
+- De kansen zijn altijd zichtbaar en er is een vangnet.
+- De daglimiet houdt je niet tegen: na drie koersen rijd je verder voor munten
+  en punten.
+
+**Bewust niet:**
+- **Voor ronde 2 en later**, het plan staat in het plannenboek: diamanten, een
+  seizoenspas, fietsupgrades en trainen.
+- 3D, waaiers en wind.
+- Echte namen.
+- Opslag op de server en een ranglijst tussen leden.
+- Een race hervatten na herladen, en een grens op het opnieuw rijden van een
+  koers vóór de uitslag. De seed ligt vast, dus herladen geeft dezelfde koers.
+- Een `/hulp`-tekst, zolang alleen beheerders de pagina zien.
+
+**Niet geverifieerd:**
+- De echte Next-pagina: er staan geen `.env.local` en geen lokale Supabase in
+  deze worktree. Alleen de preview-bundel is in de browser gespeeld, op
+  desktop en op 375 px breed: koers, radiokaarten, uitslag, pakket openen en
+  herladen met behoud van de opslag.
+- Het speelgevoel over een heel seizoen, de snelheid waarmee je kaarten
+  verzamelt, een echte telefoon en Safari.
+
+**Tests.**
+- `tests/unit/kopman.test.ts`: 23 tests, groen. De twee tests die hele koersen
+  rijden kregen een timeout van 30 s, omdat ze in de volle run tegen de grens
+  van 5 s aanliepen.
+- `tsc` geeft geen fouten en ESLint is schoon voor de nieuwe bestanden.
+- De volle vitest-run faalt in deze worktree op bestaande bestanden: de
+  PGlite-hooks lopen uit en `.env.local` ontbreekt voor omnium-live. Los
+  gedraaid zijn `modules`, `admin-areas`, `club-theme` en `gps-times-flag`
+  groen.
 
 ### Gebouwd — Club Ladder: heatmap in de matchup
 
