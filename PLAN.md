@@ -12259,9 +12259,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
     [docs/kopman-bordspel.md](docs/kopman-bordspel.md#fase-5-proef-het-koersbeeld).
 - **Niet meer waar.** In [docs/kopman.md](docs/kopman.md) staat dat 3D, wind
   en valpartijen ontbreken en dat het beeld een plan in het plannenboek is.
-  Dat is aangepast. Het plan zelf staat nog in het ZWB-plannenboek, met
-  "nog niets gebouwd". Dat is niet bijgewerkt, omdat Kopman niet bij ZWB
-  hoort; het plan kan daar weg.
+  Dat is aangepast. Het plan zelf is op verzoek van de eigenaar uit het
+  ZWB-plannenboek gehaald, want Kopman hoort niet bij ZWB. Wat het plan
+  vroeg, staat nu in
+  [docs/kopman-bordspel.md](docs/kopman-bordspel.md#fase-5-proef-het-koersbeeld).
 - **Bewust niet gebouwd:**
   - een 3D-bibliotheek;
   - renners naast elkaar in de engine;

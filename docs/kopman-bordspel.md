@@ -365,8 +365,13 @@ tijdrit weinig, net als in de live koers.
 ## Fase 5, proef: het koersbeeld
 
 Gebouwd op 2026-11-11. De eigenaar zei: "Ga gewoon verder met de fases". Het
-plan in het plannenboek ("Kopman: de koers in een getekend 3D-beeld") vroeg
-om eerst een korte proef.
+plan "Kopman: de koers in een getekend 3D-beeld" stond in het ZWB-plannenboek
+en is daar daarna weggehaald. Het vroeg om eerst een korte proef. Dit was de
+eis voor "klaar": wisselen tussen het overzicht en het getekende beeld
+tijdens de koers, en een beeld dat soepel loopt op een gewone telefoon. Open
+vragen uit dat plan waren of het zonder zware 3D-bibliotheek kan, hoe zwaar
+60 renners zijn op een telefoon, hoe renners naast elkaar komen, en of de
+stripstijl overeind blijft als alles beweegt.
 
 **Wat het is.**
 - Boven het bord kies je **Overzicht** (het profiel van nu) of
