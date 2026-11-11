@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Telefoon: Club Ladder-ranking als compacte tabel (2026-11-11): lokaal
-   gecommit, niet gepusht.** Geen migratie. Zie de ronde "Telefoon: Club
+   gecommit (`d6d56bf1`), niet gepusht.** Geen migratie. Zie de ronde "Telefoon: Club
    Ladder-ranking als compacte tabel".
 
 0. **Deel via WhatsApp op meer pagina's (2026-11-11): gepusht naar `main`
@@ -12193,7 +12193,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Telefoon: Club Ladder-ranking als compacte tabel
 
-**2026-11-11, commit `COMMIT_HASH`, niet gepusht.** Aanleiding: een lid vond
+**2026-11-11, commit `d6d56bf1`, niet gepusht.** Aanleiding: een lid vond
 dat het advies op de Club Ladder-teampagina "de hele ladder" liet zien. De
 eigenaar: "beginnen met de ladder kleiner te maken op mobiel zoals de matchup
 ook is". Geen migratie.
