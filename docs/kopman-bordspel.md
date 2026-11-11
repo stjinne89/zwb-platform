@@ -436,6 +436,63 @@ stripstijl overeind blijft als alles beweegt.
 - **Andere camerastandpunten.** Bijvoorbeeld de helikopter of de kopgroep
   volgen.
 
+## Het bord op een telefoon
+
+Gebouwd op 2026-11-11. De eigenaar zei: "Om het speelbaar te maken op mobiel
+lijkt het mij dat de elementen allemaal in het koersbeeld moeten passen, want
+je wil niet scrollen".
+
+**Wat het is.**
+- Op een telefoon vult het bord het hele scherm. Dat geldt rechtop (tot 720 px
+  breed) en liggend (tot 520 px hoog). De pagina erachter scrolt dan niet mee.
+- Het koersbeeld is het podium. Wat bij de koers hoort, staat erop:
+  - linksboven de sector: terrein, lengte, kansen en wat daarna komt;
+  - rechtsboven de helling en de naam van de klim of de strook;
+  - onderaan de plannen van de andere ploegen, en tijdens het rijden de laatste
+    twee berichten.
+- Onder het beeld staan, van boven naar onder:
+  - een smal profiel;
+  - je vijf renners naast elkaar, met plek, achterstand en een krachtbalk met
+    het getal. Je kopman heeft een kroontje en een schildje met zijn dekking;
+  - je hand op één rij;
+  - wat je gespeeld hebt, met de knop Rijden ernaast.
+- **Overzicht** blijft kiezen. Het grote profiel staat dan op het podium, met
+  dezelfde vakjes erop.
+- Liggend staat het beeld links en de rest rechts. Het smalle profiel valt
+  daar weg, en ook op schermen lager dan 640 px.
+- De kaarten tonen op een telefoon de soort, de titel, de renner en de kosten.
+  De uitleg past alleen op een hoog scherm (vanaf 760 px), in drie regels. Een
+  kaart die niet kan, toont altijd waarom.
+- Op een hoog en smal beeld zoomt de camera wat in. Anders is de onderste helft
+  lege weg. Op desktop verandert er niets.
+- Op desktop is het bord gelijk gebleven.
+
+**Geverifieerd:**
+- in de preview in Chrome, nagebootst op 375×667, 390×844 en 812×375. Steeds
+  even hoog als het scherm, zonder te scrollen en zonder dat iets buiten beeld
+  valt; zowel bij plannen als bij rijden, in beide weergaven;
+- een hele koers in de app (tabblad Koers, Start) op 375×667, tot en met de
+  uitslag. De pagina scrolt daarna weer gewoon;
+- tsc, eslint en de 47 tests.
+
+**Niet geverifieerd:**
+- een echte telefoon en Safari. Daar kunnen de adresbalk en de
+  veilige randen (`env(safe-area-inset-*)`) anders uitvallen;
+- of Nederlandse woordafbreking (`hyphens: auto`) op de telefoon werkt. Chrome
+  op Windows breekt "Vooruitkijken" midden in het woord af. De titels zijn zo
+  klein gezet dat de andere lange woorden passen;
+- de Next-pagina zelf. Daar is alleen tsc gedraaid. Het bord ligt er vast
+  over de hele pagina, ook over de kop van de site.
+
+**Bewust niet gebouwd:**
+- **Een knop om de uitleg van een kaart te openen.** De titel zegt op een
+  telefoon genoeg. Een extra laag maakt het spelen trager, en de uitleg staat
+  op desktop en op hoge schermen wel.
+- **Een andere indeling voor tablets.** Vanaf 721 px breed krijg je het
+  desktopbord, dat daar al past.
+- **De klok in de bovenbalk.** Die past er niet naast de sector, de afstand
+  en de knoppen. De achterstand staat bij elke renner.
+
 ## Nog niet bekend
 
 - **Balans.** Hoeveel kracht, hoe duur zijn de kaarten en hoe vaak gaat het

@@ -223,7 +223,8 @@ function draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: RaceSt
   const followed = cameraRider(state);
   if (moving) live.odo += dt * Math.max(4, followed.speed) * 0.9;
   const horizon = Math.round(h * 0.36);
-  const focal = Math.min(w * 0.8, h * 2.2);
+  // A tall stage (a phone held upright) zooms in, so the bunch fills the lower half instead of empty road.
+  const focal = Math.min(Math.max(w * 0.8, h * 0.7), h * 2.2);
   const P = projector(w, horizon, focal);
 
   ctx.fillStyle = scene.sky ?? SKY;

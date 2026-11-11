@@ -14,9 +14,10 @@ gaat stabiliteit voor nieuwe features.
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
    over pushen en ronde 2. Sinds fase 4 is het bordspel de koers in het spel,
    ook in de tijdrit. Fase 5 begon met een proef van het getekende
-   koersbeeld. Zie
+   koersbeeld. Op een telefoon vult het bord sindsdien het scherm, met het
+   koersbeeld als podium. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md) en de rondes "Kopman:
-   proef met het getekende koersbeeld", "Kopman: het bordspel als koers en de tijdrit als bordspel", "Kopman: bordspel, een
+   het bord op een telefoon", "Kopman: proef met het getekende koersbeeld", "Kopman: het bordspel als koers en de tijdrit als bordspel", "Kopman: bordspel, een
    hand met alleen bruikbare kaarten", "Kopman: eerste speelbare
    bordspelversie", "Kopman: bordspelontwerp", "Kopman: zelf kaarten kiezen om te
    ruilen", "Kopman: dubbele kaarten ruilen of verkopen", "Kopman: materiaal en personeel in
@@ -12237,9 +12238,49 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — Kopman: proef met het getekende koersbeeld (fase 5)
+### Gebouwd — Kopman: het bord op een telefoon
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+
+- **De vraag.** De eigenaar schreef: "Om het speelbaar te maken op mobiel lijkt
+  het mij dat de elementen allemaal in het koersbeeld moeten passen, want je
+  wil niet scrollen".
+- **Wat er is.**
+  - Op een telefoon (rechtop tot 720 px breed, liggend tot 520 px hoog) vult
+    het bord het scherm, zonder scrollen.
+  - Het koersbeeld is het podium. De sector, de helling, de plannen van de
+    andere ploegen en de laatste berichten staan erop.
+  - Eronder staan:
+    - een smal profiel;
+    - de vijf renners naast elkaar, met krachtbalk;
+    - de hand op één rij;
+    - de knop Rijden.
+  - Liggend staat het beeld links.
+  - Desktop is ongewijzigd.
+  - Details staan in
+    [docs/kopman-bordspel.md](docs/kopman-bordspel.md#het-bord-op-een-telefoon).
+- **Niet meer waar.** Het koersbeeld had overal dezelfde camera. Op een hoog en
+  smal podium zoomt die nu wat in, anders was de onderste helft lege weg.
+- **Bewust niet gebouwd:**
+  - een knop voor de kaartuitleg op kleine schermen;
+  - een eigen tabletindeling;
+  - de klok in de bovenbalk.
+
+  De redenen staan in de doc.
+- **Geverifieerd:**
+  - in Chrome nagebootst op 375×667, 390×844 en 812×375, zonder scroll, zowel
+    bij plannen als bij rijden;
+  - een hele koers in de app op 375×667;
+  - tsc, eslint en 47 tests.
+- **Niet geverifieerd:**
+  - een echte telefoon en Safari;
+  - woordafbreking op de telefoon;
+  - de Next-pagina.
+
+### Gebouwd — Kopman: proef met het getekende koersbeeld (fase 5)
+
+**2026-11-11, commit `e5a4bd7f`, lokaal op
 `claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
 
 - **De vraag.** De eigenaar wilde geen van de voorgestelde aanpassingen aan

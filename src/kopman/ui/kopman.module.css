@@ -357,3 +357,68 @@
 .viewToggle button[aria-pressed="true"] { background: var(--yellow); }
 .viewToggle button:not([aria-pressed="true"]):hover { background: var(--yellow-soft); }
 .viewToggle button:focus-visible { outline: 3px solid var(--yellow); outline-offset: -5px; }
+
+/* The board on a phone: one screen, no scrolling. The race view is the stage; the sector, the rivals' plans and the ticker sit on it. */
+.mBoard { position: fixed; inset: 0; z-index: 1000; height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto minmax(110px, 1fr); grid-auto-rows: auto; gap: 7px; padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); background: var(--halftone), var(--night); color: var(--fg); overflow: hidden; overscroll-behavior: contain; -webkit-tap-highlight-color: transparent; }
+.mTop { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.mTop .chip { padding: 3px 8px; font-size: 0.78rem; box-shadow: none; }
+.mTop .viewToggle { box-shadow: none; flex: none; }
+.mTop .viewToggle button { padding: 6px 10px; }
+.mName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--letter); font-size: 1.02rem; font-weight: 800; text-transform: uppercase; }
+.mName .chip { max-width: 100%; }
+.mName .boardSelect { max-width: 100%; min-width: 0; }
+.mStage { position: relative; min-height: 0; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: #dcebf0; }
+.mStage .chase { position: absolute; inset: 0; height: auto; border: 0; border-radius: 0; }
+.mStage .chaseGrade { top: 8px; right: 8px; padding: 3px 8px; font-size: 0.78rem; }
+.mStage .chaseCaption { top: 40px; left: auto; right: 8px; max-width: 34%; padding: 3px 8px; font-size: 0.76rem; transform: rotate(1.5deg); }
+.mStageMap { background: var(--paper-2); }
+.mMap { position: absolute; inset: 0; display: grid; align-items: center; padding: 10px; }
+.mMap .profile { max-height: 100%; }
+.mInfo { position: absolute; top: 8px; left: 8px; max-width: min(64%, 320px); display: grid; gap: 1px; padding: 5px 8px 6px; border: 2px solid var(--ink); border-radius: 6px; background: var(--paper); color: var(--ink); font-size: 0.68rem; line-height: 1.25; box-shadow: 0 3px 8px rgb(0 0 0 / 0.25); transform: rotate(-1deg); transform-origin: top left; }
+.mInfo b { font-family: var(--letter); font-size: 0.82rem; font-weight: 800; line-height: 1.15; }
+.mInfo span { color: var(--ink-soft); font-weight: 650; }
+.mFeed { position: absolute; left: 8px; right: 8px; bottom: 8px; display: grid; gap: 4px; justify-items: start; }
+.mFeed .intent { padding: 3px 7px; gap: 4px; color: var(--ink); font-size: 0.7rem; box-shadow: 0 2px 6px rgb(0 0 0 / 0.22); }
+.mFeed .ticker { gap: 4px; font-size: 0.72rem; }
+.mFeed .ticker div { padding: 2px 7px; box-shadow: 0 2px 6px rgb(0 0 0 / 0.22); }
+.mFeed .ticker div:nth-child(n + 3) { opacity: 1; }
+.mStrip .profile { border-radius: 6px; }
+.mRiders { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+.mRider { display: grid; justify-items: center; gap: 1px; min-width: 0; padding: 5px 3px 5px; border-radius: 8px; background: var(--paper-2); border: 1.5px solid rgb(27 23 18 / 0.55); color: var(--ink); text-align: center; }
+.mRider > b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--letter); font-size: 0.7rem; font-weight: 750; line-height: 1.2; }
+.mRider > small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); font-size: 0.62rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.mOut { opacity: 0.5; }
+.mFaceWrap { position: relative; }
+.mFace { display: block; width: 32px; height: 32px; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; }
+.mCrown, .mCover { position: absolute; display: inline-flex; align-items: center; gap: 1px; border: 1.5px solid var(--ink); border-radius: 99px; font-size: 0.58rem; font-weight: 800; line-height: 1; }
+.mCrown { top: -6px; right: -9px; padding: 2px; background: var(--yellow); }
+.mCover { bottom: -4px; left: -10px; padding: 1px 3px; background: #7fb2d6; }
+.mKracht { display: flex; align-items: center; gap: 3px; width: 100%; padding: 1px 2px 0; }
+.mKracht > span { flex: 1; height: 6px; border: 1.5px solid var(--ink); border-radius: 99px; background: #fffaf0; overflow: hidden; }
+.mKracht > span > span { display: block; height: 100%; background: var(--yellow); transition: width 0.3s ease-out; }
+.mKracht > b { font-size: 0.64rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.mHand { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(76px, 1fr); gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 4px; }
+.mHand .bcard { min-height: 0; padding: 19px 5px 6px; gap: 1px; border-radius: 9px; box-shadow: 0 3px 8px rgb(0 0 0 / 0.3); }
+.mHand .bcardKind { padding: 2px 5px; font-size: 0.56rem; }
+.mHand .bcard strong { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; hyphens: auto; overflow-wrap: break-word; font-size: 0.68rem; }
+.mHand .bcardWho { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.64rem; }
+.mHand .bcardText { display: none; }
+.mHand .bcard:disabled .bcardText { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.6rem; line-height: 1.15; }
+.mHand .bcardCost span { width: 8px; height: 8px; }
+.mActions { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.mPlayed { flex: 1; min-width: 0; display: flex; gap: 5px; align-items: center; overflow-x: auto; scrollbar-width: none; }
+.mPlayed .playedChip { flex: none; white-space: nowrap; font-size: 0.74rem; padding: 3px 5px 3px 9px; }
+.mCount { flex: none; font-size: 0.78rem; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mActions .primary { flex: none; padding: 11px 16px; }
+@media (max-height: 640px) { .mStrip { display: none; } }
+@media (min-height: 760px) { .mHand .bcardText { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.62rem; line-height: 1.2; } }
+/* On its side: the stage left, the controls right. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .mBoard { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr) auto; grid-template-areas: "stage top" "stage riders" "stage hand" "stage ." "stage actions"; column-gap: 10px; }
+  .mTop { grid-area: top; }
+  .mStage { grid-area: stage; }
+  .mRiders { grid-area: riders; }
+  .mHand { grid-area: hand; }
+  .mActions { grid-area: actions; }
+  .mStrip { display: none; }
+}
