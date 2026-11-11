@@ -7,7 +7,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Deel via WhatsApp op meer pagina's (2026-11-11): lokaal gecommit, niet
+0. **Deel via WhatsApp op meer pagina's (2026-11-11): lokaal gecommit (`3f1dde4e`), niet
    gepusht.** Geen migratie. Zie de ronde "Deel via WhatsApp op meer pagina's".
 
 0. **Club Ladder: uitdaging klaarzetten voor Discord (2026-11-11): gepusht
@@ -12189,7 +12189,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Deel via WhatsApp op meer pagina's
 
-**2026-11-11, commit `COMMIT_HASH`, niet gepusht.** Op verzoek van de eigenaar
+**2026-11-11, commit `3f1dde4e`, niet gepusht.** Op verzoek van de eigenaar
 ("zou je dit makkelijk kunnen uitbreiden naar meer belangrijke pagina's die
 soms gedeeld kunnen worden?"), na een voorstel met twee groepen ("A en B
 bouwen"). Geen migratie.
