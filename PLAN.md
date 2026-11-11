@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Kopman, ronde 1 (2026-11-11): lokaal gecommit op
-   `claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+   `claude/zwbgame-autoracer-concepts-8d80d3` (`382dd83e`), niet gepusht.** Geen migratie.
    Een wielermanager met rennerkaarten op `/zwbgame/kopman`, alleen voor wie
    ZWBgame beheert. Open: de eigenaar speelt een paar koersen
    (`npm run kopman:preview`) en beslist over pushen en ronde 2. Zie de ronde
@@ -12229,8 +12229,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman, ronde 1: wielermanager met rennerkaarten
 
-**2026-11-11, lokaal gecommit op `claude/zwbgame-autoracer-concepts-8d80d3`,
-niet gepusht** (eigenaar: "Ja, bouw ronde 1"). Geen migratie. Ontwerp,
+**2026-11-11, commit `382dd83e`, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "Ja, bouw ronde 1"). Geen migratie. Ontwerp,
 fysica, economie en bronnen staan in [docs/kopman.md](docs/kopman.md).
 
 **Waarom.** De eigenaar zag het spel *Autoracer* (munten, pakketten, een
