@@ -7,10 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Club Ladder: eigen selectie in het advies (2026-11-11): gecommit op
-   branch `ccr-c9e5f509-nitzaf`, nog niet op `main`.** Geen migratie. Open:
-   de eigenaar beslist over naar `main`; daarna als captain op de teampagina
-   een advies openen, renners aanvinken en Toepassen, ook op een telefoon. Zie
+0. **Club Ladder: eigen selectie in het advies (2026-11-11): gepusht naar
+   `main` (`7992b7b`).** Geen migratie. Open: na de deploy als captain op de
+   teampagina een advies openen, renners aanvinken en Toepassen, ook op een
+   telefoon. Zie
    de ronde "Club Ladder: eigen selectie in het advies".
 
 0. **Kopman (2026-11-11): op 2026-11-11 gepusht naar `main`, met alle rondes
@@ -12243,10 +12243,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: eigen selectie in het advies
 
-**2026-11-11, gecommit op branch `ccr-c9e5f509-nitzaf` (de commit met deze
-ronde), nog niet naar `main`.** Geen migratie. Op verzoek van de eigenaar:
+**2026-11-11, commit `7992b7b`, gepusht naar `main`** (eigenaar: "Push
+main"). Geen migratie. Op verzoek van de eigenaar:
 "Kun je op de teamleider bij het advies voor parcours ook de mogelijkheid
-maken om de eigen selectie aan te vinken in plaats van de beste 5". Gelezen
+maken om de eigen selectie aan te vinken in plaats van de beste 5" (bedoeld:
+de Club Ladder, bevestigd met "Club ladder"). Gelezen
 als: op de Club Ladder-teampagina (Advies tegen …) laat een captain zelf
 aanvinken met welke renners het advies rekent.
 
