@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): lokaal
+   gecommit, niet gepusht.** Geen migratie. Open: pushen, op cron-job.org
+   `POST /api/zwiftracing/sync` elke 30 minuten met `TEAM_RESULTS_SYNC_SECRET`
+   aanmaken, nagaan dat een run vanaf Netlify `fetched` > 0 geeft, en dan de
+   geplande Chrome-taak `ladder-vermogen-zwiftracing` uitzetten. Zie de ronde
+   "ZwiftRacing: 90 dagen en vELO1 door de server".
+
 0. **Losse apps buiten ZWB (2026-11-11): onderzocht, en de meetpagina
    `/dev/zwift-probe` gebouwd; gepusht naar `main` (`6017c451`, `f861e445`).**
    Geen migratie.
@@ -12206,6 +12213,68 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZwiftRacing: 90 dagen en vELO1 door de server
+
+**2026-11-11, lokaal gecommit, niet gepusht.** Geen migratie. Aanleiding: de
+eigenaar vroeg de W/kg-tool op zwbcycling.nl (`/ladder/overview.php`) te
+vergelijken met de Club Ladder. Die tool haalt per ingevoerd Zwift-ID het
+beste vermogen over 90 dagen (5 s tot 20 min) en de vELO2-klasse op bij
+zwiftracing.app, en doet dat vanaf de server. Op verzoek van de eigenaar één
+keer nagegaan (2026-11-11): een gewoon verzoek zonder browser op
+`zwiftracing.app/riders/<id>` geeft 200 (`Server: railway-hikari`), zonder
+Vercel-controle, met de loaderdata in de HTML: `power` (`wkg5` … `wkg1200`),
+`legacyRatings` (`live`, `max30`, `max90`), `velo` (vELO2) en het gewicht. Na
+een voorstel ("Ja, bouw het").
+
+**Wat er is:**
+- `src/lib/zwiftracing/rider-page.ts`: leest `power` en `legacyRatings` uit de
+  rennerpagina, op naam en alleen getallen. Is het niet de pagina van dit
+  Zwift-ID of ontbreekt `power`, dan null.
+- `src/lib/zwiftracing/rider-sync.ts`: dezelfde selectie als de Chrome-taak
+  (aanmeldingen, eigen teamleden en wie de laatste 8 wedstrijden voor de
+  tegenstander reed, voor ladderwedstrijden in de komende 8 dagen; opnieuw na
+  20 uur), daarna de renners in `zwift_legacy_velo` die een week niet zijn
+  bijgewerkt. Eén pagina per seconde. Schrijft `zwift_rider_metrics.power_wkg`
+  en `velo_fetched_at` (zoals de Chrome-taak, `velo` blijft leeg) en
+  `zwift_legacy_velo`. Een 429, 5xx, time-out of onbekende pagina stopt de run.
+- `POST /api/zwiftracing/sync` (ook GET), met `TEAM_RESULTS_SYNC_SECRET`,
+  20 s budget, in `PUBLIC_PATHS`. Runbook bijgewerkt.
+
+**Keuzes:**
+- **Het W/kg uit `power`, niet de `d90` van `/power`.** In de vergelijking gaf
+  zwbcycling.nl voor 5 min 4,87 en wij 4,97, met beide 349 W. De lijst op
+  `/power` liet zien waarom: `power.wkg300` is het hoogste W/kg over 90 dagen
+  (een race op ~70,2 kg), `d90` de inspanning met de meeste watt. Voor een
+  vergelijking in W/kg is het hoogste W/kg de juiste, en het zijn dezelfde
+  velden als de API en de Chrome-taak. Eén verzoek per renner.
+- **Geen vermogen over 90 dagen** maakt `power_wkg` leeg; een onbekend Zwift-ID
+  (404) krijgt alleen `velo_fetched_at`, zodat hij niet elke run terugkomt.
+- **Geen vELO1 meer** laat de laatste rating in `zwift_legacy_velo` staan, zoals
+  bij het ophalen met de hand (0301); alleen `fetched_at` schuift.
+- **Hetzelfde secret als de ladder-sync van Teams**, zodat er op Netlify niets
+  bij hoeft.
+
+**Bewust niet:**
+- **vELO2 in `zwift_rider_metrics.velo`**: dan schakelt het racebriefje
+  (`field.ts`) van ZRS naar vELO. Dat is een eigen keuze, niet in deze ronde.
+- **Zelf Zwift-ID's opzoeken** zoals op zwbcycling.nl, een **heatmap** per cel en
+  de duren **5 s en 30 s**: apart scherm of weinig winst voor ladderraces van
+  15–25 km. Eerst een voorstel als het toch moet.
+- **De racebriefing** gebruikt deze bron nog niet; die wacht op de API-sleutel.
+- **Privacy**: de verklaring noemt het ophalen van 90-dagenvermogen en vELO1
+  voor de ladder niet uitdrukkelijk; dat gold al voor de Chrome-taak. Niet
+  aangepast: eerst voorleggen.
+
+**Niet geverifieerd:** of zwiftracing.app verzoeken vanaf Netlify net zo
+doorlaat als vanaf de pc van de eigenaar, en een volledige run met
+databaseschrijven (vraagt een deploy). Lokaal: de lezer op de twee pagina's die
+op 2026-11-11 zijn opgehaald (zelfde waarden als in productie), Vitest
+`zwiftracing-rider-page` (8) en `middleware-public-paths`, ESLint schoon, `tsc`
+zonder fouten in de nieuwe bestanden (de bestaande fouten zijn pakketten die in
+deze worktree niet geïnstalleerd zijn). ZwiftRacing kan de opbouw van de pagina
+of zijn toegang zonder aankondiging veranderen; met een API-sleutel is
+`client.ts` de nette route.
+
 ### Gebouwd — Meetpagina: Zwift vanuit de browser
 
 **2026-11-11, commit `f861e445`, gepusht naar `main`** (eigenaar: "Ja, push
@@ -18434,6 +18503,10 @@ tegenstanderkant race-waarden stonden. Keuze van de eigenaar: via Chrome halen
   *Uitgebreid 2026-11-03:* de taak neemt nu ook de huidige leden van het eigen
   team en de renners van de tegenstander mee, voor het route-advies; zie "Club
   Ladder: advies op de huidige ploeg, klimtijd bepaalt de duur".
+  *Niet meer waar sinds 2026-11-11:* de site heeft geen Vercel-controle meer en
+  `POST /api/zwiftracing/sync` doet dit vanaf de server; de Chrome-taak kan uit
+  zodra die cron in productie werkt. Zie "ZwiftRacing: 90 dagen en vELO1 door
+  de server".
 - `zwift_rider_metrics` gooit rijen weg die 90 dagen niet zijn bijgewerkt; met
   de hand gezette waarden verdwijnen dus vanzelf.
 
@@ -18954,7 +19027,10 @@ een renner die sindsdien van Platinum naar Amethyst steeg.
 **Bewust niet.**
 - Geen automatisch verversen vanaf de server: de site zit achter een
   Vercel-controle en wordt niet uitgelezen (besluit 2026-10-20); de API-sleutel
-  is er nog niet. Verversen = opnieuw via Chrome ophalen.
+  is er nog niet. Verversen = opnieuw via Chrome ophalen. *Niet meer waar
+  sinds 2026-11-11:* `POST /api/zwiftracing/sync` ververst de renners in
+  `zwift_legacy_velo` wekelijks; zie "ZwiftRacing: 90 dagen en vELO1 door de
+  server".
 - `ladder_ranks` niet overschreven: de vastgezette ranks blijven, de vELO1
   promoveert alleen. Een captain die een lagere rank kiest dan de vELO1 geeft,
   ziet de hogere terug.
@@ -26392,7 +26468,10 @@ een plan van de captain (geen AI-tekst).
   eventpagina uitlezen; zwiftracing.app zit achter de beveiligingscontrole van
   Vercel (een serververzoek krijgt alleen "Vercel Security Checkpoint", gemeten
   2026-10-20) en die omzeilen we niet. Daarna gekozen: sleutel aanvragen, nu
-  zonder bouwen. `api.zwiftracing.app` geeft zonder sleutel 401.
+  zonder bouwen. `api.zwiftracing.app` geeft zonder sleutel 401. *Niet meer
+  waar sinds 2026-11-11:* zwiftracing.app draait op Railway zonder die
+  controle; de Club Ladder leest nu de rennerpagina (zie "ZwiftRacing: 90 dagen
+  en vELO1 door de server"). De briefing wacht nog op de sleutel.
 - **Het scenariomodel van de handmatige briefing** (wie houdt het tempo op de
   brug, op 2- en 5-minutenwaarden): heeft W/kg van het hele veld nodig, dus
   ZwiftRacing. Komt pas met de sleutel, en is dan een eigen ronde.

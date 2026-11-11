@@ -3,9 +3,11 @@ import "server-only";
 // ZwiftRacing.app: vELO en het vermogensprofiel per renner, voor de racebriefing.
 //
 // Alleen via de officiële API met een sleutel (ZWIFTRACING_API_KEY), aan te
-// vragen bij de maker. De website zelf zit achter een beveiligingscontrole van
-// Vercel; die lezen we niet uit (besluit 2026-10-20). Zonder sleutel doet deze
-// module niets en toont de briefing ZRS in plaats van vELO.
+// vragen bij de maker. Zonder sleutel doet deze module niets en toont de
+// briefing ZRS in plaats van vELO. De website zat op 2026-10-20 achter een
+// beveiligingscontrole van Vercel; op 2026-11-11 draaide hij op Railway zonder
+// die controle, en sindsdien leest `rider-sync.ts` voor de Club Ladder de
+// rennerpagina zelf uit.
 //
 // NIET GETEST tegen de echte API: er was nog geen sleutel. Gemeten op 2026-10-20:
 // `GET https://api.zwiftracing.app/api/public/riders/{id}` geeft zonder sleutel
