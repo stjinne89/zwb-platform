@@ -7,6 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Club Ladder: parcoursadvies op het event (2026-11-11): lokaal gecommit,
+   niet gepusht.** Geen migratie. Zie de ronde "Club Ladder: parcoursadvies op
+   het event".
+
 0. **Telefoon: Club Ladder-ranking als compacte tabel (2026-11-11): gepusht
    naar `main` (`d6d56bf1`).** Open: na de deploy op een telefoon bekijken. Geen migratie. Zie de ronde "Telefoon: Club
    Ladder-ranking als compacte tabel".
@@ -12191,6 +12195,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: parcoursadvies op het event
+
+**2026-11-11, commit `COMMIT_HASH`, niet gepusht.** Op verzoek van de eigenaar
+("Zou het parcours advies kunnen verhuizen naar de eventpagina en dat hij dan
+verdwijnt wanneer het parcours gekozen is?"), na een voorstel ("Ja bouw maar
+zo"). Aanleiding was een lid dat vanuit Advies op de teampagina geen selectie
+kon maken: die staat sinds 2026-11-08 op het event. Geen migratie.
+
+**Wat er is:**
+- Op het event van een ladderrace staat **Parcoursadvies** boven de matchup,
+  zolang het event geen `zwift_route_id` heeft en er nog geen uitslag is. Zet
+  de sync een parcours op het event, dan verdwijnt het blok en rekent de
+  matchup met dat parcours. Dezelfde knoppen Overall, Sprint, Klim en Punch en
+  dezelfde drie routes met redenen als op de teampagina, maar zonder het
+  overzicht per duur: dat staat al in de matchup-tabel eronder.
+- Het rekent met de selectie of de opstelling van de ladder op dat event, en
+  zonder die met iedereen die in de selectie gekozen kan worden
+  (`loadLadderTeamRiders`, dezelfde set als de keuzelijst; nieuw naast
+  `loadLadderSelectionOptions` in `selection.ts`).
+- De berekening staat in `lib/club-ladder/route-advice.ts`
+  (`loadLadderRouteAdvice`), gedeeld met de teampagina; de weergave in
+  `club-ladder/_components/ladder-route-advice.tsx`. Op de teampagina is het
+  advies inhoudelijk ongewijzigd.
+- Teampagina: **Advies** bij Komende matchups gaat naar `/events/[id]#parcoursadvies`
+  als er een event is; zonder event naar het advies op de teampagina. In de
+  ranking heet een ploeg met een geplande wedstrijd **Gepland** en opent die
+  het event (`#parcoursadvies`, of `#matchup` als het parcours er al is).
+  Advies bij een ploeg die je kunt uitdagen blijft op de teampagina: daar is
+  nog geen event voor.
+- Meteen hersteld: de regel met de vijf van de tegenstander brak nergens af
+  (de komma zat in het `nowrap`-stuk) en liep op de telefoon buiten het vak.
+- `/hulp` bijgewerkt (Club Ladder: Gepland en Advies, en Parcoursadvies).
+
+**Keuzes:** op het event telt voor onze naam alleen de teamnaam, zoals de
+matchup; de teampagina rekent ook met de ladder-aliassen. Het event wacht
+2 seconden op ontbrekende renners van wedstrijden (de matchup ervoor wacht er
+al 6) en ververst ZwiftRacing niet zelf: de matchup doet dat al na het
+antwoord, en twee tegelijk lopen elkaar in de weg. Een parcours dat de sync
+niet in de routebibliotheek vindt, geeft geen `zwift_route_id`; dan blijft het
+advies staan.
+
+**Bewust niet:** het advies helemaal van de teampagina halen. Voor een ploeg
+die je nog wilt uitdagen is er geen event. Aan de eigenaar voorgelegd als
+alternatief; gekozen is dit.
+
+Lokaal bekeken als beheerder: ZWBullets – The Watt Squad 2 (12 november, nog
+geen parcours) toont Parcoursadvies met vier knoppen en drie routes, op 375px
+zonder zijwaarts scrollen, en op een breed scherm. ZWBeasts – Team Not Pogi
+Giro (parcours bekend) toont alleen de matchup. Op de teampagina gaan Gepland
+en Advies van de Watt Squad naar het event; Advies tegen Vikings Valgrind
+werkt nog op de teampagina. `tsc`, eslint en alle unit-tests schoon.
+
+**Niet bekeken:** als gewoon lid, op een echte telefoon, Safari; de laadtijd
+van de eventpagina met het extra blok is niet gemeten.
+
 ### Gebouwd — Telefoon: Club Ladder-ranking als compacte tabel
 
 **2026-11-11, commit `d6d56bf1`, gepusht naar `main`** (eigenaar: "Push main"). Aanleiding: een lid vond
@@ -12222,7 +12281,10 @@ eslint schoon; `tsc` geeft alleen bestaande fouten buiten dit bestand.
 selectie van die race invullen (zit sinds 2026-11-08 op het event), het advies
 los van de ranking tonen, en een deelknop die het advies tegen één
 tegenstander deelt (`?tegen=…#advies`) in plaats van de kale teampagina. De
-eigenaar koos eerst voor de kleinere ranking.
+eigenaar koos eerst voor de kleinere ranking. *Bijgewerkt:* de ronde erna
+("Club Ladder: parcoursadvies op het event") zet het advies van een geplande
+wedstrijd op het event, naast de selectie, en geeft "Gepland" in de ranking
+een link naar dat event.
 
 **Niet bekeken:** als gewoon lid, op een echte telefoon, Safari.
 
@@ -17306,8 +17368,9 @@ scrollen.
 ranking in een eigen scrollvak (`StandingsTable` met `scrollable`, maximaal
 28rem hoog). Alleen de regio('s) van de tegenstanders uit de komende matchups;
 zonder matchups de hele ladder. Een ploeg waartegen een wedstrijd gepland staat
-heeft in de kolom Uitdagen nu altijd een link "Gepland · advies", ook als hij
-niet uit te dagen is (zoals bij een ploeg zonder plek). Met een plek in de
+heeft in de kolom Uitdagen nu altijd een link "Gepland · advies" (sinds
+2026-11-11 "Gepland" naar het event, zie "Club Ladder: parcoursadvies op het
+event"), ook als hij niet uit te dagen is (zoals bij een ploeg zonder plek). Met een plek in de
 stand blijft het venster van zeven erboven tot drie eronder. `/hulp` bijgewerkt.
 
 **Bewust niet.** Geen uitdaag-links zonder eigen plek: wie je mag uitdagen hangt

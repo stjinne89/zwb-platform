@@ -40,6 +40,8 @@ import { LadderMatchupView } from "./_components/ladder-matchup";
 import { loadLadderEventMatchup } from "@/lib/club-ladder/event-matchup";
 import { loadLadderEventResult } from "@/lib/club-ladder/event-result-load";
 import { LadderResultView } from "./_components/ladder-result";
+import { loadLadderEventRouteAdvice } from "@/lib/club-ladder/route-advice";
+import { LadderRouteAdviceView } from "../../teams/club-ladder/_components/ladder-route-advice";
 import { LadderSelection, type SelectionOption } from "./_components/ladder-selection";
 import { loadLadderSelectionOptions, loadLadderSelections } from "@/lib/club-ladder/selection";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -521,6 +523,13 @@ export default async function EventDetailPage({
   const ladderResult =
     event.type === "ladder" && event.team_id && user
       ? await loadLadderEventResult(createAdminClient(), event.id, event).catch(() => null)
+      : null;
+  // Zolang het parcours nog niet vastligt: welk parcours past ons tegen deze tegenstander.
+  // Stond tot 2026-11-11 alleen op de Club Ladder-teampagina. Na de matchup, die de
+  // renners van de wedstrijden al ophaalt.
+  const ladderRouteAdvice =
+    event.type === "ladder" && event.team_id && user && !isParentEvent && !ladderResult
+      ? await loadLadderEventRouteAdvice(createAdminClient(), event.id, event).catch(() => null)
       : null;
 
   // Een ZRL-raceweek is waar je je aanmeldt bij een paraplu (hoofdteam met
@@ -1731,6 +1740,21 @@ export default async function EventDetailPage({
       )}
 
       {ladderResult && <LadderResultView result={ladderResult} />}
+
+      {ladderRouteAdvice && (
+        <section id="parcoursadvies" className="scroll-mt-20 space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Parcoursadvies</h2>
+          <div className="rounded-lg border bg-card p-4">
+            <LadderRouteAdviceView
+              routeAdvice={ladderRouteAdvice.routeAdvice}
+              opponent={ladderRouteAdvice.opponent}
+              options={ladderRouteAdvice.routeRows}
+              selection={ladderRouteAdvice.selection}
+              routesOnly
+            />
+          </div>
+        </section>
+      )}
 
       {ladderMatchup && (
         <LadderMatchupView matchup={ladderMatchup.matchup} byFocus={ladderMatchup.byFocus} routeLabel={ladderMatchup.routeLabel} />

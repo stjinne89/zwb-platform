@@ -200,6 +200,7 @@ export function StandingsTable({
   challengeable = [],
   planned = [],
   opponentHref,
+  plannedHref,
   activeOpponent,
   scrollable = false,
 }: {
@@ -210,6 +211,8 @@ export function StandingsTable({
   /** Namen van de ploegen met een geplande wedstrijd tegen dit team. */
   planned?: string[];
   opponentHref?: (row: ClubLadderStanding) => string;
+  /** Het event van een geplande wedstrijd; daar staan advies, selectie en matchup. */
+  plannedHref?: (row: ClubLadderStanding) => string | null;
   activeOpponent?: string | null;
   /** De hele ranking in een eigen scrollvak, voor een team zonder plek in de stand. */
   scrollable?: boolean;
@@ -252,6 +255,7 @@ export function StandingsTable({
           {rows.map((row) => {
             // De eigen ploeg staat ook in elke geplande wedstrijd, maar advies tegen jezelf is er niet.
             const plannedRow = !isSelected(row) && plannedSet.has(normalizeTeamName(row.name));
+            const eventHref = plannedRow ? plannedHref?.(row) ?? null : null;
             return (
               <tr
                 key={`${row.region}-${row.position}-${row.name}`}
@@ -287,11 +291,13 @@ export function StandingsTable({
                   <td className="whitespace-nowrap py-1.5 text-right">
                     {(canChallenge(row) || plannedRow) && (
                       <Link
-                        href={opponentHref(row)}
-                        scroll={false}
+                        href={eventHref ?? opponentHref(row)}
+                        scroll={eventHref ? undefined : false}
                         className="font-medium text-primary underline-offset-4 hover:underline"
                       >
-                        {plannedRow ? (
+                        {eventHref ? (
+                          "Gepland"
+                        ) : plannedRow ? (
                           <>
                             Gepland<span className="hidden sm:inline"> · advies</span>
                           </>

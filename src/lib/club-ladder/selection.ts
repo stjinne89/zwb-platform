@@ -70,6 +70,14 @@ export type LadderSelectionOption = { kind: "profile" | "roster"; id: string; na
  * setLadderSelection toelaat.
  */
 export async function loadLadderSelectionOptions(admin: Admin, teamId: string): Promise<LadderSelectionOption[]> {
+  return (await loadLadderTeamRiders(admin, teamId)).map(({ kind, id, name }) => ({ kind, id, name }));
+}
+
+/** Dezelfde set als de keuzelijst van de selectie, met Zwift-ID: het parcoursadvies zonder selectie (2026-11-11). */
+export async function loadLadderTeamRiders(
+  admin: Admin,
+  teamId: string,
+): Promise<Array<LadderSelectionOption & { zwiftId: number | null }>> {
   const [{ data: memberRows }, { data: rosterRows }] = await Promise.all([
     admin.from("team_members").select("profile_id").eq("team_id", teamId),
     admin.from("ladder_roster_riders").select("roster_entry_id, roster_entries(name, zwift_id)").eq("team_id", teamId),
@@ -92,7 +100,17 @@ export async function loadLadderSelectionOptions(admin: Admin, teamId: string): 
       return zwiftId == null || !memberZwiftIds.has(zwiftId);
     });
   return [
-    ...profiles.map((row) => ({ kind: "profile" as const, id: row.id, name: row.display_name?.trim() || "Lid" })),
-    ...roster.map(({ id, entry }) => ({ kind: "roster" as const, id, name: entry?.name?.trim() || "Renner" })),
+    ...profiles.map((row) => ({
+      kind: "profile" as const,
+      id: row.id,
+      name: row.display_name?.trim() || "Lid",
+      zwiftId: positiveId(row.zwift_id),
+    })),
+    ...roster.map(({ id, entry }) => ({
+      kind: "roster" as const,
+      id,
+      name: entry?.name?.trim() || "Renner",
+      zwiftId: positiveId(entry?.zwift_id),
+    })),
   ].sort((a, b) => a.name.localeCompare(b.name, "nl"));
 }
