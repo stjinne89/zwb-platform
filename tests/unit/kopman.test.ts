@@ -6,7 +6,7 @@ import { buildCourse, courseWeights, fitFor } from "@/kopman/engine/course";
 import { buyPack, DAILY_PACK_RACES, finishRace, newSave, newSeason, openPackOf, packFor, seasonDone, toggleLineup, type Save } from "@/kopman/engine/economy";
 import { openPack, PACK_SIZE, PITY_PACKS } from "@/kopman/engine/packs";
 import { createRace, results, runToEnd, stepRace } from "@/kopman/engine/race";
-import { availableRadio, playRadio } from "@/kopman/engine/radio";
+import { availableRadio, handPlayed, playRadio } from "@/kopman/engine/radio";
 import { rng } from "@/kopman/engine/rng";
 import { parseSave } from "@/kopman/engine/save";
 import { lineupFor, rivalTeams } from "@/kopman/engine/teams";
@@ -216,6 +216,18 @@ describe("Kopman: koers", () => {
     expect(kopman.override?.mode).toBe("aanval");
     stepRace(state);
     expect(kopman.effort).toBeGreaterThan(1.3);
+  });
+
+  it("laat per hand maar één order spelen", () => {
+    const state = createRace("kwaremont", 1, lineupOf(save));
+    for (let i = 0; i < 600; i++) stepRace(state);
+    const options = availableRadio(state);
+    expect(options.length).toBeGreaterThan(1);
+    expect(playRadio(state, options[0], 3)).toBe(true);
+    expect(handPlayed(state, 3)).toBe(true);
+    expect(playRadio(state, options[1], 3)).toBe(false);
+    expect(playRadio(state, options[1], 2)).toBe(false);
+    expect(handPlayed(state, 4)).toBe(false);
   });
 
   it("kiest per koers de vijf renners die het best passen", () => {

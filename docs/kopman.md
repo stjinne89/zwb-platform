@@ -40,8 +40,45 @@ De vraag was die opzet naar het wielrennen te halen. De eigenaar koos daarbij:
 - **Koers.** Er rijden 60 renners: 11 fictieve ploegen en de eigen ploeg, elk
   met vijf renners. Elke 20 seconden echte tijd krijg je een hand van 3
   radiokaarten: aanvallen, tempo op kop, sparen, meespringen, kopman
-  terugbrengen, naar voren, lead-out en vroege sprint. In de tijdrit krijg je
-  geen kaarten. Op een SVG-hoogteprofiel zie je de groepen. De tijd vertraagt
+  terugbrengen, naar voren, lead-out en vroege sprint. Per hand geef je **één**
+  order. Daarna liggen de andere twee kaarten vast tot de volgende hand; wie
+  niets kiest, laat de ploeg rijden zoals elke andere ploeg. De engine bewaakt
+  die regel zelf (`RaceState.radioHand`, `playRadio(state, id, hand)`). Tot
+  2026-11-11 kon je alle drie de kaarten van een hand spelen; de eigenaar vond
+  dat de keuze daardoor zijn waarde verloor. In de tijdrit krijg je geen
+  kaarten.
+- **Portretten.** Elke renner heeft een getekend portret in de stijl van een
+  Belgisch stripalbum: een inktlijn in een dikke en een dunne lijndikte, vlakke
+  kleuren en rasterpunten als schaduw. `src/kopman/ui/portrait.tsx` maakt het
+  gezicht als SVG uit de id van de kaart, dus een renner ziet er altijd
+  hetzelfde uit.
+  - **Uit de seed:** huidskleur, haar en baard, bril, ogen en neus.
+  - **Uit het type:** de bouw (een klimmer smal, een sprinter breed) en de
+    achtergrond:
+    - een klimmer staat voor de bergen;
+    - een klassiekerrenner voor een kerktoren met kasseien;
+    - een sprinter onder een finishdoek;
+    - een tijdrijder in de polder met een molen;
+    - een allrounder in de heuvels.
+  - **Brons en zilver:** een eigen lucht.
+  - **Goud:** stralen achter de renner en sterren in het kader.
+
+  Er zijn vier stemmingen:
+  - **Rust:** de renner knippert, kijkt rond en ademt.
+  - **Aanval:** tanden op elkaar, met snelheidslijnen.
+  - **Limiet:** samengeknepen ogen, zweet en een open mond.
+  - **Zege:** juichend, met een vuist en sterren.
+
+  Waar je ze ziet:
+  - **In de koers:** het gezicht van je eigen vijf renners volgt de reserve
+    (onder 22% op de limiet) en de order.
+  - **Bij de uitslag:** je ploeg staat boven de tabel; het podium juicht, en
+    wie buiten de top 20 eindigt, zit op de limiet.
+  - **Bij een nieuw goud uit een pakket:** de renner juicht.
+
+  In de verzameling bewegen de kaarten alleen onder de muis of bij focus, zodat
+  honderden kaarten geen rekenwerk kosten. Bij "minder beweging" staat alles
+  stil. Op een SVG-hoogteprofiel zie je de groepen. De tijd vertraagt
   in de laatste 5 km, op de laatste klim en bij een aanval van de kopman. Je
   kunt pauzeren, versnellen (4×) of naar de finish springen.
 - **Opslag.** Alles staat op het apparaat in `localStorage` onder `kopman:v1`.
@@ -151,6 +188,12 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
   als grondstof). Die horen bij de volgende rondes; het plan staat in het
   plannenboek.
 - 3D, waaiers, wind en valpartijen.
+- Portretten als foto of AI-afbeelding: 320 losse plaatjes zijn zwaar, ze
+  laten zich niet per stemming animeren en kunnen op een echte renner lijken.
+  Gezichten van een kant-en-klare bibliotheek: die hebben per stijl een andere
+  licentie en laten de stemmingen niet toe.
+- Een eigen letterfont voor de namen in stripstijl: dat vraagt een font om te
+  downloaden en zelf te hosten. Dat hoort bij de losse app.
 - Echte renners, ploegen of koersnamen: rechten en het verzoek van de
   eigenaar.
 - Opslag op de server en een ranglijst tussen leden. Het spel draait volledig
@@ -190,6 +233,7 @@ Beloningssystemen en regels:
 ```sh
 npm run kopman:preview
 # http://localhost:3198 (esbuild-bundel van de echte app, zonder Next of inloggen)
+# http://localhost:3198/?portretten (alle stemmingen naast elkaar, alleen lokaal)
 npx vitest run tests/unit/kopman.test.ts
 ```
 
@@ -202,3 +246,5 @@ npx vitest run tests/unit/kopman.test.ts
   je zilver en goud verzamelt.
 - Op een echte telefoon en in Safari. De koers is wel deterministisch
   opgezet.
+- Hoe de animatie van de portretten op een trage telefoon loopt. Op desktop en
+  op 375 px breed is ze bekeken in de preview-bundel.

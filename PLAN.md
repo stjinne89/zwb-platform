@@ -7,12 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Kopman, ronde 1 (2026-11-11): lokaal gecommit op
-   `claude/zwbgame-autoracer-concepts-8d80d3` (`382dd83e`), niet gepusht.** Geen migratie.
-   Een wielermanager met rennerkaarten op `/zwbgame/kopman`, alleen voor wie
-   ZWBgame beheert. Open: de eigenaar speelt een paar koersen
-   (`npm run kopman:preview`) en beslist over pushen en ronde 2. Zie de ronde
-   "Kopman, ronde 1" en [docs/kopman.md](docs/kopman.md).
+0. **Kopman, ronde 1 en stripportretten (2026-11-11): lokaal gecommit op
+   `claude/zwbgame-autoracer-concepts-8d80d3` (`382dd83e`, daarna de
+   portretten), niet gepusht.** Geen migratie. Een wielermanager met
+   rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
+   de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
+   over pushen en ronde 2. Zie de rondes "Kopman: stripportretten en één order
+   per hand" en "Kopman, ronde 1", en [docs/kopman.md](docs/kopman.md).
 
 0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): gepusht naar
    `main` (`b282f1cd`); secret daarna op `BRILJANT_WEEKLY_SECRET` gezet
@@ -12227,6 +12228,79 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: stripportretten en één order per hand
+
+**2026-11-11, lokaal op `claude/zwbgame-autoracer-concepts-8d80d3`, niet
+gepusht** (eigenaar: "Kunnen de kaarten ook geanimeerde gezichten krijgen?",
+na een eerste schets "Nee veel mooier dan dit! gebruik /impeccable", en tijdens
+het bouwen: "Eigenlijk moet het idee zijn dat je elke 20 seconden een keuze
+hebt die je winstkans als team beinvloedt"). Geen migratie.
+
+**Eén order per hand.** Je kon alle drie de radiokaarten van een hand spelen;
+alleen de gespeelde kaart verdween. Nu geef je per hand van 20 seconden één
+order. De gekozen kaart licht op met "Gegeven", de andere twee worden grijs
+tot de volgende hand. De engine bewaakt dit zelf: `RaceState.radioHand` en
+`playRadio(state, id, hand)` weigeren een tweede order uit dezelfde of een
+eerdere hand, met een nieuwe test.
+
+**Portretten.** `src/kopman/ui/portrait.tsx` tekent elke renner als SVG in de
+stijl van een Belgisch stripalbum: inktlijn, vlakke kleuren en rasterpunten
+als schaduw. De eigenaar koos die stijl uit drie richtingen; de andere twee
+waren een geschilderd portret en een retro chromokaart.
+- Het gezicht komt uit de id van de kaart, de bouw uit het type, en de
+  achtergrond per type: bergen, kerktoren met kasseien, finishdoek, polder met
+  molen of heuvels.
+- Er zijn vier stemmingen: rust, aanval, limiet en zege.
+- De kaart is herontworpen als albumplaatje: het portret is de plaat, met een
+  scorerondje, een naamkader en een rood kopmanlabel. Goud krijgt stralen en
+  sterren.
+- **In de koers:** je eigen vijf renners hebben een gezicht dat de reserve
+  (onder 22% op de limiet) en de order volgt.
+- **Bij de uitslag:** je ploeg staat boven de tabel.
+- **Bij een pakket:** een nieuw goud juicht.
+- **Beweging:** in de verzameling alleen onder de muis of bij focus, en bij
+  "minder beweging" helemaal niet.
+- Een lokaal testblad (`?portretten` in `npm run kopman:preview`) toont alle
+  stemmingen naast elkaar; dat zit alleen in `tests/fixtures/kopman`.
+
+**Na een ontwerpreview.** Een losse ontwerpreviewer (Impeccable) gaf het
+oordeel "fix". Verwerkt:
+- **Bril:** een zonnebril over de ogen alleen in rust; in de andere
+  stemmingen staat hij op de helm, zodat de ogen de stemming dragen. Dat
+  geldt nu voor 10% van de renners.
+- **Goud:** een echt geel kader, met een lichte lucht in de plaat zodat het
+  gele shirt loskomt.
+- **Brons:** een saliegroene lucht, zodat lichte huid niet wegvalt.
+- **Rasterpunten:** in een donkere tint van de kleur eronder in plaats van
+  grijze inkt. Op het kleine koersportret wordt dat een vlakke schaduw.
+- **Namen:** krimpen mee met de kaart en lopen op kleine kaarten door naar een
+  tweede regel.
+- **Uitslag:** de plaats staat als rondje op het gezicht.
+- **Koerskop:** de regel boven de koersnaam staat nu eronder.
+
+Niet verwerkt: een handgeletterd stripfont (zie hieronder).
+
+**Bewust niet:**
+- Foto's of AI-portretten: zwaar, niet per stemming te animeren, en ze kunnen
+  op echte renners lijken.
+- Een gezichtenbibliotheek: per stijl een andere licentie, en geen
+  stemmingen.
+- Een eigen stripfont: dat moet gedownload en zelf gehost worden. Dat hoort
+  bij de losse app.
+- Portretten voor de renners van andere ploegen in de koers: alleen je eigen
+  ploeg heeft er een.
+- Het ZWB-ontwerpsysteem (DESIGN.md) op Kopman toepassen. Kopman heeft een eigen
+  palet omdat het een losse app moet kunnen worden; de ontwerpcheck meldt dat
+  alleen als advies.
+
+**Niet geverifieerd:**
+- De echte Next-pagina.
+- Hoe de animatie loopt op een trage telefoon en in Safari.
+
+Wel bekeken in de preview-bundel, op desktop en op 375 px breed: kaarten,
+koers met één order, uitslag en het testblad. Vitest `kopman` geeft 24 groen.
+`tsc` en ESLint zijn schoon.
+
 ### Gebouwd — Kopman, ronde 1: wielermanager met rennerkaarten
 
 **2026-11-11, commit `382dd83e`, lokaal op
@@ -12259,7 +12333,8 @@ Eerst binnen ZWB, later mogelijk als losse app. Werktitel: Kopman.
   kassei- en grindstroken.
 - **Koers.** 60 renners in 12 ploegen van 5. De simulatie rekent met een
   vermogensbalans, W′, slipstream en bot-tactiek (ontsnapping, achtervolging,
-  aanvallen, lead-out). Elke 20 s krijg je een hand van 3 radiokaarten. Je
+  aanvallen, lead-out). Elke 20 s krijg je een hand van 3 radiokaarten, waarvan
+  je er sinds de ronde "stripportretten" maar één speelt. Je
   volgt de koers op een 2D-profiel met de groepen. Een seed maakt elke koers
   reproduceerbaar.
 - **Beloning.** Munten en punten na elke koers, een pakket alleen voor de

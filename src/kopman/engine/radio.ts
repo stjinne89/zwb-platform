@@ -3,9 +3,10 @@ import { hashSeed, rng } from "./rng";
 import { PLAYER_TEAM } from "./types";
 
 /**
- * Radio cards: the player is the directeur sportif. Every few seconds of play a
- * hand of three is dealt from the orders that make sense right now; one can be
- * played. Without orders the team rides like any other team.
+ * Radio cards: the player is the directeur sportif. Every 20 seconds a hand of
+ * three is dealt from the orders that make sense right now, and exactly one of
+ * them can be played: the choice is the game. Without orders the team rides
+ * like any other team.
  */
 export const RADIO_IDS = ["aanval", "tempo", "sparen", "springmee", "terughalen", "naarvoren", "leadout", "vroegesprint"] as const;
 export type RadioId = (typeof RADIO_IDS)[number];
@@ -68,8 +69,12 @@ const log = (state: RaceState, r: Rider, id: RadioId) => {
   state.events.push({ t: state.time, km: Math.round(r.distance / 100) / 10, kind: "radio", rider: r.id, text: id });
 };
 
-/** Plays an order. Returns false when it no longer applies. */
-export function playRadio(state: RaceState, id: RadioId): boolean {
+/** Whether an order from this hand has already been played. */
+export const handPlayed = (state: RaceState, handNumber: number) => state.radioHand >= handNumber;
+
+/** Plays one order from hand `handNumber`. Returns false when the hand is spent or the order no longer applies. */
+export function playRadio(state: RaceState, id: RadioId, handNumber = 0): boolean {
+  if (handPlayed(state, handNumber)) return false;
   if (!availableRadio(state).includes(id)) return false;
   const { groups, kopman, gi } = situation(state);
   if (!kopman) return false;
@@ -110,6 +115,7 @@ export function playRadio(state: RaceState, id: RadioId): boolean {
       kopman.sprintAt = 450;
       break;
   }
+  state.radioHand = handNumber;
   log(state, kopman, id);
   return true;
 }

@@ -8,6 +8,7 @@ import { dealHand, HAND_SECONDS, playRadio, RADIO_LABELS, type RadioId } from ".
 import { rivalTeams } from "../engine/teams";
 import { PLAYER_TEAM } from "../engine/types";
 import { PLAYER_COLOR, raceById } from "../engine/world";
+import { Portrait, type Mood } from "./portrait";
 import { Profile, type Marker } from "./profile";
 import styles from "./kopman.module.css";
 
@@ -54,7 +55,7 @@ type View = {
   groups: { key: string; label: string; size: number; gap: number; dots: { id: string; team: string }[] }[];
   more: number;
   markers: Marker[];
-  mine: { id: string; kopman: boolean; status: string; reserve: number }[];
+  mine: { id: string; kopman: boolean; status: string; reserve: number; mood: Mood }[];
   events: RaceEvent[];
   timerLeft: number;
 };
@@ -76,7 +77,10 @@ function snapshot(state: RaceState, handElapsed: number): View {
     ]),
     mine: state.riders.filter((r) => r.team === PLAYER_TEAM).map((r) => {
       const gi = groups.findIndex((g) => g.includes(r));
-      return { id: r.id, kopman: r.kopman, status: riding(r) ? `${gi >= 0 ? label(gi) : ""} · ${MODE_LABELS[r.override?.mode ?? r.mode]}` : "Binnen", reserve: r.wbal / r.wprime };
+      const mode = r.override?.mode ?? r.mode;
+      const reserve = r.wbal / r.wprime;
+      const mood: Mood = !riding(r) ? "rust" : reserve < 0.22 ? "limiet" : mode === "aanval" || mode === "sprint" ? "aanval" : "rust";
+      return { id: r.id, kopman: r.kopman, status: riding(r) ? `${gi >= 0 ? label(gi) : ""} · ${MODE_LABELS[mode]}` : "Binnen", reserve, mood };
     }),
     events: state.events.slice(-4).reverse(),
     timerLeft: Math.max(0, 1 - handElapsed / HAND_SECONDS),
@@ -88,7 +92,7 @@ export function RaceView({ raceId, seed, lineup, own, onFinish }: { raceId: stri
   const engine = useRef(initial);
   const [view, setView] = useState<View>(() => snapshot(initial, 0));
   const [speed, setSpeed] = useState(1);
-  const [hand, setHand] = useState<RadioId[]>(() => dealHand(initial, 0));
+  const [hand, setHand] = useState<{ number: number; cards: RadioId[]; chosen: RadioId | null }>(() => ({ number: 0, cards: dealHand(initial, 0), chosen: null }));
   const handClock = useRef({ number: 0, elapsed: 0 });
   const done = useRef(false);
   const finishRef = useRef(onFinish);
@@ -113,7 +117,8 @@ export function RaceView({ raceId, seed, lineup, own, onFinish }: { raceId: stri
           handClock.current.elapsed += dt;
           if (handClock.current.elapsed >= HAND_SECONDS) {
             handClock.current = { number: handClock.current.number + 1, elapsed: 0 };
-            setHand(dealHand(state, handClock.current.number));
+            const number = handClock.current.number;
+            setHand({ number, cards: dealHand(state, number), chosen: null });
           }
         }
       }
@@ -131,7 +136,10 @@ export function RaceView({ raceId, seed, lineup, own, onFinish }: { raceId: stri
   }, [speed]);
 
   const def = raceById.get(raceId)!;
-  const play = (id: RadioId) => { if (playRadio(engine.current, id)) setHand((h) => h.filter((x) => x !== id)); };
+  const play = (id: RadioId) => {
+    if (hand.chosen || !playRadio(engine.current, id, hand.number)) return;
+    setHand((h) => ({ ...h, chosen: id }));
+  };
   const skip = () => {
     runToEnd(engine.current);
     setView(snapshot(engine.current, 0));
@@ -155,9 +163,21 @@ export function RaceView({ raceId, seed, lineup, own, onFinish }: { raceId: stri
       {initial.course.tt ? null : (
         <div className={styles.stack} aria-live="polite">
           <div className={styles.row}><Radio size={16} aria-hidden /><span className={styles.h3}>Radio</span></div>
-          {hand.length ? (
+          {hand.cards.length ? (
             <div className={styles.hand}>
-              {hand.map((id) => <button key={id} type="button" className={styles.radio} onClick={() => play(id)}><strong>{RADIO_LABELS[id].title}</strong><span>{RADIO_LABELS[id].text}</span></button>)}
+              {hand.cards.map((id) => (
+                <button
+                  key={`${hand.number}-${id}`}
+                  type="button"
+                  className={`${styles.radio} ${hand.chosen === id ? styles.radioChosen : hand.chosen ? styles.radioSpent : ""}`}
+                  aria-pressed={hand.chosen === id}
+                  disabled={hand.chosen !== null}
+                  onClick={() => play(id)}
+                >
+                  <strong>{RADIO_LABELS[id].title}</strong>
+                  <span>{hand.chosen === id ? "Gegeven" : RADIO_LABELS[id].text}</span>
+                </button>
+              ))}
             </div>
           ) : <div className={styles.muted}>Geen orders</div>}
           <div className={styles.handTimer} aria-hidden><span style={{ width: `${view.timerLeft * 100}%` }} /></div>
@@ -180,9 +200,12 @@ export function RaceView({ raceId, seed, lineup, own, onFinish }: { raceId: stri
           <div className={styles.riders}>
             {view.mine.map((r) => (
               <div key={r.id} className={styles.rider}>
-                <span><b>{riderName(r.id)}</b>{r.kopman ? " · kopman" : ""}</span>
-                <small>{r.status}</small>
-                <span className={styles.bar} role="meter" aria-label="Reserve" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(r.reserve * 100)}><span style={{ width: `${r.reserve * 100}%` }} /></span>
+                <span className={`${styles.riderFace} ${styles[cardById(r.id).tier]}`}><Portrait card={cardById(r.id)} mood={r.mood} crop /></span>
+                <span className={styles.riderInfo}>
+                  <span><b>{riderName(r.id)}</b>{r.kopman ? " · kopman" : ""}</span>
+                  <small>{r.status}</small>
+                  <span className={styles.bar} role="meter" aria-label="Reserve" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(r.reserve * 100)}><span style={{ width: `${r.reserve * 100}%`, background: r.reserve < 0.22 ? "var(--bad)" : undefined }} /></span>
+                </span>
               </div>
             ))}
           </div>

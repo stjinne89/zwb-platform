@@ -73,6 +73,8 @@ export type RaceState = {
   maxTime: number;
   events: RaceEvent[];
   breakAnnounced: boolean;
+  /** The last radio hand an order was played from: one order per hand. */
+  radioHand: number;
 };
 
 export type Lineup = { riders: string[]; kopman: string };
@@ -165,7 +167,7 @@ export function createRace(raceId: string, seed: number, player: Lineup): RaceSt
       r.breakaway = true;
     }
   }
-  return { raceId, seed, course, riders, time: 0, tick: 0, finished: false, maxTime: expectedSeconds(course) * 1.9, events: [], breakAnnounced: false };
+  return { raceId, seed, course, riders, time: 0, tick: 0, finished: false, maxTime: expectedSeconds(course) * 1.9, events: [], breakAnnounced: false, radioHand: -1 };
 }
 
 export const riding = (r: Rider) => r.finishTime === null;

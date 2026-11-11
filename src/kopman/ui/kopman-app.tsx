@@ -12,6 +12,7 @@ import { CALENDAR, raceById } from "../engine/world";
 import { loadSave, SAVE_KEY, storeSave } from "../engine/save";
 import { Profile } from "./profile";
 import { clock, RaceView, riderName, teamColor, teamName } from "./race-view";
+import { Portrait, type Mood } from "./portrait";
 import { RiderCardView } from "./rider-card";
 import styles from "./kopman.module.css";
 
@@ -146,9 +147,11 @@ function RaceTab({ save, update, onStart }: { save: Save; update: (s: Save) => v
       <div className={styles.panel}>
         <div className={styles.raceHead}>
           <div>
-            <div className={styles.row}><span className={`${styles.badge} ${race.kind === "monument" ? styles.badgeMonument : ""}`}>{KIND_LABELS[race.kind]}</span><span className={styles.muted}>Koers {save.raceIndex + 1} van {CALENDAR.length} · {race.country}</span></div>
-            <div className={styles.h2} style={{ marginTop: 6 }}>{race.name}</div>
-            <div className={styles.muted}>{Math.round(course.length / 1000)} km · {courseKind(course)}</div>
+            <div className={styles.h2}>{race.name}</div>
+            <div className={styles.row} style={{ marginTop: 4, gap: 8 }}>
+              <span className={`${styles.badge} ${race.kind === "monument" ? styles.badgeMonument : ""}`}>{KIND_LABELS[race.kind]}</span>
+              <span className={styles.muted}>{Math.round(course.length / 1000)} km · {courseKind(course)} · {race.country} · Koers {save.raceIndex + 1} van {CALENDAR.length}</span>
+            </div>
           </div>
           <button type="button" className={styles.primary} disabled={!ready} onClick={onStart}><Play size={18} aria-hidden />Start</button>
         </div>
@@ -162,7 +165,7 @@ function RaceTab({ save, update, onStart }: { save: Save; update: (s: Save) => v
         </div>
         <div className={styles.lineupGrid}>
           {Array.from({ length: LINEUP_SIZE }, (_, i) => save.lineup[i]).map((id, i) => id
-            ? <RiderCardView key={id} card={cardById(id)} small kopman={id === save.kopman} fit={fitFor(cardById(id), weights)} />
+            ? <RiderCardView key={id} card={cardById(id)} small live kopman={id === save.kopman} fit={fitFor(cardById(id), weights)} />
             : <div key={`leeg-${i}`} className={styles.emptySlot}>Leeg</div>)}
         </div>
       </div>
@@ -187,7 +190,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
         <div className={styles.h3} style={{ marginBottom: 10 }}>Opstelling {save.lineup.length}/{LINEUP_SIZE}</div>
         <div className={styles.lineupGrid}>
           {Array.from({ length: LINEUP_SIZE }, (_, i) => save.lineup[i]).map((id, i) => id ? (
-            <RiderCardView key={id} card={cardById(id)} small kopman={id === save.kopman} fit={weights ? fitFor(cardById(id), weights) : undefined}>
+            <RiderCardView key={id} card={cardById(id)} small live kopman={id === save.kopman} fit={weights ? fitFor(cardById(id), weights) : undefined}>
               <div className={styles.cardActions}>
                 <button type="button" aria-pressed={id === save.kopman} aria-label="Kopman" onClick={() => update(setKopman(save, id))}><Crown size={14} aria-hidden /></button>
                 <button type="button" onClick={() => update(toggleLineup(save, id))}>Eruit</button>
@@ -315,6 +318,8 @@ function ResultView({ result, own, onClose, onPacks }: { result: { raceId: strin
   const race = raceById.get(result.raceId)!;
   const top = result.placings.slice(0, 10);
   const mine = result.placings.filter((p) => p.team === PLAYER_TEAM && (p.place > 10 || p.place === 0));
+  const ownPlacings = result.placings.filter((p) => p.team === PLAYER_TEAM).sort((a, b) => (a.place || 999) - (b.place || 999));
+  const moodFor = (place: number): Mood => (place >= 1 && place <= 3 ? "zege" : place >= 1 && place <= 20 ? "rust" : "limiet");
   const { reward } = result;
   const row = (p: Placing) => (
     <tr key={p.id} className={p.team === PLAYER_TEAM ? styles.mine : undefined}>
@@ -327,6 +332,15 @@ function ResultView({ result, own, onClose, onPacks }: { result: { raceId: strin
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={`Uitslag ${race.name}`}>
       <div className={styles.reveal}>
+        <div className={styles.finishLine}>
+          {ownPlacings.map((p) => (
+            <figure key={p.id} className={styles.finisher}>
+              <span className={`${styles.finisherFace} ${styles[cardById(p.id).tier]}`}><Portrait card={cardById(p.id)} mood={moodFor(p.place)} /></span>
+              <span className={styles.finisherPlace}>{p.place || "–"}</span>
+              <figcaption>{cardById(p.id).last}</figcaption>
+            </figure>
+          ))}
+        </div>
         <div className={styles.panel} style={{ width: "100%" }}>
           <div className={styles.h2}>{race.name}</div>
           <table className={styles.table} style={{ marginTop: 8 }}>
@@ -357,7 +371,7 @@ function PackReveal({ reveal, collection, onClose }: { reveal: { type: PackType;
         <div className={styles.revealCards}>
           {reveal.pulls.map((p) => (
             <div key={p.id} className={styles.flip}>
-              <RiderCardView card={cardById(p.id)} />
+              <RiderCardView card={cardById(p.id)} live mood={cardById(p.id).tier === "goud" && !p.duplicate ? "zege" : "rust"} />
               {p.duplicate ? <div className={styles.dupMark}>Dubbel · +{p.coins} munten · ×{collection[p.id]}</div> : <div className={styles.newMark}>Nieuw</div>}
             </div>
           ))}
