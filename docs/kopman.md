@@ -312,6 +312,12 @@ in de weg en ik moet alsnog scrollen op de eerste pagina". Zo werkt het:
 **Een kaart op een renner naar keuze en terug tijdens een koers:** zie
 [kopman-bordspel.md](kopman-bordspel.md#een-kaart-op-een-renner-naar-keuze).
 
+**Je ploeg een naam geven.** Op het tabblad Ploeg, bij Ploegnaam. De naam
+staat in de uitslag en het klassement. Tot 2026-11-11 sprong een leeg veld
+meteen terug naar "Mijn ploeg", zodat je de oude naam niet kon wissen om een
+nieuwe te typen. Nu mag het veld leeg zijn terwijl je typt; laat je het leeg
+achter, dan komt de vorige naam terug.
+
 **Twee cijfers op een kaart.**
 - Het rondje linksboven is hoe goed de renner is, over alles.
 - Het zwarte label onderaan, met een vlaggetje, is hoe goed hij past bij deze

@@ -14,7 +14,7 @@ gaat stabiliteit voor nieuwe features.
    ronde "Kopman: een eigen pagina" (`48db7eaa`, gepusht) staat het op
    `/kopman`, buiten de schil van de club; `/zwbgame/kopman` stuurt door.
    Daarna lokaal, nog niet gepusht: "Kopman: een kaart op een renner naar
-   keuze". Het bordspel is de koers, ook in de tijdrit, met het
+   keuze" en "Kopman: de ploegnaam echt te wijzigen". Het bordspel is de koers, ook in de tijdrit, met het
    getekende koersbeeld. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
@@ -12234,6 +12234,22 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kopman: de ploegnaam echt te wijzigen
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+
+- **De vraag.** De eigenaar: "Ik wil ook dat je je team een naam kan geven".
+- **Wat er was.** Het veld Ploegnaam op het tabblad Ploeg bestond al sinds
+  ronde 1, maar een leeg veld sprong meteen terug naar "Mijn ploeg". Wie de
+  oude naam wiste om een nieuwe te typen, kreeg die naam steeds terug.
+- **Wat er is.** `TeamNameInput` houdt wat je typt apart. De save krijgt de
+  laatste naam die niet leeg was; een leeg veld krijgt bij het verlaten die
+  naam terug. Enter sluit het toetsenbord.
+- **Geverifieerd:** in de preview op 375×667 (wissen, typen, opgeslagen; leeg
+  achterlaten geeft de vorige naam terug), tsc en eslint.
+- **Niet geverifieerd:** een echte telefoon.
 
 ### Gebouwd — Kopman: een kaart op een renner naar keuze, en terug tijdens een koers
 

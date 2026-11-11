@@ -204,6 +204,31 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
   );
 }
 
+/**
+ * The team name. While you type, the field may be empty; the save keeps the
+ * last name that was not, and an empty field gets that name back when you
+ * leave it.
+ */
+function TeamNameInput({ save, update }: { save: Save; update: (s: Save) => void }) {
+  const [draft, setDraft] = useState(save.teamName);
+  return (
+    <input
+      className={styles.nameInput}
+      value={draft}
+      maxLength={40}
+      autoComplete="off"
+      enterKeyHint="done"
+      onChange={(e) => {
+        setDraft(e.target.value);
+        const name = e.target.value.trim();
+        if (name && name !== save.teamName) update({ ...save, teamName: name });
+      }}
+      onBlur={() => setDraft(draft.trim() || save.teamName)}
+      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+    />
+  );
+}
+
 function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
   const [filter, setFilter] = useState<RiderType | "alle">("alle");
   const race = currentRace(save);
@@ -214,7 +239,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
       <div className={styles.panel}>
         <label className={styles.row}>
           <span className={styles.h3}>Ploegnaam</span>
-          <input className={styles.nameInput} value={save.teamName} maxLength={40} onChange={(e) => update({ ...save, teamName: e.target.value.trimStart() || "Mijn ploeg" })} />
+          <TeamNameInput save={save} update={update} />
         </label>
       </div>
       <div className={styles.panel}>
