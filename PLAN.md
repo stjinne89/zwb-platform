@@ -13,8 +13,8 @@ gaat stabiliteit voor nieuwe features.
    wielermanager met rennerkaarten, alleen voor wie ZWBgame beheert. Sinds de
    ronde "Kopman: een eigen pagina" (`48db7eaa`, gepusht) staat het op
    `/kopman`, buiten de schil van de club; `/zwbgame/kopman` stuurt door.
-   Daarna lokaal, nog niet gepusht: "Kopman: een kaart op een renner naar
-   keuze" en "Kopman: de ploegnaam echt te wijzigen". Het bordspel is de koers, ook in de tijdrit, met het
+   Daarna, ook gepusht: "Kopman: een kaart op een renner naar keuze"
+   (`4760fcf4`) en "Kopman: de ploegnaam echt te wijzigen" (`c70599a6`). Het bordspel is de koers, ook in de tijdrit, met het
    getekende koersbeeld. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
@@ -12237,8 +12237,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: de ploegnaam echt te wijzigen
 
-**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+**2026-11-11, commit `c70599a6`, op 2026-11-11 gepusht naar `main`.** Geen migratie.
 
 - **De vraag.** De eigenaar: "Ik wil ook dat je je team een naam kan geven".
 - **Wat er was.** Het veld Ploegnaam op het tabblad Ploeg bestond al sinds
@@ -12253,8 +12252,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: een kaart op een renner naar keuze, en terug tijdens een koers
 
-**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+**2026-11-11, commit `4760fcf4`, op 2026-11-11 gepusht naar `main`.** Geen migratie.
 
 - **De vraag.** De eigenaar: "Ik wil eigenlijk een kaart op een zelfgekozen
   renner kunnen spelen, nu heb ik telkens dezelfde renner die een bepaalde
