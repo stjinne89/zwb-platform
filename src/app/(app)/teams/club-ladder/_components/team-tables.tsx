@@ -226,91 +226,87 @@ export function StandingsTable({
     normalizedAliases.includes(normalizeTeamName(row.name));
   const canChallenge = (row: (typeof rows)[number]) => challengeSet.has(normalizeTeamName(row.name));
   return (
-    <div className={cn(scrollable && "mt-4 max-h-[28rem] overflow-y-auto overscroll-contain rounded-md border p-2")}>
-      <ResponsiveTable
-        className={scrollable ? undefined : "mt-4"}
-        rows={rows}
-        rowKey={(row) => `${row.region}-${row.position}-${row.name}`}
-        minWidth={680}
-        rowClassName={(row) =>
-          isSelected(row)
-            ? "bg-primary/10"
-            : active === normalizeTeamName(row.name)
-              ? "bg-muted"
-              : undefined
-        }
-        columns={[
-          {
-            key: "team",
-            header: "Team",
-            primary: true,
-            cell: (row) => row.name,
-            cellClassName: "font-medium",
-          },
-          {
-            key: "region",
-            header: "Regio",
-            secondary: true,
-            cell: (row) => row.region,
-          },
-          {
-            key: "position",
-            header: "Pos",
-            cell: (row) => row.position,
-            cellClassName: "tabular-nums",
-          },
-          {
-            key: "form",
-            header: "Vorm",
-            cell: (row) => (
-              <span className="flex gap-1">
-                {row.form.length > 0
-                  ? row.form.map((result, index) => (
-                      <span
-                        key={`${result}-${index}`}
-                        className={cn(
-                          "inline-flex size-6 items-center justify-center rounded-md border text-xs font-semibold",
-                          result === "W"
-                            ? "border-primary/30 bg-primary/10 text-primary"
-                            : "border-muted bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {result}
-                      </span>
-                    ))
-                  : "-"}
-              </span>
-            ),
-          },
-          {
-            key: "move",
-            header: "Move",
-            align: "right",
-            cell: (row) => row.move ?? "-",
-          },
-          ...(opponentHref
-            ? [
-                {
-                  key: "challenge",
-                  header: "Uitdagen",
-                  align: "right" as const,
-                  cell: (row: ClubLadderStanding) =>
-                    canChallenge(row) || plannedSet.has(normalizeTeamName(row.name)) ? (
+    // Eén compacte tabel, ook op telefoonbreedte: kaarten per ploeg maakten de stand drie schermen lang.
+    <div
+      className={cn(
+        "mt-4 overflow-x-auto",
+        scrollable && "max-h-[28rem] overflow-y-auto overscroll-contain rounded-md border p-2",
+      )}
+    >
+      <table className="w-full text-sm tabular-nums">
+        <thead className="text-xs text-muted-foreground">
+          <tr className="border-b">
+            <th className="py-1.5 pr-2 text-left font-medium sm:pr-3">Pos</th>
+            <th className="py-1.5 pr-2 text-left font-medium sm:pr-3">Team</th>
+            <th className="hidden py-1.5 pr-3 text-left font-medium sm:table-cell">Regio</th>
+            <th className="py-1.5 pr-2 text-left font-medium sm:pr-3">Vorm</th>
+            <th className="py-1.5 pr-2 text-right font-medium sm:pr-3">Move</th>
+            {opponentHref && (
+              <th className="py-1.5 text-right font-medium">
+                <span className="sr-only sm:not-sr-only">Uitdagen</span>
+              </th>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            // De eigen ploeg staat ook in elke geplande wedstrijd, maar advies tegen jezelf is er niet.
+            const plannedRow = !isSelected(row) && plannedSet.has(normalizeTeamName(row.name));
+            return (
+              <tr
+                key={`${row.region}-${row.position}-${row.name}`}
+                className={cn(
+                  "border-b last:border-0",
+                  isSelected(row) ? "bg-primary/10" : active === normalizeTeamName(row.name) && "bg-muted",
+                )}
+              >
+                <td className="py-1.5 pr-2 sm:pr-3">{row.position}</td>
+                <td className="whitespace-normal! py-1.5 pr-2 font-medium leading-snug sm:pr-3">{row.name}</td>
+                <td className="hidden py-1.5 pr-3 text-muted-foreground sm:table-cell">{row.region}</td>
+                <td className="py-1.5 pr-2 sm:pr-3">
+                  <span className="flex gap-0.5 sm:gap-1">
+                    {row.form.length > 0
+                      ? row.form.map((result, index) => (
+                          <span
+                            key={`${result}-${index}`}
+                            className={cn(
+                              "inline-flex size-4 items-center justify-center rounded-sm border text-[10px] font-semibold sm:size-6 sm:rounded-md sm:text-xs",
+                              result === "W"
+                                ? "border-primary/30 bg-primary/10 text-primary"
+                                : "border-muted bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {result}
+                          </span>
+                        ))
+                      : "-"}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap py-1.5 pr-2 text-right sm:pr-3">{row.move ?? "-"}</td>
+                {opponentHref && (
+                  <td className="whitespace-nowrap py-1.5 text-right">
+                    {(canChallenge(row) || plannedRow) && (
                       <Link
                         href={opponentHref(row)}
                         scroll={false}
                         className="font-medium text-primary underline-offset-4 hover:underline"
                       >
-                        {plannedSet.has(normalizeTeamName(row.name)) ? "Gepland · advies" : "Advies"}
+                        {plannedRow ? (
+                          <>
+                            Gepland<span className="hidden sm:inline"> · advies</span>
+                          </>
+                        ) : (
+                          "Advies"
+                        )}
                       </Link>
-                    ) : (
-                      ""
-                    ),
-                },
-              ]
-            : []),
-        ]}
-      />
+                    )}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

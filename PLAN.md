@@ -7,6 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Telefoon: Club Ladder-ranking als compacte tabel (2026-11-11): lokaal
+   gecommit, niet gepusht.** Geen migratie. Zie de ronde "Telefoon: Club
+   Ladder-ranking als compacte tabel".
+
 0. **Deel via WhatsApp op meer pagina's (2026-11-11): gepusht naar `main`
    (`3f1dde4e`).** Open: na de deploy een teampagina en een recept met login bekijken. Geen migratie. Zie de ronde "Deel via WhatsApp op meer pagina's".
 
@@ -12186,6 +12190,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Telefoon: Club Ladder-ranking als compacte tabel
+
+**2026-11-11, commit `COMMIT_HASH`, niet gepusht.** Aanleiding: een lid vond
+dat het advies op de Club Ladder-teampagina "de hele ladder" liet zien. De
+eigenaar: "beginnen met de ladder kleiner te maken op mobiel zoals de matchup
+ook is". Geen migratie.
+
+De Ranking (`StandingsTable` in `club-ladder/_components/team-tables.tsx`)
+gebruikte `ResponsiveTable`: onder 640px een kaart per ploeg met naam, regio
+en vier waarden. Nu is het op elke breedte één tabel in de vorm van de
+matchup-tabel: rijen met `py-1.5`, kolommen Pos, Team, Vorm, Move en Advies.
+Op de telefoon valt Regio weg (staat al in de cijfers bovenaan), zijn de
+vormblokjes 16px in plaats van 24px en heet de link bij een geplande
+wedstrijd "Gepland" in plaats van "Gepland · advies". Ploegnamen breken af
+over twee regels: de tegels-stijl zet `white-space: nowrap` op alle cellen
+(`globals.css`), daarom `whitespace-normal!` op de teamcel; zonder dat was de
+tabel 368px in een vak van 309px.
+
+Meteen hersteld: de eigen ploeg kreeg een link "Gepland · advies", omdat die
+in elke geplande wedstrijd staat. Advies tegen jezelf bestaat niet; de link
+staat nu alleen bij andere ploegen.
+
+Op 375px (ZWBullets, 11 ploegen): de tabel is 615px hoog en past zonder
+zijwaarts scrollen. De hoogte van de oude kaarten is niet gemeten. Op een
+breed scherm nagekeken: dezelfde tabel met Regio en "Gepland · advies". Lokaal
+eslint schoon; `tsc` geeft alleen bestaande fouten buiten dit bestand.
+
+**Bewust niet (nog):** de andere punten van het lid. Vanuit het advies de
+selectie van die race invullen (zit sinds 2026-11-08 op het event), het advies
+los van de ranking tonen, en een deelknop die het advies tegen één
+tegenstander deelt (`?tegen=…#advies`) in plaats van de kale teampagina. De
+eigenaar koos eerst voor de kleinere ranking.
+
+**Niet bekeken:** als gewoon lid, op een echte telefoon, Safari.
 
 ### Gebouwd — Deel via WhatsApp op meer pagina's
 
