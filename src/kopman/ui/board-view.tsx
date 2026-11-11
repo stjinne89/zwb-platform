@@ -1,9 +1,9 @@
 "use client";
 
-import { Crown, Flag, Mountain, Play, RotateCcw, Shield, Undo2, Video, Wrench } from "lucide-react";
+import { ChevronLeft, Crown, Flag, Mountain, Play, RotateCcw, Shield, Undo2, Video, Wrench } from "lucide-react";
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, HAZARD_LABELS, HAZARD_ODDS, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
-import { cardById } from "../engine/cards";
+import { BOARD_CARDS, BOARD_SECTORS, blockedReason, choosesRider, costOf, createBoard, currentSector, HAZARD_LABELS, HAZARD_ODDS, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, ridersFor, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
+import { cardById, TYPE_LABELS } from "../engine/cards";
 import { newSave, type Save } from "../engine/economy";
 import { STAFF, teamBonus } from "../engine/items";
 import { groupsOf, kopmanOf, results, riding, type Lineup, type RaceState } from "../engine/race";
@@ -85,14 +85,18 @@ function sectorTitle(sector: BoardSector) {
 }
 
 /**
- * The race as a board game. In the app `onFinish` hands the result on; in the
- * preview `onAgain` starts a new one, and `title` stands in for the race name.
+ * The race as a board game. In the app `onFinish` hands the result on and
+ * `onBack` leaves the race standing where it is (`active` false while you are
+ * away); in the preview `onAgain` starts a new one, and `title` stands in for
+ * the race name.
  */
-export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, onFinish }: { raceId: string; seed: number; lineup: Lineup; items: Record<string, number>; own: string; title?: ReactNode; onAgain?: () => void; onFinish?: (state: RaceState) => void }) {
+export function BoardView({ raceId, seed, lineup, items, own, title, active = true, onBack, onAgain, onFinish }: { raceId: string; seed: number; lineup: Lineup; items: Record<string, number>; own: string; title?: ReactNode; active?: boolean; onBack?: () => void; onAgain?: () => void; onFinish?: (state: RaceState) => void }) {
   // The engine is mutable on purpose (race.ts steps in place); a counter redraws.
   const [board] = useState(() => createBoard(raceId, seed, lineup, items));
   const [tick, redraw] = useReducer((n: number) => n + 1, 0);
   const [view, setView] = useState<View>(savedView);
+  // The card waiting for a rider: tap a card, then the rider who plays it.
+  const [picking, setPicking] = useState<string | null>(null);
   const pickView = (v: View) => {
     setView(v);
     try { store()?.setItem(VIEW_KEY, v); } catch { /* the choice just is not remembered */ }
@@ -100,7 +104,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
   const riding_ = board.phase === "rijden";
   const finished = useRef(false);
   const done = board.phase === "klaar";
-  const compact = useCompact() && !done;
+  const compact = useCompact() && !done && active;
 
   // On a phone the board covers the page; the page behind it should not scroll.
   useEffect(() => {
@@ -149,6 +153,24 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
   const mine = state.riders.filter((r) => r.team === PLAYER_TEAM).sort((a, b) => Number(b.kopman) - Number(a.kopman));
   const dekking = riding(kopman) && !board.tt ? matesOf(state, kopman).length : 0;
   const act = (fn: () => unknown) => { fn(); redraw(); };
+  const pick = board.phase === "plannen" ? board.hand.find((c) => c.uid === picking && !blockedReason(board, c)) : undefined;
+  const pickRiders = pick ? ridersFor(board, pick) : [];
+  const tapCard = (c: HandCard) => {
+    if (pick === c) { setPicking(null); return; }
+    const riders = ridersFor(board, c);
+    if (choosesRider(board, c) && riders.length > 1) { setPicking(c.uid); return; }
+    setPicking(null);
+    act(() => playCard(board, c.uid, riders[0]));
+  };
+  const giveTo = (id: string) => {
+    if (!pick) return;
+    const uid = pick.uid;
+    setPicking(null);
+    act(() => playCard(board, uid, id));
+  };
+  /** While a card waits for a rider: what it costs this rider, or null if he cannot play it. */
+  const pickCost = (id: string) => (pick && pickRiders.includes(id) ? costOf(board, pick, id) : null);
+  const dots = (n: number) => <span className={styles.pickCost}>{Array.from({ length: n }, (_, i) => <span key={i} />)}</span>;
 
   if (done) return onFinish ? null : <BoardResult board={board} own={own} name={def.name} onAgain={onAgain} />;
 
@@ -158,6 +180,11 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
       <button type="button" aria-pressed={view === "beeld"} aria-label={compact ? "Koersbeeld" : undefined} onClick={() => pickView("beeld")}><Video size={16} aria-hidden />{compact ? null : "Koersbeeld"}</button>
     </span>
   );
+  const back = onBack ? (
+    <button type="button" className={`${styles.ghost} ${styles.backButton}`} aria-label={compact ? "Terug" : undefined} onClick={() => { setPicking(null); onBack(); }}>
+      <ChevronLeft size={16} aria-hidden />{compact ? null : "Terug"}
+    </button>
+  ) : null;
   const intentList = board.intents.map((i) => (
     <div key={i.team} className={styles.intent}>
       <span className={styles.teamDot} style={{ background: teamColor(i.team) }} />
@@ -165,7 +192,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
       <span>{i.kind === "aanval" ? `${cardById(i.rider).last} valt aan` : `maakt tempo met ${cardById(i.rider).last}`}</span>
     </div>
   ));
-  const hand = board.hand.map((c) => <BoardCardView key={c.uid} board={board} c={c} onPlay={() => act(() => playCard(board, c.uid))} />);
+  const hand = board.hand.map((c) => <BoardCardView key={c.uid} board={board} c={c} picked={pick === c} onPlay={() => tapCard(c)} />);
   const played = board.played.map((c) => (
     <span key={c.uid} className={styles.playedChip}>
       {BOARD_CARDS[c.card].title}{c.rider ? ` · ${cardById(c.rider).last}` : ""}
@@ -173,7 +200,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
     </span>
   ));
   const rideButton = (
-    <button type="button" className={styles.primary} disabled={board.phase !== "plannen"} onClick={() => act(() => startSector(board))}>
+    <button type="button" className={styles.primary} disabled={board.phase !== "plannen"} onClick={() => { setPicking(null); act(() => startSector(board)); }}>
       <Play size={18} aria-hidden />{riding_ ? "Onderweg" : sector.finale ? "Finale rijden" : "Rijden"}
     </button>
   );
@@ -187,6 +214,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
     return (
       <div className={styles.mBoard} lang="nl">
         <div className={styles.mTop}>
+          {back}
           <div className={styles.mName}>{title ?? def.name}</div>
           <span className={styles.chip} aria-label={`Sector ${board.sector + 1} van ${BOARD_SECTORS}`}><span className={styles.stat}>{board.sector + 1}/{BOARD_SECTORS}</span></span>
           <span className={styles.chip}><span className={styles.stat}>{km(state.course.length - leader.distance)}</span></span>
@@ -211,20 +239,22 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
         <div className={styles.mRiders}>
           {mine.map((r) => {
             const k = board.kracht[r.id], top = Math.max(board.start[r.id], k);
+            const cost = pickCost(r.id);
+            const Tile = cost === null ? "div" : "button";
             return (
-              <div key={r.id} className={`${styles.mRider} ${riding(r) ? "" : styles.mOut}`}>
+              <Tile key={r.id} {...(cost === null ? {} : { type: "button" as const, onClick: () => giveTo(r.id), "aria-label": `${r.card.last}: ${cost} kracht` })} className={`${styles.mRider} ${riding(r) ? "" : styles.mOut} ${cost !== null ? styles.mPick : pick ? styles.mDim : ""}`}>
                 <span className={styles.mFaceWrap}>
                   <span className={`${styles.mFace} ${styles[r.card.tier]}`}><Portrait card={r.card} mood={moodOf(r)} crop /></span>
                   {r.kopman ? <span className={styles.mCrown}><Crown size={11} aria-label="kopman" /></span> : null}
                   {r.kopman && riding(r) && !board.tt ? <span className={styles.mCover} aria-label={`dekking ${dekking}`}><Shield size={9} aria-hidden />{dekking}</span> : null}
                 </span>
                 <b>{r.card.last}</b>
-                <small>{standingOf(r)}</small>
+                {cost === null ? <small>{standingOf(r)}</small> : dots(cost)}
                 <span className={styles.mKracht} role="meter" aria-label="Kracht" aria-valuemin={0} aria-valuemax={top} aria-valuenow={k}>
                   <span><span style={{ width: `${top ? (k / top) * 100 : 0}%` }} /></span>
                   <b>{k}</b>
                 </span>
-              </div>
+              </Tile>
             );
           })}
         </div>
@@ -243,6 +273,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
   return (
     <div className={styles.stack}>
       <div className={styles.raceBar}>
+        {back}
         <div className={styles.h2}>{def.name}</div>
         <span className={styles.chip}><span className={styles.stat}>Sector {board.sector + 1}/{BOARD_SECTORS}</span></span>
         <span className={styles.chip}><span className={styles.stat}>{km(state.course.length - leader.distance)}</span></span>
@@ -288,17 +319,19 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
           <div className={styles.riders}>
             {mine.map((r) => {
               const k = board.kracht[r.id], start = board.start[r.id];
+              const cost = pickCost(r.id);
+              const Row = cost === null ? "div" : "button";
               return (
-                <div key={r.id} className={styles.rider}>
+                <Row key={r.id} {...(cost === null ? {} : { type: "button" as const, onClick: () => giveTo(r.id), "aria-label": `${riderName(r.id)}: ${cost} kracht` })} className={`${styles.rider} ${cost !== null ? styles.riderPick : pick ? styles.mDim : ""}`}>
                   <span className={`${styles.riderFace} ${styles[r.card.tier]}`}><Portrait card={r.card} mood={moodOf(r)} crop /></span>
                   <span className={styles.riderInfo}>
                     <span><b>{riderName(r.id)}</b>{r.kopman ? <> <Crown size={13} aria-label="kopman" /></> : null}</span>
-                    <small>{standingOf(r)}{r.kopman && riding(r) && !board.tt ? ` · dekking ${dekking}` : ""}</small>
+                    {cost === null ? <small>{standingOf(r)}{r.kopman && riding(r) && !board.tt ? ` · dekking ${dekking}` : ""}</small> : dots(cost)}
                     <span className={styles.pips} role="meter" aria-label="Kracht" aria-valuemin={0} aria-valuemax={Math.max(start, k)} aria-valuenow={k}>
                       {Array.from({ length: Math.max(start, k) }, (_, i) => <span key={i} className={i < k ? styles.pipOn : undefined} />)}
                     </span>
                   </span>
-                </div>
+                </Row>
               );
             })}
           </div>
@@ -309,18 +342,19 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
   );
 }
 
-function BoardCardView({ board, c, onPlay }: { board: BoardState; c: HandCard; onPlay: () => void }) {
+/** A card in the hand. A team card shows the type that brought it and what it costs that type. */
+function BoardCardView({ board, c, picked, onPlay }: { board: BoardState; c: HandCard; picked: boolean; onPlay: () => void }) {
   const def = BOARD_CARDS[c.card];
   const reason = blockedReason(board, c);
   const cost = costOf(board, c);
-  const who = c.rider ? cardById(c.rider).last : STAFF[(Object.keys(STAFF) as (keyof typeof STAFF)[]).find((role) => c.uid.endsWith(`:${role}`)) ?? "trainer"].label;
+  const who = c.rider ? cardById(c.rider).last : c.type ? (c.type === "klassieker" ? "Klassieker" : TYPE_LABELS[c.type]) : STAFF[(Object.keys(STAFF) as (keyof typeof STAFF)[]).find((role) => c.uid.endsWith(`:${role}`)) ?? "trainer"].label;
   return (
-    <button type="button" className={`${styles.bcard} ${styles[`k_${def.kind}`]}`} disabled={!!reason} onClick={onPlay} title={reason ?? undefined}>
+    <button type="button" className={`${styles.bcard} ${styles[`k_${def.kind}`]} ${picked ? styles.bcardPicked : ""}`} disabled={!!reason} onClick={onPlay} title={reason ?? undefined} aria-pressed={choosesRider(board, c) ? picked : undefined}>
       <span className={styles.bcardKind}>{KIND_LABELS[def.kind]}</span>
       <strong>{def.title}</strong>
       <span className={styles.bcardWho}>{who}</span>
-      <span className={styles.bcardText}>{reason ?? def.text}</span>
-      {c.rider ? <span className={styles.bcardCost} aria-label={`${cost} kracht`}>{Array.from({ length: cost }, (_, i) => <span key={i} />)}</span> : null}
+      <span className={styles.bcardText}>{reason ?? (picked ? "Kies een renner" : def.text)}</span>
+      {c.type ? <span className={styles.bcardCost} aria-label={`${cost} kracht`}>{Array.from({ length: cost }, (_, i) => <span key={i} />)}</span> : null}
     </button>
   );
 }

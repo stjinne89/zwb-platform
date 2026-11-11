@@ -41,7 +41,8 @@ Een koers is een **bord van 10 sectoren**. Per sector speel je één beurt.
    de volgende. Je ziet ook wat de rivaliserende ploegen van plan zijn, zoals
    "Ploeg Rood maakt tempo op de klim".
 2. **Kaarten spelen.** Je hebt 4 kaarten in je hand en speelt er maximaal 2.
-   Elke kaart kost **kracht** van de renner die hem uitvoert.
+   Elke kaart kost **kracht** van de renner die hem uitvoert. Je kiest zelf
+   wie dat is (zie [Een kaart op een renner naar keuze](#een-kaart-op-een-renner-naar-keuze)).
 3. **Reageren.** Speelt een rivaal een kaart die jou raakt, dan mag je één
    reactiekaart spelen.
 4. **Uitrijden.** De physics rijdt de sector. Kaarten zetten een renner voor
@@ -77,7 +78,9 @@ zijn statistieken en je laatste kaarten.
 Je **opstelling en je beste materiaal en personeel vormen je stapel**. Je
 verzameling en de pakketten krijgen zo een doel tijdens de koers.
 
-- **Renners** leveren 2 kaarten per renner, passend bij hun type:
+- **Renners** leveren 2 kaarten per renner, passend bij hun type (sinds
+  2026-11-11 mag elke renner ze spelen, zie
+  [Een kaart op een renner naar keuze](#een-kaart-op-een-renner-naar-keuze)):
 
   | Type | Kaarten |
   | --- | --- |
@@ -460,7 +463,8 @@ je wil niet scrollen".
   dezelfde vakjes erop.
 - Liggend staat het beeld links en de rest rechts. Het smalle profiel valt
   daar weg, en ook op schermen lager dan 640 px.
-- De kaarten tonen op een telefoon de soort, de titel, de renner en de kosten.
+- De kaarten tonen op een telefoon de soort, de titel, het type dat de kaart
+  meebracht en de kosten.
   De uitleg past alleen op een hoog scherm (vanaf 760 px), in drie regels. Een
   kaart die niet kan, toont altijd waarom.
 - Op een hoog en smal beeld zoomt de camera wat in. Anders is de onderste helft
@@ -500,6 +504,59 @@ je wil niet scrollen".
   desktopbord, dat daar al past.
 - **De klok in de bovenbalk.** Die past er niet naast de sector, de afstand
   en de knoppen. De achterstand staat bij elke renner.
+
+## Een kaart op een renner naar keuze
+
+Gebouwd op 2026-11-11. De eigenaar: "Ik wil eigenlijk een kaart op een
+zelfgekozen renner kunnen spelen, nu heb ik telkens dezelfde renner die een
+bepaalde actie kan doen".
+
+**Wat het is.**
+- **Eerst de kaart, dan de renner.** Tik een kaart aan: hij komt geel omhoog
+  en de renners die hem kunnen spelen, lichten op. Bij elke renner staat wat
+  hij ervoor betaalt. Tik een renner aan en de kaart is gespeeld. Kan maar één
+  renner de kaart spelen, dan gaat hij meteen. Tik de kaart nog eens aan om
+  terug te gaan.
+- **Je opstelling beslist nog steeds welke kaarten je krijgt.** Elke renner
+  brengt de drie kaarten van zijn type mee in de stapel. De kaart toont dat
+  type ("Klimmer") in plaats van een naam.
+- **Een renner van een ander type betaalt 1 kracht meer** (`OFF_TYPE`). Een
+  gouden renner blijft 1 minder betalen. De physics rekent verder met de
+  renner zelf: een sprinter die bergop versnelt, betaalt meer en haalt er
+  minder uit dan je klimmer.
+- **Na de sector zijn de kaarten weer van de ploeg.** Een kaart die terugkomt
+  in je hand, heeft weer geen renner.
+- **Een kaart staat maar één keer in je hand.** Twee allrounders brengen
+  allebei "Rustig aan" mee, maar met vrije keuze voegt een tweede exemplaar
+  niets toe. Eerst gold dat per renner.
+- **De tijdrit blijft zoals hij was.** Daar stuur je alleen de kopman, dus is
+  er niets te kiezen, en betaalt hij geen meerprijs.
+
+**Terug tijdens een koers.** Ook op 2026-11-11 gevraagd: "ik wil ook terug
+kunnen wanneer een wedstrijd bezig is". Linksboven op het bord staat een
+terugknop. De koers blijft dan staan waar hij was, met wat je al gespeeld
+hebt. Op het tabblad Koers heet Start dan **Verder**. Reed de sector nog,
+dan rijdt hij uit en wacht het bord op je volgende beurt.
+
+**Bewust niet gebouwd:**
+- **Een koers stoppen en opnieuw beginnen.** Een koers heeft per save een
+  vaste uitkomst (`raceSeed`); opnieuw beginnen helpt dus niet, en een knop
+  meer maakt het scherm voller. Verder spelen kan altijd.
+- **De koers bewaren als je de pagina sluit.** Het bord staat alleen in het
+  geheugen. Sluit je de pagina, dan begin je die koers opnieuw.
+- **Geen meerprijs.** Ook overwogen; dan beslist alleen de renner zelf en
+  telt het type in je opstelling minder. De eigenaar koos voor de meerprijs.
+
+**Geverifieerd:**
+- in de preview in Chrome op 375×667: een kaart kiezen, de renners met hun
+  kosten, spelen op een renner van een ander type (3 kracht in plaats van 2),
+  terug, Verder, en de gespeelde kaart staat er nog;
+- op desktop: de rennerlijst licht op, de kopman valt weg voor "Uit de wind
+  zetten";
+- tsc, eslint en 49 tests, waarvan 2 nieuw voor de vrije keuze.
+
+**Niet geverifieerd:** een echte telefoon, Safari, en of de meerprijs van 1
+kracht de goede balans is.
 
 ## Nog niet bekend
 

@@ -57,7 +57,11 @@ export const BOARD_CARDS: Record<BoardCardId, CardDef> = {
   allesgeven: { title: "Alles geven", kind: "pacing", cost: 3, finale: true, text: "Leeg over de streep" },
 };
 
-/** Three cards per rider, by type: two that suit the type, one that works almost anywhere. */
+/**
+ * Three cards per rider, by type: two that suit the type, one that works almost
+ * anywhere. Any rider can play them; a rider of another type pays `OFF_TYPE`
+ * kracht extra.
+ */
 export const TYPE_CARDS: Record<RiderType, [BoardCardId, BoardCardId, BoardCardId]> = {
   klimmer: ["bergop", "klimtempo", "afdalen"],
   sprinter: ["lanceren", "wiel", "rustig"],
@@ -87,6 +91,9 @@ const TT_BASE = 0.96;
 /** Time trial pacing lasts until the next sector clears it. */
 const TT_UNTIL = Infinity;
 
+/** Extra kracht for a card played by a rider of another type than the one that brought it. */
+export const OFF_TYPE = 1;
+
 /** One card per staff role. The mechanic gives a spare wheel instead, the bus driver a bigger hand. */
 export const STAFF_CARDS: Partial<Record<StaffRole, BoardCardId>> = { fysio: "herstel", ploegleider: "vooruit", trainer: "scherp" };
 /** Sectors in which the break of the day can still be joined. */
@@ -105,7 +112,12 @@ export const HAZARD_ODDS: Record<Terrain, Partial<Record<Hazard, number>>> = {
 };
 export const TERRAIN_LABELS: Record<Terrain, string> = { vlak: "Vlak", klim: "Klim", kasseien: "Kasseien", afdaling: "Afdaling", kopwind: "Kopwind", rugwind: "Rugwind", bochten: "Bochten" };
 
-export type HandCard = { uid: string; card: BoardCardId; rider: string | null };
+/**
+ * `type`: the rider type that brought the card to the team (null for staff).
+ * `rider`: who plays it. In a road race you choose him when you play the card,
+ * so in the hand it is null; in a time trial it is always the kopman.
+ */
+export type HandCard = { uid: string; card: BoardCardId; type: RiderType | null; rider: string | null };
 export type Intent = { team: string; kind: "aanval" | "tempo"; rider: string; real: boolean };
 export type BoardEvent = { sector: number; text: string; team: string; good: boolean };
 export type Phase = "plannen" | "rijden" | "klaar";
@@ -191,14 +203,18 @@ function ttSectorsOf(state: RaceState, random: () => number): BoardSector[] {
 const kracht0 = (r: Rider) => (r.kopman ? KRACHT_KOPMAN : KRACHT_KNECHT) + (r.card.tier === "goud" ? 1 : r.card.tier === "brons" ? -1 : 0);
 
 /**
- * The stack: three cards per rider and one per staff role. In a time trial you
+ * The stack: three cards per rider and one per staff role. In a road race the
+ * cards belong to the team: you choose who plays one. In a time trial you
  * steer only the kopman (`ttKopman`); the others ride their own race, and their
  * cards are what the team brings to his ride.
  */
 export function deckFor(lineup: string[], items: Record<string, number>, ttKopman?: string): HandCard[] {
-  const cards: HandCard[] = lineup.flatMap((id) => (ttKopman ? TT_CARDS : TYPE_CARDS)[cardById(id).type].map((card, i) => ({ uid: `${card}:${id}:${i}`, card, rider: ttKopman ?? id })));
+  const cards: HandCard[] = lineup.flatMap((id) => {
+    const type = cardById(id).type;
+    return (ttKopman ? TT_CARDS : TYPE_CARDS)[type].map((card, i) => ({ uid: `${card}:${id}:${i}`, card, type, rider: ttKopman ?? null }));
+  });
   const best = bestItems(items);
-  for (const [role, card] of Object.entries(STAFF_CARDS) as [StaffRole, BoardCardId][]) if (best[role]) cards.push({ uid: `${card}:${role}`, card, rider: null });
+  for (const [role, card] of Object.entries(STAFF_CARDS) as [StaffRole, BoardCardId][]) if (best[role]) cards.push({ uid: `${card}:${role}`, card, type: null, rider: null });
   return cards;
 }
 
@@ -211,7 +227,8 @@ function shuffle<T>(list: T[], random: () => number) {
   return out;
 }
 
-const sameCard = (a: HandCard, b: HandCard) => a.card === b.card && a.rider === b.rider;
+/** A second copy of a card in the hand adds nothing: any rider can play the first. */
+const sameCard = (a: HandCard, b: HandCard) => a.card === b.card;
 
 /**
  * Takes the first card from the stack that can be played in this sector and is
@@ -313,7 +330,29 @@ export function matesOf(state: RaceState, rider: Rider) {
   return group ? group.filter((x) => x !== rider && x.team === rider.team) : [];
 }
 
-export const costOf = (board: BoardState, c: HandCard) => Math.max(0, BOARD_CARDS[c.card].cost - (c.rider && cardById(c.rider).tier === "goud" ? 1 : 0) - board.discount);
+/** Whether you choose who plays this card: a team card in a road race. */
+export const choosesRider = (board: BoardState, c: HandCard) => !board.tt && c.type !== null;
+
+/**
+ * What a card costs a rider: a gold rider pays 1 less, a rider of another type
+ * than the one that brought it `OFF_TYPE` more. Without a rider: the cost for a
+ * rider of its own type.
+ */
+export function costOf(board: BoardState, c: HandCard, rider: string | null = c.rider) {
+  const card = rider ? cardById(rider) : null;
+  // In a time trial the kopman plays every card the team brings, at no extra.
+  const extra = card && choosesRider(board, c) && card.type !== c.type ? OFF_TYPE : 0;
+  return Math.max(0, BOARD_CARDS[c.card].cost - (card?.tier === "goud" ? 1 : 0) + extra - board.discount);
+}
+
+/** Your riders who can play this card now, cheapest first, then the most kracht left. */
+export function ridersFor(board: BoardState, c: HandCard): string[] {
+  if (!choosesRider(board, c)) return [];
+  return board.race.riders
+    .filter((r) => r.team === PLAYER_TEAM && !generalProblem(board, c) && !riderProblem(board, c, r.id))
+    .sort((a, b) => costOf(board, c, a.id) - costOf(board, c, b.id) || board.kracht[b.id] - board.kracht[a.id])
+    .map((r) => r.id);
+}
 
 /** Why this card cannot be played now, or null. */
 export function blockedReason(board: BoardState, c: HandCard): string | null {
@@ -323,28 +362,29 @@ export function blockedReason(board: BoardState, c: HandCard): string | null {
   return cardProblem(board, c);
 }
 
-/** Whether a card fits this sector at all, apart from how many you played. */
+/**
+ * Whether a card fits this sector at all, apart from how many you played. A
+ * card you still have to give a rider fits when one of your riders can play it.
+ */
 function cardProblem(board: BoardState, c: HandCard): string | null {
+  const general = generalProblem(board, c);
+  if (general || !choosesRider(board, c)) return general ?? (c.rider ? riderProblem(board, c, c.rider) : null);
+  const mine = board.race.riders.filter((r) => r.team === PLAYER_TEAM);
+  const reasons = mine.map((r) => riderProblem(board, c, r.id));
+  if (reasons.some((x) => x === null)) return null;
+  // The reason for a rider of the card's own type says the most.
+  const own = mine.findIndex((r) => r.card.type === c.type);
+  return reasons[own >= 0 ? own : 0];
+}
+
+/** What keeps the card out of this sector, whoever plays it. */
+function generalProblem(board: BoardState, c: HandCard): string | null {
   const def = BOARD_CARDS[c.card];
   const sector = currentSector(board);
   if (def.terrain && !def.terrain.includes(sector.terrain)) return `Alleen op ${def.terrain.map((t) => TERRAIN_LABELS[t].toLowerCase()).join(" of ")}`;
   if (def.finale && !sector.finale) return "Alleen in de finale";
   if (def.early && sector.index >= EARLY_SECTORS) return "Alleen vroeg in de koers";
   if (def.kind === "reactie" && !board.intents.some((i) => i.kind === "aanval")) return "Geen aanval aangekondigd";
-  if (c.rider) {
-    const r = byId(board, c.rider);
-    if (!r || !riding(r)) return "Al binnen";
-    if (board.kracht[c.rider] < costOf(board, c)) return "Te weinig kracht";
-    if (c.card === "vlucht" && groupsOf(board.race)[0]?.includes(r)) return "Zit al vooraan";
-    if (def.kind === "pacing" && board.played.some((p) => p.rider === c.rider && BOARD_CARDS[p.card].kind === "pacing")) return "Al een tempo gekozen";
-    if ((c.card === "rustig" || c.card === "rugherstel") && board.kracht[c.rider] >= board.start[c.rider]) return "Al uitgerust";
-    if (c.card === "doseren" && board.kracht[c.rider] >= board.start[c.rider] + 2) return "Genoeg gespaard";
-    if (c.card === "uitwind") {
-      if (r.kopman) return "Alleen een knecht";
-      const kopman = kopmanOf(board.race, PLAYER_TEAM);
-      if (!kopman || !matesOf(board.race, kopman).includes(r)) return "Niet bij de kopman";
-    }
-  }
   if (c.card === "herstel" || c.card === "uitwind") {
     const kopman = kopmanOf(board.race, PLAYER_TEAM);
     if (!kopman || !riding(kopman)) return "Kopman is binnen";
@@ -353,9 +393,37 @@ function cardProblem(board: BoardState, c: HandCard): string | null {
   return null;
 }
 
-export function playCard(board: BoardState, uid: string): boolean {
+/** Why this rider cannot play this card, or null. */
+function riderProblem(board: BoardState, c: HandCard, id: string): string | null {
+  const def = BOARD_CARDS[c.card];
+  const r = byId(board, id);
+  if (!r || r.team !== PLAYER_TEAM) return "Niet in je ploeg";
+  if (!riding(r)) return "Al binnen";
+  if (board.kracht[id] < costOf(board, c, id)) return "Te weinig kracht";
+  if (c.card === "vlucht" && groupsOf(board.race)[0]?.includes(r)) return "Zit al vooraan";
+  if (def.kind === "pacing" && board.played.some((p) => p.rider === id && BOARD_CARDS[p.card].kind === "pacing")) return "Al een tempo gekozen";
+  if ((c.card === "rustig" || c.card === "rugherstel") && board.kracht[id] >= board.start[id]) return "Al uitgerust";
+  if (c.card === "doseren" && board.kracht[id] >= board.start[id] + 2) return "Genoeg gespaard";
+  if (c.card === "uitwind") {
+    if (r.kopman) return "Alleen een knecht";
+    const kopman = kopmanOf(board.race, PLAYER_TEAM);
+    if (!kopman || !matesOf(board.race, kopman).includes(r)) return "Niet bij de kopman";
+  }
+  return null;
+}
+
+/**
+ * Plays a card. A team card in a road race goes to `rider`; without one, to the
+ * first of `ridersFor` (the cheapest).
+ */
+export function playCard(board: BoardState, uid: string, rider?: string): boolean {
   const c = board.hand.find((x) => x.uid === uid);
   if (!c || blockedReason(board, c)) return false;
+  if (choosesRider(board, c)) {
+    const who = rider ?? ridersFor(board, c)[0];
+    if (!who || riderProblem(board, c, who)) return false;
+    c.rider = who;
+  }
   board.paid[c.uid] = c.rider ? costOf(board, c) : 0;
   if (c.rider) board.kracht[c.rider] -= board.paid[c.uid];
   board.discount = c.card === "scherp" ? 1 : 0;
@@ -374,6 +442,7 @@ export function unplayCard(board: BoardState, uid: string): boolean {
   board.discount = 0;
   board.kracht[c.rider] += board.paid[c.uid] ?? 0;
   board.played = board.played.filter((x) => x !== c);
+  if (choosesRider(board, c)) c.rider = null;
   board.hand.push(c);
   return true;
 }
@@ -572,6 +641,7 @@ export function startSector(board: BoardState) {
     }
   }
   if (board.tt) for (const r of state.riders) if (riding(r) && !r.override) setOverride(board, r, { mode: "kop", pull: TT_BASE, untilDistance: TT_UNTIL });
+  for (const c of board.played) if (choosesRider(board, c)) c.rider = null;
   board.discard.push(...board.played.filter((c) => !back.includes(c)));
   board.hand.push(...back);
   board.played = [];

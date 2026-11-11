@@ -11,8 +11,10 @@ gaat stabiliteit voor nieuwe features.
    van ronde 1 tot en met spelen op de telefoon (`382dd83e` tot en met de
    commit van de ronde "Kopman: online gezet").** Geen migratie. Een
    wielermanager met rennerkaarten, alleen voor wie ZWBgame beheert. Sinds de
-   ronde "Kopman: een eigen pagina" (lokaal, nog niet gepusht) staat het op
-   `/kopman`, buiten de schil van de club; `/zwbgame/kopman` stuurt door. Het bordspel is de koers, ook in de tijdrit, met het
+   ronde "Kopman: een eigen pagina" (`48db7eaa`, gepusht) staat het op
+   `/kopman`, buiten de schil van de club; `/zwbgame/kopman` stuurt door.
+   Daarna lokaal, nog niet gepusht: "Kopman: een kaart op een renner naar
+   keuze". Het bordspel is de koers, ook in de tijdrit, met het
    getekende koersbeeld. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
@@ -12233,10 +12235,44 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — Kopman: een eigen pagina
+### Gebouwd — Kopman: een kaart op een renner naar keuze, en terug tijdens een koers
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
 `claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+
+- **De vraag.** De eigenaar: "Ik wil eigenlijk een kaart op een zelfgekozen
+  renner kunnen spelen, nu heb ik telkens dezelfde renner die een bepaalde
+  actie kan doen". Voorstel met meerprijs voorgelegd; de eigenaar: "Ja, bouw
+  dit". Tijdens het bouwen: "ik wil ook terug kunnen wanneer een wedstrijd
+  bezig is".
+- **Wat er is.** Zie
+  [docs/kopman-bordspel.md](docs/kopman-bordspel.md#een-kaart-op-een-renner-naar-keuze).
+  - **Eerst de kaart, dan de renner.** De renners die de kaart kunnen spelen,
+    lichten op met hun kosten.
+  - **Een renner van een ander type betaalt 1 kracht meer** (`OFF_TYPE`).
+  - `HandCard` heeft een `type` (wie de kaart meebracht); `rider` is in een
+    gewone koers pas gevuld als je hem speelt. `playCard` neemt een renner,
+    `ridersFor` geeft wie kan.
+  - **Terugknop** op het bord: de koers blijft staan, Start heet dan Verder.
+- **Niet meer waar.**
+  - "Een kaart hoort bij de renner die hem meebracht": in een gewone koers
+    kiest je nu zelf. In de tijdrit blijft het de kopman.
+  - Een kaart staat maar één keer in je hand; eerst was dat per renner.
+- **Bewust niet gebouwd:**
+  - een knop om een koers te stoppen en opnieuw te beginnen. De uitkomst
+    ligt per save vast, dus opnieuw beginnen helpt niet;
+  - de koers bewaren als je de pagina sluit.
+- **Geverifieerd:**
+  - in de preview op 375×667 en desktop: kiezen, spelen op een renner van
+    een ander type, terug, Verder;
+  - tsc, eslint en 49 tests (2 nieuw).
+- **Niet geverifieerd:** een echte telefoon, Safari, en of 1 kracht
+  meerprijs de goede balans is.
+
+### Gebouwd — Kopman: een eigen pagina
+
+**2026-11-11, commit `48db7eaa`, op 2026-11-11 gepusht naar `main`.** Geen
+migratie.
 
 - **De vraag.** De eigenaar: "Kan het uit de zwb build? die zit nu in de weg en
   ik moet alsnog scrollen op de eerste pagina". Daarna: "Waarom staan er

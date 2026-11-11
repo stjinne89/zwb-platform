@@ -48,6 +48,8 @@ export function KopmanApp() {
   const [notice, setNotice] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("koers");
   const [racing, setRacing] = useState<{ raceId: string; seed: number; riders: string[]; kopman: string; bonus: TeamBonus } | null>(null);
+  // Back from a race leaves it standing; Verder on the race tab picks it up again.
+  const [away, setAway] = useState(false);
   const [result, setResult] = useState<{ raceId: string; placings: Placing[]; reward: RaceReward } | null>(null);
   const [reveal, setReveal] = useState<{ title: string; pulls: Pull[] } | null>(null);
   const [picking, setPicking] = useState<Tier | null>(null);
@@ -81,6 +83,7 @@ export function KopmanApp() {
     const { save: next, reward } = finishRace(current, placings, today());
     update(next);
     setRacing(null);
+    setAway(false);
     setResult({ raceId: state.raceId, placings, reward });
   }, [update]);
 
@@ -91,6 +94,7 @@ export function KopmanApp() {
   const race = currentRace(save);
 
   const start = () => {
+    if (racing) { setAway(false); return; }
     if (!race || save.lineup.length !== LINEUP_SIZE || !save.kopman) return;
     setRacing({ raceId: race.id, seed: raceSeed(save), riders: save.lineup, kopman: save.kopman, bonus: teamBonus(save.items) });
   };
@@ -132,14 +136,14 @@ export function KopmanApp() {
           </button>
         ))}
       </div>
-      {tab === "koers" ? <RaceTab save={save} update={update} onStart={start} /> : null}
+      {tab === "koers" ? <RaceTab save={save} update={update} running={!!racing} onStart={start} /> : null}
       {tab === "ploeg" ? <TeamTab save={save} update={update} /> : null}
       {tab === "pakketten" ? <PacksTab save={save} update={update} onOpen={open} onTrade={trade} onPick={setPicking} /> : null}
       {tab === "seizoen" ? <SeasonTab save={save} update={update} /> : null}
 
       {racing ? (
-        <div className={styles.race} role="region" aria-label={raceById.get(racing.raceId)?.name}>
-          <BoardView raceId={racing.raceId} seed={racing.seed} lineup={{ riders: racing.riders, kopman: racing.kopman, bonus: racing.bonus }} items={save.items} own={save.teamName} onFinish={onFinish} />
+        <div className={styles.race} role="region" aria-label={raceById.get(racing.raceId)?.name} style={away ? { display: "none" } : undefined}>
+          <BoardView raceId={racing.raceId} seed={racing.seed} lineup={{ riders: racing.riders, kopman: racing.kopman, bonus: racing.bonus }} items={save.items} own={save.teamName} active={!away} onBack={() => setAway(true)} onFinish={onFinish} />
         </div>
       ) : null}
       {result ? <ResultView result={result} own={save.teamName} onClose={() => setResult(null)} onPacks={() => { setResult(null); setTab("pakketten"); }} /> : null}
@@ -149,7 +153,7 @@ export function KopmanApp() {
   );
 }
 
-function RaceTab({ save, update, onStart }: { save: Save; update: (s: Save) => void; onStart: () => void }) {
+function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: Save) => void; running: boolean; onStart: () => void }) {
   if (seasonDone(save)) {
     const standings = seasonStandings(save);
     const rank = standings.findIndex((t) => t.id === PLAYER_TEAM) + 1;
@@ -180,7 +184,7 @@ function RaceTab({ save, update, onStart }: { save: Save; update: (s: Save) => v
               <span className={styles.muted}>{Math.round(course.length / 1000)} km · {courseKind(course)} · {race.country} · Koers {save.raceIndex + 1} van {CALENDAR.length}</span>
             </div>
           </div>
-          <button type="button" className={styles.primary} disabled={!ready} onClick={onStart}><Play size={18} aria-hidden />Start</button>
+          <button type="button" className={styles.primary} disabled={!running && !ready} onClick={onStart}><Play size={18} aria-hidden />{running ? "Verder" : "Start"}</button>
         </div>
         <div style={{ margin: "12px 0" }}><Profile course={course} /></div>
         {climbs.length ? <div className={styles.features}>{[...new Map(climbs.map((f) => [f.name, f])).values()].map((f) => { const times = climbs.filter((x) => x.name === f.name).length; return <span key={f.name} className={`${styles.feature} ${f.kind === "kasseien" ? styles.featureKas : f.kind === "grind" ? styles.featureGrind : ""}`}>{f.name}{times > 1 ? ` ×${times}` : ""}</span>; })}</div> : null}

@@ -309,6 +309,9 @@ in de weg en ik moet alsnog scrollen op de eerste pagina". Zo werkt het:
   zit, staat er één keer, met het aantal erachter ("Kemmelberg ×2").
 - **Wie geen ZWBgame beheert, krijgt een 404**, net als eerst.
 
+**Een kaart op een renner naar keuze en terug tijdens een koers:** zie
+[kopman-bordspel.md](kopman-bordspel.md#een-kaart-op-een-renner-naar-keuze).
+
 **Twee cijfers op een kaart.**
 - Het rondje linksboven is hoe goed de renner is, over alles.
 - Het zwarte label onderaan, met een vlaggetje, is hoe goed hij past bij deze

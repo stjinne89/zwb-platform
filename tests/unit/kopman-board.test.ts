@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { autoplay, BOARD_SECTORS, blockedReason, createBoard, currentSector, deckFor, HAND_SIZE, PLAYS_PER_TURN, playCard, rideSector, startSector, unplayCard, type BoardState } from "@/kopman/engine/board";
+import { autoplay, BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, deckFor, HAND_SIZE, OFF_TYPE, PLAYS_PER_TURN, playCard, rideSector, ridersFor, startSector, unplayCard, type BoardState } from "@/kopman/engine/board";
+import { cardById } from "@/kopman/engine/cards";
 import { newSave } from "@/kopman/engine/economy";
 import { results } from "@/kopman/engine/race";
 import { CALENDAR } from "@/kopman/engine/world";
@@ -24,7 +25,7 @@ describe("Kopman: bordspel", () => {
     expect(deckFor(lineup.riders, {})).toHaveLength(15);
     const deck = deckFor(lineup.riders, { "p-mechanieker-brons": 1, "p-fysio-goud": 1, "p-trainer-brons": 1, "m-frame-goud": 1 });
     expect(deck).toHaveLength(17);
-    expect(deck.filter((c) => c.rider === null).map((c) => c.card).sort()).toEqual(["herstel", "scherp"]);
+    expect(deck.filter((c) => c.type === null).map((c) => c.card).sort()).toEqual(["herstel", "scherp"]);
     expect(createBoard(raceId, 1, lineup).hand).toHaveLength(HAND_SIZE);
     expect(createBoard(raceId, 1, lineup, { "p-chauffeur-brons": 1 }).hand).toHaveLength(HAND_SIZE + 1);
     expect(createBoard(raceId, 1, lineup, { "p-mechanieker-zilver": 1 }).spares).toBe(1);
@@ -46,6 +47,35 @@ describe("Kopman: bordspel", () => {
     for (const c of playable(b)) playCard(b, c.uid);
     expect(b.played.length).toBeLessThanOrEqual(PLAYS_PER_TURN);
     for (const c of b.hand) expect(blockedReason(b, c)).not.toBeNull();
+  });
+
+  it("laat je kiezen wie een kaart speelt; een renner van een ander type betaalt meer", () => {
+    const b = createBoard(raceId, 3, lineup);
+    for (const c of b.hand) expect(c.rider).toBeNull();
+    const c = b.hand.find((x) => x.type && ridersFor(b, x).some((id) => cardById(id).type !== x.type))!;
+    expect(c).toBeDefined();
+    const other = ridersFor(b, c).find((id) => cardById(id).type !== c.type)!;
+    const cost = Math.max(0, BOARD_CARDS[c.card].cost - (cardById(other).tier === "goud" ? 1 : 0) + OFF_TYPE);
+    expect(costOf(b, c, other)).toBe(cost);
+    const before = { ...b.kracht };
+    expect(playCard(b, c.uid, other)).toBe(true);
+    expect(c.rider).toBe(other);
+    expect(b.kracht[other]).toBe(before[other] - cost);
+    expect(unplayCard(b, c.uid)).toBe(true);
+    expect(c.rider).toBeNull();
+    expect(b.kracht).toEqual(before);
+  });
+
+  it("weigert een renner die de kaart niet kan spelen, en geeft kaarten na de sector terug aan de ploeg", () => {
+    const b = createBoard(raceId, 3, lineup);
+    b.hand = [{ uid: "u", card: "uitwind", type: "allrounder", rider: null }];
+    expect(ridersFor(b, b.hand[0])).not.toContain(lineup.kopman);
+    expect(playCard(b, "u", lineup.kopman)).toBe(false);
+    expect(playCard(b, "u", "niet-van-ons")).toBe(false);
+    expect(playCard(b, "u", ridersFor(b, b.hand[0])[0])).toBe(true);
+    startSector(b);
+    while (!rideSector(b, 600)) { /* ride */ }
+    for (const c of [...b.hand, ...b.deck, ...b.discard]) expect(c.rider).toBeNull();
   });
 
   it("geeft elke sector een hand met alleen kaarten die je daar kunt spelen", () => {
@@ -91,7 +121,7 @@ describe("Kopman: bordspel", () => {
 
   it("laat in een tijdrit één tempokeuze per sector toe", () => {
     const b = createBoard(ttId, 4, lineup);
-    b.hand = [{ uid: "a", card: "volgas", rider: lineup.kopman }, { uid: "b", card: "volgas", rider: lineup.kopman }];
+    b.hand = [{ uid: "a", card: "volgas", type: "tijdrijder", rider: lineup.kopman }, { uid: "b", card: "volgas", type: "allrounder", rider: lineup.kopman }];
     expect(playCard(b, "a")).toBe(true);
     expect(blockedReason(b, b.hand[0])).toBe("Al een tempo gekozen");
   });

@@ -362,6 +362,19 @@
 .bcardText { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
 .bcardCost { display: flex; gap: 3px; margin-top: auto; padding-top: 4px; }
 .bcardCost span { width: 10px; height: 10px; border-radius: 99px; background: var(--yellow); border: 1.5px solid var(--ink); }
+/* The card waiting for a rider: lifted, yellow with print dots, like a chosen tab. */
+.app .bcardPicked, .app .bcardPicked:not(:disabled):hover { background: var(--dots), var(--yellow); transform: translateY(-5px) rotate(-1.5deg); }
+.app .bcardPicked .bcardCost span { background: var(--paper); }
+/* The riders who can play it light up; the cost on him replaces his place in the race. */
+.app .riderPick, .app .mPick { font: inherit; text-align: inherit; cursor: pointer; background: var(--dots), var(--yellow); border: 2px solid var(--ink); border-bottom-width: 3px; box-shadow: var(--lift); transform: translateY(-2px); transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1); }
+.app .riderPick:hover, .app .mPick:hover { transform: translateY(-3px) rotate(-0.8deg); }
+.app .riderPick:active, .app .mPick:active { transform: translateY(0); }
+.app .mPick { text-align: center; }
+.mDim { opacity: 0.4; }
+.pickCost { display: flex; gap: 3px; min-height: 10px; align-items: center; }
+.pickCost span { width: 9px; height: 9px; border-radius: 99px; background: var(--paper); border: 1.5px solid var(--ink); }
+.mRider > .pickCost { gap: 2px; }
+.mRider > .pickCost span { width: 7px; height: 7px; }
 .k_aanval { --kind: var(--red); --kind-ink: #fff; }
 .k_tempo { --kind: var(--yellow); }
 .k_bescherming { --kind: #7fb2d6; }
@@ -391,6 +404,8 @@
 .mTop .chip { padding: 3px 8px; font-size: 0.78rem; }
 .mTop .viewToggle { flex: none; gap: 6px; }
 .mTop .viewToggle button { padding: 6px 9px 5px; }
+.backButton { flex: none; }
+.mTop .backButton { padding: 6px 5px 5px; }
 .mName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--letter); font-size: 1.02rem; font-weight: 800; text-transform: uppercase; }
 .mName .chip { max-width: 100%; }
 .mName .boardSelect { max-width: 100%; min-width: 0; }
