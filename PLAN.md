@@ -7,7 +7,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **ZWBekers: emoji in de gravure (2026-11-11): nog niet gepusht.** Geen
+0. **ZWBekers: emoji in de gravure (2026-11-11): commit `bcb9193b`, nog niet gepusht.** Geen
    migratie. Zie de ronde "ZWBekers: emoji in de gravure".
 
 0. **Club Ladder: parcoursadvies op het event (2026-11-11): gepusht naar
@@ -12200,7 +12200,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — ZWBekers: emoji in de gravure
 
-**2026-11-11, nog niet gepusht.** Geen migratie.
+**2026-11-11, commit `bcb9193b`, nog niet gepusht.** Geen migratie.
 
 **Waarom.** Een lid zette "Top of the World" met een ladder-emoji in de gravure
 en kreeg bij opslaan alleen "Er klopt iets niet in het formulier." De gravure
