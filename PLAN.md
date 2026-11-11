@@ -14,7 +14,7 @@ gaat stabiliteit voor nieuwe features.
    geplande Chrome-taak `ladder-vermogen-zwiftracing` uitzetten. Zie de ronde
    "ZwiftRacing: 90 dagen en vELO1 door de server".
 
-0. **Club Ladder: heatmap in de matchup (2026-11-11): lokaal gecommit, niet
+0. **Club Ladder: heatmap in de matchup (2026-11-11): `ac73f209`, lokaal, niet
    gepusht.** Geen migratie. Open: na de deploy een matchup met renners aan
    beide kanten bekijken, licht en donker, ook op een telefoon. Zie de ronde
    "Club Ladder: heatmap in de matchup".
@@ -12220,7 +12220,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: heatmap in de matchup
 
-**2026-11-11, lokaal gecommit, niet gepusht.** Geen migratie. Idee uit de
+**2026-11-11, commit `ac73f209`, lokaal, niet gepusht.** Geen migratie. Idee uit de
 W/kg-tool op zwbcycling.nl (een gekleurd vakje per waarde). Na een voorbeeld
 met en zonder heatmap vroeg de eigenaar het te bouwen ("Ja, bouw het").
 
@@ -12246,7 +12246,7 @@ racebriefje. Eerst zien of hij in de matchup bevalt.
 
 **Niet geverifieerd:** de pagina in de browser. In deze worktree staan geen
 `.env.local` en niet alle pakketten, dus geen lokale server; en een echte
-matchup vraagt productiedata. Vitest `club-ladder-matchup-heat` (8, nieuw),
+matchup vraagt productiedata. Vitest `club-ladder-matchup-heat` (6, nieuw),
 `club-ladder-matchup` en `-matchup-sort` schoon, ESLint schoon, `tsc` zonder
 nieuwe fouten.
 
