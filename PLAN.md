@@ -14,6 +14,11 @@ gaat stabiliteit voor nieuwe features.
    geplande Chrome-taak `ladder-vermogen-zwiftracing` uitzetten. Zie de ronde
    "ZwiftRacing: 90 dagen en vELO1 door de server".
 
+0. **Club Ladder: heatmap in de matchup (2026-11-11): lokaal gecommit, niet
+   gepusht.** Geen migratie. Open: na de deploy een matchup met renners aan
+   beide kanten bekijken, licht en donker, ook op een telefoon. Zie de ronde
+   "Club Ladder: heatmap in de matchup".
+
 0. **Losse apps buiten ZWB (2026-11-11): onderzocht, en de meetpagina
    `/dev/zwift-probe` gebouwd; gepusht naar `main` (`6017c451`, `f861e445`).**
    Geen migratie.
@@ -12213,6 +12218,38 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: heatmap in de matchup
+
+**2026-11-11, lokaal gecommit, niet gepusht.** Geen migratie. Idee uit de
+W/kg-tool op zwbcycling.nl (een gekleurd vakje per waarde). Na een voorbeeld
+met en zonder heatmap vroeg de eigenaar het te bouwen ("Ja, bouw het").
+
+**Wat er is:**
+- In de renners-tabel van de matchup op het event krijgt elke waarde per duur
+  (15 s, 1, 5, 20 min) een achtergrond in vijf stappen van de primaire kleur
+  (petrol in licht, goud in donker; `bg-primary/10` tot `/40`). De schaal loopt
+  per kolom van de zwakste tot de sterkste renner van **beide ploegen samen**,
+  zodat je ziet waar de sprinters en klimmers zitten en welke kant op een duur
+  sterker is. De zwakste krijgt geen kleur.
+- `src/lib/club-ladder/matchup-heat.ts` (`heatRange`, `heatStep`,
+  `matchupHeat`): de server rekent de schaal in watt en in W/kg, de tabel kiest
+  met de schakelaar. In watt telt een renner zonder gewicht niet mee.
+- `/hulp` (matchup): één zin over de kleur.
+
+**Keuzes:** een vergelijking binnen deze matchup, geen vaste W/kg-grenzen; één
+kleur, zodat groen en rood voor voor en achter bij de duren en routes blijven
+betekenen wat ze nu betekenen; geen legenda of uitleg in het scherm (afspraak:
+uitleg op `/hulp`). Onder twee verschillende waarden in een kolom geen kleur.
+
+**Bewust niet:** de heatmap op de teampagina (Renners, Advies) en op het
+racebriefje. Eerst zien of hij in de matchup bevalt.
+
+**Niet geverifieerd:** de pagina in de browser. In deze worktree staan geen
+`.env.local` en niet alle pakketten, dus geen lokale server; en een echte
+matchup vraagt productiedata. Vitest `club-ladder-matchup-heat` (8, nieuw),
+`club-ladder-matchup` en `-matchup-sort` schoon, ESLint schoon, `tsc` zonder
+nieuwe fouten.
+
 ### Gebouwd — ZwiftRacing: 90 dagen en vELO1 door de server
 
 **2026-11-11, commit `6f9d16c7`, lokaal, niet gepusht.** Geen migratie. Aanleiding: de
@@ -12259,7 +12296,8 @@ een voorstel ("Ja, bouw het").
   (`field.ts`) van ZRS naar vELO. Dat is een eigen keuze, niet in deze ronde.
 - **Zelf Zwift-ID's opzoeken** zoals op zwbcycling.nl, een **heatmap** per cel en
   de duren **5 s en 30 s**: apart scherm of weinig winst voor ladderraces van
-  15–25 km. Eerst een voorstel als het toch moet.
+  15–25 km. Eerst een voorstel als het toch moet. *Bijgewerkt 2026-11-11:* de
+  heatmap is er in de matchup, zie "Club Ladder: heatmap in de matchup".
 - **De racebriefing** gebruikt deze bron nog niet; die wacht op de API-sleutel.
 - **Privacy**: de verklaring noemt het ophalen van 90-dagenvermogen en vELO1
   voor de ladder niet uitdrukkelijk; dat gold al voor de Chrome-taak. Niet

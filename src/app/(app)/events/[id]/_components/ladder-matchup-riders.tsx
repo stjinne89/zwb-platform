@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { MemberLink } from "@/components/member-link";
 import { usePowerUnit } from "@/components/power-unit";
 import type { MatchupRider } from "@/lib/club-ladder/matchup";
+import { HEAT_CLASS, heatStep, type MatchupHeat } from "@/lib/club-ladder/matchup-heat";
 import type { PowerDuration } from "@/lib/club-ladder/routes";
 import type { PowerWkg } from "@/lib/club-ladder/team-power";
 import { nextRiderSort, riderWatts, sortMatchupRiders, type MatchupUnit, type RiderSort, type RiderSortKey } from "@/lib/club-ladder/matchup-sort";
@@ -29,22 +30,28 @@ export function MatchupUnitLabel() {
   return <>{useMatchupUnit() === "w" ? "Watt" : "W/kg"}</>;
 }
 
-/** Renners van één kant; elke kolom sorteert met een klik, zonder klik op startplek. */
+/**
+ * Renners van één kant; elke kolom sorteert met een klik, zonder klik op startplek.
+ * Met `heat` (de schaal over beide kanten) krijgt elke waarde een kleur naar zijn plek in die kolom.
+ */
 export function MatchupRiderTable({
   riders,
   durations,
   recentRaces,
   showRaces,
+  heat: heatByUnit,
 }: {
   riders: MatchupRider[];
   durations: Array<{ key: PowerDuration; label: string }>;
   recentRaces: number;
   showRaces: boolean;
+  heat?: MatchupHeat;
 }) {
   const [sort, setSort] = useState<RiderSort | null>(null);
 
   const unit = useMatchupUnit();
   const rows = useMemo(() => sortMatchupRiders(riders, sort, unit), [riders, sort, unit]);
+  const heat = heatByUnit?.[unit] ?? null;
   const powerOf = (rider: MatchupRider): PowerWkg | null => (unit === "w" ? riderWatts(rider.wkg, rider.weightKg) : rider.wkg);
   const toggle = (key: RiderSortKey) => setSort((current) => nextRiderSort(current, key));
 
@@ -90,11 +97,15 @@ export function MatchupRiderTable({
               <MemberLink id={rider.profileId}>{rider.name}</MemberLink>
               {rider.source === "ladder" && <span className="ml-1 text-muted-foreground">(ladder)</span>}
             </td>
-            {durations.map((d) => (
-              <td key={d.key} className="px-1.5 py-1 text-right">
-                {shown(powerOf(rider)?.[d.key], unit)}
-              </td>
-            ))}
+            {durations.map((d) => {
+              const value = powerOf(rider)?.[d.key];
+              const step = heat ? heatStep(value, heat[d.key]) : null;
+              return (
+                <td key={d.key} className="px-0.5 py-0.5 text-right">
+                  <span className={cn("block rounded px-1 py-0.5", step != null && HEAT_CLASS[step])}>{shown(value, unit)}</span>
+                </td>
+              );
+            })}
             <td className="py-1 pl-1.5 text-right">{rider.racingScore == null ? "–" : Math.round(rider.racingScore)}</td>
             {showRaces && (
               <td className="py-1 pl-1.5 text-right">{rider.races == null ? "–" : `${rider.races}/${recentRaces}`}</td>

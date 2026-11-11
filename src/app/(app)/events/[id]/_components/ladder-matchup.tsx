@@ -6,6 +6,7 @@ import { PowerUnitProvider, PowerUnitToggle } from "@/components/power-unit";
 import { DURATION_LABELS } from "@/lib/club-ladder/advice";
 import type { FiveAdvice } from "@/lib/club-ladder/five-advice";
 import { EVEN_PCT, ourAdvantages, type LadderMatchup, type MatchupSide } from "@/lib/club-ladder/matchup";
+import { matchupHeat, type MatchupHeat } from "@/lib/club-ladder/matchup-heat";
 import { SQUAD_FOCUS_LABELS, SQUAD_FOCUSES, type SquadFocus } from "@/lib/club-ladder/opponent-five";
 import { DURATIONS } from "@/lib/club-ladder/team-power";
 import { POWER_UNIT_COOKIE } from "@/lib/training/power-unit";
@@ -78,6 +79,7 @@ function MatchupBody({ matchup, routeLabel }: { matchup: LadderMatchup; routeLab
   const advantages = ourAdvantages(matchup);
   const showWeight = durations.some((row) => row.weight != null);
   const showKg = ours.weightKg != null || theirs.weightKg != null;
+  const heat = matchupHeat([...ours.riders, ...theirs.riders]);
 
   return (
     <div className="space-y-4">
@@ -171,8 +173,8 @@ function MatchupBody({ matchup, routeLabel }: { matchup: LadderMatchup; routeLab
 
       {(ours.riders.length > 0 || theirs.riders.length > 0) && (
         <div className="grid gap-4 md:grid-cols-2">
-          <SideRiders side={ours} />
-          <SideRiders side={theirs} />
+          <SideRiders side={ours} heat={heat} />
+          <SideRiders side={theirs} heat={heat} />
         </div>
       )}
     </div>
@@ -227,7 +229,7 @@ function OurFive({ advice, ourName }: { advice: FiveAdvice; ourName: string }) {
   );
 }
 
-function SideRiders({ side }: { side: MatchupSide }) {
+function SideRiders({ side, heat }: { side: MatchupSide; heat: MatchupHeat }) {
   const showRaces = side.recentRaces > 0 && side.riders.some((rider) => rider.races != null);
   return (
     <div className="min-w-0">
@@ -250,6 +252,7 @@ function SideRiders({ side }: { side: MatchupSide }) {
             durations={DURATIONS.map((key) => ({ key, label: DURATION_LABELS[key] }))}
             recentRaces={side.recentRaces}
             showRaces={showRaces}
+            heat={heat}
           />
         </div>
       )}
