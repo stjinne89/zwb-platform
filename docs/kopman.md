@@ -270,10 +270,22 @@ De hele app is een nachteditie van een stripalbum:
   gele vertelkaders.
 - **Profiel:** getekend als landschap.
 
-Titels, namen en scores staan in Shantell Sans, een handgeletterde letter
-onder de SIL Open Font License. Het font is zelf gehost in
-`src/kopman/ui/fonts/`, met de licentie ernaast, en heeft alleen de Latijnse
-sets. Lopende tekst houdt de letter van de pagina.
+Alle tekst staat in Shantell Sans, een handgeletterde letter onder de SIL
+Open Font License. Dat geldt sinds 2026-11-11 ook voor knoppen, chips,
+tabellen en lopende tekst; eerst hadden alleen titels, namen en scores die
+letter. Een strip is van begin tot eind geletterd, en de knoppen in de letter
+van de pagina zagen er volgens de eigenaar "meer ai" uit. Het font is zelf
+gehost in `src/kopman/ui/fonts/`, met de licentie ernaast, en heeft alleen de
+Latijnse sets.
+
+**Getekende knoppen.** Knoppen, tabs, chips en kaarten zijn getekend:
+- **De inktlijn is onderaan dikker** (3 à 3,5 px tegen 2 px), zoals een
+  inkter de schaduwkant zwaarder zet.
+- **De hoeken zijn net niet rond** (`--wobble`).
+- **Wat gekozen is, wordt geel met drukpunten** (`--dots`) en staat iets
+  scheef, zoals een vertelkader.
+- **De hoofdknop** (Start, Rijden) staat altijd een graad scheef, in
+  hoofdletters, net als het logo.
 
 De kleuren staan als variabelen op `.app` in `kopman.module.css`:
 - Wat op papier ligt, zet `--fg` en `--muted` op inkt, zodat `.muted` overal

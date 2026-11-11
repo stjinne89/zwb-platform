@@ -12238,10 +12238,56 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: getekende knoppen en de stripletter overal
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+
+- **De vraag.** Na de tabtegels uit `943ba2f5` (zie hieronder) schreef de
+  eigenaar: "nee je hebt nu juist de andere kant op gewerkt, de knoppen zijn
+  nu juist meer ai, ik wil meer de striptekenstijl overal doorgetrokken".
+- **De oorzaak.** De knoppen van de hele app stonden in de systeemletter, in
+  normaal gewicht. Dat komt door `.app button { font: inherit }`. Ze waren
+  ook strak afgerond met een zachte schaduw. Alleen titels en namen waren
+  geletterd.
+- **Wat er is.**
+  - **Alle tekst** in de app staat nu in Shantell Sans, ook de knoppen,
+    chips, tabellen en lopende tekst.
+  - **Knoppen, tabs, chips en kaarten** zijn getekend:
+    - de inktlijn is onderaan dikker;
+    - de hoeken zijn net niet rond;
+    - wat gekozen is, wordt geel met drukpunten en staat iets scheef.
+  - **De hoofdknop** (Start, Rijden) staat een graad scheef, in hoofdletters.
+  - **Overzicht en Koersbeeld** zijn weer twee compacte knoppen, in die
+    tekenstijl.
+  - Dit geldt voor de hele app: Koers, Ploeg, Pakketten, Seizoen, het bord en
+    het bord op de telefoon. Zie [docs/kopman.md](docs/kopman.md#stripstijl-in-de-hele-app).
+- **Niet meer waar:**
+  - "Gewone tekst houdt de letter van de pagina", in de ronde over de
+    stripstijl en in `docs/kopman.md`. Beide zijn aangepast.
+  - De tabtegels voor Overzicht en Koersbeeld uit de ronde hieronder.
+- **Bewust niet gebouwd:**
+  - **Harde blokschaduwen** (`4px 4px 0`). Dat is de stijl van neobrutalisme,
+    niet van een strip. Op de nachtgrond zie je een inktschaduw ook niet. De
+    zware onderlijn doet hetzelfde werk en blijft zichtbaar.
+  - **Een andere vorm voor de kaarten.** Alleen hun lijn en hoeken zijn
+    getekend.
+- **Geverifieerd:**
+  - in Chrome op desktop: Koers, Ploeg, Pakketten en het bord;
+  - nagebootst op 375×667: het bord zonder scroll, met kaarttitels en
+    soortlabels die passen;
+  - tsc, eslint en 47 tests.
+- **Niet geverifieerd:**
+  - een echte telefoon;
+  - de Next-pagina;
+  - het scherm Seizoen en de onthulling van een pakket. Die gebruiken dezelfde
+    klassen, maar ik heb ze niet bekeken.
+
 ### Gebouwd — Kopman: de weergaveknoppen in de stijl van de app
 
-**2026-11-11, commits `890a0b2a` en de commit die deze tekst bijwerkt, lokaal
-op `claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+**2026-11-11, commits `890a0b2a` en `943ba2f5`, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+Afgekeurd en vervangen door de ronde hierboven.
 
 - **De vraag.** "Kun je de knoppen ook in de stijl van de app maken?"
 - **Wat er is.** Overzicht en Koersbeeld waren één pil met twee helften, in een
@@ -12731,8 +12777,9 @@ papier met een inktrand. Een lichte papieren pagina was het alternatief.
   Sans**, een handgeletterde letter onder de SIL Open Font License. Die zit
   zelf gehost in `src/kopman/ui/fonts/`, met `OFL.txt`, en heeft alleen de
   Latijnse sets, met de uitgebreide set voor namen als Anže en Kovač. Gewone
-  tekst houdt de letter van de pagina. De eigenaar gaf toestemming om het
-  font te downloaden.
+  tekst hield toen de letter van de pagina. Dat is niet meer waar: sinds de
+  ronde "Kopman: getekende knoppen en de stripletter overal" staat alle tekst
+  in Shantell Sans. De eigenaar gaf toestemming om het font te downloaden.
 - **Browserelementen:** de focusring is inkt met een gele rand, zodat hij op
   papier en op donker zichtbaar is. De tekstselectie is geel. De scrollbalken
   van de koers en de overlays zijn smal en in papiertint.

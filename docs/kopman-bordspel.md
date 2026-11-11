@@ -466,15 +466,14 @@ je wil niet scrollen".
 - Op een hoog en smal beeld zoomt de camera wat in. Anders is de onderste helft
   lege weg. Op desktop verandert er niets.
 - Op desktop is het bord gelijk gebleven.
-- **De knoppen Overzicht en Koersbeeld** zijn dezelfde tegels als de
-  tabbladen van de app (Koers, Ploeg, Pakketten, Seizoen): het icoon boven het
-  woord, de gewone letter van de app op 16 px, en de gekozen tegel geel en
-  opgetild. Op de telefoon staat alleen het icoon. Eerst was het één pil met
-  twee helften, in een kleinere, vette letter. Die paste niet bij de app.
+- **De knoppen Overzicht en Koersbeeld** zijn twee getekende knoppen in de
+  stripletter, zoals alle knoppen van de app (zie
+  [kopman.md](kopman.md#stripstijl-in-de-hele-app)). De gekozen knop is geel
+  met drukpunten en staat iets scheef. Op de telefoon staat alleen het icoon.
   - De eigenaar vroeg: "Kun je de knoppen ook in de stijl van de app maken?".
-  - Een eerste poging (losse platte knoppen, nog in de vette letter) was
-    volgens de eigenaar niet goed: "de vorm en lettertype past niet bij de app
-    zoals die nu is".
+  - De eerste twee pogingen waren platte knoppen en daarna de tabtegels van
+    de app. Die zijn afgekeurd: "de knoppen zijn nu juist meer ai, ik wil meer
+    de striptekenstijl overal doorgetrokken".
 
 **Geverifieerd:**
 - in de preview in Chrome, nagebootst op 375×667, 390×844 en 812×375. Steeds
