@@ -21,7 +21,10 @@ De vraag was die opzet naar het wielrennen te halen. De eigenaar koos daarbij:
 - alles fictief (renners, ploegen, koersen), behalve de beklimmingen;
 - een beloningsstructuur zoals bij spellen die werken met pakketten, munten,
   diamanten en seizoenspassen. Ronde 1 bevat alleen de pakketten en de munten.
-- eerst binnen ZWB bouwen, later als losse app.
+- eerst binnen ZWB bouwen, later als losse app. Op 2026-11-11 maakte de
+  eigenaar dat scherper: Kopman is een losse game voor later, niet voor ZWB.
+  De volgende richting is een bordspel, zie
+  [kopman-bordspel.md](kopman-bordspel.md).
 
 ## Spel in ronde 1
 

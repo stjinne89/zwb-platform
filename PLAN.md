@@ -12,7 +12,9 @@ gaat stabiliteit voor nieuwe features.
    `4eb8fd52`; stripstijl in de hele app daarna), niet gepusht.** Geen migratie. Een wielermanager met
    rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
-   over pushen en ronde 2. Zie de rondes "Kopman: zelf kaarten kiezen om te
+   over pushen en ronde 2. Volgende stap: een speelbare bordspelversie, zie
+   [docs/kopman-bordspel.md](docs/kopman-bordspel.md). Zie de rondes
+   "Kopman: bordspelontwerp", "Kopman: zelf kaarten kiezen om te
    ruilen", "Kopman: dubbele kaarten ruilen of verkopen", "Kopman: materiaal en personeel in
    de pakketten", "Kopman: een afdaling na elke helling", "Kopman: de
    stripstijl in de hele app", "Kopman: stripportretten en
@@ -12231,6 +12233,31 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Ontwerp — Kopman: bordspelontwerp (geen code)
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Er is geen code
+en geen migratie. De eigenaar zei: "het spel zelf is niet zo leuk. Misschien
+moeten we meer richting een bordspel idee, waarbij je met verschillende
+krachten kaarten speelt die het spel kunnen beinvloeden en hoe je je kopman
+kan beschermen".
+
+- **Gekozen:**
+  - de physics-motor beslist elke sector;
+  - eerst alleen computerploegen;
+  - 10 beurten van samen ongeveer 5 minuten.
+- **Kopman wordt een losse game.** De eigenaar zei dat dit "niet voor ZWB
+  maar een standalone game in de toekomst" is.
+- **Het ontwerp:** [docs/kopman-bordspel.md](docs/kopman-bordspel.md).
+  - een bord van 10 sectoren;
+  - kracht per renner en dekking voor de kopman;
+  - een stapel uit je opstelling en je personeel;
+  - vijf soorten kaarten, gevaren per sector en rivalen met zichtbare
+    intenties.
+- **Bewust nog niet gebouwd.** De eerste speelbare versie wacht op een ja
+  van de eigenaar. Die komt naast de huidige koers in de preview
+  (`?bordspel`).
+
 ### Gebouwd — Kopman: zelf kaarten kiezen om te ruilen
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
@@ -12577,7 +12604,10 @@ koos voor:
 - een beloningsstructuur zoals in spellen met pakketten en passen. Dat is
   eerst onderzocht.
 
-Eerst binnen ZWB, later mogelijk als losse app. Werktitel: Kopman.
+Eerst binnen ZWB, later mogelijk als losse app. Werktitel: Kopman. (Bijgewerkt
+2026-11-11: de eigenaar bedoelt Kopman als een losse game voor later, niet
+voor ZWB. Plannen voor het spel staan daarom in `docs/kopman*.md`, niet in het
+ZWB-plannenboek.)
 
 **Wat er is:**
 - `src/kopman` (engine en ui) staat los van het platform. Het importeert
