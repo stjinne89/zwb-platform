@@ -12234,6 +12234,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: bordspel, een hand met alleen bruikbare kaarten
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie. De
+eigenaar zei: "Het is leuker maar je kan vaak niet kiezen omdat kaarten niet
+van toepassing zijn. Kun je daar meer variatie in maken en als kaarten niet
+bruikbaar zijn vervangen door bruikbare kaarten?"
+
+- **Je hand.**
+  - Bij elke sector gaan kaarten die daar niet passen terug onder de stapel:
+    verkeerd terrein, geen kracht, of een reactie zonder aangekondigde
+    aanval.
+  - Eén kaart draait mee, voor afwisseling.
+  - Daarna vul je aan met kaarten die wel passen (`refillHand` in
+    `board.ts`).
+- **Meer variatie.**
+  - Elke renner levert nu 3 kaarten in plaats van 2. Nieuw zijn Afdalen op
+    de limiet, Rustig aan, Positie vooraan en Mee in de vlucht.
+  - De snelle wielwissel is geen kaart meer. Het is een reservewiel naast je
+    renners, één per koers met een mechanieker.
+- **Gemeten** over alle 15 koersen zonder tijdrit: je hand is in 98% van de
+  sectoren vol, en per koers zie je 10 tot 16 verschillende kaarten.
+- **Niet meer waar.** In de vorige ronde staat:
+  - "je trekt elke sector minstens één nieuwe kaart, de oudste gaat weg".
+    Dat is vervangen door de regel hierboven.
+  - de snelle wielwissel als kaart in je hand.
+
+  Beide zijn aangepast in [docs/kopman-bordspel.md](docs/kopman-bordspel.md).
+- **Bewust niet gebouwd:**
+  - geen knop om zelf een kaart weg te gooien, want de hand ververst nu
+    vanzelf;
+  - geen nieuwe staf- of materiaalkaarten.
+- **Geverifieerd:**
+  - vitest: 7 bordspeltests, waaronder een nieuwe die per sector controleert
+    dat elke kaart in je hand speelbaar is, en de 34 bestaande tests;
+  - tsc en eslint;
+  - de preview: 5 sectoren gespeeld met steeds 4 speelbare kaarten.
+- **Gevonden en opgelost:** Positie vooraan zonder knechten in de groep liet
+  de zijwindregel crashen.
+- **Niet geverifieerd:** of de balans van de nieuwe kaarten klopt.
+
 ### Gebouwd — Kopman: eerste speelbare bordspelversie (alleen preview)
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
@@ -12243,7 +12284,7 @@ eigenaar zei "Ja, bouwen" op het ontwerp hieronder.
 - **Wat er is.**
   - `src/kopman/engine/board.ts`: een bord van 10 sectoren, kracht per
     renner en dekking voor de kopman, een stapel uit je opstelling en je
-    personeel (14 soorten kaarten), gevaren per sector en rivalen met
+    personeel (14 soorten kaarten; sinds de ronde hierboven 17), gevaren per sector en rivalen met
     zichtbare intenties.
   - De physics van `race.ts` rijdt elke sector, en je ziet dat als een
     animatie van ongeveer 3,5 seconde.
@@ -12262,7 +12303,8 @@ eigenaar zei "Ja, bouwen" op het ontwerp hieronder.
   Kort:
   - de gevaren komen na de sector;
   - reactiekaarten gaan terug in je hand als niemand aanvalt;
-  - je trekt elke sector minstens één nieuwe kaart.
+  - je trekt elke sector minstens één nieuwe kaart (vervangen in de ronde
+    hierboven: je hand bevat nu alleen bruikbare kaarten).
 - **Bewust niet gebouwd:**
   - beloningen, het seizoen en een plek in de app;
   - intenties voor alle ploegen;

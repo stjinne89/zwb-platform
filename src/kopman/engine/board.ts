@@ -22,37 +22,43 @@ export type Terrain = "vlak" | "klim" | "kasseien" | "afdaling";
 export type BoardSector = { index: number; start: number; end: number; terrain: Terrain; name: string | null; finale: boolean };
 
 export type CardKind = "aanval" | "tempo" | "bescherming" | "verstoring" | "reactie" | "steun";
-export type BoardCardId = "demarrage" | "bergop" | "klimtempo" | "sleuren" | "kasseien" | "waaier" | "lanceren" | "wiel" | "gat" | "uitwind" | "wielwissel" | "herstel" | "vooruit" | "scherp";
-type CardDef = { title: string; kind: CardKind; cost: number; text: string; terrain?: Terrain; finale?: boolean };
+export type BoardCardId = "demarrage" | "bergop" | "klimtempo" | "sleuren" | "kasseien" | "waaier" | "lanceren" | "wiel" | "gat" | "uitwind" | "afdalen" | "rustig" | "positie" | "vlucht" | "herstel" | "vooruit" | "scherp";
+/** `terrain`: only there. `early`: only in the first sectors, when the break goes. */
+type CardDef = { title: string; kind: CardKind; cost: number; text: string; terrain?: Terrain[]; finale?: boolean; early?: boolean };
 
 export const BOARD_CARDS: Record<BoardCardId, CardDef> = {
   demarrage: { title: "Demarrage", kind: "aanval", cost: 3, text: "Rijdt weg uit de groep" },
-  bergop: { title: "Versnellen bergop", kind: "aanval", cost: 2, terrain: "klim", text: "Valt aan op de klim" },
-  klimtempo: { title: "Tempo op de klim", kind: "tempo", cost: 2, terrain: "klim", text: "Hard tempo bergop" },
+  bergop: { title: "Versnellen bergop", kind: "aanval", cost: 2, terrain: ["klim"], text: "Valt aan op de klim" },
+  klimtempo: { title: "Tempo op de klim", kind: "tempo", cost: 2, terrain: ["klim"], text: "Hard tempo bergop" },
   sleuren: { title: "Op kop sleuren", kind: "tempo", cost: 1, text: "Trekt de groep op tempo" },
-  kasseien: { title: "Kasseien hard nemen", kind: "verstoring", cost: 2, terrain: "kasseien", text: "Breekt de groep op de stenen" },
-  waaier: { title: "Waaier trekken", kind: "verstoring", cost: 2, terrain: "vlak", text: "Zijwind: wie geen dekking heeft, verliest" },
+  kasseien: { title: "Kasseien hard nemen", kind: "verstoring", cost: 2, terrain: ["kasseien"], text: "Breekt de groep op de stenen" },
+  waaier: { title: "Waaier trekken", kind: "verstoring", cost: 2, terrain: ["vlak"], text: "Zijwind: wie geen dekking heeft, verliest" },
   lanceren: { title: "Lanceren", kind: "aanval", cost: 2, finale: true, text: "Vroege, harde sprint" },
   wiel: { title: "In het wiel", kind: "reactie", cost: 1, text: "Volgt een aanval van een rivaal" },
   gat: { title: "Gat dichtrijden", kind: "reactie", cost: 2, text: "Rijdt een aanval terug" },
   uitwind: { title: "Uit de wind zetten", kind: "bescherming", cost: 1, text: "Kopman +1 kracht, veilig voor wind en val" },
-  wielwissel: { title: "Snelle wielwissel", kind: "bescherming", cost: 0, text: "In je hand: vangt een lekke band op" },
+  afdalen: { title: "Afdalen op de limiet", kind: "aanval", cost: 1, terrain: ["afdaling"], text: "Sneller naar beneden, op eigen tempo" },
+  rustig: { title: "Rustig aan", kind: "steun", cost: 0, text: "Rijdt in het wiel, +1 kracht" },
+  positie: { title: "Positie vooraan", kind: "bescherming", cost: 1, text: "Ploeg veilig voor val, minder last van wind" },
+  vlucht: { title: "Mee in de vlucht", kind: "aanval", cost: 2, early: true, text: "Springt naar de kopgroep" },
   herstel: { title: "Herstel", kind: "steun", cost: 0, text: "Kopman +2 kracht" },
   vooruit: { title: "Vooruitkijken", kind: "steun", cost: 0, text: "Zie verder vooruit, trek een kaart" },
   scherp: { title: "Op scherp", kind: "steun", cost: 0, text: "Je volgende kaart kost 1 minder" },
 };
 
-/** Two cards per rider, by type. */
-export const TYPE_CARDS: Record<RiderType, [BoardCardId, BoardCardId]> = {
-  klimmer: ["bergop", "klimtempo"],
-  sprinter: ["lanceren", "wiel"],
-  klassieker: ["kasseien", "waaier"],
-  tijdrijder: ["sleuren", "gat"],
-  allrounder: ["demarrage", "uitwind"],
+/** Three cards per rider, by type: two that suit the type, one that works almost anywhere. */
+export const TYPE_CARDS: Record<RiderType, [BoardCardId, BoardCardId, BoardCardId]> = {
+  klimmer: ["bergop", "klimtempo", "afdalen"],
+  sprinter: ["lanceren", "wiel", "rustig"],
+  klassieker: ["kasseien", "waaier", "positie"],
+  tijdrijder: ["sleuren", "gat", "vlucht"],
+  allrounder: ["demarrage", "uitwind", "rustig"],
 };
 
-/** One card per staff role; the bus driver gives a bigger hand instead. */
-export const STAFF_CARDS: Partial<Record<StaffRole, BoardCardId>> = { mechanieker: "wielwissel", fysio: "herstel", ploegleider: "vooruit", trainer: "scherp" };
+/** One card per staff role. The mechanic gives a spare wheel instead, the bus driver a bigger hand. */
+export const STAFF_CARDS: Partial<Record<StaffRole, BoardCardId>> = { fysio: "herstel", ploegleider: "vooruit", trainer: "scherp" };
+/** Sectors in which the break of the day can still be joined. */
+export const EARLY_SECTORS = 4;
 
 export type Hazard = "lek" | "val" | "wind";
 export const HAZARD_LABELS: Record<Hazard, string> = { lek: "Lekke band", val: "Valpartij", wind: "Zijwind" };
@@ -95,10 +101,14 @@ export type BoardState = {
   touched: string[];
   forcedWind: boolean;
   immune: string[];
+  /** Teams riding up front this sector: safe from crashes, one teammate less needed in the wind. */
+  upFront: string[];
+  /** Spare wheels from the mechanic: each one saves a puncture. */
+  spares: number;
   random: () => number;
 };
 
-const base = new WeakMap<Rider, { cpFlat: number; cpClimb: number; sprintW: number }>();
+const base = new WeakMap<Rider, { cpFlat: number; cpClimb: number; sprintW: number; vmax: number }>();
 
 function sectorsOf(state: RaceState): BoardSector[] {
   const course = state.course;
@@ -138,13 +148,29 @@ function shuffle<T>(list: T[], random: () => number) {
   return out;
 }
 
-function draw(board: BoardState, n: number) {
-  for (let i = 0; i < n; i++) {
-    if (!board.deck.length) { board.deck = shuffle(board.discard, board.random); board.discard = []; }
-    const next = board.deck.shift();
-    if (!next) return;
-    board.hand.push(next);
+/** Takes the first card from the stack that can be played in this sector; reshuffles the discards when needed. */
+function drawUsable(board: BoardState) {
+  for (let pass = 0; pass < 2; pass++) {
+    const i = board.deck.findIndex((c) => !cardProblem(board, c));
+    if (i >= 0) { board.hand.push(board.deck.splice(i, 1)[0]); return true; }
+    if (!board.discard.length) return false;
+    board.deck.push(...shuffle(board.discard, board.random));
+    board.discard = [];
   }
+  return false;
+}
+
+/**
+ * Builds the hand for a new sector: cards that do not fit this sector go back
+ * under the stack (they come back where they do fit), one card rotates out for
+ * variety, and the hand fills up with cards you can play here.
+ */
+function refillHand(board: BoardState, rotate: boolean) {
+  const keep = board.hand.filter((c) => !cardProblem(board, c));
+  board.deck.push(...board.hand.filter((c) => !keep.includes(c)));
+  board.hand = keep;
+  if (rotate && board.hand.length >= board.handSize) board.deck.push(board.hand.shift()!);
+  while (board.hand.length < board.handSize && drawUsable(board)) { /* fill */ }
 }
 
 export function createBoard(raceId: string, seed: number, lineup: Lineup, items: Record<string, number> = {}): BoardState {
@@ -155,7 +181,7 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
   const kracht: Record<string, number> = {};
   for (const r of race.riders) {
     kracht[r.id] = kracht0(r);
-    base.set(r, { cpFlat: r.cpFlat, cpClimb: r.cpClimb, sprintW: r.sprintW });
+    base.set(r, { cpFlat: r.cpFlat, cpClimb: r.cpClimb, sprintW: r.sprintW, vmax: r.vmax });
   }
   const board: BoardState = {
     race,
@@ -179,10 +205,12 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
     touched: [],
     forcedWind: false,
     immune: [],
+    upFront: [],
+    spares: bestItems(items).mechanieker ? 1 : 0,
     random,
   };
-  draw(board, board.handSize);
   board.intents = intentsFor(board);
+  refillHand(board, false);
   return board;
 }
 
@@ -209,18 +237,26 @@ export const costOf = (board: BoardState, c: HandCard) => Math.max(0, BOARD_CARD
 
 /** Why this card cannot be played now, or null. */
 export function blockedReason(board: BoardState, c: HandCard): string | null {
-  const def = BOARD_CARDS[c.card];
-  const sector = currentSector(board);
   if (board.phase !== "plannen") return "Even wachten";
   if (!board.hand.includes(c)) return "Niet in je hand";
   if (board.played.length >= PLAYS_PER_TURN) return `Maximaal ${PLAYS_PER_TURN} per sector`;
-  if (c.card === "wielwissel") return "Werkt vanzelf";
-  if (def.terrain && sector.terrain !== def.terrain) return `Alleen op ${TERRAIN_LABELS[def.terrain].toLowerCase()}`;
+  return cardProblem(board, c);
+}
+
+/** Whether a card fits this sector at all, apart from how many you played. */
+function cardProblem(board: BoardState, c: HandCard): string | null {
+  const def = BOARD_CARDS[c.card];
+  const sector = currentSector(board);
+  if (def.terrain && !def.terrain.includes(sector.terrain)) return `Alleen op ${def.terrain.map((t) => TERRAIN_LABELS[t].toLowerCase()).join(" of ")}`;
   if (def.finale && !sector.finale) return "Alleen in de finale";
+  if (def.early && sector.index >= EARLY_SECTORS) return "Alleen vroeg in de koers";
+  if (def.kind === "reactie" && !board.intents.some((i) => i.kind === "aanval")) return "Geen aanval aangekondigd";
   if (c.rider) {
     const r = byId(board, c.rider);
     if (!r || !riding(r)) return "Al binnen";
     if (board.kracht[c.rider] < costOf(board, c)) return "Te weinig kracht";
+    if (c.card === "vlucht" && groupsOf(board.race)[0]?.includes(r)) return "Zit al vooraan";
+    if (c.card === "rustig" && board.kracht[c.rider] >= board.start[c.rider]) return "Al uitgerust";
     if (c.card === "uitwind") {
       if (r.kopman) return "Alleen een knecht";
       const kopman = kopmanOf(board.race, PLAYER_TEAM);
@@ -230,6 +266,7 @@ export function blockedReason(board: BoardState, c: HandCard): string | null {
   if (c.card === "herstel" || c.card === "uitwind") {
     const kopman = kopmanOf(board.race, PLAYER_TEAM);
     if (!kopman || !riding(kopman)) return "Kopman is binnen";
+    if (c.card === "herstel" && board.kracht[kopman.id] >= board.start[kopman.id]) return "Kopman is nog fit";
   }
   return null;
 }
@@ -244,7 +281,7 @@ export function playCard(board: BoardState, uid: string): boolean {
   board.played.push(c);
   const kopman = kopmanOf(board.race, PLAYER_TEAM)!;
   if (c.card === "herstel") board.kracht[kopman.id] = Math.min(board.start[kopman.id], board.kracht[kopman.id] + 2);
-  if (c.card === "vooruit") { board.lookahead = 2; draw(board, 1); }
+  if (c.card === "vooruit") { board.lookahead = 2; drawUsable(board); }
   return true;
 }
 
@@ -314,6 +351,7 @@ function applyFatigue(board: BoardState) {
     r.cpFlat = b.cpFlat * f;
     r.cpClimb = b.cpClimb * f;
     r.sprintW = b.sprintW * f;
+    r.vmax = b.vmax;
   }
 }
 
@@ -327,6 +365,7 @@ export function startSector(board: BoardState) {
   board.plans = {};
   board.forcedWind = false;
   board.immune = [];
+  board.upFront = [];
   applyFatigue(board);
   const t = state.time;
   const attackers: Rider[] = [];
@@ -382,6 +421,29 @@ export function startSector(board: BoardState) {
         if (c.card === "wiel") setOverride(board, r, { mode: "volgen", target: target.id, untilTime: t + 70 });
         else setOverride(board, r, { mode: "kop", pull: 1.15, untilTime: t + 120 });
         log(board, PLAYER_TEAM, `${name} reageert op ${cardById(target.id).last}`, true);
+        break;
+      }
+      case "afdalen":
+        if (!r) break;
+        r.vmax *= 1.12;
+        setOverride(board, r, { mode: "tempo", untilDistance: sector.end });
+        log(board, PLAYER_TEAM, `${name} daalt op de limiet`, true);
+        break;
+      case "rustig":
+        if (!r) break;
+        board.kracht[r.id] = Math.min(board.start[r.id], board.kracht[r.id] + 1);
+        setOverride(board, r, { mode: "sparen", untilDistance: sector.end });
+        break;
+      case "positie":
+        board.upFront.push(PLAYER_TEAM);
+        if (r) setOverride(board, r, { mode: "kop", pull: 0.95, untilDistance: sector.end });
+        break;
+      case "vlucht": {
+        if (!r) break;
+        const front = groupsOf(state)[0];
+        const tail = front[front.length - 1];
+        setOverride(board, r, { mode: "aanval", untilTime: t + 25 }, [{ mode: "volgen", target: tail.id, untilTime: t + 200 }]);
+        log(board, PLAYER_TEAM, `${name} springt naar de kopgroep`, true);
         break;
       }
       case "uitwind":
@@ -461,17 +523,15 @@ function endSector(board: BoardState) {
         const mates = matesOf(state, k);
         const name = cardById(k.id).last;
         if (hazard === "lek") {
-          const spare = team === PLAYER_TEAM ? board.hand.find((c) => c.card === "wielwissel") : undefined;
-          if (spare) {
-            board.hand = board.hand.filter((c) => c !== spare);
-            board.discard.push(spare);
+          if (team === PLAYER_TEAM && board.spares > 0) {
+            board.spares--;
             log(board, team, `Lekke band voor ${name}: snelle wielwissel, geen tijd verloren`, true);
           } else {
             const waited = knockBack(board, k, 250, mates, 2);
             log(board, team, waited ? `Lekke band voor ${name}: ${waited} knecht${waited > 1 ? "en" : ""} wacht${waited > 1 ? "en" : ""}` : `Lekke band voor ${name}, zonder dekking`, waited > 0);
           }
         } else if (hazard === "val") {
-          if (!peloton.includes(k) || board.immune.includes(team)) continue;
+          if (!peloton.includes(k) || board.immune.includes(team) || board.upFront.includes(team)) continue;
           if (mates.length >= 2) {
             board.kracht[mates[0].id] = Math.max(0, board.kracht[mates[0].id] - 1);
             if (team === PLAYER_TEAM) log(board, team, `Valpartij: de knechten houden ${name} overeind`, true);
@@ -483,9 +543,9 @@ function endSector(board: BoardState) {
         } else {
           if (board.immune.includes(team)) continue;
           // In a crosswind someone pulled on purpose you need two teammates around you.
-          if (mates.length >= (board.forcedWind ? 2 : 1)) {
-            board.kracht[mates[0].id] = Math.max(0, board.kracht[mates[0].id] - 1);
-            if (team === PLAYER_TEAM) log(board, team, `Zijwind: een knecht houdt ${name} uit de wind`, true);
+          if (mates.length >= (board.forcedWind ? 2 : 1) - (board.upFront.includes(team) ? 1 : 0)) {
+            if (mates[0]) board.kracht[mates[0].id] = Math.max(0, board.kracht[mates[0].id] - 1);
+            if (team === PLAYER_TEAM) log(board, team, mates[0] ? `Zijwind: een knecht houdt ${name} uit de wind` : `Zijwind: ${name} zit vooraan, geen schade`, true);
           } else {
             board.kracht[k.id] = Math.max(0, board.kracht[k.id] - 1);
             k.distance -= 200;
@@ -511,10 +571,8 @@ function endSector(board: BoardState) {
   }
   board.sector++;
   board.lookahead = 1;
-  // Always one fresh card; the oldest goes if the hand is full, so it never clogs.
-  draw(board, Math.max(1, board.handSize - board.hand.length));
-  while (board.hand.length > board.handSize) board.discard.push(board.hand.shift()!);
   board.intents = intentsFor(board);
+  refillHand(board, true);
   board.phase = "plannen";
 }
 

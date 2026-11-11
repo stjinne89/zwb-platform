@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown, Flag, Play, RotateCcw, Undo2 } from "lucide-react";
+import { Crown, Flag, Play, RotateCcw, Undo2, Wrench } from "lucide-react";
 import { useEffect, useReducer, useState } from "react";
 import { BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, HAZARD_LABELS, HAZARD_ODDS, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
 import { cardById } from "../engine/cards";
@@ -160,6 +160,7 @@ export function BoardView({ raceId, seed, lineup, items, own, onAgain }: { raceI
         </div>
 
         <div className={styles.panel}>
+          {board.spares ? <div className={styles.row} style={{ marginBottom: 8 }}><span className={styles.playedChip}><Wrench size={14} aria-hidden />Reservewiel ×{board.spares}</span></div> : null}
           <div className={styles.riders}>
             {mine.map((r) => {
               const k = board.kracht[r.id], start = board.start[r.id];

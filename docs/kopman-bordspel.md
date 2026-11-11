@@ -91,7 +91,7 @@ verzameling en de pakketten krijgen zo een doel tijdens de koers.
 
   | Rol | Kaart | Wat het doet |
   | --- | --- | --- |
-  | mechanieker | Snelle wielwissel | heft een lekke band of defect op |
+  | mechanieker | Snelle wielwissel | heft een lekke band of defect op (gebouwd als reservewiel naast de hand, geen kaart) |
   | fysio | Herstel | +2 kracht |
   | ploegleider | Vooruitkijken | zie twee sectoren verder en ruil een kaart |
   | trainer | Op scherp | volgende kaart kost 1 kracht minder |
@@ -210,15 +210,43 @@ er niets in. Je kiest een koers; tijdritten tellen niet mee.
   een rivaal in die sector echt aanvalt binnen 250 m. Zo niet, dan gaan ze
   terug in je hand en krijg je je kracht terug. Ze gaan bij het begin van de
   sector af, niet midden in de animatie.
-- **Je hand.**
-  - Je hebt 4 kaarten, of 5 met een buschauffeur. Na elke sector trek je
-    minstens één nieuwe kaart. Is je hand dan te vol, dan gaat de oudste
-    weg. Zo raakt je hand niet verstopt met kaarten die niet passen.
+- **Je hand (sinds de tweede ronde op 2026-11-11).** Je hand bevat alleen
+  kaarten die je in deze sector kunt spelen.
+  - Je hebt 4 kaarten, of 5 met een buschauffeur.
+  - Bij elke nieuwe sector gaan kaarten die niet passen terug onder de
+    stapel. Ze komen terug als het terrein klopt. Denk aan een klimkaart op
+    de vlakte, een renner zonder kracht of een reactie zonder aangekondigde
+    aanval.
+  - Eén kaart draait mee terug onder de stapel, voor afwisseling.
+  - Daarna vul je aan met kaarten die passen.
   - Rennerkaarten kun je terugnemen tot je op Rijden drukt. Stafkaarten
     werken meteen.
-- **De snelle wielwissel** speel je niet: als hij in je hand zit, vangt hij
-  vanzelf een lekke band op.
+  - De eigenaar zei na de eerste ronde: "je kan vaak niet kiezen omdat kaarten
+    niet van toepassing zijn". Een meting over alle 15 klassiekers en
+    bergritten laat nu zien dat je hand in 98% van de sectoren vol is. Per
+    koers zie je 10 tot 16 verschillende kaarten.
+- **Drie kaarten per renner.** Elk type kreeg er een derde kaart bij die op
+  ander terrein werkt:
+
+  | Type | Derde kaart | Wat het doet |
+  | --- | --- | --- |
+  | klimmer | Afdalen op de limiet | alleen in een afdaling: 12% hogere topsnelheid, op eigen tempo |
+  | sprinter | Rustig aan | overal: in het wiel rijden, +1 kracht |
+  | klassieker | Positie vooraan | overal: je ploeg is veilig voor een val en heeft in de wind één ploeggenoot minder nodig |
+  | tijdrijder | Mee in de vlucht | alleen in de eerste 4 sectoren: springt naar de kopgroep |
+  | allrounder | Rustig aan | overal: in het wiel rijden, +1 kracht |
+
+- **Kaarten die geen effect hebben, komen niet in je hand.** Dat geldt voor
+  Herstel en Rustig aan als je al volle kracht hebt, en voor Mee in de vlucht
+  als je al vooraan zit.
+- **Het reservewiel.** Een mechanieker geeft één reservewiel per koers. Dat
+  vangt vanzelf een lekke band op. Het staat naast je renners en neemt geen
+  plek in je hand in. In de eerste ronde was het een kaart, de "snelle
+  wielwissel", die een plek in je hand bezet hield.
 - **Herstel** gaat altijd naar de kopman.
+- **Een stapel** heeft 15 rennerkaarten. Daar komen tot 3 stafkaarten bij:
+  Herstel van de fysio, Vooruitkijken van de ploegleider en Op scherp van de
+  trainer.
 - **Rivalen.** Alleen de 4 ploegen met de best passende kopman krijgen
   intenties, en er staan er hooguit 3 op het scherm. Elke ploeg valt hooguit
   2 keer per koers aan. Van de intenties gaat 20% niet door.

@@ -20,12 +20,14 @@ describe("Kopman: bordspel", () => {
   });
 
   it("bouwt de stapel uit de opstelling en het personeel", () => {
-    expect(deckFor(lineup.riders, {})).toHaveLength(10);
-    const deck = deckFor(lineup.riders, { "p-mechanieker-brons": 1, "p-fysio-goud": 1, "m-frame-goud": 1 });
-    expect(deck).toHaveLength(12);
-    expect(deck.filter((c) => c.rider === null).map((c) => c.card).sort()).toEqual(["herstel", "wielwissel"]);
+    expect(deckFor(lineup.riders, {})).toHaveLength(15);
+    const deck = deckFor(lineup.riders, { "p-mechanieker-brons": 1, "p-fysio-goud": 1, "p-trainer-brons": 1, "m-frame-goud": 1 });
+    expect(deck).toHaveLength(17);
+    expect(deck.filter((c) => c.rider === null).map((c) => c.card).sort()).toEqual(["herstel", "scherp"]);
     expect(createBoard(raceId, 1, lineup).hand).toHaveLength(HAND_SIZE);
     expect(createBoard(raceId, 1, lineup, { "p-chauffeur-brons": 1 }).hand).toHaveLength(HAND_SIZE + 1);
+    expect(createBoard(raceId, 1, lineup, { "p-mechanieker-zilver": 1 }).spares).toBe(1);
+    expect(createBoard(raceId, 1, lineup).spares).toBe(0);
   });
 
   it("laat hooguit twee kaarten per sector spelen, kost kracht en geeft die terug bij terugnemen", () => {
@@ -43,6 +45,15 @@ describe("Kopman: bordspel", () => {
     for (const c of playable(b)) playCard(b, c.uid);
     expect(b.played.length).toBeLessThanOrEqual(PLAYS_PER_TURN);
     for (const c of b.hand) expect(blockedReason(b, c)).not.toBeNull();
+  });
+
+  it("geeft elke sector een hand met alleen kaarten die je daar kunt spelen", () => {
+    let checked = 0;
+    autoplay(createBoard(raceId, 11, lineup, { "p-fysio-brons": 1, "p-ploegleider-brons": 1 }), (b) => {
+      for (const c of b.hand) { expect(blockedReason(b, c)).toBeNull(); checked++; }
+      return b.sector % 2 ? playable(b).slice(0, 1).map((c) => c.uid) : [];
+    });
+    expect(checked).toBeGreaterThan(20);
   });
 
   it("weigert kaarten voor ander terrein", () => {
