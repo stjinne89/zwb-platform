@@ -36,6 +36,13 @@ export function routeSegments(routeId: number | string, laps = 1): RouteSegmentR
   return refs;
 }
 
+/** Alle segmenten uit de tabel, op naam gesorteerd (de meetpagina in dev). */
+export function allSegments(): Array<{ segmentId: string; name: string }> {
+  return Object.entries(table.segments)
+    .map(([segmentId, name]) => ({ segmentId, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /** Een sprint, KOM of rondesegment van zwift-data: slug, naam en km binnen de ronde. */
 export type NamedSegment = { slug: string; name: string; kind: "climb" | "sprint" | "lap"; startKm: number };
 

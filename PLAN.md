@@ -7,10 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Losse apps buiten ZWB (2026-11-11): onderzocht, lokaal gecommit.** Geen
-   code, geen migratie. Open: voorstel voor een lokale meetpagina die inloggen
-   bij Zwift en de segmentresultaten vanuit de browser test. Zie de ronde
-   "Losse apps buiten ZWB".
+0. **Losse apps buiten ZWB (2026-11-11): onderzocht, en de meetpagina
+   `/dev/zwift-probe` gebouwd; lokaal gecommit, niet gepusht.** Geen migratie.
+   Open: de eigenaar logt lokaal (`npm run dev`) met zijn eigen Zwift-account in
+   op `/dev/zwift-probe` en meet tijdens een race; de gekopieerde log bepaalt of
+   de losse live-app in de browser kan. Zie de rondes "Meetpagina: Zwift vanuit
+   de browser" en "Losse apps buiten ZWB".
 
 0. **ZWBekers: emoji in de gravure (2026-11-11): gepusht naar `main` (`bcb9193b`).** Open: na de deploy een gravure met emoji opslaan en op een iPhone bekijken. Geen
    migratie. Zie de ronde "ZWBekers: emoji in de gravure".
@@ -12203,6 +12205,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Meetpagina: Zwift vanuit de browser
+
+**2026-11-11.** Lokaal gecommit, niet gepusht. Commit: de commit die dit blok
+toevoegt. Geen migratie. Op verzoek van de eigenaar ("Ja, bouwen"), na het
+voorstel in de ronde "Losse apps buiten ZWB".
+
+**Waarom.** De losse live-ZRL-app laat de browser van de gebruiker zelf bij Zwift
+inloggen en ophalen. Dat is alleen aan een CORS-voorcontrole gezien. Deze pagina
+meet het met een echt account voordat er iets ontworpen wordt.
+
+**Wat.**
+- `src/app/dev/zwift-probe` (pagina en client-component): inloggen met
+  e-mail en wachtwoord, segmentresultaten van een gekozen segment (ook elke
+  15 s), de uitslag van een subgroep (met of zonder `Zwift-Api-Version`), en een
+  burst in een gekozen tempo. Een log met tijd, status, duur en aantallen, te
+  kopiëren. Geen namen in de log.
+- Alle verzoeken gaan vanuit de browser rechtstreeks naar Zwift; er is geen
+  API-route. Het token staat alleen in het geheugen van de pagina, het
+  wachtwoordveld wordt na het inloggen leeggemaakt.
+- Bewust zonder de app-headers van `zwift-club.ts` (Platform, Source,
+  game-user-agent): een browser mag de user-agent niet zetten, en de
+  voorcontrole van het token-endpoint staat Platform en Source niet toe.
+- De burst stopt bij het eerste antwoord dat geen 200 is.
+- `src/lib/zwift/browser-probe.ts`: URL's, loginbody, samenvatting en telling,
+  puur en getest (`tests/unit/zwift-browser-probe.test.ts`).
+- `allSegments()` in `src/lib/zwift/route-segments.ts` voor de keuzelijst.
+- `src/lib/supabase/middleware.ts`: `/dev/` telt in dev als publiek, net als
+  `/ontwerp-voorbeeld`. De pagina geeft in productie een 404.
+
+**Gezien bij het bouwen.** Een echte aanvraag met een ongeldig token
+(`curl` en vanuit de pagina) gaf een 401 **zonder** `access-control-allow-origin`;
+de browser meldt dan alleen een CORS-fout. Een publiek endpoint gaf bij 200 wel
+`access-control-allow-origin: *`. Dus: een foutstatus (401, waarschijnlijk ook
+429) is in de browser niet als status te lezen. Of een geslaagde aanroep met
+een echt token de kop wel krijgt, is precies wat de meting moet laten zien.
+
+**Gecontroleerd.** Vitest (`zwift-browser-probe`, `middleware-public-paths`,
+`zwift-segment-results-pb`: 28 groen), ESLint schoon op de gewijzigde
+bestanden, `tsc` zonder fouten in deze bestanden. `tsc` geeft wel 8 fouten
+elders, omdat `modern-screenshot`, `@mediapipe/tasks-vision` en
+`@anthropic-ai/sdk` in de `node_modules` van de hoofdmap ontbreken; niet door
+deze ronde. De pagina lokaal geopend (`next dev`): ze laadt zonder login, zonder
+consolefouten. **Niet getest:** inloggen en ophalen met een echt Zwift-account;
+dat doet de eigenaar.
+
+**Bewust niet.** Geen opslag, geen deploy, geen hulptekst in het scherm, en
+geen aparte spelersstatus-meting (DS valt buiten deze app).
+
 ### Onderzocht — Losse apps buiten ZWB
 
 **2026-11-11.** Alleen onderzoek, geen code. Lokaal gecommit, niet gepusht.
@@ -12242,7 +12292,8 @@ intervals.icu af (Intervals Pro stopte op 12 oktober).
 **Gezien, niet bewezen.** ZwiftRacing logt in via Zwifts eigen OAuth met een
 toegekende client en alleen `profile:read`. Een CORS-voorcontrole op Zwifts
 token- en segment-endpoint staat elke origin toe; een echte login of aanroep
-vanuit de browser is **niet** getest.
+vanuit de browser is **niet** getest. Later dezelfde dag gezien: een 401 komt
+zonder CORS-kop terug (zie de ronde "Meetpagina: Zwift vanuit de browser").
 
 ### Hersteld — ZWBekers: emoji in de gravure
 

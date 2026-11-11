@@ -120,6 +120,14 @@ inloggen en ophalen: geen wachtwoord op onze server, verzoeken van het eigen
 IP, en de limiet groeit mee met het aantal gebruikers. **Alleen de
 voorcontrole is gezien**, geen echte login of echte aanroep.
 
+Later dezelfde dag, bij het bouwen van de meetpagina (`/dev/zwift-probe`): een
+echte aanvraag met een ongeldig token gaf een 401 **zonder**
+`access-control-allow-origin`, terwijl een publiek endpoint bij 200 wel
+`access-control-allow-origin: *` gaf. Een foutstatus (401, waarschijnlijk ook
+429) is in de browser dus niet als status te lezen, alleen als CORS-fout. De
+losse app moet zo'n fout als "wachten en opnieuw" behandelen. Of een geslaagde
+aanroep met een echt token de kop krijgt, laat de meting zien.
+
 ## 6. Besluiten eigenaar (2026-11-11)
 
 - **Houding als losse app: geparkeerd.** Eerst moet de meetproef slagen.
@@ -146,7 +154,8 @@ voorcontrole is gezien**, geen echte login of echte aanroep.
   geeft het Zwift-ID voor de teambijstelling. Het plan staat in het plannenboek.
 - **Eerste stap**: een lokale meetpagina waarop de eigenaar met zijn eigen
   account inlogt en tijdens een race de segmentresultaten ophaalt. Werkt dat
-  niet, dan blijft de Sauce-mod de route.
+  niet, dan blijft de Sauce-mod de route. Gebouwd dezelfde dag:
+  `/dev/zwift-probe`, alleen bij `next dev`.
 
 ## 7. Niet geverifieerd
 

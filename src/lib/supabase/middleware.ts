@@ -89,10 +89,12 @@ export async function updateSession(request: NextRequest) {
   const user = await getSessionUser(supabase);
 
   const pathname = request.nextUrl.pathname;
-  // Het designvoorbeeld met voorbeelddata (app/ontwerp-voorbeeld) is er alleen bij
-  // lokaal ontwikkelen; in productie bestaat de pagina niet en geldt deze regel niet.
+  // Het designvoorbeeld met voorbeelddata (app/ontwerp-voorbeeld) en de meetpagina's
+  // onder app/dev zijn er alleen bij lokaal ontwikkelen; in productie bestaan de
+  // pagina's niet en geldt deze regel niet.
   const isDevPreview =
-    process.env.NODE_ENV !== "production" && pathname.startsWith("/ontwerp-voorbeeld");
+    process.env.NODE_ENV !== "production" &&
+    (pathname.startsWith("/ontwerp-voorbeeld") || pathname.startsWith("/dev/"));
   const isPublic = isDevPreview || PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const isPendingOk = PENDING_OK_PATHS.some((p) => pathname.startsWith(p));
 
