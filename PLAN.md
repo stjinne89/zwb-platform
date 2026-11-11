@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Club Ladder: parcoursadvies op het event (2026-11-11): lokaal gecommit,
-   niet gepusht.** Geen migratie. Zie de ronde "Club Ladder: parcoursadvies op
+0. **Club Ladder: parcoursadvies op het event (2026-11-11): lokaal gecommit
+   (`159c2d18`), niet gepusht.** Geen migratie. Zie de ronde "Club Ladder: parcoursadvies op
    het event".
 
 0. **Telefoon: Club Ladder-ranking als compacte tabel (2026-11-11): gepusht
@@ -12197,7 +12197,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: parcoursadvies op het event
 
-**2026-11-11, commit `COMMIT_HASH`, niet gepusht.** Op verzoek van de eigenaar
+**2026-11-11, commit `159c2d18`, niet gepusht.** Op verzoek van de eigenaar
 ("Zou het parcours advies kunnen verhuizen naar de eventpagina en dat hij dan
 verdwijnt wanneer het parcours gekozen is?"), na een voorstel ("Ja bouw maar
 zo"). Aanleiding was een lid dat vanuit Advies op de teampagina geen selectie
