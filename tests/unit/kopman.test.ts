@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 import { buildPool, cardById, overallOf, pool, statsFor, tierOf } from "@/kopman/engine/cards";
 import { buildCourse, courseWeights, fitFor } from "@/kopman/engine/course";
 import { buyPack, DAILY_PACK_RACES, finishRace, newSave, newSeason, openPackOf, packFor, seasonDone, toggleLineup, type Save } from "@/kopman/engine/economy";
-import { openPack, PACK_SIZE, PITY_PACKS } from "@/kopman/engine/packs";
+import { ITEMS, itemById, NO_BONUS, teamBonus, type TeamBonus } from "@/kopman/engine/items";
+import { KIND_ODDS, openPack, PACK_SIZE, PITY_PACKS } from "@/kopman/engine/packs";
 import { createRace, results, runToEnd, stepRace } from "@/kopman/engine/race";
 import { availableRadio, handPlayed, playRadio } from "@/kopman/engine/radio";
 import { rng } from "@/kopman/engine/rng";
@@ -56,18 +57,27 @@ describe("Kopman: pakketten", () => {
 
   it("garandeert goud na de vangnetgrens en in een gouden pakket", () => {
     for (let n = 0; n < 50; n++) {
-      expect(openPack("brons", 1, n, PITY_PACKS - 1).cards.some((id) => cardById(id).tier === "goud")).toBe(true);
-      expect(openPack("goud", 1, n, 0).cards.some((id) => cardById(id).tier === "goud")).toBe(true);
+      expect(openPack("brons", 1, n, PITY_PACKS - 1).cards.some((id) => tierOf_(id) === "goud")).toBe(true);
+      expect(openPack("goud", 1, n, 0).cards.some((id) => tierOf_(id) === "goud")).toBe(true);
     }
   });
 
   it("volgt ongeveer de getoonde kansen", () => {
     let gold = 0, silver = 0, total = 0;
-    for (let n = 0; n < 2000; n++) for (const id of openPack("brons", 7, n, 0).cards) { total++; if (cardById(id).tier === "goud") gold++; if (cardById(id).tier === "zilver") silver++; }
+    for (let n = 0; n < 2000; n++) for (const id of openPack("brons", 7, n, 0).cards) { total++; if (tierOf_(id) === "goud") gold++; if (tierOf_(id) === "zilver") silver++; }
     expect(gold / total).toBeGreaterThan(0.01);
     expect(gold / total).toBeLessThan(0.035);
     expect(silver / total).toBeGreaterThan(0.17);
     expect(silver / total).toBeLessThan(0.23);
+  });
+
+  it("stopt naast renners ook materiaal en personeel in een pakket, volgens de getoonde kansen", () => {
+    const kinds = { renner: 0, materiaal: 0, personeel: 0 };
+    let total = 0;
+    for (let n = 0; n < 2000; n++) for (const id of openPack("zilver", 5, n, 0).cards) { total++; kinds[itemById.get(id)?.group ?? "renner"]++; }
+    for (const kind of ["renner", "materiaal", "personeel"] as const) {
+      expect(Math.abs(kinds[kind] / total - KIND_ODDS[kind])).toBeLessThan(0.03);
+    }
   });
 
   it("zet het vangnet terug na goud en telt anders op", () => {
@@ -75,11 +85,61 @@ describe("Kopman: pakketten", () => {
     let pity = 0;
     for (let n = 0; n < 40; n++) {
       const pack = openPack("brons", 3, n, pity);
-      const gold = pack.cards.some((id) => cardById(id).tier === "goud");
+      const gold = pack.cards.some((id) => tierOf_(id) === "goud");
       expect(pack.pity).toBe(gold ? 0 : pity + 1);
       expect(pack.pity).toBeLessThan(PITY_PACKS);
       pity = pack.pity;
     }
+  });
+});
+
+const tierOf_ = (id: string) => itemById.get(id)?.tier ?? cardById(id).tier;
+
+describe("Kopman: materiaal en personeel", () => {
+  it("telt per vak alleen het beste exemplaar, en de mechanieker versterkt het materiaal", () => {
+    expect(teamBonus({})).toEqual(NO_BONUS);
+    const plain = teamBonus({ "m-frame-brons": 2, "m-frame-goud": 1, "m-wielen-zilver": 1, "m-kleding-goud": 1, "p-trainer-zilver": 1 });
+    expect(plain.bikeMass).toBeCloseTo(0.09);
+    expect(plain.cda).toBeCloseTo(0.04);
+    expect(plain.power).toBeCloseTo(0.02);
+    const tuned = teamBonus({ "m-frame-goud": 1, "p-mechanieker-goud": 1, "p-trainer-zilver": 1 });
+    expect(tuned.bikeMass).toBeCloseTo(0.09 * 1.3);
+    // The mechanic works on equipment, not on the riders.
+    expect(tuned.power).toBeCloseTo(0.02);
+  });
+
+  it("maakt de eigen ploeg sneller in dezelfde koers", () => {
+    const save = starter();
+    const ride = (bonus?: TeamBonus) => {
+      const state = runToEnd(createRace("polderchrono", 4, { riders: save.lineup, kopman: save.kopman!, bonus }));
+      const mine = state.riders.filter((r) => r.team === PLAYER_TEAM);
+      return mine.reduce((sum, r) => sum + (r.finishTime ?? 0), 0);
+    };
+    const all = Object.fromEntries(ITEMS.filter((x) => x.tier === "goud").map((x) => [x.id, 1]));
+    expect(ride(teamBonus(all))).toBeLessThan(ride());
+  }, 30_000);
+
+  it("geeft meer startgeld met een buschauffeur", () => {
+    const save = starter();
+    const placings = results(runToEnd(createRace(CALENDAR[0].id, 2, { riders: save.lineup, kopman: save.kopman! })));
+    const plain = finishRace(save, placings, "2026-11-11").reward.coins;
+    const bus = finishRace({ ...save, items: { "p-chauffeur-goud": 1 } }, placings, "2026-11-11").reward.coins;
+    expect(bus).toBeGreaterThan(plain);
+  }, 30_000);
+
+  it("leest een oude spelstand zonder materiaal", () => {
+    const { items: _items, ...old } = starter();
+    void _items;
+    expect(parseSave(JSON.stringify(old))?.items).toEqual({});
+    expect(parseSave(JSON.stringify({ ...starter(), items: { "m-frame-platina": 1 } }))).toBeNull();
+  });
+
+  it("legt materiaal uit een pakket bij het materiaal, niet bij de renners", () => {
+    let save: Save = { ...starter(), packs: Array(40).fill("zilver") };
+    for (let i = 0; i < 40; i++) save = openPackOf(save, "zilver")!.save;
+    expect(Object.keys(save.items).length).toBeGreaterThan(0);
+    expect(Object.keys(save.items).every((id) => itemById.has(id))).toBe(true);
+    expect(Object.keys(save.collection).some((id) => itemById.has(id))).toBe(false);
   });
 });
 

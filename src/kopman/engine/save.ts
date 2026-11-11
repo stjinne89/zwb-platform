@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { pool } from "./cards";
+import { itemById } from "./items";
 import { LINEUP_SIZE, SAVE_VERSION, type Save } from "./economy";
 import { CALENDAR } from "./world";
 
@@ -8,6 +9,7 @@ export const SAVE_KEY = "kopman:v1";
 
 const pack = z.enum(["brons", "zilver", "goud"]);
 const cardId = z.string().refine((id) => pool().byId.has(id));
+const itemId = z.string().refine((id) => itemById.has(id));
 const count = z.number().int().min(0).max(1e9);
 
 const schema = z.object({
@@ -16,6 +18,8 @@ const schema = z.object({
   teamName: z.string().min(1).max(40),
   coins: count,
   collection: z.record(cardId, z.number().int().min(1).max(999)),
+  // Saves from before equipment and staff have none yet.
+  items: z.record(itemId, z.number().int().min(1).max(999)).default({}),
   lineup: z.array(cardId).max(LINEUP_SIZE),
   kopman: cardId.nullable(),
   packs: z.array(pack).max(500),

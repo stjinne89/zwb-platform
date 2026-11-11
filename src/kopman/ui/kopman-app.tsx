@@ -5,11 +5,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { cardById, TYPE_LABELS } from "../engine/cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "../engine/course";
 import { bestLineup, buyPack, currentRace, DAILY_PACK_RACES, finishRace, LINEUP_SIZE, newSave, newSeason, openPackOf, packsLeftToday, raceSeed, seasonDone, seasonStandings, setKopman, today, toggleLineup, type Pull, type RaceReward, type Save } from "../engine/economy";
-import { PACK_LABELS, PACK_ODDS, PACK_PRICE, PITY_PACKS } from "../engine/packs";
+import { bestItems, GEAR_SLOTS, isItem, STAFF_ROLES, teamBonus, type TeamBonus } from "../engine/items";
+import { KIND_ODDS, PACK_LABELS, PACK_ODDS, PACK_PRICE, PITY_PACKS } from "../engine/packs";
 import { results, type Placing, type RaceState } from "../engine/race";
 import { PLAYER_TEAM, RIDER_TYPES, TIERS, type PackType, type RiderType } from "../engine/types";
 import { CALENDAR, raceById } from "../engine/world";
 import { loadSave, SAVE_KEY, storeSave } from "../engine/save";
+import { ItemCardView, SlotTile } from "./item-card";
 import { Profile } from "./profile";
 import { clock, RaceView, riderName, teamColor, teamName } from "./race-view";
 import { Portrait, type Mood } from "./portrait";
@@ -39,7 +41,7 @@ export function KopmanApp() {
   const saveRef = useRef<Save | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("koers");
-  const [racing, setRacing] = useState<{ raceId: string; seed: number; riders: string[]; kopman: string } | null>(null);
+  const [racing, setRacing] = useState<{ raceId: string; seed: number; riders: string[]; kopman: string; bonus: TeamBonus } | null>(null);
   const [result, setResult] = useState<{ raceId: string; placings: Placing[]; reward: RaceReward } | null>(null);
   const [reveal, setReveal] = useState<{ type: PackType; pulls: Pull[]; guaranteed: boolean } | null>(null);
 
@@ -83,7 +85,7 @@ export function KopmanApp() {
 
   const start = () => {
     if (!race || save.lineup.length !== LINEUP_SIZE || !save.kopman) return;
-    setRacing({ raceId: race.id, seed: raceSeed(save), riders: save.lineup, kopman: save.kopman });
+    setRacing({ raceId: race.id, seed: raceSeed(save), riders: save.lineup, kopman: save.kopman, bonus: teamBonus(save.items) });
   };
   const open = (type: PackType) => {
     const opened = openPackOf(save, type);
@@ -115,9 +117,9 @@ export function KopmanApp() {
       {tab === "pakketten" ? <PacksTab save={save} update={update} onOpen={open} /> : null}
       {tab === "seizoen" ? <SeasonTab save={save} update={update} /> : null}
 
-      {racing ? <RaceView raceId={racing.raceId} seed={racing.seed} lineup={{ riders: racing.riders, kopman: racing.kopman }} own={save.teamName} onFinish={onFinish} /> : null}
+      {racing ? <RaceView raceId={racing.raceId} seed={racing.seed} lineup={{ riders: racing.riders, kopman: racing.kopman, bonus: racing.bonus }} own={save.teamName} onFinish={onFinish} /> : null}
       {result ? <ResultView result={result} own={save.teamName} onClose={() => setResult(null)} onPacks={() => { setResult(null); setTab("pakketten"); }} /> : null}
-      {reveal ? <PackReveal reveal={reveal} collection={save.collection} onClose={() => setReveal(null)} /> : null}
+      {reveal ? <PackReveal reveal={reveal} owned={{ ...save.collection, ...save.items }} onClose={() => setReveal(null)} /> : null}
     </div>
   );
 }
@@ -199,6 +201,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
           ) : <div key={`leeg-${i}`} className={styles.emptySlot}>Leeg</div>)}
         </div>
       </div>
+      <ItemsPanels items={save.items} />
       <div className={styles.panel}>
         <div className={styles.row} style={{ justifyContent: "space-between", marginBottom: 10 }}>
           <span className={styles.h3}>Verzameling · {Object.keys(save.collection).length}</span>
@@ -225,9 +228,30 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
   );
 }
 
+function ItemsPanels({ items }: { items: Record<string, number> }) {
+  const best = bestItems(items);
+  return (
+    <>
+      <div className={styles.panel}>
+        <div className={styles.h3} style={{ marginBottom: 10 }}>Materiaal</div>
+        <div className={styles.slotGrid}>{GEAR_SLOTS.map((slot) => <SlotTile key={slot} slot={slot} item={best[slot]} />)}</div>
+      </div>
+      <div className={styles.panel}>
+        <div className={styles.h3} style={{ marginBottom: 10 }}>Personeel</div>
+        <div className={styles.slotGrid}>{STAFF_ROLES.map((role) => <SlotTile key={role} slot={role} item={best[role]} />)}</div>
+      </div>
+    </>
+  );
+}
+
 function OddsLine({ type }: { type: PackType }) {
   const odds = PACK_ODDS[type];
-  return <div className={styles.odds}>{TIERS.filter((t) => odds[t] > 0).map((t) => `${t} ${pct(odds[t])}`).join(" · ")}{type === "goud" ? " · minstens één goud" : ""}</div>;
+  return (
+    <>
+      <div className={styles.odds}>{TIERS.filter((t) => odds[t] > 0).map((t) => `${t} ${pct(odds[t])}`).join(" · ")}{type === "goud" ? " · minstens één goud" : ""}</div>
+      <div className={styles.odds}>renner {pct(KIND_ODDS.renner)} · materiaal {pct(KIND_ODDS.materiaal)} · personeel {pct(KIND_ODDS.personeel)}</div>
+    </>
+  );
 }
 
 function PacksTab({ save, update, onOpen }: { save: Save; update: (s: Save) => void; onOpen: (type: PackType) => void }) {
@@ -363,7 +387,7 @@ function ResultView({ result, own, onClose, onPacks }: { result: { raceId: strin
   );
 }
 
-function PackReveal({ reveal, collection, onClose }: { reveal: { type: PackType; pulls: Pull[]; guaranteed: boolean }; collection: Record<string, number>; onClose: () => void }) {
+function PackReveal({ reveal, owned, onClose }: { reveal: { type: PackType; pulls: Pull[]; guaranteed: boolean }; owned: Record<string, number>; onClose: () => void }) {
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={PACK_LABELS[reveal.type]}>
       <div className={styles.reveal}>
@@ -371,8 +395,8 @@ function PackReveal({ reveal, collection, onClose }: { reveal: { type: PackType;
         <div className={styles.revealCards}>
           {reveal.pulls.map((p) => (
             <div key={p.id} className={styles.flip}>
-              <RiderCardView card={cardById(p.id)} live mood={cardById(p.id).tier === "goud" && !p.duplicate ? "zege" : "rust"} />
-              {p.duplicate ? <div className={styles.dupMark}>Dubbel · +{p.coins} munten · ×{collection[p.id]}</div> : <div className={styles.newMark}>Nieuw</div>}
+              {isItem(p.id) ? <ItemCardView id={p.id} live /> : <RiderCardView card={cardById(p.id)} live mood={cardById(p.id).tier === "goud" && !p.duplicate ? "zege" : "rust"} />}
+              {p.duplicate ? <div className={styles.dupMark}>Dubbel · +{p.coins} munten · ×{owned[p.id]}</div> : <div className={styles.newMark}>Nieuw</div>}
             </div>
           ))}
         </div>

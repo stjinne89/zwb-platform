@@ -147,6 +147,8 @@
 .cardSmall .cardName small { font-size: 0.6rem; }
 .cardSmall .cardName strong { font-size: min(0.78rem, 11.5cqi); letter-spacing: 0; white-space: normal; line-height: 1.02; }
 .cardSmall .frameStar { width: 15px; height: 15px; }
+.itemName strong { white-space: normal; text-transform: none; letter-spacing: 0; font-size: min(0.95rem, 11.5cqi); line-height: 1.04; hyphens: auto; overflow-wrap: break-word; }
+.effect { margin-top: auto; padding: 3px 5px; border-radius: 5px; background: var(--line-ink); color: var(--caption); font-size: min(0.74rem, 9.6cqi); line-height: 1.15; overflow-wrap: break-word; hyphens: auto; font-weight: 750; text-align: center; font-variant-numeric: tabular-nums; }
 .fit { font-size: 0.72rem; font-weight: 800; background: var(--line-ink); color: var(--caption); border-radius: 5px; padding: 1px 6px; align-self: flex-start; font-variant-numeric: tabular-nums; }
 
 /* Portrait motion: breathing, blinking and looking at rest; mood moves on top. */
@@ -163,6 +165,11 @@
 .pSpin { transform-origin: 50px 42px; animation: kmSpin 70s linear infinite; }
 .pMill { transform-origin: 16.2px 57px; animation: kmSpin 9s linear infinite; }
 .pGasp { transform-box: fill-box; transform-origin: center top; animation: kmGasp 0.8s ease-in-out infinite; }
+.iSpin { transform-box: fill-box; transform-origin: center; animation: kmSpin 6s linear infinite; }
+.iTick { transform-origin: 50px 56px; animation: kmSpin 12s steps(12, end) infinite; }
+.iWobble { transform-origin: 50px 54px; animation: kmShake 1.6s ease-in-out infinite; }
+.iWave { animation: kmWave 1.4s ease-in-out infinite; }
+@keyframes kmWave { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
 .still, .still * { animation-play-state: paused !important; }
 .card:hover .still, .card:hover .still *, .card:focus-within .still, .card:focus-within .still * { animation-play-state: running !important; }
 @keyframes kmBreathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(0.9px); } }
@@ -190,6 +197,19 @@
 .filters button { padding: 4px 10px; border-radius: 999px; border: 2px solid var(--ink); background: var(--paper-2); font-size: 0.8rem; font-weight: 700; }
 .filters button[aria-pressed="true"] { background: var(--yellow); }
 .nameInput { background: #fffaf0; border: 2px solid var(--ink); border-radius: 8px; padding: 7px 10px; font: inherit; font-weight: 650; min-width: 0; flex: 1; max-width: 280px; }
+
+/* Equipment and staff slots on the team screen. */
+.slotGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.slotTile { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 9px; align-items: center; padding: 6px 9px 6px 6px; border-radius: 9px; background: var(--paper-2); border: 1.5px solid rgb(27 23 18 / 0.55); }
+.slotEmpty { background: transparent; border-style: dashed; }
+.slotArt { width: 54px; height: 54px; border: 2px solid var(--ink); border-radius: 7px; overflow: hidden; background: var(--paper-3); }
+.slotEmpty .slotArt { border-style: dashed; border-color: rgb(27 23 18 / 0.4); background: transparent; }
+.slotText { display: grid; gap: 1px; min-width: 0; line-height: 1.15; }
+.slotText small { color: var(--muted); font-size: 0.72rem; font-weight: 650; }
+.slotText b { font-family: var(--letter); font-size: 0.9rem; font-weight: 750; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slotEmpty .slotText b { color: var(--muted); }
+.slotText span { font-size: 0.74rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) { .slotGrid { grid-template-columns: 1fr; gap: 6px; } .slotTile { grid-template-columns: 44px minmax(0, 1fr); } .slotArt { width: 44px; height: 44px; } }
 
 /* Packs: wrapped parcels with a ribbon. */
 .packRow { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }

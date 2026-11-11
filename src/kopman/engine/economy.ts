@@ -1,5 +1,6 @@
 import { cardById, pool } from "./cards";
 import { buildCourse, courseWeights, fitFor } from "./course";
+import { itemById, teamBonus } from "./items";
 import { openPack } from "./packs";
 import type { Placing } from "./race";
 import { hashSeed, rng } from "./rng";
@@ -37,6 +38,8 @@ export type Save = {
   coins: number;
   /** Card id → copies owned (at least 1). */
   collection: Record<string, number>;
+  /** Equipment and staff card id → copies owned. Per slot the best one counts. */
+  items: Record<string, number>;
   lineup: string[];
   kopman: string | null;
   packs: PackType[];
@@ -65,6 +68,7 @@ export function newSave(seed: number, date: string): Save {
     teamName: "Mijn ploeg",
     coins: START_COINS,
     collection: Object.fromEntries(starters.map((id) => [id, 1])),
+    items: {},
     lineup: starters,
     kopman: starters[0],
     packs: ["zilver"],
@@ -86,16 +90,19 @@ export function openPackOf(save: Save, type: PackType): { save: Save; type: Pack
   if (index < 0) return null;
   const { cards, pity, guaranteed } = openPack(type, save.seed, save.packsOpened, save.pity);
   const collection = { ...save.collection };
+  const items = { ...save.items };
   let coins = save.coins;
   const pulls = cards.map((id) => {
-    const duplicate = !!collection[id];
-    const refund = duplicate ? DUPLICATE_COINS[cardById(id).tier] : 0;
-    collection[id] = (collection[id] ?? 0) + 1;
+    const item = itemById.get(id);
+    const owned = item ? items : collection;
+    const duplicate = !!owned[id];
+    const refund = duplicate ? DUPLICATE_COINS[item ? item.tier : cardById(id).tier] : 0;
+    owned[id] = (owned[id] ?? 0) + 1;
     coins += refund;
     return { id, duplicate, coins: refund };
   });
   const packs = save.packs.filter((_, i) => i !== index);
-  return { save: { ...save, collection, coins, packs, packsOpened: save.packsOpened + 1, pity }, type, pulls, guaranteed };
+  return { save: { ...save, collection, items, coins, packs, packsOpened: save.packsOpened + 1, pity }, type, pulls, guaranteed };
 }
 
 export function buyPack(save: Save, type: PackType, price: number | undefined): Save | null {
@@ -167,7 +174,7 @@ export function finishRace(save: Save, placings: Placing[], date: string): { sav
   const mine = placings.filter((p) => p.team === PLAYER_TEAM && p.place > 0);
   const best = mine.length ? Math.min(...mine.map((p) => p.place)) : 0;
   const prize = mine.reduce((sum, p) => sum + prizeFor(p.place), 0);
-  const coins = Math.round((START_FEE + prize) * (monument ? MONUMENT_FACTOR : 1));
+  const coins = Math.round((START_FEE * (1 + teamBonus(save.items).startFee) + prize) * (monument ? MONUMENT_FACTOR : 1));
   const seasonPoints = { ...save.seasonPoints };
   for (const p of placings) seasonPoints[p.team] = (seasonPoints[p.team] ?? 0) + pointsFor(p.place, monument);
   const points = mine.reduce((sum, p) => sum + pointsFor(p.place, monument), 0);

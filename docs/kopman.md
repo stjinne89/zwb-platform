@@ -189,10 +189,11 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
 
 ## Bewust niet in ronde 1
 
-- Diamanten, een seizoenspas, fietsupgrades en trainen (met dubbele kaarten
-  als grondstof). Die horen bij de volgende rondes. Een plan staat nog niet in
-  het plannenboek.
-- 3D, waaiers, wind en valpartijen.
+- Diamanten, een seizoenspas en trainen (met dubbele kaarten als
+  grondstof). Die horen bij de volgende rondes. Materiaal en personeel zijn
+  er sinds 2026-11-11 als kaarten, zie hieronder.
+- 3D, waaiers, wind en valpartijen. Voor een getekend beeld van achter de
+  renners dat als 3D aanvoelt, staat een plan in het plannenboek.
 - Portretten als foto of AI-afbeelding: 320 losse plaatjes zijn zwaar, ze
   laten zich niet per stemming animeren en kunnen op een echte renner lijken.
   Gezichten van een kant-en-klare bibliotheek: die hebben per stijl een andere
@@ -208,6 +209,31 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
   herlaadt, rijdt dus dezelfde koers met dezelfde hand opnieuw en kan alleen
   andere keuzes maken. De uitslag telt pas na de finish.
 - Een tekst op `/hulp`: de pagina is alleen voor beheerders.
+
+## Materiaal en personeel
+
+Een kaart in een pakket is een renner (60%), materiaal (30%) of personeel
+(10%), elk in brons, zilver of goud met de kansen van het pakket. Per vak telt
+alleen je beste kaart, voor de hele ploeg. De andere ploegen rijden zonder.
+De code staat in `src/kopman/engine/items.ts`; de koers past de bonus toe in
+`bodyOf` en `stepRace`, het startgeld in `finishRace`.
+
+| Vak | Brons / zilver / goud | Werkt op |
+|---|---|---|
+| Frame | −3 / −6 / −9% gewicht fiets | massa (7,5 kg) |
+| Wielen | −1 / −2 / −3% luchtweerstand | CdA |
+| Banden | −4 / −8 / −12% rolweerstand | Crr, op elk wegdek |
+| Aandrijving | +0,3 / +0,6 / +1% vermogen | rendement aandrijving |
+| Remmen | +2 / +4 / +6% afdaalsnelheid | maximale snelheid bergaf |
+| Kleding | −1 / −1,5 / −2% luchtweerstand | CdA, opgeteld bij de wielen |
+| Voeding | +3 / +6 / +9% reserve | W′ |
+| Trainer | +1 / +2 / +3% vermogen ploeg | drempel- en sprintvermogen |
+| Mechanieker | +10 / +20 / +30% effect materiaal | alle materiaal hierboven |
+| Fysio | +10 / +20 / +30% sneller herstel | herstel van W′ |
+| Ploegleider | +10 / +20 / +30% langere orders | duur van de radio-orders |
+| Buschauffeur | +10 / +20 / +30% startgeld | munten per koers |
+
+Een oude spelstand zonder `items` wordt gelezen met lege vakken.
 
 ## Stripstijl in de hele app
 
@@ -259,6 +285,7 @@ Beloningssystemen en regels:
 npm run kopman:preview
 # http://localhost:3198 (esbuild-bundel van de echte app, zonder Next of inloggen)
 # http://localhost:3198/?portretten (alle stemmingen naast elkaar, alleen lokaal)
+# http://localhost:3198/?materiaal (alle kaarten voor materiaal en personeel)
 npx vitest run tests/unit/kopman.test.ts
 ```
 

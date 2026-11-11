@@ -12,9 +12,9 @@ gaat stabiliteit voor nieuwe features.
    `4eb8fd52`; stripstijl in de hele app daarna), niet gepusht.** Geen migratie. Een wielermanager met
    rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
-   over pushen en ronde 2. Voorstel open: materiaal en personeel in de
-   pakketten. Zie de rondes "Kopman: een afdaling na elke helling", "Kopman:
-   de stripstijl in de hele app", "Kopman: stripportretten en
+   over pushen en ronde 2. Zie de rondes "Kopman: materiaal en personeel in
+   de pakketten", "Kopman: een afdaling na elke helling", "Kopman: de
+   stripstijl in de hele app", "Kopman: stripportretten en
    één order per hand" en "Kopman, ronde 1", en [docs/kopman.md](docs/kopman.md).
 
 0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): gepusht naar
@@ -12230,6 +12230,69 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: materiaal en personeel in de pakketten
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "Nu
+zitten in de pakketten alleen renners, maar hier kan veel meer in", en na het
+voorstel: "Ik zou het personeel graag als bonussen zien op het geheel, een
+trainer maakt de hele opstelling x procent beter een mechanieker maakt het
+materiaal x procent beter en zo moet het materiaal dan ook werken. x procent
+per wat jij aangeeft."). Geen migratie.
+
+Een kaart in een pakket is nu een renner (60%), materiaal (30%) of personeel
+(10%). Die kansen staan bij elk pakket. Materiaal en personeel gelden voor de
+hele ploeg: per vak telt alleen je beste kaart. Een dubbele kaart levert
+munten op, net als een dubbele renner.
+- **Materiaal** heeft zeven vakken: frame, wielen, banden, aandrijving,
+  remmen, kleding en voeding. Je lijst (sturen, cassettes, kettingen, helmen
+  enzovoort) is samengevoegd, zodat het op een telefoon overzichtelijk blijft.
+  Elk vak grijpt in op de natuurkunde van de koers, niet op verzonnen punten.
+- **Personeel** heeft vijf rollen, als procent op het geheel: de trainer
+  (vermogen van de hele ploeg), de mechanieker (alle materiaal), de fysio
+  (herstel van de reserve), de ploegleider (orders duren langer) en de
+  buschauffeur (startgeld).
+
+De bedragen staan in [docs/kopman.md](docs/kopman.md#materiaal-en-personeel).
+Alles goud scheelt enkele procenten, zodat de renners het belangrijkst
+blijven.
+
+**Schermen:**
+- **Ploeg:** twee nieuwe panelen, Materiaal en Personeel, met je beste kaart
+  per vak en de bonus. Op een telefoon staan ze in één kolom.
+- **Pakket openen:** materiaal en personeel krijgen een eigen kaart, met een
+  striptekening per vak in dezelfde stijl als de renners: een frame, een wiel,
+  een stopwatch, de teambus. Goud heeft stralen.
+- **Lokaal testblad:** `?materiaal` in `npm run kopman:preview` toont alle 36
+  kaarten.
+
+**Opslag:** een oude spelstand zonder materiaal blijft werken; die begint met
+lege vakken. In de browser bekeken met een bestaande stand.
+
+**Bewust niet:**
+- **Materiaal per renner:** dat is veel gedoe op een telefoon. Het is nu per
+  ploeg.
+- **Zelf kiezen per vak:** een hogere kaart is altijd beter, dus de beste telt
+  vanzelf.
+- **Materiaal voor de andere ploegen:** zij rijden zonder, dus elke kaart is
+  een voorsprong.
+- **Pech, lekke banden en vermoeidheid tussen koersen:** personeel werkt
+  daarom als procent op wat er al is, zoals de eigenaar vroeg.
+- **3D:** de eigenaar wil uiteindelijk een getekend beeld van achter de
+  renners dat als 3D aanvoelt. Dat staat als plan in het plannenboek
+  ("Kopman: de koers in een getekend 3D-beeld").
+
+**Niet geverifieerd:**
+- De balans: hoe snel een speler met materiaal de andere ploegen voorbij
+  rijdt, over een heel seizoen.
+- De echte Next-pagina, Safari en een trage telefoon.
+- Er is geen losse ontwerpreview gedaan.
+
+Vitest `kopman` geeft 31 groen, met nieuwe tests voor de bonussen, de
+kansen, het startgeld en oude spelstanden. `tsc` en ESLint zijn schoon.
+Bekeken in de preview-bundel, op desktop en op 375 px: het testblad, een
+pakket openen en het ploegscherm.
+
 ### Gebouwd — Kopman: een afdaling na elke helling
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
@@ -12459,7 +12522,8 @@ Eerst binnen ZWB, later mogelijk als losse app. Werktitel: Kopman.
 **Bewust niet:**
 - **Voor ronde 2 en later:** diamanten, een seizoenspas, fietsupgrades en
   trainen. (Hier stond eerder dat het plan in het plannenboek staat; op
-  2026-11-11 stond Kopman daar niet in.)
+  2026-11-11 stond Kopman daar niet in.) Materiaal en personeel kwamen er op
+  2026-11-11 als kaarten in de pakketten, zie die ronde.
 - 3D, waaiers en wind.
 - Echte namen.
 - Opslag op de server en een ranglijst tussen leden.

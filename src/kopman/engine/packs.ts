@@ -1,4 +1,5 @@
 import { pool } from "./cards";
+import { ITEMS, type ItemGroup } from "./items";
 import { hashSeed, rng } from "./rng";
 import type { PackType, Tier } from "./types";
 
@@ -10,6 +11,17 @@ export const PACK_ODDS: Record<PackType, Record<Tier, number>> = {
   zilver: { brons: 0.25, zilver: 0.65, goud: 0.1 },
   goud: { brons: 0, zilver: 0.6, goud: 0.4 },
 };
+
+export type CardKind = "renner" | ItemGroup;
+
+/** What each card in a pack is: mostly riders, then equipment, a few staff. */
+export const KIND_ODDS: Record<CardKind, number> = { renner: 0.6, materiaal: 0.3, personeel: 0.1 };
+
+function drawKind(r: number): CardKind {
+  if ((r -= KIND_ODDS.renner) < 0) return "renner";
+  if ((r -= KIND_ODDS.materiaal) < 0) return "materiaal";
+  return "personeel";
+}
 
 /** Packs in a row without a gold card before the next one guarantees one. */
 export const PITY_PACKS = 8;
@@ -38,7 +50,8 @@ export function openPack(type: PackType, seed: number, packNumber: number, pity:
   if (type === "goud" && !tiers.includes("goud")) tiers[PACK_SIZE - 1] = "goud";
   const chosen = new Set<string>();
   const cards = tiers.map((tier) => {
-    const options = pool().pool.filter((c) => c.tier === tier && !chosen.has(c.id));
+    const kind = drawKind(random());
+    const options = (kind === "renner" ? pool().pool.filter((c) => c.tier === tier) : ITEMS.filter((x) => x.group === kind && x.tier === tier)).filter((c) => !chosen.has(c.id));
     const card = options[Math.floor(random() * options.length)];
     chosen.add(card.id);
     return card.id;

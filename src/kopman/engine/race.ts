@@ -1,5 +1,6 @@
 import { cardById } from "./cards";
 import { buildCourse, courseWeights, fitFor, gradeAt, surfaceAt } from "./course";
+import { NO_BONUS, type TeamBonus } from "./items";
 import { clamp, hashSeed, randomAt, rng } from "./rng";
 import { lineupFor, rivalTeams } from "./teams";
 import { GRID, PLAYER_TEAM, type Course, type RiderCard } from "./types";
@@ -44,6 +45,11 @@ export type Rider = {
   cda: number;
   crrFactor: number;
   vmax: number;
+  /** Bike weight, rolling resistance scale, drivetrain efficiency and W′ recovery speed: equipment and staff. */
+  bikeKg: number;
+  crrScale: number;
+  eff: number;
+  recovery: number;
   distance: number;
   speed: number;
   wbal: number;
@@ -75,23 +81,30 @@ export type RaceState = {
   breakAnnounced: boolean;
   /** The last radio hand an order was played from: one order per hand. */
   radioHand: number;
+  /** How much longer the player's radio orders last (assistant directeur sportif). */
+  orderScale: number;
 };
 
-export type Lineup = { riders: string[]; kopman: string };
+export type Lineup = { riders: string[]; kopman: string; bonus?: TeamBonus };
 
-function bodyOf(card: RiderCard, tt: boolean) {
+function bodyOf(card: RiderCard, tt: boolean, bonus: TeamBonus = NO_BONUS) {
   const s = card.stats;
   const mass = clamp(72 - (s.klim - s.vlak) * 0.35, 58, 85);
+  const power = 1 + bonus.power;
   return {
     mass,
     // A time trialist pushes more on his own: up to +8 % at 99.
-    cpFlat: (300 + (s.vlak - 60) * 3.2) * (tt ? 1 + (s.tijdrit - 60) * 0.002 : 1),
-    cpClimb: (5 + (s.klim - 60) * 0.035) * mass,
-    wprime: 14000 + s.sprint * 80 + s.klim * 30,
-    sprintW: 600 + s.sprint * 14,
-    cda: tt ? 0.235 - (s.tijdrit - 60) * 0.0015 : ROAD_CDA,
+    cpFlat: (300 + (s.vlak - 60) * 3.2) * (tt ? 1 + (s.tijdrit - 60) * 0.002 : 1) * power,
+    cpClimb: (5 + (s.klim - 60) * 0.035) * mass * power,
+    wprime: (14000 + s.sprint * 80 + s.klim * 30) * (1 + bonus.wprime),
+    sprintW: (600 + s.sprint * 14) * power,
+    cda: (tt ? 0.235 - (s.tijdrit - 60) * 0.0015 : ROAD_CDA) * (1 - bonus.cda),
     crrFactor: 1.3 - s.kasseien / 150,
-    vmax: 17 + s.afdalen * 0.07,
+    vmax: (17 + s.afdalen * 0.07) * (1 + bonus.descent),
+    bikeKg: BIKE_KG * (1 - bonus.bikeMass),
+    crrScale: 1 - bonus.crr,
+    eff: EFF * (1 + bonus.drivetrain),
+    recovery: bonus.recovery,
   };
 }
 
@@ -139,7 +152,7 @@ export function createRace(raceId: string, seed: number, player: Lineup): RaceSt
     team: e.team,
     kopman: e.kopman,
     card: e.card,
-    ...bodyOf(e.card, course.tt),
+    ...bodyOf(e.card, course.tt, e.team === PLAYER_TEAM ? player.bonus : NO_BONUS),
     distance: course.tt ? 0 : -Math.floor(i / 3) * 1.6,
     speed: course.tt ? 2 : 9,
     wbal: 0,
@@ -167,7 +180,7 @@ export function createRace(raceId: string, seed: number, player: Lineup): RaceSt
       r.breakaway = true;
     }
   }
-  return { raceId, seed, course, riders, time: 0, tick: 0, finished: false, maxTime: expectedSeconds(course) * 1.9, events: [], breakAnnounced: false, radioHand: -1 };
+  return { raceId, seed, course, riders, time: 0, tick: 0, finished: false, maxTime: expectedSeconds(course) * 1.9, events: [], breakAnnounced: false, radioHand: -1, orderScale: 1 + (player.bonus?.orders ?? 0) };
 }
 
 export const riding = (r: Rider) => r.finishTime === null;
@@ -345,8 +358,8 @@ export function stepRace(state: RaceState) {
     const fade = nearest <= SHELTER_FULL ? 1 : clamp((SHELTER_END - nearest) / (SHELTER_END - SHELTER_FULL), 0, 1);
     const saving = course.tt ? 0 : SHELTER[Math.min(count, 3)] * fade;
     r.sheltered = saving >= 0.1;
-    const mass = r.mass + BIKE_KG;
-    const crr = CRR[surface] * (surface === "asfalt" ? 1 : r.crrFactor);
+    const mass = r.mass + r.bikeKg;
+    const crr = CRR[surface] * (surface === "asfalt" ? 1 : r.crrFactor) * r.crrScale;
     const cda = r.cda * (1 - saving);
     const sinA = grade / Math.sqrt(1 + grade * grade), cosA = 1 / Math.sqrt(1 + grade * grade);
     const resist = (v: number) => 0.5 * AIR * cda * v * v + crr * mass * G * cosA + mass * G * sinA;
@@ -362,7 +375,7 @@ export function stepRace(state: RaceState) {
       let pace = 0, n = 0;
       for (let j = w; j >= 0 && at[j] - at[w] < 15; j--) { pace += pace0[j]; n++; }
       const want = pace / n + clamp((gap - 1.5) * 0.3, -1, 2.5);
-      const p = v * (resist(v) + mass * (want - v) / 3) / EFF;
+      const p = v * (resist(v) + mass * (want - v) / 3) / r.eff;
       return clamp(p, 0, cp * cap);
     };
     let wheel = -1;
@@ -405,8 +418,8 @@ export function stepRace(state: RaceState) {
     r.effort = +(power / cp).toFixed(2);
 
     if (power > cp) r.wbal = Math.max(0, r.wbal - (power - cp) * STEP);
-    else r.wbal = r.wprime - (r.wprime - r.wbal) * Math.exp(-STEP / (546 * Math.exp(-0.01 * (cp - power)) + 316));
-    const accel = (EFF * power / v - resist(r.speed)) / (mass * 1.04);
+    else r.wbal = r.wprime - (r.wprime - r.wbal) * Math.exp(-STEP * (1 + r.recovery) / (546 * Math.exp(-0.01 * (cp - power)) + 316));
+    const accel = (r.eff * power / v - resist(r.speed)) / (mass * 1.04);
     const vmax = grade < -0.02 ? r.vmax : 25;
     r.speed = clamp(r.speed + accel * STEP, 1, vmax);
     const before = r.distance;

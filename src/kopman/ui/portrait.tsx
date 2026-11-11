@@ -11,10 +11,10 @@ import styles from "./kopman.module.css";
 
 export type Mood = "rust" | "aanval" | "limiet" | "zege";
 
-const INK = "#1b1712";
-const PAPER = "#fffaf0";
-const JERSEY = "#ffc53d";
-const TRIM = "#23405c";
+export const INK = "#1b1712";
+export const PAPER = "#fffaf0";
+export const JERSEY = "#ffc53d";
+export const TRIM = "#23405c";
 const MOUTH = "#5a1f17";
 const TONGUE = "#d9636b";
 const BLUSH = "#e8706a";
@@ -25,7 +25,7 @@ const HAIRS = ["#2a1d14", "#3d2717", "#5c3a1f", "#8a5a2b", "#c8994f", "#e3c47e",
 const BLOND_COUNTRIES = new Set(["NOR", "DEN", "NED", "GER", "GBR"]);
 const LENSES = ["#23313f", "#2f6fa8", "#d8692a", "#3b2a4f"];
 
-const SKY: Record<Tier, { sky: string; far: string; near: string; ray: string }> = {
+export const SKY: Record<Tier, { sky: string; far: string; near: string; ray: string }> = {
   brons: { sky: "#d3e6dc", far: "#e2a676", near: "#c4804f", ray: "#e2efe8" },
   zilver: { sky: "#d6e8f2", far: "#a8c6d9", near: "#7ea4bd", ray: "#e6f1f7" },
   goud: { sky: "#ffe9a8", far: "#e9c27a", near: "#cf9a45", ray: "#ffd23a" },

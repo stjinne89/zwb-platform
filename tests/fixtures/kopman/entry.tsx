@@ -1,9 +1,12 @@
 import { createRoot } from "react-dom/client";
 import { pool } from "../../../src/kopman/engine/cards";
+import { ITEMS } from "../../../src/kopman/engine/items";
 import { RIDER_TYPES } from "../../../src/kopman/engine/types";
+import { ItemCardView, SlotTile } from "../../../src/kopman/ui/item-card";
 import { KopmanApp } from "../../../src/kopman/ui/kopman-app";
 import { faceOf, Portrait, type Mood } from "../../../src/kopman/ui/portrait";
 import { RiderCardView } from "../../../src/kopman/ui/rider-card";
+import styles from "../../../src/kopman/ui/kopman.module.css";
 import "./reset.css";
 
 const MOODS: Mood[] = ["rust", "aanval", "limiet", "zege"];
@@ -53,5 +56,19 @@ function PortraitSheet() {
   );
 }
 
-const sheet = new URLSearchParams(location.search).has("portretten");
-createRoot(document.getElementById("root")!).render(sheet ? <PortraitSheet /> : <KopmanApp />);
+// `?materiaal` shows every equipment and staff card, and the slot tiles of the team screen.
+function ItemSheet() {
+  return (
+    <div className={styles.app} style={{ display: "grid", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+        {ITEMS.map((item) => <ItemCardView key={item.id} id={item.id} live />)}
+      </div>
+      <div className={styles.panel}>
+        <div className={styles.slotGrid}>{ITEMS.filter((x) => x.tier === "zilver").map((x) => <SlotTile key={x.id} slot={x.slot} item={x} />)}<SlotTile slot="frame" /></div>
+      </div>
+    </div>
+  );
+}
+
+const query = new URLSearchParams(location.search);
+createRoot(document.getElementById("root")!).render(query.has("portretten") ? <PortraitSheet /> : query.has("materiaal") ? <ItemSheet /> : <KopmanApp />);

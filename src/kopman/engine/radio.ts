@@ -81,25 +81,27 @@ export function playRadio(state: RaceState, id: RadioId, handNumber = 0): boolea
   const mine = team(state);
   const helpersHere = mine.filter((r) => !r.kopman && groups[gi].includes(r));
   const t = state.time;
+  // An assistant directeur sportif makes the orders last longer.
+  const k = state.orderScale;
   switch (id) {
     case "aanval":
-      kopman.override = { mode: "aanval", untilTime: t + 30 };
+      kopman.override = { mode: "aanval", untilTime: t + 30 * k };
       break;
     case "tempo":
-      for (const r of helpersHere) r.override = { mode: "kop", pull: 1, untilDistance: r.distance + 4000 };
+      for (const r of helpersHere) r.override = { mode: "kop", pull: 1, untilDistance: r.distance + 4000 * k };
       break;
     case "sparen":
-      for (const r of mine) r.override = { mode: "sparen", untilDistance: r.distance + 5000 };
+      for (const r of mine) r.override = { mode: "sparen", untilDistance: r.distance + 5000 * k };
       break;
     case "springmee": {
       const ahead = groups[gi - 1];
       const helper = [...helpersHere].sort((a, b) => b.wbal - a.wbal)[0];
-      helper.override = { mode: "volgen", target: ahead[ahead.length - 1].id, untilTime: t + 90 };
+      helper.override = { mode: "volgen", target: ahead[ahead.length - 1].id, untilTime: t + 90 * k };
       break;
     }
     case "terughalen": {
       const helper = groups.slice(0, gi).flat().filter((r) => r.team === PLAYER_TEAM && !r.kopman).sort((a, b) => a.distance - b.distance)[0];
-      helper.override = { mode: "wachten", target: kopman.id, untilTime: t + 240 };
+      helper.override = { mode: "wachten", target: kopman.id, untilTime: t + 240 * k };
       break;
     }
     case "naarvoren": {

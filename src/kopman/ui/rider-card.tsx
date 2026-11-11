@@ -6,7 +6,7 @@ import { Portrait, type Mood } from "./portrait";
 
 export const TYPE_ICONS: Record<RiderType, typeof Zap> = { sprinter: Zap, klimmer: Mountain, klassieker: Shield, tijdrijder: Gauge, allrounder: Bike };
 
-function FrameStar({ className }: { className: string }) {
+export function FrameStar({ className }: { className: string }) {
   return (
     <svg className={className} viewBox="-10 -10 20 20" aria-hidden="true" focusable="false">
       <path d="M0 -9 Q1.6 -1.6 9 0 Q1.6 1.6 0 9 Q-1.6 1.6 -9 0 Q-1.6 -1.6 0 -9Z" fill="#ffe14d" stroke="#1b1712" strokeWidth={1.8} strokeLinejoin="round" />
