@@ -7,7 +7,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): lokaal
+0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): `6f9d16c7`, lokaal
    gecommit, niet gepusht.** Geen migratie. Open: pushen, op cron-job.org
    `POST /api/zwiftracing/sync` elke 30 minuten met `TEAM_RESULTS_SYNC_SECRET`
    aanmaken, nagaan dat een run vanaf Netlify `fetched` > 0 geeft, en dan de
@@ -12215,7 +12215,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZwiftRacing: 90 dagen en vELO1 door de server
 
-**2026-11-11, lokaal gecommit, niet gepusht.** Geen migratie. Aanleiding: de
+**2026-11-11, commit `6f9d16c7`, lokaal, niet gepusht.** Geen migratie. Aanleiding: de
 eigenaar vroeg de W/kg-tool op zwbcycling.nl (`/ladder/overview.php`) te
 vergelijken met de Club Ladder. Die tool haalt per ingevoerd Zwift-ID het
 beste vermogen over 90 dagen (5 s tot 20 min) en de vELO2-klasse op bij
