@@ -10,8 +10,9 @@ gaat stabiliteit voor nieuwe features.
 0. **Kopman (2026-11-11): op 2026-11-11 gepusht naar `main`, met alle rondes
    van ronde 1 tot en met spelen op de telefoon (`382dd83e` tot en met de
    commit van de ronde "Kopman: online gezet").** Geen migratie. Een
-   wielermanager met rennerkaarten op `/zwbgame/kopman`, alleen voor wie
-   ZWBgame beheert. Het bordspel is de koers, ook in de tijdrit, met het
+   wielermanager met rennerkaarten, alleen voor wie ZWBgame beheert. Sinds de
+   ronde "Kopman: een eigen pagina" (lokaal, nog niet gepusht) staat het op
+   `/kopman`, buiten de schil van de club; `/zwbgame/kopman` stuurt door. Het bordspel is de koers, ook in de tijdrit, met het
    getekende koersbeeld. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
@@ -12232,6 +12233,57 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: een eigen pagina
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+
+- **De vraag.** De eigenaar: "Kan het uit de zwb build? die zit nu in de weg en
+  ik moet alsnog scrollen op de eerste pagina". Daarna: "Waarom staan er
+  eigenlijk 2 cijfers op een kaart op mobiel?"
+- **Wat er is.** Zie [docs/kopman.md](docs/kopman.md#een-eigen-pagina).
+  - **`/kopman`** (`src/app/kopman/page.tsx`) staat buiten de groep `(app)`,
+    dus zonder kop, menu en meldingen van de club. Hij doet dezelfde controles
+    als eerst: zonder login naar `/login`, zonder `zwbgame.manage` een 404.
+  - **`/zwbgame/kopman`** stuurt door naar `/kopman`.
+  - **`KopmanScreen`** zet het spel schermvullend op de inktblauwe
+    ondergrond. De preview gebruikt hetzelfde kader, ook voor `?bordspel`.
+  - **`public/kopman.webmanifest`**: op het beginscherm opent het als een
+    eigen app. Het manifest staat in `PUBLIC_PATHS`, omdat de browser het
+    zonder cookies ophaalt.
+  - **De eerste pagina past op een telefoon:**
+    - de opstelling op het tabblad Koers staat met vijf kaarten naast elkaar;
+    - op zo'n smalle kaart staan alleen het gezicht, de score, de achternaam
+      en hoe goed hij past;
+    - een klim die vaker in de koers zit, staat er één keer met "×2".
+
+    De Ploeg-tab houdt drie kaarten naast elkaar.
+  - **Twee cijfers op een kaart.** Het rondje is hoe goed de renner is, over
+    alles. Het zwarte label is hoe goed hij past bij deze koers. Dat stond
+    alleen in een tooltip, die een telefoon niet toont. Het label heeft nu een
+    vlaggetje.
+- **Bewust niet gebouwd:**
+  - **Een icoon in het manifest.** Er is nog geen beeldmerk voor Kopman. De
+    telefoon toont daarom een letter of een schermafdruk.
+  - **Een link in het menu van de club.** Het spel blijft alleen voor wie
+    ZWBgame beheert.
+- **Niet meer waar.** In de rondes hieronder staat het adres
+  `/zwbgame/kopman`. Dat is nu `/kopman`; het oude adres stuurt door.
+- **Geverifieerd:**
+  - in Chrome nagebootst, met de preview:
+    - op 360×740 en 375×667 past de eerste pagina zonder scroll;
+    - het bord past op 375×667;
+    - de Ploeg-tab is niet breder dan het scherm;
+    - desktop;
+  - `next build` met `/kopman`;
+  - tsc en eslint;
+  - de 47 Kopman-tests en de tests van de middleware;
+  - geen waarde uit `.env.local` in de wijziging.
+- **Niet geverifieerd:**
+  - `/kopman` in productie, ingelogd;
+  - het manifest op een echte telefoon;
+  - Safari.
+
 ### Gebouwd — Kopman: online gezet
 
 **2026-11-11, commit: de commit die dit blok toevoegt, gepusht naar `main`
@@ -12241,8 +12293,8 @@ migratie.
 - **De vraag.** Het spel was niet bereikbaar op het thuisnetwerk (zie de ronde
   hieronder). Een APK bouwen vroeg ongeveer 1 GB aan downloads: Java, de
   Android SDK en Gradle. De eigenaar koos: "Liever online zetten".
-- **Wat er is.** Kopman staat op `/zwbgame/kopman`, alleen voor wie ZWBgame
-  beheert. Op de telefoon werkt het na inloggen overal, ook via 4G.
+- **Wat er is.** Kopman stond op `/zwbgame/kopman` (sinds de ronde hierboven
+  `/kopman`), alleen voor wie ZWBgame beheert. Op de telefoon werkt het na inloggen overal, ook via 4G.
 - **Geverifieerd vóór de push:**
   - `next build` slaagt, met `/zwbgame/kopman`;
   - tsc;
@@ -12482,7 +12534,7 @@ beter voor elkaar, dingen die bij TT passen".
 - **De koers in het spel is nu het bordspel.**
   - Start op het tabblad Koers opent `BoardView` in plaats van `RaceView`.
   - De beloning loopt ongewijzigd via `finishRace`.
-  - Dit geldt ook voor de Next-pagina `/zwbgame/kopman`, want die toont
+  - Dit geldt ook voor de Next-pagina `/zwbgame/kopman` (nu `/kopman`), want die toont
     dezelfde `KopmanApp`.
 - **De tijdrit is een eigen bord** (`board.tt`):
   - heen en terug met kopwind en rugwind, bochten bij het keerpunt en in de
@@ -13015,7 +13067,8 @@ ZWB-plannenboek.)
 - **Opslag.** Alles op het apparaat (`localStorage` `kopman:v1`, gecontroleerd
   met zod). Een beschadigde opslag gaat naar `kopman:v1:kapot`.
 - **Pagina.** `src/app/(app)/zwbgame/kopman/page.tsx` geeft een 404 zonder
-  `zwbgame.manage`. Er is geen link in het menu.
+  `zwbgame.manage` (sinds de ronde "Kopman: een eigen pagina" staat het spel op
+  `src/app/kopman/page.tsx`, en stuurt deze pagina door). Er is geen link in het menu.
 - `npm run kopman:preview` (`scripts/kopman-preview.mjs`) bundelt de app met
   esbuild en serveert hem op `localhost:3198`, zonder Next en zonder inloggen.
 

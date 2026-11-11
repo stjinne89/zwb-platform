@@ -26,6 +26,8 @@ const PUBLIC_PATHS = [
   "/profielen",
   "/live",
   "/omnium",
+  // Kopman op het beginscherm: de browser haalt het manifest op zonder cookies.
+  "/kopman.webmanifest",
   "/api/live",
   "/api/team-results/sync",
   "/api/strava/sync",

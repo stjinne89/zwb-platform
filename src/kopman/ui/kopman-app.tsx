@@ -37,6 +37,11 @@ function browserStore() {
   try { return window.localStorage; } catch { return null; }
 }
 
+/** The game on its own page: the night ground fills the screen, without the club's frame. */
+export function KopmanScreen() {
+  return <div className={styles.screen}><KopmanApp /></div>;
+}
+
 export function KopmanApp() {
   const [save, setSave] = useState<Save | null>(null);
   const saveRef = useRef<Save | null>(null);
@@ -178,14 +183,14 @@ function RaceTab({ save, update, onStart }: { save: Save; update: (s: Save) => v
           <button type="button" className={styles.primary} disabled={!ready} onClick={onStart}><Play size={18} aria-hidden />Start</button>
         </div>
         <div style={{ margin: "12px 0" }}><Profile course={course} /></div>
-        {climbs.length ? <div className={styles.features}>{climbs.map((f) => <span key={`${f.name}-${f.start}`} className={`${styles.feature} ${f.kind === "kasseien" ? styles.featureKas : f.kind === "grind" ? styles.featureGrind : ""}`}>{f.name}</span>)}</div> : null}
+        {climbs.length ? <div className={styles.features}>{[...new Map(climbs.map((f) => [f.name, f])).values()].map((f) => { const times = climbs.filter((x) => x.name === f.name).length; return <span key={f.name} className={`${styles.feature} ${f.kind === "kasseien" ? styles.featureKas : f.kind === "grind" ? styles.featureGrind : ""}`}>{f.name}{times > 1 ? ` ×${times}` : ""}</span>; })}</div> : null}
       </div>
       <div className={styles.panel}>
         <div className={styles.row} style={{ justifyContent: "space-between", marginBottom: 10 }}>
           <span className={styles.h3}>Opstelling</span>
           <button type="button" className={styles.ghost} onClick={() => update(bestLineup(save, race.id))}><Wand2 size={15} aria-hidden />Beste opstelling</button>
         </div>
-        <div className={styles.lineupGrid}>
+        <div className={`${styles.lineupGrid} ${styles.lineupRace}`}>
           {Array.from({ length: LINEUP_SIZE }, (_, i) => save.lineup[i]).map((id, i) => id
             ? <RiderCardView key={id} card={cardById(id)} small live kopman={id === save.kopman} fit={fitFor(cardById(id), weights)} />
             : <div key={`leeg-${i}`} className={styles.emptySlot}>Leeg</div>)}

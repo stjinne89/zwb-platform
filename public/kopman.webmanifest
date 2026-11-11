@@ -1,0 +1,10 @@
+{
+  "name": "Kopman",
+  "short_name": "Kopman",
+  "start_url": "/kopman",
+  "scope": "/kopman",
+  "display": "standalone",
+  "background_color": "#0f1b28",
+  "theme_color": "#0f1b28",
+  "lang": "nl"
+}

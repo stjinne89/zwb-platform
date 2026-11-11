@@ -1,4 +1,4 @@
-import { Bike, Gauge, Mountain, Shield, Zap } from "lucide-react";
+import { Bike, Flag, Gauge, Mountain, Shield, Zap } from "lucide-react";
 import { STAT_SHORT, TIER_LABELS, TYPE_LABELS } from "../engine/cards";
 import { STAT_KEYS, type RiderCard, type RiderType } from "../engine/types";
 import styles from "./kopman.module.css";
@@ -38,7 +38,7 @@ export function RiderCardView({ card, kopman, fit, small, mood = "rust", live = 
         <small>{card.first}</small>
         <strong>{card.last}</strong>
       </div>
-      {fit !== undefined ? <span className={styles.fit} title="Past bij deze koers">{fit}</span> : null}
+      {fit !== undefined ? <span className={styles.fit} title="Past bij deze koers"><Flag size={10} strokeWidth={2.6} aria-label="Past bij deze koers" />{fit}</span> : null}
       {small ? null : (
         <div className={styles.stats}>
           {STAT_KEYS.map((k) => <div key={k}><span>{STAT_SHORT[k]}</span><b>{card.stats[k]}</b></div>)}

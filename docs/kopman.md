@@ -1,7 +1,7 @@
 # Kopman — wielermanager met rennerkaarten (werktitel)
 
-Ronde 1 gebouwd op 2026-11-11. Pagina: `/zwbgame/kopman`, alleen voor wie
-ZWBgame beheert (`zwbgame.manage`). Code: `src/kopman`, los van het platform
+Ronde 1 gebouwd op 2026-11-11. Pagina: `/kopman`, alleen voor wie ZWBgame
+beheert (`zwbgame.manage`). Het oude adres `/zwbgame/kopman` stuurt door. Code: `src/kopman`, los van het platform
 (een test bewaakt dat er niets van buiten `src/kopman` geïmporteerd wordt,
 behalve `react`, `lucide-react` en `zod`), zodat het spel later als losse app
 kan uitkomen.
@@ -293,6 +293,30 @@ De kleuren staan als variabelen op `.app` in `kopman.module.css`:
 - Er zijn geen harde schuine schaduwen.
 
 
+## Een eigen pagina
+
+Sinds 2026-11-11 staat Kopman op `/kopman`, buiten de schil van de club. Er
+staan dus geen kop, menu of meldingen van ZWB omheen. De eigenaar: "die zit nu
+in de weg en ik moet alsnog scrollen op de eerste pagina". Zo werkt het:
+- **Het spel vult het scherm.** De inktblauwe ondergrond loopt tot de rand.
+  Op een telefoon heeft het paneel geen ronde hoeken en volgt het de veilige
+  randen van het toestel.
+- **Op het beginscherm** opent het als een eigen app met de naam Kopman
+  (`public/kopman.webmanifest`). De browser haalt dat manifest op zonder
+  cookies, dus het staat in de publieke paden van de middleware.
+- **De eerste pagina past op een telefoon.** De opstelling op het tabblad
+  Koers staat met vijf kaarten naast elkaar. Een klim die vaker in de koers
+  zit, staat er één keer, met het aantal erachter ("Kemmelberg ×2").
+- **Wie geen ZWBgame beheert, krijgt een 404**, net als eerst.
+
+**Twee cijfers op een kaart.**
+- Het rondje linksboven is hoe goed de renner is, over alles.
+- Het zwarte label onderaan, met een vlaggetje, is hoe goed hij past bij deze
+  koers.
+
+Op de telefoon zie je alleen die twee, met het gezicht en de achternaam. Op
+de Ploeg-tab staat de hele kaart.
+
 ## Bronnen
 
 Beklimmingen en stroken zijn afgerond tot één decimaal (lengte in km,
@@ -346,7 +370,7 @@ Gewoon `npm run kopman:preview` blijft alleen op de pc bereikbaar.
 
 ## Niet geverifieerd
 
-- De echte Next-pagina `/zwbgame/kopman`. In deze worktree staan geen
+- De echte Next-pagina `/kopman`, ingelogd. In deze worktree staan geen
   `.env.local` en geen lokale Supabase, dus alleen de preview-bundel is in de
   browser bekeken (desktop en 375 px breed). Daarmee is ook niet bekeken of
   Next het font via de relatieve `url()` in de CSS-module meeneemt.

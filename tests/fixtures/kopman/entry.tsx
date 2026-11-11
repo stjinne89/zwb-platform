@@ -4,7 +4,7 @@ import { ITEMS } from "../../../src/kopman/engine/items";
 import { RIDER_TYPES } from "../../../src/kopman/engine/types";
 import { BoardApp } from "../../../src/kopman/ui/board-view";
 import { ItemCardView, SlotTile } from "../../../src/kopman/ui/item-card";
-import { KopmanApp } from "../../../src/kopman/ui/kopman-app";
+import { KopmanScreen } from "../../../src/kopman/ui/kopman-app";
 import { faceOf, Portrait, type Mood } from "../../../src/kopman/ui/portrait";
 import { RiderCardView } from "../../../src/kopman/ui/rider-card";
 import styles from "../../../src/kopman/ui/kopman.module.css";
@@ -72,4 +72,4 @@ function ItemSheet() {
 }
 
 const query = new URLSearchParams(location.search);
-createRoot(document.getElementById("root")!).render(query.has("portretten") ? <PortraitSheet /> : query.has("materiaal") ? <ItemSheet /> : query.has("bordspel") ? <BoardApp /> : <KopmanApp />);
+createRoot(document.getElementById("root")!).render(query.has("portretten") ? <PortraitSheet /> : query.has("materiaal") ? <ItemSheet /> : query.has("bordspel") ? <div className={styles.screen}><BoardApp /></div> : <KopmanScreen />);
