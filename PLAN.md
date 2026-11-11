@@ -8,7 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Losse apps buiten ZWB (2026-11-11): onderzocht, en de meetpagina
-   `/dev/zwift-probe` gebouwd; lokaal gecommit, niet gepusht.** Geen migratie.
+   `/dev/zwift-probe` gebouwd; gepusht naar `main` (`6017c451`, `f861e445`).**
+   Geen migratie.
    Open: de eigenaar logt lokaal (`npm run dev`) met zijn eigen Zwift-account in
    op `/dev/zwift-probe` en meet tijdens een race; de gekopieerde log bepaalt of
    de losse live-app in de browser kan. Zie de rondes "Meetpagina: Zwift vanuit
@@ -12207,8 +12208,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Meetpagina: Zwift vanuit de browser
 
-**2026-11-11.** Lokaal gecommit, niet gepusht. Commit: de commit die dit blok
-toevoegt. Geen migratie. Op verzoek van de eigenaar ("Ja, bouwen"), na het
+**2026-11-11, commit `f861e445`, gepusht naar `main`** (eigenaar: "Ja, push
+main"). Geen migratie. Op verzoek van de eigenaar ("Ja, bouwen"), na het
 voorstel in de ronde "Losse apps buiten ZWB".
 
 **Waarom.** De losse live-ZRL-app laat de browser van de gebruiker zelf bij Zwift
@@ -12255,8 +12256,8 @@ geen aparte spelersstatus-meting (DS valt buiten deze app).
 
 ### Onderzocht — Losse apps buiten ZWB
 
-**2026-11-11.** Alleen onderzoek, geen code. Lokaal gecommit, niet gepusht.
-Commit: de commit die dit blok toevoegt. Geen migratie. Uitwerking in
+**2026-11-11, commit `6017c451`, gepusht naar `main`** (eigenaar: "Ja, push
+main"). Alleen onderzoek, geen code. Geen migratie. Uitwerking in
 [docs/losse-apps-onderzoek-2026-11-11.md](docs/losse-apps-onderzoek-2026-11-11.md).
 
 **Vraag eigenaar.** Welke onderdelen kunnen als losse app bestaan voor
