@@ -12240,14 +12240,20 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: de weergaveknoppen in de stijl van de app
 
-**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
-`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+**2026-11-11, commits `890a0b2a` en de commit die deze tekst bijwerkt, lokaal
+op `claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
 
 - **De vraag.** "Kun je de knoppen ook in de stijl van de app maken?"
-- **Wat er is.** Overzicht en Koersbeeld waren één pil met twee helften. Nu zijn
-  het losse vlakken zoals de tabbladen van de app: de gekozen knop is geel en
-  iets opgetild. Dat geldt op desktop en op de telefoon. De vakjes in de
-  bovenbalk van de telefoon hebben hun schaduw terug, zoals in de app.
+- **Wat er is.** Overzicht en Koersbeeld waren één pil met twee helften, in een
+  kleine, vette letter.
+  - Nu zijn het dezelfde tegels als de tabbladen van de app (Koers, Ploeg,
+    ...): het icoon boven het woord, de gewone letter van de app, en de
+    gekozen tegel geel en opgetild. Op de telefoon staat alleen het icoon.
+  - De vakjes in de bovenbalk van de telefoon hebben hun schaduw terug, zoals
+    in de app.
+- **Eerste poging afgekeurd.** In `890a0b2a` werden het losse, platte knoppen,
+  nog in de vette letter. De eigenaar: "de vorm en lettertype past niet bij de
+  app zoals die nu is". De tweede commit gebruikt daarom de tabtegel zelf.
 - **Bewust niet veranderd:** de knop Rijden, die al de gele knop van de app
   was, en de kaarten, die hun eigen vorm hebben.
 - **Geverifieerd:** in Chrome op desktop en nagebootst op 375×667, zonder

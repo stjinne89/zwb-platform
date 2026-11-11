@@ -154,8 +154,8 @@ export function BoardView({ raceId, seed, lineup, items, own, title, onAgain, on
 
   const toggle = (
     <span className={styles.viewToggle} role="group" aria-label="Weergave">
-      <button type="button" aria-pressed={view === "overzicht"} aria-label={compact ? "Overzicht" : undefined} onClick={() => pickView("overzicht")}><Mountain size={15} aria-hidden />{compact ? null : "Overzicht"}</button>
-      <button type="button" aria-pressed={view === "beeld"} aria-label={compact ? "Koersbeeld" : undefined} onClick={() => pickView("beeld")}><Video size={15} aria-hidden />{compact ? null : "Koersbeeld"}</button>
+      <button type="button" className={styles.tab} aria-pressed={view === "overzicht"} aria-label={compact ? "Overzicht" : undefined} onClick={() => pickView("overzicht")}><Mountain size={18} aria-hidden />{compact ? null : "Overzicht"}</button>
+      <button type="button" className={styles.tab} aria-pressed={view === "beeld"} aria-label={compact ? "Koersbeeld" : undefined} onClick={() => pickView("beeld")}><Video size={18} aria-hidden />{compact ? null : "Koersbeeld"}</button>
     </span>
   );
   const intentList = board.intents.map((i) => (
