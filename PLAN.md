@@ -12,8 +12,9 @@ gaat stabiliteit voor nieuwe features.
    `4eb8fd52`; stripstijl in de hele app daarna), niet gepusht.** Geen migratie. Een wielermanager met
    rennerkaarten op `/zwbgame/kopman`, alleen voor wie ZWBgame beheert. Open:
    de eigenaar speelt een paar koersen (`npm run kopman:preview`) en beslist
-   over pushen en ronde 2. Open vraag: afdalingen na de hellingen. Zie de
-   rondes "Kopman: de stripstijl in de hele app", "Kopman: stripportretten en
+   over pushen en ronde 2. Voorstel open: materiaal en personeel in de
+   pakketten. Zie de rondes "Kopman: een afdaling na elke helling", "Kopman:
+   de stripstijl in de hele app", "Kopman: stripportretten en
    één order per hand" en "Kopman, ronde 1", en [docs/kopman.md](docs/kopman.md).
 
 0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): gepusht naar
@@ -12229,6 +12230,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: een afdaling na elke helling
+
+**2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht** (eigenaar: "de
+profielen zijn wel gek in dit spel door een gebrek aan afdalingen", en daarna:
+"ja na elke klim een afdaling, die mag wel afwijken van de beklimming zoals in
+het echt"). Geen migratie.
+
+Een afdaling bestond alleen waar een koers er in `world.ts` een had staan. Na
+de meeste hellingen ging de weg dus niet omlaag, en het profiel werd een trap.
+
+Nu tekent `buildCourse` zelf een afdaling na elke klim waar nog minstens
+2,5 km vlakke weg volgt:
+- **Hoogte:** de afdaling verliest 70 tot 100% van de geklommen hoogte.
+- **Helling:** meestal flauwer en langer dan de klim, tussen 2,5 en 9%.
+- **Per koers:** hoogte en helling komen uit een seed op koers en plaats, dus
+  het is per koers en per helling anders, maar altijd hetzelfde.
+- **Lengte:** de afdaling gaat af van de vlakke weg die volgt, zodat de koers
+  even lang blijft.
+
+Een klim met een finish (bijna) bovenop houdt geen afdaling: de Via Santa
+Caterina, de Cauberg in de Limburgse Heuvelprijs en de bergritten. Een
+afdaling die in de kalender al staat, blijft zoals hij was.
+
+Een nieuwe test controleert dit voor de hele kalender. Gevolg: dalers tellen
+op heuvelkoersen iets meer mee in de pasvorm (`courseWeights`), en de
+uitslagen van die koersen verschuiven.
+
+**Bewust niet:**
+- Echte afdalingen per helling opzoeken: de kalender is fictief en ingekort.
+- Bochten en remmen: de afdaalsnelheid blijft begrensd door de
+  afdaalvaardigheid, zoals eerder.
+
+**Niet geverifieerd:** of de balans tussen klimmers en dalers nu goed voelt.
+Het profiel is bekeken in de preview-bundel; vitest `kopman` geeft 25 groen.
+
 ### Gebouwd — Kopman: de stripstijl in de hele app (nachteditie)
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
@@ -12273,10 +12310,8 @@ papier met een inktrand. Een lichte papieren pagina was het alternatief.
 - Het font voor de lopende tekst: alleen titels en namen zijn handgeletterd,
   zodat tabellen en uitleg rustig leesbaar blijven.
 
-**Open, door de eigenaar aangekaart:** de profielen lopen als een trap omhoog.
-Een afdaling bestaat alleen waar een koers er in `world.ts` expliciet een
-heeft, dus na de meeste hellingen gaat het niet omlaag. Daar is nog niets aan
-veranderd.
+**Door de eigenaar aangekaart:** de profielen liepen als een trap omhoog.
+Dat is in de volgende ronde opgelost ("een afdaling na elke helling").
 
 **Niet geverifieerd:**
 - De echte Next-pagina, dus ook niet of de bundel van Next het font via de
@@ -12422,8 +12457,9 @@ Eerst binnen ZWB, later mogelijk als losse app. Werktitel: Kopman.
   en punten.
 
 **Bewust niet:**
-- **Voor ronde 2 en later**, het plan staat in het plannenboek: diamanten, een
-  seizoenspas, fietsupgrades en trainen.
+- **Voor ronde 2 en later:** diamanten, een seizoenspas, fietsupgrades en
+  trainen. (Hier stond eerder dat het plan in het plannenboek staat; op
+  2026-11-11 stond Kopman daar niet in.)
 - 3D, waaiers en wind.
 - Echte namen.
 - Opslag op de server en een ranglijst tussen leden.

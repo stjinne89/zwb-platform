@@ -11,7 +11,7 @@ import { rng } from "@/kopman/engine/rng";
 import { parseSave } from "@/kopman/engine/save";
 import { lineupFor, rivalTeams } from "@/kopman/engine/teams";
 import { PLAYER_TEAM, RIDER_TYPES } from "@/kopman/engine/types";
-import { CALENDAR, raceById } from "@/kopman/engine/world";
+import { CALENDAR, climbById, raceById, sectorById } from "@/kopman/engine/world";
 
 const DATE = "2026-11-11";
 const starter = () => newSave(12345, DATE);
@@ -228,6 +228,23 @@ describe("Kopman: koers", () => {
     expect(playRadio(state, options[1], 3)).toBe(false);
     expect(playRadio(state, options[1], 2)).toBe(false);
     expect(handPlayed(state, 4)).toBe(false);
+  });
+
+  it("daalt na elke klim waar nog vlakke weg volgt, zonder de koers langer te maken", () => {
+    for (const def of CALENDAR) {
+      const course = buildCourse(def);
+      const climbs = course.features.filter((f) => f.kind === "klim");
+      def.items.forEach((item, i) => {
+        if (item.kind !== "klim") return;
+        const next = def.items[i + 1];
+        const feature = climbs.shift()!;
+        const after = course.grades[feature.end / 100];
+        if (next?.kind === "vlak" && next.km >= 2.5) expect(after, `${def.id}: ${item.climb}`).toBeLessThan(-0.02);
+        if (!next) expect(feature.end).toBe(course.length);
+      });
+      const km = def.items.reduce((sum, item) => sum + (item.kind === "klim" ? climbById.get(item.climb)!.km : item.kind === "sector" ? sectorById.get(item.sector)!.km : item.km), 0);
+      expect(Math.abs(course.length / 1000 - km), def.id).toBeLessThan(0.5);
+    }
   });
 
   it("kiest per koers de vijf renners die het best passen", () => {

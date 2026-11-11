@@ -99,6 +99,11 @@ berekende sleutels.
   kasseien 0,012, grind 0,009, keer de kasseivaardigheid), zwaartekracht met
   fiets van 7,5 kg, en traagheid. De afdaalsnelheid is begrensd door de
   afdaalvaardigheid.
+- **Afdalingen.** Na elke klim waar nog minstens 2,5 km vlak volgt, legt
+  `buildCourse` zelf een afdaling aan. Die gaat af van dat vlak, zodat de
+  koers even lang blijft. Hij verliest 70 tot 100% van de hoogte, meestal over
+  een flauwere en langere weg (2,5 tot 9%). Hoogte en helling komen uit een
+  seed op koers en plaats. Een afdaling die in de kalender staat, gaat voor.
 - **Lichaam uit de kaart.** Gewicht 58–85 kg (klimmers lichter), duurvermogen
   op het vlak en bergop, W′ (anaerobe reserve) met herstel volgens Skiba, en
   sprintvermogen.
@@ -185,8 +190,8 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
 ## Bewust niet in ronde 1
 
 - Diamanten, een seizoenspas, fietsupgrades en trainen (met dubbele kaarten
-  als grondstof). Die horen bij de volgende rondes; het plan staat in het
-  plannenboek.
+  als grondstof). Die horen bij de volgende rondes. Een plan staat nog niet in
+  het plannenboek.
 - 3D, waaiers, wind en valpartijen.
 - Portretten als foto of AI-afbeelding: 320 losse plaatjes zijn zwaar, ze
   laten zich niet per stemming animeren en kunnen op een echte renner lijken.
@@ -225,8 +230,6 @@ De kleuren staan als variabelen op `.app` in `kopman.module.css`:
   leesbaar blijft.
 - Er zijn geen harde schuine schaduwen.
 
-Open: de profielen lopen als een trap omhoog, want een afdaling bestaat alleen
-waar een koers er expliciet een heeft.
 
 ## Bronnen
 
