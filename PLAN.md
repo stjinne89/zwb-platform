@@ -12238,9 +12238,25 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — Kopman: het bord op een telefoon
+### Gebouwd — Kopman: de weergaveknoppen in de stijl van de app
 
 **2026-11-11, commit: de commit die dit blok toevoegt, lokaal op
+`claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
+
+- **De vraag.** "Kun je de knoppen ook in de stijl van de app maken?"
+- **Wat er is.** Overzicht en Koersbeeld waren één pil met twee helften. Nu zijn
+  het losse vlakken zoals de tabbladen van de app: de gekozen knop is geel en
+  iets opgetild. Dat geldt op desktop en op de telefoon. De vakjes in de
+  bovenbalk van de telefoon hebben hun schaduw terug, zoals in de app.
+- **Bewust niet veranderd:** de knop Rijden, die al de gele knop van de app
+  was, en de kaarten, die hun eigen vorm hebben.
+- **Geverifieerd:** in Chrome op desktop en nagebootst op 375×667, zonder
+  scroll.
+- **Niet geverifieerd:** een echte telefoon.
+
+### Gebouwd — Kopman: het bord op een telefoon
+
+**2026-11-11, commit `63a753f3`, lokaal op
 `claude/zwbgame-autoracer-concepts-8d80d3`, niet gepusht.** Geen migratie.
 
 - **De vraag.** De eigenaar schreef: "Om het speelbaar te maken op mobiel lijkt

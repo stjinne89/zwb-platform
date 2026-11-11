@@ -466,6 +466,11 @@ je wil niet scrollen".
 - Op een hoog en smal beeld zoomt de camera wat in. Anders is de onderste helft
   lege weg. Op desktop verandert er niets.
 - Op desktop is het bord gelijk gebleven.
+- **De knoppen Overzicht en Koersbeeld** zien eruit als de tabbladen van de
+  app: losse vlakken met een inktrand, de gekozen geel en iets opgetild. Dat
+  geldt op desktop en op de telefoon. Eerst was het één pil met twee helften,
+  die nergens anders in de app voorkwam. De eigenaar vroeg: "Kun je de knoppen
+  ook in de stijl van de app maken?".
 
 **Geverifieerd:**
 - in de preview in Chrome, nagebootst op 375×667, 390×844 en 812×375. Steeds

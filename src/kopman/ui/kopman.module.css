@@ -351,19 +351,18 @@
 .chaseCaption, .chaseGrade { position: absolute; top: 10px; padding: 4px 10px; border: 2px solid var(--ink); background: var(--yellow); color: var(--ink); font-family: var(--letter); font-weight: 800; font-size: 0.85rem; line-height: 1.2; box-shadow: 0 3px 8px rgb(0 0 0 / 0.25); }
 .chaseCaption { left: 10px; border-radius: 4px; transform: rotate(-1.5deg); }
 .chaseGrade { right: 10px; border-radius: 999px; background: var(--paper); font-variant-numeric: tabular-nums; }
-.viewToggle { display: inline-flex; border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; background: var(--paper); box-shadow: var(--lift); }
-.viewToggle button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; font-size: 0.84rem; font-weight: 750; color: var(--ink); background: transparent; transition: background-color 0.15s ease-out; }
-.viewToggle button + button { border-left: 2px solid var(--ink); }
-.viewToggle button[aria-pressed="true"] { background: var(--yellow); }
+/* Like the app's tabs: separate tiles, the chosen one yellow and lifted. */
+.viewToggle { display: inline-flex; gap: 6px; }
+.viewToggle button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 8px; border: 2px solid var(--ink); background: var(--paper-2); color: var(--ink); font-size: 0.84rem; font-weight: 750; transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s ease-out; }
 .viewToggle button:not([aria-pressed="true"]):hover { background: var(--yellow-soft); }
-.viewToggle button:focus-visible { outline: 3px solid var(--yellow); outline-offset: -5px; }
+.viewToggle button[aria-pressed="true"] { background: var(--yellow); transform: translateY(-2px); box-shadow: var(--lift); }
 
 /* The board on a phone: one screen, no scrolling. The race view is the stage; the sector, the rivals' plans and the ticker sit on it. */
 .mBoard { position: fixed; inset: 0; z-index: 1000; height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto minmax(110px, 1fr); grid-auto-rows: auto; gap: 7px; padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); background: var(--halftone), var(--night); color: var(--fg); overflow: hidden; overscroll-behavior: contain; -webkit-tap-highlight-color: transparent; }
-.mTop { display: flex; gap: 6px; align-items: center; min-width: 0; }
-.mTop .chip { padding: 3px 8px; font-size: 0.78rem; box-shadow: none; }
-.mTop .viewToggle { box-shadow: none; flex: none; }
-.mTop .viewToggle button { padding: 6px 10px; }
+.mTop { display: flex; gap: 6px; align-items: center; min-width: 0; padding-top: 2px; }
+.mTop .chip { padding: 3px 8px; font-size: 0.78rem; }
+.mTop .viewToggle { flex: none; gap: 5px; }
+.mTop .viewToggle button { padding: 6px 9px; }
 .mName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--letter); font-size: 1.02rem; font-weight: 800; text-transform: uppercase; }
 .mName .chip { max-width: 100%; }
 .mName .boardSelect { max-width: 100%; min-width: 0; }
