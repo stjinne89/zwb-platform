@@ -30,6 +30,7 @@ import {
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadWeightMissing } from "@/lib/teams/missing-weight";
 import { MissingWeightNotice } from "@/components/missing-weight-notice";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 const TYPE_LABELS: Record<string, string> = {
   zrl: "ZRL",
@@ -548,7 +549,8 @@ export default async function TeamDetailPage({
               <p className="mt-1 text-muted-foreground">{team.description}</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <WhatsAppShareLink text={team.name} path={`/teams/${team.id}`} />
             <TeamChatLinks
               whatsappGroups={waGroups ?? []}
               discordUrl={team.discord_url}

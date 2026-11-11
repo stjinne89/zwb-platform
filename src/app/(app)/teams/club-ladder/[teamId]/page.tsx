@@ -60,6 +60,7 @@ import {
   teamAliases,
   type TeamProfileRider,
 } from "../_lib/load";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -369,7 +370,12 @@ export default async function ClubLadderTeamPage({
       <PageHeader
         eyebrow="Club Ladder"
         title={team.name}
-        actions={<TeamChatLinks whatsappGroups={waGroups ?? []} discordUrl={team.discord_url} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <WhatsAppShareLink text={`${team.name} in de Club Ladder`} path={`/teams/club-ladder/${team.id}`} />
+            <TeamChatLinks whatsappGroups={waGroups ?? []} discordUrl={team.discord_url} />
+          </div>
+        }
       />
 
       {needsWeight && <MissingWeightNotice />}

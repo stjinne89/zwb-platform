@@ -6,6 +6,7 @@ import {
   loadEditionBySlug,
   loadEditionEntrants,
 } from "@/lib/omnium/public-data";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 export const revalidate = 300;
 
@@ -52,6 +53,7 @@ export default async function OmniumStartlistPage({ params }: PageProps) {
         <h1 className="text-3xl font-semibold tracking-tight">
           Start list — {edition.title}
         </h1>
+        <WhatsAppShareLink text={`Start list — ${edition.title}`} path={`/omnium/${editie}/startlist`} label="Share on WhatsApp" />
       </header>
 
       {entrants.length === 0 ? (

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, PenLine, Trophy } from "lucide-react";
 import type { Scene, SceneSpec } from "@/lib/clubverhaal/scenes";
 import { bodyParagraphs } from "@/lib/clubverhaal/story";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 import { SceneStage } from "../scene-stage";
 import { StoryBar } from "../story-bar";
 import styles from "../verhaal.module.css";
@@ -24,6 +25,7 @@ export function StoryReader({
   photos,
   beker,
   back,
+  sharePath,
 }: {
   title: string;
   eyebrow: string;
@@ -32,6 +34,7 @@ export function StoryReader({
   photos: ReaderPhoto[];
   beker: { id: string; title: string } | null;
   back: { href: string; label: string };
+  sharePath?: string;
 }) {
   const [active, setActive] = useState<SceneSpec>(scenes[0]);
 
@@ -70,6 +73,7 @@ export function StoryReader({
           <span className={styles.eyebrow}>{eyebrow}</span>
           <h1 className={styles.storyTitle}>{title}</h1>
           <p>Door {author}</p>
+          {sharePath && <WhatsAppShareLink text={title} path={sharePath} className={styles.share} />}
         </header>
 
         {scenes.map((scene, index) => (

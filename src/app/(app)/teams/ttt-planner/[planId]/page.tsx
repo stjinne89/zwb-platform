@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatSeconds, routeLabel, zwiftGopherData } from "@/lib/ttt/plan-export";
 import { TttPlanActions } from "../_components/plan-actions";
 import { TttCheatsheet } from "../_components/ttt-cheatsheet";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -155,6 +156,11 @@ export default async function TttPlanDetailPage({
         eyebrow="TTT Planner"
         title={plan.name}
         description={`${raceTeamName}${eventTitle ? ` - ${eventTitle}` : ""} - ${plan.published_at ? "gepubliceerd" : "concept"}`}
+        actions={
+          plan.published_at ? (
+            <WhatsAppShareLink text={`TTT-plan ${plan.name}`} path={`/teams/ttt-planner/${plan.id}`} />
+          ) : undefined
+        }
       />
 
       {canManage && (

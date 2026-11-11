@@ -11,6 +11,7 @@ import {
 import { Countdown } from "@/app/omnium/_components/countdown";
 import { LocalTime } from "@/app/omnium/_components/local-time";
 import { moduleName } from "@/lib/club";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 export const revalidate = 300;
 
@@ -62,6 +63,7 @@ export default async function OmniumEditionPage({ params }: PageProps) {
         <p className="text-sm text-muted-foreground">
           <Countdown targetIso={edition.startsAt} prefix="Starts in" />
         </p>
+        <WhatsAppShareLink text={edition.title} path={`/omnium/${editie}`} label="Share on WhatsApp" />
       </header>
 
       {stream && (

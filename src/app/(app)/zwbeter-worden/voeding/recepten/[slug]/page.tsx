@@ -34,6 +34,7 @@ import { RecipeSharer } from "../../_components/recipe-sharer";
 import { BackLink } from "@/components/app-ui";
 import { BidonChoice } from "../../../_components/bidon-icon";
 import { bidonGroupClass, bidonOptionClass } from "../../../_components/bidon-options";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -152,6 +153,11 @@ export default async function RecipePage({
               </li>
             ))}
           </ul>
+        )}
+        {(recipe.is_standard || recipe.visibility === "leden") && (
+          <div className="mt-3">
+            <WhatsAppShareLink text={recipe.title} path={`/zwbeter-worden/voeding/recepten/${recipe.slug}`} />
+          </div>
         )}
       </div>
 

@@ -71,6 +71,8 @@ a.card:hover{border-color:#d2a95f80;transform:translateY(-2px)}
 .storyTitle{font-size:clamp(38px,5.6vw,76px)!important;letter-spacing:-2.4px!important;text-wrap:balance}
 .back{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:13px;color:#d5dfe2;margin-bottom:14px;width:fit-content}
 .back:hover{color:var(--gold)}
+.share{display:inline-flex;align-items:center;gap:7px;min-height:44px;margin-top:6px;padding:0 14px;border-radius:30px;border:1px solid #ffffff26;background:#0b2f39b0;font-size:13px;color:#e3e9eb;width:fit-content;backdrop-filter:blur(6px)}
+.share:hover{color:var(--gold);border-color:var(--gold)}
 .scene{min-height:100svh;display:flex;flex-direction:column;justify-content:center;gap:28px;padding:80px 40px}
 .scenePanel{max-width:34rem;border-radius:14px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(10px);padding:24px 26px}
 .scenePanel .chapterIndex{margin-bottom:14px}

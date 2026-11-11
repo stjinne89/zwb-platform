@@ -11,6 +11,7 @@ import { PROTOCOLS } from "@/lib/protocols";
 import type { ArticleConclusion, ArticleEvidence } from "@/lib/knowledge/evidence";
 import { EvidenceBadge } from "@/components/evidence-badge";
 import { ArticleExperts } from "@/app/(app)/zwbieb/_components/article-experts";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 /** Protocollen die naar dit kennisartikel verwijzen. */
 export function protocolLinksFor(articleHref: string): { href: string; title: string }[] {
@@ -76,6 +77,7 @@ export function KnowledgeArticleView({
         <div className="mt-3 flex flex-wrap gap-2">
           <EvidenceBadge evidence={article.evidence} conclusion={article.conclusion} />
           <MethodLabelBadge label={article.methodLabel} />
+          <WhatsAppShareLink text={article.title} path={articleHref} />
         </div>
       </div>
 

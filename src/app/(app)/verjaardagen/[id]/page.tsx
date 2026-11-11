@@ -35,6 +35,7 @@ import {
 } from "./_components/birthday-ride";
 import { BirthdayRsvpPicker } from "./_components/birthday-rsvp-buttons";
 import { getClub } from "@/lib/club";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 // Buiten de component zodat de purity-lint Date.now() niet als impure-in-render
 // markeert (zelfde patroon als de event-detailpagina).
@@ -310,6 +311,14 @@ export default async function BirthdayPage({
                 {formatDateKey(occurrence.dateKey, { dateStyle: "full" })}
                 {age !== null ? ` · ${age} jaar` : ""}
               </p>
+              {profile.share_birthday && (
+                <div className="mt-3">
+                  <WhatsAppShareLink
+                    text={`${profile.display_name} is ${isToday ? "vandaag " : ""}jarig`}
+                    path={`/verjaardagen/${profile.id}`}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

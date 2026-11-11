@@ -7,6 +7,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Deel via WhatsApp op meer pagina's (2026-11-11): lokaal gecommit, niet
+   gepusht.** Geen migratie. Zie de ronde "Deel via WhatsApp op meer pagina's".
+
 0. **Club Ladder: uitdaging klaarzetten voor Discord (2026-11-11): gepusht
    naar `main` (`8b8223f3`).** Geen migratie. `LADDER_COOKIE` op Netlify werkt nog (eigenaar,
    2026-11-11). Open: de knop na de deploy als captain proberen. Zie de ronde
@@ -12183,6 +12186,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Deel via WhatsApp op meer pagina's
+
+**2026-11-11, commit `COMMIT_HASH`, niet gepusht.** Op verzoek van de eigenaar
+("zou je dit makkelijk kunnen uitbreiden naar meer belangrijke pagina's die
+soms gedeeld kunnen worden?"), na een voorstel met twee groepen ("A en B
+bouwen"). Geen migratie.
+
+De knop is het bestaande `WhatsAppShareLink` (`components/whatsapp-share-link.tsx`):
+een gewone `wa.me`-link met een korte tekst en de volledige URL. Tot nu toe stond
+hij alleen op de eventpagina en bij ritverslagen. Nu ook op:
+
+- **Openbaar:** een clubverhaal (`/verhaal/[id]`, als pil in de donkere stijl
+  van de verhaalpagina, klasse `.share`), en het omnium: editie, uitslag,
+  startlijst en seizoensklassement, met "Share on WhatsApp" en Engelse tekst
+  zoals de rest van die site.
+- **In de app:** teampagina, Club Ladder-teampagina, TTT-plan, beker,
+  verjaardag, recept en de kennisartikelen van training, racen, voeding,
+  materiaal (samen via `KnowledgeArticleView`) en core.
+
+Alleen waar de pagina voor anderen zichtbaar is: een TTT-plan pas als het
+gepubliceerd is, een beker pas als hij is toegekend, een verjaardag alleen als
+het lid de verjaardag deelt, en een recept alleen als clubrecept of als het
+met de leden gedeeld is (`visibility = 'leden'`). De gedeelde URL is het kale
+pad zonder filters uit de querystring.
+
+**Bewust niet:**
+- Persoonlijke pagina's (profiel, logboek, schema, doelen, eigen statistieken):
+  daar staat eigen data op die een ander lid niet ziet.
+- Beheerpagina's.
+- Het racebriefje (heeft al Deel als plaatje) en het live-event (heeft al Deel
+  publieke link).
+- Geen uitleg op `/hulp`: de knop spreekt voor zich.
+
+**Niet lokaal gecontroleerd:** de pagina's in de app (teams, Club Ladder,
+TTT-plan, beker, verjaardag, recept, kennisartikelen) en het clubverhaal zijn
+niet in de browser gezien: er was geen ZWB-sessie, en productie heeft nog geen
+geplaatst verhaal. Wel gezien op de lokale dev-server: het omnium (editie,
+uitslag en startlijst van "thedawn"), met de knop onder de titel en de juiste
+tekst en link; het klassement toont nog geen seizoen, dus ook geen knop. `tsc`
+en eslint schoon.
 
 ### Gebouwd — Club Ladder: uitdaging klaarzetten voor Discord
 

@@ -11,6 +11,7 @@ import { BekerActions, Congrats, ReviewPanel } from "../_components/beker-contro
 import { getClub } from "@/lib/club";
 import { fillClubText } from "@/lib/club-texts";
 import { ClubText } from "@/components/club-texts-provider";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -95,6 +96,7 @@ export default async function BekerPage({ params }: { params: Promise<{ id: stri
                 </li>
               ))}
             </ul>
+            {awarded && <WhatsAppShareLink text={beker.title} path={`/zwbekers/${beker.id}`} />}
           </header>
 
           <p className="whitespace-pre-line text-base leading-relaxed">{beker.story}</p>

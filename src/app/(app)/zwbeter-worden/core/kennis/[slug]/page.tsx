@@ -8,6 +8,7 @@ import {
 } from "@/lib/training/strength-library";
 import { BackLink } from "@/components/app-ui";
 import { EvidenceBadge } from "@/components/evidence-badge";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 import { loadSeries, requireViewer } from "../../_data";
 import { ProtocolLinks } from "../../../_components/protocols/knowledge-article";
 import { ArticleExperts } from "@/app/(app)/zwbieb/_components/article-experts";
@@ -39,7 +40,10 @@ export default async function StrengthArticlePage({
         </p>
         <h2 className="mt-1 text-xl font-semibold">{article.title}</h2>
         <p className="mt-2 max-w-3xl text-muted-foreground">{article.summary}</p>
-        <EvidenceBadge evidence={article.evidence} conclusion={article.conclusion} className="mt-3" />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <EvidenceBadge evidence={article.evidence} conclusion={article.conclusion} />
+          <WhatsAppShareLink text={article.title} path={`/zwbeter-worden/core/kennis/${article.slug}`} />
+        </div>
       </div>
 
       <ul className="max-w-3xl space-y-2 rounded-lg border bg-card p-5 text-sm">

@@ -40,6 +40,7 @@ export default async function VerhaalDetailPage({ params }: { params: Promise<{ 
       photos={photos}
       beker={story.beker}
       back={{ href: `/verhaal#${chapter.id}`, label: chapter.title }}
+      sharePath={`/verhaal/${story.id}`}
     />
   );
 }

@@ -16,6 +16,7 @@ import {
   type PublicStanding,
 } from "@/lib/omnium/public-data";
 import type { Discipline } from "@/lib/omnium/scoring";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 export const revalidate = 300;
 
@@ -201,6 +202,7 @@ export default async function OmniumResultsPage({
         <h1 className="text-3xl font-semibold tracking-tight">
           Results — {edition.title}
         </h1>
+        <WhatsAppShareLink text={`Results — ${edition.title}`} path={`/omnium/${editie}/results`} label="Share on WhatsApp" />
         {provisional && (
           <p className="text-sm text-amber-600 dark:text-amber-400">
             Provisional: not every event has been scored yet.

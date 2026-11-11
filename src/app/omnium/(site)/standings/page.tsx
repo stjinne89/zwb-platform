@@ -11,6 +11,7 @@ import {
   loadSeasonStandings,
   type PublicSeasonStanding,
 } from "@/lib/omnium/public-data";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 
 export const revalidate = 300;
 
@@ -131,6 +132,7 @@ export default async function OmniumStandingsPage({
         <h1 className="text-3xl font-semibold tracking-tight">
           Season standings
         </h1>
+        <WhatsAppShareLink text={`${season.name} — season standings`} path="/omnium/standings" label="Share on WhatsApp" />
       </header>
 
       {standings.length === 0 ? (
