@@ -7,15 +7,15 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): `6f9d16c7`, lokaal
-   gecommit, niet gepusht.** Geen migratie. Open: pushen, op cron-job.org
+0. **ZwiftRacing: 90 dagen en vELO1 door de server (2026-11-11): gepusht naar
+   `main` (`b282f1cd`).** Geen migratie. Open: op cron-job.org
    `POST /api/zwiftracing/sync` elke 30 minuten met `TEAM_RESULTS_SYNC_SECRET`
    aanmaken, nagaan dat een run vanaf Netlify `fetched` > 0 geeft, en dan de
    geplande Chrome-taak `ladder-vermogen-zwiftracing` uitzetten. Zie de ronde
    "ZwiftRacing: 90 dagen en vELO1 door de server".
 
-0. **Club Ladder: heatmap in de matchup (2026-11-11): `ac73f209`, lokaal, niet
-   gepusht.** Geen migratie. Open: na de deploy een matchup met renners aan
+0. **Club Ladder: heatmap in de matchup (2026-11-11): gepusht naar `main`
+   (`d7bb3f0f`).** Geen migratie. Open: na de deploy een matchup met renners aan
    beide kanten bekijken, licht en donker, ook op een telefoon. Zie de ronde
    "Club Ladder: heatmap in de matchup".
 
@@ -12220,7 +12220,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: heatmap in de matchup
 
-**2026-11-11, commit `ac73f209`, lokaal, niet gepusht.** Geen migratie. Idee uit de
+**2026-11-11, commit `d7bb3f0f`, gepusht naar `main`** (eigenaar: "Ja, push naar main"). Geen migratie. Idee uit de
 W/kg-tool op zwbcycling.nl (een gekleurd vakje per waarde). Na een voorbeeld
 met en zonder heatmap vroeg de eigenaar het te bouwen ("Ja, bouw het").
 
@@ -12252,7 +12252,7 @@ nieuwe fouten.
 
 ### Gebouwd — ZwiftRacing: 90 dagen en vELO1 door de server
 
-**2026-11-11, commit `6f9d16c7`, lokaal, niet gepusht.** Geen migratie. Aanleiding: de
+**2026-11-11, commit `b282f1cd`, gepusht naar `main`** (eigenaar: "Ja, push naar main"). Geen migratie. Aanleiding: de
 eigenaar vroeg de W/kg-tool op zwbcycling.nl (`/ladder/overview.php`) te
 vergelijken met de Club Ladder. Die tool haalt per ingevoerd Zwift-ID het
 beste vermogen over 90 dagen (5 s tot 20 min) en de vELO2-klasse op bij
