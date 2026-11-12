@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { autoplay, BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, deckFor, EARLY_ATTACK, HAND_SIZE, OFF_TYPE, oddsFor, phaseOf, PLAYS_PER_TURN, playCard, rideSector, ridersFor, startSector, STREKEN, TEAM_CARDS, unplayCard, type BoardState } from "@/kopman/engine/board";
 import { BIKE_LENGTH, LANES, laneOf, riding, statBoost, stepRace, uphillFinish } from "@/kopman/engine/race";
-import { launch, rideSprint, SPRINT_FROM, sprinting, steer } from "@/kopman/engine/board";
+import { launch, rideSprint, SPRINT_FROM, sprinting, steer, KRACHT_KOPMAN } from "@/kopman/engine/board";
+import { DIVISIONS, divisionOfRace } from "@/kopman/engine/divisions";
+import { buildPool, pool } from "@/kopman/engine/cards";
+import { ITEMS } from "@/kopman/engine/items";
+import { rivalTeams } from "@/kopman/engine/teams";
+import { tradeUp } from "@/kopman/engine/economy";
+import { parseSave } from "@/kopman/engine/save";
 import { teamBonus } from "@/kopman/engine/items";
 import { rng } from "@/kopman/engine/rng";
 import { kopmanOf } from "@/kopman/engine/race";
@@ -330,5 +336,72 @@ describe("Kopman: bordspel", () => {
     expect(s.boxed).toBe(true);
     expect(k.distance).toBeLessThanOrEqual(r.distance - BIKE_LENGTH + 1e-9);
     expect(k.speed).toBeLessThanOrEqual(r.speed + 1e-9);
+  });
+
+  it("voegt twaalf diamanten renners toe zonder een bestaande kaart te veranderen", () => {
+    const first = buildPool();
+    const all = pool().pool;
+    expect(all.slice(0, first.length)).toEqual(first);
+    const diamonds = all.slice(first.length);
+    expect(diamonds).toHaveLength(12);
+    expect(diamonds.every((c) => c.tier === "diamant" && c.overall >= 89)).toBe(true);
+    expect(first.every((c) => c.tier !== "diamant")).toBe(true);
+    for (const slot of new Set(ITEMS.map((x) => x.slot))) {
+      const tiers = ITEMS.filter((x) => x.slot === slot);
+      expect(tiers.map((x) => x.tier)).toEqual(["brons", "zilver", "goud", "diamant"]);
+      expect(tiers[3].value).toBeGreaterThan(tiers[2].value);
+    }
+  });
+
+  it("ruilt vijf gouden reserves in voor een diamant, en een save mag een diamanten pakket hebben", () => {
+    const gold = pool().pool.find((c) => c.tier === "goud")!.id;
+    const out = tradeUp({ ...save, collection: { ...save.collection, [gold]: 6 } }, "goud");
+    expect(out).not.toBeNull();
+    const id = out!.pull.id;
+    expect(pool().byId.get(id)?.tier ?? ITEMS.find((x) => x.id === id)?.tier).toBe("diamant");
+    expect(parseSave(JSON.stringify({ ...save, packs: ["diamant"] }))?.packs).toEqual(["diamant"]);
+  });
+
+  it("geeft de rivalen per niveau ervaring, aanvallen en in de Wereldtour drie diamanten", () => {
+    const top = DIVISIONS.length - 1;
+    const wt = createBoard(DIVISIONS[top].races[0], 1, lineup);
+    const k = wt.race.riders.find((r) => r.kopman && r.team !== PLAYER_TEAM && r.card.tier === "zilver") ?? wt.race.riders.find((r) => r.kopman && r.team !== PLAYER_TEAM)!;
+    const tierBonus = { brons: -1, zilver: 0, goud: 1, diamant: 2 }[k.card.tier];
+    expect(wt.kracht[k.id]).toBe(KRACHT_KOPMAN + tierBonus + DIVISIONS[top].rivals.xp);
+    expect(Object.values(wt.attacksLeft).every((n) => n === DIVISIONS[top].rivals.attacks)).toBe(true);
+    const kermis = createBoard(DIVISIONS[0].races[0], 1, lineup);
+    const rk = kermis.race.riders.find((r) => r.kopman && r.team !== PLAYER_TEAM)!;
+    expect(kermis.kracht[rk.id]).toBe(KRACHT_KOPMAN + { brons: -1, zilver: 0, goud: 1, diamant: 2 }[rk.card.tier]);
+    const withDiamond = rivalTeams(top).filter((t) => t.riders.some((id) => pool().byId.get(id)!.tier === "diamant"));
+    expect(withDiamond).toHaveLength(3);
+    for (let i = 0; i < top; i++) expect(rivalTeams(i).some((t) => t.riders.some((id) => pool().byId.get(id)!.tier === "diamant"))).toBe(false);
+  });
+
+  it("laat vanaf het Continentaal een rivaal achter je aanvallende kopman aan rijden", () => {
+    const conti = DIVISIONS.findIndex((d) => d.rivals.chase);
+    const race = DIVISIONS[conti].races.find((id) => !createBoard(id, 1, lineup).tt)!;
+    expect(divisionOfRace(race)).toBe(conti);
+    const b = createBoard(race, 1, lineup);
+    b.intents = [];
+    const c = { uid: "test", card: "demarrage", type: "allrounder", rider: null } as BoardState["hand"][number];
+    b.hand.push(c);
+    const k = kopmanOf(b.race, PLAYER_TEAM)!;
+    b.kracht[k.id] = 20;
+    expect(playCard(b, "test", k.id)).toBe(true);
+    startSector(b);
+    expect(b.events.some((e) => e.text.includes("rijdt achter") && !e.good)).toBe(true);
+    expect(b.race.riders.some((r) => r.team !== PLAYER_TEAM && r.override?.mode === "kop" && r.override.pull === 1.1)).toBe(true);
+  });
+
+  it("speelt vanaf de Proftour hooguit één valse bidon per koers", () => {
+    const pro = DIVISIONS.findIndex((d) => d.rivals.trick > 0);
+    const race = DIVISIONS[pro].races.find((id) => !createBoard(id, 1, lineup).tt)!;
+    const b = createBoard(race, 1, lineup);
+    b.trick = 1;
+    const k = kopmanOf(b.race, PLAYER_TEAM)!;
+    while (b.phase !== "klaar") { startSector(b); while (!rideSector(b, 600)) { /* */ } }
+    expect(b.events.filter((e) => e.text.startsWith("Valse bidon van")).length).toBe(1);
+    expect(b.tricked).toBe(true);
+    void k;
   });
 });

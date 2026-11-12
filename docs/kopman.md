@@ -29,7 +29,9 @@ De vraag was die opzet naar het wielrennen te halen. De eigenaar koos daarbij:
 ## Spel in ronde 1
 
 - **Kaarten.** Er is een vaste pool van 320 fictieve renners (seed `20261111`):
-  134 brons, 134 zilver en 52 goud. Er zijn vijf types (sprinter, klimmer,
+  134 brons, 134 zilver en 52 goud. Sinds 2026-11-12 staan er 12 diamanten
+  renners achter (89 en hoger, `r321`–`r332`; zie
+  [kopman-piramide.md](kopman-piramide.md#diamant)), de eerste 320 bleven gelijk. Er zijn vijf types (sprinter, klimmer,
   klassieker, tijdrijder, allrounder) en zes eigenschappen (vlak, klim, sprint,
   tijdrit, kasseien, afdalen). Het totaal bepaalt de kleur: vanaf 65 zilver,
   vanaf 75 goud. Namen komen uit lijsten per land zonder achternamen van
@@ -145,25 +147,29 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
 
 - **Pakketten** van 3 kaarten. De kansen staan in de winkel:
 
-  | Pakket | Brons | Zilver | Goud | Prijs |
-  | --- | --- | --- | --- | --- |
-  | Brons | 94% | 6% | — | 1.000 munten |
-  | Zilver | 25% | 65% | 10% | 3.000 munten |
-  | Goud | — | 60% | 40% | alleen te winnen |
+  | Pakket | Brons | Zilver | Goud | Diamant | Prijs |
+  | --- | --- | --- | --- | --- | --- |
+  | Brons | 94% | 6% | — | — | 1.000 munten |
+  | Zilver | 25% | 65% | 10% | — | 3.000 munten |
+  | Goud | — | 58% | 38% | 4% | alleen te winnen |
+  | Diamant | — | — | 70% | 30% | alleen te winnen |
 
-  Een gouden pakket bevat altijd minstens één gouden kaart.
+  Een gouden pakket bevat altijd minstens één gouden of diamanten kaart, een
+  diamanten pakket minstens één diamant. Tot 2026-11-12 was goud 60% zilver en
+  40% goud.
 - **Vangnet.** Na 8 pakketten zonder goud is de volgende kaart goud. De teller
   gaat terug naar nul zodra je goud trekt.
 - **Dubbele kaarten** blijven als reservekaart in je verzameling. Renners,
   materiaal en personeel tellen samen per niveau. Je kunt ze op twee manieren
   gebruiken (sinds 2026-11-11):
   - **Ruilen.** 5 reservekaarten van hetzelfde niveau worden 1 kaart van het
-    niveau erboven: brons → zilver, zilver → goud. De soort volgt de
+    niveau erboven: brons → zilver, zilver → goud, en sinds 2026-11-12
+    goud → diamant. De soort volgt de
     pakketkansen (renner 60%, materiaal 30%, personeel 10%). Een kaart die je
     nog niet hebt gaat voor. De ruil is uit de seed bepaald en telt door
     (`trades`), dus herladen geeft geen andere kaart.
   - **Verkopen.** Alle reservekaarten van één niveau tegelijk, voor 150
-    (brons), 500 (zilver) of 2.000 (goud) munten per stuk.
+    (brons), 500 (zilver), 2.000 (goud) of 6.000 (diamant) munten per stuk.
   - Bij de snelknop en bij verkopen gaan eerst de kaarten weg waarvan je de
     meeste hebt. Het laatste exemplaar van een kaart blijft dan altijd.
   - **Zelf kiezen.** Met "Kies 5" tik je zelf 5 kaarten van één niveau aan,
@@ -242,25 +248,26 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
 ## Materiaal en personeel
 
 Een kaart in een pakket is een renner (60%), materiaal (30%) of personeel
-(10%), elk in brons, zilver of goud met de kansen van het pakket. Per vak telt
+(10%), elk in brons, zilver, goud of (sinds 2026-11-12) diamant, met de
+kansen van het pakket. Per vak telt
 alleen je beste kaart, voor de hele ploeg. De andere ploegen rijden zonder.
 De code staat in `src/kopman/engine/items.ts`; de koers past de bonus toe in
 `bodyOf` en `stepRace`, het startgeld in `finishRace`.
 
-| Vak | Brons / zilver / goud | Werkt op |
+| Vak | Brons / zilver / goud / diamant | Werkt op |
 |---|---|---|
-| Frame | −3 / −6 / −9% gewicht fiets | massa (7,5 kg) |
-| Wielen | −1 / −2 / −3% luchtweerstand | CdA |
-| Banden | −4 / −8 / −12% rolweerstand | Crr, op elk wegdek |
-| Aandrijving | +0,3 / +0,6 / +1% vermogen | rendement aandrijving |
-| Remmen | +2 / +4 / +6% afdaalsnelheid | maximale snelheid bergaf |
-| Kleding | −1 / −1,5 / −2% luchtweerstand | CdA, opgeteld bij de wielen |
-| Voeding | +3 / +6 / +9% reserve | W′ |
-| Trainer | +1 / +2 / +3% vermogen ploeg | drempel- en sprintvermogen |
-| Mechanieker | +10 / +20 / +30% effect materiaal | alle materiaal hierboven |
-| Fysio | +10 / +20 / +30% sneller herstel | herstel van W′ |
-| Ploegleider | +10 / +20 / +30% langere orders | duur van de radio-orders |
-| Buschauffeur | +10 / +20 / +30% startgeld | munten per koers |
+| Frame | −3 / −6 / −9 / −12% gewicht fiets | massa (7,5 kg) |
+| Wielen | −1 / −2 / −3 / −4% luchtweerstand | CdA |
+| Banden | −4 / −8 / −12 / −16% rolweerstand | Crr, op elk wegdek |
+| Aandrijving | +0,3 / +0,6 / +1 / +1,4% vermogen | rendement aandrijving |
+| Remmen | +2 / +4 / +6 / +8% afdaalsnelheid | maximale snelheid bergaf |
+| Kleding | −1 / −1,5 / −2 / −2,5% luchtweerstand | CdA, opgeteld bij de wielen |
+| Voeding | +3 / +6 / +9 / +12% reserve | W′ |
+| Trainer | +1 / +2 / +3 / +4% vermogen ploeg | drempel- en sprintvermogen |
+| Mechanieker | +10 / +20 / +30 / +40% effect materiaal | alle materiaal hierboven |
+| Fysio | +10 / +20 / +30 / +40% sneller herstel | herstel van W′ |
+| Ploegleider | +10 / +20 / +30 / +40% langere orders | duur van de radio-orders |
+| Buschauffeur | +10 / +20 / +30 / +40% startgeld | munten per koers |
 
 Een oude spelstand zonder `items` wordt gelezen met lege vakken.
 

@@ -21,6 +21,13 @@ export type Division = {
   shop: PackType[];
   /** The equipment the rival teams ride: a full set of this tier, or none. */
   gear: Tier | null;
+  /**
+   * How the rivals race on the board (since 2026-11-12): extra kracht for their
+   * kopmen, attacks per team per race, whether one chases your kopman's attack,
+   * the chance per sector of a dirty trick against you, and how many of the
+   * strongest teams also start a diamond rider.
+   */
+  rivals: { xp: number; attacks: number; chase: boolean; trick: number; diamonds: number };
   /** Ids from `RACES` (world.ts), in calendar order. */
   races: string[];
   teams: Omit<TeamDef, "riders">[];
@@ -45,6 +52,7 @@ export const DIVISIONS: Division[] = [
     promotion: "brons",
     shop: ["brons"],
     gear: null,
+    rivals: { xp: 0, attacks: 2, chase: false, trick: 0, diamonds: 0 },
     races: ["kermis-vaart", "kempen-dorpsronde", "kasseikermis", "molenprijs", "polderkermis", "dorpsplein", "bosbergkermis", "najaarskermis"],
     teams: teams("k", [["WV De Zwaluw", "ZWA"], ["De Kasseivreters", "KSV"], ["Polderpijl", "PDP"], ["WTC Molenwiek", "MLW"], ["De Dorpsstraat", "DST"], ["Velo Kempenland", "VKL"], ["De Kerktoren", "KTR"], ["Vaartrenners", "VRT"], ["Ploeg Klaproos", "KLP"], ["De Kermisvogels", "KMV"], ["Fietsclub Zuiderwind", "FZW"]]),
   },
@@ -57,6 +65,7 @@ export const DIVISIONS: Division[] = [
     promotion: "brons",
     shop: ["brons"],
     gear: "brons",
+    rivals: { xp: 0, attacks: 2, chase: false, trick: 0, diamonds: 0 },
     races: ["vlaamse-velden", "bosbergprijs", "heuvelland", "paddestraatprijs", "clubchrono", "caubergprijs", "taaienbergprijs", "kustomloop"],
     teams: teams("i", [["Heidebloem Cycling", "HBC"], ["Scheldestroom", "SCS"], ["Kempense Pijl", "KPP"], ["Lindeboom", "LDB"], ["Noorderlicht", "NDL"], ["Dijkgraaf", "DKG"], ["Brabantse Wind", "BRW"], ["Meeuw Racing", "MWR"], ["Zuiderkruis", "ZKR"], ["De Hazelaar", "HZL"], ["Rivierland", "RVL"]]),
   },
@@ -69,30 +78,33 @@ export const DIVISIONS: Division[] = [
     promotion: "zilver",
     shop: ["brons", "zilver"],
     gear: "brons",
+    rivals: { xp: 1, attacks: 3, chase: true, trick: 0, diamonds: 0 },
     races: ["ardennen-omloop", "pevele", "heuvelpijl", "dijkchrono", "comomeer-rit", "ardense-pijl", "polderprijs", "muurprijs"],
     teams: teams("c", [["Granietberg", "GRB"], ["Atlantica Cycling", "ATC"], ["Valkenhorst", "VKH"], ["Korenaar Pro", "KNA"], ["Oostzee Racing", "OZR"], ["Sneeuwgrens", "SNG"], ["Kalkrots", "KKR"], ["Duinvogel", "DVG"], ["Zilvermeer", "ZVM"], ["Bergwind", "BWD"], ["Heidepoort", "HDP"]]),
   },
   {
     id: "proftour",
     name: "Proftour",
-    band: [73, 67],
+    band: [75, 68],
     prize: 0.65,
     packs: { win: "zilver", podium: "zilver", top10: "brons" },
     promotion: "zilver",
     shop: ["brons", "zilver"],
     gear: "zilver",
+    rivals: { xp: 1, attacks: 3, chase: true, trick: 0.05, diamonds: 0 },
     races: ["openingsomloop", "grindtrofee", "westhoekprijs", "limburgprijs", "pijl-van-hoei", "polderchrono", "kustprijs", "provence-bergrit"],
     teams: teams("p", [["Stormvogel Pro", "STV"], ["Lavendel Cycling", "LVD"], ["IJzerberg", "IJB"], ["Zonnedal", "ZND"], ["Hoogland Racing", "HLR"], ["Kastanje Pro", "KST"], ["Toren Racing", "TRR"], ["Golfstroom", "GFS"], ["Heuvelrug", "HVR"], ["Vuurtoren", "VTR"], ["Wilgenhof", "WGH"]]),
   },
   {
     id: "wereldtour",
     name: "Wereldtour",
-    band: [80, 73],
+    band: [86, 76],
     prize: 1,
     packs: { win: "goud", podium: "zilver", top10: "brons" },
-    promotion: "goud",
+    promotion: "diamant",
     shop: ["brons", "zilver"],
     gear: "goud",
+    rivals: { xp: 2, attacks: 4, chase: true, trick: 0.08, diamonds: 3 },
     races: ["riviera", "kwaremont", "noorderkasseien", "ourthe", "lombardije-bergrit", "alpenrit", "asturie-bergrit", "herfstklassieker"],
     teams: teams(null, [["Zeevalk Cycling", "ZVK"], ["Montagna Blu", "MBL"], ["Hagedoorn-Polderstaal", "HPS"], ["Kustwind Racing", "KWR"], ["Rotsvast Pro", "RVP"], ["Sierra Alta", "SAL"], ["Nordlys Cycling", "NLY"], ["Tulpenveld", "TPV"], ["Ardennes Forêt", "ADF"], ["Duinzicht", "DZT"], ["Velocità Verde", "VVD"]]),
   },

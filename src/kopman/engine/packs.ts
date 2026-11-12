@@ -11,9 +11,11 @@ export const PACK_SIZE = 3;
  * build with bronze and silver.
  */
 export const PACK_ODDS: Record<PackType, Record<Tier, number>> = {
-  brons: { brons: 0.94, zilver: 0.06, goud: 0 },
-  zilver: { brons: 0.25, zilver: 0.65, goud: 0.1 },
-  goud: { brons: 0, zilver: 0.6, goud: 0.4 },
+  brons: { brons: 0.94, zilver: 0.06, goud: 0, diamant: 0 },
+  zilver: { brons: 0.25, zilver: 0.65, goud: 0.1, diamant: 0 },
+  goud: { brons: 0, zilver: 0.58, goud: 0.38, diamant: 0.04 },
+  // Only for the top two of the Wereldtour: always at least one diamond.
+  diamant: { brons: 0, zilver: 0, goud: 0.7, diamant: 0.3 },
 };
 
 export type CardKind = "renner" | ItemGroup;
@@ -27,18 +29,19 @@ function drawKind(r: number): CardKind {
   return "personeel";
 }
 
-/** Silver and gold packs in a row without a gold card before the next one guarantees one. Bronze packs do not count. */
+/** Silver and gold packs in a row without a gold (or diamond) card before the next one guarantees one. Bronze packs do not count. */
 export const PITY_PACKS = 8;
 
 /** Packs for sale, in coins. Gold packs are only won. */
 export const PACK_PRICE: Partial<Record<PackType, number>> = { brons: 1000, zilver: 3000 };
 
-export const PACK_LABELS: Record<PackType, string> = { brons: "Bronzen pakket", zilver: "Zilveren pakket", goud: "Gouden pakket" };
+export const PACK_LABELS: Record<PackType, string> = { brons: "Bronzen pakket", zilver: "Zilveren pakket", goud: "Gouden pakket", diamant: "Diamanten pakket" };
 
 function drawTier(odds: Record<Tier, number>, r: number): Tier {
   if ((r -= odds.brons) < 0) return "brons";
   if ((r -= odds.zilver) < 0) return "zilver";
-  return "goud";
+  if ((r -= odds.goud) < 0) return "goud";
+  return "diamant";
 }
 
 /**
@@ -51,8 +54,10 @@ export function openPack(type: PackType, seed: number, packNumber: number, pity:
   const tiers: Tier[] = Array.from({ length: PACK_SIZE }, () => drawTier(odds, random()));
   const counts = type !== "brons";
   const guaranteed = counts && pity >= PITY_PACKS - 1;
-  if (guaranteed && !tiers.includes("goud")) tiers[0] = "goud";
-  if (type === "goud" && !tiers.includes("goud")) tiers[PACK_SIZE - 1] = "goud";
+  const top = (t: Tier) => t === "goud" || t === "diamant";
+  if (guaranteed && !tiers.some(top)) tiers[0] = "goud";
+  if (type === "goud" && !tiers.some(top)) tiers[PACK_SIZE - 1] = "goud";
+  if (type === "diamant" && !tiers.includes("diamant")) tiers[PACK_SIZE - 1] = "diamant";
   const chosen = new Set<string>();
   const cards = tiers.map((tier) => {
     const kind = drawKind(random());
@@ -61,6 +66,6 @@ export function openPack(type: PackType, seed: number, packNumber: number, pity:
     chosen.add(card.id);
     return card.id;
   });
-  const gold = tiers.includes("goud");
+  const gold = tiers.some(top);
   return { cards, pity: gold ? 0 : counts ? pity + 1 : pity, guaranteed };
 }

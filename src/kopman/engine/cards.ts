@@ -20,10 +20,10 @@ const TYPE_SHAPE: Record<RiderType, Stats> = {
   allrounder: { vlak: -2, klim: 3, sprint: -12, tijdrit: 3, kasseien: -12, afdalen: 0 },
 };
 
-export const TIER_MIN: Record<Tier, number> = { brons: 0, zilver: 65, goud: 75 };
+export const TIER_MIN: Record<Tier, number> = { brons: 0, zilver: 65, goud: 75, diamant: 89 };
 
 export function tierOf(overall: number): Tier {
-  return overall >= TIER_MIN.goud ? "goud" : overall >= TIER_MIN.zilver ? "zilver" : "brons";
+  return overall >= TIER_MIN.diamant ? "diamant" : overall >= TIER_MIN.goud ? "goud" : overall >= TIER_MIN.zilver ? "zilver" : "brons";
 }
 
 export function overallOf(type: RiderType, stats: Stats) {
@@ -85,11 +85,29 @@ export function buildPool(seed = POOL_SEED, size = POOL_SIZE): RiderCard[] {
   return pool;
 }
 
+/** Diamond riders, after the first pool so no earlier card changes: ids r321 and up. */
+export const DIAMOND_COUNT = 12;
+const DIAMOND_TYPES: RiderType[] = ["klimmer", "klassieker", "sprinter", "allrounder", "tijdrijder", "klimmer", "klassieker", "sprinter", "allrounder", "klimmer", "klassieker", "tijdrijder"];
+
+export function buildDiamonds(first: RiderCard[], seed = POOL_SEED + 1): RiderCard[] {
+  const random = rng(seed);
+  const taken = new Set(first.map((c) => `${c.first} ${c.last}`));
+  return DIAMOND_TYPES.slice(0, DIAMOND_COUNT).map((type, i) => {
+    let target = 89 + Math.floor(random() * 6);
+    let stats = statsFor(type, target, random);
+    // Clamped stats can land under the target: aim higher until it is diamond.
+    while (overallOf(type, stats) < TIER_MIN.diamant) stats = statsFor(type, ++target, random);
+    const overall = overallOf(type, stats);
+    return { id: `r${String(first.length + i + 1).padStart(3, "0")}`, ...drawName(random, taken), type, stats, overall, tier: tierOf(overall) };
+  });
+}
+
 let cached: { pool: RiderCard[]; byId: Map<string, RiderCard> } | null = null;
 
 export function pool() {
   if (!cached) {
-    const list = buildPool();
+    const first = buildPool();
+    const list = [...first, ...buildDiamonds(first)];
     cached = { pool: list, byId: new Map(list.map((c) => [c.id, c])) };
   }
   return cached;
@@ -104,6 +122,6 @@ export function cardById(id: string) {
 export const STAT_LABELS: Record<StatKey, string> = { vlak: "Vlak", klim: "Klim", sprint: "Sprint", tijdrit: "Tijdrit", kasseien: "Kasseien", afdalen: "Afdalen" };
 export const STAT_SHORT: Record<StatKey, string> = { vlak: "VLA", klim: "KLI", sprint: "SPR", tijdrit: "TIJ", kasseien: "KAS", afdalen: "AFD" };
 export const TYPE_LABELS: Record<RiderType, string> = { sprinter: "Sprinter", klimmer: "Klimmer", klassieker: "Klassiekerrenner", tijdrijder: "Tijdrijder", allrounder: "Allrounder" };
-export const TIER_LABELS: Record<Tier, string> = { brons: "Brons", zilver: "Zilver", goud: "Goud" };
+export const TIER_LABELS: Record<Tier, string> = { brons: "Brons", zilver: "Zilver", goud: "Goud", diamant: "Diamant" };
 
 export { RIDER_TYPES };

@@ -21,7 +21,9 @@ export function rivalTeams(division: number): TeamDef[] {
   if (!def) throw new Error(`Onbekend niveau: ${division}`);
   const random = rng(77 + division);
   const taken = new Set<string>();
-  const riders = pool().pool;
+  // Diamonds are not drawn into a roster; the strongest teams of a level get one on top.
+  const riders = pool().pool.filter((r) => r.tier !== "diamant");
+  const diamonds = pool().pool.filter((r) => r.tier === "diamant").sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id));
   const [strong, weak] = def.band;
   // The weakest team picks first: low ratings are scarce in the pool, and a
   // strong team finds riders near its target anyway.
@@ -39,6 +41,9 @@ export function rivalTeams(division: number): TeamDef[] {
   });
   // Strongest first, by the five a team usually starts.
   const strength = (roster: string[]) => roster.map((id) => cardById(id).overall).sort((a, b) => b - a).slice(0, 5).reduce((sum, n) => sum + n, 0);
+  rosters.sort((a, b) => strength(b) - strength(a) || a[0].localeCompare(b[0]));
+  // A ninth rider for the strongest teams, then strongest first again.
+  for (let t = 0; t < def.rivals.diamonds && diamonds[t]; t++) rosters[t].push(diamonds[t].id);
   rosters.sort((a, b) => strength(b) - strength(a) || a[0].localeCompare(b[0]));
   const teams = def.teams.map((team, t) => ({ ...team, riders: rosters[t] }));
   cached.set(division, teams);

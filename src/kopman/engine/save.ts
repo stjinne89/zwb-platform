@@ -7,7 +7,7 @@ import { itemById } from "./items";
 /** The whole career lives on the device under one key. */
 export const SAVE_KEY = "kopman:v1";
 
-const pack = z.enum(["brons", "zilver", "goud"]);
+const pack = z.enum(["brons", "zilver", "goud", "diamant"]);
 const cardId = z.string().refine((id) => pool().byId.has(id));
 const itemId = z.string().refine((id) => itemById.has(id));
 const count = z.number().int().min(0).max(1e9);

@@ -305,7 +305,7 @@ function OddsLine({ type }: { type: PackType }) {
   const odds = PACK_ODDS[type];
   return (
     <>
-      <div className={styles.odds}>{TIERS.filter((t) => odds[t] > 0).map((t) => `${t} ${pct(odds[t])}`).join(" · ")}{type === "goud" ? " · minstens één goud" : ""}</div>
+      <div className={styles.odds}>{TIERS.filter((t) => odds[t] > 0).map((t) => `${t} ${pct(odds[t])}`).join(" · ")}{type === "goud" ? " · minstens één goud" : type === "diamant" ? " · minstens één diamant" : ""}</div>
       <div className={styles.odds}>renner {pct(KIND_ODDS.renner)} · materiaal {pct(KIND_ODDS.materiaal)} · personeel {pct(KIND_ODDS.personeel)}</div>
     </>
   );
@@ -360,7 +360,7 @@ function PacksTab({ save, update, onOpen, onTrade, onPick }: { save: Save; updat
       <div className={styles.panel}>
         <div className={styles.h3} style={{ marginBottom: 10 }}>Winkel</div>
         <div className={styles.packRow}>
-          {(["brons", "zilver", "goud"] as PackType[]).map((type) => {
+          {(["brons", "zilver", "goud", "diamant"] as PackType[]).map((type) => {
             const price = priceAt(save, type);
             const from = DIVISIONS.find((d) => d.shop.includes(type));
             return (
@@ -384,7 +384,7 @@ const copiesOf = (items: Record<string, number>, slot: ItemSlot) => ITEMS.filter
 
 /** Copies per tier that may go into a trade you pick yourself. */
 function tradeableByTier(save: Save): Record<Tier, number> {
-  const out: Record<Tier, number> = { brons: 0, zilver: 0, goud: 0 };
+  const out: Record<Tier, number> = { brons: 0, zilver: 0, goud: 0, diamant: 0 };
   for (const id of Object.keys(save.collection)) out[cardById(id).tier] += tradeable(save, id);
   for (const item of ITEMS) out[item.tier] += tradeable(save, item.id);
   return out;
@@ -550,7 +550,7 @@ function PackReveal({ reveal, owned, onClose }: { reveal: { title: string; pulls
         <div className={`${styles.revealCards} ${reveal.pulls.length === 1 ? styles.revealOne : ""}`}>
           {reveal.pulls.map((p) => (
             <div key={p.id} className={styles.flip}>
-              {isItem(p.id) ? <ItemCardView id={p.id} live /> : <RiderCardView card={cardById(p.id)} live mood={cardById(p.id).tier === "goud" && !p.duplicate ? "zege" : "rust"} />}
+              {isItem(p.id) ? <ItemCardView id={p.id} live /> : <RiderCardView card={cardById(p.id)} live mood={(cardById(p.id).tier === "goud" || cardById(p.id).tier === "diamant") && !p.duplicate ? "zege" : "rust"} />}
               {p.duplicate ? <div className={styles.dupMark}>Dubbel · ×{owned[p.id]}</div> : <div className={styles.newMark}>Nieuw</div>}
             </div>
           ))}

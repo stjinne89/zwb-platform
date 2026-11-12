@@ -29,6 +29,7 @@ export const SKY: Record<Tier, { sky: string; far: string; near: string; ray: st
   brons: { sky: "#d3e6dc", far: "#e2a676", near: "#c4804f", ray: "#e2efe8" },
   zilver: { sky: "#d6e8f2", far: "#a8c6d9", near: "#7ea4bd", ray: "#e6f1f7" },
   goud: { sky: "#ffe9a8", far: "#e9c27a", near: "#cf9a45", ray: "#ffd23a" },
+  diamant: { sky: "#e2f8ff", far: "#9fdcef", near: "#5fb7d6", ray: "#c4f2ff" },
 };
 
 export type Face = {
@@ -363,7 +364,7 @@ export function Portrait({ card, mood = "rust", live = true, crop = false }: { c
       </defs>
 
       <rect x={0} y={0} width={100} height={100} fill={c.sky} />
-      {card.tier === "goud" ? (
+      {(card.tier === "goud" || card.tier === "diamant") ? (
         <g className={styles.pSpin} fill={c.ray}>
           {Array.from({ length: 12 }, (_, i) => (
             <path key={i} d="M50 42 L46 -40 L54 -40Z" transform={`rotate(${i * 30} 50 42)`} />

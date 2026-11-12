@@ -12,7 +12,9 @@ const CARBON = "#2a2f36";
 const GLASS = "#cfe3ef";
 const RED = "#d6372b";
 /** The accent that marks the tier inside a drawing. */
-const ACCENT: Record<Tier, string> = { brons: "#c98a55", zilver: "#c3cfd9", goud: JERSEY };
+const ACCENT: Record<Tier, string> = { brons: "#c98a55", zilver: "#c3cfd9", goud: JERSEY, diamant: "#5fd0f0" };
+/** Goud and diamant get the extra details. */
+const top = (tier: Tier): boolean => tier === "goud" || tier === "diamant";
 const LW = 1.8;
 
 /** A tube in ligne claire: a coloured stroke with an ink line on both sides. */
@@ -46,7 +48,7 @@ function Drawing({ item }: { item: ItemCard }) {
       return (
         <g>
           <circle cx={45} cy={66} r={7} fill={STEEL} {...ink} />
-          <Tube d="M22 66 L45 66 L38 36 L66 38 L69 50 L45 66" color={tube} w={tier === "goud" ? 5 : 4} />
+          <Tube d="M22 66 L45 66 L38 36 L66 38 L69 50 L45 66" color={tube} w={top(tier) ? 5 : 4} />
           <Tube d="M38 40 L22 66" color={tube} w={3} />
           <Tube d="M69 50 L75 68" color={tube} w={3} />
           {tier !== "brons" ? <path d="M48 37.4 L60 37.8" stroke={accent} strokeWidth={2.4} strokeLinecap="round" /> : null}
@@ -86,7 +88,7 @@ function Drawing({ item }: { item: ItemCard }) {
           })}
           <circle cx={50} cy={52} r={21.6} fill="none" stroke={wall} strokeWidth={3.4} />
           <circle cx={50} cy={52} r={19.8} fill="none" {...ink} />
-          {tier === "goud" ? <rect x={42} y={21.4} width={16} height={5} rx={1.4} fill={JERSEY} {...ink} strokeWidth={1.2} /> : null}
+          {top(tier) ? <rect x={42} y={21.4} width={16} height={5} rx={1.4} fill={JERSEY} {...ink} strokeWidth={1.2} /> : null}
         </g>
       );
     }
@@ -124,7 +126,7 @@ function Drawing({ item }: { item: ItemCard }) {
           </g>
           <g transform={`rotate(45 ${46 + r * 0.7} ${54 - r * 0.7})`}>
             <rect x={46 + r * 0.7 - 12} y={54 - r * 0.7 - 7} width={24} height={14} rx={4} fill={caliper} {...ink} />
-            <path d={`M${46 + r * 0.7 - 6} ${54 - r * 0.7} L${46 + r * 0.7 + 6} ${54 - r * 0.7}`} stroke={tier === "goud" ? INK : PAPER} strokeWidth={1.4} strokeLinecap="round" />
+            <path d={`M${46 + r * 0.7 - 6} ${54 - r * 0.7} L${46 + r * 0.7 + 6} ${54 - r * 0.7}`} stroke={top(tier) ? INK : PAPER} strokeWidth={1.4} strokeLinecap="round" />
           </g>
         </g>
       );
@@ -136,7 +138,7 @@ function Drawing({ item }: { item: ItemCard }) {
           <path d="M32 62 L68 62 L68 68 L32 68Z" fill={TRIM} {...ink} strokeWidth={1.2} />
           <path d="M42 27 Q50 36 58 27" fill="none" {...ink} />
           {tier === "brons" ? null : <path d="M19 47 L28 54 M81 47 L72 54" stroke={TRIM} strokeWidth={3} strokeLinecap="round" />}
-          {tier === "goud" ? (
+          {top(tier) ? (
             <g transform="translate(60 6) rotate(12)">
               <path d="M2 18 Q4 4 18 3 Q30 3 36 12 L30 18Z" fill={TRIM} {...ink} />
               <path d="M8 10 Q16 6 26 8" stroke={JERSEY} strokeWidth={2} fill="none" strokeLinecap="round" />
@@ -154,7 +156,7 @@ function Drawing({ item }: { item: ItemCard }) {
           {tier === "brons" ? (
             <path d="M54 66 L82 58 L84 64 L56 72Z M54 66 L52 69 L56 72 M82 58 L86 59 L84 64" fill={RED} {...ink} />
           ) : (
-            (tier === "goud" ? [RED, "#5ad19a", JERSEY] : [RED]).map((color, i) => (
+            (top(tier) ? [RED, "#5ad19a", JERSEY] : [RED]).map((color, i) => (
               <path key={i} d="M0 0 L12 0 L12 18 L8 22 L4 22 L0 18Z" transform={`translate(${58 + i * 7} ${50 - i * 6}) rotate(${12 + i * 8})`} fill={color} {...ink} />
             ))
           )}
@@ -195,7 +197,7 @@ function Drawing({ item }: { item: ItemCard }) {
           <rect x={30} y={44} width={24} height={8} rx={2} fill={PAPER} {...ink} />
           <path d="M30 48 L54 48" stroke={accent === "#c3cfd9" ? TRIM : accent} strokeWidth={2} />
           {tier !== "brons" ? <rect x={62} y={36} width={8} height={16} rx={2} fill={GLASS} {...ink} /> : null}
-          {tier === "goud" ? <rect x={63.6} y={32} width={4.8} height={4.6} rx={1} fill={RED} {...ink} strokeWidth={1.2} /> : null}
+          {top(tier) ? <rect x={63.6} y={32} width={4.8} height={4.6} rx={1} fill={RED} {...ink} strokeWidth={1.2} /> : null}
         </g>
       );
     case "ploegleider":
@@ -208,7 +210,7 @@ function Drawing({ item }: { item: ItemCard }) {
           <g className={styles.iWave} fill="none" stroke={INK} strokeWidth={2} strokeLinecap="round">
             <path d="M66 22 Q72 28 66 34" />
             <path d="M71 17 Q81 28 71 39" />
-            {tier === "goud" ? <path d="M76 12 Q90 28 76 44" /> : null}
+            {top(tier) ? <path d="M76 12 Q90 28 76 44" /> : null}
           </g>
         </g>
       );
@@ -221,7 +223,7 @@ function Drawing({ item }: { item: ItemCard }) {
         <g>
           <rect x={x0} y={38} width={span} height={36} rx={6} fill={JERSEY} {...ink} />
           <rect x={x0} y={62} width={span} height={7} fill={TRIM} {...ink} strokeWidth={1.2} />
-          {tier === "goud" ? <path d={`M${x0} 56 L${x1} 56`} stroke={RED} strokeWidth={2.4} /> : null}
+          {top(tier) ? <path d={`M${x0} 56 L${x1} 56`} stroke={RED} strokeWidth={2.4} /> : null}
           {Array.from({ length: panes }, (_, i) => {
             const w = (span - 20) / panes;
             return <rect key={i} x={x0 + 5 + i * w} y={43} width={w - 3} height={10} rx={1.6} fill={GLASS} {...ink} strokeWidth={1.2} />;
@@ -253,7 +255,7 @@ export function ItemArt({ item, live = true }: { item: ItemCard; live?: boolean 
         </pattern>
       </defs>
       <rect x={0} y={0} width={100} height={100} fill={c.sky} />
-      {item.tier === "goud" ? (
+      {top(item.tier) ? (
         <g className={styles.pSpin} fill={c.ray}>
           {Array.from({ length: 12 }, (_, i) => <path key={i} d="M50 42 L46 -40 L54 -40Z" transform={`rotate(${i * 30} 50 42)`} />)}
         </g>
@@ -274,7 +276,7 @@ export function ItemCardView({ id, live = false, children }: { id: string; live?
         <ItemArt item={item} live={live} />
         <span className={styles.cardMeta}><Icon size={13} aria-hidden />{item.group === "materiaal" ? "MAT" : "STAF"}</span>
       </div>
-      {item.tier === "goud" ? (
+      {top(item.tier) ? (
         <>
           <FrameStar className={`${styles.frameStar} ${styles.frameStarA}`} />
           <FrameStar className={`${styles.frameStar} ${styles.frameStarB}`} />

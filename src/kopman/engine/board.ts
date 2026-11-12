@@ -3,7 +3,8 @@ import { courseWeights, fitFor } from "./course";
 import { bestItems, type StaffRole } from "./items";
 import { BIKE_LENGTH, createRace, groupsOf, homeLane, kopmanOf, LANES, laneOf, riding, SAME_LANE, STEP, stepRace, uphillFinish, type Lineup, type Override, type RaceState, type Rider } from "./race";
 import { clamp, hashSeed, rng } from "./rng";
-import { rivalsIn } from "./teams";
+import { rivalsIn, teamById } from "./teams";
+import { DIVISIONS, divisionOfRace } from "./divisions";
 import { GRID, PLAYER_TEAM, type RiderType } from "./types";
 import { raceById } from "./world";
 
@@ -233,6 +234,9 @@ export type BoardState = {
   weather: Weather;
   /** Riders who rest this sector: riding alone costs them nothing. */
   rested: string[];
+  /** Chance per sector that a rival plays a dirty trick on your kopman, and whether one did this race. */
+  trick: number;
+  tricked: boolean;
   random: () => number;
 };
 
@@ -277,7 +281,9 @@ function ttSectorsOf(state: RaceState, random: () => number): BoardSector[] {
   });
 }
 
-const kracht0 = (r: Rider) => (r.kopman ? KRACHT_KOPMAN : KRACHT_KNECHT) + (r.card.tier === "goud" ? 1 : r.card.tier === "brons" ? -1 : 0);
+const TIER_KRACHT = { brons: -1, zilver: 0, goud: 1, diamant: 2 } as const;
+/** Kracht at the start: the role, the tier, and for a rival kopman the experience of his level. */
+const kracht0 = (r: Rider, xp: number) => (r.kopman ? KRACHT_KOPMAN : KRACHT_KNECHT) + TIER_KRACHT[r.card.tier] + (r.kopman && r.team !== PLAYER_TEAM ? xp : 0);
 
 /**
  * The stack: three cards per rider and one per staff role. In a road race the
@@ -343,6 +349,7 @@ function refillHand(board: BoardState, rotate: boolean) {
 
 export function createBoard(raceId: string, seed: number, lineup: Lineup, items: Record<string, number> = {}): BoardState {
   const race = createRace(raceId, seed, lineup);
+  const level = DIVISIONS[divisionOfRace(raceId)];
   const tt = race.course.tt;
   race.scripted = true;
   const random = rng(hashSeed(seed, raceId, "bord"));
@@ -352,7 +359,7 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
   for (const sector of sectors) sector.odds = oddsFor(sector, weather, sky);
   const kracht: Record<string, number> = {};
   for (const r of race.riders) {
-    kracht[r.id] = kracht0(r);
+    kracht[r.id] = kracht0(r, level.rivals.xp);
     base.set(r, { cpFlat: r.cpFlat, cpClimb: r.cpClimb, sprintW: r.sprintW, vmax: r.vmax, cda: r.cda });
   }
   const board: BoardState = {
@@ -372,7 +379,9 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
     lookahead: 1,
     intents: [],
     events: [],
-    attacksLeft: Object.fromEntries(rivalsIn(raceId).map((t) => [t.id, 2])),
+    attacksLeft: Object.fromEntries(rivalsIn(raceId).map((t) => [t.id, level.rivals.attacks])),
+    trick: level.rivals.trick,
+    tricked: false,
     plans: {},
     touched: [],
     forcedWind: false,
@@ -432,7 +441,7 @@ export function costOf(board: BoardState, c: HandCard, rider: string | null = c.
   const offType = card && choosesRider(board, c) && c.type !== "ploeg" && card.type !== c.type && !RECOVERY_CARDS.includes(c.card) ? OFF_TYPE : 0;
   // Attacking before the finale costs more: the peloton is still fresh and you ride alone longer.
   const early = !board.tt && (c.card === "demarrage" || c.card === "bergop") && phaseOf(board.sector) !== "finale" ? EARLY_ATTACK : 0;
-  return Math.max(0, BOARD_CARDS[c.card].cost - (card?.tier === "goud" ? 1 : 0) + offType + early - board.discount);
+  return Math.max(0, BOARD_CARDS[c.card].cost - (card?.tier === "goud" || card?.tier === "diamant" ? 1 : 0) + offType + early - board.discount);
 }
 
 /** Your riders who can play this card now, cheapest first, then the most kracht left. */
@@ -627,6 +636,38 @@ function applyFatigue(board: BoardState) {
   }
 }
 
+/**
+ * From the Continentaal up a rival team answers your kopman's attack: the team
+ * with the best kopman for this course in his group puts a knecht on the front.
+ */
+function chase(board: BoardState, k: Rider) {
+  const state = board.race;
+  const group = groupsOf(state).find((g) => g.includes(k)) ?? [];
+  const weights = courseWeights(state.course);
+  const busy = new Set(board.intents.filter((i) => i.real).map((i) => i.team));
+  const team = group
+    .filter((x) => x.kopman && x.team !== PLAYER_TEAM && !busy.has(x.team))
+    .sort((a, b) => fitFor(b.card, weights) - fitFor(a.card, weights) || a.team.localeCompare(b.team))[0]?.team;
+  if (!team) return;
+  const helper = group.filter((x) => x.team === team && !x.kopman && board.kracht[x.id] >= 1).sort((a, b) => board.kracht[b.id] - board.kracht[a.id] || b.card.overall - a.card.overall)[0];
+  if (!helper) return;
+  setOverride(board, helper, { mode: "kop", pull: 1.1, untilDistance: currentSector(board).end });
+  board.kracht[helper.id] = Math.max(0, board.kracht[helper.id] - 1);
+  log(board, team, `${teamById(team)?.name ?? "Een ploeg"} rijdt achter ${cardById(k.id).last} aan`, true);
+}
+
+/** From the Proftour up a rival may slip your kopman a bad bidon: once a race at most. */
+function rivalTrick(board: BoardState) {
+  if (board.tt || board.tricked || board.random() >= board.trick) return;
+  const k = kopmanOf(board.race, PLAYER_TEAM);
+  if (!k || !riding(k)) return;
+  const teams = rivalsIn(board.race.raceId);
+  const team = teams[Math.floor(board.random() * teams.length)];
+  board.tricked = true;
+  board.kracht[k.id] = Math.max(0, board.kracht[k.id] - 2);
+  log(board, team.id, `Valse bidon van ${team.name}: ${cardById(k.id).last} −2 kracht`, true);
+}
+
 /** Rival time triallists pace too: hard into the wind and in the finale, easier with the wind behind. */
 function rivalPacing(board: BoardState) {
   const sector = currentSector(board);
@@ -683,6 +724,7 @@ export function startSector(board: BoardState) {
         if (!r) break;
         setOverride(board, r, { mode: "aanval", untilTime: t + (c.card === "bergop" ? 50 : 40) }, [{ mode: "kop", pull: ATTACK_HOLD, untilDistance: sector.end }]);
         log(board, PLAYER_TEAM, `${name} valt aan`, true);
+        if (r.kopman && DIVISIONS[divisionOfRace(state.raceId)].rivals.chase) chase(board, r);
         break;
       case "klimtempo":
       case "sleuren":
@@ -1003,6 +1045,7 @@ function endSector(board: BoardState) {
     return;
   }
   board.sector++;
+  rivalTrick(board);
   board.lookahead = 1;
   board.intents = intentsFor(board);
   refillHand(board, true);

@@ -9,7 +9,8 @@ export type Stats = Record<StatKey, number>;
 export const RIDER_TYPES = ["sprinter", "klimmer", "klassieker", "tijdrijder", "allrounder"] as const;
 export type RiderType = (typeof RIDER_TYPES)[number];
 
-export const TIERS = ["brons", "zilver", "goud"] as const;
+/** Diamant since 2026-11-12: riders of 89 and up, and one card above goud per slot. */
+export const TIERS = ["brons", "zilver", "goud", "diamant"] as const;
 export type Tier = (typeof TIERS)[number];
 
 /** A rider card. The pool is generated from a fixed seed, so only ids are ever stored. */
@@ -72,4 +73,4 @@ export type TeamDef = { id: string; name: string; short: string; color: string; 
 
 export const PLAYER_TEAM = "eigen";
 
-export type PackType = "brons" | "zilver" | "goud";
+export type PackType = "brons" | "zilver" | "goud" | "diamant";

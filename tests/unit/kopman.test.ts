@@ -57,8 +57,10 @@ describe("Kopman: pakketten", () => {
 
   it("garandeert goud na de vangnetgrens en in een gouden pakket", () => {
     for (let n = 0; n < 50; n++) {
-      expect(openPack("zilver", 1, n, PITY_PACKS - 1).cards.some((id) => tierOf_(id) === "goud")).toBe(true);
-      expect(openPack("goud", 1, n, 0).cards.some((id) => tierOf_(id) === "goud")).toBe(true);
+      const top = (id: string) => tierOf_(id) === "goud" || tierOf_(id) === "diamant";
+      expect(openPack("zilver", 1, n, PITY_PACKS - 1).cards.some(top)).toBe(true);
+      expect(openPack("goud", 1, n, 0).cards.some(top)).toBe(true);
+      expect(openPack("diamant", 1, n, 0).cards.some((id) => tierOf_(id) === "diamant")).toBe(true);
     }
   });
 
@@ -298,7 +300,7 @@ describe("Kopman: economie", () => {
     for (let i = 0; i < DIVISIONS.length; i++) {
       const strength = rivalTeams(i).map((t) => top5(t.riders));
       expect([...strength].sort((a, b) => b - a)).toEqual(strength);
-      expect(new Set(rivalTeams(i).flatMap((t) => t.riders)).size).toBe(88);
+      expect(new Set(rivalTeams(i).flatMap((t) => t.riders)).size).toBe(88 + DIVISIONS[i].rivals.diamonds);
     }
   });
 

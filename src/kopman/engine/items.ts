@@ -25,28 +25,28 @@ export type ItemCard = {
   effect: string;
 };
 
-type Spec = { label: string; names: [string, string, string]; values: [number, number, number]; effect: (pct: string) => string };
+type Spec = { label: string; names: [string, string, string, string]; values: [number, number, number, number]; effect: (pct: string) => string };
 
-/** Per slot: the three cards (brons, zilver, goud) and what they do. */
+/** Per slot: the four cards (brons, zilver, goud, diamant) and what they do. */
 export const GEAR: Record<GearSlot, Spec> = {
-  frame: { label: "Frame", names: ["Aluminium frame", "Carbon frame", "Klimframe"], values: [0.03, 0.06, 0.09], effect: (p) => `−${p} gewicht fiets` },
-  wielen: { label: "Wielen", names: ["Alu wielen", "Carbon 45 mm", "Carbon 60 mm"], values: [0.01, 0.02, 0.03], effect: (p) => `−${p} luchtweerstand` },
-  banden: { label: "Banden", names: ["Basisbanden", "Racebanden", "Tubeless 30 mm"], values: [0.04, 0.08, 0.12], effect: (p) => `−${p} rolweerstand` },
-  aandrijving: { label: "Aandrijving", names: ["Mechanische groep", "Elektronische groep", "Keramische lagers"], values: [0.003, 0.006, 0.01], effect: (p) => `+${p} vermogen` },
-  remmen: { label: "Remmen", names: ["Kabelremmen", "Hydraulische remmen", "Schijven 160 mm"], values: [0.02, 0.04, 0.06], effect: (p) => `+${p} afdaalsnelheid` },
-  kleding: { label: "Kleding", names: ["Clubtenue", "Aerotenue", "Aeropak en -helm"], values: [0.01, 0.015, 0.02], effect: (p) => `−${p} luchtweerstand` },
-  voeding: { label: "Voeding", names: ["Repen en bidons", "Gels", "Koolhydraatplan"], values: [0.03, 0.06, 0.09], effect: (p) => `+${p} reserve` },
+  frame: { label: "Frame", names: ["Aluminium frame", "Carbon frame", "Klimframe", "Superlicht frame"], values: [0.03, 0.06, 0.09, 0.12], effect: (p) => `−${p} gewicht fiets` },
+  wielen: { label: "Wielen", names: ["Alu wielen", "Carbon 45 mm", "Carbon 60 mm", "Windtunnelwielen"], values: [0.01, 0.02, 0.03, 0.04], effect: (p) => `−${p} luchtweerstand` },
+  banden: { label: "Banden", names: ["Basisbanden", "Racebanden", "Tubeless 30 mm", "Handgemaakte tubes"], values: [0.04, 0.08, 0.12, 0.16], effect: (p) => `−${p} rolweerstand` },
+  aandrijving: { label: "Aandrijving", names: ["Mechanische groep", "Elektronische groep", "Keramische lagers", "Maatwerkgroep"], values: [0.003, 0.006, 0.01, 0.014], effect: (p) => `+${p} vermogen` },
+  remmen: { label: "Remmen", names: ["Kabelremmen", "Hydraulische remmen", "Schijven 160 mm", "Keramische schijven"], values: [0.02, 0.04, 0.06, 0.08], effect: (p) => `+${p} afdaalsnelheid` },
+  kleding: { label: "Kleding", names: ["Clubtenue", "Aerotenue", "Aeropak en -helm", "Windtunnelpak"], values: [0.01, 0.015, 0.02, 0.025], effect: (p) => `−${p} luchtweerstand` },
+  voeding: { label: "Voeding", names: ["Repen en bidons", "Gels", "Koolhydraatplan", "Voeding op maat"], values: [0.03, 0.06, 0.09, 0.12], effect: (p) => `+${p} reserve` },
 };
 
 export const STAFF: Record<StaffRole, Spec> = {
-  trainer: { label: "Trainer", names: ["Jeugdtrainer", "Trainer", "Hoofdtrainer"], values: [0.01, 0.02, 0.03], effect: (p) => `+${p} vermogen ploeg` },
-  mechanieker: { label: "Mechanieker", names: ["Hulpmechanieker", "Mechanieker", "Chef-mechanieker"], values: [0.1, 0.2, 0.3], effect: (p) => `+${p} effect materiaal` },
-  fysio: { label: "Fysio", names: ["Masseur", "Fysiotherapeut", "Medische staf"], values: [0.1, 0.2, 0.3], effect: (p) => `+${p} sneller herstel` },
-  ploegleider: { label: "Ploegleider", names: ["Stagiair", "Assistent-ploegleider", "Ervaren ploegleider"], values: [0.1, 0.2, 0.3], effect: (p) => `+${p} langere orders` },
-  chauffeur: { label: "Buschauffeur", names: ["Busje", "Buschauffeur", "Teambus"], values: [0.1, 0.2, 0.3], effect: (p) => `+${p} startgeld` },
+  trainer: { label: "Trainer", names: ["Jeugdtrainer", "Trainer", "Hoofdtrainer", "Topcoach"], values: [0.01, 0.02, 0.03, 0.04], effect: (p) => `+${p} vermogen ploeg` },
+  mechanieker: { label: "Mechanieker", names: ["Hulpmechanieker", "Mechanieker", "Chef-mechanieker", "Werkplaatschef"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} effect materiaal` },
+  fysio: { label: "Fysio", names: ["Masseur", "Fysiotherapeut", "Medische staf", "Medisch team"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} sneller herstel` },
+  ploegleider: { label: "Ploegleider", names: ["Stagiair", "Assistent-ploegleider", "Ervaren ploegleider", "Sportief directeur"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} langere orders` },
+  chauffeur: { label: "Buschauffeur", names: ["Busje", "Buschauffeur", "Teambus", "Luxe teambus"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} startgeld` },
 };
 
-const TIER_ORDER: Tier[] = ["brons", "zilver", "goud"];
+const TIER_ORDER: Tier[] = ["brons", "zilver", "goud", "diamant"];
 const pct = (n: number) => `${(Math.round(n * 1000) / 10).toLocaleString("nl-NL")}%`;
 
 function build(): ItemCard[] {

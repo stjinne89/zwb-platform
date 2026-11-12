@@ -62,8 +62,10 @@ kilometer van een vlakke finish zelf (zie "De sprint zelf rijden").
 ## Middelen
 
 - **Kracht** is wat een renner deze koers nog te geven heeft. Een kopman
-  begint met 10 punten, een knecht met 6. Goud geeft er 1 bij en brons 1
-  minder. Kaarten kosten 1 tot 3 punten. Met 0 punten kan een renner alleen
+  begint met 10 punten, een knecht met 6. Goud geeft er 1 bij, diamant 2
+  (sinds 2026-11-12) en brons 1 minder. Een rivaliserende kopman krijgt vanaf
+  het Continentaal ervaring erbij (zie
+  [kopman-piramide.md](kopman-piramide.md#rivalen-die-terugvechten)). Kaarten kosten 1 tot 3 punten. Met 0 punten kan een renner alleen
   nog meerijden of afhaken.
   - Kracht staat los van W′ in de physics: W′ herstelt, kracht niet. Zo
     worden je keuzes over de hele koers verdeeld.
@@ -258,7 +260,7 @@ er niets in. Je kiest een koers; sinds fase 4 kan dat ook de tijdrit zijn.
   trainer.
 - **Rivalen.** Alleen de 4 ploegen met de best passende kopman krijgen
   intenties, en er staan er hooguit 3 op het scherm. Elke ploeg valt hooguit
-  2 keer per koers aan. Van de intenties gaat 20% niet door.
+  2 keer per koers aan (sinds 2026-11-12 per niveau 2 tot 4, `rivals.attacks`). Van de intenties gaat 20% niet door.
 
 **Balansmeting van 2026-11-11.** De beste eigen plek, gemeten over 5
 klassiekers met 6 seeds per koers:

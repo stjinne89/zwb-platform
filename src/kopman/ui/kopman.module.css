@@ -144,6 +144,9 @@
 .zilver { background: #c3cfd9; }
 .goud { background: #ffcf1f; box-shadow: 0 8px 22px rgb(255 194 46 / 0.24), 0 8px 18px rgb(0 0 0 / 0.38); }
 .goud .stats span { color: #3a2604; }
+/* Diamant: ice blue with a facet light across it. */
+.diamant { background: linear-gradient(135deg, #a9ecff 0%, #7fd3ef 38%, #e8fbff 50%, #7fd3ef 62%, #b9f0ff 100%); box-shadow: 0 8px 24px rgb(95 208 240 / 0.34), 0 8px 18px rgb(0 0 0 / 0.38); }
+.diamant .stats span { color: #0e3442; }
 .plate { position: relative; aspect-ratio: 1 / 0.94; border: 2px solid var(--line-ink); border-radius: 7px; overflow: hidden; background: var(--caption); }
 .portrait { display: block; width: 100%; height: 100%; }
 .overall { position: absolute; left: 4px; top: 4px; min-width: 2.15em; height: 2.15em; padding: 0 0.2em; display: grid; place-items: center; border-radius: 999px; background: var(--caption); border: 2px solid var(--line-ink); font-family: var(--letter); font-size: 1.12rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; transform: rotate(-7deg); box-shadow: 0 2px 4px rgb(27 23 18 / 0.3); }
@@ -539,6 +542,7 @@
 .slot_brons { background: #ecc7a6; border-color: #8a5530; }
 .slot_zilver { background: #dfe6ec; border-color: #6d7c89; }
 .slot_goud { background: #ffe680; border-color: #9a7400; }
+.slot_diamant { background: #d6f6ff; border-color: #2a8fb0; }
 .slotTile .slotCount { position: absolute; top: 5px; right: 6px; }
 
 /* The sprint by hand: swipe over the race view, or the three keys at the bottom. */

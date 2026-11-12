@@ -28,7 +28,7 @@ export function RiderCardView({ card, kopman, fit, small, mood = "rust", live = 
         <span className={styles.overall}>{card.overall}</span>
         <span className={styles.cardMeta}><Icon size={small ? 11 : 13} aria-hidden />{small ? null : card.country}</span>
       </div>
-      {card.tier === "goud" ? (
+      {(card.tier === "goud" || card.tier === "diamant") ? (
         <>
           <FrameStar className={`${styles.frameStar} ${styles.frameStarA}`} />
           <FrameStar className={`${styles.frameStar} ${styles.frameStarB}`} />

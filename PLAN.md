@@ -44,7 +44,10 @@ gaat stabiliteit voor nieuwe features.
    gezichtjes, het getekende koersbeeld is te kiezen. Op 2026-11-12 ook
    gepusht: "Kopman: eerlijk herstel, tempo tegen aanvallen en het weer"
    (`aedd965a`) en "Kopman: de sprint zelf rijden" (`bf80b0ea`): in de
-   laatste kilometer stuur je de kopman met swipes. Op een telefoon vult het bord het scherm. Open: na de
+   laatste kilometer stuur je de kopman met swipes. Daarna lokaal, niet
+   gepusht: "Kopman: diamant, en rivalen per niveau" (de commit van die
+   ronde); de rivalen maken het daarin gemeten niet zwaarder, de eigenaar
+   kiest de volgende knop. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12265,6 +12268,69 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kopman: diamant, en rivalen per niveau
+
+**2026-11-13, de commit "Kopman: diamant, en rivalen per niveau", lokaal, niet
+gepusht.** Geen migratie. De save krijgt alleen "diamant" als soort pakket
+erbij; oude saves lezen gewoon.
+
+- **De vraag.** De eigenaar, in seizoen 4: "Ik ... speel op contintentaal
+  niveau en domineer daar de wedstrijden met weinig tegenstand ... Daarnaast
+  moet er mss een niveau boven goud komen qua kaarten (diamand?)". Van de
+  voorstellen A tot en met D: "B niet de rest wel".
+- **Wat er is.** Zie
+  [docs/kopman-piramide.md](docs/kopman-piramide.md#rivalen-die-terugvechten).
+  - **A.** Per niveau `rivals` in `divisions.ts`: rivaliserende kopmannen
+    +1 kracht (Continentaal, Proftour) of +2 (Wereldtour); 2, 2, 3, 3 en 4
+    aanvallen per ploeg; vanaf het Continentaal achtervolgt een rivaal de
+    aanval van je kopman (`chase`); vanaf de Proftour één valse bidon per
+    koers, −2 kracht (`rivalTrick`, 5% en 8% per sector).
+  - **C.** Proftour `band` 75–68, Wereldtour 86–76; de drie sterkste
+    Wereldtourploegen rijden met een diamant als negende renner.
+  - **D.** Diamant boven goud: 12 renners van 89 en hoger achter de pool
+    (`r321`–`r332`, de eerste 320 bleven gelijk), +2 kracht op het bord, een
+    vierde kaart per vak materiaal en personeel, 4% per kaart in een gouden
+    pakket, 5 goud ruilen voor 1 diamant, een diamanten pakket voor de top 2
+    van de Wereldtour, 6.000 munten voor een reservekaart. IJsblauw met een
+    gloed op de kaarten en de vakken.
+- **Gemeten, en waarom dit nog niet af is.**
+  - Carrières met een eenvoudige kaartkeuze (`.tmp/kopman-groei.ts`, 3
+    seeds): in de Wereldtour in seizoen 7, 8 en 8.
+  - Maar A maakt het Continentaal niet zwaarder. Dezelfde 8 saves, één seizoen:
+    zoals het was 24 zeges van 64 (gemiddeld 7,6e), met A 31 (6,0e).
+    Achtervolgen helpt jou zelfs. Een proef met +12% vermogen voor elke
+    rivaliserende kopman kostte maar 9 zeges. Je wint omdat je ploeg (72–76)
+    ver boven het niveau (62–67) zit. De knop is dus de groei of de sterkte
+    per niveau, niet het gedrag van de rivalen. Dat is aan de eigenaar
+    voorgelegd; er is niets aan veranderd.
+  - C werkt in de Proftour (beste vijf gemiddeld 72,6, was 70,7), nauwelijks
+    in de Wereldtour (78,7, was 78,2): er zijn maar 52 gouden renners voor
+    88 plekken.
+- **Niet meer waar.**
+  - In [docs/kopman-piramide.md](docs/kopman-piramide.md): de rivalen in de
+    Proftour 74–67 en de Wereldtour 84–73 (nu 78–68 en 87–72), en "goud" als
+    promotiepakket van de Wereldtour (nu diamant).
+  - In [docs/kopman.md](docs/kopman.md): het gouden pakket 60% zilver en 40%
+    goud (nu 58, 38 en 4% diamant); drie niveaus per vak materiaal en
+    personeel; ruilen alleen tot goud.
+  - In [docs/kopman-bordspel.md](docs/kopman-bordspel.md): "Elke ploeg valt
+    hooguit 2 keer per koers aan" geldt alleen nog in de Kermis en de
+    Interclub; kracht alleen ±1 voor goud en brons.
+- **Bewust niet gebouwd:**
+  - B, een niveau overslaan: de eigenaar wilde het niet;
+  - meer vermogen voor rivalen: alleen als proef gemeten, niet gebouwd;
+  - meer gouden renners in de pool voor een sterkere Wereldtour;
+  - sponsors en populariteit, en uitleg per kaart: eerst een voorstel.
+- **Geverifieerd:** tsc, eslint, 72 Kopman-tests (5 nieuw: diamanten achter
+  de pool, ruilen naar diamant en een save met een diamanten pakket, de
+  rivalen per niveau, achtervolgen, één valse bidon), `next build`; in de
+  preview op 375×812 de diamanten renners en een diamanten frame op de
+  ploegpagina.
+- **Niet geverifieerd:**
+  - hoe de rivalen voelen voor een speler: de metingen zijn met een script;
+  - een diamanten pakket openen in de preview;
+  - waarom achtervolgen de speler helpt.
 
 ### Gebouwd — Kopman: de sprint zelf rijden
 

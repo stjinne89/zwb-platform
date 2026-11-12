@@ -15,8 +15,11 @@ fictieve ploegen en een eigen kalender van 8 koersen.
 | Kermis | 61–52 | 12% | geen |
 | Interclub | 64–57 | 22% | brons |
 | Continentaal | 69–62 | 40% | brons |
-| Proftour | 74–67 | 65% | zilver |
-| Wereldtour | 84–73 | 100% | goud |
+| Proftour | 78–68 | 65% | zilver |
+| Wereldtour | 87–72 | 100% | goud |
+
+Proftour en Wereldtour zijn op 2026-11-12 opgeschoven (zie "Rivalen die
+terugvechten"); daarvoor was dat 74–67 en 84–73.
 
 - **Prijzengeld** is het aandeel van de bedragen uit de eerste versie: de
   startpremie, het prijzengeld en de seizoensmunten.
@@ -53,12 +56,13 @@ Er is geen daglimiet meer. Een pakket verdien je met een uitslag:
 | Interclub | brons | brons | — | brons |
 | Continentaal | zilver | brons | — | zilver |
 | Proftour | zilver | zilver | brons | zilver |
-| Wereldtour | goud | zilver | brons | goud |
+| Wereldtour | goud | zilver | brons | diamant |
 
 - Buiten de top 10 is er geen pakket. Een seizoenspakket krijg je alleen bij
-  promotie (in de Wereldtour: bij een plek in de top 2).
+  promotie (in de Wereldtour: bij een plek in de top 2, sinds 2026-11-12 een
+  diamanten pakket; daarvoor goud).
 - **Winkel.** Brons kost overal 1.000 munten. Zilver (3.000) staat pas vanaf
-  het Continentaal in de winkel; goud is alleen te winnen.
+  het Continentaal in de winkel; goud en diamant zijn alleen te winnen.
 - **Bronzen pakket:** 94% brons, 6% zilver, geen goud. Eerst was dat 78%, 20%
   en 2%; zo trok je in de Kermis al zilveren renners die op Continentaal
   niveau rijden.
@@ -104,9 +108,103 @@ goed speelt, gaat sneller dan dit script.
 - **Een salarisplafond of budget per niveau.** Overwogen om de groei verder te
   remmen. Het is een nieuw mechanisme en de balans haalt het doel al zonder.
 
+## Rivalen die terugvechten
+
+Gebouwd op 2026-11-12. De eigenaar, in het vierde seizoen: "Ik ... speel op
+contintentaal niveau en domineer daar de wedstrijden met weinig tegenstand, ik
+denk dat de moeilijkheid of de groei anders moeten." En: "mss een niveau boven
+goud ... (diamand?)". Van de vier voorstellen koos de eigenaar A, C en D: "B
+niet de rest wel".
+
+**A. Per niveau feller** (`rivals` in `divisions.ts`):
+
+| Niveau | Kracht kopman | Aanvallen per ploeg | Achtervolgen | Valse bidon per sector | Diamanten |
+| --- | --- | --- | --- | --- | --- |
+| Kermis | +0 | 2 | nee | — | — |
+| Interclub | +0 | 2 | nee | — | — |
+| Continentaal | +1 | 3 | ja | — | — |
+| Proftour | +1 | 3 | ja | 5% | — |
+| Wereldtour | +2 | 4 | ja | 8% | top 3 |
+
+- **Kracht.** Een rivaliserende kopman begint met de ervaring van zijn niveau
+  erbij; jouw kopman niet.
+- **Achtervolgen.** Valt jouw kopman aan met Demarrage of Bergop versnellen,
+  dan zet de rivaal met de best passende kopman in zijn groep een knecht op
+  kop tot het eind van de sector (`chase` in `board.ts`). Die knecht betaalt
+  1 kracht. Een ploeg die zelf een intentie uitvoert, doet niet mee.
+- **Valse bidon.** Na een sector kan een rivaal je kopman 2 kracht afnemen,
+  hooguit één keer per koers en niet in de tijdrit (`rivalTrick`). Het
+  logboek noemt de ploeg.
+
+**C. Hogere toppen.** De Proftour heeft als `band` 75–68 (was 73–67), de
+Wereldtour 86–76 (was 80–73). De drie sterkste Wereldtourploegen krijgen
+elk een negende renner: een diamant.
+
+- In de Proftour werkt dat: gemiddeld 72,6 over de beste vijf, was 70,7.
+- In de Wereldtour nauwelijks: 78,7, was 78,2. Er zijn maar 52 gouden renners
+  voor 88 plekken, dus de middenploegen krijgen wat overblijft. De top is wel
+  sterker (87, 87, 84 met de diamanten; was 84, 83, 82) en de zwakste ploeg
+  zwakker (72, was 73). Meer gouden renners in de pool zou dat oplossen; dat
+  is niet gebouwd.
+
+**D. Diamant.** <a id="diamant"></a>
+
+- **Renners.** 12 diamanten renners van 89 tot 95, achter de pool van 320
+  (`buildDiamonds`, `r321`–`r332`). Een diamant krijgt op het bord 2 kracht
+  extra en betaalt, net als goud, 1 minder per kaart.
+- **Materiaal en personeel.** Elk vak heeft een vierde kaart: één stap boven
+  goud (bijvoorbeeld een frame −12%, een mechanieker +40%).
+- **Hoe je eraan komt:**
+  - een gouden pakket: 4% per kaart;
+  - 5 gouden reservekaarten ruilen voor 1 diamant;
+  - een diamanten pakket (70% goud, 30% diamant, minstens één diamant) voor de
+    top 2 van de Wereldtour.
+- **Uiterlijk.** IJsblauw met een gloed, stralen en sterren zoals goud.
+- **Dubbel.** Een diamanten reservekaart verkoop je voor 6.000 munten.
+
+**Gemeten.** Met `.tmp/kopman-groei.ts` (niet in git), een carrière met een
+eenvoudige kaartkeuze, 3 seeds over 8 seizoenen. In de Wereldtour in seizoen
+7, 8 en 8; voor deze ronde stond het script in seizoen 5 tot 6 al in het
+Continentaal. Het eerste Continentaalseizoen: 3, 3 en 6 zeges van 8.
+
+**A maakt het niet zwaarder.** Gemeten met `.tmp/kopman-ab2.ts` (niet in git):
+dezelfde 8 saves aan het begin van het Continentaal rijden één seizoen
+(64 koersen) met elke variant van de rivalen, zonder groei tussendoor.
+
+| Rivalen | Zeges | Podium | Gem. beste plek |
+| --- | --- | --- | --- |
+| Zoals tot 2026-11-12 | 24 | 32 | 7,6 |
+| Alleen +1 kracht | 28 | 31 | 7,4 |
+| Alleen 3 aanvallen | 25 | 33 | 7,5 |
+| Alleen achtervolgen | 28 | 37 | 6,1 |
+| Alles van A | 31 | 35 | 6,0 |
+| Proef: kopmannen +4% vermogen | 25 | 29 | 6,9 |
+| Proef: kopmannen +12% vermogen | 15 | 27 | 8,6 |
+
+- Kracht en aanvallen maken weinig uit: een rivaal die vaker aanvalt, maakt
+  zichzelf ook moe.
+- Achtervolgen helpt jou zelfs. Waarschijnlijk trekt de knecht op kop je
+  eigen groep mee naar je kopman; dat is niet uitgezocht.
+- Zelfs 12% meer vermogen voor elke rivaliserende kopman kost het script maar
+  9 van de 24 zeges. Je wint in het Continentaal omdat je ploeg (72 tot 76)
+  ver boven het niveau zit (62 tot 67), niet omdat de rivalen braaf rijden.
+  De proeven met vermogen zijn niet gebouwd.
+- In de Proftour, met dezelfde aanpak op 6 saves (48 koersen): 22
+  zeges en gemiddeld 7,1e, met A ook 22 zeges en 7,8e. Ook daar weinig verschil.
+
+**Bewust niet gebouwd:**
+
+- **B, een niveau overslaan** voor wie als kampioen sterker is dan het
+  niveau erboven: de eigenaar wilde het niet.
+- **Meer gouden renners** voor een sterkere Wereldtour: zie C.
+- **Rivalen die ook materiaal of personeel stelen**, of een tweede valse
+  bidon: één streek per koers is genoeg om het te merken.
+
 ## Niet geverifieerd
 
 - De omzetting van de echte save van de eigenaar, op hun eigen apparaat. Getest
   met tests en een save op het testadres van de preview.
 - Of 8 koersen per seizoen goed voelen. De balans is gemeten zonder kaarten op
   het bord.
+- Hoe de rivalen van 2026-11-12 voelen voor een speler: de metingen zijn met
+  een script dat kaarten eenvoudig speelt en de sprint niet zelf rijdt.

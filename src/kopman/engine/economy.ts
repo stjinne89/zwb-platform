@@ -21,10 +21,10 @@ export const START_FEE = 300;
 export const POINTS = [100, 80, 65, 55, 45, 35, 30, 26, 22, 19, 16, 13, 10, 7, 5];
 export const MONUMENT_FACTOR = 1.5;
 /** What a spare copy sells for. */
-export const DUPLICATE_COINS: Record<Tier, number> = { brons: 150, zilver: 500, goud: 2000 };
+export const DUPLICATE_COINS: Record<Tier, number> = { brons: 150, zilver: 500, goud: 2000, diamant: 6000 };
 /** Spare copies of one tier that trade in for one card of the tier above, of any kind. */
 export const TRADE_COST = 5;
-export const NEXT_TIER: Partial<Record<Tier, Tier>> = { brons: "zilver", zilver: "goud" };
+export const NEXT_TIER: Partial<Record<Tier, Tier>> = { brons: "zilver", zilver: "goud", goud: "diamant" };
 /**
  * End of season, by team rank: coins (times the level's share), and for the
  * teams that go up (or the top two of the top level) the level's promotion pack.
@@ -129,7 +129,7 @@ const tierOfId = (id: string) => itemById.get(id)?.tier ?? cardById(id).tier;
 
 /** Spare copies per tier: every copy beyond the first, riders and equipment and staff together. */
 export function sparesByTier(save: Save): Record<Tier, number> {
-  const out: Record<Tier, number> = { brons: 0, zilver: 0, goud: 0 };
+  const out: Record<Tier, number> = { brons: 0, zilver: 0, goud: 0, diamant: 0 };
   for (const owned of [save.collection, save.items]) for (const [id, n] of Object.entries(owned)) out[tierOfId(id)] += n - 1;
   return out;
 }
