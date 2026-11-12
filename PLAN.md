@@ -16,9 +16,9 @@ gaat stabiliteit voor nieuwe features.
    Daarna, ook gepusht: "Kopman: een kaart op een renner naar keuze"
    (`4760fcf4`) en "Kopman: de ploegnaam echt te wijzigen" (`c70599a6`).
    Lokaal, nog niet gepusht: "Kopman: de koers in groepen, en kaarten per
-   fase" (2026-11-12). Het bordspel is de koers, ook in de tijdrit; het
-   overzicht toont sindsdien de groepen op het profiel, het getekende
-   koersbeeld is te kiezen. Op een telefoon vult het bord het scherm. Open: na de
+   fase" (`51ef6d03`) en "Kopman: de koers in vogelvlucht" (2026-11-12). Het
+   bordspel is de koers, ook in de tijdrit; het overzicht toont sindsdien de
+   koers in vogelvlucht met gezichtjes, het getekende koersbeeld is te kiezen. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12238,10 +12238,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — Kopman: de koers in groepen, en kaarten per fase
+### Gebouwd — Kopman: de koers in vogelvlucht
 
 **2026-11-12, commit: de commit die dit blok toevoegt, lokaal op
 `claude/dreamy-varahamihira-5dc856`, niet gepusht.** Geen migratie.
+
+- **De vraag.** Over de groepsweergave van de ronde hieronder: "Kun je het
+  derde blok niet integreren in het tweede blok, nu lijkt het veel van
+  hetzelfde op elkaar gestapeld", als "bird view" met "een kronkelende lijn"
+  en de gezichten, en de rivalen "iets kleiner ook te kunnen zien als
+  gezichten en dat je die dan ook kan aanklikken op kwaliteiten". Voorstel
+  voorgelegd; de eigenaar: "Ja, bouw dit".
+- **Wat er is.** Zie
+  [docs/kopman-bordspel.md](docs/kopman-bordspel.md#de-koers-in-groepen-en-kaarten-per-fase).
+  `GroupView` tekent nu één blok: een kronkelende weg met klimmen, kasseien en
+  bordjes, elke groep als wolkje bolletjes met een label, je renners als
+  gezichtjes boven de weg en de rivaliserende kopmannen als kleine gezichtjes
+  eronder. Tik een rivaal aan en zijn kaart opent, met zijn ploeg.
+- **Waarom zo.** Het profiel en de stroken toonden twee keer dezelfde koers.
+  In vogelvlucht zie je in één beeld waar elke groep rijdt en wie erin zit.
+- **Niet meer waar.** De strook per groep onder het profiel uit de ronde
+  hieronder is weg. Ook het profiel van het stuk rond de sector is weg; de
+  hoogte staat nog in het smalle profiel van de hele koers en in de bordjes.
+- **Bewust niet gebouwd:**
+  - een echte kaart van de route: een koers heeft alleen een hoogteprofiel,
+    de bochten zijn getekend;
+  - alle 60 renners als gezicht: dat wordt onleesbaar op een telefoon. De
+    knechten van de rivalen blijven bolletjes;
+  - een dun hoogteprofiel in het blok zelf. Dat was het alternatief; het kost
+    op een telefoon de ruimte van de gezichtjes.
+- **Geverifieerd:** in de preview op 375×667 (start, vier groepen op de
+  kasseien, een klim, de kaart van een rivaal) en op 1280×800; tsc, eslint,
+  55 tests en `next build`.
+- **Niet geverifieerd:** een echte telefoon en Safari; of het soepel loopt op
+  een gewone telefoon met 16 gezichtjes die meebewegen.
+
+### Gebouwd — Kopman: de koers in groepen, en kaarten per fase
+
+**2026-11-12, commit `51ef6d03`, lokaal op
+`claude/dreamy-varahamihira-5dc856`, niet gepusht.** Geen migratie. *De
+groepsweergave van deze ronde is dezelfde dag vervangen door de vogelvlucht,
+zie hierboven.*
 
 - **De vraag.** De eigenaar speelde een seizoen: het koersbeeld "voegt heel
   weinig toe, er is geen overzicht, je weet niet waar je renners zitten". Ook

@@ -176,7 +176,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
     setPicking(null);
     act(() => playCard(board, uid, id));
   };
-  /** A tap on one of your riders: give him the waiting card, or open his card. */
+  /** A tap on a rider: give one of yours the waiting card, or open his card (also a rival's). */
   const tapRider = (id: string) => (pick && pickRiders.includes(id) ? giveTo(id) : pick ? undefined : setSheet(id));
   /** While a card waits for a rider: what it costs this rider, or null if he cannot play it. */
   const pickCost = (id: string) => (pick && pickRiders.includes(id) ? costOf(board, pick, id) : null);
@@ -196,7 +196,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
     </button>
   ) : null;
   const intentList = board.intents.map((i) => (
-    <div key={i.team} className={styles.intent}>
+    <div key={i.team} className={styles.intent} title={teamName(i.team, own)}>
       <span className={styles.teamDot} style={{ background: teamColor(i.team) }} />
       <b>{teamName(i.team, own)}</b>
       <span>{i.kind === "aanval" ? `${cardById(i.rider).last} valt aan` : `maakt tempo met ${cardById(i.rider).last}`}</span>
@@ -221,8 +221,8 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
   };
   const standingOf = (r: (typeof mine)[number]) => { const w = standing(state, r); return `${w.label}${w.gap >= 5 ? ` +${clock(w.gap)}` : ""}`; };
   const groupView = <GroupView state={state} sector={sector} moving={riding_} moodOf={moodOf} onRider={tapRider} />;
-  const sheetRider = sheet ? mine.find((r) => r.id === sheet) : undefined;
-  const sheetView = sheetRider ? <RiderSheet rider={sheetRider} kracht={board.kracht[sheetRider.id]} start={board.start[sheetRider.id]} where={standingOf(sheetRider)} onClose={() => setSheet(null)} /> : null;
+  const sheetRider = sheet ? state.riders.find((r) => r.id === sheet) : undefined;
+  const sheetView = sheetRider ? <RiderSheet rider={sheetRider} kracht={board.kracht[sheetRider.id]} start={board.start[sheetRider.id]} where={standingOf(sheetRider)} team={sheetRider.team === PLAYER_TEAM ? null : teamName(sheetRider.team, own)} onClose={() => setSheet(null)} /> : null;
 
   if (compact) {
     return (
@@ -246,7 +246,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
           {intentList.length || lastEvents.length ? (
             <div className={styles.mFeed} aria-live="polite">
               {riding_ ? null : intentList}
-              {lastEvents.length ? <div className={styles.ticker}>{lastEvents.slice(-2).map((e, n) => <div key={n} className={e.good ? undefined : styles.tickerBad}>{e.text}</div>)}</div> : null}
+              {lastEvents.length ? <div className={styles.ticker}>{lastEvents.slice(riding_ || !intentList.length ? -2 : -1).map((e, n) => <div key={n} className={e.good ? undefined : styles.tickerBad}>{e.text}</div>)}</div> : null}
             </div>
           ) : null}
         </div>
@@ -361,8 +361,8 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
   );
 }
 
-/** One of your riders mid-race: his card with all his qualities, his kracht and where he rides. */
-function RiderSheet({ rider, kracht, start, where, onClose }: { rider: Rider; kracht: number; start: number; where: string; onClose: () => void }) {
+/** A rider mid-race, yours or a rival: his card with all his qualities, his kracht and where he rides. */
+function RiderSheet({ rider, kracht, start, where, team, onClose }: { rider: Rider; kracht: number; start: number; where: string; team: string | null; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -381,6 +381,7 @@ function RiderSheet({ rider, kracht, start, where, onClose }: { rider: Rider; kr
             <b>{kracht}/{start}</b>
           </span>
           <span>Plek</span><b>{where}</b>
+          {team ? <><span>Ploeg</span><b>{team}</b></> : null}
         </div>
       </div>
     </div>

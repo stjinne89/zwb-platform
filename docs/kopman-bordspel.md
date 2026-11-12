@@ -574,31 +574,46 @@ erg vroeg aanvallen en je kopman wordt niet gauw moe". Het voorstel is
 goedgekeurd, met één wijziging: "De kans om een streekkaart te trekken moet
 mss hoger".
 
-**De groepen op het profiel** (`ui/group-view.tsx`).
+**De koers in vogelvlucht** (`ui/group-view.tsx`). Eerst stonden hier het
+profiel en daaronder een strook per groep. Dezelfde dag vond de eigenaar dat
+"veel van hetzelfde op elkaar gestapeld", met de vraag: "is het daarnaast geen
+idee om dit als bird view te doen zodat je een kronkelende lijn ziet met de
+gezichten van de renners en de bolletjes". Ook wilde hij de rivalen als
+gezichtjes zien en ze kunnen aantikken, "zodat je weet tegen wie je racet".
+Nu is het één blok:
 - Het overzicht is weer de standaard. De keuze staat onder een nieuwe sleutel
   (`kopman:weergave`), zodat een eerdere keuze voor het koersbeeld niet blijft
   hangen. Het koersbeeld blijft te kiezen.
-- Boven: het stuk weg rond de sector van nu, verlengd tot de achterste groep
-  die getoond wordt en de kop van de koers. Elke groep is een speld op de weg;
-  hoe groter de groep, hoe groter de speld. Een groep met een renner van jou
-  is geel.
-- Daaronder een strook per groep die telt: de kop, het peloton en elke groep
-  met een renner van jou. Per strook het aantal en de achterstand. Je renners
-  staan er als gezichtje op de plek waar ze in de groep rijden, voorin rechts.
-  De kopmannen van de rivalen zijn stippen in hun ploegkleur.
-- De gezichtjes hebben de stemming van het portret (rust, aanval, op de
-  limiet) en wiebelen mee als de sector rijdt. Bij `prefers-reduced-motion`
-  staan ze stil.
-- Liggen gezichtjes te dicht op elkaar, dan schuiven ze uit elkaar. De
-  volgorde blijft, de plek is dan bij benadering.
-- Op een telefoon staan de stroken onder elkaar, de kop bovenaan. Een strook
-  zonder renner van jou is smal. Op desktop staan ze naast elkaar, onder een
-  klein profiel van de hele koers.
+- **De weg** is een kronkelend lint door het gras: het stuk rond de sector van
+  nu, verlengd tot de achterste groep die telt en de kop van de koers. Een
+  koers heeft geen kaart, dus de bochten zijn getekend. Ze hangen aan de
+  afstand en aan de koers, dus ze schuiven mee en zijn elke keer hetzelfde.
+- Een klim kleurt de weg geel, kasseien bruin met stenen, grind zand. Bij elke
+  klim of strook staat een bordje met de naam, bij een klim met het gemiddelde
+  stijgingspercentage. De sectorgrenzen zijn streepjes over de weg, de finish
+  is geblokt.
+- **Elke groep** is een wolkje bolletjes in ploegkleur; hoe groter de groep,
+  hoe langer de wolk. Voor de kop, het peloton en elke groep met een renner
+  van jou staat een label met de achterstand (de kop met het aantal). Liggen
+  groepen te dicht op elkaar om apart te tekenen, dan schuiven ze zo weinig
+  mogelijk uit elkaar; het label geeft de echte achterstand.
+- **Je renners** zijn gezichtjes boven de weg, met een lijntje naar hun plek.
+  Ze hebben de stemming van het portret en wiebelen mee als de sector rijdt
+  (niet bij `prefers-reduced-motion`). Ze staan nooit op de weg zelf.
+- **De kopmannen van de rivalen** zijn kleinere gezichtjes onder de weg, onder
+  hun eigen groep, met een ring en een lijntje in hun ploegkleur. Meer dan vier
+  in één groep staan in twee rijen. Hun portret beweegt niet, dat scheelt werk
+  voor een telefoon.
+- Het hoogteprofiel van de hele koers staat er smal onder (op desktop erboven).
+- Op een telefoon staan de plannen van de andere ploegen naast elkaar, met
+  alleen de ploegkleur en de renner. Bij het plannen staat er dan één bericht
+  onder in plaats van twee. Anders drukten ze het beeld te plat.
 
-**De kaart van een renner.** Tik een renner aan (in de strook, in je rij
+**De kaart van een renner.** Tik een renner aan (in de vogelvlucht, in je rij
 renners of in de lijst op desktop) en zijn kaart opent, met alle waarden, zijn
-kracht en waar hij rijdt. Wacht er een kaart op een renner, dan speelt de tik
-die kaart, zoals eerder.
+kracht en waar hij rijdt. Dat kan ook bij een rivaal; dan staat zijn ploeg
+erbij. Wacht er een kaart op een renner, dan speelt de tik op een van jouw
+renners die kaart, zoals eerder.
 
 **Fases.** Een wegrit heeft drie fases: de opening (sector 1 tot 3), het
 middenstuk (4 tot 7) en de finale (8 tot 10). De fase staat voor de naam van
@@ -668,9 +683,9 @@ eerst.
   sessie gebouwd, niet in deze ronde.
 
 **Geverifieerd:**
-- in de preview in Chrome op 375×667: de groepen, de gezichtjes uit elkaar,
-  een paar sectoren gereden, de kaart van een renner openen en sluiten; op
-  desktop de stroken naast elkaar;
+- in de preview in Chrome op 375×667: de vogelvlucht bij de start, met vier
+  groepen op de kasseien en bij een klim met bordje; de kaart van een eigen
+  renner en van een rivaal openen en sluiten; desktop op 1280×800;
 - tsc, eslint en 55 tests, waarvan 6 nieuw (fases en ploegkaarten, de
   meerprijs voor vroeg aanvallen, alleen rijden, plakbidon en verkeerde pijl,
   EPO, hoe vaak een streek komt);
