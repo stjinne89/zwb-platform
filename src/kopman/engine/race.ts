@@ -322,7 +322,9 @@ function decide(state: RaceState, r: Rider, ctx: Context, index: number) {
       const free = (team: string) => !ctx.groups.slice(0, gi).some((g) => g.some((x) => x.team === team));
       const rank = group.filter((x) => x.kopman && free(x.team)).map((x) => ({ team: x.team, fit: fitFor(x.card, weights) })).sort((a, b) => b.fit - a.fit || a.team.localeCompare(b.team)).findIndex((x) => x.team === r.team);
       const pulling = group.filter((x) => x.team === r.team && x !== r && x.mode === "kop").length;
-      if (rank >= 0 && rank < 3 && pulling < 2 && (frac >= 0.45 || gapSeconds > 150)) { setMode(r, "kop", 0, frac >= 0.8 ? 1.05 : frac >= 0.45 ? 1 : 0.92); return; }
+      // A kopman up the road is chased at once, also early: a favourite is never given room.
+      const favourite = ahead.some((x) => x.kopman) && gapSeconds > 10;
+      if (rank >= 0 && rank < 3 && pulling < 2 && (frac >= 0.45 || gapSeconds > 150 || favourite)) { setMode(r, "kop", 0, frac >= 0.8 ? 1.05 : frac >= 0.45 || favourite ? 1 : 0.92); return; }
     }
   }
   setMode(r, "mee");

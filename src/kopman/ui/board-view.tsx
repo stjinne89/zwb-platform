@@ -1,25 +1,27 @@
 "use client";
 
-import { ChevronLeft, Crown, Flag, Mountain, Play, RotateCcw, Shield, Undo2, Video, Wrench } from "lucide-react";
+import { ChevronLeft, Crown, Flag, Mountain, Play, RotateCcw, Shield, Undo2, Video, Wrench, X } from "lucide-react";
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { BOARD_CARDS, BOARD_SECTORS, blockedReason, choosesRider, costOf, createBoard, currentSector, HAZARD_LABELS, HAZARD_ODDS, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, ridersFor, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
+import { BOARD_CARDS, BOARD_SECTORS, blockedReason, choosesRider, costOf, createBoard, currentSector, HAZARD_LABELS, PHASE_LABELS, phaseOf, HAZARD_ODDS, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, ridersFor, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
 import { cardById, TYPE_LABELS } from "../engine/cards";
 import { newSave, type Save } from "../engine/economy";
 import { STAFF, teamBonus } from "../engine/items";
-import { groupsOf, kopmanOf, results, riding, type Lineup, type RaceState } from "../engine/race";
+import { groupsOf, kopmanOf, results, riding, type Lineup, type RaceState, type Rider } from "../engine/race";
 import { loadSave } from "../engine/save";
 import { PLAYER_TEAM } from "../engine/types";
 import { CALENDAR, PLAYER_COLOR, raceById } from "../engine/world";
 import { ChaseView } from "./chase-view";
+import { GroupView } from "./group-view";
 import { Portrait, type Mood } from "./portrait";
 import { Profile } from "./profile";
 import { clock, riderName, teamColor, teamName } from "./race-view";
+import { RiderCardView } from "./rider-card";
 import styles from "./kopman.module.css";
 
 /** Real seconds one sector takes on screen. */
 const SECTOR_SECONDS = 3.5;
 
-const KIND_LABELS: Record<CardKind, string> = { aanval: "Aanval", tempo: "Tempo", bescherming: "Bescherming", verstoring: "Verstoring", reactie: "Reactie", steun: "Staf", pacing: "Pacing", aero: "Aero", techniek: "Techniek" };
+const KIND_LABELS: Record<CardKind, string> = { aanval: "Aanval", tempo: "Tempo", bescherming: "Bescherming", verstoring: "Verstoring", reactie: "Reactie", steun: "Staf", pacing: "Pacing", aero: "Aero", techniek: "Techniek", ploeg: "Ploeg", streek: "Streek" };
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 const km = (m: number) => `${(Math.max(0, m) / 1000).toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km`;
@@ -29,7 +31,9 @@ function store() {
 }
 
 type View = "overzicht" | "beeld";
-const VIEW_KEY = "kopman:koersbeeld";
+// Since 2026-11-12 the overview is the groups on the profile and the default
+// again; a new key, so an earlier choice for the race view does not stick.
+const VIEW_KEY = "kopman:weergave";
 function savedView(): View {
   try { return store()?.getItem(VIEW_KEY) === "beeld" ? "beeld" : "overzicht"; } catch { return "overzicht"; }
 }
@@ -80,8 +84,10 @@ function hazardLine(sector: BoardSector) {
   return (Object.entries(HAZARD_ODDS[sector.terrain]) as [Hazard, number][]).map(([h, p]) => `${HAZARD_LABELS[h]} ${pct(p)}`).join(" · ");
 }
 
-function sectorTitle(sector: BoardSector) {
-  return `${sector.finale ? "Finale · " : ""}${TERRAIN_LABELS[sector.terrain]}${sector.name ? ` · ${sector.name}` : ""}`;
+/** The terrain and name of a sector; in a road race with its phase in front. */
+function sectorTitle(sector: BoardSector, tt = false) {
+  const phase = tt ? (sector.finale ? "Finale · " : "") : `${PHASE_LABELS[phaseOf(sector.index)]} · `;
+  return `${phase}${TERRAIN_LABELS[sector.terrain]}${sector.name ? ` · ${sector.name}` : ""}`;
 }
 
 /**
@@ -97,6 +103,8 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
   const [view, setView] = useState<View>(savedView);
   // The card waiting for a rider: tap a card, then the rider who plays it.
   const [picking, setPicking] = useState<string | null>(null);
+  // The rider whose card is open, to look at his qualities mid-race.
+  const [sheet, setSheet] = useState<string | null>(null);
   const pickView = (v: View) => {
     setView(v);
     try { store()?.setItem(VIEW_KEY, v); } catch { /* the choice just is not remembered */ }
@@ -168,6 +176,8 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
     setPicking(null);
     act(() => playCard(board, uid, id));
   };
+  /** A tap on one of your riders: give him the waiting card, or open his card. */
+  const tapRider = (id: string) => (pick && pickRiders.includes(id) ? giveTo(id) : pick ? undefined : setSheet(id));
   /** While a card waits for a rider: what it costs this rider, or null if he cannot play it. */
   const pickCost = (id: string) => (pick && pickRiders.includes(id) ? costOf(board, pick, id) : null);
   const dots = (n: number) => <span className={styles.pickCost}>{Array.from({ length: n }, (_, i) => <span key={i} />)}</span>;
@@ -206,9 +216,13 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
   );
   const moodOf = (r: (typeof mine)[number]): Mood => {
     const k = board.kracht[r.id], start = board.start[r.id];
-    return !riding(r) ? "rust" : k <= start * 0.25 ? "limiet" : (r.override?.mode ?? r.mode) === "aanval" ? "aanval" : "rust";
+    const mode = r.override?.mode ?? r.mode;
+    return !riding(r) ? "rust" : k <= start * 0.25 ? "limiet" : mode === "aanval" || mode === "sprint" ? "aanval" : "rust";
   };
   const standingOf = (r: (typeof mine)[number]) => { const w = standing(state, r); return `${w.label}${w.gap >= 5 ? ` +${clock(w.gap)}` : ""}`; };
+  const groupView = <GroupView state={state} sector={sector} moving={riding_} moodOf={moodOf} onRider={tapRider} />;
+  const sheetRider = sheet ? mine.find((r) => r.id === sheet) : undefined;
+  const sheetView = sheetRider ? <RiderSheet rider={sheetRider} kracht={board.kracht[sheetRider.id]} start={board.start[sheetRider.id]} where={standingOf(sheetRider)} onClose={() => setSheet(null)} /> : null;
 
   if (compact) {
     return (
@@ -222,12 +236,13 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
           {toggle}
         </div>
         <div className={`${styles.mStage} ${view === "beeld" ? "" : styles.mStageMap}`}>
-          {view === "beeld" ? <ChaseView state={state} moving={riding_} frame={tick} /> : <div className={styles.mMap}><Profile course={state.course} markers={markers} bands={bands} height={120} /></div>}
+          {view === "beeld" ? <ChaseView state={state} moving={riding_} frame={tick} /> : null}
           <div className={styles.mInfo}>
-            <b>{sectorTitle(sector)}</b>
+            <b>{sectorTitle(sector, board.tt)}</b>
             <span>{km(sector.end - sector.start)}{sector.finale ? "" : ` · ${hazardLine(sector)}`}</span>
-            {ahead.map((s) => <span key={s.index}>Daarna: {sectorTitle(s)}</span>)}
+            {ahead.map((s) => <span key={s.index}>Daarna: {sectorTitle(s, board.tt)}</span>)}
           </div>
+          {view === "beeld" ? null : <div className={styles.mGroups}>{groupView}</div>}
           {intentList.length || lastEvents.length ? (
             <div className={styles.mFeed} aria-live="polite">
               {riding_ ? null : intentList}
@@ -235,14 +250,13 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
             </div>
           ) : null}
         </div>
-        {view === "beeld" ? <div className={styles.mStrip}><Profile course={state.course} markers={markers} bands={bands} height={40} /></div> : null}
+        <div className={styles.mStrip}><Profile course={state.course} markers={markers} bands={bands} height={40} /></div>
         <div className={styles.mRiders}>
           {mine.map((r) => {
             const k = board.kracht[r.id], top = Math.max(board.start[r.id], k);
             const cost = pickCost(r.id);
-            const Tile = cost === null ? "div" : "button";
             return (
-              <Tile key={r.id} {...(cost === null ? {} : { type: "button" as const, onClick: () => giveTo(r.id), "aria-label": `${r.card.last}: ${cost} kracht` })} className={`${styles.mRider} ${riding(r) ? "" : styles.mOut} ${cost !== null ? styles.mPick : pick ? styles.mDim : ""}`}>
+              <button key={r.id} type="button" onClick={() => tapRider(r.id)} aria-label={cost === null ? r.card.last : `${r.card.last}: ${cost} kracht`} disabled={!!pick && cost === null} className={`${styles.mRider} ${riding(r) ? "" : styles.mOut} ${cost !== null ? styles.mPick : pick ? styles.mDim : ""}`}>
                 <span className={styles.mFaceWrap}>
                   <span className={`${styles.mFace} ${styles[r.card.tier]}`}><Portrait card={r.card} mood={moodOf(r)} crop /></span>
                   {r.kopman ? <span className={styles.mCrown}><Crown size={11} aria-label="kopman" /></span> : null}
@@ -254,7 +268,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
                   <span><span style={{ width: `${top ? (k / top) * 100 : 0}%` }} /></span>
                   <b>{k}</b>
                 </span>
-              </Tile>
+              </button>
             );
           })}
         </div>
@@ -266,6 +280,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
           </div>
           {rideButton}
         </div>
+        {sheetView}
       </div>
     );
   }
@@ -286,18 +301,23 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
             <ChaseView state={state} moving={riding_} frame={tick} />
             <Profile course={state.course} markers={markers} bands={bands} height={52} />
           </div>
-        ) : <Profile course={state.course} markers={markers} bands={bands} height={120} />}
+        ) : (
+          <div className={styles.stack} style={{ gap: 8 }}>
+            <Profile course={state.course} markers={markers} bands={bands} height={44} />
+            <div className={styles.dGroups}>{groupView}</div>
+          </div>
+        )}
       </div>
 
       <div className={styles.boardGrid}>
         <div className={styles.stack}>
           <div className={`${styles.panel} ${styles.sectorPanel}`}>
             <div className={styles.row} style={{ justifyContent: "space-between" }}>
-              <span className={styles.h3}>{sectorTitle(sector)}</span>
+              <span className={styles.h3}>{sectorTitle(sector, board.tt)}</span>
               <span className={styles.stat}>{km(sector.end - sector.start)}</span>
             </div>
             {sector.finale ? null : <div className={styles.muted}>{hazardLine(sector)}</div>}
-            {ahead.map((s) => <div key={s.index} className={styles.muted}>Daarna: {sectorTitle(s)}{s.finale ? "" : ` · ${hazardLine(s)}`}</div>)}
+            {ahead.map((s) => <div key={s.index} className={styles.muted}>Daarna: {sectorTitle(s, board.tt)}{s.finale ? "" : ` · ${hazardLine(s)}`}</div>)}
             {intentList.length ? <div className={styles.intents}>{intentList}</div> : null}
           </div>
           {lastEvents.length ? <div className={styles.ticker}>{lastEvents.map((e, n) => <div key={n} className={e.good ? undefined : styles.tickerBad}>{e.text}</div>)}</div> : null}
@@ -320,9 +340,8 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
             {mine.map((r) => {
               const k = board.kracht[r.id], start = board.start[r.id];
               const cost = pickCost(r.id);
-              const Row = cost === null ? "div" : "button";
               return (
-                <Row key={r.id} {...(cost === null ? {} : { type: "button" as const, onClick: () => giveTo(r.id), "aria-label": `${riderName(r.id)}: ${cost} kracht` })} className={`${styles.rider} ${cost !== null ? styles.riderPick : pick ? styles.mDim : ""}`}>
+                <button key={r.id} type="button" onClick={() => tapRider(r.id)} aria-label={cost === null ? riderName(r.id) : `${riderName(r.id)}: ${cost} kracht`} disabled={!!pick && cost === null} className={`${styles.rider} ${styles.riderButton} ${cost !== null ? styles.riderPick : pick ? styles.mDim : ""}`}>
                   <span className={`${styles.riderFace} ${styles[r.card.tier]}`}><Portrait card={r.card} mood={moodOf(r)} crop /></span>
                   <span className={styles.riderInfo}>
                     <span><b>{riderName(r.id)}</b>{r.kopman ? <> <Crown size={13} aria-label="kopman" /></> : null}</span>
@@ -331,13 +350,39 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
                       {Array.from({ length: Math.max(start, k) }, (_, i) => <span key={i} className={i < k ? styles.pipOn : undefined} />)}
                     </span>
                   </span>
-                </Row>
+                </button>
               );
             })}
           </div>
         </div>
       </div>
+      {sheetView}
+    </div>
+  );
+}
 
+/** One of your riders mid-race: his card with all his qualities, his kracht and where he rides. */
+function RiderSheet({ rider, kracht, start, where, onClose }: { rider: Rider; kracht: number; start: number; where: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const top = Math.max(start, kracht);
+  return (
+    <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={riderName(rider.id)} onClick={onClose}>
+      <div className={styles.sheetCard} onClick={(e) => e.stopPropagation()}>
+        <button type="button" className={`${styles.ghost} ${styles.sheetClose}`} aria-label="Sluiten" onClick={onClose} autoFocus><X size={16} aria-hidden /></button>
+        <RiderCardView card={rider.card} kopman={rider.kopman} live />
+        <div className={styles.sheetFacts}>
+          <span>Kracht</span>
+          <span className={styles.pips} role="meter" aria-label="Kracht" aria-valuemin={0} aria-valuemax={top} aria-valuenow={kracht}>
+            {Array.from({ length: top }, (_, i) => <span key={i} className={i < kracht ? styles.pipOn : undefined} />)}
+            <b>{kracht}/{start}</b>
+          </span>
+          <span>Plek</span><b>{where}</b>
+        </div>
+      </div>
     </div>
   );
 }
@@ -347,7 +392,7 @@ function BoardCardView({ board, c, picked, onPlay }: { board: BoardState; c: Han
   const def = BOARD_CARDS[c.card];
   const reason = blockedReason(board, c);
   const cost = costOf(board, c);
-  const who = c.rider ? cardById(c.rider).last : c.type ? (c.type === "klassieker" ? "Klassieker" : TYPE_LABELS[c.type]) : STAFF[(Object.keys(STAFF) as (keyof typeof STAFF)[]).find((role) => c.uid.endsWith(`:${role}`)) ?? "trainer"].label;
+  const who = c.rider ? cardById(c.rider).last : c.type === "ploeg" ? "Ploeg" : c.type ? (c.type === "klassieker" ? "Klassieker" : TYPE_LABELS[c.type]) : def.kind === "streek" ? "Streek" : STAFF[(Object.keys(STAFF) as (keyof typeof STAFF)[]).find((role) => c.uid.endsWith(`:${role}`)) ?? "trainer"].label;
   return (
     <button type="button" className={`${styles.bcard} ${styles[`k_${def.kind}`]} ${picked ? styles.bcardPicked : ""}`} disabled={!!reason} onClick={onPlay} title={reason ?? undefined} aria-pressed={choosesRider(board, c) ? picked : undefined}>
       <span className={styles.bcardKind}>{KIND_LABELS[def.kind]}</span>

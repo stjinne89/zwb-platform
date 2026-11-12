@@ -472,3 +472,64 @@
   .screen { padding: 0; }
   .screen > .app { min-height: 100vh; min-height: 100dvh; border-radius: 0; padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
 }
+
+/* Groups on the profile (board overview): the road around the sector, a pin per group, a strip per group with your riders' faces. */
+.gv { display: flex; flex-direction: column; gap: 6px; height: 100%; min-height: 0; }
+.gvRoad { position: relative; flex: 1 1 64px; min-height: 56px; max-height: 120px; border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; background: #dcebf0; }
+.gvRoad svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.gvPin { position: absolute; transform: translate(-50%, -100%); margin-top: -3px; display: grid; place-items: center; border-radius: 99px; background: var(--paper); border: 2px solid var(--ink); color: var(--ink); font-size: 0.6rem; font-weight: 800; line-height: 1; transition: left 0.3s linear, top 0.3s linear; }
+.gvPinMine { background: var(--dots), var(--yellow); }
+.gvLanes { display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.gvLane { flex: 1 1 0; min-width: 104px; display: grid; gap: 1px; padding: 4px 6px 4px; border: 2px solid var(--ink); border-bottom-width: 3px; border-radius: var(--wobble); background: var(--paper); color: var(--ink); }
+.gvLaneMine { background: #fff4cf; }
+.gvHead { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 0.64rem; font-weight: 700; white-space: nowrap; }
+.gvHead b { font-family: var(--letter); font-size: 0.76rem; font-weight: 800; }
+.gvHead > span:last-child { margin-left: auto; overflow: hidden; text-overflow: ellipsis; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.gvTag { flex: none; display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 3px; border: 1.5px solid var(--ink); border-radius: 99px; background: var(--paper-2); font-size: 0.56rem; font-weight: 800; }
+.gvLaneMine .gvTag { background: var(--yellow); }
+/* The road through the group, front to the right. */
+.gvTrack { position: relative; height: 72px; }
+.gvTrack::before { content: ""; position: absolute; left: 2px; right: 8px; top: 21px; border-top: 2px dashed rgb(27 23 18 / 0.3); }
+.gvTrack::after { content: ""; position: absolute; right: 2px; top: 17px; border: 5px solid transparent; border-left: 7px solid rgb(27 23 18 / 0.35); border-right: 0; }
+.gvRival { position: absolute; top: 17px; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 99px; border: 1.5px solid var(--ink); transition: left 0.3s linear; }
+.app .gvFace { position: absolute; display: grid; justify-items: center; padding: 0; border: 0; background: none; color: var(--ink); cursor: pointer; transform: translateX(-50%); transition: left 0.3s linear, top 0.3s ease-out; }
+.gvFaceImg { display: block; width: 30px; height: 30px; border: 2px solid var(--ink); border-radius: 7px; overflow: hidden; background: var(--paper-2); }
+.gvKopman .gvFaceImg { box-shadow: 0 0 0 2.5px var(--yellow), 0 0 0 4px var(--ink); }
+.gvFace small { max-width: 54px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: -3px; padding: 0 3px; border: 1.5px solid var(--ink); border-radius: 4px; background: var(--paper); font-size: 0.54rem; font-weight: 750; line-height: 1.25; }
+.gvMoving .gvFace { animation: kmPedal 0.55s ease-in-out infinite; }
+@keyframes kmPedal { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -2px); } }
+@media (prefers-reduced-motion: reduce) { .gvMoving .gvFace { animation: none; } }
+.mGroups { flex: 1; min-height: 0; }
+/* On a phone the groups stack, the front on top: wide strips leave room for the faces. */
+.mGroups .gvLanes { flex-direction: column-reverse; justify-content: flex-end; overflow: hidden auto; }
+.mGroups .gvLane { flex: none; }
+.mGroups .gvTrack { height: 46px; }
+/* A group without one of yours: only the dots of the rival kopmen. */
+.gv .gvTrack.gvTrackThin { height: 22px; }
+.dGroups { height: 230px; }
+.dGroups .gvFaceImg { width: 36px; height: 36px; }
+.dGroups .gvTrack { height: 80px; }
+/* The overview stage on a phone: info, groups and news stacked, nothing on top of the road. */
+.mStageMap { display: flex; flex-direction: column; gap: 6px; padding: 6px; }
+.mStageMap .mInfo { position: static; max-width: none; transform: none; box-shadow: none; }
+.mStageMap .mFeed { position: static; }
+
+/* Your riders are buttons: tap one to see his card. */
+.app .riderButton { width: 100%; font: inherit; text-align: left; cursor: pointer; }
+.app .riderButton:disabled { cursor: default; }
+.app .mRider { font: inherit; cursor: pointer; }
+.app .mRider:disabled { cursor: default; }
+
+/* A rider's card mid-race. */
+.sheet { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; padding: 16px; background: rgb(15 27 40 / 0.74); }
+.sheetCard { position: relative; width: min(290px, 100%); max-height: 100%; overflow-y: auto; display: grid; gap: 10px; padding: 14px; border: 2px solid var(--ink); border-bottom-width: 3.5px; border-radius: var(--wobble); background: var(--paper); color: var(--ink); box-shadow: var(--lift); --fg: var(--ink); --muted: var(--ink-soft); }
+.app .sheetClose { position: absolute; top: 8px; right: 8px; z-index: 2; padding: 5px 6px 4px; }
+.sheetFacts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; font-size: 0.86rem; }
+.sheetFacts > span:nth-child(odd) { color: var(--ink-soft); font-weight: 700; }
+.sheetFacts .pips { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.sheetFacts .pips b { margin-left: 4px; font-variant-numeric: tabular-nums; }
+
+/* The team's own cards and the rare streken. */
+.k_ploeg { --kind: #8fc6a0; --kind-ink: var(--ink); }
+.k_streek { --kind: var(--dots), #e9b52f; --kind-ink: var(--ink); }
+.app .bcard.k_streek { border-color: #8a5a00; box-shadow: 0 0 0 2.5px #ffe14d, var(--lift); }

@@ -14,8 +14,11 @@ gaat stabiliteit voor nieuwe features.
    ronde "Kopman: een eigen pagina" (`48db7eaa`, gepusht) staat het op
    `/kopman`, buiten de schil van de club; `/zwbgame/kopman` stuurt door.
    Daarna, ook gepusht: "Kopman: een kaart op een renner naar keuze"
-   (`4760fcf4`) en "Kopman: de ploegnaam echt te wijzigen" (`c70599a6`). Het bordspel is de koers, ook in de tijdrit, met het
-   getekende koersbeeld. Op een telefoon vult het bord het scherm. Open: na de
+   (`4760fcf4`) en "Kopman: de ploegnaam echt te wijzigen" (`c70599a6`).
+   Lokaal, nog niet gepusht: "Kopman: de koers in groepen, en kaarten per
+   fase" (2026-11-12). Het bordspel is de koers, ook in de tijdrit; het
+   overzicht toont sindsdien de groepen op het profiel, het getekende
+   koersbeeld is te kiezen. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12234,6 +12237,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kopman: de koers in groepen, en kaarten per fase
+
+**2026-11-12, commit: de commit die dit blok toevoegt, lokaal op
+`claude/dreamy-varahamihira-5dc856`, niet gepusht.** Geen migratie.
+
+- **De vraag.** De eigenaar speelde een seizoen: het koersbeeld "voegt heel
+  weinig toe, er is geen overzicht, je weet niet waar je renners zitten". Ook
+  wilde hij de kwaliteiten van zijn renners kunnen bekijken, zeldzame
+  grapkaarten ("punaises op de weg", "EPO spuit op de kamer"), en vond hij het
+  te makkelijk: "je kan erg vroeg aanvallen en je kopman wordt niet gauw moe".
+  Voorstel goedgekeurd: "De kans om een streekkaart te trekken moet mss hoger
+  maar voor de rest een prima voorstel".
+- **Wat er is.** Zie
+  [docs/kopman-bordspel.md](docs/kopman-bordspel.md#de-koers-in-groepen-en-kaarten-per-fase).
+  - **De groepen op het profiel** (`ui/group-view.tsx`) zijn weer de
+    standaard: per groep een speld op de weg en een strook met je renners als
+    bewegende gezichtjes op hun plek in de groep.
+  - **Tik een renner aan** en zijn kaart opent met alle waarden en zijn kracht.
+  - **Fases** opening, middenstuk en finale, met vier ploegkaarten die alleen
+    in hun fase kunnen (`TEAM_CARDS`).
+  - **Vroeg aanvallen kost 2 kracht extra** (`EARLY_ATTACK`), **alleen rijden
+    kost kracht** (`soloCost`), moeheid tot 15% (`FATIGUE_FLOOR`), en het
+    peloton jaagt meteen op een kopman die wegrijdt.
+  - **Vijf streken**, 1 op 150 per getrokken kaart (`STREEK_ODDS`).
+- **Waarom zo.** In een balansrun met een sterke ploeg won vroeg aanvallen 24
+  van de 60 wegritten, nu 16, met een gemiddelde plek van 20,8 in plaats van
+  11,5. Laat aanvallen bleef gelijk (30 en 29 zeges). De tabel staat in het
+  ontwerpdocument.
+- **Niet meer waar.**
+  - "Het koersbeeld is het podium" op een telefoon: het overzicht is weer de
+    standaard, het koersbeeld blijft te kiezen.
+  - Moeheid "tot 8% bij 0 kracht": in een wegrit is dat nu 15%, alleen de
+    tijdrit blijft 8%.
+  - De stapel van een wegrit is niet meer 15 kaarten maar 19 (vier
+    ploegkaarten erbij); de tijdrit blijft 15.
+  - Een kaart kan niet meer in elke sector: ploegkaarten hebben een fase.
+- **Bewust niet gebouwd:**
+  - een kans van 1 op 1000 voor een streek: dat is minder dan één per seizoen;
+  - streken voor de rivalen: verliezen door een grap waar je niets tegen kunt
+    doen, is niet leuk;
+  - de piramide met divisies, promotie en degradatie. Die is goedgekeurd en
+    wordt gebouwd in de sessie op `claude/zwbgame-autoracer-concepts-8d80d3`,
+    niet hier.
+- **Geverifieerd:**
+  - in de preview op 375×667 en desktop: groepen, gezichtjes, een paar
+    sectoren, de kaart van een renner;
+  - tsc, eslint, 55 tests (6 nieuw) en `next build`.
+- **Niet geverifieerd:**
+  - een echte telefoon en Safari;
+  - een streek in het spel zelf (alleen in de tests);
+  - het samenvoegen met de piramide. Beide rondes wijzigen `board.ts`; daar
+    kan een conflict ontstaan.
 
 ### Gebouwd — Kopman: de ploegnaam echt te wijzigen
 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { autoplay, BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, deckFor, HAND_SIZE, OFF_TYPE, PLAYS_PER_TURN, playCard, rideSector, ridersFor, startSector, unplayCard, type BoardState } from "@/kopman/engine/board";
+import { autoplay, BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, deckFor, EARLY_ATTACK, HAND_SIZE, OFF_TYPE, phaseOf, PLAYS_PER_TURN, playCard, rideSector, ridersFor, startSector, STREKEN, TEAM_CARDS, unplayCard, type BoardState } from "@/kopman/engine/board";
+import { kopmanOf } from "@/kopman/engine/race";
+import { PLAYER_TEAM } from "@/kopman/engine/types";
 import { cardById } from "@/kopman/engine/cards";
 import { newSave } from "@/kopman/engine/economy";
 import { results } from "@/kopman/engine/race";
@@ -22,9 +24,10 @@ describe("Kopman: bordspel", () => {
   });
 
   it("bouwt de stapel uit de opstelling en het personeel", () => {
-    expect(deckFor(lineup.riders, {})).toHaveLength(15);
+    expect(deckFor(lineup.riders, {})).toHaveLength(15 + TEAM_CARDS.length);
+    expect(deckFor(lineup.riders, {}, lineup.kopman)).toHaveLength(15);
     const deck = deckFor(lineup.riders, { "p-mechanieker-brons": 1, "p-fysio-goud": 1, "p-trainer-brons": 1, "m-frame-goud": 1 });
-    expect(deck).toHaveLength(17);
+    expect(deck).toHaveLength(17 + TEAM_CARDS.length);
     expect(deck.filter((c) => c.type === null).map((c) => c.card).sort()).toEqual(["herstel", "scherp"]);
     expect(createBoard(raceId, 1, lineup).hand).toHaveLength(HAND_SIZE);
     expect(createBoard(raceId, 1, lineup, { "p-chauffeur-brons": 1 }).hand).toHaveLength(HAND_SIZE + 1);
@@ -77,6 +80,70 @@ describe("Kopman: bordspel", () => {
     while (!rideSector(b, 600)) { /* ride */ }
     for (const c of [...b.hand, ...b.deck, ...b.discard]) expect(c.rider).toBeNull();
   });
+
+  it("deelt de koers in drie fases, elk met eigen kaarten", () => {
+    expect([0, 1, 2, 3, 6, 7, 9].map(phaseOf)).toEqual(["opening", "opening", "opening", "midden", "midden", "finale", "finale"]);
+    const b = createBoard(raceId, 3, lineup);
+    b.hand = [{ uid: "f", card: "bevoorrading", type: "ploeg", rider: null }, { uid: "w", card: "inwiel", type: "ploeg", rider: null }];
+    expect(blockedReason(b, b.hand[0])).toMatch(/middenstuk/);
+    b.kracht[lineup.kopman] -= 2;
+    expect(blockedReason(b, b.hand[1])).toBeNull();
+    expect(ridersFor(b, b.hand[1])).toEqual([lineup.kopman]);
+  });
+
+  it("maakt een aanval voor de finale duurder", () => {
+    const b = createBoard(raceId, 3, lineup);
+    const c = { uid: "d", card: "demarrage" as const, type: cardById(lineup.kopman).type, rider: null };
+    const early = costOf(b, c, lineup.kopman);
+    b.sector = 7;
+    expect(costOf(b, c, lineup.kopman)).toBe(early - EARLY_ATTACK);
+  });
+
+  it("laat een renner die alleen rijdt kracht verliezen", () => {
+    const b = createBoard(raceId, 3, lineup);
+    const k = kopmanOf(b.race, PLAYER_TEAM)!;
+    k.distance += 4000;
+    startSector(b);
+    while (!rideSector(b, 600)) { /* ride */ }
+    expect(b.kracht[k.id]).toBeLessThan(b.start[k.id]);
+    expect(b.events.some((e) => /rijdt alleen/.test(e.text))).toBe(true);
+  });
+
+  it("speelt een streek gratis en één keer", () => {
+    const b = createBoard(raceId, 3, lineup);
+    const k = lineup.kopman;
+    b.hand = [{ uid: "s", card: "plakbidon", type: null, rider: null }, { uid: "p", card: "verkeerdepijl", type: null, rider: null }];
+    expect(blockedReason(b, b.hand[1])).toBe("Niemand voor je");
+    b.kracht[k] = 4;
+    expect(playCard(b, "s")).toBe(true);
+    startSector(b);
+    expect(b.kracht[k]).toBe(7);
+    while (!rideSector(b, 600)) { /* ride */ }
+    expect([...b.hand, ...b.deck, ...b.discard].some((c) => c.card === "plakbidon")).toBe(false);
+  });
+
+  it("stuurt met de EPO-spuit de sterkste rivaal naar de controle", () => {
+    const b = createBoard(raceId, 3, lineup);
+    b.hand = [{ uid: "e", card: "epo", type: null, rider: null }];
+    const before = new Map(b.race.riders.map((r) => [r.id, r.distance]));
+    expect(playCard(b, "e")).toBe(true);
+    startSector(b);
+    const sent = b.race.riders.filter((r) => r.kopman && r.team !== PLAYER_TEAM && r.distance < before.get(r.id)! - 200);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("trekt maar af en toe een streek", () => {
+    let streken = 0, draws = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      autoplay(createBoard(raceId, seed, lineup), (b) => {
+        streken += b.hand.filter((c) => STREKEN.includes(c.card)).length;
+        draws += b.hand.length;
+        return [];
+      });
+    }
+    expect(streken).toBeGreaterThan(0);
+    expect(streken / draws).toBeLessThan(0.03);
+  }, 60_000);
 
   it("geeft elke sector een hand met alleen kaarten die je daar kunt spelen", () => {
     let checked = 0;
