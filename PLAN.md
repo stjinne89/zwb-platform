@@ -7,10 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Club Ladder: geen bovengrens in km meer (2026-11-12): lokaal
-   gecommit, niet gepusht.** Geen migratie. Op vraag van ZWBeasts: Figure 8 en
-   Montmartre Mixer vielen af op 25 km, niet op de tijd. Open: pushen, en na
-   de deploy de keuzelijst en het advies op de teampagina bekijken. Zie de
+0. **Club Ladder: geen bovengrens in km meer (2026-11-12): gepusht naar
+   `main` (`06864e3e`).** Geen migratie. Op vraag van ZWBeasts: Figure 8 en
+   Montmartre Mixer vielen af op 25 km, niet op de tijd. Open: na de deploy
+   de keuzelijst en het advies op de teampagina bekijken. Zie de
    ronde "Club Ladder: geen bovengrens in km meer".
 
 0. **Club Ladder: eigen selectie in het advies (2026-11-11): gepusht naar
@@ -12249,7 +12249,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: geen bovengrens in km meer
 
-**2026-11-12, lokaal gecommit (de commit van deze ronde), niet gepusht.**
+**2026-11-12, commit `06864e3e`, gepusht naar `main`** (eigenaar: "Push
+main").
 Geen migratie. ZWBeasts vroegen waarom parcoursen op de rand van onze
 filter, zoals Figure 8 en Montmartre, er niet in staan terwijl ze in tijd
 wel passen. Na onderzoek koos de eigenaar: de km-grens eraf.
