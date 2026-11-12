@@ -176,7 +176,7 @@ function OwnTable({ view }: { view: BriefingView }) {
     { key: "role", header: "Rol", cell: (r) => r.captainRole ?? <span className="text-muted-foreground">{ROLE_LABELS[r.role]}</span> },
     { key: "expected", header: "Verwacht", cell: (r) => r.expectedPlace ?? "—", align: "right" },
     { key: "zrs", header: "ZRS", cell: (r) => r.metrics?.racingScore ?? "—", align: "right" },
-    ...(velo ? [{ key: "velo", header: "vELO", cell: (r: OwnBriefingRider) => (r.metrics?.velo ? Math.round(r.metrics.velo) : "—"), align: "right" as const }] : []),
+    ...(velo ? [{ key: "velo", header: "vELO", cell: (r: OwnBriefingRider) => (r.velo ? Math.round(r.velo) : "—"), align: "right" as const }] : []),
     {
       key: "zftp",
       header: "zFTP / zMAP",

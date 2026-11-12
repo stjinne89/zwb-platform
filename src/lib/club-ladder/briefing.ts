@@ -13,6 +13,7 @@ import { cleanRiderName, shortRiderName, type OwnRole } from "@/lib/race-briefin
 import { climbSeconds, type BriefingClimb, type RouteKeyPoints } from "@/lib/race-briefing/route";
 import { durationLabel, km, type BriefingMoment } from "@/lib/race-briefing/tips";
 import { ZWIFT_POWERUP_LABELS, type ZwiftPowerup } from "@/lib/zwift/powerups";
+import { combineRatings } from "@/lib/zwiftracing/combine";
 import { DURATION_LABELS } from "./advice";
 import type { LadderMatchup, MatchupRider } from "./matchup";
 import type { DurationWeights, PowerDuration } from "./routes";
@@ -119,6 +120,20 @@ export function routeRatings(riders: Array<{ zwiftId: number; wkg: PowerWkg | nu
   return out;
 }
 
+/**
+ * Sterkte voor de verwachting: onze sterkte op vermogen (`routeRatings`) samen
+ * met vELO1 van ZwiftRacing (zwiftracing/combine.ts, sinds 2026-11-12). Heeft
+ * minder dan 70 % van de renners een vELO1, dan blijft het `routeRatings`. Een
+ * renner zonder vermogen maar met vELO1 krijgt zo ook een plek.
+ */
+export function ladderRatings(
+  riders: Array<{ zwiftId: number; wkg: PowerWkg | null; velo1?: number | null }>,
+  weights: DurationWeights | null,
+): Map<number, number | null> {
+  const power = routeRatings(riders, weights);
+  return combineRatings(riders.map((r) => ({ zwiftId: r.zwiftId, power: power.get(r.zwiftId) ?? null, velo: r.velo1 ?? null }))).ratings;
+}
+
 /** Weging per duur van het parcours uit de matchup; null als een duur ontbreekt (geen route). */
 export function matchupWeights(matchup: LadderMatchup | null): DurationWeights | null {
   const rows = matchup?.durations.filter((row) => row.weight != null) ?? [];
@@ -132,7 +147,7 @@ export function ladderRiders(matchup: LadderMatchup, weights: DurationWeights | 
     ...matchup.theirs.riders.map((rider) => ({ rider, own: false })),
   ];
   // Met gewicht (als dat in de matchup meetelt) de W/kg omgerekend naar 75 kg op dit parcours.
-  const ratings = routeRatings(rows.map(({ rider }) => ({ zwiftId: rider.zwiftId, wkg: rider.routeWkg ?? rider.wkg })), weights);
+  const ratings = ladderRatings(rows.map(({ rider }) => ({ zwiftId: rider.zwiftId, wkg: rider.routeWkg ?? rider.wkg, velo1: rider.velo1 })), weights);
   return rows.map(({ rider, own }) => ({
     zwiftId: rider.zwiftId,
     name: cleanRiderName(rider.name),

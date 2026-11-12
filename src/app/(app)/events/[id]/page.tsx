@@ -40,6 +40,8 @@ import { LadderMatchupView } from "./_components/ladder-matchup";
 import { loadLadderEventMatchup } from "@/lib/club-ladder/event-matchup";
 import { loadLadderEventResult } from "@/lib/club-ladder/event-result-load";
 import { LadderResultView } from "./_components/ladder-result";
+import { ZwiftRacingSignups } from "./_components/zwiftracing-signups";
+import { loadZwiftRacingSignups, startsWithinSignupWindow } from "@/lib/zwiftracing/event-signups";
 import { loadLadderEventRouteAdvice } from "@/lib/club-ladder/route-advice";
 import { LadderRouteAdviceView } from "../../teams/club-ladder/_components/ladder-route-advice";
 import { LadderSelection, type SelectionOption } from "./_components/ladder-selection";
@@ -531,6 +533,17 @@ export default async function EventDetailPage({
     event.type === "ladder" && event.team_id && user && !isParentEvent && !ladderResult
       ? await loadLadderEventRouteAdvice(createAdminClient(), event.id, event).catch(() => null)
       : null;
+
+  // Gewone Zwift-race of FRR-etappe vóór de start: de aangemelde leden met hun
+  // verwachte plek volgens ZwiftRacing (eventpagina daar, een half uur gecachet).
+  const zwiftRacingSignups =
+    (event.type === "zwift" || event.type === "flamme_rouge") &&
+    user &&
+    event.zwift_event_id &&
+    startsWithinSignupWindow(event.start_at) &&
+    ["RACE", "TIME_TRIAL"].includes(String(event.zwift_event_type ?? "RACE").toUpperCase())
+      ? await loadZwiftRacingSignups(createAdminClient(), event.zwift_event_id).catch(() => [])
+      : [];
 
   // Een ZRL-raceweek is waar je je aanmeldt bij een paraplu (hoofdteam met
   // subteams, migr. 0179); de captain deelt je daarna in bij een subteam.
@@ -1740,6 +1753,8 @@ export default async function EventDetailPage({
       )}
 
       {ladderResult && <LadderResultView result={ladderResult} />}
+
+      <ZwiftRacingSignups rows={zwiftRacingSignups} />
 
       {ladderRouteAdvice && (
         <section id="parcoursadvies" className="scroll-mt-20 space-y-3">

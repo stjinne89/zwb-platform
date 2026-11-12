@@ -316,10 +316,10 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Je race tegenover de verwachting",
-    text: "Verwachte plek en punten op je ZRS, waar je punten vandaan kwamen, je sprints naast eerder en het racebriefje.",
+    text: "Verwachte plek en punten op je ZRS en volgens ZwiftRacing, waar je punten vandaan kwamen, je sprints naast eerder en het racebriefje.",
     href: "/hulp/racen#racen-verwachting",
     terms:
-      "verwachting verwacht voorspelling voorspeld zrs zwift racing score velo zwiftracing racebriefje briefje richttijd pr persoonlijk record punten fal fts fin podium sprintpunten klimpunten boven verwachting sterkste punt sprinter klimmer terugblik trend jouw races eerdere passages snelste",
+      "verwachting verwacht voorspelling voorspeld zrs zwift racing score velo zwiftracing racebriefje briefje richttijd pr persoonlijk record punten fal fts fin podium sprintpunten klimpunten boven verwachting sterkste punt sprinter klimmer terugblik trend jouw races eerdere passages snelste pen plekken voor achter",
   },
   {
     title: "Protocollen",
@@ -401,7 +401,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Events en RSVP",
     text: "Kalender, routes, GPX, liveticker en aanmelden.",
     href: "/hulp/wedstrijden#events",
-    terms: "event kalender rsvp route gpx aanmelden aangemeld liveticker voor mij filter verborgen ja nee misschien event aanmaken eventlink link plakken ophalen invullen zwift mywhoosh toertocht cover",
+    terms: "event kalender rsvp route gpx aanmelden aangemeld liveticker voor mij filter verborgen ja nee misschien event aanmaken eventlink link plakken ophalen invullen zwift mywhoosh toertocht cover verwachting zwiftracing pen verwachte plek rennerstype",
   },
   {
     title: "Verjaardagsrondje",

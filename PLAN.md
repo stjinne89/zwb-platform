@@ -7,6 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **ZwiftRacing in de verwachtingen van events (2026-11-12): lokaal
+   gecommit (de commit van deze ronde), niet gepusht.** Migratie
+   `0326_zwiftracing_race_expectations.sql` is **niet toegepast** en niet
+   lokaal te testen. Open: de privacytekst (concept voorgelegd, nog niet in
+   `privacy/page.tsx`), 0326 toepassen, en na de deploy een racebriefje, een
+   ladderevent en een gewone Zwift-race bekijken. Nog niet vastgesteld of
+   ZwiftRacing een ZRL-race vooraf kent. Zie de ronde "ZwiftRacing in de verwachtingen van events".
+
 0. **Club Ladder: geen bovengrens in km meer (2026-11-12): gepusht naar
    `main` (`06864e3e`).** Geen migratie. Op vraag van ZWBeasts: Figure 8 en
    Montmartre Mixer vielen af op 25 km, niet op de tijd. Open: na de deploy
@@ -958,7 +966,9 @@ gaat stabiliteit voor nieuwe features.
    lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie `0260_race_briefing.sql` is toegepast
    en de privacytekst staat erin. Open: een API-sleutel van ZwiftRacing.app
    (eigenaar vraagt hem aan; conceptbericht in de sessie van 2026-10-20) en dan
-   de koppeling tegen de echte API controleren.
+   de koppeling tegen de echte API controleren. *Bijgewerkt 2026-11-12:* het
+   briefje rekent nu zonder sleutel met ZwiftRacing (eventpagina of vELO1); de
+   sleutel is daarvoor niet meer nodig. Zie de ronde "ZwiftRacing in de verwachtingen van events".
 10. **Snelste fiets in pacingplan en briefing** (ronde van 2026-10-20 hieronder):
    gebouwd, lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie
    `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
@@ -12247,6 +12257,88 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZwiftRacing in de verwachtingen van events
+
+**2026-11-12, de commit van deze ronde, lokaal, niet gepusht.** Migratie
+`0326_zwiftracing_race_expectations.sql`, **niet toegepast**. Vraag van de
+eigenaar: kan zwiftracing.app, sinds 2026-11-11 vanaf de server bereikbaar,
+de verwachtingen en matchups bij events beter maken? Daarna: kunnen we voor
+de Club Ladder ook extra data halen of leren van hoe ZwiftRacing het doet?
+Na het voorstel: "Neem dit mee in het gehele voorstel … en bouw dat".
+Onderzoek en metingen: [docs/zwiftracing-events-onderzoek-2026-11-12.md](docs/zwiftracing-events-onderzoek-2026-11-12.md).
+
+**Waarom.** Op vijf ladderraces voorspelde ons vermogen de uitslag met
+Spearman 0,54, vELO1 met 0,58 en beide samen met 0,70: vermogen zegt wat
+iemand kan trappen, vELO1 wat hij daar in races mee haalt. Op ZRL race 6 van
+ronde 1 voorspelde ZwiftRacing de finish beter dan de ZRS (0,72 tegen 0,63,
+vier pennen); de ZRS erbij hielp niet. De routeweging van ZwiftRacing (vELO2 ×
+factorWeights) voegde weinig toe boven vELO1 of vELO2 zonder weging.
+
+**Wat er veranderde.**
+- **Lezer** `zwiftracing/tsr-data.ts`: de loaderdata van TanStack Start
+  (`$R[n]=`, `!0`, sleutels zonder aanhalingstekens) zonder `eval`; een
+  andere vorm geeft null. `event-page.ts` leest per pen de renners met
+  `eventRating` (alleen vóór de race: in de uitslag van een ladderrace staat
+  die bovenaan op de schaal van vELO1), `expectedPosition`, `position`, W/kg
+  en fenotype. `fetch-page.ts` haalt een pagina op (gedeeld met de
+  rennersync), `event-cache.ts` bewaart een eventpagina een half uur.
+- **Club Ladder**: `ladderRatings` (`club-ladder/briefing.ts`) combineert de
+  sterkte op vermogen met vELO1 via `zwiftracing/combine.ts`: beide als
+  z-score over de renners van de race, gemiddeld over wat er per renner is;
+  onder 70 % dekking (of minder dan drie waarden) blijft het vermogen. Geldt
+  voor het racebriefje, Onze vijf (`five-advice.ts`; wie meedoet blijft wie
+  vermogen heeft) en Verwacht in de uitslag (`starterRatings`). vELO1 gaat mee
+  in de vastgelegde verwachting van vóór de start (jsonb van 0308, geen
+  migratie); een verwachting van vóór vandaag neemt vELO1 van nu.
+- **ZRL-racebriefje** (`race-briefing/load.ts`): heeft 70 % van het veld een
+  `eventRating` op de eventpagina van ZwiftRacing, dan die; anders vELO1 per
+  renner (`zwiftracing/velo1.ts`), en zonder dekking de ZRS zoals voorheen.
+  Nooit door elkaar. W/kg en type van de eventpagina vullen aan waar
+  `zwift_rider_metrics` niets heeft; het type staat bij Volgen.
+- **ZWBeter racen**: de sync haalt per bewaarde race (`zrl_race_snapshots`, geen
+  groepsritten, laatste 120 dagen) één keer de uitslagpagina en bewaart alleen
+  voor renners met een profiel de verwachte plek, de plek en het aantal
+  finishers in de pen (`zwiftracing_race_expectations`); welke races gedaan
+  zijn staat in `zwiftracing_event_fetches` (een niet-definitieve uitslag na zes
+  uur opnieuw, na drie dagen niet meer). Je race toont "verwacht door
+  ZwiftRacing" met het verschil, Jouw races het gemiddelde vanaf twee races.
+  Alleen voor jezelf.
+- **Gewone Zwift-race en FRR-etappe**: tot een week vooruit en vóór de start
+  het blok Verwachting ZwiftRacing op het event, met de aangemelde leden, pen,
+  verwachte plek (van hoeveel) en type, elke naam via `MemberLink`. Alleen bij
+  `zwift_event_type` RACE of TIME_TRIAL (leeg telt als race).
+- **Sync** (`rider-sync.ts`): na de ladderrenners ook wie de afgelopen twee
+  dagen in een racebriefje stond (hooguit 400), zodat vELO1 er is als
+  ZwiftRacing de ZRL-race niet kent; leest en schrijft het fenotype
+  (`zwift_rider_metrics.phenotype`, 0260); vóór de rennerpagina's hooguit twee
+  uitslagpagina's per run.
+- `/hulp` (racebriefje, ladderverwachting, Uitslag, events, je race tegenover
+  de verwachting), `docs/runbook.md` en de zoektermen bijgewerkt.
+
+**Bewust niet.**
+- **Routewegingen van ZwiftRacing bewaren** en de eventlijst oogsten: weinig
+  winst boven vELO1 (zie de metingen), wel een tabel en een extra job.
+- **ZRS en ZwiftRacing samen in de ZRL**: niet beter dan ZwiftRacing alleen.
+- **Een vooraf-verwachting van ZwiftRacing voor een ladderrace**: het
+  ladderevent geeft vooraf een 404; vELO1 doet het werk.
+- **vELO-verandering in de terugblik**: de schaal verschilt per soort event
+  (vELO1 in de ladderuitslag) en de ZRL zet vELO soms uit (`veloDisabled`).
+- **Een scenariomodel** (wie welke sprint rijdt): een eigen ronde.
+- **Het route-advies op de teampagina** rekent nog alleen op vermogen: het
+  vergelijkt parcoursen, niet renners onderling.
+- **Privacytekst** niet aangepast: het concept is aan de eigenaar voorgelegd
+  (geen nieuwe versie, alleen uitbreiden).
+
+**Geverifieerd:** `tsc` zonder fouten, eslint schoon op de gewijzigde
+bestanden, Vitest 4401 tests groen (nieuw: `zwiftracing-tsr-data`,
+`zwiftracing-event-page`, `zwiftracing-combine`, en vELO1 in `starterRatings`
+en de ZwiftRacing-trend in `raceTrend`). `omnium-live` faalt hier alleen omdat
+deze worktree geen `.env.local` heeft. De lezer is tijdens het onderzoek op
+echte eventpagina's (signups en results) gecontroleerd. **Niet geverifieerd:**
+migratie 0326 (geen Docker of Supabase-config), de sync tegen de echte tabellen,
+de schermen in de app (vraagt een deploy), en of ZwiftRacing een ZRL-race
+vooraf kent.
+
 ### Gebouwd — Club Ladder: geen bovengrens in km meer
 
 **2026-11-12, commit `06864e3e`, gepusht naar `main`** (eigenaar: "Push
@@ -13364,6 +13456,9 @@ een voorstel ("Ja, bouw het").
   15–25 km. Eerst een voorstel als het toch moet. *Bijgewerkt 2026-11-11:* de
   heatmap is er in de matchup, zie "Club Ladder: heatmap in de matchup".
 - **De racebriefing** gebruikt deze bron nog niet; die wacht op de API-sleutel.
+  *Achterhaald 2026-11-12:* het briefje gebruikt de eventpagina van ZwiftRacing
+  of vELO1 uit deze sync, zonder sleutel; `zwift_rider_metrics.velo` blijft
+  leeg. Zie de ronde "ZwiftRacing in de verwachtingen van events".
 - **Privacy**: de verklaring noemt het ophalen van 90-dagenvermogen en vELO1
   voor de ladder niet uitdrukkelijk; dat gold al voor de Chrome-taak. Niet
   aangepast: eerst voorleggen.
@@ -21618,7 +21713,10 @@ races gemiddeld 7,1 plekken voor de verwachting. Twee puntenraces met
 verwachting, dus nog geen tip.
 
 **Bewust niet.** vELO of de voorspelling van ZwiftRacing (geen sleutel; met sleutel
-moet eerst de vELO van vóór de race bewaard worden). Een model dat voorspelt wie
+moet eerst de vELO van vóór de race bewaard worden). *Achterhaald 2026-11-12:*
+ZwiftRacing bewaart de verwachting van vóór de start zelf op de uitslagpagina;
+ZWBeter racen toont die nu naast de eigen verwachting (0326), zie de ronde
+"ZwiftRacing in de verwachtingen van events". Een model dat voorspelt wie
 welke sprint rijdt. De richttijd van het briefje bij de start vastleggen (de
 PR-cache verliest een PR van vóór de race als iemand in de race een nieuwe zet;
 bij race 5 speelde dat niet). Sprint tegenover de intervals-curve. De terugblik

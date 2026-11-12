@@ -12,6 +12,7 @@ const page = (body: string) =>
 
 const FULL = page(
   `power:$R[35]={wkg5:15.48611111111111,wkg15:13.23611111111111,wkg30:10.52,wkg60:7.732394366197183,wkg120:6.263888888888889,wkg300:4.971509971509971,wkg1200:4.277777777777778},` +
+    `phenotype:$R[30]={version:4,scores:$R[31]={sprinter:91},label:"sprinter"},` +
     `race:$R[36]={finishes:42},results:$R[40]=[$R[41]={legacy:$R[64]={rating:2282.12,ratingBefore:2278.26}}],` +
     `legacyRatings:$R[1460]={live:2282.123717887329,max30:2282.123717887329,max90:2290.5,max30Expires:1796842860,max90Expires:1802026860}`,
 );
@@ -22,6 +23,7 @@ describe("parseRiderPage", () => {
       zwiftId: ID,
       powerWkg: { s15: 13.24, m1: 7.73, m2: 6.26, m5: 4.97, m20: 4.28 },
       legacy: { live: 2282.1, max30: 2282.1, max90: 2290.5 },
+      phenotype: "sprinter",
     });
   });
 
@@ -43,6 +45,7 @@ describe("parseRiderPage", () => {
       zwiftId: ID,
       powerWkg: null,
       legacy: null,
+      phenotype: null,
     });
   });
 

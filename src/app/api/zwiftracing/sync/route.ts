@@ -3,9 +3,11 @@ import { checkCronSecret } from "@/lib/cron/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runZwiftRacingSync } from "@/lib/zwiftracing/rider-sync";
 
-// Vermogen over 90 dagen en legacy vELO van zwiftracing.app voor de Club
-// Ladder (src/lib/zwiftracing/rider-sync.ts). Elke run gaat verder met wie nog
-// aan de beurt is; `remaining` zegt hoeveel er nog wachten.
+// Vermogen over 90 dagen, legacy vELO en rennerstype van zwiftracing.app voor
+// de Club Ladder en het racebriefje, plus de verwachte plek uit de uitslag van
+// bewaarde races voor ZWBeter racen (src/lib/zwiftracing/rider-sync.ts). Elke
+// run gaat verder met wie nog aan de beurt is; `remaining` zegt hoeveel er nog
+// wachten.
 //
 // Bearer-token via BRILJANT_WEEKLY_SECRET, gedeeld met de ZWBriljant-jobs: dat
 // stond al op Netlify, `TEAM_RESULTS_SYNC_SECRET` niet (keuze eigenaar 2026-11-11).

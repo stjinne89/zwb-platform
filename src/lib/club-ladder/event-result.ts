@@ -9,7 +9,7 @@
 
 import { normalizeTeamName } from "@/lib/ladder";
 import { cleanRiderName } from "@/lib/race-briefing/field";
-import { LADDER_POINTS, routeRatings } from "./briefing";
+import { LADDER_POINTS, ladderRatings } from "./briefing";
 import type { LadderMatchup, MatchupSignup } from "./matchup";
 import type { DurationWeights } from "./routes";
 import { DURATIONS, sameTeam, type MatchRider, type PowerWkg, type StoredMatch } from "./team-power";
@@ -51,7 +51,7 @@ export function pickEventMatch<T extends LadderMatchCandidate>(
   return best?.row ?? null;
 }
 
-export type ExpectationRider = { zwiftId: number; name: string; own: boolean; wkg: PowerWkg };
+export type ExpectationRider = { zwiftId: number; name: string; own: boolean; wkg: PowerWkg; velo1?: number | null };
 
 const hasPower = (wkg: PowerWkg | null | undefined): wkg is PowerWkg =>
   Boolean(wkg && DURATIONS.some((d) => wkg[d] != null && wkg[d]! > 0));
@@ -70,26 +70,31 @@ export function expectationRiders(matchups: LadderMatchup[]): ExpectationRider[]
     ] as const) {
       for (const rider of side.riders) {
         const wkg = rider.routeWkg ?? rider.wkg;
-        if (!out.has(rider.zwiftId) && hasPower(wkg)) out.set(rider.zwiftId, { zwiftId: rider.zwiftId, name: rider.name, own, wkg });
+        if (!out.has(rider.zwiftId) && hasPower(wkg)) out.set(rider.zwiftId, { zwiftId: rider.zwiftId, name: rider.name, own, wkg, velo1: rider.velo1 ?? null });
       }
     }
   }
   return [...out.values()];
 }
 
-/** Sterkte per finishplek: het vermogen van vóór de start, anders dat van nu. */
+/**
+ * Sterkte per finishplek: het vermogen en de vELO1 van vóór de start, anders die
+ * van nu. Een verwachting van vóór 2026-11-12 heeft geen vELO1; dan die van nu.
+ */
 export function starterRatings(
   starters: Map<number, MatchupSignup>,
   frozen: Map<number, PowerWkg>,
   live: Map<number, PowerWkg>,
   weights: DurationWeights | null,
+  velo: { frozen: Map<number, number>; live: Map<number, number> } = { frozen: new Map(), live: new Map() },
 ): Map<number, number | null> {
   const rows = [...starters].map(([position, starter]) => ({
     position,
     zwiftId: starter.zwiftId,
     wkg: frozen.get(starter.zwiftId) ?? live.get(starter.zwiftId) ?? null,
+    velo1: velo.frozen.get(starter.zwiftId) ?? velo.live.get(starter.zwiftId) ?? null,
   }));
-  const ratings = routeRatings(rows, weights);
+  const ratings = ladderRatings(rows, weights);
   return new Map(rows.map((row) => [row.position, ratings.get(row.zwiftId) ?? null]));
 }
 
@@ -221,7 +226,7 @@ export type LadderEventResult = {
 export function ladderEventResult(
   match: StoredMatch,
   ourName: string,
-  /** Sterkte op dit parcours per finishplek (briefing.ts `routeRatings`). */
+  /** Sterkte op dit parcours per finishplek (briefing.ts `ladderRatings`). */
   ratings: Map<number, number | null>,
   /** Profiel-ID per finishplek. */
   profiles: Map<number, string> = new Map(),

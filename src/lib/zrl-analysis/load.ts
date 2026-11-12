@@ -56,6 +56,7 @@ import { loadSegmentBests } from "@/lib/race-briefing/segment-bests";
 import { routeSegments } from "@/lib/zwift/route-segments";
 import { activityStartMs, pickRaceActivity, type ActivityWithStart } from "@/lib/zrl-analysis/activity";
 import { getClub } from "@/lib/club";
+import { loadRaceExpectations, type ZrRaceExpectation } from "@/lib/zwiftracing/race-expectations";
 
 type Access = Pick<CurrentUserAccess, "has">;
 
@@ -928,7 +929,17 @@ export async function loadTttRaces(): Promise<TttRaceRecord[]> {
 // en over alle bewaarde races waar de punten vandaan komen. Alleen uit wat al
 // bewaard is: geen Zwift-verzoeken tijdens het laden.
 
-export type RaceDepth = { segments: SegmentComparison[]; trend: RaceTrend; tips: Advice[]; zrs?: ZrsTrend | null };
+export type RaceDepth = {
+  segments: SegmentComparison[];
+  trend: RaceTrend;
+  tips: Advice[];
+  zrs?: ZrsTrend | null;
+  /** De verwachting van ZwiftRacing voor deze race (0326), als de sync hem heeft. */
+  zwiftRacing?: ZrRaceExpectation | null;
+};
+
+/** De verwachtingen van ZwiftRacing van een renner; één keer per verzoek. */
+const zwiftRacingExpectations = cache((zwiftId: number) => loadRaceExpectations(createAdminClient(), zwiftId));
 
 /** Zoveel tijd krijgt het aanvullen van de ZRS in oude races na het antwoord. */
 const SCORE_BACKFILL_MS = 20_000;
@@ -986,7 +997,12 @@ const loadRaceHistory = cache(async (zwiftId: number): Promise<RaceRecord[]> => 
   if (rows.length === 0) return [];
   const flag = (value: string | null) => (value === "true" ? 1 : 0);
   const keys = rows.map((r) => `${r.zwift_event_id}:${flag(r.power)}${flag(r.scores)}`).sort();
-  const records = await summarizeRaces(zwiftId, keys);
+  const [summaries, zr] = await Promise.all([summarizeRaces(zwiftId, keys), zwiftRacingExpectations(zwiftId)]);
+  // Buiten de cache: de sync vult ZwiftRacing later aan dan de race bewaard is.
+  const records = summaries.map((record) => {
+    const hit = zr.get(record.zwiftEventId);
+    return { ...record, zrExpected: hit?.expected ?? null, zrPlace: hit?.position ?? null };
+  });
 
   // Alleen data die al vermogen heeft: dan haalt het aanvullen alleen de uitslag opnieuw.
   const missingScores = rows.filter((r) => r.power === "true" && r.scores !== "true").map((r) => String(r.zwift_event_id));
@@ -1011,10 +1027,11 @@ async function loadDepth(
   const field = [...new Set([...subgroup.entrants.map((e) => Number(e.zwiftId)), ...subgroup.results.map((r) => r.profileId)])];
   const segmentIds = [...new Set(rider.segments.map((s) => s.segmentId))];
   const since = new Date(Date.now() - LIST_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const [history, bests, scores] = await Promise.all([
+  const [history, bests, scores, zr] = await Promise.all([
     loadRaceHistory(rider.athleteId),
     loadSegmentBests(field, segmentIds),
     current ? ownZwiftScores(rider.athleteId, since) : Promise.resolve([]),
+    zwiftRacingExpectations(rider.athleteId),
   ]);
   const own = subgroup.results.find((r) => r.profileId === rider.athleteId);
   const raceStart = own?.finishedAt && own.durationMs ? own.finishedAt - own.durationMs : subgroup.startAt;
@@ -1024,6 +1041,7 @@ async function loadDepth(
     trend,
     tips: strengthAdvice(trend),
     zrs: current ? zrsTrend(history, scores, { ...current, startAt: raceStart, before: own?.scoreBefore ?? null }) : null,
+    zwiftRacing: current ? (zr.get(current.zwiftEventId) ?? null) : null,
   };
 }
 

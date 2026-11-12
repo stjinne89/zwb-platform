@@ -3,6 +3,7 @@ import "server-only";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { matchupWeights } from "./briefing";
 import { loadLadderEventMatchup } from "./event-matchup";
+import { loadVelo1 } from "@/lib/zwiftracing/velo1";
 import { expectationRiders, ladderEventResult, pickEventMatch, starterRatings, startersFromResult, type LadderEventResult } from "./event-result";
 import { loadLadderExpectation } from "./expectation-store";
 import { ladderOpponentFromTitle } from "./fixture-events";
@@ -80,9 +81,12 @@ export async function loadLadderEventResult(
           starters: [...starters.values()],
           excludeResultId: match.resultId,
         }).catch(() => null);
-    const live = new Map(current ? expectationRiders([current.matchup]).map((rider) => [rider.zwiftId, rider.wkg]) : []);
+    const liveRiders = current ? expectationRiders([current.matchup]) : [];
+    const live = new Map(liveRiders.map((rider) => [rider.zwiftId, rider.wkg]));
+    // vELO1: van vóór de start; wie daar niet in staat (of een verwachting van vóór 2026-11-12), die van nu.
+    const liveVelo = await loadVelo1(admin, [...starters.values()].map((s) => s.zwiftId));
     const weights = frozen?.weights ?? (current ? matchupWeights(current.matchup) : null);
-    ratings = starterRatings(starters, frozen?.riders ?? new Map(), live, weights);
+    ratings = starterRatings(starters, frozen?.riders ?? new Map(), live, weights, { frozen: frozen?.velo1 ?? new Map(), live: liveVelo });
   }
   return ladderEventResult(match, ourName, ratings, await profilesByPosition(admin, starters));
 }
