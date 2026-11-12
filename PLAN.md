@@ -10,8 +10,8 @@ gaat stabiliteit voor nieuwe features.
 0. **ZwiftRacing in de verwachtingen van events (2026-11-12): lokaal
    gecommit (de commit van deze ronde), niet gepusht.** Migratie
    `0326_zwiftracing_race_expectations.sql` is **niet toegepast** en niet
-   lokaal te testen. Open: de privacytekst (concept voorgelegd, nog niet in
-   `privacy/page.tsx`), 0326 toepassen, en na de deploy een racebriefje, een
+   lokaal te testen. De privacytekst staat erin (goedgekeurd door de
+   eigenaar, geen nieuwe versie). Open: 0326 toepassen, en na de deploy een racebriefje, een
    ladderevent en een gewone Zwift-race bekijken. Nog niet vastgesteld of
    ZwiftRacing een ZRL-race vooraf kent. Zie de ronde "ZwiftRacing in de verwachtingen van events".
 
@@ -12326,8 +12326,12 @@ factorWeights) voegde weinig toe boven vELO1 of vELO2 zonder weging.
 - **Een scenariomodel** (wie welke sprint rijdt): een eigen ronde.
 - **Het route-advies op de teampagina** rekent nog alleen op vermogen: het
   vergelijkt parcoursen, niet renners onderling.
-- **Privacytekst** niet aangepast: het concept is aan de eigenaar voorgelegd
-  (geen nieuwe versie, alleen uitbreiden).
+- **Een nieuwe privacyversie**: de tekst is alleen uitgebreid, op dezelfde
+  versie. De eigenaar keurde het concept goed ("Yes, add it"): in
+  `privacy/page.tsx` bij de Club Ladder (vELO1 in de verwachting), `#racen`
+  (verwachte plek van ZwiftRacing, en het blok op het event van een gewone
+  Zwift-race of FRR-etappe) en `#racebriefing` (eventpagina, anders
+  rennerpagina; de zin "zodra we gekoppeld zijn" is weg).
 
 **Geverifieerd:** `tsc` zonder fouten, eslint schoon op de gewijzigde
 bestanden, Vitest 4401 tests groen (nieuw: `zwiftracing-tsr-data`,
@@ -13461,7 +13465,9 @@ een voorstel ("Ja, bouw het").
   leeg. Zie de ronde "ZwiftRacing in de verwachtingen van events".
 - **Privacy**: de verklaring noemt het ophalen van 90-dagenvermogen en vELO1
   voor de ladder niet uitdrukkelijk; dat gold al voor de Chrome-taak. Niet
-  aangepast: eerst voorleggen.
+  aangepast: eerst voorleggen. *Bijgewerkt 2026-11-12:* vELO1 in de
+  ladderverwachting staat er nu in (ronde "ZwiftRacing in de verwachtingen van
+  events"); het 90-dagenvermogen voor de matchup nog niet uitdrukkelijk.
 
 **In productie nagegaan (2026-11-11, na `8ed655ee`):** zwiftracing.app laat
 verzoeken vanaf Netlify door. De test-run van de nieuwe cronjob schreef 16
