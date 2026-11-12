@@ -41,9 +41,9 @@ gaat stabiliteit voor nieuwe features.
    (`900710f5`) en "Kopman: de piramide" (`4dc1d399`): vijf niveaus van Kermis tot
    Wereldtour, zonder daglimiet op pakketten. Het bordspel is de koers, ook in
    de tijdrit; het overzicht toont sindsdien de koers in vogelvlucht met
-   gezichtjes, het getekende koersbeeld is te kiezen. Lokaal, nog niet
+   gezichtjes, het getekende koersbeeld is te kiezen. Op 2026-11-12 ook
    gepusht: "Kopman: eerlijk herstel, tempo tegen aanvallen en het weer"
-   (2026-11-12). Daarna volgt de ronde "de sprint zelf rijden". Op een telefoon vult het bord het scherm. Open: na de
+   (`aedd965a`). Daarna volgt de ronde "de sprint zelf rijden". Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12268,7 +12268,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Kopman: eerlijk herstel, tempo tegen aanvallen en het weer
 
 **2026-11-12, de commit "Kopman: eerlijk herstel, tempo tegen aanvallen en het
-weer", lokaal (niet gepusht).** Geen migratie; de save verandert niet.
+weer" (`aedd965a`), op 2026-11-12 gepusht naar main.** Geen migratie; de save verandert niet.
 
 - **De vraag.** De eigenaar na verder spelen:
   1. "soms heb je een herstelkaart en die kost de renner dan meer dan het oplevert";
