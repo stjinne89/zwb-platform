@@ -1,11 +1,17 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-11)
+## Actieve volgorde (bijgewerkt 2026-11-12)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Club Ladder: geen bovengrens in km meer (2026-11-12): lokaal
+   gecommit, niet gepusht.** Geen migratie. Op vraag van ZWBeasts: Figure 8 en
+   Montmartre Mixer vielen af op 25 km, niet op de tijd. Open: pushen, en na
+   de deploy de keuzelijst en het advies op de teampagina bekijken. Zie de
+   ronde "Club Ladder: geen bovengrens in km meer".
 
 0. **Club Ladder: eigen selectie in het advies (2026-11-11): gepusht naar
    `main` (`7992b7b`).** Geen migratie. Open: na de deploy als captain op de
@@ -12241,6 +12247,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: geen bovengrens in km meer
+
+**2026-11-12, lokaal gecommit (de commit van deze ronde), niet gepusht.**
+Geen migratie. ZWBeasts vroegen waarom parcoursen op de rand van onze
+filter, zoals Figure 8 en Montmartre, er niet in staan terwijl ze in tijd
+wel passen. Na onderzoek koos de eigenaar: de km-grens eraf.
+
+**Wat het onderzoek liet zien.**
+- Beide vielen af op de 25 km, niet op de 45 minuten: Watopia Figure 8 is
+  30,2 km (44,6 min volgens het clubmodel), Figure 8 Reverse 29,9 km (44,2
+  min), Montmartre Mixer 27,6 km (40,8 min), steeds met lead-in.
+- De ladder rijdt zulke routes gewoon. In `club_ladder_matches` staat
+  Montmartre Mixer zes keer, waarvan ZWBeasts hem op 9 en 11 november zelf
+  kozen (1 ronde, winnaar 38,2 en 38,6 min). Ook op volle lengte gereden:
+  Coast to Coast (26,8 km), Tair Dringfa Fechan (32 km), Harrogate Circuit in
+  twee rondes (27,8 km), Royal Pump Room 8 (27,7 km). Van de 133 gereden
+  routes vielen er 28 buiten onze filter.
+- De Zwift-events van de ladder staan op rondes of op een eigen afstand:
+  Surrey Hills is ingekort tot 23 km, Sugar Cookie tot 21,1 km
+  (`/api/public/events/<id>`, `distanceInMeters`).
+- Het race book kon niet opnieuw gelezen worden: de Notion-pagina's geven
+  `publicAccessRole: none`. Of de 15–25 km daar nog staat, is dus niet na te
+  gaan; de uitslagen laten zien dat de ladder in de praktijk ruimer is.
+
+**Wat er veranderde.** `lapsWithinRule` (`club-ladder/routes.ts`) telt een
+rondental vanaf 15 km tot het clubmodel boven 45 minuten komt; de constante
+`LADDER_ROUTE_MAX_KM` is weg (`rules.ts`). Elke ronde erbij duurt langer,
+dus het eerste rondental boven 45 minuten sluit de reeks af. Daardoor 174
+in plaats van 148 parcoursen, en 50 bestaande routes krijgen er een
+rondental bij (bijvoorbeeld 7 rondes Castle Crit). De nieuwe regel is een
+uitbreiding van de oude: geen route of rondental valt af, dus ook geen
+favoriet, en het kortste rondental (waar type en gewichten op rekenen) blijft
+per bestaande route gelijk. `/hulp` noemt de grens nu als "minstens 15 km",
+zonder bovengrens in km. Unit-test op Montmartre Mixer en Figure 8 (en
+Reverse).
+
+**Bewust niet.**
+- **Ingekorte events op een eigen afstand** (zoals Surrey Hills op 23 km):
+  dan rekent het advies per route met een vrije afstand in plaats van
+  rondes. Een grotere wijziging, niet gevraagd.
+- **ZWBgame** (`zwbgame/routes.ts`) houdt zijn vaste lijst van zeven routes
+  van 15–25 km; dat is een spel, geen keuzelijst voor de ladder.
+- De 45 minuten blijft. Figure 8 zit daar met 44,6 min krap onder; op
+  Montmartre Mixer reden de winnaars ongeveer 5% sneller dan het model.
+
+**Geverifieerd:** de Club Ladder-tests (20 bestanden, 189 tests), `tsc` en
+eslint op de gewijzigde bestanden. **Niet geverifieerd:** de teampagina met
+de langere lijst (vraagt een deploy; hier is geen `.env.local`).
+
 ### Gebouwd — Club Ladder: eigen selectie in het advies
 
 **2026-11-11, commit `7992b7b`, gepusht naar `main`** (eigenaar: "Push
@@ -18710,7 +18765,9 @@ staat nu in `training/race-model.ts`, zonder afhankelijkheden;
 `training/events.ts` geeft het door, zodat bestaande imports en mocks blijven
 werken. `/hulp` noemt de grens.
 
-**Bewust niet.** Geen race book-regel: de ladder kent alleen 15–25 km. Een
+**Bewust niet.** Geen race book-regel: de ladder kent alleen 15–25 km
+(*sinds 2026-11-12 is de 25 km vervallen en is de 45 minuten de enige
+bovengrens*; zie "Club Ladder: geen bovengrens in km meer"). Een
 uitslag op zo'n route blijft gewoon bewaard en telt mee in de uitslagen per
 routetype; alleen de keuzelijst en het advies laten hem weg.
 
@@ -20213,7 +20270,8 @@ route-advies per tegenstander op basis van een analyse vooraf. Daarna: de
 routes uit zijn sheet "Zwiftladies ladder parcours" alvast als favoriet bij
 ZWBeauties en ZWBandits.
 
-**Keuzes eigenaar (2026-11-02).** Parcoursregel 15–25 km met lead-in, één of
+**Keuzes eigenaar (2026-11-02).** Parcoursregel 15–25 km (*sinds 2026-11-12
+minstens 15 km en hooguit 45 minuten, zonder bovengrens in km*) met lead-in, één of
 meer rondes, event-only telt mee. Favorieten zet de communityrol `team_captain`
 (zelfde recht als de Ladderpuzzel, `canEditLadderPuzzle`). De analyse gebruikt
 uitslagen én de renners van de tegenstander. Het teamdeel verhuist naar een
@@ -20234,7 +20292,8 @@ eigen pagina.
 - **Parcoursen** (`routes.ts`): alle fietsroutes uit `zwift-data`, per route de
   rondentallen waarbij lead-in plus rondes, afgerond op 0,1 km zoals Zwift het
   toont, binnen 15–25 km valt (154 routes; *sinds 2026-11-03 148*, zonder
-  parcoursen boven 45 minuten). Twee rondes Loop de Loop zijn
+  parcoursen boven 45 minuten; *sinds 2026-11-12 174*, zonder bovengrens in
+  km). Twee rondes Loop de Loop zijn
   25,03 km en tellen dus mee. Type Vlak/Punch/Heuvels/Klim en gewichten over
   15 s, 1, 5 en 20 min volgen uit m/km, de langste klim en een bergop finish
   (segmenten uit `accentsForRoute`). *Bijgewerkt 2026-11-03:* de gewichten
