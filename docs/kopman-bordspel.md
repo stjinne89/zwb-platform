@@ -199,7 +199,8 @@ er niets in. Je kiest een koers; sinds fase 4 kan dat ook de tijdrit zijn.
   door tot de finish.
 - **Kracht.** De beginwaarden zijn zoals ontworpen (10 voor de kopman, 6 voor
   een knecht, ±1 voor goud en brons). Wie kracht verliest, verliest ook
-  vermogen in de physics, tot 8% bij 0 kracht. Rivalen hebben ook kracht.
+  vermogen in de physics, bij 0 kracht tot 15% in een wegrit en 8% in de
+  tijdrit (tot 2026-11-12 overal 8%). Rivalen hebben ook kracht.
   Hun aanvallen en gevaren kosten die net zo.
 - **Gevaren** worden getrokken nadat de sector gereden is. De kansen staan in
   `HAZARD_ODDS`.
@@ -449,6 +450,10 @@ je wil niet scrollen".
 **Wat het is.**
 - Op een telefoon vult het bord het hele scherm. Dat geldt rechtop (tot 720 px
   breed) en liggend (tot 520 px hoog). De pagina erachter scrolt dan niet mee.
+- *Sinds 2026-11-12 is het overzicht weer de standaard en staan daar de
+  groepen op het profiel, zie [De koers in
+  groepen](#de-koers-in-groepen-en-kaarten-per-fase). Wat hieronder over het
+  koersbeeld staat, geldt als je het koersbeeld kiest.*
 - Het koersbeeld is het podium. Wat bij de koers hoort, staat erop:
   - linksboven de sector: terrein, lengte, kansen en wat daarna komt;
   - rechtsboven de helling en de naam van de klim of de strook;
@@ -558,6 +563,141 @@ dan rijdt hij uit en wacht het bord op je volgende beurt.
 
 **Niet geverifieerd:** een echte telefoon, Safari, en of de meerprijs van 1
 kracht de goede balans is.
+
+## De koers in groepen, en kaarten per fase
+
+Gebouwd op 2026-11-12. De eigenaar speelde een seizoen en zei: "de game
+weergave voegt heel weinig toe, er is geen overzicht, je weet niet waar je
+renners zitten". Ook: je kunt in het spel niet zien wat je renners kunnen,
+er mochten zeldzame grapkaarten bij ("1/1000 zou best grappig zijn"), en "het
+is in het spel te makkelijk te winnen als je een betere renner hebt, je kan
+erg vroeg aanvallen en je kopman wordt niet gauw moe". Het voorstel is
+goedgekeurd, met één wijziging: "De kans om een streekkaart te trekken moet
+mss hoger".
+
+**De koers in vogelvlucht** (`ui/group-view.tsx`). Eerst stonden hier het
+profiel en daaronder een strook per groep. Dezelfde dag vond de eigenaar dat
+"veel van hetzelfde op elkaar gestapeld", met de vraag: "is het daarnaast geen
+idee om dit als bird view te doen zodat je een kronkelende lijn ziet met de
+gezichten van de renners en de bolletjes". Ook wilde hij de rivalen als
+gezichtjes zien en ze kunnen aantikken, "zodat je weet tegen wie je racet".
+Nu is het één blok:
+- Het overzicht is weer de standaard. De keuze staat onder een nieuwe sleutel
+  (`kopman:weergave`), zodat een eerdere keuze voor het koersbeeld niet blijft
+  hangen. Het koersbeeld blijft te kiezen.
+- **De weg** is een kronkelend lint door het gras: het stuk rond de sector van
+  nu, verlengd tot de achterste groep die telt en de kop van de koers. Een
+  koers heeft geen kaart, dus de bochten zijn getekend. Ze hangen aan de
+  afstand en aan de koers, dus ze schuiven mee en zijn elke keer hetzelfde.
+- Een klim kleurt de weg geel, kasseien bruin met stenen, grind zand. Bij elke
+  klim of strook staat een bordje met de naam, bij een klim met het gemiddelde
+  stijgingspercentage. De sectorgrenzen zijn streepjes over de weg, de finish
+  is geblokt.
+- **Elke groep** is een wolkje bolletjes in ploegkleur; hoe groter de groep,
+  hoe langer de wolk. Voor de kop, het peloton en elke groep met een renner
+  van jou staat een label met de achterstand (de kop met het aantal). Liggen
+  groepen te dicht op elkaar om apart te tekenen, dan schuiven ze zo weinig
+  mogelijk uit elkaar; het label geeft de echte achterstand.
+- **Je renners** zijn gezichtjes boven de weg, met een lijntje naar hun plek.
+  Ze hebben de stemming van het portret en wiebelen mee als de sector rijdt
+  (niet bij `prefers-reduced-motion`). Ze staan nooit op de weg zelf.
+- **De kopmannen van de rivalen** zijn kleinere gezichtjes onder de weg, onder
+  hun eigen groep, met een ring en een lijntje in hun ploegkleur. Meer dan vier
+  in één groep staan in twee rijen. Hun portret beweegt niet, dat scheelt werk
+  voor een telefoon.
+- Het hoogteprofiel van de hele koers staat er smal onder (op desktop erboven).
+- Op een telefoon staan de plannen van de andere ploegen naast elkaar, met
+  alleen de ploegkleur en de renner. Bij het plannen staat er dan één bericht
+  onder in plaats van twee. Anders drukten ze het beeld te plat.
+
+**De kaart van een renner.** Tik een renner aan (in de vogelvlucht, in je rij
+renners of in de lijst op desktop) en zijn kaart opent, met alle waarden, zijn
+kracht en waar hij rijdt. Dat kan ook bij een rivaal; dan staat zijn ploeg
+erbij. Wacht er een kaart op een renner, dan speelt de tik op een van jouw
+renners die kaart, zoals eerder.
+
+**Fases.** Een wegrit heeft drie fases: de opening (sector 1 tot 3), het
+middenstuk (4 tot 7) en de finale (8 tot 10). De fase staat voor de naam van
+de sector. De tijdrit heeft geen fases.
+
+**Ploegkaarten.** In elke wegrit komen vier kaarten van de ploeg in de stapel,
+naast de kaarten van je renners. Ze hebben geen type, dus geen meerprijs.
+
+| Kaart | Kosten | Wanneer | Wat |
+|---|---|---|---|
+| In het wiel blijven | 0 | opening, alleen de kopman | +1 kracht, hij spaart in het wiel |
+| Bevoorrading | 0 | middenstuk, één keer per koers | een renner naar keuze +2 kracht |
+| Bidons halen | 1 | middenstuk, alleen een knecht | de kopman +1 kracht |
+| Sprinttrein | 2 | finale | sprint 8% sterker met twee ploeggenoten bij je, anders 2%; de sprint begint op 450 m |
+
+**Vroeg aanvallen kost meer.** Demarrage en Bergop versnellen kosten buiten
+de finale 2 kracht extra (`EARLY_ATTACK`). Dat stapelt met de meerprijs voor
+een ander type.
+
+**Moeheid.**
+- Bij 0 kracht verliest een renner in een wegrit 15% vermogen
+  (`FATIGUE_FLOOR`); dat was 8%. In de tijdrit blijft het 8%.
+- **Alleen rijden kost kracht.** Rijdt een renner na een sector zonder
+  ploeggenoot in zijn groep, dan verliest hij 1 kracht. Zit hij vooraan met
+  hooguit twee anderen, dan nog 1. Dat geldt niet voor de vlucht van de dag en
+  niet in de finale. Voor je kopman staat het in het verslag.
+- **Het peloton jaagt meteen op een favoriet.** Rijdt er een kopman meer dan
+  10 s voor het peloton uit, dan gaan de drie sterkste ploegen zonder renner
+  vooruit direct op kop, ook vroeg in de koers. Eerst gebeurde dat pas na
+  45% van de koers of bij meer dan 150 s.
+
+**Streken.** Heel soms trek je in een wegrit een streek in plaats van een
+kaart uit je stapel: 1 op 150 per getrokken kaart (`STREEK_ODDS`), dus
+ongeveer één per vier à vijf koersen. Een streek kost niets en is na één keer
+weg.
+
+| Streek | Wat |
+|---|---|
+| Punaises | ongeveer een derde van de rivalen in de groep van je kopman verliest 250 m |
+| EPO op de kamer | de sterkste rivaliserende kopman verliest een minuut |
+| Plakbidon | je kopman +3 kracht, nooit boven zijn begin |
+| Verkeerde pijl | de groep voor je kopman rijdt 400 m om |
+| Valse bidon | een rivaliserende kopman verliest 2 kracht |
+
+Een streek die niets kan doen, kan niet gespeeld worden (bijvoorbeeld de
+verkeerde pijl als je kopman al vooraan rijdt).
+
+**Balans.** Een sterke ploeg (de beste gouden renner per type) reed 15
+wegritten met 4 seeds, met de kopman die het best bij de koers past:
+
+| Aanpak | Voor: zeges | Voor: gemiddelde plek | Na: zeges | Na: gemiddelde plek |
+|---|---|---|---|---|
+| Niets spelen | 17 | 19,6 | 12 | 16,1 |
+| Vroeg aanvallen (sector 2–3) | 24 | 11,5 | 16 | 20,8 |
+| Laat aanvallen (finale) | 30 | 12,1 | 29 | 11,9 |
+
+Vroeg aanvallen is nu slechter dan niets doen; laat aanvallen werkt zoals
+eerst.
+
+**Bewust niet gebouwd:**
+- **Een kans van 1 op 1000.** Dat was de vraag, maar dan trek je met zo'n
+  35 kaarten per koers één streek per 28 koersen, minder dan één per seizoen.
+  De eigenaar vond de kans mag hoger.
+- **Streken voor de rivalen.** Dan verlies je een koers door een grap waar je
+  niets tegen kunt doen.
+- **De piramide (divisies, promotie en degradatie).** Die wordt in een andere
+  sessie gebouwd, niet in deze ronde.
+
+**Geverifieerd:**
+- in de preview in Chrome op 375×667: de vogelvlucht bij de start, met vier
+  groepen op de kasseien en bij een klim met bordje; de kaart van een eigen
+  renner en van een rivaal openen en sluiten; desktop op 1280×800;
+- tsc, eslint en 55 tests, waarvan 6 nieuw (fases en ploegkaarten, de
+  meerprijs voor vroeg aanvallen, alleen rijden, plakbidon en verkeerde pijl,
+  EPO, hoe vaak een streek komt);
+- de balansrun hierboven.
+
+**Niet geverifieerd:**
+- een echte telefoon en Safari;
+- een streek en de stijl ervan in het spel zelf: in de preview is er geen
+  getrokken, de tests spelen ze wel;
+- of de nieuwe balans prettig speelt. De run zegt iets over een sterke ploeg,
+  niet over hoe het voelt.
 
 ## Nog niet bekend
 

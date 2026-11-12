@@ -419,8 +419,11 @@
 .mInfo { position: absolute; top: 8px; left: 8px; max-width: min(64%, 320px); display: grid; gap: 1px; padding: 5px 8px 6px; border: 2px solid var(--ink); border-radius: 6px; background: var(--paper); color: var(--ink); font-size: 0.68rem; line-height: 1.25; box-shadow: 0 3px 8px rgb(0 0 0 / 0.25); transform: rotate(-1deg); transform-origin: top left; }
 .mInfo b { font-family: var(--letter); font-size: 0.82rem; font-weight: 800; line-height: 1.15; }
 .mInfo span { color: var(--ink-soft); font-weight: 650; }
-.mFeed { position: absolute; left: 8px; right: 8px; bottom: 8px; display: grid; gap: 4px; justify-items: start; }
+/* On a phone the plans of the other teams sit side by side: the team colour names the team. */
+.mFeed { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-start; }
 .mFeed .intent { padding: 3px 7px; gap: 4px; color: var(--ink); font-size: 0.7rem; box-shadow: 0 2px 6px rgb(0 0 0 / 0.22); }
+.mFeed .intent b { display: none; }
+.mFeed .ticker { flex: 1 0 100%; }
 .mFeed .ticker { gap: 4px; font-size: 0.72rem; }
 .mFeed .ticker div { padding: 2px 7px; box-shadow: 0 2px 6px rgb(0 0 0 / 0.22); }
 .mFeed .ticker div:nth-child(n + 3) { opacity: 1; }
@@ -481,3 +484,48 @@
 .zoneUp td:first-child { box-shadow: inset 4px 0 0 var(--good); }
 .zoneDown td:first-child { box-shadow: inset 4px 0 0 var(--red); }
 .zoneUp svg, .zoneDown svg { vertical-align: -2px; margin-left: 2px; }
+
+/* The race from above (board overview): a winding road, groups as dots, your riders and the rival kopmen as faces. */
+.bv { position: relative; height: 100%; min-height: 0; overflow: hidden; border: 2px solid var(--ink); border-radius: 8px; background: radial-gradient(rgb(255 255 255 / 0.22) 1px, transparent 1.5px) 0 0 / 7px 7px, #a9c58f; }
+.bv svg { position: absolute; inset: 0; display: block; }
+.bvDot { transition: transform 0.1s linear; }
+.bvSign { position: absolute; top: 2px; transform: translateX(-50%) rotate(-2deg); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 5px; border: 1.5px solid var(--ink); border-radius: 4px; background: var(--paper); color: var(--ink); font-family: var(--letter); font-size: 0.6rem; font-weight: 800; line-height: 1.35; }
+.bvPill { position: absolute; left: 0; top: 0; width: 50px; height: 18px; display: flex; align-items: center; justify-content: center; gap: 3px; border: 1.5px solid var(--ink); border-radius: 99px; background: var(--paper); color: var(--ink); font-size: 0.58rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; transition: transform 0.1s linear; }
+.bvPill b { display: inline-grid; place-items: center; min-width: 12px; height: 12px; border-radius: 99px; background: var(--ink); color: var(--paper); font-size: 0.5rem; }
+.bvPillMine { background: var(--dots), var(--yellow); }
+.app .bvFace { position: absolute; left: 0; top: 0; width: 52px; display: grid; justify-items: center; padding: 0; border: 0; background: none; color: var(--ink); cursor: pointer; transition: transform 0.1s linear; }
+.bvFace small { max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 3px; border: 1.5px solid var(--ink); border-radius: 4px; background: var(--paper); font-size: 0.52rem; font-weight: 750; line-height: 1.2; }
+.bvImg { position: relative; display: block; width: 28px; height: 28px; margin-top: 1px; border: 2px solid var(--ink); border-radius: 7px; overflow: hidden; background: var(--paper-2); }
+.bvKopman .bvImg { box-shadow: 0 0 0 2.5px var(--yellow), 0 0 0 4px var(--ink); }
+.app .bvRival { position: absolute; left: 0; top: 0; width: 20px; height: 20px; padding: 0; border: 2px solid var(--team); border-radius: 99px; outline: 1px solid var(--ink); overflow: hidden; background: var(--paper-2); cursor: pointer; transition: transform 0.1s linear; }
+.bvBob { position: relative; display: block; }
+.bvRival .bvBob { width: 100%; height: 100%; }
+.bvMoving .bvBob { animation: kmPedal 0.55s ease-in-out infinite; }
+@keyframes kmPedal { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .bvMoving .bvBob { animation: none; } .bvDot, .bvPill, .app .bvFace, .app .bvRival { transition: none; } }
+.mGroups { flex: 1; min-height: 160px; }
+.dGroups { height: 250px; }
+/* The overview stage on a phone: info, groups and news stacked, nothing on top of the road. */
+.mStageMap { display: flex; flex-direction: column; gap: 6px; padding: 6px; }
+.mStageMap .mInfo { position: static; max-width: none; transform: none; box-shadow: none; }
+.mStageMap .mFeed { position: static; }
+
+/* Your riders are buttons: tap one to see his card. */
+.app .riderButton { width: 100%; font: inherit; text-align: left; cursor: pointer; }
+.app .riderButton:disabled { cursor: default; }
+.app .mRider { font: inherit; cursor: pointer; }
+.app .mRider:disabled { cursor: default; }
+
+/* A rider's card mid-race. */
+.sheet { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; padding: 16px; background: rgb(15 27 40 / 0.74); }
+.sheetCard { position: relative; width: min(290px, 100%); max-height: 100%; overflow-y: auto; display: grid; gap: 10px; padding: 14px; border: 2px solid var(--ink); border-bottom-width: 3.5px; border-radius: var(--wobble); background: var(--paper); color: var(--ink); box-shadow: var(--lift); --fg: var(--ink); --muted: var(--ink-soft); }
+.app .sheetClose { position: absolute; top: 8px; right: 8px; z-index: 2; padding: 5px 6px 4px; }
+.sheetFacts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; font-size: 0.86rem; }
+.sheetFacts > span:nth-child(odd) { color: var(--ink-soft); font-weight: 700; }
+.sheetFacts .pips { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.sheetFacts .pips b { margin-left: 4px; font-variant-numeric: tabular-nums; }
+
+/* The team's own cards and the rare streken. */
+.k_ploeg { --kind: #8fc6a0; --kind-ink: var(--ink); }
+.k_streek { --kind: var(--dots), #e9b52f; --kind-ink: var(--ink); }
+.app .bcard.k_streek { border-color: #8a5a00; box-shadow: 0 0 0 2.5px #ffe14d, var(--lift); }

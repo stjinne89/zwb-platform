@@ -15,9 +15,12 @@ gaat stabiliteit voor nieuwe features.
    `/kopman`, buiten de schil van de club; `/zwbgame/kopman` stuurt door.
    Daarna, ook gepusht: "Kopman: een kaart op een renner naar keuze"
    (`4760fcf4`) en "Kopman: de ploegnaam echt te wijzigen" (`c70599a6`).
-   Lokaal, nog niet gepusht: "Kopman: de piramide" (2026-11-12), vijf niveaus
-   van Kermis tot Wereldtour, zonder daglimiet op pakketten. Het bordspel is de koers, ook in de tijdrit, met het
-   getekende koersbeeld. Op een telefoon vult het bord het scherm. Open: na de
+   Lokaal, nog niet gepusht: "Kopman: de koers in groepen, en kaarten per
+   fase" (`51ef6d03`), "Kopman: de koers in vogelvlucht" (`900710f5`) en
+   "Kopman: de piramide" (`4dc1d399`, 2026-11-12): vijf niveaus van Kermis tot
+   Wereldtour, zonder daglimiet op pakketten. Het bordspel is de koers, ook in
+   de tijdrit; het overzicht toont sindsdien de koers in vogelvlucht met
+   gezichtjes, het getekende koersbeeld is te kiezen. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12287,6 +12290,96 @@ apparaat (2).
   - de omzetting van de echte save van de eigenaar op hun eigen apparaat;
   - de balans met kaarten op het bord: het script speelt zonder;
   - een echte telefoon.
+
+### Gebouwd — Kopman: de koers in vogelvlucht
+
+**2026-11-12, commit: de commit die dit blok toevoegt, lokaal op
+`claude/dreamy-varahamihira-5dc856`, niet gepusht.** Geen migratie.
+
+- **De vraag.** Over de groepsweergave van de ronde hieronder: "Kun je het
+  derde blok niet integreren in het tweede blok, nu lijkt het veel van
+  hetzelfde op elkaar gestapeld", als "bird view" met "een kronkelende lijn"
+  en de gezichten, en de rivalen "iets kleiner ook te kunnen zien als
+  gezichten en dat je die dan ook kan aanklikken op kwaliteiten". Voorstel
+  voorgelegd; de eigenaar: "Ja, bouw dit".
+- **Wat er is.** Zie
+  [docs/kopman-bordspel.md](docs/kopman-bordspel.md#de-koers-in-groepen-en-kaarten-per-fase).
+  `GroupView` tekent nu één blok: een kronkelende weg met klimmen, kasseien en
+  bordjes, elke groep als wolkje bolletjes met een label, je renners als
+  gezichtjes boven de weg en de rivaliserende kopmannen als kleine gezichtjes
+  eronder. Tik een rivaal aan en zijn kaart opent, met zijn ploeg.
+- **Waarom zo.** Het profiel en de stroken toonden twee keer dezelfde koers.
+  In vogelvlucht zie je in één beeld waar elke groep rijdt en wie erin zit.
+- **Niet meer waar.** De strook per groep onder het profiel uit de ronde
+  hieronder is weg. Ook het profiel van het stuk rond de sector is weg; de
+  hoogte staat nog in het smalle profiel van de hele koers en in de bordjes.
+- **Bewust niet gebouwd:**
+  - een echte kaart van de route: een koers heeft alleen een hoogteprofiel,
+    de bochten zijn getekend;
+  - alle 60 renners als gezicht: dat wordt onleesbaar op een telefoon. De
+    knechten van de rivalen blijven bolletjes;
+  - een dun hoogteprofiel in het blok zelf. Dat was het alternatief; het kost
+    op een telefoon de ruimte van de gezichtjes.
+- **Geverifieerd:** in de preview op 375×667 (start, vier groepen op de
+  kasseien, een klim, de kaart van een rivaal) en op 1280×800; tsc, eslint,
+  55 tests en `next build`.
+- **Niet geverifieerd:** een echte telefoon en Safari; of het soepel loopt op
+  een gewone telefoon met 16 gezichtjes die meebewegen.
+
+### Gebouwd — Kopman: de koers in groepen, en kaarten per fase
+
+**2026-11-12, commit `51ef6d03`, lokaal op
+`claude/dreamy-varahamihira-5dc856`, niet gepusht.** Geen migratie. *De
+groepsweergave van deze ronde is dezelfde dag vervangen door de vogelvlucht,
+zie hierboven.*
+
+- **De vraag.** De eigenaar speelde een seizoen: het koersbeeld "voegt heel
+  weinig toe, er is geen overzicht, je weet niet waar je renners zitten". Ook
+  wilde hij de kwaliteiten van zijn renners kunnen bekijken, zeldzame
+  grapkaarten ("punaises op de weg", "EPO spuit op de kamer"), en vond hij het
+  te makkelijk: "je kan erg vroeg aanvallen en je kopman wordt niet gauw moe".
+  Voorstel goedgekeurd: "De kans om een streekkaart te trekken moet mss hoger
+  maar voor de rest een prima voorstel".
+- **Wat er is.** Zie
+  [docs/kopman-bordspel.md](docs/kopman-bordspel.md#de-koers-in-groepen-en-kaarten-per-fase).
+  - **De groepen op het profiel** (`ui/group-view.tsx`) zijn weer de
+    standaard: per groep een speld op de weg en een strook met je renners als
+    bewegende gezichtjes op hun plek in de groep.
+  - **Tik een renner aan** en zijn kaart opent met alle waarden en zijn kracht.
+  - **Fases** opening, middenstuk en finale, met vier ploegkaarten die alleen
+    in hun fase kunnen (`TEAM_CARDS`).
+  - **Vroeg aanvallen kost 2 kracht extra** (`EARLY_ATTACK`), **alleen rijden
+    kost kracht** (`soloCost`), moeheid tot 15% (`FATIGUE_FLOOR`), en het
+    peloton jaagt meteen op een kopman die wegrijdt.
+  - **Vijf streken**, 1 op 150 per getrokken kaart (`STREEK_ODDS`).
+- **Waarom zo.** In een balansrun met een sterke ploeg won vroeg aanvallen 24
+  van de 60 wegritten, nu 16, met een gemiddelde plek van 20,8 in plaats van
+  11,5. Laat aanvallen bleef gelijk (30 en 29 zeges). De tabel staat in het
+  ontwerpdocument.
+- **Niet meer waar.**
+  - "Het koersbeeld is het podium" op een telefoon: het overzicht is weer de
+    standaard, het koersbeeld blijft te kiezen.
+  - Moeheid "tot 8% bij 0 kracht": in een wegrit is dat nu 15%, alleen de
+    tijdrit blijft 8%.
+  - De stapel van een wegrit is niet meer 15 kaarten maar 19 (vier
+    ploegkaarten erbij); de tijdrit blijft 15.
+  - Een kaart kan niet meer in elke sector: ploegkaarten hebben een fase.
+- **Bewust niet gebouwd:**
+  - een kans van 1 op 1000 voor een streek: dat is minder dan één per seizoen;
+  - streken voor de rivalen: verliezen door een grap waar je niets tegen kunt
+    doen, is niet leuk;
+  - de piramide met divisies, promotie en degradatie. Die is goedgekeurd en
+    wordt gebouwd in de sessie op `claude/zwbgame-autoracer-concepts-8d80d3`,
+    niet hier.
+- **Geverifieerd:**
+  - in de preview op 375×667 en desktop: groepen, gezichtjes, een paar
+    sectoren, de kaart van een renner;
+  - tsc, eslint, 55 tests (6 nieuw) en `next build`.
+- **Niet geverifieerd:**
+  - een echte telefoon en Safari;
+  - een streek in het spel zelf (alleen in de tests);
+  - het samenvoegen met de piramide. Beide rondes wijzigen `board.ts`; daar
+    kan een conflict ontstaan.
 
 ### Gebouwd — Kopman: de ploegnaam echt te wijzigen
 
