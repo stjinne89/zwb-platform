@@ -1,14 +1,14 @@
 "use client";
 
-import { ChevronLeft, Crown, Flag, Mountain, Play, RotateCcw, Shield, Undo2, Video, Wrench, X } from "lucide-react";
+import { ChevronLeft, CloudRain, Crown, Flag, Mountain, Play, RotateCcw, Shield, Sun, Undo2, Video, Wind, Wrench, X } from "lucide-react";
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { BOARD_CARDS, BOARD_SECTORS, blockedReason, choosesRider, costOf, createBoard, currentSector, HAZARD_LABELS, PHASE_LABELS, phaseOf, HAZARD_ODDS, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, ridersFor, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
+import { BOARD_CARDS, BOARD_SECTORS, WIND_LABELS, type Weather, blockedReason, choosesRider, costOf, createBoard, currentSector, HAZARD_LABELS, PHASE_LABELS, phaseOf, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, ridersFor, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
 import { cardById, TYPE_LABELS } from "../engine/cards";
 import { newSave, type Save } from "../engine/economy";
 import { STAFF, teamBonus } from "../engine/items";
-import { groupsOf, kopmanOf, results, riding, type Lineup, type RaceState, type Rider } from "../engine/race";
+import { groupsOf, kopmanOf, results, riding, statBoost, type Lineup, type RaceState, type Rider } from "../engine/race";
 import { loadSave } from "../engine/save";
-import { PLAYER_TEAM } from "../engine/types";
+import { PLAYER_TEAM, type StatKey } from "../engine/types";
 import { PLAYER_COLOR, RACES, raceById } from "../engine/world";
 import { ChaseView } from "./chase-view";
 import { GroupView } from "./group-view";
@@ -80,8 +80,20 @@ export function BoardApp() {
   );
 }
 
+/** The weather of the race as a chip: wind (two icons in a storm) and rain. */
+function WeatherChip({ weather }: { weather: Weather }) {
+  const label = `${WIND_LABELS[weather.wind]}${weather.rain ? ", regen" : ", droog"}`;
+  return (
+    <span className={styles.chip} role="img" aria-label={label} title={label}>
+      {weather.wind ? <Wind size={13} aria-hidden /> : weather.rain ? null : <Sun size={13} aria-hidden />}
+      {weather.wind === 2 ? <Wind size={13} aria-hidden /> : null}
+      {weather.rain ? <CloudRain size={13} aria-hidden /> : null}
+    </span>
+  );
+}
+
 function hazardLine(sector: BoardSector) {
-  return (Object.entries(HAZARD_ODDS[sector.terrain]) as [Hazard, number][]).map(([h, p]) => `${HAZARD_LABELS[h]} ${pct(p)}`).join(" · ");
+  return (Object.entries(sector.odds) as [Hazard, number][]).filter(([, p]) => p >= 0.01).map(([h, p]) => `${HAZARD_LABELS[h]} ${pct(p)}`).join(" · ");
 }
 
 /** The terrain and name of a sector; in a road race with its phase in front. */
@@ -222,7 +234,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
   const standingOf = (r: (typeof mine)[number]) => { const w = standing(state, r); return `${w.label}${w.gap >= 5 ? ` +${clock(w.gap)}` : ""}`; };
   const groupView = <GroupView state={state} sector={sector} moving={riding_} moodOf={moodOf} onRider={tapRider} />;
   const sheetRider = sheet ? state.riders.find((r) => r.id === sheet) : undefined;
-  const sheetView = sheetRider ? <RiderSheet rider={sheetRider} kracht={board.kracht[sheetRider.id]} start={board.start[sheetRider.id]} where={standingOf(sheetRider)} team={sheetRider.team === PLAYER_TEAM ? null : teamName(sheetRider.team, own)} onClose={() => setSheet(null)} /> : null;
+  const sheetView = sheetRider ? <RiderSheet rider={sheetRider} kracht={board.kracht[sheetRider.id]} start={board.start[sheetRider.id]} where={standingOf(sheetRider)} team={sheetRider.team === PLAYER_TEAM ? null : teamName(sheetRider.team, own)} boost={sheetRider.team === PLAYER_TEAM ? statBoost(sheetRider.card, teamBonus(items)) : undefined} onClose={() => setSheet(null)} /> : null;
 
   if (compact) {
     return (
@@ -233,6 +245,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
           <span className={styles.chip} aria-label={`Sector ${board.sector + 1} van ${BOARD_SECTORS}`}><span className={styles.stat}>{board.sector + 1}/{BOARD_SECTORS}</span></span>
           <span className={styles.chip}><span className={styles.stat}>{km(state.course.length - leader.distance)}</span></span>
           {board.spares ? <span className={styles.chip} aria-label={`Reservewiel ×${board.spares}`}><Wrench size={13} aria-hidden />{board.spares}</span> : null}
+          <WeatherChip weather={board.weather} />
           {toggle}
         </div>
         <div className={`${styles.mStage} ${view === "beeld" ? "" : styles.mStageMap}`}>
@@ -293,6 +306,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
         <span className={styles.chip}><span className={styles.stat}>Sector {board.sector + 1}/{BOARD_SECTORS}</span></span>
         <span className={styles.chip}><span className={styles.stat}>{km(state.course.length - leader.distance)}</span></span>
         <span className={styles.chip}><span className={styles.stat}>{clock(state.time)}</span></span>
+        <WeatherChip weather={board.weather} />
         {toggle}
       </div>
       <div className={styles.panel}>
@@ -362,7 +376,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
 }
 
 /** A rider mid-race, yours or a rival: his card with all his qualities, his kracht and where he rides. */
-function RiderSheet({ rider, kracht, start, where, team, onClose }: { rider: Rider; kracht: number; start: number; where: string; team: string | null; onClose: () => void }) {
+function RiderSheet({ rider, kracht, start, where, team, boost, onClose }: { rider: Rider; kracht: number; start: number; where: string; team: string | null; boost?: Partial<Record<StatKey, number>>; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -373,7 +387,7 @@ function RiderSheet({ rider, kracht, start, where, team, onClose }: { rider: Rid
     <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={riderName(rider.id)} onClick={onClose}>
       <div className={styles.sheetCard} onClick={(e) => e.stopPropagation()}>
         <button type="button" className={`${styles.ghost} ${styles.sheetClose}`} aria-label="Sluiten" onClick={onClose} autoFocus><X size={16} aria-hidden /></button>
-        <RiderCardView card={rider.card} kopman={rider.kopman} live />
+        <RiderCardView card={rider.card} kopman={rider.kopman} live boost={boost} />
         <div className={styles.sheetFacts}>
           <span>Kracht</span>
           <span className={styles.pips} role="meter" aria-label="Kracht" aria-valuemin={0} aria-valuemax={top} aria-valuenow={kracht}>

@@ -5,6 +5,7 @@ import { createRace, groupsOf, kopmanOf, riding, stepRace, type Lineup, type Ove
 import { clamp, hashSeed, rng } from "./rng";
 import { rivalsIn } from "./teams";
 import { GRID, PLAYER_TEAM, type RiderType } from "./types";
+import { raceById } from "./world";
 
 /**
  * Kopman as a board game (docs/kopman-bordspel.md). The course is cut into ten
@@ -23,7 +24,7 @@ export const KRACHT_KNECHT = 6;
 
 /** The last three only occur in a time trial. */
 export type Terrain = "vlak" | "klim" | "kasseien" | "afdaling" | "kopwind" | "rugwind" | "bochten";
-export type BoardSector = { index: number; start: number; end: number; terrain: Terrain; name: string | null; finale: boolean };
+export type BoardSector = { index: number; start: number; end: number; terrain: Terrain; name: string | null; finale: boolean; odds: Partial<Record<Hazard, number>> };
 
 export type CardKind = "aanval" | "tempo" | "bescherming" | "verstoring" | "reactie" | "steun" | "pacing" | "aero" | "techniek" | "ploeg" | "streek";
 export type BoardCardId = "demarrage" | "bergop" | "klimtempo" | "sleuren" | "kasseien" | "waaier" | "lanceren" | "wiel" | "gat" | "uitwind" | "afdalen" | "rustig" | "positie" | "vlucht" | "herstel" | "vooruit" | "scherp" | "doseren" | "volgas" | "inwind" | "rugherstel" | "aero" | "bochtstrak" | "allesgeven"
@@ -47,8 +48,8 @@ type CardDef = { title: string; kind: CardKind; cost: number; text: string; terr
 export const BOARD_CARDS: Record<BoardCardId, CardDef> = {
   demarrage: { title: "Demarrage", kind: "aanval", cost: 3, text: "Rijdt weg uit de groep" },
   bergop: { title: "Versnellen bergop", kind: "aanval", cost: 2, terrain: ["klim"], text: "Valt aan op de klim" },
-  klimtempo: { title: "Tempo op de klim", kind: "tempo", cost: 2, terrain: ["klim"], text: "Hard tempo bergop" },
-  sleuren: { title: "Op kop sleuren", kind: "tempo", cost: 1, text: "Trekt de groep op tempo" },
+  klimtempo: { title: "Tempo op de klim", kind: "tempo", cost: 2, terrain: ["klim"], who: "knecht", text: "Knecht maakt de klim hard" },
+  sleuren: { title: "Op kop sleuren", kind: "tempo", cost: 1, who: "knecht", text: "Knecht trekt de groep op tempo" },
   kasseien: { title: "Kasseien hard nemen", kind: "verstoring", cost: 2, terrain: ["kasseien"], text: "Breekt de groep op de stenen" },
   waaier: { title: "Waaier trekken", kind: "verstoring", cost: 2, terrain: ["vlak"], text: "Zijwind: wie geen dekking heeft, verliest" },
   lanceren: { title: "Lanceren", kind: "aanval", cost: 2, finale: true, text: "Vroege, harde sprint" },
@@ -88,7 +89,11 @@ export const STREKEN: BoardCardId[] = ["punaises", "epo", "plakbidon", "verkeerd
 /** The chance that a card you draw is a streek instead: about one per ten races. */
 export const STREEK_ODDS = 1 / 150;
 /** Extra kracht for an attack before the finale. */
-export const EARLY_ATTACK = 2;
+export const EARLY_ATTACK = 1;
+/** After the jump an attacker holds this much over his threshold to the end of the sector. */
+export const ATTACK_HOLD = 1.06;
+/** Cards that give kracht back: no extra cost for another type, and the rider who rests never pays for riding alone that sector. */
+export const RECOVERY_CARDS: BoardCardId[] = ["rustig", "inwiel", "bevoorrading", "herstel", "rugherstel", "doseren"];
 /** Power left with no kracht at all: a road race, a time trial. */
 export const FATIGUE_FLOOR = 0.85;
 const TT_FATIGUE_FLOOR = 0.92;
@@ -146,6 +151,37 @@ export const HAZARD_ODDS: Record<Terrain, Partial<Record<Hazard, number>>> = {
   rugwind: { lek: 0.08 },
   bochten: { lek: 0.08 },
 };
+/** Wind of the day: still, a breeze, a storm. Near the coast and in the polder it blows more often. */
+export type Weather = { wind: 0 | 1 | 2; rain: boolean };
+export const WIND_LABELS = ["Windstil", "Wind", "Storm"] as const;
+const WIND_FACTOR = [0.2, 1, 2];
+const WINDY = /kust|polder|vaart|dijk|westhoek|noord/;
+
+export function weatherFor(raceId: string, random: () => number): Weather {
+  const open = WINDY.test(raceId) || raceById.get(raceId)?.country === "NED";
+  const r = random();
+  const wind = (open ? (r < 0.15 ? 0 : r < 0.6 ? 1 : 2) : r < 0.35 ? 0 : r < 0.85 ? 1 : 2) as Weather["wind"];
+  return { wind, rain: random() < 0.3 };
+}
+
+/**
+ * The odds in one sector: the terrain gives the base, the weather and the
+ * phase move it, and a little chance per sector keeps two flat stretches apart.
+ * Rain makes crashes and punctures likelier; the run-in to the finale is nervous.
+ */
+export function oddsFor(sector: BoardSector, weather: Weather, random: () => number): Partial<Record<Hazard, number>> {
+  const out: Partial<Record<Hazard, number>> = {};
+  const phase = phaseOf(sector.index);
+  for (const [hazard, p] of Object.entries(HAZARD_ODDS[sector.terrain]) as [Hazard, number][]) {
+    let f = 0.7 + random() * 0.6;
+    if (hazard === "wind") f *= WIND_FACTOR[weather.wind];
+    if (hazard === "val") f *= (phase === "finale" ? 1.5 : phase === "opening" ? 0.6 : 1) * (weather.rain ? 1.5 : 1);
+    if (hazard === "lek") f *= weather.rain ? 1.3 : 1;
+    out[hazard] = Math.round(clamp(p * f, 0, 0.6) * 100) / 100;
+  }
+  return out;
+}
+
 export const TERRAIN_LABELS: Record<Terrain, string> = { vlak: "Vlak", klim: "Klim", kasseien: "Kasseien", afdaling: "Afdaling", kopwind: "Kopwind", rugwind: "Rugwind", bochten: "Bochten" };
 
 /**
@@ -193,6 +229,10 @@ export type BoardState = {
   aero: string[];
   strak: string[];
   tt: boolean;
+  /** The weather of the day: sets the odds of wind, crashes and punctures per sector. */
+  weather: Weather;
+  /** Riders who rest this sector: riding alone costs them nothing. */
+  rested: string[];
   random: () => number;
 };
 
@@ -214,7 +254,7 @@ function sectorsOf(state: RaceState): BoardSector[] {
     const n = Math.max(1, to - from);
     const terrain: Terrain = cobbles / n >= 0.2 ? "kasseien" : up / n >= 0.3 ? "klim" : down / n >= 0.35 ? "afdaling" : "vlak";
     const overlap = course.features.map((f) => ({ f, len: Math.min(end, f.end) - Math.max(start, f.start) })).filter((x) => x.len > 0).sort((a, b) => b.len - a.len)[0];
-    return { index, start, end, terrain, name: overlap?.f.name ?? null, finale: index === BOARD_SECTORS - 1 };
+    return { index, start, end, terrain, name: overlap?.f.name ?? null, finale: index === BOARD_SECTORS - 1, odds: {} };
   });
 }
 
@@ -233,7 +273,7 @@ function ttSectorsOf(state: RaceState, random: () => number): BoardSector[] {
     const turn = index === BOARD_SECTORS / 2;
     const corners = turn || index === village || index === second;
     const terrain: Terrain = corners ? "bochten" : index < BOARD_SECTORS / 2 ? out : back;
-    return { index, start, end, terrain, name: turn ? "Keerpunt" : corners ? "Dorpskern" : null, finale: index === BOARD_SECTORS - 1 };
+    return { index, start, end, terrain, name: turn ? "Keerpunt" : corners ? "Dorpskern" : null, finale: index === BOARD_SECTORS - 1, odds: {} };
   });
 }
 
@@ -307,6 +347,9 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
   race.scripted = true;
   const random = rng(hashSeed(seed, raceId, "bord"));
   const sectors = tt ? ttSectorsOf(race, rng(hashSeed(seed, raceId, "tijdrit"))) : sectorsOf(race);
+  const sky = rng(hashSeed(seed, raceId, "weer"));
+  const weather = weatherFor(raceId, sky);
+  for (const sector of sectors) sector.odds = oddsFor(sector, weather, sky);
   const kracht: Record<string, number> = {};
   for (const r of race.riders) {
     kracht[r.id] = kracht0(r);
@@ -339,6 +382,8 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
     aero: [],
     strak: [],
     tt,
+    weather,
+    rested: [],
     random,
   };
   board.intents = intentsFor(board);
@@ -383,7 +428,8 @@ export const choosesRider = (board: BoardState, c: HandCard) => !board.tt && c.t
 export function costOf(board: BoardState, c: HandCard, rider: string | null = c.rider) {
   const card = rider ? cardById(rider) : null;
   // In a time trial the kopman plays every card the team brings, at no extra; nor does anyone a team card.
-  const offType = card && choosesRider(board, c) && c.type !== "ploeg" && card.type !== c.type ? OFF_TYPE : 0;
+  // Resting is no skill: a recovery card costs every rider the same.
+  const offType = card && choosesRider(board, c) && c.type !== "ploeg" && card.type !== c.type && !RECOVERY_CARDS.includes(c.card) ? OFF_TYPE : 0;
   // Attacking before the finale costs more: the peloton is still fresh and you ride alone longer.
   const early = !board.tt && (c.card === "demarrage" || c.card === "bergop") && phaseOf(board.sector) !== "finale" ? EARLY_ATTACK : 0;
   return Math.max(0, BOARD_CARDS[c.card].cost - (card?.tier === "goud" ? 1 : 0) + offType + early - board.discount);
@@ -604,6 +650,7 @@ export function startSector(board: BoardState) {
   board.forcedWind = false;
   board.immune = [];
   board.upFront = [];
+  board.rested = [];
   board.aero = board.played.filter((c) => c.card === "aero" && c.rider).map((c) => c.rider!);
   board.strak = board.played.filter((c) => c.card === "bochtstrak" && c.rider).map((c) => c.rider!);
   applyFatigue(board);
@@ -625,6 +672,7 @@ export function startSector(board: BoardState) {
     }
   }
   const kopman = kopmanOf(state, PLAYER_TEAM)!;
+  if (board.played.some((c) => c.card === "herstel")) board.rested.push(kopman.id);
   const back: HandCard[] = [];
   for (const c of board.played) {
     const r = c.rider ? byId(board, c.rider) : undefined;
@@ -633,7 +681,7 @@ export function startSector(board: BoardState) {
       case "demarrage":
       case "bergop":
         if (!r) break;
-        setOverride(board, r, { mode: "aanval", untilTime: t + (c.card === "bergop" ? 50 : 40) }, [{ mode: "tempo", untilDistance: sector.end }]);
+        setOverride(board, r, { mode: "aanval", untilTime: t + (c.card === "bergop" ? 50 : 40) }, [{ mode: "kop", pull: ATTACK_HOLD, untilDistance: sector.end }]);
         log(board, PLAYER_TEAM, `${name} valt aan`, true);
         break;
       case "klimtempo":
@@ -673,7 +721,9 @@ export function startSector(board: BoardState) {
       case "rustig":
         if (!r) break;
         board.kracht[r.id] = Math.min(board.start[r.id], board.kracht[r.id] + 1);
-        setOverride(board, r, { mode: "sparen", untilDistance: sector.end });
+        // In the wheel, not off the back: resting must not cost the group.
+        setOverride(board, r, { mode: "mee", untilDistance: sector.end });
+        board.rested.push(r.id);
         break;
       case "positie":
         board.upFront.push(PLAYER_TEAM);
@@ -706,17 +756,20 @@ export function startSector(board: BoardState) {
       case "inwiel":
         if (!r) break;
         board.kracht[r.id] = Math.min(board.start[r.id], board.kracht[r.id] + 1);
-        setOverride(board, r, { mode: "sparen", untilDistance: sector.end });
+        setOverride(board, r, { mode: "mee", untilDistance: sector.end });
+        board.rested.push(r.id);
         log(board, PLAYER_TEAM, `${name} blijft in het wiel`, true);
         break;
       case "bevoorrading":
         if (!r) break;
         board.kracht[r.id] = Math.min(board.start[r.id], board.kracht[r.id] + 2);
+        board.rested.push(r.id);
         log(board, PLAYER_TEAM, `Bevoorrading: ${name} +2 kracht`, true);
         break;
       case "bidons":
         if (!r) break;
         board.kracht[kopman.id] = Math.min(board.start[kopman.id], board.kracht[kopman.id] + 1);
+        board.rested.push(kopman.id);
         log(board, PLAYER_TEAM, `${name} haalt bidons voor de kopman`, true);
         break;
       case "sprinttrein": {
@@ -763,7 +816,8 @@ export function startSector(board: BoardState) {
       case "uitwind":
         if (r) board.immune.push(PLAYER_TEAM);
         board.kracht[kopman.id] = Math.min(board.start[kopman.id], board.kracht[kopman.id] + 1);
-        setOverride(board, kopman, { mode: "sparen", untilDistance: sector.end });
+        setOverride(board, kopman, { mode: "mee", untilDistance: sector.end });
+        board.rested.push(kopman.id);
         log(board, PLAYER_TEAM, `${name} zet de kopman uit de wind`, true);
         break;
       default:
@@ -801,7 +855,7 @@ export function rideSector(board: BoardState, steps: number): boolean {
 
 function drawHazard(board: BoardState): Hazard | null {
   if (board.forcedWind) return "wind";
-  const odds = HAZARD_ODDS[currentSector(board).terrain];
+  const odds = currentSector(board).odds;
   let r = board.random();
   for (const [kind, p] of Object.entries(odds) as [Hazard, number][]) {
     if (r < p) return kind;
@@ -842,7 +896,7 @@ function ttHazards(board: BoardState) {
       }
     }
   }
-  if (board.random() >= (HAZARD_ODDS[sector.terrain].lek ?? 0)) return;
+  if (board.random() >= (sector.odds.lek ?? 0)) return;
   const teams = [PLAYER_TEAM, ...rivalsIn(board.race.raceId).map((t) => t.id)];
   const team = board.random() < 0.3 ? PLAYER_TEAM : teams[1 + Math.floor(board.random() * (teams.length - 1))];
   const k = kopmanOf(state, team);
@@ -866,7 +920,7 @@ function soloCost(board: BoardState) {
   const state = board.race;
   const groups = groupsOf(state);
   for (const r of state.riders) {
-    if (!riding(r) || r.breakaway || matesOf(state, r).length) continue;
+    if (!riding(r) || r.breakaway || board.rested.includes(r.id) || matesOf(state, r).length) continue;
     const wind = groups[0]?.includes(r) && groups[0].length <= 3 ? 1 : 0;
     const before = board.kracht[r.id];
     board.kracht[r.id] = Math.max(0, before - 1 - wind);

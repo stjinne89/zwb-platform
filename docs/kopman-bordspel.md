@@ -117,8 +117,9 @@ verzameling en de pakketten krijgen zo een doel tijdens de koers.
 
 ## Gevaren
 
-Elke sector trekt een gevaar. De kans hangt af van het terrein: kasseien en
-wind vaker, een vlakke weg zelden.
+Elke sector trekt een gevaar. De kans hangt af van het terrein en, sinds
+2026-11-12, van het weer van die koers en de fase (zie "Eerlijk herstel,
+tempo tegen aanvallen, en het weer").
 
 - **Lekke band of defect.** Zonder dekking verliest de kopman tijd. Met
   dekking geeft een knecht zijn wiel af en verliest hij zelf tijd.
@@ -526,7 +527,8 @@ bepaalde actie kan doen".
 - **Je opstelling beslist nog steeds welke kaarten je krijgt.** Elke renner
   brengt de drie kaarten van zijn type mee in de stapel. De kaart toont dat
   type ("Klimmer") in plaats van een naam.
-- **Een renner van een ander type betaalt 1 kracht meer** (`OFF_TYPE`). Een
+- **Een renner van een ander type betaalt 1 kracht meer** (`OFF_TYPE`),
+  behalve bij een herstelkaart (sinds 2026-11-12). Een
   gouden renner blijft 1 minder betalen. De physics rekent verder met de
   renner zelf: een sprinter die bergop versnelt, betaalt meer en haalt er
   minder uit dan je klimmer.
@@ -631,7 +633,7 @@ naast de kaarten van je renners. Ze hebben geen type, dus geen meerprijs.
 | Sprinttrein | 2 | finale | sprint 8% sterker met twee ploeggenoten bij je, anders 2%; de sprint begint op 450 m |
 
 **Vroeg aanvallen kost meer.** Demarrage en Bergop versnellen kosten buiten
-de finale 2 kracht extra (`EARLY_ATTACK`). Dat stapelt met de meerprijs voor
+de finale 1 kracht extra (`EARLY_ATTACK`; tot 2026-11-12 was dat 2). Dat stapelt met de meerprijs voor
 een ander type.
 
 **Moeheid.**
@@ -698,6 +700,86 @@ eerst.
   getrokken, de tests spelen ze wel;
 - of de nieuwe balans prettig speelt. De run zegt iets over een sterke ploeg,
   niet over hoe het voelt.
+
+## Eerlijk herstel, tempo tegen aanvallen, en het weer
+
+Gebouwd op 2026-11-12, na een seizoen spelen. De eigenaar meldde: een
+herstelkaart kost soms meer dan hij oplevert; tempo op kop door een
+tijdrijder werkt beter dan aanvallen; de kansen op zijwind, valpartij en
+lekke band veranderen nooit. Ze wilden ook zien wat materiaal en personeel
+per renner doen. Gemeten met dezelfde koers twee keer, met en zonder één
+kaart (`.tmp/kopman-kaarten.ts`, niet in git): 6 koersen van Kermis tot
+Proftour, 4 seeds, de startploeg.
+
+**Herstel.**
+- Herstelkaarten (`RECOVERY_CARDS`: Rustig aan, In het wiel blijven,
+  Bevoorrading, Herstel, Op adem in de rugwind, Gedoseerd starten) hebben
+  geen meerprijs meer voor een ander type. Vóór deze ronde leverde "Rustig
+  aan" op een renner van een ander type gemiddeld +0,02 op: 113 van de 144
+  keer niets en 14 keer minder dan niets.
+- Wie herstelt, rijdt mee in het wiel (`mee`) in plaats van te sparen
+  (`sparen`, wiel volgen tot 95%). Sparen liet hem bergop of in een snelle
+  groep lossen, en dan kostte alleen rijden weer kracht. Wie in een sector
+  herstelt, betaalt die sector niet voor alleen rijden (`board.rested`).
+  Dat geldt ook voor de kopman bij Uit de wind zetten, Bidons halen en
+  Herstel.
+- Gemeten na de aanpassing: elke herstelkaart levert gemiddeld +1,0 tot +1,2
+  op (Bevoorrading +2,2), nooit minder dan niets.
+
+**Tempo tegen aanvallen.**
+- **Op kop sleuren** en **Tempo op de klim** zijn knechtenkaarten. De
+  knecht trekt de groep, rivalen ook; zo rijd je een gat dicht of laat je
+  zwakke renners lossen. De kopman kan ze niet meer spelen: zelf een sector
+  lang op 104 tot 112% rijden was een goedkopere aanval dan de aanval zelf.
+- **Demarrage** en **Versnellen bergop** houden na de versnelling 106% van
+  de drempel vast tot het eind van de sector (`ATTACK_HOLD`); eerst zakte de
+  renner terug naar gewoon tempo. Vóór de finale kosten ze 1 kracht extra
+  (`EARLY_ATTACK`, was 2).
+- Gemeten, gemiddelde plek van de kopman (lager is beter):
+
+  | | Vóór | Na |
+  | --- | --- | --- |
+  | Sector 6, geen kaart | 43,8 | 40,9 |
+  | Sector 6, sleuren door een knecht | 40,2 | 36,5 |
+  | Sector 6, sleuren door de kopman | 35,7 | kan niet meer |
+  | Sector 6, demarrage | 38,3 | 34,5 |
+  | Finale, sleuren door de kopman | 39,3 | kan niet meer |
+  | Finale, demarrage | 41,7 | 29,8 |
+
+  De nulmeting verschuift doordat het weer de toevalsgetallen verandert.
+
+**Het weer.** Elke koers krijgt bij de start wind (windstil, wind, storm) en
+droog of regen (`weatherFor`, met een eigen seed). Aan de kust, in de polder
+en in Nederland waait het vaker. De kansen per sector (`oddsFor`):
+- de basis per terrain blijft `HAZARD_ODDS`;
+- zijwind ×0,2 bij windstilte, ×1 bij wind, ×2 bij storm;
+- valpartij ×0,6 in de opening en ×1,5 in de finale-fase, ×1,5 bij regen;
+- lekke band ×1,3 bij regen;
+- per sector nog ×0,7 tot ×1,3, en nooit meer dan 60%.
+Het weer staat als icoon in de kop van het bord; de kansen per sector staan
+er zoals voorheen.
+
+**Wat materiaal en personeel opleveren.** `statBoost` rekent de bonus van de
+ploeg per renner om naar punten op zijn kaart: de winst in een eigenschap die
+in `bodyOf` hetzelfde oplevert. Die punten staan als groen plusje achter de
+eigenschap, op de ploegpagina en op de rennerkaart tijdens de koers. Voeding
+(reserve), de fysio, de ploegleider en de buschauffeur horen bij geen
+eigenschap en tellen daarin niet mee. Banden tellen op de kasseien zwaar:
+lagere rolweerstand is daar het meeste waard.
+
+**Ook in deze ronde.**
+- Bij zelf kiezen voor een ruil staan bovenaan de kaarten waarvan je de
+  meeste exemplaren hebt, renners, materiaal en personeel door elkaar. Wat je
+  niet kunt ruilen, staat onderaan.
+- Op de ploegpagina heeft elk vak voor materiaal en personeel de kleur van
+  zijn niveau, met het niveau in de tekst en ×N als je er meer van hebt.
+
+**Bewust niet gebouwd.**
+- Een knecht die na Op kop sleuren terugzakt. Dan lost hij en betaalt hij
+  voor alleen rijden, bovenop de kosten van de kaart.
+- Plusjes voor rivalen op hun rennerkaart: die rijden met het materiaal van
+  hun niveau, maar dat staat nergens anders in beeld.
+- De sprint zelf rijden in de finale: de volgende ronde, op deze balans.
 
 ## Nog niet bekend
 

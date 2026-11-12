@@ -41,7 +41,9 @@ gaat stabiliteit voor nieuwe features.
    (`900710f5`) en "Kopman: de piramide" (`4dc1d399`): vijf niveaus van Kermis tot
    Wereldtour, zonder daglimiet op pakketten. Het bordspel is de koers, ook in
    de tijdrit; het overzicht toont sindsdien de koers in vogelvlucht met
-   gezichtjes, het getekende koersbeeld is te kiezen. Op een telefoon vult het bord het scherm. Open: na de
+   gezichtjes, het getekende koersbeeld is te kiezen. Lokaal, nog niet
+   gepusht: "Kopman: eerlijk herstel, tempo tegen aanvallen en het weer"
+   (2026-11-12). Daarna volgt de ronde "de sprint zelf rijden". Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12262,6 +12264,69 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kopman: eerlijk herstel, tempo tegen aanvallen en het weer
+
+**2026-11-12, de commit "Kopman: eerlijk herstel, tempo tegen aanvallen en het
+weer", lokaal (niet gepusht).** Geen migratie; de save verandert niet.
+
+- **De vraag.** De eigenaar na verder spelen:
+  1. "soms heb je een herstelkaart en die kost de renner dan meer dan het oplevert";
+  2. "inzichtelijk zien wat een voordeel van materiaal en personeel op de
+     renner heeft ... een groen plusje met een getal";
+  3. "Aanvallen werkt nu ook door een tijdrijder hard op kop te laten rijden
+     en dat heeft meer effect dan aanvallen";
+  4. dubbele kaarten bovenaan bij ruilen, ook materiaal en personeel;
+  5. materiaal en personeel niet zichtbaar als brons, zilver of goud op de
+     ploegpagina;
+  6. kansen op zijwind, valpartij en lekke band die wisselen.
+  Onderzocht en voorgesteld; de eigenaar: "Eerst 1–6, dan 7" (7 is de sprint
+  zelf rijden, zie hieronder).
+- **Wat er is.** Zie
+  [docs/kopman-bordspel.md](docs/kopman-bordspel.md#eerlijk-herstel-tempo-tegen-aanvallen-en-het-weer).
+  - Herstelkaarten zonder meerprijs voor een ander type (`RECOVERY_CARDS`).
+    Wie herstelt, rijdt mee in het wiel en betaalt die sector niet voor
+    alleen rijden.
+  - Op kop sleuren en Tempo op de klim alleen voor een knecht. Een demarrage
+    houdt 106% vast tot het eind van de sector (`ATTACK_HOLD`), en kost vóór
+    de finale 1 extra in plaats van 2.
+  - Weer per koers (`weatherFor`) en kansen per sector (`oddsFor`), met het
+    weer als icoon in de kop van het bord.
+  - Groene plusjes per eigenschap (`statBoost` in `race.ts`) op de
+    ploegpagina en op de rennerkaart tijdens de koers.
+  - Ruilen: één lijst, de meeste exemplaren eerst. Ploegpagina: vakken in de
+    kleur van hun niveau, met ×N.
+- **Waarom zo.** Gemeten met dezelfde koers met en zonder één kaart. Vóór de
+  aanpassing leverde Rustig aan op een renner van een ander type gemiddeld
+  +0,02 op; na de aanpassing levert elke herstelkaart +1,0 tot +2,2. In de
+  finale werd een demarrage gemiddeld 41,7e en sleuren door de kopman 39,3e;
+  nu is een demarrage 29,8e en sleuren door een knecht 39,0e. Cijfers in het
+  document.
+- **Niet meer waar.**
+  - "Een renner van een ander type betaalt 1 kracht meer" geldt niet voor
+    herstelkaarten (ronde "Een kaart op een renner naar keuze").
+  - `EARLY_ATTACK` is 1, niet 2 (ronde "De koers in groepen").
+  - De kans op een gevaar hangt niet meer alleen van het terrein af.
+  - "Rival teams ride without" in `items.ts` klopte sinds de piramide al niet
+    meer; aangepast.
+- **Bewust niet gebouwd:**
+  - een knecht die na sleuren terugzakt: dan lost hij en betaalt hij bovenop
+    de kaart ook voor alleen rijden;
+  - plusjes voor rivalen;
+  - de sprint zelf rijden: de volgende ronde, op deze balans.
+- **Geverifieerd:**
+  - tsc, eslint, 64 Kopman-tests (4 nieuw: herstel zonder meerprijs en zonder
+    kosten voor alleen rijden, sleuren alleen voor een knecht, het weer en de
+    kansen, de plusjes) en `next build`;
+  - in de preview op 375×667: de ploegpagina met plusjes, kleuren en ×N, de
+    ruillijst, het weer en de kansen op het bord, de rennerkaart tijdens de
+    koers.
+- **Niet geverifieerd:**
+  - een echte telefoon;
+  - de piramidebalans: het balansscript speelt zonder kaarten, dus deze ronde
+    verandert de uitkomst daar niet; met kaarten kan het tempo anders zijn;
+  - of de plusjes kloppen met hoe het in de koers voelt: ze zijn uit de
+    formules afgeleid, niet gemeten.
 
 ### Gebouwd — Kopman: de piramide
 

@@ -4,7 +4,8 @@ import type { Tier } from "./types";
  * Equipment and staff: cards that make the whole team better by a percentage.
  * Per slot only your best card counts. Equipment acts on the physics of the race
  * (weight, drag, rolling resistance, drivetrain, descending, reserve); staff scale
- * the team or the equipment. Rival teams ride without, so every card is an edge.
+ * the team or the equipment. Rival teams ride with a full set of their level's
+ * equipment (teams.ts, `rivalBonus`); staff only you have.
  */
 export const GEAR_SLOTS = ["frame", "wielen", "banden", "aandrijving", "remmen", "kleding", "voeding"] as const;
 export type GearSlot = (typeof GEAR_SLOTS)[number];

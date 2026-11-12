@@ -291,15 +291,16 @@ export function ItemCardView({ id, live = false, children }: { id: string; live?
 }
 
 /** One slot on the team screen: the best card you hold for it, or an empty frame. */
-export function SlotTile({ slot, item }: { slot: ItemSlot; item?: ItemCard }) {
+export function SlotTile({ slot, item, owned = 0 }: { slot: ItemSlot; item?: ItemCard; owned?: number }) {
   return (
-    <div className={`${styles.slotTile} ${item ? "" : styles.slotEmpty}`}>
+    <div className={`${styles.slotTile} ${item ? styles[`slot_${item.tier}`] : styles.slotEmpty}`}>
       <span className={`${styles.slotArt} ${item ? styles[item.tier] : ""}`}>{item ? <ItemArt item={item} live={false} /> : null}</span>
       <span className={styles.slotText}>
-        <small>{slotLabel(slot)}</small>
+        <small>{slotLabel(slot)}{item ? ` · ${TIER_LABELS[item.tier]}` : ""}</small>
         <b>{item ? item.name : "Leeg"}</b>
         {item ? <span>{item.effect}</span> : null}
       </span>
+      {owned > 1 ? <span className={`${styles.badge} ${styles.slotCount}`}>×{owned}</span> : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Bike, Flag, Gauge, Mountain, Shield, Zap } from "lucide-react";
 import { STAT_SHORT, TIER_LABELS, TYPE_LABELS } from "../engine/cards";
-import { STAT_KEYS, type RiderCard, type RiderType } from "../engine/types";
+import { STAT_KEYS, type RiderCard, type RiderType, type StatKey } from "../engine/types";
 import styles from "./kopman.module.css";
 import { Portrait, type Mood } from "./portrait";
 
@@ -18,7 +18,8 @@ export function FrameStar({ className }: { className: string }) {
  * A rider card as an album plate: the portrait is the plate, the name is the
  * caption. `live` keeps the portrait moving; otherwise it only moves on hover.
  */
-export function RiderCardView({ card, kopman, fit, small, mood = "rust", live = false, children }: { card: RiderCard; kopman?: boolean; fit?: number; small?: boolean; mood?: Mood; live?: boolean; children?: React.ReactNode }) {
+/** `boost`: points from equipment and staff per stat, shown as a green plus. */
+export function RiderCardView({ card, kopman, fit, small, mood = "rust", live = false, boost, children }: { card: RiderCard; kopman?: boolean; fit?: number; small?: boolean; mood?: Mood; live?: boolean; boost?: Partial<Record<StatKey, number>>; children?: React.ReactNode }) {
   const Icon = TYPE_ICONS[card.type];
   return (
     <div className={`${styles.card} ${styles[card.tier]} ${small ? styles.cardSmall : ""}`} aria-label={`${card.first} ${card.last}, ${TYPE_LABELS[card.type]}, ${TIER_LABELS[card.tier]} ${card.overall}`}>
@@ -41,7 +42,7 @@ export function RiderCardView({ card, kopman, fit, small, mood = "rust", live = 
       {fit !== undefined ? <span className={styles.fit} title="Past bij deze koers"><Flag size={10} strokeWidth={2.6} aria-label="Past bij deze koers" />{fit}</span> : null}
       {small ? null : (
         <div className={styles.stats}>
-          {STAT_KEYS.map((k) => <div key={k}><span>{STAT_SHORT[k]}</span><b>{card.stats[k]}</b></div>)}
+          {STAT_KEYS.map((k) => <div key={k}><span>{STAT_SHORT[k]}</span><b>{card.stats[k]}{boost?.[k] ? <i className={styles.boost} aria-label={`plus ${boost[k]} door materiaal en personeel`}>+{boost[k]}</i> : null}</b></div>)}
         </div>
       )}
       {children}

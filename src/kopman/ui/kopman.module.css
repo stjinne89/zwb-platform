@@ -529,3 +529,14 @@
 .k_ploeg { --kind: #8fc6a0; --kind-ink: var(--ink); }
 .k_streek { --kind: var(--dots), #e9b52f; --kind-ink: var(--ink); }
 .app .bcard.k_streek { border-color: #8a5a00; box-shadow: 0 0 0 2.5px #ffe14d, var(--lift); }
+
+/* What equipment and staff add to a stat: a small green plus after the number. */
+.stats div:has(.boost) { gap: 4px; }
+.boost { margin-left: 2px; padding: 0 2px; border-radius: 4px; background: var(--good); color: #fff; font-style: normal; font-size: 0.62rem; font-weight: 850; line-height: 1.3; vertical-align: 1px; }
+
+/* A slot on the team screen in the colour of its tier, like the rider cards; ×N when you hold more. */
+.slotTile { position: relative; }
+.slot_brons { background: #ecc7a6; border-color: #8a5530; }
+.slot_zilver { background: #dfe6ec; border-color: #6d7c89; }
+.slot_goud { background: #ffe680; border-color: #9a7400; }
+.slotTile .slotCount { position: absolute; top: 5px; right: 6px; }

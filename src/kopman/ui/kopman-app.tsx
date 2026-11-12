@@ -5,9 +5,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { cardById, TIER_LABELS, TYPE_LABELS } from "../engine/cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "../engine/course";
 import { bestLineup, buyPack, calendarOf, currentRace, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, raceSeed, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save } from "../engine/economy";
-import { bestItems, GEAR_SLOTS, isItem, ITEMS, STAFF_ROLES, teamBonus, type TeamBonus } from "../engine/items";
+import { bestItems, GEAR_SLOTS, isItem, ITEMS, STAFF_ROLES, teamBonus, type ItemSlot, type TeamBonus } from "../engine/items";
 import { KIND_ODDS, PACK_LABELS, PACK_ODDS, PITY_PACKS } from "../engine/packs";
-import { results, type Placing, type RaceState } from "../engine/race";
+import { results, statBoost, type Placing, type RaceState } from "../engine/race";
 import { PLAYER_TEAM, RIDER_TYPES, TIERS, type PackType, type RiderType, type Tier } from "../engine/types";
 import { DIVISIONS, TOP_DIVISION } from "../engine/divisions";
 import { raceById } from "../engine/world";
@@ -235,6 +235,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
   const [filter, setFilter] = useState<RiderType | "alle">("alle");
   const race = currentRace(save);
   const weights = race ? courseWeights(buildCourse(race)) : null;
+  const bonus = teamBonus(save.items);
   const owned = Object.keys(save.collection).map(cardById).filter((c) => filter === "alle" || c.type === filter).sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id));
   return (
     <div className={styles.stack}>
@@ -270,7 +271,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
           {owned.map((card) => {
             const inLineup = save.lineup.includes(card.id);
             return (
-              <RiderCardView key={card.id} card={card} kopman={card.id === save.kopman} fit={weights ? fitFor(card, weights) : undefined}>
+              <RiderCardView key={card.id} card={card} kopman={card.id === save.kopman} fit={weights ? fitFor(card, weights) : undefined} boost={statBoost(card, bonus)}>
                 <div className={styles.cardActions}>
                   <button type="button" aria-pressed={inLineup} disabled={!inLineup && save.lineup.length >= LINEUP_SIZE} onClick={() => update(toggleLineup(save, card.id))}>{inLineup ? "In ploeg" : "Opstellen"}</button>
                   {save.collection[card.id] > 1 ? <span className={styles.badge}>×{save.collection[card.id]}</span> : null}
@@ -290,11 +291,11 @@ function ItemsPanels({ items }: { items: Record<string, number> }) {
     <>
       <div className={styles.panel}>
         <div className={styles.h3} style={{ marginBottom: 10 }}>Materiaal</div>
-        <div className={styles.slotGrid}>{GEAR_SLOTS.map((slot) => <SlotTile key={slot} slot={slot} item={best[slot]} />)}</div>
+        <div className={styles.slotGrid}>{GEAR_SLOTS.map((slot) => <SlotTile key={slot} slot={slot} item={best[slot]} owned={copiesOf(items, slot)} />)}</div>
       </div>
       <div className={styles.panel}>
         <div className={styles.h3} style={{ marginBottom: 10 }}>Personeel</div>
-        <div className={styles.slotGrid}>{STAFF_ROLES.map((role) => <SlotTile key={role} slot={role} item={best[role]} />)}</div>
+        <div className={styles.slotGrid}>{STAFF_ROLES.map((role) => <SlotTile key={role} slot={role} item={best[role]} owned={copiesOf(items, role)} />)}</div>
       </div>
     </>
   );
@@ -378,6 +379,9 @@ function PacksTab({ save, update, onOpen, onTrade, onPick }: { save: Save; updat
   );
 }
 
+/** All cards you hold for one slot, every tier. */
+const copiesOf = (items: Record<string, number>, slot: ItemSlot) => ITEMS.filter((x) => x.slot === slot).reduce((sum, x) => sum + (items[x.id] ?? 0), 0);
+
 /** Copies per tier that may go into a trade you pick yourself. */
 function tradeableByTier(save: Save): Record<Tier, number> {
   const out: Record<Tier, number> = { brons: 0, zilver: 0, goud: 0 };
@@ -390,9 +394,11 @@ function TradePicker({ save, tier, onTrade, onClose }: { save: Save; tier: Tier;
   const [picks, setPicks] = useState<Record<string, number>>({});
   const up = NEXT_TIER[tier]!;
   const total = Object.values(picks).reduce((sum, n) => sum + n, 0);
-  const riders = Object.keys(save.collection).map(cardById).filter((c) => c.tier === tier)
-    .sort((a, b) => Number(save.lineup.includes(a.id)) - Number(save.lineup.includes(b.id)) || a.overall - b.overall || a.id.localeCompare(b.id));
-  const items = ITEMS.filter((x) => x.tier === tier && save.items[x.id]);
+  // One list: the most copies to spare first, riders, equipment and staff mixed; what you cannot trade last.
+  const cards = [
+    ...Object.keys(save.collection).map(cardById).filter((c) => c.tier === tier).map((c) => ({ id: c.id, owned: save.collection[c.id], rank: c.overall })),
+    ...ITEMS.filter((x) => x.tier === tier && save.items[x.id]).map((x) => ({ id: x.id, owned: save.items[x.id], rank: 0 })),
+  ].sort((a, b) => Number(!tradeable(save, a.id)) - Number(!tradeable(save, b.id)) || b.owned - a.owned || a.rank - b.rank || a.id.localeCompare(b.id));
   const pick = (id: string) => {
     const n = picks[id] ?? 0;
     setPicks({ ...picks, [id]: n < tradeable(save, id) && total < TRADE_COST ? n + 1 : 0 });
@@ -417,8 +423,9 @@ function TradePicker({ save, tier, onTrade, onClose }: { save: Save; tier: Tier;
           <button type="button" className={styles.secondary} onClick={onClose}>Terug</button>
         </div>
         <div className={`${styles.cardGrid} ${styles.pickGrid}`}>
-          {riders.map((card) => <RiderCardView key={card.id} card={card} kopman={card.id === save.kopman}>{actions(card.id, save.collection[card.id])}</RiderCardView>)}
-          {items.map((item) => <ItemCardView key={item.id} id={item.id}>{actions(item.id, save.items[item.id])}</ItemCardView>)}
+          {cards.map((x) => (isItem(x.id)
+            ? <ItemCardView key={x.id} id={x.id}>{actions(x.id, x.owned)}</ItemCardView>
+            : <RiderCardView key={x.id} card={cardById(x.id)} kopman={x.id === save.kopman}>{actions(x.id, x.owned)}</RiderCardView>))}
         </div>
       </div>
     </div>

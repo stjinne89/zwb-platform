@@ -4,7 +4,7 @@ import { NO_BONUS, type TeamBonus } from "./items";
 import { clamp, hashSeed, randomAt, rng } from "./rng";
 import { lineupFor, rivalBonus, rivalsIn } from "./teams";
 import { divisionOfRace } from "./divisions";
-import { GRID, PLAYER_TEAM, type Course, type RiderCard } from "./types";
+import { GRID, PLAYER_TEAM, STAT_KEYS, type Course, type RiderCard, type StatKey } from "./types";
 import { raceById } from "./world";
 
 /**
@@ -112,6 +112,37 @@ function bodyOf(card: RiderCard, tt: boolean, bonus: TeamBonus = NO_BONUS) {
     eff: EFF * (1 + bonus.drivetrain),
     recovery: bonus.recovery,
   };
+}
+
+/** Flat road speed for the boost sums, m/s: about 40 km/h. */
+const BOOST_SPEED = 11;
+
+/**
+ * What the team's equipment and staff are worth to one rider, in points on his
+ * card: the stat gain that gives the same in the physics of bodyOf. Whole points
+ * only. Reserve (voeding), recovery, orders and start money have no stat.
+ */
+export function statBoost(card: RiderCard, bonus: TeamBonus): Partial<Record<StatKey, number>> {
+  const s = card.stats;
+  const mass = clamp(72 - (s.klim - s.vlak) * 0.35, 58, 85);
+  const air = 0.5 * AIR * ROAD_CDA * BOOST_SPEED ** 3;
+  const roll = CRR.asfalt * (mass + BIKE_KG) * G * BOOST_SPEED;
+  const power = bonus.power + bonus.drivetrain;
+  // On the flat less drag counts as much as more watts, in its share of what the speed costs.
+  const flat = power + (air * bonus.cda + roll * bonus.crr) / (air + roll);
+  // Uphill it is watts per kilo; a lighter bike counts against rider and bike together.
+  const climb = power + (bonus.bikeMass * BIKE_KG) / (mass + BIKE_KG);
+  const points: Record<StatKey, number> = {
+    vlak: (flat * (300 + (s.vlak - 60) * 3.2)) / 3.2,
+    klim: (climb * (5 + (s.klim - 60) * 0.035)) / 0.035,
+    sprint: (power * (600 + s.sprint * 14)) / 14,
+    tijdrit: (bonus.cda * (0.235 - (s.tijdrit - 60) * 0.0015)) / 0.0015,
+    kasseien: bonus.crr * (1.3 - s.kasseien / 150) * 150,
+    afdalen: (bonus.descent * (17 + s.afdalen * 0.07)) / 0.07,
+  };
+  const out: Partial<Record<StatKey, number>> = {};
+  for (const k of STAT_KEYS) if (Math.round(points[k]) >= 1) out[k] = Math.round(points[k]);
+  return out;
 }
 
 /** Threshold power on this gradient: flat watts blend into W/kg as it gets steeper. */

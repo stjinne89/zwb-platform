@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { autoplay, BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, deckFor, EARLY_ATTACK, HAND_SIZE, OFF_TYPE, phaseOf, PLAYS_PER_TURN, playCard, rideSector, ridersFor, startSector, STREKEN, TEAM_CARDS, unplayCard, type BoardState } from "@/kopman/engine/board";
+import { autoplay, BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, deckFor, EARLY_ATTACK, HAND_SIZE, OFF_TYPE, oddsFor, phaseOf, PLAYS_PER_TURN, playCard, rideSector, ridersFor, startSector, STREKEN, TEAM_CARDS, unplayCard, type BoardState } from "@/kopman/engine/board";
+import { statBoost } from "@/kopman/engine/race";
+import { teamBonus } from "@/kopman/engine/items";
+import { rng } from "@/kopman/engine/rng";
 import { kopmanOf } from "@/kopman/engine/race";
 import { PLAYER_TEAM } from "@/kopman/engine/types";
 import { cardById } from "@/kopman/engine/cards";
@@ -213,5 +216,54 @@ describe("Kopman: bordspel", () => {
     while (!rideSector(b, 600)) { /* ride */ }
     expect(b.sector).toBe(1);
     expect(b.phase).toBe("plannen");
+  });
+
+  it("rekent bij een herstelkaart geen meerprijs voor een ander type, en laat wie rust niet betalen voor alleen rijden", () => {
+    const b = createBoard(raceId, 3, lineup);
+    const other = lineup.riders.find((id) => cardById(id).type !== "sprinter")!;
+    b.kracht[other] -= 2;
+    const c = { uid: "r", card: "rustig" as const, type: "sprinter" as const, rider: null };
+    b.hand = [c];
+    expect(costOf(b, c, other)).toBe(0);
+    expect(playCard(b, "r", other)).toBe(true);
+    const r = b.race.riders.find((x) => x.id === other)!;
+    r.distance += 4000;
+    const before = b.kracht[other];
+    startSector(b);
+    while (!rideSector(b, 600)) { /* ride */ }
+    expect(b.kracht[other]).toBe(Math.min(b.start[other], before + 1));
+  });
+
+  it("laat alleen een knecht op kop sleuren", () => {
+    const b = createBoard(raceId, 3, lineup);
+    const c = { uid: "t", card: "sleuren" as const, type: "tijdrijder" as const, rider: null };
+    b.hand = [c];
+    expect(ridersFor(b, c)).not.toContain(lineup.kopman);
+    expect(ridersFor(b, c).length).toBeGreaterThan(0);
+    expect(playCard(b, "t", lineup.kopman)).toBe(false);
+  });
+
+  it("geeft elke koers weer, en kansen die per sector en per koers verschillen", () => {
+    const odds = (seed: number) => createBoard(raceId, seed, lineup).sectors.filter((x) => !x.finale).map((x) => JSON.stringify(x.odds));
+    expect(odds(4)).toEqual(odds(4));
+    expect(new Set([1, 2, 3, 4, 5, 6].map((seed) => odds(seed).join("|"))).size).toBeGreaterThan(1);
+    const flat = { index: 4, start: 0, end: 1000, terrain: "vlak" as const, name: null, finale: false, odds: {} };
+    const calm = oddsFor(flat, { wind: 0, rain: false }, rng(1)).wind!;
+    const storm = oddsFor(flat, { wind: 2, rain: false }, rng(1)).wind!;
+    expect(storm).toBeGreaterThan(calm * 5);
+    expect(oddsFor(flat, { wind: 1, rain: true }, rng(1)).val!).toBeGreaterThan(oddsFor(flat, { wind: 1, rain: false }, rng(1)).val!);
+    for (let seed = 1; seed < 30; seed++) for (const x of createBoard(raceId, seed, lineup).sectors) for (const p of Object.values(x.odds)) expect(p).toBeLessThanOrEqual(0.6);
+  });
+
+  it("toont wat materiaal en personeel een renner opleveren, per eigenschap", () => {
+    const card = cardById(lineup.kopman);
+    expect(statBoost(card, teamBonus({}))).toEqual({});
+    const trainer = statBoost(card, teamBonus({ "p-trainer-goud": 1 }));
+    expect(trainer.klim).toBeGreaterThanOrEqual(3);
+    expect(trainer.vlak).toBeGreaterThanOrEqual(2);
+    const wheels = statBoost(card, teamBonus({ "m-wielen-zilver": 1 }));
+    expect(wheels.vlak).toBeGreaterThanOrEqual(1);
+    expect(wheels.klim).toBeUndefined();
+    expect(statBoost(card, teamBonus({ "m-remmen-goud": 1 })).afdalen).toBeGreaterThanOrEqual(10);
   });
 });
