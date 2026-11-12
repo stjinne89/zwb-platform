@@ -1,9 +1,15 @@
 // Het veld in de racebriefing: verwachte volgorde, ploegpunten, wie te volgen
 // en voorstellen voor rollen in de eigen ploeg. Puur: geen I/O.
 //
-// De volgorde komt uit één getal per renner: de vELO van ZwiftRacing als die er
+// De volgorde komt uit één getal per renner: de rating van ZwiftRacing als die er
 // voor het grootste deel van het veld is, anders de Zwift Racing Score. Dat is een
 // verwachting, geen voorspelling: tactiek, dagvorm en wie er echt start, ontbreken.
+//
+// Sinds 2026-11-12 is de rating van ZwiftRacing die van zijn eigen eventpagina
+// (vELO2 gewogen naar het parcours) als hij het event kent, anders vELO1 van de
+// rennerpagina (load.ts). Op ZRL race 6 van ronde 1 voorspelde ZwiftRacing de
+// finish beter dan de ZRS (Spearman 0,72 en 0,70 tegen 0,63, vier pennen); de
+// ZRS erbij maakte het niet beter (docs/zwiftracing-events-onderzoek-2026-11-12.md).
 
 import { FULL_TEAM_STARTERS, PODIUM_POINTS } from "@/lib/zrl-live/scoring";
 import type { BriefingFormat } from "./rules";
@@ -18,8 +24,11 @@ export type FieldRider = {
   team: string | null;
   own: boolean;
   racingScore: number | null;
+  /** Rating van ZwiftRacing voor deze race: van de eventpagina, anders vELO1. */
   velo: number | null;
   power: PowerProfile | null;
+  /** Rennerstype volgens ZwiftRacing ("sprinter", "puncheur" …). */
+  phenotype?: string | null;
   /** Plek per eerdere race van deze ronde, in volgorde; null = niet in de uitslag. */
   history: Array<number | null>;
 };
@@ -116,6 +125,16 @@ export function projectField(riders: FieldRider[], format: BriefingFormat): Proj
 }
 
 export type WatchReason = "sterk" | "won" | "podium";
+
+/** Rennerstype van ZwiftRacing in het Nederlands, voor Volgen; een onbekend type valt weg. */
+export const PHENOTYPE_LABELS: Record<string, string> = {
+  sprinter: "sprinter",
+  puncheur: "puncheur",
+  climber: "klimmer",
+  pursuiter: "achtervolger",
+  tt: "tijdrijder",
+  allRounder: "allrounder",
+};
 
 /** Tegenstanders om te volgen: de sterksten in de verwachting en wie eerder deze ronde won of op het podium stond. */
 export function watchList(projection: Projection, max = 5): Array<{ rider: FieldRider; place: number; reason: WatchReason }> {

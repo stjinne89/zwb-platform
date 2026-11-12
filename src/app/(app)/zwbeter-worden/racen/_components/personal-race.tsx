@@ -87,10 +87,10 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
         )}
       </div>
 
-      {(rider.expected || depth.segments.length > 0) && (
+      {(rider.expected || depth.zwiftRacing || depth.segments.length > 0) && (
         <section className="space-y-3">
           <SectionHeader title="Jouw race tegenover de verwachting" />
-          <ExpectationStats rider={rider} />
+          <ExpectationStats rider={rider} zwiftRacing={depth.zwiftRacing} />
           <SegmentDepth depth={depth} />
         </section>
       )}

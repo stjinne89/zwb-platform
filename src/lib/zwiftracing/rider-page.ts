@@ -11,6 +11,7 @@
 //   kan het een paar honderdsten hoger zijn dan de `d90` op `/power`.
 // * `legacyRatings`: legacy vELO (vELO1) live, max over 30 en over 90 dagen,
 //   de rating waar de Club Ladder mee rekent (zie club-ladder/legacy-velo.ts).
+// * `phenotype.label`: het rennerstype (sinds 2026-11-12, voor het racebriefje).
 //
 // Geen eigen HTML-parser: we zoeken de twee objecten op naam en lezen alleen
 // getallen. Verandert de opbouw van de pagina, dan geeft `parseRiderPage` null
@@ -25,6 +26,8 @@ export type RiderPageData = {
   powerWkg: RiderPagePower | null;
   /** Null als de renner geen legacy vELO heeft. */
   legacy: RiderPageLegacy | null;
+  /** Rennerstype volgens ZwiftRacing ("sprinter", "puncheur" …), of null. */
+  phenotype: string | null;
 };
 
 const NUMBER = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i;
@@ -83,5 +86,8 @@ export function parseRiderPage(html: string, zwiftId: number): RiderPageData | n
     : null;
   const hasLegacy = legacy != null && Object.values(legacy).some((value) => value != null);
 
-  return { zwiftId, powerWkg: hasPower ? powerWkg : null, legacy: hasLegacy ? legacy : null };
+  // Het type staat naast de scores per type, een object één laag dieper.
+  const phenotype = /[{,]phenotype:(?:\$R\[\d+\]=)?\{(?:[^{}]|\{[^{}]*\})*?[{,]label:"([A-Za-z]{2,30})"/.exec(html)?.[1] ?? null;
+
+  return { zwiftId, powerWkg: hasPower ? powerWkg : null, legacy: hasLegacy ? legacy : null, phenotype };
 }

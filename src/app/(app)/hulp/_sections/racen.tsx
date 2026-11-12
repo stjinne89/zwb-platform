@@ -113,6 +113,13 @@ export function RacenHelp() {
             verschil tussen sprints en klimmen krijg je een tip over waar je je
             race omheen bouwt. Dit deel ziet alleen jij.
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Kent ZwiftRacing de race, dan staat er ook de plek in je pen die
+            ZwiftRacing vóór de start verwachtte, met hoeveel plekken je ervoor
+            of erachter eindigde. Onder Jouw races staat dat verschil gemiddeld
+            over je races, vanaf twee races. <ClubShortName /> haalt het bij ZwiftRacing
+            op zodra daar de definitieve uitslag staat, meestal binnen een dag.
+          </p>
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4">

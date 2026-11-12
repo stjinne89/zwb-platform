@@ -30,7 +30,8 @@ import {
 } from "@/lib/pacing/zwift-setup";
 import { MAX_PER_RACE } from "@/lib/teams/zrl-season";
 import { FULL_TEAM_STARTERS } from "@/lib/zrl-live/scoring";
-import { zwiftRacingConfigured } from "@/lib/zwiftracing/client";
+import { loadZwiftRacingEvent } from "@/lib/zwiftracing/event-cache";
+import { loadVelo1 } from "@/lib/zwiftracing/velo1";
 import { loadRiderMetrics, refreshRiderMetrics, type RiderMetrics } from "./metrics";
 import { routeKeyPoints, type RouteKeyPoints } from "./route";
 import { archPowerupList, powerupOddsWithArches, type ArchPowerup, type PowerupOdds } from "./arches";
@@ -55,6 +56,7 @@ import {
   suggestRoles,
   watchList,
   cleanRiderName,
+  PHENOTYPE_LABELS,
   type FieldRider,
   type OwnRole,
   type Projection,
@@ -83,6 +85,8 @@ const FIELD_UNTIL_AFTER_START_MS = 15 * 60 * 1000;
 const REFRESH_BUDGET_MS = 20_000;
 /** Fietsadvies zonder zFTP van eigen renners. Keuze bij de bouw, 2026-10-20. */
 const BIKE_ADVICE_FALLBACK_WKG = 3.5;
+/** Zo'n deel van de groep moet op de eventpagina van ZwiftRacing staan; anders vELO1 per renner. */
+const MIN_ZR_EVENT_COVERAGE = 0.7;
 
 const RIDE_FORMATS: Record<BriefingFormat, RaceFormat> = { points: "race", scratch: "race", rot: "tt", ttt: "ttt" };
 
@@ -150,6 +154,8 @@ export type OwnBriefingRider = {
   /** De grenzen van de divisie in watt; null zonder grenzen of zonder zFTP in watt. */
   limitWatts: LimitWatts | null;
   metrics: RiderMetrics | null;
+  /** Rating van ZwiftRacing voor deze race (zie FieldRider.velo); de ladder vult hem niet. */
+  velo?: number | null;
   history: Array<number | null>;
   expectedPlace: number | null;
   /** Ladder: de tegenstander vlak voor en vlak achter je in de verwachting. */
@@ -408,7 +414,7 @@ export async function loadRaceBriefing(
   const zwiftEventId = event.zwift_event_id ? String(event.zwift_event_id) : null;
   const started = Date.now() > Date.parse(event.start_at) + FIELD_UNTIL_AFTER_START_MS;
 
-  const [live, zwiftEvent, routeResult, lineup, historyRows, power, planRow, canEdit] = await Promise.all([
+  const [live, zwiftEvent, routeResult, lineup, historyRows, power, planRow, canEdit, zrEvent] = await Promise.all([
     zwiftEventId && !started ? loadZrlLive(event.id) : Promise.resolve(null),
     zwiftEventId ? cachedZwiftEvent(zwiftEventId).catch(() => null) : Promise.resolve(null),
     loadPacingRoute(supabase, event),
@@ -417,6 +423,8 @@ export async function loadRaceBriefing(
     wtrlPower(event.team_id),
     admin.from("race_briefings").select("plan, roles, updated_at").eq("event_id", event.id).maybeSingle(),
     canEditBriefing(user.id, access, event.team_id),
+    // De eventpagina van ZwiftRacing: het hele veld in één keer, als hij het event kent.
+    zwiftEventId && !started ? loadZwiftRacingEvent(zwiftEventId) : Promise.resolve(null),
   ]);
 
   const view: ZrlLiveView | null = live?.status === "ok" ? live.view : null;
@@ -445,17 +453,25 @@ export async function loadRaceBriefing(
     after(() => refreshRiderMetrics(entrantIds, metrics, { budgetMs: REFRESH_BUDGET_MS }));
   }
 
+  // ZwiftRacing: de rating van zijn eventpagina voor het hele veld, of anders
+  // vELO1 per renner. Nooit door elkaar: dat zijn twee schalen.
+  const zrRiders = new Map((zrEvent?.mode === "signups" ? zrEvent.pens.flatMap((pen) => pen.riders) : []).map((r) => [r.zwiftId, r]));
+  const fromEvent = entrantIds.length > 0 && entrantIds.filter((id) => zrRiders.get(id)?.eventRating != null).length / entrantIds.length >= MIN_ZR_EVENT_COVERAGE;
+  const velo1 = fromEvent ? new Map<number, number>() : await loadVelo1(admin, entrantIds);
+
   const ownSet = new Set(view?.ownRiders ?? []);
   const field: FieldRider[] = (view?.entrants ?? []).map((e) => {
     const m = metrics.get(e.athleteId) ?? null;
+    const zr = zrRiders.get(e.athleteId) ?? null;
     return {
       zwiftId: e.athleteId,
       name: cleanRiderName(e.name),
       team: e.team,
       own: ownSet.has(e.athleteId),
       racingScore: m?.racingScore ?? null,
-      velo: m?.velo ?? null,
-      power: m?.power ?? null,
+      velo: fromEvent ? (zr?.eventRating ?? null) : (velo1.get(e.athleteId) ?? null),
+      power: m?.power ?? zr?.power ?? null,
+      phenotype: m?.phenotype ?? zr?.phenotype ?? null,
       history: history.places.get(e.athleteId) ?? history.labels.map(() => null),
     };
   });
@@ -472,7 +488,8 @@ export async function loadRaceBriefing(
     ...ownEntrants.map((r) => ({ zwiftId: r.zwiftId, name: r.name, inPen: true })),
     ...notSignedUp.filter((l) => l.zwiftId !== null).map((l) => ({ zwiftId: l.zwiftId as number, name: l.name, inPen: false })),
   ];
-  const fiveMin = (id: number) => metrics.get(id)?.power?.m5 ?? power.get(id)?.zmapWkg ?? null;
+  const fieldPower = new Map(field.map((r) => [r.zwiftId, r.power]));
+  const fiveMin = (id: number) => fieldPower.get(id)?.m5 ?? power.get(id)?.zmapWkg ?? null;
   const suggested = suggestRoles(
     ownBase.filter((r) => r.inPen).map((r) => ({ zwiftId: r.zwiftId, rating: ratingOf(field.find((f) => f.zwiftId === r.zwiftId)!, projection?.basis ?? null), fiveMinWkg: fiveMin(r.zwiftId) })),
   );
@@ -491,6 +508,7 @@ export async function loadRaceBriefing(
       limits: checkLimits(limits, wtrl?.zftpWkg ?? null, wtrl?.zmapWkg ?? null),
       limitWatts: limitWatts(limits, wtrl?.zftpW ?? null, wtrl?.zftpWkg ?? null),
       metrics: metrics.get(r.zwiftId) ?? null,
+      velo: field.find((f) => f.zwiftId === r.zwiftId)?.velo ?? null,
       history: history.places.get(r.zwiftId) ?? history.labels.map(() => null),
       expectedPlace: expectedPlace(r.zwiftId),
     };
@@ -582,7 +600,14 @@ export async function loadRaceBriefing(
     expectedPlace: expectedPlace(r.zwiftId),
   }));
 
-  const watchView = watch.map((w) => ({ zwiftId: w.rider.zwiftId, name: w.rider.name, teamLabel: w.rider.team ? teamLabels[w.rider.team] ?? w.rider.team : null, place: w.place, reason: w.reason }));
+  const watchView = watch.map((w) => ({
+    zwiftId: w.rider.zwiftId,
+    name: w.rider.name,
+    teamLabel: w.rider.team ? teamLabels[w.rider.team] ?? w.rider.team : null,
+    place: w.place,
+    reason: w.reason,
+    type: w.rider.phenotype ? (PHENOTYPE_LABELS[w.rider.phenotype] ?? null) : null,
+  }));
   const sheetDefaults = defaultSheet({
     format,
     category: division?.category ?? null,
@@ -591,7 +616,7 @@ export async function loadRaceBriefing(
     own: inPen.map((r) => ({ zwiftId: r.zwiftId, name: r.name, role: r.role, limits: r.limits })),
     watch: watchView.map((w) => {
       const index = history.places.get(w.zwiftId)?.indexOf(1) ?? -1;
-      return { name: w.name, teamLabel: w.teamLabel, reason: w.reason, wonAt: index >= 0 ? history.labels[index] ?? null : null };
+      return { name: w.name, teamLabel: w.teamLabel, reason: w.reason, wonAt: index >= 0 ? history.labels[index] ?? null : null, type: w.type };
     }),
     // Grenzen staan bij de rollen, niet onder Let op.
     warnings: warnings.filter((w) => w.kind !== "limits").map((w) => w.text),
@@ -626,7 +651,7 @@ export async function loadRaceBriefing(
       tips,
       plan: planRow.data ? { text: (planRow.data.plan as string | null) ?? null, updatedAt: (planRow.data.updated_at as string | null) ?? null } : null,
       canEdit,
-      zwiftRacing: zwiftRacingConfigured(),
+      zwiftRacing: field.some((r) => r.velo != null),
       fieldMissing: !zwiftEventId ? "no-zwift-event" : started ? "started" : live?.status === "ok" ? null : live?.status === "error" ? "error" : "no-entrants",
     },
   };

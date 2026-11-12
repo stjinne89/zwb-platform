@@ -40,6 +40,8 @@ export type MatchupRider = {
   races: number | null;
   /** Profiel van een ZWB'er, voor de link naar /leden; de loader vult het in. */
   profileId?: string | null;
+  /** Legacy vELO (vELO1) van ZwiftRacing, voor de verwachting; de loader vult het in. */
+  velo1?: number | null;
 };
 
 export type MatchupSide = {

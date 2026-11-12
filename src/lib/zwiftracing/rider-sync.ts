@@ -13,25 +13,36 @@ import "server-only";
 // niet is opgehaald. Daarna de renners in `zwift_legacy_velo` die een week niet
 // zijn bijgewerkt, zodat de vELO1 in de Ladderpuzzel niet meer met de hand hoeft.
 //
+// Sinds 2026-11-12 ook: de renners van een racebriefje (de ZRL). Het briefje
+// zet hun ZRS in `zwift_rider_metrics`; wie daar de laatste twee dagen bij kwam
+// en nog geen verse rennerpagina heeft, komt na de ladderrenners. Hun vELO1 is
+// de terugval als ZwiftRacing het event zelf niet kent (race-briefing/field.ts).
+// En vóór de renners: hooguit twee uitslagpagina's van bewaarde races, voor de
+// verwachting van ZwiftRacing achteraf (race-expectations.ts, 0326).
+//
 // Eén pagina tegelijk met een pauze, binnen het budget van de aanroeper; wat niet
 // past, volgt bij de volgende run. Een 429, 5xx of een pagina die we niet
 // herkennen stopt de run, zodat we niet doorgaan op een site die ons weert of
 // van opbouw veranderde.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { getClub } from "@/lib/club";
+import { fetchZwiftRacingPage, zwiftRacingUserAgent } from "./fetch-page";
+import { harvestRaceExpectations, type RaceExpectationResult } from "./race-expectations";
 import { parseRiderPage, type RiderPageData } from "./rider-page";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-const PAGE_URL = "https://zwiftracing.app/riders/";
 const FIXTURE_DAYS = 8;
+/** Renners van een racebriefje: wie in zoveel tijd een ZRS kreeg. */
+const BRIEFING_RECENT_MS = 2 * 24 * 60 * 60 * 1000;
+const BRIEFING_MAX = 400;
+/** Uitslagpagina's per run; de rest volgt bij de volgende run. */
+const RESULT_PAGES_PER_RUN = 2;
 const OPPONENT_RACES = 8;
 const POWER_STALE_MS = 20 * 60 * 60 * 1000;
 const LEGACY_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 /** Tussen twee pagina's; de Chrome-taak deed 0,8 s zonder problemen. */
 const PAGE_SPACING_MS = 1_000;
-const TIMEOUT_MS = 10_000;
 
 export type ZwiftRacingSyncResult = {
   /** Renners die nu aan de beurt waren. */
@@ -47,6 +58,8 @@ export type ZwiftRacingSyncResult = {
   remaining: number;
   /** Waarom de run eerder stopte, of null. */
   stopped: string | null;
+  /** Uitslagpagina's voor de verwachting achteraf (0326). */
+  expectations: RaceExpectationResult;
 };
 
 const validId = (value: unknown) => {
@@ -113,24 +126,42 @@ export async function ladderFixtureZwiftIds(admin: Admin, now = new Date()): Pro
   return [...out].sort((a, b) => a - b);
 }
 
-/** Wie nu aan de beurt is: eerst de ladderwedstrijden, dan verouderde vELO1. */
+const stale = (at: string | null | undefined, now: Date) => !at || now.getTime() - Date.parse(at) > POWER_STALE_MS;
+
+/** Renners van een racebriefje van de laatste twee dagen, zonder verse rennerpagina. */
+async function briefingZwiftIds(admin: Admin, now: Date): Promise<number[]> {
+  const { data } = await admin
+    .from("zwift_rider_metrics")
+    .select("zwift_id, velo_fetched_at")
+    .gt("zrs_fetched_at", new Date(now.getTime() - BRIEFING_RECENT_MS).toISOString())
+    .order("zrs_fetched_at", { ascending: false })
+    .limit(BRIEFING_MAX);
+  return ((data ?? []) as Array<{ zwift_id: number; velo_fetched_at: string | null }>)
+    .filter((row) => stale(row.velo_fetched_at, now))
+    .map((row) => validId(row.zwift_id))
+    .filter((id): id is number => id != null);
+}
+
+/** Wie nu aan de beurt is: eerst de ladderwedstrijden, dan de racebriefjes, dan verouderde vELO1. */
 export async function dueZwiftIds(admin: Admin, now = new Date()): Promise<number[]> {
   const fixtureIds = await ladderFixtureZwiftIds(admin, now);
   const due: number[] = [];
   if (fixtureIds.length) {
     const { data } = await admin.from("zwift_rider_metrics").select("zwift_id, velo_fetched_at").in("zwift_id", fixtureIds);
     const fetchedAt = new Map(((data ?? []) as Array<{ zwift_id: number; velo_fetched_at: string | null }>).map((row) => [Number(row.zwift_id), row.velo_fetched_at]));
-    for (const id of fixtureIds) {
-      const at = fetchedAt.get(id);
-      if (!at || now.getTime() - Date.parse(at) > POWER_STALE_MS) due.push(id);
-    }
+    for (const id of fixtureIds) if (stale(fetchedAt.get(id), now)) due.push(id);
+  }
+  const seen = new Set(due);
+  for (const id of await briefingZwiftIds(admin, now)) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    due.push(id);
   }
   const { data: legacy } = await admin
     .from("zwift_legacy_velo")
     .select("zwift_id")
     .lt("fetched_at", new Date(now.getTime() - LEGACY_STALE_MS).toISOString())
     .order("fetched_at", { ascending: true });
-  const seen = new Set(due);
   for (const id of ids(legacy as Array<{ zwift_id: unknown }>)) if (!seen.has(id)) due.push(id);
   return due;
 }
@@ -138,19 +169,9 @@ export async function dueZwiftIds(admin: Admin, now = new Date()): Promise<numbe
 type Fetched = { kind: "ok"; data: RiderPageData } | { kind: "unknown" } | { kind: "stop"; reason: string };
 
 async function fetchRiderPage(zwiftId: number, userAgent: string): Promise<Fetched> {
-  let response: Response;
-  try {
-    response = await fetch(`${PAGE_URL}${zwiftId}`, {
-      headers: { Accept: "text/html", "User-Agent": userAgent },
-      cache: "no-store",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-  } catch (err) {
-    return { kind: "stop", reason: err instanceof Error ? err.message : "geen verbinding" };
-  }
-  if (response.status === 404) return { kind: "unknown" };
-  if (!response.ok) return { kind: "stop", reason: `status ${response.status}` };
-  const data = parseRiderPage(await response.text(), zwiftId);
+  const page = await fetchZwiftRacingPage(`/riders/${zwiftId}`, userAgent);
+  if (page.kind !== "ok") return page;
+  const data = parseRiderPage(page.html, zwiftId);
   return data ? { kind: "ok", data } : { kind: "stop", reason: "pagina niet herkend" };
 }
 
@@ -158,9 +179,16 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Haalt op wie aan de beurt is tot `deadline` (ms sinds epoch). */
 export async function runZwiftRacingSync(admin: Admin, deadline: number): Promise<ZwiftRacingSyncResult> {
+  const userAgent = await zwiftRacingUserAgent();
+  // Eerst een paar uitslagpagina's: een klein, vast deel van het budget.
+  const expectations = await harvestRaceExpectations(admin, deadline, userAgent, RESULT_PAGES_PER_RUN);
   const due = await dueZwiftIds(admin);
-  const userAgent = `${(await getClub()).texts.shortName} Platform Club Ladder`;
-  const result: ZwiftRacingSyncResult = { due: due.length, fetched: 0, power: 0, legacy: 0, empty: 0, unknown: 0, remaining: 0, stopped: null };
+  const result: ZwiftRacingSyncResult = { due: due.length, fetched: 0, power: 0, legacy: 0, empty: 0, unknown: 0, remaining: 0, stopped: expectations.stopped, expectations };
+  // Weert ZwiftRacing ons op de uitslagpagina, dan ook geen rennerpagina's.
+  if (result.stopped) {
+    result.remaining = due.length;
+    return result;
+  }
 
   let index = 0;
   for (; index < due.length; index++) {
@@ -181,11 +209,11 @@ export async function runZwiftRacingSync(admin: Admin, deadline: number): Promis
       continue;
     }
     result.fetched += 1;
-    const { powerWkg, legacy } = page.data;
+    const { powerWkg, legacy, phenotype } = page.data;
     // Geen vermogen over 90 dagen: ook de oude waarde weg, die is dan verouderd.
     const { error } = await admin
       .from("zwift_rider_metrics")
-      .upsert({ zwift_id: zwiftId, power_wkg: powerWkg, velo_fetched_at: at, updated_at: at });
+      .upsert({ zwift_id: zwiftId, power_wkg: powerWkg, phenotype, velo_fetched_at: at, updated_at: at });
     if (error) {
       result.stopped = `opslaan mislukt: ${error.message}`;
       break;

@@ -2,6 +2,7 @@ import "server-only";
 
 import { after } from "next/server";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
+import { loadVelo1 } from "@/lib/zwiftracing/velo1";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { matchupWeights } from "./briefing";
 import { expectationRiders } from "./event-result";
@@ -105,12 +106,13 @@ export async function loadLadderEventMatchup(
   const ourZwiftIds = [
     ...new Set([...signups.filter((row) => sameTeam(row.team, ourName)).map((row) => row.zwiftId), ...ourSelection.map((row) => row.zwiftId)]),
   ];
-  const [riderMatches, metrics, riderWeights, ourIntervals, profileIds] = await Promise.all([
+  const [riderMatches, metrics, riderWeights, ourIntervals, profileIds, velo1] = await Promise.all([
     riderRaces(admin, zwiftIds).then((rows) => rows.filter((match) => match.resultId !== exclude)),
     loadRiderMetrics(zwiftIds),
     loadRiderWeights(admin, [...zwiftIds, ...raceIds]),
     intervalsByZwiftId(admin, ourZwiftIds),
     profilesByZwiftId(admin, zwiftIds),
+    loadVelo1(admin, zwiftIds),
   ]);
   if (zwiftIds.length > 0) after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_BUDGET_MS }));
   const scores = new Map<number, number>();
@@ -144,7 +146,12 @@ export async function loadLadderEventMatchup(
   // Meer dan vijf van ons: welke vijf rijden, per ploeg van de tegenstander (2026-11-07).
   const challenger = ladderChallengerFromTitle(event.title, ourName) === true;
   const withProfiles = (row: LadderMatchup): LadderMatchup => {
-    for (const side of [row.ours, row.theirs]) for (const rider of side.riders) rider.profileId = profileIds.get(rider.zwiftId) ?? null;
+    for (const side of [row.ours, row.theirs]) {
+      for (const rider of side.riders) {
+        rider.profileId = profileIds.get(rider.zwiftId) ?? null;
+        rider.velo1 = velo1.get(rider.zwiftId) ?? null;
+      }
+    }
     row.ourFive = ourFiveAdvice(row, option?.weights ?? null, challenger);
     return row;
   };

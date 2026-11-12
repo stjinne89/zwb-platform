@@ -125,7 +125,10 @@ export default function PrivacyPage() {
             gemiddelde van een ploeg vanaf drie renners, en in de matchup en de
             verwachte uitslag van het racebriefje per renner het vermogen in
             watt naast W/kg, waaruit het gewicht af te leiden is, ook van
-            renners van andere clubs.
+            renners van andere clubs. Voor de verwachting bij een ladderrace
+            rekenen we naast vermogen met de vELO1 van ZwiftRacing, zoals
+            zwiftracing.app die openbaar toont, ook van renners van andere
+            clubs; die leggen we vóór de start vast bij de verwachting.
           </li>
           <li>
             <strong>ZRL-teamgegevens van WTRL:</strong> voor de ZRL-teams nemen
@@ -174,7 +177,10 @@ export default function PrivacyPage() {
             en de segmenttijden van je startgroep; vermogen, gewicht en naam alleen
             van <MemberNoun plural />, van anderen alleen plek, tijden en de Zwift Racing
             Score van vóór de race. Met die score rekenen we je verwachte plek en
-            punten uit. Je eigen races leggen we naast elkaar: je eerdere passages
+            punten uit. Staat de uitslag van een race ook op ZwiftRacing.app,
+            dan bewaren we daarvan voor <MemberNoun plural /> de plek die ZwiftRacing vóór
+            de start verwachtte, de echte plek en het aantal finishers in de pen.
+            Dat ziet alleen jij, bij je eigen race. Je eigen races leggen we naast elkaar: je eerdere passages
             over dezelfde sprint of klim, je PR en de richttijd van het
             racebriefje. Die terugblik ziet alleen jij. Om je eigen races te
             vinden, ook buiten de kalender, lezen we via je Zwift-ID je lijst met
@@ -183,7 +189,11 @@ export default function PrivacyPage() {
             halen we alleen op als je zelf in de uitslag staat. Andere <MemberNoun plural />{" "}
             in zo&apos;n race zien jouw plek, tijd en W/kg uit de uitslag van Zwift
             (gemiddeld en over je beste 5 en 20 minuten), zoals Zwift die ook zelf
-            toont; je gewicht en je eigen rit zien ze niet.
+            toont; je gewicht en je eigen rit zien ze niet. Bij een gewone
+            Zwift-race of FRR-etappe toont het event vóór de start de{" "}
+            <MemberNoun plural /> die zich bij Zwift aanmeldden, met pen, verwachte plek en
+            rennerstype van ZwiftRacing. Die halen we van de openbare eventpagina,
+            bewaren we een half uur en zien alleen ingelogde leden.
           </li>
           <li id="zwb-ds" className="scroll-mt-20">
             <strong><ModuleName module="live_race" /> (live raceoverzicht):</strong> tijdens een Zwift-race
@@ -202,11 +212,14 @@ export default function PrivacyPage() {
             <strong>Racebriefing (ZRL):</strong> voor een ZRL-race van een
             {" "}<ClubShortName />-team vragen we bij Zwift van iedereen in de startgroep de Zwift
             Racing Score en categorie op, ook van renners zonder <ClubShortName />-account en
-            van andere clubs; dat is wat Zwift in de game toont. Zodra we
-            gekoppeld zijn met ZwiftRacing.app, halen we daar ook de vELO-rating
-            en het beste vermogen in W/kg over 15 seconden tot 20 minuten op,
-            zoals ZwiftRacing dat openbaar toont; daarvoor sturen we de
-            Zwift-ID&apos;s van de startgroep naar ZwiftRacing. Gewicht en FTP
+            van andere clubs; dat is wat Zwift in de game toont. Bij
+            ZwiftRacing.app halen we daarnaast de openbare eventpagina van de
+            race op: per renner de rating voor deze race, de verwachte plek, het
+            beste vermogen in W/kg over 15 seconden tot 20 minuten en het
+            rennerstype. Kent ZwiftRacing de race nog niet, dan halen we per
+            renner de vELO1 en het rennerstype van zijn openbare rennerpagina;
+            daarvoor vragen we de pagina&apos;s van de Zwift-ID&apos;s in de
+            startgroep op. Gewicht en FTP
             nemen we daarvoor niet over. Bij een puntenrace of Race of Truth
             vragen we daarnaast per sprint, KOM en rondesegment (zoals de
             Jarvis Lap) op de route bij Zwift de

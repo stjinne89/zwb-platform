@@ -7,7 +7,12 @@ import { DURATIONS, type PowerWkg } from "./team-power";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-export type FrozenExpectation = { riders: Map<number, PowerWkg>; weights: DurationWeights | null };
+export type FrozenExpectation = {
+  riders: Map<number, PowerWkg>;
+  /** vELO1 per renner; leeg in een verwachting van vóór 2026-11-12. */
+  velo1: Map<number, number>;
+  weights: DurationWeights | null;
+};
 
 /**
  * Legt vóór de start vast waarmee de verwachting rekent (0308); elke opening
@@ -56,11 +61,15 @@ export async function loadLadderExpectation(admin: Admin, eventId: string): Prom
     .maybeSingle();
   if (error || !data) return null;
   const riders = new Map<number, PowerWkg>();
+  const velo1 = new Map<number, number>();
   for (const row of Array.isArray(data.riders) ? (data.riders as unknown[]) : []) {
-    const rider = row as { zwiftId?: unknown; wkg?: unknown } | null;
+    const rider = row as { zwiftId?: unknown; wkg?: unknown; velo1?: unknown } | null;
     const zwiftId = Number(rider?.zwiftId);
     const wkg = parsePower(rider?.wkg);
-    if (Number.isSafeInteger(zwiftId) && zwiftId > 0 && wkg) riders.set(zwiftId, wkg);
+    if (!Number.isSafeInteger(zwiftId) || zwiftId <= 0 || !wkg) continue;
+    riders.set(zwiftId, wkg);
+    const velo = number(rider?.velo1);
+    if (velo != null) velo1.set(zwiftId, velo);
   }
-  return riders.size > 0 ? { riders, weights: parseWeights(data.weights) } : null;
+  return riders.size > 0 ? { riders, velo1, weights: parseWeights(data.weights) } : null;
 }

@@ -1,11 +1,32 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-11)
+## Actieve volgorde (bijgewerkt 2026-11-12)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **ZwiftRacing in de verwachtingen van events (2026-11-12): gepusht naar
+   `main` (`d2fa65c2`, privacy `b05806b7`).** Migratie
+   `0326_zwiftracing_race_expectations.sql` is op 2026-11-12 toegepast op
+   productie (eigenaar: "pas toe en push naar main"). De privacytekst staat
+   erin (goedgekeurd door de eigenaar, geen nieuwe versie). Open: na de
+   deploy een racebriefje, een
+   ladderevent en een gewone Zwift-race bekijken. Nog niet vastgesteld of
+   ZwiftRacing een ZRL-race vooraf kent. Zie de ronde "ZwiftRacing in de verwachtingen van events".
+
+0. **Club Ladder: geen bovengrens in km meer (2026-11-12): gepusht naar
+   `main` (`06864e3e`).** Geen migratie. Op vraag van ZWBeasts: Figure 8 en
+   Montmartre Mixer vielen af op 25 km, niet op de tijd. Open: na de deploy
+   de keuzelijst en het advies op de teampagina bekijken. Zie de
+   ronde "Club Ladder: geen bovengrens in km meer".
+
+0. **Club Ladder: eigen selectie in het advies (2026-11-11): gepusht naar
+   `main` (`7992b7b`).** Geen migratie. Open: na de deploy als captain op de
+   teampagina een advies openen, renners aanvinken en Toepassen, ook op een
+   telefoon. Zie
+   de ronde "Club Ladder: eigen selectie in het advies".
 
 0. **Kopman (2026-11-11): op 2026-11-11 gepusht naar `main`, met alle rondes
    van ronde 1 tot en met spelen op de telefoon (`382dd83e` tot en met de
@@ -15,9 +36,9 @@ gaat stabiliteit voor nieuwe features.
    `/kopman`, buiten de schil van de club; `/zwbgame/kopman` stuurt door.
    Daarna, ook gepusht: "Kopman: een kaart op een renner naar keuze"
    (`4760fcf4`) en "Kopman: de ploegnaam echt te wijzigen" (`c70599a6`).
-   Lokaal, nog niet gepusht: "Kopman: de koers in groepen, en kaarten per
-   fase" (`51ef6d03`), "Kopman: de koers in vogelvlucht" (`900710f5`) en
-   "Kopman: de piramide" (`4dc1d399`, 2026-11-12): vijf niveaus van Kermis tot
+   Op 2026-11-12 gepusht (merge `0d23c25f`): "Kopman: de koers in groepen,
+   en kaarten per fase" (`51ef6d03`), "Kopman: de koers in vogelvlucht"
+   (`900710f5`) en "Kopman: de piramide" (`4dc1d399`): vijf niveaus van Kermis tot
    Wereldtour, zonder daglimiet op pakketten. Het bordspel is de koers, ook in
    de tijdrit; het overzicht toont sindsdien de koers in vogelvlucht met
    gezichtjes, het getekende koersbeeld is te kiezen. Op een telefoon vult het bord het scherm. Open: na de
@@ -951,7 +972,9 @@ gaat stabiliteit voor nieuwe features.
    lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie `0260_race_briefing.sql` is toegepast
    en de privacytekst staat erin. Open: een API-sleutel van ZwiftRacing.app
    (eigenaar vraagt hem aan; conceptbericht in de sessie van 2026-10-20) en dan
-   de koppeling tegen de echte API controleren.
+   de koppeling tegen de echte API controleren. *Bijgewerkt 2026-11-12:* het
+   briefje rekent nu zonder sleutel met ZwiftRacing (eventpagina of vELO1); de
+   sleutel is daarvoor niet meer nodig. Zie de ronde "ZwiftRacing in de verwachtingen van events".
 10. **Snelste fiets in pacingplan en briefing** (ronde van 2026-10-20 hieronder):
    gebouwd, lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie
    `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
@@ -12242,8 +12265,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: de piramide
 
-**2026-11-12, de commit "Kopman: de piramide, van Kermis tot Wereldtour", lokaal
-(niet gepusht).** Geen migratie; wel een nieuwe versie van de save op het
+**2026-11-12, commit `4dc1d399`, samen met de twee rondes hieronder via merge
+`0d23c25f` op 2026-11-12 gepusht naar `main`.** Geen migratie; wel een nieuwe versie van de save op het
 apparaat (2).
 
 - **De vraag.** De eigenaar na een seizoen: "de eigen ontwikkeling gaat te
@@ -12293,8 +12316,8 @@ apparaat (2).
 
 ### Gebouwd — Kopman: de koers in vogelvlucht
 
-**2026-11-12, commit: de commit die dit blok toevoegt, lokaal op
-`claude/dreamy-varahamihira-5dc856`, niet gepusht.** Geen migratie.
+**2026-11-12, commit `900710f5` (op `claude/dreamy-varahamihira-5dc856`), via
+merge `0d23c25f` op 2026-11-12 gepusht naar `main`.** Geen migratie.
 
 - **De vraag.** Over de groepsweergave van de ronde hieronder: "Kun je het
   derde blok niet integreren in het tweede blok, nu lijkt het veel van
@@ -12328,8 +12351,8 @@ apparaat (2).
 
 ### Gebouwd — Kopman: de koers in groepen, en kaarten per fase
 
-**2026-11-12, commit `51ef6d03`, lokaal op
-`claude/dreamy-varahamihira-5dc856`, niet gepusht.** Geen migratie. *De
+**2026-11-12, commit `51ef6d03` (op `claude/dreamy-varahamihira-5dc856`), via
+merge `0d23c25f` op 2026-11-12 gepusht naar `main`.** Geen migratie. *De
 groepsweergave van deze ronde is dezelfde dag vervangen door de vogelvlucht,
 zie hierboven.*
 
@@ -12378,8 +12401,206 @@ zie hierboven.*
 - **Niet geverifieerd:**
   - een echte telefoon en Safari;
   - een streek in het spel zelf (alleen in de tests);
-  - het samenvoegen met de piramide. Beide rondes wijzigen `board.ts`; daar
-    kan een conflict ontstaan.
+  - ~~het samenvoegen met de piramide~~: gedaan in `0d23c25f`. `board.ts`
+    voegde vanzelf samen, alleen `kopman.module.css` en `PLAN.md` botsten
+    (beide kanten behouden). Daarna tsc, eslint, 60 Kopman-tests,
+    `next build`, de balansrun (Wereldtour in seizoen 5, 7, 9 en 9, gelijk aan
+    vóór de merge) en een koers in de Interclub in vogelvlucht in de preview.
+
+### Gebouwd — ZwiftRacing in de verwachtingen van events
+
+**2026-11-12, commit `d2fa65c2` (privacy `b05806b7`), gepusht naar `main`**
+(eigenaar: "pas toe en push naar main"). Migratie
+`0326_zwiftracing_race_expectations.sql`, op 2026-11-12 toegepast op productie
+via de Supabase-connector: beide tabellen bestaan, RLS aan, geen policies. Vraag van de
+eigenaar: kan zwiftracing.app, sinds 2026-11-11 vanaf de server bereikbaar,
+de verwachtingen en matchups bij events beter maken? Daarna: kunnen we voor
+de Club Ladder ook extra data halen of leren van hoe ZwiftRacing het doet?
+Na het voorstel: "Neem dit mee in het gehele voorstel … en bouw dat".
+Onderzoek en metingen: [docs/zwiftracing-events-onderzoek-2026-11-12.md](docs/zwiftracing-events-onderzoek-2026-11-12.md).
+
+**Waarom.** Op vijf ladderraces voorspelde ons vermogen de uitslag met
+Spearman 0,54, vELO1 met 0,58 en beide samen met 0,70: vermogen zegt wat
+iemand kan trappen, vELO1 wat hij daar in races mee haalt. Op ZRL race 6 van
+ronde 1 voorspelde ZwiftRacing de finish beter dan de ZRS (0,72 tegen 0,63,
+vier pennen); de ZRS erbij hielp niet. De routeweging van ZwiftRacing (vELO2 ×
+factorWeights) voegde weinig toe boven vELO1 of vELO2 zonder weging.
+
+**Wat er veranderde.**
+- **Lezer** `zwiftracing/tsr-data.ts`: de loaderdata van TanStack Start
+  (`$R[n]=`, `!0`, sleutels zonder aanhalingstekens) zonder `eval`; een
+  andere vorm geeft null. `event-page.ts` leest per pen de renners met
+  `eventRating` (alleen vóór de race: in de uitslag van een ladderrace staat
+  die bovenaan op de schaal van vELO1), `expectedPosition`, `position`, W/kg
+  en fenotype. `fetch-page.ts` haalt een pagina op (gedeeld met de
+  rennersync), `event-cache.ts` bewaart een eventpagina een half uur.
+- **Club Ladder**: `ladderRatings` (`club-ladder/briefing.ts`) combineert de
+  sterkte op vermogen met vELO1 via `zwiftracing/combine.ts`: beide als
+  z-score over de renners van de race, gemiddeld over wat er per renner is;
+  onder 70 % dekking (of minder dan drie waarden) blijft het vermogen. Geldt
+  voor het racebriefje, Onze vijf (`five-advice.ts`; wie meedoet blijft wie
+  vermogen heeft) en Verwacht in de uitslag (`starterRatings`). vELO1 gaat mee
+  in de vastgelegde verwachting van vóór de start (jsonb van 0308, geen
+  migratie); een verwachting van vóór vandaag neemt vELO1 van nu.
+- **ZRL-racebriefje** (`race-briefing/load.ts`): heeft 70 % van het veld een
+  `eventRating` op de eventpagina van ZwiftRacing, dan die; anders vELO1 per
+  renner (`zwiftracing/velo1.ts`), en zonder dekking de ZRS zoals voorheen.
+  Nooit door elkaar. W/kg en type van de eventpagina vullen aan waar
+  `zwift_rider_metrics` niets heeft; het type staat bij Volgen.
+- **ZWBeter racen**: de sync haalt per bewaarde race (`zrl_race_snapshots`, geen
+  groepsritten, laatste 120 dagen) één keer de uitslagpagina en bewaart alleen
+  voor renners met een profiel de verwachte plek, de plek en het aantal
+  finishers in de pen (`zwiftracing_race_expectations`); welke races gedaan
+  zijn staat in `zwiftracing_event_fetches` (een niet-definitieve uitslag na zes
+  uur opnieuw, na drie dagen niet meer). Je race toont "verwacht door
+  ZwiftRacing" met het verschil, Jouw races het gemiddelde vanaf twee races.
+  Alleen voor jezelf.
+- **Gewone Zwift-race en FRR-etappe**: tot een week vooruit en vóór de start
+  het blok Verwachting ZwiftRacing op het event, met de aangemelde leden, pen,
+  verwachte plek (van hoeveel) en type, elke naam via `MemberLink`. Alleen bij
+  `zwift_event_type` RACE of TIME_TRIAL (leeg telt als race).
+- **Sync** (`rider-sync.ts`): na de ladderrenners ook wie de afgelopen twee
+  dagen in een racebriefje stond (hooguit 400), zodat vELO1 er is als
+  ZwiftRacing de ZRL-race niet kent; leest en schrijft het fenotype
+  (`zwift_rider_metrics.phenotype`, 0260); vóór de rennerpagina's hooguit twee
+  uitslagpagina's per run.
+- `/hulp` (racebriefje, ladderverwachting, Uitslag, events, je race tegenover
+  de verwachting), `docs/runbook.md` en de zoektermen bijgewerkt.
+
+**Bewust niet.**
+- **Routewegingen van ZwiftRacing bewaren** en de eventlijst oogsten: weinig
+  winst boven vELO1 (zie de metingen), wel een tabel en een extra job.
+- **ZRS en ZwiftRacing samen in de ZRL**: niet beter dan ZwiftRacing alleen.
+- **Een vooraf-verwachting van ZwiftRacing voor een ladderrace**: het
+  ladderevent geeft vooraf een 404; vELO1 doet het werk.
+- **vELO-verandering in de terugblik**: de schaal verschilt per soort event
+  (vELO1 in de ladderuitslag) en de ZRL zet vELO soms uit (`veloDisabled`).
+- **Een scenariomodel** (wie welke sprint rijdt): een eigen ronde.
+- **Het route-advies op de teampagina** rekent nog alleen op vermogen: het
+  vergelijkt parcoursen, niet renners onderling.
+- **Een nieuwe privacyversie**: de tekst is alleen uitgebreid, op dezelfde
+  versie. De eigenaar keurde het concept goed ("Yes, add it"): in
+  `privacy/page.tsx` bij de Club Ladder (vELO1 in de verwachting), `#racen`
+  (verwachte plek van ZwiftRacing, en het blok op het event van een gewone
+  Zwift-race of FRR-etappe) en `#racebriefing` (eventpagina, anders
+  rennerpagina; de zin "zodra we gekoppeld zijn" is weg).
+
+**Geverifieerd:** `tsc` zonder fouten, eslint schoon op de gewijzigde
+bestanden, Vitest 4401 tests groen (nieuw: `zwiftracing-tsr-data`,
+`zwiftracing-event-page`, `zwiftracing-combine`, en vELO1 in `starterRatings`
+en de ZwiftRacing-trend in `raceTrend`). `omnium-live` faalt hier alleen omdat
+deze worktree geen `.env.local` heeft. De lezer is tijdens het onderzoek op
+echte eventpagina's (signups en results) gecontroleerd. **Niet geverifieerd:**
+de sync tegen de echte tabellen (0326 is toegepast, maar nog geen run gezien),
+de schermen in de app (vraagt een deploy), en of ZwiftRacing een ZRL-race
+vooraf kent.
+
+### Gebouwd — Club Ladder: geen bovengrens in km meer
+
+**2026-11-12, commit `06864e3e`, gepusht naar `main`** (eigenaar: "Push
+main").
+Geen migratie. ZWBeasts vroegen waarom parcoursen op de rand van onze
+filter, zoals Figure 8 en Montmartre, er niet in staan terwijl ze in tijd
+wel passen. Na onderzoek koos de eigenaar: de km-grens eraf.
+
+**Wat het onderzoek liet zien.**
+- Beide vielen af op de 25 km, niet op de 45 minuten: Watopia Figure 8 is
+  30,2 km (44,6 min volgens het clubmodel), Figure 8 Reverse 29,9 km (44,2
+  min), Montmartre Mixer 27,6 km (40,8 min), steeds met lead-in.
+- De ladder rijdt zulke routes gewoon. In `club_ladder_matches` staat
+  Montmartre Mixer zes keer, waarvan ZWBeasts hem op 9 en 11 november zelf
+  kozen (1 ronde, winnaar 38,2 en 38,6 min). Ook op volle lengte gereden:
+  Coast to Coast (26,8 km), Tair Dringfa Fechan (32 km), Harrogate Circuit in
+  twee rondes (27,8 km), Royal Pump Room 8 (27,7 km). Van de 133 gereden
+  routes vielen er 28 buiten onze filter.
+- De Zwift-events van de ladder staan op rondes of op een eigen afstand:
+  Surrey Hills is ingekort tot 23 km, Sugar Cookie tot 21,1 km
+  (`/api/public/events/<id>`, `distanceInMeters`).
+- Het race book kon niet opnieuw gelezen worden: de Notion-pagina's geven
+  `publicAccessRole: none`. Of de 15–25 km daar nog staat, is dus niet na te
+  gaan; de uitslagen laten zien dat de ladder in de praktijk ruimer is.
+
+**Wat er veranderde.** `lapsWithinRule` (`club-ladder/routes.ts`) telt een
+rondental vanaf 15 km tot het clubmodel boven 45 minuten komt; de constante
+`LADDER_ROUTE_MAX_KM` is weg (`rules.ts`). Elke ronde erbij duurt langer,
+dus het eerste rondental boven 45 minuten sluit de reeks af. Daardoor 174
+in plaats van 148 parcoursen, en 50 bestaande routes krijgen er een
+rondental bij (bijvoorbeeld 7 rondes Castle Crit). De nieuwe regel is een
+uitbreiding van de oude: geen route of rondental valt af, dus ook geen
+favoriet, en het kortste rondental (waar type en gewichten op rekenen) blijft
+per bestaande route gelijk. `/hulp` noemt de grens nu als "minstens 15 km",
+zonder bovengrens in km. Unit-test op Montmartre Mixer en Figure 8 (en
+Reverse).
+
+**Bewust niet.**
+- **Ingekorte events op een eigen afstand** (zoals Surrey Hills op 23 km):
+  dan rekent het advies per route met een vrije afstand in plaats van
+  rondes. Een grotere wijziging, niet gevraagd.
+- **ZWBgame** (`zwbgame/routes.ts`) houdt zijn vaste lijst van zeven routes
+  van 15–25 km; dat is een spel, geen keuzelijst voor de ladder.
+- De 45 minuten blijft. Figure 8 zit daar met 44,6 min krap onder; op
+  Montmartre Mixer reden de winnaars ongeveer 5% sneller dan het model.
+
+**Geverifieerd:** de Club Ladder-tests (20 bestanden, 189 tests), `tsc` en
+eslint op de gewijzigde bestanden. **Niet geverifieerd:** de teampagina met
+de langere lijst (vraagt een deploy; hier is geen `.env.local`).
+
+### Gebouwd — Club Ladder: eigen selectie in het advies
+
+**2026-11-11, commit `7992b7b`, gepusht naar `main`** (eigenaar: "Push
+main"). Geen migratie. Op verzoek van de eigenaar:
+"Kun je op de teamleider bij het advies voor parcours ook de mogelijkheid
+maken om de eigen selectie aan te vinken in plaats van de beste 5" (bedoeld:
+de Club Ladder, bevestigd met "Club ladder"). Gelezen
+als: op de Club Ladder-teampagina (Advies tegen …) laat een captain zelf
+aanvinken met welke renners het advies rekent.
+
+**Wat er was.** Op de teampagina rekende het advies zonder selectie per
+parcours met onze vijf sterksten voor dat parcours (`chooseFive` in
+`rank-pairs.ts`). Een selectie kon alleen op het event van een geplande
+wedstrijd; tegen een ploeg die je nog wilt uitdagen is er geen event, dus ook
+geen selectie.
+
+**Wat er is:**
+- Onder de kop **Advies tegen …** staat voor wie op het event de selectie mag
+  maken (`teams.manage_roster`, of captain/co-captain van dit team, dezelfde
+  regel als `setLadderSelection`) de knop **Eigen selectie**: een keuzelijst
+  van de renners van het team, met Toepassen, Annuleren en, als er een eigen
+  selectie staat, **Beste vijf** om terug te gaan. Dicht staan de gekozen
+  namen naast de knop.
+- De keuze staat alleen in de URL (`&met=profile:<id>,roster:<id>`), niet in
+  de database. Toepassen navigeert naar die URL en de pagina rekent opnieuw.
+  Daardoor rekent het advies met precies die renners: met vijf of minder zijn
+  het die renners, met meer dan vijf de sterkste vijf van hen per parcours
+  (zoals een selectie op het event). Het blok toont "Selectie ·".
+- De eigen selectie gaat voor de selectie op het event. Ze blijft staan bij
+  een andere tegenstander in de ranking, bij Advies onder Komende matchups
+  zonder event en bij sorteren van het teamprofiel.
+- `lib/club-ladder/advice-selection.ts` leest en schrijft de parameter en
+  houdt alleen renners van dit team (`parseAdviceSelection`), met unit-test.
+  De keuzelijst is `club-ladder/_components/ladder-advice-selection.tsx`.
+- `/hulp` (Club Ladder, Advies) bijgewerkt.
+
+**Keuzes:** een gewoon lid ziet de knop niet, maar een link met `met=` werkt
+voor iedereen: het is een proefopstelling, niets wordt bewaard, en de captain
+kan de link zo delen. Geen opslag in de database: dan zou een proef van één
+captain het advies van de anderen veranderen, en voor een geplande wedstrijd
+is er al de selectie op het event.
+
+**Bewust niet:** de knop op het Parcoursadvies van het event. Daar rekent het
+advies al met de selectie van het event, en die zet een captain in het blok
+Selectie erboven; een tweede, losse keuze daarnaast zou twee selecties voor
+dezelfde wedstrijd geven.
+
+**Geverifieerd:** `tsc`, eslint op de gewijzigde bestanden, alle unit-tests
+(op `omnium-live` na, die `.env.local` nodig heeft en hier niet draait). De
+keuzelijst los in Chromium op 375px en breed (aanvinken, Toepassen geeft de
+juiste URL, Beste vijf haalt `met=` weg, Toepassen zonder wijziging sluit
+zonder te laden, geen zijwaarts scrollen).
+
+**Niet geverifieerd:** de echte teampagina met data: hier is geen
+`.env.local`, dus het advies met een eigen selectie is niet tegen echte
+renners bekeken. Ook niet als gewoon lid, op een echte telefoon of in Safari.
 
 ### Gebouwd — Kopman: de ploegnaam echt te wijzigen
 
@@ -13393,9 +13614,14 @@ een voorstel ("Ja, bouw het").
   15–25 km. Eerst een voorstel als het toch moet. *Bijgewerkt 2026-11-11:* de
   heatmap is er in de matchup, zie "Club Ladder: heatmap in de matchup".
 - **De racebriefing** gebruikt deze bron nog niet; die wacht op de API-sleutel.
+  *Achterhaald 2026-11-12:* het briefje gebruikt de eventpagina van ZwiftRacing
+  of vELO1 uit deze sync, zonder sleutel; `zwift_rider_metrics.velo` blijft
+  leeg. Zie de ronde "ZwiftRacing in de verwachtingen van events".
 - **Privacy**: de verklaring noemt het ophalen van 90-dagenvermogen en vELO1
   voor de ladder niet uitdrukkelijk; dat gold al voor de Chrome-taak. Niet
-  aangepast: eerst voorleggen.
+  aangepast: eerst voorleggen. *Bijgewerkt 2026-11-12:* vELO1 in de
+  ladderverwachting staat er nu in (ronde "ZwiftRacing in de verwachtingen van
+  events"); het 90-dagenvermogen voor de matchup nog niet uitdrukkelijk.
 
 **In productie nagegaan (2026-11-11, na `8ed655ee`):** zwiftracing.app laat
 verzoeken vanaf Netlify door. De test-run van de nieuwe cronjob schreef 16
@@ -18795,7 +19021,9 @@ staat nu in `training/race-model.ts`, zonder afhankelijkheden;
 `training/events.ts` geeft het door, zodat bestaande imports en mocks blijven
 werken. `/hulp` noemt de grens.
 
-**Bewust niet.** Geen race book-regel: de ladder kent alleen 15–25 km. Een
+**Bewust niet.** Geen race book-regel: de ladder kent alleen 15–25 km
+(*sinds 2026-11-12 is de 25 km vervallen en is de 45 minuten de enige
+bovengrens*; zie "Club Ladder: geen bovengrens in km meer"). Een
 uitslag op zo'n route blijft gewoon bewaard en telt mee in de uitslagen per
 routetype; alleen de keuzelijst en het advies laten hem weg.
 
@@ -20298,7 +20526,8 @@ route-advies per tegenstander op basis van een analyse vooraf. Daarna: de
 routes uit zijn sheet "Zwiftladies ladder parcours" alvast als favoriet bij
 ZWBeauties en ZWBandits.
 
-**Keuzes eigenaar (2026-11-02).** Parcoursregel 15–25 km met lead-in, één of
+**Keuzes eigenaar (2026-11-02).** Parcoursregel 15–25 km (*sinds 2026-11-12
+minstens 15 km en hooguit 45 minuten, zonder bovengrens in km*) met lead-in, één of
 meer rondes, event-only telt mee. Favorieten zet de communityrol `team_captain`
 (zelfde recht als de Ladderpuzzel, `canEditLadderPuzzle`). De analyse gebruikt
 uitslagen én de renners van de tegenstander. Het teamdeel verhuist naar een
@@ -20319,7 +20548,8 @@ eigen pagina.
 - **Parcoursen** (`routes.ts`): alle fietsroutes uit `zwift-data`, per route de
   rondentallen waarbij lead-in plus rondes, afgerond op 0,1 km zoals Zwift het
   toont, binnen 15–25 km valt (154 routes; *sinds 2026-11-03 148*, zonder
-  parcoursen boven 45 minuten). Twee rondes Loop de Loop zijn
+  parcoursen boven 45 minuten; *sinds 2026-11-12 174*, zonder bovengrens in
+  km). Twee rondes Loop de Loop zijn
   25,03 km en tellen dus mee. Type Vlak/Punch/Heuvels/Klim en gewichten over
   15 s, 1, 5 en 20 min volgen uit m/km, de langste klim en een bergop finish
   (segmenten uit `accentsForRoute`). *Bijgewerkt 2026-11-03:* de gewichten
@@ -21643,7 +21873,10 @@ races gemiddeld 7,1 plekken voor de verwachting. Twee puntenraces met
 verwachting, dus nog geen tip.
 
 **Bewust niet.** vELO of de voorspelling van ZwiftRacing (geen sleutel; met sleutel
-moet eerst de vELO van vóór de race bewaard worden). Een model dat voorspelt wie
+moet eerst de vELO van vóór de race bewaard worden). *Achterhaald 2026-11-12:*
+ZwiftRacing bewaart de verwachting van vóór de start zelf op de uitslagpagina;
+ZWBeter racen toont die nu naast de eigen verwachting (0326), zie de ronde
+"ZwiftRacing in de verwachtingen van events". Een model dat voorspelt wie
 welke sprint rijdt. De richttijd van het briefje bij de start vastleggen (de
 PR-cache verliest een PR van vóór de race als iemand in de race een nieuwe zet;
 bij race 5 speelde dat niet). Sprint tegenover de intervals-curve. De terugblik

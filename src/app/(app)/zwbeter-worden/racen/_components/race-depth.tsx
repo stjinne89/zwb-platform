@@ -7,6 +7,7 @@ import { SectionHeader } from "@/components/app-ui";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import type { RaceDepth } from "@/lib/zrl-analysis/load";
 import type { RiderAnalysis } from "@/lib/zrl-analysis/race";
+import type { ZrRaceExpectation } from "@/lib/zwiftracing/race-expectations";
 import { pointsBySource, type PointsSource, type RaceRecord } from "@/lib/zrl-analysis/history";
 import { raceClock, wkg } from "@/lib/zrl-analysis/format";
 import { cn } from "@/lib/utils";
@@ -36,10 +37,17 @@ const SOURCE_LABEL: Record<PointsSource, string> = {
   finish: "Finish en podium",
 };
 
-/** Plek en punten tegenover de verwachting op ZRS van vóór de race. */
-export function ExpectationStats({ rider }: { rider: RiderAnalysis }) {
+/** Plek en punten tegenover de verwachting op ZRS van vóór de race, en die van ZwiftRacing. */
+export function ExpectationStats({ rider, zwiftRacing }: { rider: RiderAnalysis; zwiftRacing?: ZrRaceExpectation | null }) {
   const expected = rider.expected;
-  if (!expected) return null;
+  const zr = zwiftRacing ?? null;
+  if (!expected) {
+    return zr ? (
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <ZwiftRacingStat zr={zr} />
+      </div>
+    ) : null;
+  }
   const points = expected.points && rider.pointsSplit ? { scored: rider.pointsSplit.total, expected: Math.round(expected.points.total) } : null;
   const gain = rider.rank !== null ? expected.place - rider.rank : null;
   return (
@@ -50,6 +58,7 @@ export function ExpectationStats({ rider }: { rider: RiderAnalysis }) {
         label={gain === null ? "niet gefinisht" : gain === 0 ? "gefinisht, als verwacht" : `gefinisht, ${Math.abs(gain)} ${gain > 0 ? "voor" : "achter"} verwachting`}
         accent={gain !== null && gain > 0}
       />
+      {zr && <ZwiftRacingStat zr={zr} />}
       {points && (
         <>
           <Stat value={String(points.expected)} label="punten verwacht" />
@@ -57,6 +66,18 @@ export function ExpectationStats({ rider }: { rider: RiderAnalysis }) {
         </>
       )}
     </div>
+  );
+}
+
+/** De verwachte plek van ZwiftRacing in je pen, met het verschil. */
+function ZwiftRacingStat({ zr }: { zr: ZrRaceExpectation }) {
+  const gain = zr.position !== null ? zr.expected - zr.position : null;
+  return (
+    <Stat
+      value={`${zr.expected}e`}
+      label={`verwacht door ZwiftRacing${gain === null ? "" : gain === 0 ? ", als verwacht" : `, ${Math.abs(gain)} ${gain > 0 ? "voor" : "achter"}`}`}
+      accent={gain !== null && gain > 0}
+    />
   );
 }
 
@@ -209,6 +230,13 @@ export function RaceTrendView({ depth }: { depth: RaceDepth }) {
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {trend.placeGain !== null && (
           <Stat value={`${trend.placeGain > 0 ? "+" : trend.placeGain < 0 ? "−" : "±"}${nl1.format(Math.abs(trend.placeGain))}`} label={`plekken t.o.v. ZRS, ${trend.placed} races`} accent={trend.placeGain > 0} />
+        )}
+        {trend.zrPlaceGain !== null && trend.zrPlaced >= 2 && (
+          <Stat
+            value={`${trend.zrPlaceGain > 0 ? "+" : trend.zrPlaceGain < 0 ? "−" : "±"}${nl1.format(Math.abs(trend.zrPlaceGain))}`}
+            label={`plekken t.o.v. ZwiftRacing, ${trend.zrPlaced} races`}
+            accent={trend.zrPlaceGain > 0}
+          />
         )}
         {[sprint, klim, finish].map((s) =>
           s ? (

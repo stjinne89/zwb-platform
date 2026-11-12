@@ -36,6 +36,12 @@ export type RaceRecord = {
   segments: Array<{ segmentId: string; name: string; kind: SegmentKind; elapsed: number; wkg: number | null }>;
   /** ZRS van voor de race, uit de uitslag van Zwift. */
   scoreBefore: number | null;
+  /**
+   * De verwachte en echte plek in zijn pen volgens ZwiftRacing (0326); null
+   * zolang de sync de uitslag daar niet heeft opgehaald. De loader vult ze in.
+   */
+  zrExpected?: number | null;
+  zrPlace?: number | null;
 };
 
 /** Waar punten vandaan komen: sprints, klimmen, andere segmenten en de finish (FIN plus podium). */
@@ -244,6 +250,9 @@ export type RaceTrend = {
   placed: number;
   /** Gemiddeld zoveel plekken voor (+) of achter (−) de verwachting. */
   placeGain: number | null;
+  /** Hetzelfde tegenover de verwachting van ZwiftRacing, over zoveel races. */
+  zrPlaced: number;
+  zrPlaceGain: number | null;
   sources: SourceTrend[];
 };
 
@@ -252,6 +261,10 @@ export function raceTrend(records: RaceRecord[]): RaceTrend {
   const placed = races.filter((r) => r.place !== null && r.expectedPlace !== null);
   const placeGain = placed.length
     ? round1(placed.reduce((sum, r) => sum + ((r.expectedPlace as number) - (r.place as number)), 0) / placed.length)
+    : null;
+  const zrPlaced = races.filter((r) => r.zrPlace != null && r.zrExpected != null);
+  const zrPlaceGain = zrPlaced.length
+    ? round1(zrPlaced.reduce((sum, r) => sum + ((r.zrExpected as number) - (r.zrPlace as number)), 0) / zrPlaced.length)
     : null;
   const withPoints = races.filter((r) => r.byKind !== null);
   const sources: SourceTrend[] = (["sprint", "klim", "finish", "segment"] as PointsSource[])
@@ -268,7 +281,7 @@ export function raceTrend(records: RaceRecord[]): RaceTrend {
       };
     })
     .filter((s) => s.races > 0);
-  return { races, placed: placed.length, placeGain, sources };
+  return { races, placed: placed.length, placeGain, zrPlaced: zrPlaced.length, zrPlaceGain, sources };
 }
 
 // ---------------------------------------------------------------------------

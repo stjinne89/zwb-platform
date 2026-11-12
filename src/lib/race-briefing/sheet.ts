@@ -132,7 +132,7 @@ export function defaultSheet(input: {
   route: RouteKeyPoints | null;
   powerups: Array<{ powerup: Powerup; percent: number }>;
   own: Array<{ zwiftId: number; name: string; role: OwnRole; limits: LimitCheck }>;
-  watch: Array<{ name: string; teamLabel: string | null; reason: "sterk" | "won" | "podium"; wonAt: string | null }>;
+  watch: Array<{ name: string; teamLabel: string | null; reason: "sterk" | "won" | "podium"; wonAt: string | null; type?: string | null }>;
   warnings: string[];
 }): SheetContent {
   const sketch: SketchMark[] = [];
@@ -168,7 +168,7 @@ export function defaultSheet(input: {
     rules: cheatRules(input.format, input.own.length),
     watch: input.watch.map((w) => ({
       name: cleanRiderName(w.name),
-      note: [w.teamLabel, w.reason === "won" && w.wonAt ? `won ${w.wonAt}` : w.reason === "podium" ? "podium eerder" : null].filter(Boolean).join(" · "),
+      note: [w.teamLabel, w.type ?? null, w.reason === "won" && w.wonAt ? `won ${w.wonAt}` : w.reason === "podium" ? "podium eerder" : null].filter(Boolean).join(" · "),
     })),
     notes: input.warnings,
   };

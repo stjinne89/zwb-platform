@@ -263,6 +263,18 @@ describe("raceTrend", () => {
     expect(trend.sources.find((s) => s.source === "klim")?.perRace).toBe(-1.5);
     // Geen andere segmenten op de route: geen bron.
     expect(trend.sources.some((s) => s.source === "segment")).toBe(false);
+    expect(trend.zrPlaced).toBe(0);
+    expect(trend.zrPlaceGain).toBeNull();
+  });
+
+  it("middelt de plekken tegenover de verwachting van ZwiftRacing apart", () => {
+    const trend = raceTrend([
+      record(1, { zrExpected: 12, zrPlace: 5 }),
+      record(2, { zrExpected: 3, zrPlace: 6 }),
+      record(3, { zrExpected: 4, zrPlace: null }),
+    ]);
+    expect(trend.zrPlaced).toBe(2);
+    expect(trend.zrPlaceGain).toBe(2);
   });
 });
 
@@ -271,6 +283,8 @@ describe("strengthAdvice", () => {
     races: [],
     placed: 0,
     placeGain: null,
+    zrPlaced: 0,
+    zrPlaceGain: null,
     sources: [
       { source: "sprint" as const, races, perRace: sprint, scored: 0, expected: 0 },
       { source: "klim" as const, races, perRace: klim, scored: 0, expected: 0 },

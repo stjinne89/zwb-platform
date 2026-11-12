@@ -1,7 +1,7 @@
 import { routes as zwiftRoutes } from "zwift-data";
 import { accentsForRoute } from "@/lib/events/zwift-route";
 import { zwiftRaceModelMinutes } from "@/lib/training/race-model";
-import { LADDER_ROUTE_MAX_KM, LADDER_ROUTE_MAX_MINUTES, LADDER_ROUTE_MIN_KM } from "./rules";
+import { LADDER_ROUTE_MAX_MINUTES, LADDER_ROUTE_MIN_KM } from "./rules";
 
 export type LadderRouteClass = "vlak" | "punch" | "heuvel" | "klim";
 export type PowerDuration = "s15" | "m1" | "m5" | "m20";
@@ -22,7 +22,7 @@ export type LadderRouteOption = {
   world: string;
   eventOnly: boolean;
   zwiftInsiderUrl: string | null;
-  /** De rondentallen die binnen 15–25 km vallen, oplopend. */
+  /** De rondentallen van minstens 15 km en hooguit 45 minuten, oplopend. */
   laps: LadderRouteLaps[];
   routeClass: LadderRouteClass;
   /** Hoogtemeters per km over het kortste toegestane rondental. */
@@ -181,24 +181,19 @@ export function durationWeights(metersPerKm: number, climbs: LadderClimb[], fini
 }
 
 /**
- * De rondentallen die binnen de regel vallen. Afstand afgerond op 0,1 km zoals
- * Zwift hem toont: twee rondes Loop de Loop zijn 25,03 km en tellen mee. Een
- * rondental dat volgens het clubmodel langer duurt dan 45 minuten valt af.
+ * De rondentallen die binnen de regel vallen: minstens 15 km, afgerond op
+ * 0,1 km zoals Zwift hem toont, en volgens het clubmodel hooguit 45 minuten.
+ * Een bovengrens in km is er sinds 2026-11-12 niet meer; elke ronde erbij
+ * duurt langer, dus het eerste rondental boven 45 minuten sluit de reeks af.
  */
 export function lapsWithinRule(leadInKm: number, lapKm: number, isLap: boolean, lapElevationM = 0, leadInElevationM = 0) {
   const result: LadderRouteLaps[] = [];
   if (!(lapKm > 0)) return result;
-  const maxLaps = isLap ? Math.floor(LADDER_ROUTE_MAX_KM / lapKm) + 1 : 1;
-  for (let laps = 1; laps <= maxLaps; laps += 1) {
+  for (let laps = 1; laps === 1 || isLap; laps += 1) {
     const km = round1(leadInKm + laps * lapKm);
     const elevationM = Math.round(leadInElevationM + laps * lapElevationM);
-    if (
-      km >= LADDER_ROUTE_MIN_KM &&
-      km <= LADDER_ROUTE_MAX_KM &&
-      zwiftRaceModelMinutes(km, elevationM, "race") <= LADDER_ROUTE_MAX_MINUTES
-    ) {
-      result.push({ laps, km, elevationM });
-    }
+    if (zwiftRaceModelMinutes(km, elevationM, "race") > LADDER_ROUTE_MAX_MINUTES) break;
+    if (km >= LADDER_ROUTE_MIN_KM) result.push({ laps, km, elevationM });
   }
   return result;
 }

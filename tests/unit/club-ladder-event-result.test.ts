@@ -178,6 +178,34 @@ describe("starterRatings", () => {
   it("geeft null zonder vermogen", () => {
     expect(starterRatings(starters, new Map(), new Map([[11, wkg(3)]]), null).get(2)).toBeNull();
   });
+
+  it("neemt vELO1 mee: van vóór de start, en voor wie die mist die van nu", () => {
+    const frozen = new Map([
+      [11, wkg(4)],
+      [22, wkg(3.9)],
+      [33, wkg(3)],
+    ]);
+    // Op vermogen staat 11 voor 22; in races haalt 22 er veel meer uit.
+    const velo = {
+      frozen: new Map([
+        [11, 1200],
+        [22, 2100],
+      ]),
+      live: new Map([
+        [22, 900],
+        [33, 1500],
+      ]),
+    };
+    const ratings = starterRatings(starters, frozen, new Map(), null, velo);
+    // 22 met de 2100 van vóór de start, niet de 900 van nu.
+    expect(ratings.get(2)!).toBeGreaterThan(ratings.get(1)!);
+    // 33 heeft er geen van vóór de start: die van nu telt.
+    const withLive = (value: number) => starterRatings(starters, frozen, new Map(), null, { ...velo, live: new Map([[33, value]]) }).get(3)!;
+    expect(withLive(3000)).toBeGreaterThan(withLive(500));
+    // Zonder vELO1 blijft het de volgorde op vermogen.
+    const plain = starterRatings(starters, frozen, new Map(), null);
+    expect(plain.get(1)!).toBeGreaterThan(plain.get(2)!);
+  });
 });
 
 describe("ladderTeamResults", () => {

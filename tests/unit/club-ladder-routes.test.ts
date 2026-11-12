@@ -50,14 +50,23 @@ describe("challengeableTeams", () => {
 });
 
 describe("ladderparcoursen", () => {
-  it("telt rondes binnen 15–25 km, afgerond op 0,1 km", () => {
+  it("telt rondes vanaf 15 km tot 45 minuten, afgerond op 0,1 km", () => {
     expect(lapsWithinRule(0.194, 12.416, true).map((lap) => lap.laps)).toEqual([2]);
-    expect(lapsWithinRule(1.501, 3.47, true).map((lap) => lap.laps)).toEqual([4, 5, 6]);
-    expect(lapsWithinRule(0, 30, false)).toEqual([]);
+    // 4 rondes is 15,4 km; 8 rondes (29,3 km vlak) is 43 minuten, 9 rondes 48.
+    expect(lapsWithinRule(1.501, 3.47, true).map((lap) => lap.laps)).toEqual([4, 5, 6, 7, 8]);
+    expect(lapsWithinRule(0, 30, false)).toHaveLength(1);
+    expect(lapsWithinRule(0, 31, false)).toEqual([]);
     expect(lapsWithinRule(0, 10, false)).toEqual([]);
   });
 
-  it("laat parcoursen van meer dan 45 minuten weg, ook al vallen ze binnen 15–25 km", () => {
+  it("kent geen bovengrens in km: Montmartre Mixer en Figure 8 passen in tijd (2026-11-12)", () => {
+    const bySlug = new Map(ladderRouteOptions().map((option) => [option.slug, option]));
+    expect(bySlug.get("montmartre-mixer")?.laps).toEqual([{ laps: 1, km: 27.6, elevationM: 199 }]);
+    expect(bySlug.get("figure-8")?.laps.map((lap) => lap.km)).toEqual([30.2]);
+    expect(bySlug.get("figure-8-reverse")?.laps.map((lap) => lap.km)).toEqual([29.9]);
+  });
+
+  it("laat parcoursen van meer dan 45 minuten weg", () => {
     const slugs = new Set(ladderRouteOptions().map((option) => option.slug));
     for (const slug of ["ven-top", "road-to-sky", "lutscher", "la-reine"]) expect(slugs.has(slug), slug).toBe(false);
     // 20 km vlak (30 min) mag, 20 km met 1500 hm (66 min) niet.

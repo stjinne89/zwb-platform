@@ -7,7 +7,7 @@
 // hele groep, zodat elke vijf op dezelfde maat staat. Zonder parcours telt elke
 // duur even zwaar. Puur: geen I/O.
 
-import { LADDER_TEAM_SIZE, projectLadder, routeRatings, type LadderBriefingRider } from "./briefing";
+import { LADDER_TEAM_SIZE, ladderRatings, projectLadder, type LadderBriefingRider } from "./briefing";
 import type { LadderMatchup, MatchupRider } from "./matchup";
 import type { DurationWeights } from "./routes";
 import { DURATIONS, type PowerWkg } from "./team-power";
@@ -31,6 +31,7 @@ export type FiveAdvice = {
   withoutPower: Array<Pick<MatchupRider, "zwiftId" | "name" | "profileId">>;
 };
 
+/** Wie meetelt: met vermogen; vELO1 alleen telt hier niet, want de keuze gaat over vermogen per duur. */
 const powerOf = (rider: MatchupRider): PowerWkg | null => {
   const wkg = rider.routeWkg ?? rider.wkg;
   return wkg && DURATIONS.some((d) => wkg[d] != null && wkg[d]! > 0) ? wkg : null;
@@ -53,7 +54,7 @@ export function ourFiveAdvice(matchup: LadderMatchup, weights: DurationWeights |
   if (ours.length <= LADDER_TEAM_SIZE || theirsAll.length === 0) return null;
 
   const all = [...ours, ...theirsAll];
-  const ratings = routeRatings(all.map((rider) => ({ zwiftId: rider.zwiftId, wkg: powerOf(rider) })), weights);
+  const ratings = ladderRatings(all.map((rider) => ({ zwiftId: rider.zwiftId, wkg: powerOf(rider), velo1: rider.velo1 })), weights);
   const rating = (rider: MatchupRider) => ratings.get(rider.zwiftId) ?? null;
   const byStrength = (a: MatchupRider, b: MatchupRider) => (rating(b) ?? 0) - (rating(a) ?? 0);
   // Meer dan vijf aangemeld bij de tegenstander: hij rijdt met zijn sterkste vijf.

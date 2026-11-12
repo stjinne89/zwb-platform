@@ -217,10 +217,10 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
         </section>
       )}
 
-      {ownRider && depth && (ownRider.expected || depth.segments.length > 0) && (
+      {ownRider && depth && (ownRider.expected || depth.zwiftRacing || depth.segments.length > 0) && (
         <section className="space-y-3">
           <SectionHeader title="Jouw race tegenover de verwachting" />
-          <ExpectationStats rider={ownRider} />
+          <ExpectationStats rider={ownRider} zwiftRacing={depth.zwiftRacing} />
           <PointsSources rider={ownRider} />
           <SegmentDepth depth={depth} />
         </section>
