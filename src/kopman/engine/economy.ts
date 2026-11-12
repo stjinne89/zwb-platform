@@ -1,19 +1,19 @@
 import { cardById, pool } from "./cards";
 import { buildCourse, courseWeights, fitFor } from "./course";
 import { ITEMS, itemById, teamBonus } from "./items";
-import { KIND_ODDS, openPack } from "./packs";
+import { KIND_ODDS, openPack, PACK_PRICE } from "./packs";
 import type { Placing } from "./race";
 import { hashSeed, rng } from "./rng";
+import { DIVISIONS, PROMOTED, RELEGATED, TOP_DIVISION } from "./divisions";
 import { rivalTeams } from "./teams";
-import { PLAYER_TEAM, RIDER_TYPES, type PackType, type Tier } from "./types";
-import { CALENDAR } from "./world";
+import { PLAYER_TEAM, RIDER_TYPES, type PackType, type RaceDef, type Tier } from "./types";
+import { raceById } from "./world";
 
-export const SAVE_VERSION = 1;
+/** 2: the pyramid. A save of version 1 is placed in a level on loading (save.ts). */
+export const SAVE_VERSION = 2;
 export const LINEUP_SIZE = 5;
-/** Races per day that pay out a pack. Coins and season points always count. */
-export const DAILY_PACK_RACES = 3;
 export const START_COINS = 1500;
-/** Prize money per place, top 10; 11 to 20 get the last entry. */
+/** Prize money per place at the top level of the first version, top 10; 11 to 20 get the last entry. Each level pays its own share. */
 export const PRIZES = [1500, 1000, 700, 500, 400, 320, 260, 210, 170, 140];
 export const PRIZE_TOP20 = 80;
 export const START_FEE = 300;
@@ -25,13 +25,17 @@ export const DUPLICATE_COINS: Record<Tier, number> = { brons: 150, zilver: 500, 
 /** Spare copies of one tier that trade in for one card of the tier above, of any kind. */
 export const TRADE_COST = 5;
 export const NEXT_TIER: Partial<Record<Tier, Tier>> = { brons: "zilver", zilver: "goud" };
-/** End of season, by team rank: coins and a pack. */
-export const SEASON_REWARDS: { upTo: number; coins: number; pack: PackType }[] = [
-  { upTo: 1, coins: 8000, pack: "goud" },
-  { upTo: 3, coins: 5000, pack: "zilver" },
-  { upTo: 6, coins: 3000, pack: "zilver" },
-  { upTo: 12, coins: 1500, pack: "brons" },
+/**
+ * End of season, by team rank: coins (times the level's share), and for the
+ * teams that go up (or the top two of the top level) the level's promotion pack.
+ */
+export const SEASON_COINS: { upTo: number; coins: number }[] = [
+  { upTo: 1, coins: 8000 },
+  { upTo: 3, coins: 5000 },
+  { upTo: 6, coins: 3000 },
+  { upTo: 12, coins: 1500 },
 ];
+
 
 export type RaceRecord = { race: string; winner: string; best: number; points: number; coins: number; pack: PackType | null };
 
@@ -52,20 +56,24 @@ export type Save = {
   packsOpened: number;
   pity: number;
   season: number;
+  /** The level in the pyramid, 0 (Kermis) to TOP_DIVISION. */
+  division: number;
   raceIndex: number;
   seasonPoints: Record<string, number>;
   seasonResults: RaceRecord[];
-  day: { date: string; rewarded: number };
 };
 
 export const today = (now = new Date()) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-/** A new career: five bronze riders, one of each type, some coins and a silver pack. */
-export function newSave(seed: number, date: string): Save {
+/** A new career in the Kermis: five bronze riders, one of each type, some coins and a bronze pack. */
+export function newSave(seed: number): Save {
   const random = rng(hashSeed(seed, "start"));
-  const rivals = new Set(rivalTeams().flatMap((t) => t.riders));
+  const rivals = new Set(rivalTeams(0).flatMap((t) => t.riders));
   const starters = RIDER_TYPES.map((type) => {
-    const options = pool().pool.filter((c) => c.type === type && c.tier === "brons" && c.overall >= 55 && !rivals.has(c.id));
+    const low = pool().pool.filter((c) => c.type === type && c.overall >= 53 && c.overall <= 57);
+    // Riders of the Kermis peloton only when there is no one else.
+    const free = low.filter((c) => !rivals.has(c.id));
+    const options = free.length ? free : low;
     return options[Math.floor(random() * options.length)].id;
   });
   return {
@@ -78,15 +86,24 @@ export function newSave(seed: number, date: string): Save {
     trades: 0,
     lineup: starters,
     kopman: starters[0],
-    packs: ["zilver"],
+    packs: ["brons"],
     packsOpened: 0,
     pity: 0,
     season: 1,
+    division: 0,
     raceIndex: 0,
     seasonPoints: {},
     seasonResults: [],
-    day: { date, rewarded: 0 },
   };
+}
+
+/** The level a collection belongs in: the highest whose weakest team it beats, by its best five. */
+export function divisionFor(collection: Record<string, number>) {
+  const best = Object.keys(collection).map((id) => cardById(id).overall).sort((a, b) => b - a).slice(0, LINEUP_SIZE);
+  const avg = best.length ? best.reduce((sum, n) => sum + n, 0) / best.length : 0;
+  let division = 0;
+  DIVISIONS.forEach((d, i) => { if (avg >= d.band[1] + 1) division = i; });
+  return division;
 }
 
 export type Pull = { id: string; duplicate: boolean };
@@ -189,6 +206,9 @@ function drawUp(save: Save, taken: { collection: Record<string, number>; items: 
   return { save: { ...save, ...taken, trades: save.trades + 1 }, pull: { id: choice, duplicate } };
 }
 
+/** What a pack costs at your level, or undefined when the shop there does not sell it. */
+export const priceAt = (save: Save, type: PackType) => (DIVISIONS[save.division].shop.includes(type) ? PACK_PRICE[type] : undefined);
+
 export function buyPack(save: Save, type: PackType, price: number | undefined): Save | null {
   if (price === undefined || save.coins < price) return null;
   return { ...save, coins: save.coins - price, packs: [...save.packs, type] };
@@ -212,7 +232,7 @@ export function setKopman(save: Save, id: string): Save {
 
 /** The best five from the collection for this race, best fit as kopman. */
 export function bestLineup(save: Save, raceId: string): Save {
-  const def = CALENDAR.find((r) => r.id === raceId);
+  const def = raceById.get(raceId);
   if (!def) return save;
   const weights = courseWeights(buildCourse(def));
   const ranked = Object.keys(save.collection).map((id) => ({ id, fit: fitFor(cardById(id), weights) })).sort((a, b) => b.fit - a.fit || a.id.localeCompare(b.id));
@@ -220,10 +240,11 @@ export function bestLineup(save: Save, raceId: string): Save {
   return { ...save, lineup, kopman: lineup[0] ?? null };
 }
 
-export const currentRace = (save: Save) => CALENDAR[save.raceIndex] ?? null;
-export const seasonDone = (save: Save) => save.raceIndex >= CALENDAR.length;
-export const raceSeed = (save: Save) => hashSeed(save.seed, save.season, save.raceIndex);
-export const packsLeftToday = (save: Save, date: string) => (save.day.date === date ? Math.max(0, DAILY_PACK_RACES - save.day.rewarded) : DAILY_PACK_RACES);
+/** The races of a level, in calendar order. */
+export const calendarOf = (division: number): RaceDef[] => DIVISIONS[division].races.map((id) => raceById.get(id)!);
+export const currentRace = (save: Save) => calendarOf(save.division)[save.raceIndex] ?? null;
+export const seasonDone = (save: Save) => save.raceIndex >= calendarOf(save.division).length;
+export const raceSeed = (save: Save) => hashSeed(save.seed, save.season, save.division, save.raceIndex);
 
 export function prizeFor(place: number) {
   if (place < 1) return 0;
@@ -235,36 +256,46 @@ export function pointsFor(place: number, monument: boolean) {
   return Math.round(POINTS[place - 1] * (monument ? MONUMENT_FACTOR : 1));
 }
 
-export type RaceReward = { coins: number; points: number; pack: PackType | null; best: number; dailyUsed: boolean; season: SeasonReward | null };
-export type SeasonReward = { rank: number; coins: number; pack: PackType };
+export type RaceReward = { coins: number; points: number; pack: PackType | null; best: number; season: SeasonReward | null };
+export type SeasonReward = { rank: number; coins: number; pack: PackType | null; move: number };
 
-/** The reward for a race: from the best own placing. Finishing earns bronze, the podium silver, a monument win gold. */
-export function packFor(best: number, monument: boolean): PackType | null {
-  if (best === 1) return monument ? "goud" : "zilver";
-  if (best >= 1 && best <= 3) return "zilver";
-  return best >= 1 ? "brons" : null;
+/**
+ * The pack for a race, from the best own placing: what the level gives for a
+ * win, for the podium and for the top 10. Outside the top 10 there is none.
+ */
+export function packFor(best: number, division: number): PackType | null {
+  const packs = DIVISIONS[division].packs;
+  if (best === 1) return packs.win;
+  if (best >= 1 && best <= 3) return packs.podium;
+  return best >= 1 && best <= 10 ? packs.top10 : null;
 }
 
 export function seasonStandings(save: Save) {
-  const teams = [{ id: PLAYER_TEAM, name: save.teamName }, ...rivalTeams().map((t) => ({ id: t.id, name: t.name }))];
+  const teams = [{ id: PLAYER_TEAM, name: save.teamName }, ...rivalTeams(save.division).map((t) => ({ id: t.id, name: t.name }))];
   return teams.map((t) => ({ ...t, points: save.seasonPoints[t.id] ?? 0 })).sort((a, b) => b.points - a.points || (a.id === PLAYER_TEAM ? -1 : b.id === PLAYER_TEAM ? 1 : a.id.localeCompare(b.id)));
 }
 
+/** Up (1), down (-1) or staying (0) for a team at this rank, in this level. */
+export function moveFor(rank: number, teams: number, division: number) {
+  if (rank >= 1 && rank <= PROMOTED && division < TOP_DIVISION) return 1;
+  if (rank > teams - RELEGATED && division > 0) return -1;
+  return 0;
+}
+
 /** Books a finished race: prize money, season points for every team, a pack, and the next race. */
-export function finishRace(save: Save, placings: Placing[], date: string): { save: Save; reward: RaceReward } {
+export function finishRace(save: Save, placings: Placing[]): { save: Save; reward: RaceReward } {
   const race = currentRace(save);
   if (!race) throw new Error("Het seizoen is al klaar");
+  const level = DIVISIONS[save.division];
   const monument = race.kind === "monument";
   const mine = placings.filter((p) => p.team === PLAYER_TEAM && p.place > 0);
   const best = mine.length ? Math.min(...mine.map((p) => p.place)) : 0;
   const prize = mine.reduce((sum, p) => sum + prizeFor(p.place), 0);
-  const coins = Math.round((START_FEE * (1 + teamBonus(save.items).startFee) + prize) * (monument ? MONUMENT_FACTOR : 1));
+  const coins = Math.round((START_FEE * (1 + teamBonus(save.items).startFee) + prize) * level.prize * (monument ? MONUMENT_FACTOR : 1));
   const seasonPoints = { ...save.seasonPoints };
   for (const p of placings) seasonPoints[p.team] = (seasonPoints[p.team] ?? 0) + pointsFor(p.place, monument);
   const points = mine.reduce((sum, p) => sum + pointsFor(p.place, monument), 0);
-  const day = save.day.date === date ? save.day : { date, rewarded: 0 };
-  const dailyUsed = day.rewarded < DAILY_PACK_RACES;
-  const pack = dailyUsed ? packFor(best, monument) : null;
+  const pack = packFor(best, save.division);
   let next: Save = {
     ...save,
     coins: save.coins + coins,
@@ -272,18 +303,28 @@ export function finishRace(save: Save, placings: Placing[], date: string): { sav
     seasonPoints,
     raceIndex: save.raceIndex + 1,
     seasonResults: [...save.seasonResults, { race: race.id, winner: placings[0]?.id ?? "", best, points, coins, pack }],
-    day: { date, rewarded: day.rewarded + (dailyUsed ? 1 : 0) },
   };
   let season: SeasonReward | null = null;
   if (seasonDone(next)) {
-    const rank = seasonStandings(next).findIndex((t) => t.id === PLAYER_TEAM) + 1;
-    const tier = SEASON_REWARDS.find((x) => rank <= x.upTo)!;
-    season = { rank, coins: tier.coins, pack: tier.pack };
-    next = { ...next, coins: next.coins + tier.coins, packs: [...next.packs, tier.pack] };
+    const standings = seasonStandings(next);
+    const rank = standings.findIndex((t) => t.id === PLAYER_TEAM) + 1;
+    const move = moveFor(rank, standings.length, save.division);
+    const seasonCoins = Math.round(SEASON_COINS.find((x) => rank <= x.upTo)?.coins ?? 0) * level.prize;
+    const seasonPack = rank <= PROMOTED ? level.promotion : null;
+    season = { rank, coins: Math.round(seasonCoins), pack: seasonPack, move };
+    next = { ...next, coins: next.coins + season.coins, packs: seasonPack ? [...next.packs, seasonPack] : next.packs };
   }
-  return { save: next, reward: { coins, points, pack, best, dailyUsed, season } };
+  return { save: next, reward: { coins, points, pack, best, season } };
 }
 
+/** Where the season just finished sends you: up, down or staying. */
+export function seasonMove(save: Save) {
+  const standings = seasonStandings(save);
+  return moveFor(standings.findIndex((t) => t.id === PLAYER_TEAM) + 1, standings.length, save.division);
+}
+
+/** The next season, a level up or down after promotion or relegation. */
 export function newSeason(save: Save): Save {
-  return { ...save, season: save.season + 1, raceIndex: 0, seasonPoints: {}, seasonResults: [] };
+  const division = Math.min(TOP_DIVISION, Math.max(0, save.division + (seasonDone(save) ? seasonMove(save) : 0)));
+  return { ...save, season: save.season + 1, division, raceIndex: 0, seasonPoints: {}, seasonResults: [] };
 }

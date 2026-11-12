@@ -40,6 +40,8 @@ De vraag was die opzet naar het wielrennen te halen. De eigenaar koos daarbij:
 - **Kalender.** Een seizoen telt 16 fictieve koersen: klassiekers, vijf
   monumenten, bergritten, een tijdrit en vlakke koersen. Ze lopen over 22 echte
   beklimmingen en 5 echte kassei- en grindstroken (zie "Bronnen").
+  **Niet meer zo sinds 2026-11-12:** er zijn vijf niveaus met elk 8 koersen;
+  zie [kopman-piramide.md](kopman-piramide.md).
 - **Koers.** Er rijden 60 renners: 11 fictieve ploegen en de eigen ploeg, elk
   met vijf renners. Elke 20 seconden echte tijd krijg je een hand van 3
   radiokaarten: aanvallen, tempo op kop, sparen, meespringen, kopman
@@ -145,7 +147,7 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
 
   | Pakket | Brons | Zilver | Goud | Prijs |
   | --- | --- | --- | --- | --- |
-  | Brons | 78% | 20% | 2% | 1.000 munten |
+  | Brons | 94% | 6% | — | 1.000 munten |
   | Zilver | 25% | 65% | 10% | 3.000 munten |
   | Goud | — | 60% | 40% | alleen te winnen |
 
@@ -174,11 +176,13 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
   - een zege in een monument geeft goud;
   - een andere zege of een podiumplaats geeft zilver;
   - uitrijden geeft brons.
-- **Daglimiet.** Alleen de eerste 3 koersen per dag geven een pakket; munten
-  en punten tellen altijd. Dat is de "Vandaag 2/2" van Autoracer, maar zonder
-  dat je wordt tegengehouden.
-- **Seizoen.** Na 16 koersen volgt een eindklassement tegen de 11 ploegen,
-  met een beloning:
+- **Daglimiet.** Tot 2026-11-12 gaven alleen de eerste 3 koersen per dag een
+  pakket. Die limiet is weg; zie [kopman-piramide.md](kopman-piramide.md#pakketten).
+  Ook het pakket per uitslag en de beloning hieronder zijn sindsdien per niveau.
+  Bronzen pakketten trekken sindsdien geen goud meer (tot dan 78% brons, 20%
+  zilver, 2% goud).
+- **Seizoen.** Tot 2026-11-12: na 16 koersen een eindklassement tegen de 11
+  ploegen, met een beloning:
 
   | Eindplek | Munten | Pakket |
   | --- | --- | --- |
@@ -187,8 +191,9 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
   | 4–6 | 3.000 | zilver |
   | 7–12 | 1.500 | brons |
 
-- **Start.** Je begint met 5 bronzen renners (één van elk type), 1.500 munten
-  en één zilveren pakket.
+- **Start.** Je begint in de Kermis met 5 renners met een totaal van 53 tot 57
+  (één van elk type), 1.500 munten en één bronzen pakket. Tot 2026-11-12 was
+  dat een zilveren pakket.
 
 ### Waarom zo, en wat de regels zeggen
 

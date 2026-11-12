@@ -5,9 +5,13 @@ import type { PackType, Tier } from "./types";
 
 export const PACK_SIZE = 3;
 
-/** Odds per card. Always shown in the shop, as app stores require for random items. */
+/**
+ * Odds per card. Always shown in the shop, as app stores require for random
+ * items. A bronze pack holds no gold: in the lower levels of the pyramid you
+ * build with bronze and silver.
+ */
 export const PACK_ODDS: Record<PackType, Record<Tier, number>> = {
-  brons: { brons: 0.78, zilver: 0.2, goud: 0.02 },
+  brons: { brons: 0.94, zilver: 0.06, goud: 0 },
   zilver: { brons: 0.25, zilver: 0.65, goud: 0.1 },
   goud: { brons: 0, zilver: 0.6, goud: 0.4 },
 };
@@ -23,7 +27,7 @@ function drawKind(r: number): CardKind {
   return "personeel";
 }
 
-/** Packs in a row without a gold card before the next one guarantees one. */
+/** Silver and gold packs in a row without a gold card before the next one guarantees one. Bronze packs do not count. */
 export const PITY_PACKS = 8;
 
 /** Packs for sale, in coins. Gold packs are only won. */
@@ -45,7 +49,8 @@ export function openPack(type: PackType, seed: number, packNumber: number, pity:
   const random = rng(hashSeed(seed, "pakket", packNumber));
   const odds = PACK_ODDS[type];
   const tiers: Tier[] = Array.from({ length: PACK_SIZE }, () => drawTier(odds, random()));
-  const guaranteed = pity >= PITY_PACKS - 1;
+  const counts = type !== "brons";
+  const guaranteed = counts && pity >= PITY_PACKS - 1;
   if (guaranteed && !tiers.includes("goud")) tiers[0] = "goud";
   if (type === "goud" && !tiers.includes("goud")) tiers[PACK_SIZE - 1] = "goud";
   const chosen = new Set<string>();
@@ -57,5 +62,5 @@ export function openPack(type: PackType, seed: number, packNumber: number, pity:
     return card.id;
   });
   const gold = tiers.includes("goud");
-  return { cards, pity: gold ? 0 : pity + 1, guaranteed };
+  return { cards, pity: gold ? 0 : counts ? pity + 1 : pity, guaranteed };
 }

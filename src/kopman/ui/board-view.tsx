@@ -9,7 +9,7 @@ import { STAFF, teamBonus } from "../engine/items";
 import { groupsOf, kopmanOf, results, riding, type Lineup, type RaceState } from "../engine/race";
 import { loadSave } from "../engine/save";
 import { PLAYER_TEAM } from "../engine/types";
-import { CALENDAR, PLAYER_COLOR, raceById } from "../engine/world";
+import { PLAYER_COLOR, RACES, raceById } from "../engine/world";
 import { ChaseView } from "./chase-view";
 import { Portrait, type Mood } from "./portrait";
 import { Profile } from "./profile";
@@ -50,8 +50,8 @@ function useCompact() {
 
 /** `?bordspel`: a board race with your current lineup and staff, any race. Reads your save, never writes it. */
 export function BoardApp() {
-  const [save] = useState<Save>(() => loadSave(store()) ?? newSave(1, "2026-11-11"));
-  const races = CALENDAR;
+  const [save] = useState<Save>(() => loadSave(store()) ?? newSave(1));
+  const races = RACES;
   const [raceId, setRaceId] = useState(races[0].id);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
   const lineup: Lineup = { riders: save.lineup, kopman: save.kopman ?? save.lineup[0], bonus: teamBonus(save.items) };

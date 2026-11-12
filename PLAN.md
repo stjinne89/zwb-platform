@@ -14,7 +14,9 @@ gaat stabiliteit voor nieuwe features.
    ronde "Kopman: een eigen pagina" (`48db7eaa`, gepusht) staat het op
    `/kopman`, buiten de schil van de club; `/zwbgame/kopman` stuurt door.
    Daarna, ook gepusht: "Kopman: een kaart op een renner naar keuze"
-   (`4760fcf4`) en "Kopman: de ploegnaam echt te wijzigen" (`c70599a6`). Het bordspel is de koers, ook in de tijdrit, met het
+   (`4760fcf4`) en "Kopman: de ploegnaam echt te wijzigen" (`c70599a6`).
+   Lokaal, nog niet gepusht: "Kopman: de piramide" (2026-11-12), vijf niveaus
+   van Kermis tot Wereldtour, zonder daglimiet op pakketten. Het bordspel is de koers, ook in de tijdrit, met het
    getekende koersbeeld. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
@@ -12235,6 +12237,57 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: de piramide
+
+**2026-11-12, de commit "Kopman: de piramide, van Kermis tot Wereldtour", lokaal
+(niet gepusht).** Geen migratie; wel een nieuwe versie van de save op het
+apparaat (2).
+
+- **De vraag.** De eigenaar na een seizoen: "de eigen ontwikkeling gaat te
+  snel. Kunnen we iets meer niveau erin krijgen?" Ze vroegen een piramide van
+  clubteam tot World Tour, en twijfelden aan de limiet op pakketten. Voorstel
+  voorgelegd; de eigenaar: "Ja, bouw dit".
+- **Wat er is.** Zie [docs/kopman-piramide.md](docs/kopman-piramide.md).
+  - **Vijf niveaus**: Kermis, Interclub, Continentaal, Proftour, Wereldtour
+    (`src/kopman/engine/divisions.ts`). Elk heeft een eigen peloton van 11
+    ploegen, 8 koersen, prijzengeld, pakketten, winkel en materiaal voor de
+    rivalen. 24 nieuwe koersen, en een nieuwe soort: de kermiskoers.
+  - **Top 2 omhoog, laatste 2 omlaag.** Zones in het klassement, de piramide
+    op het tabblad Seizoen en na het seizoen, het niveau in de kop.
+  - **Geen daglimiet meer.** Een pakket alleen voor een uitslag in de top 10
+    (hoe goed hangt af van het niveau) en bij promotie. Zilver pas vanaf het
+    Continentaal in de winkel. Bronzen pakketten trekken geen goud meer en
+    tellen niet mee voor het vangnet.
+  - **Save versie 2.** Een save van versie 1 gaat naar het niveau van de beste
+    vijf (`divisionFor`); het seizoen begint daar opnieuw.
+- **Waarom zo.** Een balansscript speelde carrières van 12 seizoenen. De eerste
+  opzet haalde de Wereldtour in 4 tot 6 seizoenen. Na lager prijzengeld,
+  materiaal voor de rivalen en lichtere pakketten is dat gemiddeld 7,5 (5 tot
+  9). Het doel was 6 tot 8.
+- **Niet meer waar.**
+  - "een pakket alleen voor de eerste 3 koersen per dag, en een
+    seizoensbeloning na 16 koersen" (ronde 1, hieronder);
+  - een seizoen van 16 koersen tegen één peloton van 11 ploegen;
+  - de start met een zilveren pakket;
+  - een bronzen pakket met 20% zilver en 2% goud.
+  `docs/kopman.md` en `docs/kopman-bordspel.md` zijn bijgewerkt.
+- **Bewust niet gebouwd:**
+  - grandtours bovenop de Wereldtour: een nieuwe spelvorm, eerst kijken of
+    de piramide bevalt;
+  - een salarisplafond of budget per niveau: een nieuw mechanisme, en de
+    balans haalt het doel al zonder.
+- **Geverifieerd:**
+  - tsc, eslint en 54 Kopman-tests (onder meer de omzetting van versie 1,
+    pakketten en prijzengeld per niveau, promotie en degradatie, en sterkere
+    pelotons per niveau);
+  - `next build`;
+  - in de preview op 375×667 en desktop: kop, piramide en zones, een
+    kermiskoers tot de uitslag, de winkel, en promotie naar de Interclub.
+- **Niet geverifieerd:**
+  - de omzetting van de echte save van de eigenaar op hun eigen apparaat;
+  - de balans met kaarten op het bord: het script speelt zonder;
+  - een echte telefoon.
+
 ### Gebouwd — Kopman: de ploegnaam echt te wijzigen
 
 **2026-11-11, commit `c70599a6`, op 2026-11-11 gepusht naar `main`.** Geen migratie.
@@ -13105,7 +13158,7 @@ ZWB-plannenboek.)
   pakketten zonder goud volgt goud (vangnet). Een dubbele kaart wordt munten.
   Brons kost 1.000 munten en zilver 3.000; goud is alleen te winnen.
 - **Kalender.** 16 fictieve koersen over 22 echte beklimmingen en 5 echte
-  kassei- en grindstroken.
+  kassei- en grindstroken. (Sinds 2026-11-12: 40 koersen over vijf niveaus.)
 - **Koers.** 60 renners in 12 ploegen van 5. De simulatie rekent met een
   vermogensbalans, W′, slipstream en bot-tactiek (ontsnapping, achtervolging,
   aanvallen, lead-out). Elke 20 s krijg je een hand van 3 radiokaarten, waarvan
@@ -13114,6 +13167,8 @@ ZWB-plannenboek.)
   reproduceerbaar.
 - **Beloning.** Munten en punten na elke koers, een pakket alleen voor de
   eerste 3 koersen per dag, en een seizoensbeloning na 16 koersen.
+  **Niet meer zo sinds 2026-11-12** (ronde "Kopman: de piramide"): geen
+  daglimiet, 8 koersen per niveau, pakketten per uitslag en niveau.
 - **Opslag.** Alles op het apparaat (`localStorage` `kopman:v1`, gecontroleerd
   met zod). Een beschadigde opslag gaat naar `kopman:v1:kapot`.
 - **Pagina.** `src/app/(app)/zwbgame/kopman/page.tsx` geeft een 404 zonder

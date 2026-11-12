@@ -4,7 +4,7 @@ import { newSave } from "@/kopman/engine/economy";
 import { createRace } from "@/kopman/engine/race";
 import { bendsFor, CAMERA_BACK, cameraAt, laneTargets, projector, ROAD_HALF, roadX, roadY, surfaceAhead } from "@/kopman/ui/chase-scene";
 
-const save = newSave(97, "2026-11-11");
+const save = newSave(97);
 const lineup = { riders: save.lineup, kopman: save.kopman! };
 
 describe("Kopman: koersbeeld", () => {

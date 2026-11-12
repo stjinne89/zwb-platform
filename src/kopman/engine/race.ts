@@ -2,7 +2,8 @@ import { cardById } from "./cards";
 import { buildCourse, courseWeights, fitFor, gradeAt, surfaceAt } from "./course";
 import { NO_BONUS, type TeamBonus } from "./items";
 import { clamp, hashSeed, randomAt, rng } from "./rng";
-import { lineupFor, rivalTeams } from "./teams";
+import { lineupFor, rivalBonus, rivalsIn } from "./teams";
+import { divisionOfRace } from "./divisions";
 import { GRID, PLAYER_TEAM, type Course, type RiderCard } from "./types";
 import { raceById } from "./world";
 
@@ -145,10 +146,11 @@ export function createRace(raceId: string, seed: number, player: Lineup): RaceSt
   const course = buildCourse(def);
   const mine = new Set(player.riders);
   const entries: { card: RiderCard; team: string; kopman: boolean }[] = player.riders.map((id) => ({ card: cardById(id), team: PLAYER_TEAM, kopman: id === player.kopman }));
-  for (const team of rivalTeams()) {
+  for (const team of rivalsIn(raceId)) {
     const lineup = lineupFor(team.riders.map(cardById), course, mine);
     lineup.forEach((card, i) => entries.push({ card, team: team.id, kopman: i === 0 }));
   }
+  const gear = rivalBonus(divisionOfRace(raceId));
   const random = rng(hashSeed(seed, raceId, "start"));
   // Start grid: a shuffled bunch, three abreast.
   const order = entries.map((e) => ({ e, key: random() })).sort((a, b) => a.key - b.key);
@@ -157,7 +159,7 @@ export function createRace(raceId: string, seed: number, player: Lineup): RaceSt
     team: e.team,
     kopman: e.kopman,
     card: e.card,
-    ...bodyOf(e.card, course.tt, e.team === PLAYER_TEAM ? player.bonus : NO_BONUS),
+    ...bodyOf(e.card, course.tt, e.team === PLAYER_TEAM ? player.bonus : gear),
     distance: course.tt ? 0 : -Math.floor(i / 3) * 1.6,
     speed: course.tt ? 2 : 9,
     wbal: 0,

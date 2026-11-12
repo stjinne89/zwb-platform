@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { cardById } from "../engine/cards";
 import { climbAt, createRace, expectedSeconds, groupsOf, kopmanOf, riding, runToEnd, stepRace, type Lineup, type Mode, type RaceEvent, type RaceState } from "../engine/race";
 import { dealHand, HAND_SECONDS, playRadio, RADIO_LABELS, type RadioId } from "../engine/radio";
-import { rivalTeams } from "../engine/teams";
+import { teamById } from "../engine/teams";
 import { PLAYER_TEAM } from "../engine/types";
 import { PLAYER_COLOR, raceById } from "../engine/world";
 import { Portrait, type Mood } from "./portrait";
@@ -19,8 +19,8 @@ const KEY_SLOWDOWN = 0.4;
 
 const MODE_LABELS: Record<Mode, string> = { mee: "Meerijden", kop: "Op kop", aanval: "Aanval", sparen: "Sparen", volgen: "Volgt", wachten: "Wacht", sprint: "Sprint", tempo: "Tempo" };
 
-export const teamColor = (team: string) => (team === PLAYER_TEAM ? PLAYER_COLOR : rivalTeams().find((t) => t.id === team)?.color ?? "#888");
-export const teamName = (team: string, own: string) => (team === PLAYER_TEAM ? own : rivalTeams().find((t) => t.id === team)?.name ?? team);
+export const teamColor = (team: string) => (team === PLAYER_TEAM ? PLAYER_COLOR : teamById(team)?.color ?? "#888");
+export const teamName = (team: string, own: string) => (team === PLAYER_TEAM ? own : teamById(team)?.name ?? team);
 export const riderName = (id: string) => { const c = cardById(id); return `${c.first[0]}. ${c.last}`; };
 
 export function clock(seconds: number) {

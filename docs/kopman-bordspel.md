@@ -285,8 +285,9 @@ toe ga maar verder".
 **Het bordspel is de koers.**
 - De knop Start op het tabblad Koers opent het bord en niet meer de live koers.
 - De uitslag loopt door dezelfde afrekening als voorheen (`finishRace`). Je
-  krijgt dus dezelfde munten, punten, een pakket binnen de daglimiet en de
-  seizoensbeloning.
+  krijgt dus dezelfde munten, punten, een pakket en de seizoensbeloning. (Tot
+  2026-11-12 gold voor het pakket een daglimiet; zie
+  [kopman-piramide.md](kopman-piramide.md).)
 - De seed is die van de live koers. Herlaad je de pagina midden in een koers,
   dan begin je die koers opnieuw, met dezelfde kaarten.
 - De live koers met radio-orders (`race-view.tsx`, `radio.ts`) wordt in het

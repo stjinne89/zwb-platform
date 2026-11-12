@@ -3,12 +3,11 @@ import { autoplay, BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoar
 import { cardById } from "@/kopman/engine/cards";
 import { newSave } from "@/kopman/engine/economy";
 import { results } from "@/kopman/engine/race";
-import { CALENDAR } from "@/kopman/engine/world";
 
-const save = newSave(97, "2026-11-11");
+const save = newSave(97);
 const lineup = { riders: save.lineup, kopman: save.kopman! };
-const raceId = CALENDAR.find((r) => r.kind !== "tijdrit")!.id;
-const ttId = CALENDAR.find((r) => r.kind === "tijdrit")!.id;
+const raceId = "openingsomloop";
+const ttId = "polderchrono";
 const playable = (b: BoardState) => b.hand.filter((c) => !blockedReason(b, c));
 
 describe("Kopman: bordspel", () => {

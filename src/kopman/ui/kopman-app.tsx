@@ -1,15 +1,16 @@
 "use client";
 
-import { CalendarDays, Coins, Crown, Flag, Gift, Package, Play, Trophy, Users, Wand2 } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronUp, Coins, Crown, Flag, Package, Play, Trophy, Users, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cardById, TIER_LABELS, TYPE_LABELS } from "../engine/cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "../engine/course";
-import { bestLineup, buyPack, currentRace, DAILY_PACK_RACES, DUPLICATE_COINS, finishRace, LINEUP_SIZE, newSave, newSeason, NEXT_TIER, openPackOf, packsLeftToday, raceSeed, seasonDone, seasonStandings, sellSpares, setKopman, sparesByTier, today, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save } from "../engine/economy";
+import { bestLineup, buyPack, calendarOf, currentRace, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, raceSeed, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save } from "../engine/economy";
 import { bestItems, GEAR_SLOTS, isItem, ITEMS, STAFF_ROLES, teamBonus, type TeamBonus } from "../engine/items";
-import { KIND_ODDS, PACK_LABELS, PACK_ODDS, PACK_PRICE, PITY_PACKS } from "../engine/packs";
+import { KIND_ODDS, PACK_LABELS, PACK_ODDS, PITY_PACKS } from "../engine/packs";
 import { results, type Placing, type RaceState } from "../engine/race";
 import { PLAYER_TEAM, RIDER_TYPES, TIERS, type PackType, type RiderType, type Tier } from "../engine/types";
-import { CALENDAR, raceById } from "../engine/world";
+import { DIVISIONS, TOP_DIVISION } from "../engine/divisions";
+import { raceById } from "../engine/world";
 import { loadSave, SAVE_KEY, storeSave } from "../engine/save";
 import { ItemCardView, SlotTile } from "./item-card";
 import { Profile } from "./profile";
@@ -26,7 +27,7 @@ const TABS: { id: Tab; label: string; icon: typeof Flag }[] = [
   { id: "pakketten", label: "Pakketten", icon: Package },
   { id: "seizoen", label: "Seizoen", icon: Trophy },
 ];
-const KIND_LABELS = { klassieker: "Klassieker", monument: "Monument", rit: "Bergrit", tijdrit: "Tijdrit" } as const;
+const KIND_LABELS = { kermis: "Kermiskoers", klassieker: "Klassieker", monument: "Monument", rit: "Bergrit", tijdrit: "Tijdrit" } as const;
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
 function newSeed() {
@@ -71,7 +72,7 @@ export function KopmanApp() {
         try { store?.setItem(`${SAVE_KEY}:kapot`, raw); } catch { /* best effort */ }
         setNotice("Je opgeslagen spel was beschadigd. Je begint opnieuw.");
       }
-      update(newSave(newSeed(), today()));
+      update(newSave(newSeed()));
     });
     return () => cancelAnimationFrame(frame);
   }, [update]);
@@ -80,7 +81,7 @@ export function KopmanApp() {
     const current = saveRef.current;
     if (!current) return;
     const placings = results(state);
-    const { save: next, reward } = finishRace(current, placings, today());
+    const { save: next, reward } = finishRace(current, placings);
     update(next);
     setRacing(null);
     setAway(false);
@@ -89,8 +90,6 @@ export function KopmanApp() {
 
   if (!save) return <div className={styles.app}><div className={styles.muted} role="status">Ploeg opstellen…</div></div>;
 
-  const date = today();
-  const left = packsLeftToday(save, date);
   const race = currentRace(save);
 
   const start = () => {
@@ -125,7 +124,7 @@ export function KopmanApp() {
         <div className={styles.wallet}>
           <span className={styles.chip} title="Munten"><Coins size={15} aria-hidden /><span className={styles.stat}>{save.coins.toLocaleString("nl-NL")}</span><span className={styles.srOnly}>munten</span></span>
           <span className={styles.chip} title="Ongeopende pakketten"><Package size={15} aria-hidden />{save.packs.length}<span className={styles.srOnly}>pakketten</span></span>
-          <span className={styles.chip} title="Koersen met een pakket vandaag"><Gift size={15} aria-hidden />{left}/{DAILY_PACK_RACES}</span>
+          <span className={styles.chip} title="Niveau"><Trophy size={15} aria-hidden />{DIVISIONS[save.division].name}</span>
         </div>
       </header>
       {notice ? <div className={styles.notice} role="alert" style={{ marginBottom: 12 }}>{notice}</div> : null}
@@ -157,13 +156,16 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
   if (seasonDone(save)) {
     const standings = seasonStandings(save);
     const rank = standings.findIndex((t) => t.id === PLAYER_TEAM) + 1;
+    const move = seasonMove(save);
+    const next = DIVISIONS[save.division + move].name;
     return (
       <div className={styles.stack}>
         <div className={styles.panel}>
-          <div className={styles.h2}>Seizoen {save.season} klaar</div>
-          <p className={styles.muted} style={{ margin: "6px 0 12px" }}>{save.teamName} werd {rank}e met {standings[rank - 1].points} punten.</p>
-          <button type="button" className={styles.primary} onClick={() => update(newSeason(save))}><CalendarDays size={18} aria-hidden />Nieuw seizoen</button>
+          <div className={styles.h2}>{move > 0 ? `Promotie naar de ${next}` : move < 0 ? `Degradatie naar de ${next}` : `Seizoen ${save.season} klaar`}</div>
+          <p className={styles.muted} style={{ margin: "6px 0 12px" }}>{save.teamName} werd {rank}e in de {DIVISIONS[save.division].name} met {standings[rank - 1].points} punten.</p>
+          <button type="button" className={styles.primary} onClick={() => update(newSeason(save))}><CalendarDays size={18} aria-hidden />{move ? `Naar de ${next}` : "Nieuw seizoen"}</button>
         </div>
+        <Pyramid division={save.division} move={move} />
         <StandingsTable save={save} />
       </div>
     );
@@ -181,7 +183,7 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
             <div className={styles.h2}>{race.name}</div>
             <div className={styles.row} style={{ marginTop: 4, gap: 8 }}>
               <span className={`${styles.badge} ${race.kind === "monument" ? styles.badgeMonument : ""}`}>{KIND_LABELS[race.kind]}</span>
-              <span className={styles.muted}>{Math.round(course.length / 1000)} km · {courseKind(course)} · {race.country} · Koers {save.raceIndex + 1} van {CALENDAR.length}</span>
+              <span className={styles.muted}>{Math.round(course.length / 1000)} km · {courseKind(course)} · {race.country} · Koers {save.raceIndex + 1} van {calendarOf(save.division).length}</span>
             </div>
           </div>
           <button type="button" className={styles.primary} disabled={!running && !ready} onClick={onStart}><Play size={18} aria-hidden />{running ? "Verder" : "Start"}</button>
@@ -328,7 +330,7 @@ function PacksTab({ save, update, onOpen, onTrade, onPick }: { save: Save; updat
             ))}
           </div>
         ) : <div className={styles.muted}>Geen pakketten</div>}
-        <div className={styles.muted} style={{ marginTop: 10 }}>Goud gegarandeerd binnen {Math.max(1, PITY_PACKS - save.pity)} pakketten</div>
+        <div className={styles.muted} style={{ marginTop: 10 }}>Goud gegarandeerd binnen {Math.max(1, PITY_PACKS - save.pity)} zilveren of gouden pakketten</div>
       </div>
       {tradeTiers.length ? (
         <div className={styles.panel}>
@@ -358,14 +360,15 @@ function PacksTab({ save, update, onOpen, onTrade, onPick }: { save: Save; updat
         <div className={styles.h3} style={{ marginBottom: 10 }}>Winkel</div>
         <div className={styles.packRow}>
           {(["brons", "zilver", "goud"] as PackType[]).map((type) => {
-            const price = PACK_PRICE[type];
+            const price = priceAt(save, type);
+            const from = DIVISIONS.find((d) => d.shop.includes(type));
             return (
               <div key={type} className={`${styles.pack} ${styles[type]}`}>
                 <div className={styles.h3}>{PACK_LABELS[type]}</div>
                 <OddsLine type={type} />
                 {price !== undefined
                   ? <button type="button" disabled={save.coins < price} onClick={() => { const next = buyPack(save, type, price); if (next) update(next); }}><Coins size={14} aria-hidden /> {price.toLocaleString("nl-NL")}</button>
-                  : <div className={styles.odds}>Alleen te winnen</div>}
+                  : <div className={styles.odds}>{from ? `Vanaf ${from.name}` : "Alleen te winnen"}</div>}
               </div>
             );
           })}
@@ -422,6 +425,19 @@ function TradePicker({ save, tier, onTrade, onClose }: { save: Save; tier: Tier;
   );
 }
 
+/** The pyramid, top level first; yours is yellow, with an arrow where the season sends you. */
+function Pyramid({ division, move = 0 }: { division: number; move?: number }) {
+  return (
+    <ol className={styles.pyramid} aria-label="Piramide">
+      {DIVISIONS.map((d, i) => ({ d, i })).reverse().map(({ d, i }) => (
+        <li key={d.id} className={i === division ? styles.pyramidMine : i === division + move && move ? styles.pyramidNext : undefined} style={{ width: `${44 + (TOP_DIVISION - i) * 14}%` }} aria-current={i === division ? "step" : undefined}>
+          {d.name}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function StandingsTable({ save }: { save: Save }) {
   const standings = seasonStandings(save);
   return (
@@ -430,11 +446,14 @@ function StandingsTable({ save }: { save: Save }) {
         <caption className={styles.srOnly}>Ploegenklassement</caption>
         <thead><tr><th>#</th><th>Ploeg</th><th className={styles.num}>Punten</th></tr></thead>
         <tbody>
-          {standings.map((t, i) => (
-            <tr key={t.id} className={t.id === PLAYER_TEAM ? styles.mine : undefined}>
-              <td>{i + 1}</td><td><span className={styles.teamDot} style={{ background: teamColor(t.id) }} />{t.name}</td><td className={styles.num}>{t.points}</td>
-            </tr>
-          ))}
+          {standings.map((t, i) => {
+            const move = moveFor(i + 1, standings.length, save.division);
+            return (
+              <tr key={t.id} className={`${t.id === PLAYER_TEAM ? styles.mine : ""} ${move > 0 ? styles.zoneUp : move < 0 ? styles.zoneDown : ""}`}>
+                <td>{i + 1}{move > 0 ? <ChevronUp size={13} aria-label="promotie" /> : move < 0 ? <ChevronDown size={13} aria-label="degradatie" /> : null}</td><td><span className={styles.teamDot} style={{ background: teamColor(t.id) }} />{t.name}</td><td className={styles.num}>{t.points}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -444,7 +463,8 @@ function StandingsTable({ save }: { save: Save }) {
 function SeasonTab({ save, update }: { save: Save; update: (s: Save) => void }) {
   return (
     <div className={styles.stack}>
-      <div className={styles.h2}>Seizoen {save.season}</div>
+      <div className={styles.h2}>Seizoen {save.season} · {DIVISIONS[save.division].name}</div>
+      <Pyramid division={save.division} />
       <StandingsTable save={save} />
       {save.seasonResults.length ? (
         <div className={styles.panel}>
@@ -460,7 +480,7 @@ function SeasonTab({ save, update }: { save: Save; update: (s: Save) => void }) 
         </div>
       ) : null}
       <div>
-        <button type="button" className={styles.ghost} onClick={() => { if (window.confirm("Opnieuw beginnen? Je verzameling en seizoen gaan verloren.")) update(newSave(newSeed(), today())); }}>Opnieuw beginnen</button>
+        <button type="button" className={styles.ghost} onClick={() => { if (window.confirm("Opnieuw beginnen? Je verzameling en seizoen gaan verloren.")) update(newSave(newSeed())); }}>Opnieuw beginnen</button>
       </div>
     </div>
   );
@@ -503,11 +523,11 @@ function ResultView({ result, own, onClose, onPacks }: { result: { raceId: strin
         <div className={styles.rewards}>
           <div className={styles.reward}><span className={styles.muted}>Munten</span><b>+{reward.coins.toLocaleString("nl-NL")}</b></div>
           <div className={styles.reward}><span className={styles.muted}>Punten</span><b>+{reward.points}</b></div>
-          <div className={styles.reward}><span className={styles.muted}>Pakket</span><b>{reward.pack ? PACK_LABELS[reward.pack] : reward.dailyUsed ? "–" : "Limiet vandaag"}</b></div>
-          {reward.season ? <div className={styles.reward}><span className={styles.muted}>Seizoen: {reward.season.rank}e</span><b>+{reward.season.coins.toLocaleString("nl-NL")} · {PACK_LABELS[reward.season.pack]}</b></div> : null}
+          <div className={styles.reward}><span className={styles.muted}>Pakket</span><b>{reward.pack ? PACK_LABELS[reward.pack] : "–"}</b></div>
+          {reward.season ? <div className={styles.reward}><span className={styles.muted}>Seizoen: {reward.season.rank}e{reward.season.move > 0 ? " · promotie" : reward.season.move < 0 ? " · degradatie" : ""}</span><b>+{reward.season.coins.toLocaleString("nl-NL")}{reward.season.pack ? ` · ${PACK_LABELS[reward.season.pack]}` : ""}</b></div> : null}
         </div>
         <div className={styles.row}>
-          {reward.pack || reward.season ? <button type="button" className={styles.primary} onClick={onPacks}><Package size={18} aria-hidden />Pakket openen</button> : null}
+          {reward.pack || reward.season?.pack ? <button type="button" className={styles.primary} onClick={onPacks}><Package size={18} aria-hidden />Pakket openen</button> : null}
           <button type="button" className={styles.secondary} onClick={onClose}>Verder</button>
         </div>
       </div>

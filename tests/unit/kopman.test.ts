@@ -3,7 +3,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildPool, cardById, overallOf, pool, statsFor, tierOf } from "@/kopman/engine/cards";
 import { buildCourse, courseWeights, fitFor } from "@/kopman/engine/course";
-import { buyPack, DAILY_PACK_RACES, DUPLICATE_COINS, finishRace, newSave, newSeason, openPackOf, packFor, seasonDone, sellSpares, sparesByTier, toggleLineup, tradeCards, tradeUp, type Save } from "@/kopman/engine/economy";
+import { buyPack, calendarOf, currentRace, divisionFor, DUPLICATE_COINS, finishRace, newSave, newSeason, openPackOf, packFor, seasonDone, sellSpares, sparesByTier, toggleLineup, tradeCards, tradeUp, type Save } from "@/kopman/engine/economy";
+import { DIVISIONS, divisionOfRace, SEASON_RACES, TOP_DIVISION } from "@/kopman/engine/divisions";
 import { ITEMS, itemById, NO_BONUS, teamBonus, type TeamBonus } from "@/kopman/engine/items";
 import { KIND_ODDS, openPack, PACK_SIZE, PITY_PACKS } from "@/kopman/engine/packs";
 import { createRace, results, runToEnd, stepRace } from "@/kopman/engine/race";
@@ -12,10 +13,9 @@ import { rng } from "@/kopman/engine/rng";
 import { parseSave } from "@/kopman/engine/save";
 import { lineupFor, rivalTeams } from "@/kopman/engine/teams";
 import { PLAYER_TEAM, RIDER_TYPES } from "@/kopman/engine/types";
-import { CALENDAR, climbById, raceById, sectorById } from "@/kopman/engine/world";
+import { climbById, RACES, raceById, sectorById } from "@/kopman/engine/world";
 
-const DATE = "2026-11-11";
-const starter = () => newSave(12345, DATE);
+const starter = () => newSave(12345);
 const lineupOf = (save: Save) => ({ riders: save.lineup, kopman: save.kopman! });
 
 describe("Kopman: rennerkaarten", () => {
@@ -57,18 +57,18 @@ describe("Kopman: pakketten", () => {
 
   it("garandeert goud na de vangnetgrens en in een gouden pakket", () => {
     for (let n = 0; n < 50; n++) {
-      expect(openPack("brons", 1, n, PITY_PACKS - 1).cards.some((id) => tierOf_(id) === "goud")).toBe(true);
+      expect(openPack("zilver", 1, n, PITY_PACKS - 1).cards.some((id) => tierOf_(id) === "goud")).toBe(true);
       expect(openPack("goud", 1, n, 0).cards.some((id) => tierOf_(id) === "goud")).toBe(true);
     }
   });
 
   it("volgt ongeveer de getoonde kansen", () => {
     let gold = 0, silver = 0, total = 0;
-    for (let n = 0; n < 2000; n++) for (const id of openPack("brons", 7, n, 0).cards) { total++; if (tierOf_(id) === "goud") gold++; if (tierOf_(id) === "zilver") silver++; }
-    expect(gold / total).toBeGreaterThan(0.01);
-    expect(gold / total).toBeLessThan(0.035);
-    expect(silver / total).toBeGreaterThan(0.17);
-    expect(silver / total).toBeLessThan(0.23);
+    for (let n = 0; n < 2000; n++) for (const id of openPack("zilver", 7, n, 0).cards) { total++; if (tierOf_(id) === "goud") gold++; if (tierOf_(id) === "zilver") silver++; }
+    expect(gold / total).toBeGreaterThan(0.08);
+    expect(gold / total).toBeLessThan(0.12);
+    expect(silver / total).toBeGreaterThan(0.62);
+    expect(silver / total).toBeLessThan(0.68);
   });
 
   it("stopt naast renners ook materiaal en personeel in een pakket, volgens de getoonde kansen", () => {
@@ -84,7 +84,7 @@ describe("Kopman: pakketten", () => {
     expect(openPack("goud", 1, 0, 5).pity).toBe(0);
     let pity = 0;
     for (let n = 0; n < 40; n++) {
-      const pack = openPack("brons", 3, n, pity);
+      const pack = openPack("zilver", 3, n, pity);
       const gold = pack.cards.some((id) => tierOf_(id) === "goud");
       expect(pack.pity).toBe(gold ? 0 : pity + 1);
       expect(pack.pity).toBeLessThan(PITY_PACKS);
@@ -121,9 +121,9 @@ describe("Kopman: materiaal en personeel", () => {
 
   it("geeft meer startgeld met een buschauffeur", () => {
     const save = starter();
-    const placings = results(runToEnd(createRace(CALENDAR[0].id, 2, { riders: save.lineup, kopman: save.kopman! })));
-    const plain = finishRace(save, placings, "2026-11-11").reward.coins;
-    const bus = finishRace({ ...save, items: { "p-chauffeur-goud": 1 } }, placings, "2026-11-11").reward.coins;
+    const placings = results(runToEnd(createRace(currentRace(save)!.id, 2, { riders: save.lineup, kopman: save.kopman! })));
+    const plain = finishRace(save, placings).reward.coins;
+    const bus = finishRace({ ...save, items: { "p-chauffeur-goud": 1 } }, placings).reward.coins;
     expect(bus).toBeGreaterThan(plain);
   }, 30_000);
 
@@ -144,19 +144,21 @@ describe("Kopman: materiaal en personeel", () => {
 });
 
 describe("Kopman: economie", () => {
-  it("begint met vijf bronzen renners van elk type, munten en een zilveren pakket", () => {
+  it("begint in de Kermis met vijf bronzen renners van elk type, munten en een bronzen pakket", () => {
     const save = starter();
+    expect(save.division).toBe(0);
     expect(save.lineup).toHaveLength(5);
     expect(new Set(save.lineup.map((id) => cardById(id).type))).toEqual(new Set(RIDER_TYPES));
-    expect(save.lineup.every((id) => cardById(id).tier === "brons")).toBe(true);
-    expect(save.packs).toEqual(["zilver"]);
+    expect(save.lineup.every((id) => cardById(id).tier === "brons" && cardById(id).overall <= 57)).toBe(true);
+    expect(divisionFor(save.collection)).toBe(0);
+    expect(save.packs).toEqual(["brons"]);
     expect(save.kopman).toBe(save.lineup[0]);
   });
 
   it("bewaart een dubbele kaart als reserve, zonder munten", () => {
     let save = starter();
     const first = openPack("zilver", save.seed, 0, 0).cards[0];
-    save = { ...save, collection: { ...save.collection, [first]: 1 } };
+    save = { ...save, packs: ["zilver"], collection: { ...save.collection, [first]: 1 } };
     const opened = openPackOf(save, "zilver")!;
     const dup = opened.pulls.find((p) => p.id === first)!;
     expect(dup.duplicate).toBe(true);
@@ -224,40 +226,88 @@ describe("Kopman: economie", () => {
     expect(fewer.kopman).toBe(fewer.lineup[0]);
   });
 
-  it("beloont het podium met zilver, een monumentzege met goud", () => {
-    expect(packFor(1, true)).toBe("goud");
-    expect(packFor(1, false)).toBe("zilver");
-    expect(packFor(3, false)).toBe("zilver");
-    expect(packFor(40, false)).toBe("brons");
-    expect(packFor(0, false)).toBeNull();
+  it("geeft per niveau een ander pakket, en buiten de top 10 geen", () => {
+    expect(packFor(1, 0)).toBe("brons");
+    expect(packFor(5, 0)).toBeNull();
+    expect(packFor(1, 1)).toBe("brons");
+    expect(packFor(8, 2)).toBeNull();
+    expect(packFor(1, 3)).toBe("zilver");
+    expect(packFor(3, TOP_DIVISION)).toBe("zilver");
+    expect(packFor(10, TOP_DIVISION)).toBe("brons");
+    expect(packFor(11, TOP_DIVISION)).toBeNull();
+    expect(packFor(0, TOP_DIVISION)).toBeNull();
   });
 
-  it("geeft maar drie koersen per dag een pakket, munten en punten altijd", () => {
+  it("geeft elke koers een pakket bij een goede uitslag, zonder daglimiet", () => {
     let save = starter();
-    const placings = [{ id: save.lineup[0], team: PLAYER_TEAM, place: 5, time: 100, gap: 0 }, { id: "r999", team: "zvk", place: 1, time: 99, gap: 0 }];
-    for (let i = 0; i < DAILY_PACK_RACES; i++) {
-      const { save: next, reward } = finishRace(save, placings, DATE);
+    const team = DIVISIONS[0].teams[0].id;
+    const placings = [{ id: save.lineup[0], team: PLAYER_TEAM, place: 2, time: 100, gap: 0 }, { id: "r999", team, place: 1, time: 99, gap: 0 }];
+    for (let i = 0; i < 5; i++) {
+      const { save: next, reward } = finishRace(save, placings);
       expect(reward.pack).toBe("brons");
+      expect(reward.coins).toBeGreaterThan(0);
       save = next;
     }
-    const { save: after, reward } = finishRace(save, placings, DATE);
-    expect(reward.pack).toBeNull();
-    expect(reward.coins).toBeGreaterThan(0);
-    expect(reward.points).toBeGreaterThan(0);
-    expect(after.raceIndex).toBe(DAILY_PACK_RACES + 1);
-    expect(finishRace(after, placings, "2026-11-12").reward.pack).toBe("brons");
+    expect(save.packs.filter((p) => p === "brons")).toHaveLength(6);
   });
 
-  it("sluit het seizoen af met een seizoensbeloning en begint opnieuw", () => {
-    let save = { ...starter(), raceIndex: CALENDAR.length - 1 };
-    const { save: done, reward } = finishRace(save, [{ id: save.lineup[0], team: PLAYER_TEAM, place: 1, time: 1, gap: 0 }], DATE);
+  it("betaalt in een hoger niveau meer prijzengeld", () => {
+    const low = starter();
+    const high = { ...low, division: TOP_DIVISION };
+    const placings = (s: Save) => [{ id: s.lineup[0], team: PLAYER_TEAM, place: 4, time: 1, gap: 0 }];
+    expect(finishRace(high, placings(high)).reward.coins).toBeGreaterThan(finishRace(low, placings(low)).reward.coins * 2);
+  });
+
+  it("promoveert de top 2 en degradeert de laatste 2", () => {
+    const save = starter();
+    const last = (s: Save) => ({ ...s, raceIndex: SEASON_RACES - 1 });
+    const winner = [{ id: save.lineup[0], team: PLAYER_TEAM, place: 1, time: 1, gap: 0 }];
+    const { save: done, reward } = finishRace(last(save), winner);
     expect(seasonDone(done)).toBe(true);
-    expect(reward.season?.rank).toBe(1);
-    expect(done.packs).toContain("goud");
-    save = newSeason(done);
-    expect(save.season).toBe(2);
-    expect(save.raceIndex).toBe(0);
-    expect(save.seasonPoints).toEqual({});
+    expect(reward.season).toMatchObject({ rank: 1, move: 1, pack: "brons" });
+    const up = newSeason(done);
+    expect(up).toMatchObject({ season: 2, division: 1, raceIndex: 0, seasonPoints: {}, seasonResults: [] });
+    expect(currentRace(up)!.id).toBe(DIVISIONS[1].races[0]);
+
+    // Rivals score, you do not: last place goes down, but not below the Kermis.
+    const rivals = (division: number) => DIVISIONS[division].teams.map((t, i) => ({ id: `r${i}`, team: t.id, place: i + 1, time: 1, gap: 0 }));
+    const down = finishRace(last({ ...save, division: 2 }), rivals(2));
+    expect(down.reward.season).toMatchObject({ rank: 12, move: -1, pack: null });
+    expect(newSeason(down.save).division).toBe(1);
+    expect(newSeason(finishRace(last(save), rivals(0)).save).division).toBe(0);
+    // The top level has no level above it.
+    expect(newSeason(finishRace(last({ ...save, division: TOP_DIVISION }), winner).save).division).toBe(TOP_DIVISION);
+  });
+
+  it("heeft vijf niveaus van acht koersen, elke koers in precies één niveau", () => {
+    expect(DIVISIONS).toHaveLength(5);
+    const all = DIVISIONS.flatMap((d) => d.races);
+    expect(new Set(all).size).toBe(all.length);
+    expect(new Set(all)).toEqual(new Set(RACES.map((r) => r.id)));
+    DIVISIONS.forEach((d, i) => {
+      expect(calendarOf(i)).toHaveLength(SEASON_RACES);
+      for (const id of d.races) expect(divisionOfRace(id)).toBe(i);
+    });
+    expect(new Set(DIVISIONS.flatMap((d) => d.teams.map((t) => t.id))).size).toBe(DIVISIONS.length * 11);
+  });
+
+  it("zet elk niveau een sterker peloton neer dan het niveau eronder", () => {
+    const top5 = (ids: string[]) => ids.map((id) => cardById(id).overall).sort((a, b) => b - a).slice(0, 5).reduce((sum, n) => sum + n, 0) / 5;
+    const avg = DIVISIONS.map((_, i) => rivalTeams(i).reduce((sum, t) => sum + top5(t.riders), 0) / 11);
+    for (let i = 1; i < avg.length; i++) expect(avg[i]).toBeGreaterThan(avg[i - 1] + 3);
+    for (let i = 0; i < DIVISIONS.length; i++) {
+      const strength = rivalTeams(i).map((t) => top5(t.riders));
+      expect([...strength].sort((a, b) => b - a)).toEqual(strength);
+      expect(new Set(rivalTeams(i).flatMap((t) => t.riders)).size).toBe(88);
+    }
+  });
+
+  it("stopt geen goud in een bronzen pakket, en telt die niet mee voor gegarandeerd goud", () => {
+    for (let n = 0; n < 200; n++) {
+      const pack = openPack("brons", 7, n, PITY_PACKS - 1);
+      expect(pack.cards.every((id) => (itemById.get(id)?.tier ?? cardById(id).tier) !== "goud")).toBe(true);
+      expect(pack.pity).toBe(PITY_PACKS - 1);
+    }
   });
 });
 
@@ -274,7 +324,26 @@ describe("Kopman: opslag", () => {
     expect(parseSave(JSON.stringify({ ...save, collection: { ...save.collection, x999: 1 } }))).toBeNull();
     const notOwned = pool().pool.find((c) => !save.collection[c.id])!.id;
     expect(parseSave(JSON.stringify({ ...save, lineup: [...save.lineup.slice(0, 4), notOwned] }))).toBeNull();
-    expect(parseSave(JSON.stringify({ ...save, v: 2 }))).toBeNull();
+    expect(parseSave(JSON.stringify({ ...save, v: 3 }))).toBeNull();
+    expect(parseSave(JSON.stringify({ ...save, division: 5 }))).toBeNull();
+    expect(parseSave(JSON.stringify({ ...save, raceIndex: SEASON_RACES + 1 }))).toBeNull();
+  });
+
+  it("zet een opslag van voor de piramide in het niveau van zijn beste vijf", () => {
+    const { division: _d, ...rest } = starter();
+    void _d;
+    const v1 = { ...rest, v: 1, raceIndex: 12, seasonPoints: { zvk: 300 }, seasonResults: [{ race: "kustprijs", winner: "r001", best: 3, points: 65, coins: 2000, pack: "zilver" }], day: { date: "2026-11-11", rewarded: 3 } };
+    const bronze = parseSave(JSON.stringify(v1))!;
+    expect(bronze.v).toBe(2);
+    expect(bronze.division).toBe(0);
+    expect(bronze.raceIndex).toBe(0);
+    expect(bronze.seasonResults).toEqual([]);
+    expect(bronze.coins).toBe(v1.coins);
+    expect(bronze.season).toBe(v1.season);
+    const gold = pool().pool.filter((c) => c.tier === "goud").sort((a, b) => b.overall - a.overall).slice(0, 5).map((c) => c.id);
+    const strong = parseSave(JSON.stringify({ ...v1, collection: { ...v1.collection, ...Object.fromEntries(gold.map((id) => [id, 1])) } }))!;
+    expect(strong.division).toBe(TOP_DIVISION);
+    expect(parseSave(JSON.stringify(strong))).toEqual(strong);
   });
 });
 
@@ -335,7 +404,7 @@ describe("Kopman: koers", () => {
   });
 
   it("daalt na elke klim waar nog vlakke weg volgt, zonder de koers langer te maken", () => {
-    for (const def of CALENDAR) {
+    for (const def of RACES) {
       const course = buildCourse(def);
       const climbs = course.features.filter((f) => f.kind === "klim");
       def.items.forEach((item, i) => {
@@ -352,7 +421,7 @@ describe("Kopman: koers", () => {
   });
 
   it("kiest per koers de vijf renners die het best passen", () => {
-    const team = rivalTeams()[0];
+    const team = rivalTeams(TOP_DIVISION)[0];
     const course = buildCourse(raceById.get("alpenrit")!);
     const weights = courseWeights(course);
     const five = lineupFor(team.riders.map(cardById), course);

@@ -472,3 +472,12 @@
   .screen { padding: 0; }
   .screen > .app { min-height: 100vh; min-height: 100dvh; border-radius: 0; padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
 }
+
+/* The pyramid: five steps, the top level narrowest. Yours is yellow; where the season sends you is outlined. */
+.pyramid { list-style: none; margin: 0; padding: 0; display: grid; justify-items: center; gap: 5px; }
+.pyramid li { padding: 5px 8px 4px; border: 2px solid var(--ink); border-bottom-width: 3px; border-radius: var(--wobble); background: var(--paper-2); color: var(--ink); text-align: center; font-family: var(--letter); font-size: 0.86rem; font-weight: 750; }
+.app .pyramidMine { background: var(--dots), var(--yellow); font-weight: 800; transform: rotate(-1deg); box-shadow: var(--lift); }
+.app .pyramidNext { border-style: dashed; background: #fffaf0; }
+.zoneUp td:first-child { box-shadow: inset 4px 0 0 var(--good); }
+.zoneDown td:first-child { box-shadow: inset 4px 0 0 var(--red); }
+.zoneUp svg, .zoneDown svg { vertical-align: -2px; margin-left: 2px; }

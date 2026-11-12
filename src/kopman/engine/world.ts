@@ -1,7 +1,7 @@
 // The real-world part of Kopman: climbs and sectors that exist, under races and
 // teams that do not. Lengths and gradients are rounded from common sources
 // (docs/kopman.md); a climb with several approaches uses the one named here.
-import type { Climb, RaceDef, Sector, TeamDef } from "./types";
+import type { Climb, RaceDef, Sector } from "./types";
 
 export const CLIMBS: Climb[] = [
   { id: "oude-kwaremont", name: "Oude Kwaremont", country: "BEL", km: 2.2, pct: 4.0, surface: "kasseien" },
@@ -42,10 +42,39 @@ const d = (km: number, pct: number) => ({ kind: "daal" as const, km, pct });
 const s = (sector: string) => ({ kind: "sector" as const, sector });
 
 /**
- * The season: fictional races in the order of the real one, shortened so a race
- * plays in a few minutes. Monuments give the biggest rewards.
+ * Every race: fictional races on real climbs and sectors, shortened so a race
+ * plays in a few minutes. Which level rides which race, and in what order,
+ * is in divisions.ts. Monuments give the biggest rewards.
  */
-export const CALENDAR: RaceDef[] = [
+export const RACES: RaceDef[] = [
+  // Kermis: flat village races, a cobbled strip or a short climb at most.
+  { id: "kermis-vaart", name: "Kermiskoers aan de Vaart", country: "BEL", kind: "kermis", items: [v(40)] },
+  { id: "kempen-dorpsronde", name: "Dorpsronde van de Kempen", country: "BEL", kind: "kermis", items: [v(45)] },
+  { id: "kasseikermis", name: "Kasseikermis", country: "BEL", kind: "kermis", items: [v(20), s("paddestraat"), v(15)] },
+  { id: "molenprijs", name: "Prijs van de Molen", country: "NED", kind: "kermis", items: [v(32), k("cauberg"), v(6)] },
+  { id: "polderkermis", name: "Kermis in de Polder", country: "NED", kind: "kermis", items: [v(50)] },
+  { id: "dorpsplein", name: "Ronde van het Dorpsplein", country: "BEL", kind: "kermis", items: [v(38)] },
+  { id: "bosbergkermis", name: "Bosbergkermis", country: "BEL", kind: "kermis", items: [v(25), k("bosberg"), v(10)] },
+  { id: "najaarskermis", name: "Najaarskermis", country: "NED", kind: "kermis", items: [v(42)] },
+  // Interclub: regional one-day races with a hill or a strip of cobbles.
+  { id: "vlaamse-velden", name: "Prijs van de Vlaamse Velden", country: "BEL", kind: "klassieker", items: [v(55)] },
+  { id: "bosbergprijs", name: "Bosbergprijs", country: "BEL", kind: "klassieker", items: [v(30), k("bosberg"), v(15)] },
+  { id: "heuvelland", name: "Ronde van het Heuvelland", country: "BEL", kind: "klassieker", items: [v(30), k("kemmelberg"), d(1.2, 5), v(15)] },
+  { id: "paddestraatprijs", name: "Paddestraatprijs", country: "BEL", kind: "klassieker", items: [v(25), s("paddestraat"), v(20), s("paddestraat"), v(12)] },
+  { id: "clubchrono", name: "Clubchrono", country: "NED", kind: "tijdrit", items: [v(18)] },
+  { id: "caubergprijs", name: "Caubergprijs", country: "NED", kind: "klassieker", items: [v(35), k("cauberg"), v(10)] },
+  { id: "taaienbergprijs", name: "Taaienbergprijs", country: "BEL", kind: "klassieker", items: [v(25), k("taaienberg"), v(12), k("taaienberg"), v(10)] },
+  { id: "kustomloop", name: "Omloop van de Kust", country: "BEL", kind: "klassieker", items: [v(60)] },
+  // Continentaal: harder classics, a time trial and a first stage in the hills.
+  { id: "ardennen-omloop", name: "Omloop van de Vlaamse Ardennen", country: "BEL", kind: "klassieker", items: [v(30), k("taaienberg"), v(10), k("oude-kwaremont"), v(15), k("bosberg"), v(10)] },
+  { id: "pevele", name: "Pévèleprijs", country: "FRA", kind: "klassieker", items: [v(35), s("mons-en-pevele"), v(20), s("carrefour-arbre"), v(10)] },
+  { id: "heuvelpijl", name: "Zuid-Limburgse Pijl", country: "NED", kind: "klassieker", items: [v(30), k("cauberg"), d(1.5, 4), v(20), k("cauberg"), v(5)] },
+  { id: "dijkchrono", name: "Dijkchrono", country: "NED", kind: "tijdrit", items: [v(24)] },
+  { id: "comomeer-rit", name: "Rit langs het Comomeer", country: "ITA", kind: "rit", items: [v(30), k("ghisallo"), d(8, 5.5), v(15)] },
+  { id: "ardense-pijl", name: "Ardense Pijl", country: "BEL", kind: "klassieker", items: [v(30), k("la-redoute"), d(2.5, 5), v(25)] },
+  { id: "polderprijs", name: "Polderprijs", country: "NED", kind: "klassieker", items: [v(70)] },
+  { id: "muurprijs", name: "Muurprijs", country: "BEL", kind: "klassieker", items: [v(30), k("muur-geraardsbergen"), v(10), k("bosberg"), v(12)] },
+  // Proftour and Wereldtour: the races of the first version.
   { id: "openingsomloop", name: "Openingsomloop", country: "BEL", kind: "klassieker", items: [v(30), k("taaienberg"), v(12), s("paddestraat"), v(10), k("muur-geraardsbergen"), v(6), k("bosberg"), v(12)] },
   { id: "grindtrofee", name: "Grindtrofee van Toscane", country: "ITA", kind: "klassieker", items: [v(25), s("monte-sante-marie"), v(28), k("santa-caterina"), v(0.4)] },
   { id: "riviera", name: "Lenteklassieker van de Rivièra", country: "ITA", kind: "monument", items: [v(70), k("cipressa"), d(4.5, 5), v(8), k("poggio"), d(3.4, 4), v(2.5)] },
@@ -66,20 +95,6 @@ export const CALENDAR: RaceDef[] = [
 
 export const PLAYER_COLOR = "#ffc53d";
 
-export const TEAM_NAMES: Omit<TeamDef, "riders">[] = [
-  { id: "zvk", name: "Zeevalk Cycling", short: "ZVK", color: "#2f8fb5" },
-  { id: "mbl", name: "Montagna Blu", short: "MBL", color: "#4f6bf0" },
-  { id: "hps", name: "Hagedoorn-Polderstaal", short: "HPS", color: "#e0523f" },
-  { id: "kwr", name: "Kustwind Racing", short: "KWR", color: "#1fb59a" },
-  { id: "rvp", name: "Rotsvast Pro", short: "RVP", color: "#a35ad6" },
-  { id: "sal", name: "Sierra Alta", short: "SAL", color: "#ee7a2d" },
-  { id: "nly", name: "Nordlys Cycling", short: "NLY", color: "#8fa3b8" },
-  { id: "tpv", name: "Tulpenveld", short: "TPV", color: "#ec5fa4" },
-  { id: "adf", name: "Ardennes Forêt", short: "ADF", color: "#3fb565" },
-  { id: "dzt", name: "Duinzicht", short: "DZT", color: "#b07d48" },
-  { id: "vvd", name: "Velocità Verde", short: "VVD", color: "#95c94a" },
-];
-
 export const climbById = new Map(CLIMBS.map((c) => [c.id, c]));
 export const sectorById = new Map(SECTORS.map((x) => [x.id, x]));
-export const raceById = new Map(CALENDAR.map((r) => [r.id, r]));
+export const raceById = new Map(RACES.map((r) => [r.id, r]));

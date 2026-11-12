@@ -44,7 +44,7 @@ export type CourseItem =
   | { kind: "daal"; km: number; pct: number }
   | { kind: "sector"; sector: string };
 
-export type RaceKind = "klassieker" | "monument" | "rit" | "tijdrit";
+export type RaceKind = "kermis" | "klassieker" | "monument" | "rit" | "tijdrit";
 
 export type RaceDef = {
   id: string;

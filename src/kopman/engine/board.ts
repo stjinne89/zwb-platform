@@ -3,7 +3,7 @@ import { courseWeights, fitFor } from "./course";
 import { bestItems, type StaffRole } from "./items";
 import { createRace, groupsOf, kopmanOf, riding, stepRace, type Lineup, type Override, type RaceState, type Rider } from "./race";
 import { clamp, hashSeed, rng } from "./rng";
-import { rivalTeams } from "./teams";
+import { rivalsIn } from "./teams";
 import { GRID, PLAYER_TEAM, type RiderType } from "./types";
 
 /**
@@ -287,7 +287,7 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
     lookahead: 1,
     intents: [],
     events: [],
-    attacksLeft: Object.fromEntries(rivalTeams().map((t) => [t.id, 2])),
+    attacksLeft: Object.fromEntries(rivalsIn(raceId).map((t) => [t.id, 2])),
     plans: {},
     touched: [],
     forcedWind: false,
@@ -453,7 +453,7 @@ function intentsFor(board: BoardState): Intent[] {
   const state = board.race;
   const sector = currentSector(board);
   const weights = courseWeights(state.course);
-  const teams = rivalTeams()
+  const teams = rivalsIn(board.race.raceId)
     .map((t) => ({ t, k: kopmanOf(state, t.id) }))
     .filter((x): x is { t: (typeof x)["t"]; k: Rider } => !!x.k && riding(x.k))
     .sort((a, b) => fitFor(b.k.card, weights) - fitFor(a.k.card, weights) || a.t.id.localeCompare(b.t.id))
@@ -713,7 +713,7 @@ function ttHazards(board: BoardState) {
     }
   }
   if (board.random() >= (HAZARD_ODDS[sector.terrain].lek ?? 0)) return;
-  const teams = [PLAYER_TEAM, ...rivalTeams().map((t) => t.id)];
+  const teams = [PLAYER_TEAM, ...rivalsIn(board.race.raceId).map((t) => t.id)];
   const team = board.random() < 0.3 ? PLAYER_TEAM : teams[1 + Math.floor(board.random() * (teams.length - 1))];
   const k = kopmanOf(state, team);
   if (!k || !riding(k)) return;
@@ -735,7 +735,7 @@ function endSector(board: BoardState) {
     const hazard = drawHazard(board);
     const before = board.events.length;
     if (hazard) {
-      const teams = [PLAYER_TEAM, ...rivalTeams().map((t) => t.id)];
+      const teams = [PLAYER_TEAM, ...rivalsIn(board.race.raceId).map((t) => t.id)];
       const victims = hazard === "lek" ? [board.random() < 0.3 ? PLAYER_TEAM : teams[1 + Math.floor(board.random() * (teams.length - 1))]] : teams;
       const peloton = groupsOf(state).reduce((a, g) => (g.length > a.length ? g : a), [] as Rider[]);
       for (const team of victims) {
