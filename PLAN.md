@@ -12271,7 +12271,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: diamant, en rivalen per niveau
 
-**2026-11-13, de commit "Kopman: diamant, en rivalen per niveau", lokaal, niet
+**2026-11-13, de commit "Kopman: diamant, en rivalen per niveau" (`a7983b35`), lokaal, niet
 gepusht.** Geen migratie. De save krijgt alleen "diamant" als soort pakket
 erbij; oude saves lezen gewoon.
 
