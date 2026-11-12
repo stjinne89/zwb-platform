@@ -44,7 +44,7 @@ gaat stabiliteit voor nieuwe features.
    gezichtjes, het getekende koersbeeld is te kiezen. Op 2026-11-12 ook
    gepusht: "Kopman: eerlijk herstel, tempo tegen aanvallen en het weer"
    (`aedd965a`) en "Kopman: de sprint zelf rijden" (`bf80b0ea`): in de
-   laatste kilometer stuur je de kopman met swipes. Daarna lokaal, niet
+   laatste kilometer stuur je de kopman met swipes. Op 2026-11-13
    gepusht: "Kopman: diamant, en rivalen per niveau" (`a7983b35`) en
    "Kopman: sterkere pelotons" (`52b6dc94`): hogere banden voor
    Interclub en Continentaal en een peloton dat meegroeit. Op een telefoon vult het bord het scherm. Open: na de
@@ -12271,7 +12271,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: sterkere pelotons
 
-**2026-11-13, de commit "Kopman: sterkere pelotons" (`52b6dc94`), lokaal, niet gepusht.**
+**2026-11-13, de commit "Kopman: sterkere pelotons" (`52b6dc94`), op 2026-11-13
+gepusht naar main.**
 Geen migratie; de save verandert niet.
 
 - **De vraag.** In de ronde hieronder bleek dat het gedrag van de rivalen het
@@ -12313,8 +12314,8 @@ Geen migratie; de save verandert niet.
 
 ### Gebouwd — Kopman: diamant, en rivalen per niveau
 
-**2026-11-13, de commit "Kopman: diamant, en rivalen per niveau" (`a7983b35`), lokaal, niet
-gepusht.** Geen migratie. De save krijgt alleen "diamant" als soort pakket
+**2026-11-13, de commit "Kopman: diamant, en rivalen per niveau" (`a7983b35`), op
+2026-11-13 gepusht naar main.** Geen migratie. De save krijgt alleen "diamant" als soort pakket
 erbij; oude saves lezen gewoon.
 
 - **De vraag.** De eigenaar, in seizoen 4: "Ik ... speel op contintentaal
