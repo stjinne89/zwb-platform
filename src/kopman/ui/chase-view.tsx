@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { riding, type RaceState, type Rider } from "../engine/race";
 import { PLAYER_TEAM } from "../engine/types";
 import { PLAYER_COLOR } from "../engine/world";
@@ -214,14 +214,57 @@ function drawRider(ctx: CanvasRenderingContext2D, x: number, y: number, s: numbe
   }
 }
 
-type Live = { lanes: Map<string, number>; odo: number; last: number };
+type Live = { lanes: Map<string, number>; odo: number; last: number; rate: number | undefined };
+
+/** The finish across the road: a chequered line, two posts and a banner over it. */
+function drawFinish(ctx: CanvasRenderingContext2D, P: ReturnType<typeof projector>, state: RaceState, bend: Bend, cam: number, z: number) {
+  const ground = (dz: number) => roadY(state, cam, z + dz);
+  const cx = (dz: number) => roadX(bend, cam, z + dz);
+  const n = 10;
+  for (let row = 0; row < 2; row++) {
+    const z0 = z + row * 0.35, z1 = z0 + 0.35;
+    for (let i = 0; i < n; i++) {
+      const u0 = -ROAD_HALF + (i / n) * ROAD_HALF * 2, u1 = u0 + (ROAD_HALF * 2) / n;
+      ctx.beginPath();
+      ctx.moveTo(P.x(cx(z0 - z) + u0, z0), P.y(ground(z0 - z), z0));
+      ctx.lineTo(P.x(cx(z0 - z) + u1, z0), P.y(ground(z0 - z), z0));
+      ctx.lineTo(P.x(cx(z1 - z) + u1, z1), P.y(ground(z1 - z), z1));
+      ctx.lineTo(P.x(cx(z1 - z) + u0, z1), P.y(ground(z1 - z), z1));
+      ctx.closePath();
+      ctx.fillStyle = (i + row) % 2 ? INK : PAPER;
+      ctx.fill();
+    }
+  }
+  const s = P.scale(z);
+  const y0 = ground(0);
+  const post = ROAD_HALF + 0.5;
+  ctx.lineWidth = Math.max(1, Math.min(3, s * 0.06));
+  ctx.strokeStyle = INK;
+  for (const side of [-1, 1]) {
+    const x = P.x(cx(0) + side * post, z);
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(x - s * 0.12, P.y(y0 + 4.6, z), s * 0.24, P.y(y0, z) - P.y(y0 + 4.6, z));
+    ctx.strokeRect(x - s * 0.12, P.y(y0 + 4.6, z), s * 0.24, P.y(y0, z) - P.y(y0 + 4.6, z));
+  }
+  const left = P.x(cx(0) - post, z), right = P.x(cx(0) + post, z);
+  const top = P.y(y0 + 4.6, z), bottom = P.y(y0 + 3.7, z);
+  ctx.fillStyle = "#d6372b";
+  ctx.fillRect(left, top, right - left, bottom - top);
+  const cells = 16, ch = (bottom - top) / 3;
+  for (let i = 0; i < cells; i++) {
+    ctx.fillStyle = i % 2 ? INK : PAPER;
+    ctx.fillRect(left + ((right - left) * i) / cells, bottom - ch, (right - left) / cells, ch);
+  }
+  ctx.strokeRect(left, top, right - left, bottom - top);
+}
 
 function draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: RaceState, bend: Bend, scene: Scene, live: Live, now: number, moving: boolean) {
   const dt = live.last ? Math.min(0.1, (now - live.last) / 1000) : 0;
   live.last = now;
   const cam = cameraAt(state);
   const followed = cameraRider(state);
-  if (moving) live.odo += dt * Math.max(4, followed.speed) * 0.9;
+  // In the sprint the road runs at race speed times the slow motion; otherwise at a pace that reads well.
+  if (moving) live.odo += dt * Math.max(4, followed.speed) * (live.rate ?? 0.9);
   const horizon = Math.round(h * 0.36);
   // A tall stage (a phone held upright) zooms in, so the bunch fills the lower half instead of empty road.
   const focal = Math.min(Math.max(w * 0.8, h * 0.7), h * 2.2);
@@ -289,6 +332,9 @@ function draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: RaceSt
     ctx.stroke();
   }
 
+  const finish = state.course.tt ? -1 : state.course.length - cam;
+  if (finish > 1.5 && finish < VIEW_AHEAD) drawFinish(ctx, P, state, bend, cam, finish);
+
   // The road nearer than a rider can hide him behind a crest: clip at its highest point.
   const crest: number[] = [];
   pts.forEach((p, i) => crest.push(Math.min(i ? crest[i - 1] : Infinity, p.y)));
@@ -298,9 +344,13 @@ function draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: RaceSt
     .map((r) => ({ r, z: r.distance - cam }))
     .filter((x) => x.z > 2.4 && x.z < VIEW_AHEAD)
     .sort((a, b) => b.z - a.z || a.r.id.localeCompare(b.r.id));
+  // In the sprint your kopman is drawn last: the riders behind him must not hide where you steer.
+  const own = state.sprint ? shown.findIndex((x) => x.r.id === state.sprint!.id) : -1;
+  if (own >= 0) shown.push(...shown.splice(own, 1));
   for (const { r, z } of shown) {
     const target = targets.get(r.id) ?? 0;
-    const lane = live.lanes.has(r.id) ? live.lanes.get(r.id)! + (target - live.lanes.get(r.id)!) * Math.min(1, dt * 2.5) : target;
+    // Your kopman in the sprint goes where you steer him, at once.
+    const lane = r.id === state.sprint?.id || !live.lanes.has(r.id) ? target : live.lanes.get(r.id)! + (target - live.lanes.get(r.id)!) * Math.min(1, dt * 2.5);
     live.lanes.set(r.id, lane);
     const s = P.scale(z);
     const x = P.x(roadX(bend, cam, z) + lane, z);
@@ -321,12 +371,14 @@ function draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: RaceSt
   }
 }
 
-export function ChaseView({ state, moving, frame }: { state: RaceState; moving: boolean; frame: number }) {
+/** `rate`: race seconds per real second, in the sprint; `children` lie over the picture. */
+export function ChaseView({ state, moving, frame, rate, children }: { state: RaceState; moving: boolean; frame: number; rate?: number; children?: ReactNode }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const caption = useRef<HTMLSpanElement>(null);
   const grade = useRef<HTMLSpanElement>(null);
-  const live = useRef<Live>({ lanes: new Map(), odo: 0, last: 0 });
+  const live = useRef<Live>({ lanes: new Map(), odo: 0, last: 0, rate: undefined });
+  useEffect(() => { live.current.rate = rate; }, [rate]);
   const size = useRef({ w: 0, h: 0 });
   const bend = useRef<Bend | null>(null);
   const scene = useRef<Scene | null>(null);
@@ -401,6 +453,7 @@ export function ChaseView({ state, moving, frame }: { state: RaceState; moving: 
       <canvas ref={canvas} role="img" aria-label="Koersbeeld vanaf de motor" />
       <span ref={caption} className={styles.chaseCaption} hidden />
       <span ref={grade} className={styles.chaseGrade} hidden />
+      {children}
     </div>
   );
 }

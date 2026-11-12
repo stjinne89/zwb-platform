@@ -56,7 +56,8 @@ Een koers is een **bord van 10 sectoren**. Per sector speel je één beurt.
 
 De laatste sector is de **finale**: een klim, een sprint of de kasseien,
 afhankelijk van de koers. Die beslist met de kracht die je kopman nog heeft,
-zijn statistieken en je laatste kaarten.
+zijn statistieken en je laatste kaarten. Sinds 2026-11-12 rijd je de laatste
+kilometer van een vlakke finish zelf (zie "De sprint zelf rijden").
 
 ## Middelen
 
@@ -779,7 +780,82 @@ lagere rolweerstand is daar het meeste waard.
   voor alleen rijden, bovenop de kosten van de kaart.
 - Plusjes voor rivalen op hun rennerkaart: die rijden met het materiaal van
   hun niveau, maar dat staat nergens anders in beeld.
-- De sprint zelf rijden in de finale: de volgende ronde, op deze balans.
+- De sprint zelf rijden in de finale: gebouwd in de ronde erna (zie "De
+  sprint zelf rijden").
+
+## De sprint zelf rijden
+
+Gebouwd op 2026-11-12. De eigenaar vond de finale "heel erg basic" en wilde
+"door te swipen met je vinger de renner kan besturen langs andere renners".
+Voorstel: een module in de laatste kilometer van het koersbeeld. Akkoord:
+"Eerst 1–6, dan 7".
+
+**Wanneer.** De sprint gaat open als je kopman op 1 km van de streep zit
+(`SPRINT_FROM`), in een groep van minstens drie, op een vlakke finish. Niet
+bij een aankomst bergop (`uphillFinish`), niet in een tijdrit, niet onder de
+250 m. Het beeld schakelt dan zelf naar het koersbeeld, ook als je op het
+overzicht stond; je eigen keuze blijft bewaard.
+
+**Vertraagde tijd.** De koers rijdt in stappen van 0,05 s (`SPRINT_DT`,
+`stepRace(state, dt)`) en loopt 4 keer sneller dan echt tot 400 m, daarna
+1,6 keer (`sprintRate`). De laatste kilometer duurt zo ongeveer 25 s. Na de
+streep blijft het beeld nog 1,4 s staan, dan volgt de uitslag.
+
+**Bediening.** Swipe links of rechts op het beeld voor een baan opzij, swipe
+omhoog om aan te zetten. Hetzelfde met de pijltjestoetsen (spatie of pijl
+omhoog om aan te zetten) of met de drie knoppen onderin. Linksboven staan de
+meters tot de streep, een balk met wat er nog in de benen zit (W′), en
+"Ingesloten" of "Geen ruimte" als dat zo is.
+
+**Hoe het werkt** (`race.ts`, `state.sprint`):
+- De weg heeft vijf banen (`LANES`). Rivalen rijden in de kolom van hun
+  kopman zolang die binnen 40 m zit. Elke kolom heeft een vaste baan in de
+  middelste drie, en schuift er af en toe één op (`laneOf`). Je eigen knechten
+  blijven in de baan waar je kopman begon.
+- Zolang je niets doet, rijdt de kopman op de gewone natuurkunde, zoals
+  vóór deze ronde. Sturen of aanzetten zet de module aan (`active`). Vanaf
+  dan:
+  - beschutting komt alleen uit je eigen baan; een renner in de baan
+    ernaast telt half, en langs een groep heb je altijd 30%;
+  - zit er in je baan een renner binnen 25 m, dan volg je zijn wiel. Is die
+    trager, dan kom je er niet langs: je blijft een fietslengte achter hem
+    (`BIKE_LENGTH`), "Ingesloten";
+  - is je baan vrij, dan schuif je op: 1,2 m/s sneller dan de groep, tot 1,8
+    keer de drempel, uit je W′ (`MOVE_UP`, `MOVE_UP_CAP`);
+  - een baan opzij kost 0,3 m/s en lukt niet als er iemand naast je rijdt.
+- Aanzetten kan één keer (`launch`). Doe je niets, dan gaat de kopman zoals
+  vroeger zelf op 300 m.
+
+**Gemeten** (`.tmp/kopman-sprint.ts`, niet in git): de helft van de
+kalender, waarvan 15 koersen met een vlakke finish, elk met 3 seeds, de
+startploeg zonder kaarten tot de sprint opengaat. In 40 van de 45 ritten ging
+hij open. Gemiddelde plek van de kopman:
+
+| Speler | Plek | Beter / slechter dan zonder input |
+| --- | --- | --- |
+| Zonder input | 42,0 | — |
+| Zonder input, in hele seconden zoals vroeger | 41,4 | 18 / 5 |
+| Opschuiven langs de kant | 39,3 | 18 / 5 |
+| Opschuiven, aanzetten op 450 m | 37,8 | 30 / 0 |
+| Slim: opschuiven, wiel van de snelste, aanzetten op de W′ | 40,0 | 16 / 7 |
+| Slordig, willekeurig sturen | 45,7 | 2 / 21 |
+| Op 700 m aanzetten zonder te sturen | 46,5 | 12 / 22 |
+
+Goed spelen levert zo een paar plekken op, slecht spelen kost er een paar,
+en vanuit de staart win je niet. Een eerste versie liet aanzetten de
+banen niet aanzetten: dan was vroeg aanzetten zonder te sturen het beste
+(35,4), omdat je niet ingesloten kon raken. De kleine stap zelf verschuift de
+uitslag zonder input een fractie (42,0 tegen 41,4).
+
+**Bewust niet gebouwd.**
+- Een sprintmodule bergop of in een tijdrit: daar beslist de kracht, niet
+  de plek op de weg.
+- Banen voor rivalen onderling: alleen je eigen kopman kan ingesloten raken.
+  Rivalen blijven op de natuurkunde van één lijn; dat houdt de koers
+  voorspelbaar en snel.
+- Renners die na de streep in beeld blijven: wie over de streep is, rijdt
+  niet meer en verdwijnt.
+- Uitleg in het scherm: de pijlen op de knoppen zeggen wat ze doen.
 
 ## Nog niet bekend
 

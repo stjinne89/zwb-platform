@@ -1,5 +1,5 @@
 import { elevationAt, gradeAt, surfaceAt } from "../engine/course";
-import { groupsOf, kopmanOf, riding, type RaceState, type Rider } from "../engine/race";
+import { groupsOf, kopmanOf, laneOf, riding, type RaceState, type Rider } from "../engine/race";
 import { hashSeed } from "../engine/rng";
 import { PLAYER_TEAM, type Surface } from "../engine/types";
 
@@ -75,7 +75,8 @@ const unit = (id: string, salt: string) => (hashSeed(0, id, salt) % 1000) / 1000
 /**
  * Where across the road each rider wants to be, in metres from the centre. A
  * group rides as a bunch that widens with its size; alone or in a small group
- * you ride near the middle. In a time trial everyone rides his own line.
+ * you ride near the middle. In a time trial everyone rides his own line. In
+ * the sprint the riders around your kopman ride in the engine's lanes.
  */
 export function laneTargets(state: RaceState): Map<string, number> {
   const out = new Map<string, number>();
@@ -90,6 +91,10 @@ export function laneTargets(state: RaceState): Map<string, number> {
       out.set(r.id, Math.max(-ROAD_HALF + 0.6, Math.min(ROAD_HALF - 0.6, spread + stagger + own)));
     });
   }
+  const sprint = state.sprint;
+  const k = sprint ? state.riders.find((r) => r.id === sprint.id) : undefined;
+  if (k) for (const r of state.riders) if (riding(r) && Math.abs(r.distance - k.distance) < 80) out.set(r.id, laneOf(state, r));
+  if (k) out.set(k.id, laneOf(state, k));
   return out;
 }
 

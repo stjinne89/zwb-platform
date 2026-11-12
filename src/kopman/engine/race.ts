@@ -89,7 +89,45 @@ export type RaceState = {
    * player's riders only ride along unless a card tells them otherwise.
    */
   scripted?: boolean;
+  /** The last kilometre ridden by hand: where the player's kopman rides across the road. */
+  sprint?: SprintState;
 };
+
+/**
+ * The finale sprint across the road. Five lanes; the player's kopman moves
+ * between them, everyone else rides in his team's column. Until the player
+ * steers (`active`) the kopman rides on the plain physics, as before.
+ */
+export const LANES = [-2.6, -1.3, 0, 1.3, 2.6];
+export type SprintState = { id: string; home: number; lane: number; target: number; active: boolean; launched: boolean; boxed: boolean };
+/** How far the kopman stays behind a rider in his lane he cannot pass: a bike length. */
+export const BIKE_LENGTH = 1.7;
+/** Riders closer across the road than this ride in one line. */
+export const SAME_LANE = 0.9;
+/** How much faster than the bunch the kopman rides up an open line, m/s. */
+const MOVE_UP = 1.2;
+/** Moving up costs: up to this much over the threshold, out of W′. */
+const MOVE_UP_CAP = 1.8;
+/** Metres per second the kopman moves across the road. */
+const LANE_SPEED = 3.2;
+
+/** The bunch rides in the middle three lanes; the sides are where you move up. */
+const laneIndex = (key: string) => 1 + (hashSeed(0, key, "baan") % (LANES.length - 2));
+
+/** A rival rides in the column of his team's kopman when he is near, and the column drifts a lane now and then. */
+export function laneOf(state: RaceState, r: Rider): number {
+  const s = state.sprint;
+  if (!s) return 0;
+  if (r.id === s.id) return s.lane;
+  const k = r.team === PLAYER_TEAM ? undefined : kopmanOf(state, r.team);
+  const key = r.team === PLAYER_TEAM ? s.id : k && riding(k) && Math.abs(k.distance - r.distance) < 40 ? k.id : r.id;
+  const home = r.team === PLAYER_TEAM ? s.home : laneIndex(key);
+  if (r.team === PLAYER_TEAM) return LANES[home];
+  const drift = Math.round(Math.sin(state.time / 16 + (hashSeed(1, key, "drift") % 628) / 100) * 0.9);
+  return LANES[clamp(home + drift, 0, LANES.length - 1)];
+}
+
+export const homeLane = (id: string) => laneIndex(id);
 
 export type Lineup = { riders: string[]; kopman: string; bonus?: TeamBonus };
 
@@ -363,7 +401,8 @@ function decide(state: RaceState, r: Rider, ctx: Context, index: number) {
   setMode(r, "mee");
 }
 
-export function stepRace(state: RaceState) {
+/** One step of `dt` seconds; the finale sprint rides in small steps. */
+export function stepRace(state: RaceState, dt = STEP) {
   if (state.finished) return state;
   const course = state.course;
   const order = state.riders.filter(riding).sort((a, b) => b.distance - a.distance || a.id.localeCompare(b.id));
@@ -376,9 +415,11 @@ export function stepRace(state: RaceState) {
     groupIndex.set(r.id, groups.length - 1);
   }
   const ctx: Context = { groups, groupIndex, byId: new Map(state.riders.map((r) => [r.id, r])) };
+  // Every five seconds of race time, whatever the step.
+  const every = Math.max(1, Math.round(5 / dt));
   order.forEach((r) => {
     const index = state.riders.indexOf(r);
-    if ((state.tick + index) % 5 === 0) decide(state, r, ctx, index);
+    if ((state.tick + index) % every === 0) decide(state, r, ctx, index);
   });
   // The break is a fact once it is half a minute clear.
   if (!state.breakAnnounced && groups.length > 1 && groups[0].every((r) => r.breakaway) && groups[0][groups[0].length - 1].distance - groups[1][0].distance > 300) {
@@ -391,6 +432,9 @@ export function stepRace(state: RaceState) {
   const pace0 = order.map((r) => r.speed);
   const slot = new Map(order.map((r, i) => [r.id, i]));
   const groupSize = order.map((r) => groups[groupIndex.get(r.id)!].length);
+  const sp = state.sprint?.active ? state.sprint : null;
+  if (sp) sp.lane += clamp(LANES[sp.target] - sp.lane, -LANE_SPEED * dt, LANE_SPEED * dt);
+  const lanes = sp ? order.map((r) => laneOf(state, r)) : null;
   for (let i = 0; i < order.length; i++) {
     const r = order[i];
     const here = at[i];
@@ -405,7 +449,9 @@ export function stepRace(state: RaceState) {
       if (gap > 0.3) { count++; nearest = Math.min(nearest, gap); }
     }
     const fade = nearest <= SHELTER_FULL ? 1 : clamp((SHELTER_END - nearest) / (SHELTER_END - SHELTER_FULL), 0, 1);
-    const saving = course.tt ? 0 : SHELTER[Math.min(count, 3)] * fade;
+    const own = !!sp && !!lanes && r.id === sp.id;
+    // Steered by hand: only the riders in your line give shelter, the line beside you half.
+    const saving = course.tt ? 0 : own ? laneShelter(at, lanes!, i, sp!.lane) : SHELTER[Math.min(count, 3)] * fade;
     r.sheltered = saving >= 0.1;
     const mass = r.mass + r.bikeKg;
     const crr = CRR[surface] * (surface === "asfalt" ? 1 : r.crrFactor) * r.crrScale;
@@ -461,27 +507,70 @@ export function stepRace(state: RaceState) {
       const t = targetId ? slot.get(targetId) : undefined;
       if (t !== undefined && t < i && at[t] - here < FOLLOW_RANGE) power = hold(t, 1.5);
       else power = wheel >= 0 ? hold(wheel, rideCap) : cp * frontBase;
+    } else if (own && mode === "mee" && wheel >= 0) {
+      // Steered by hand: follow the wheel in your own line; with the line open, move up past the bunch.
+      let line = -1;
+      for (let j = i - 1; j >= 0 && at[j] - here < WHEEL_RANGE; j--) if (Math.abs(lanes![j] - sp!.lane) < SAME_LANE) { line = j; break; }
+      if (line >= 0) power = hold(line, rideCap);
+      else {
+        let pace = 0, n = 0;
+        for (let j = i - 1; j >= 0 && at[j] - here < GROUP_GAP; j--) { pace += pace0[j]; n++; }
+        const want = (n ? pace / n : v) + MOVE_UP;
+        power = clamp(v * (resist(v) + mass * (want - v) / 3) / r.eff, 0, cp * MOVE_UP_CAP);
+      }
     } else if (wheel >= 0) power = hold(wheel, mode === "sparen" ? Math.min(0.95, rideCap) : rideCap);
     else power = cp * (mode === "sparen" ? 0.7 : frontBase);
     if (r.wbal <= 0) power = Math.min(power, cp);
     r.effort = +(power / cp).toFixed(2);
 
-    if (power > cp) r.wbal = Math.max(0, r.wbal - (power - cp) * STEP);
-    else r.wbal = r.wprime - (r.wprime - r.wbal) * Math.exp(-STEP * (1 + r.recovery) / (546 * Math.exp(-0.01 * (cp - power)) + 316));
+    if (power > cp) r.wbal = Math.max(0, r.wbal - (power - cp) * dt);
+    else r.wbal = r.wprime - (r.wprime - r.wbal) * Math.exp(-dt * (1 + r.recovery) / (546 * Math.exp(-0.01 * (cp - power)) + 316));
     const accel = (r.eff * power / v - resist(r.speed)) / (mass * 1.04);
     const vmax = grade < -0.02 ? r.vmax : 25;
-    r.speed = clamp(r.speed + accel * STEP, 1, vmax);
+    r.speed = clamp(r.speed + accel * dt, 1, vmax);
     const before = r.distance;
-    r.distance += r.speed * STEP;
+    r.distance += r.speed * dt;
+    if (own) {
+      // A slower rider straight ahead: no way through, you sit on his wheel.
+      sp!.boxed = false;
+      for (let j = i - 1; j >= 0 && at[j] - here < 8; j--) {
+        if (Math.abs(lanes![j] - sp!.lane) >= SAME_LANE || at[j] <= here) continue;
+        const stop = order[j].distance - BIKE_LENGTH;
+        if (r.distance > stop) {
+          r.distance = Math.max(before, stop);
+          r.speed = Math.min(r.speed, order[j].speed);
+          sp!.boxed = true;
+        }
+      }
+    }
     if (r.distance >= course.length) {
       r.finishTime = state.time + (course.length - before) / r.speed;
       if (!state.events.some((e) => e.kind === "finish")) log(state, r, "finish");
     }
   }
-  state.time += STEP;
+  state.time += dt;
   state.tick++;
   state.finished = state.riders.every((r) => !riding(r)) || state.time >= state.maxTime;
   return state;
+}
+
+/** Shelter from the riders in your own line; a rider in the line beside you counts half, and alongside a bunch you always have some. */
+function laneShelter(at: number[], lanes: number[], i: number, lane: number) {
+  const here = at[i];
+  let same = 0, near = 0, any = 0, nearestSame = Infinity, nearestNear = Infinity;
+  for (let j = i - 1; j >= 0 && at[j] - here < GROUP_GAP; j--) {
+    const gap = at[j] - here;
+    if (gap <= 0.3) continue;
+    any++;
+    const off = Math.abs(lanes[j] - lane);
+    if (off < SAME_LANE) { same++; nearestSame = Math.min(nearestSame, gap); }
+    else if (off < SAME_LANE * 2) { near++; nearestNear = Math.min(nearestNear, gap); }
+  }
+  const fade = (d: number) => (d <= SHELTER_FULL ? 1 : clamp((SHELTER_END - d) / (SHELTER_END - SHELTER_FULL), 0, 1));
+  const n = Math.min(3, same + 0.5 * near), lo = Math.floor(n);
+  const shelter = lo >= 3 ? SHELTER[3] : SHELTER[lo] + (SHELTER[lo + 1] - SHELTER[lo]) * (n - lo);
+  // Along the side of a bunch the air is still calmer than out in the wind.
+  return Math.max(shelter * fade(same ? nearestSame : nearestNear), any >= 3 ? SHELTER[1] : 0);
 }
 
 export function runToEnd(state: RaceState) {

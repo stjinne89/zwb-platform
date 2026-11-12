@@ -2,7 +2,7 @@
 
 import { ChevronLeft, CloudRain, Crown, Flag, Mountain, Play, RotateCcw, Shield, Sun, Undo2, Video, Wind, Wrench, X } from "lucide-react";
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { BOARD_CARDS, BOARD_SECTORS, WIND_LABELS, type Weather, blockedReason, choosesRider, costOf, createBoard, currentSector, HAZARD_LABELS, PHASE_LABELS, phaseOf, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, ridersFor, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
+import { BOARD_CARDS, BOARD_SECTORS, WIND_LABELS, type Weather, blockedReason, rideSprint, sprinting, sprintRate, SPRINT_DT, choosesRider, costOf, createBoard, currentSector, HAZARD_LABELS, PHASE_LABELS, phaseOf, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, ridersFor, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
 import { cardById, TYPE_LABELS } from "../engine/cards";
 import { newSave, type Save } from "../engine/economy";
 import { STAFF, teamBonus } from "../engine/items";
@@ -14,6 +14,7 @@ import { ChaseView } from "./chase-view";
 import { GroupView } from "./group-view";
 import { Portrait, type Mood } from "./portrait";
 import { Profile } from "./profile";
+import { SprintPad } from "./sprint-pad";
 import { clock, riderName, teamColor, teamName } from "./race-view";
 import { RiderCardView } from "./rider-card";
 import styles from "./kopman.module.css";
@@ -148,8 +149,22 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
     const perFrame = Math.max(1, Math.ceil((sector.end - sector.start) / 11 / (SECTOR_SECONDS * 60)) * (sector.finale ? 2 : 1));
     let raf = 0;
     let last = 0;
+    // The sprint rides in small steps in slowed time, and a moment past the line before the result.
+    let prev = 0, acc = 0, after = 0;
     const loop = (now: number) => {
-      const done = rideSector(b, perFrame);
+      const real = prev ? Math.min(0.05, (now - prev) / 1000) : 1 / 60;
+      prev = now;
+      const k = kopmanOf(b.race, PLAYER_TEAM)!;
+      if (b.race.sprint && !riding(k)) after += real;
+      let done = false;
+      if (b.race.sprint && after < 1.4 && !b.race.finished) {
+        acc += real * sprintRate(b);
+        while (acc >= SPRINT_DT && !b.race.finished) { rideSprint(b); acc -= SPRINT_DT; }
+        if (now - last > 80) { last = now; redraw(); }
+        raf = requestAnimationFrame(loop);
+        return;
+      }
+      done = rideSector(b, perFrame);
       if (done || now - last > 80) { last = now; redraw(); }
       if (!done) raf = requestAnimationFrame(loop);
     };
@@ -232,6 +247,14 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
     return !riding(r) ? "rust" : k <= start * 0.25 ? "limiet" : mode === "aanval" || mode === "sprint" ? "aanval" : "rust";
   };
   const standingOf = (r: (typeof mine)[number]) => { const w = standing(state, r); return `${w.label}${w.gap >= 5 ? ` +${clock(w.gap)}` : ""}`; };
+  // From a kilometre out the race view takes over: that is where you steer.
+  const sprintOn = !!state.sprint && riding_;
+  const showBeeld = view === "beeld" || sprintOn;
+  const chase = (
+    <ChaseView state={state} moving={riding_} frame={tick} rate={sprintOn ? sprintRate(board) : undefined}>
+      {sprinting(board) ? <SprintPad board={board} onChange={redraw} /> : null}
+    </ChaseView>
+  );
   const groupView = <GroupView state={state} sector={sector} moving={riding_} moodOf={moodOf} onRider={tapRider} />;
   const sheetRider = sheet ? state.riders.find((r) => r.id === sheet) : undefined;
   const sheetView = sheetRider ? <RiderSheet rider={sheetRider} kracht={board.kracht[sheetRider.id]} start={board.start[sheetRider.id]} where={standingOf(sheetRider)} team={sheetRider.team === PLAYER_TEAM ? null : teamName(sheetRider.team, own)} boost={sheetRider.team === PLAYER_TEAM ? statBoost(sheetRider.card, teamBonus(items)) : undefined} onClose={() => setSheet(null)} /> : null;
@@ -248,14 +271,14 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
           <WeatherChip weather={board.weather} />
           {toggle}
         </div>
-        <div className={`${styles.mStage} ${view === "beeld" ? "" : styles.mStageMap}`}>
-          {view === "beeld" ? <ChaseView state={state} moving={riding_} frame={tick} /> : null}
+        <div className={`${styles.mStage} ${showBeeld ? "" : styles.mStageMap}`}>
+          {showBeeld ? chase : null}
           <div className={styles.mInfo}>
             <b>{sectorTitle(sector, board.tt)}</b>
             <span>{km(sector.end - sector.start)}{sector.finale ? "" : ` · ${hazardLine(sector)}`}</span>
             {ahead.map((s) => <span key={s.index}>Daarna: {sectorTitle(s, board.tt)}</span>)}
           </div>
-          {view === "beeld" ? null : <div className={styles.mGroups}>{groupView}</div>}
+          {showBeeld ? null : <div className={styles.mGroups}>{groupView}</div>}
           {intentList.length || lastEvents.length ? (
             <div className={styles.mFeed} aria-live="polite">
               {riding_ ? null : intentList}
@@ -310,9 +333,9 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
         {toggle}
       </div>
       <div className={styles.panel}>
-        {view === "beeld" ? (
+        {showBeeld ? (
           <div className={styles.stack} style={{ gap: 8 }}>
-            <ChaseView state={state} moving={riding_} frame={tick} />
+            {chase}
             <Profile course={state.course} markers={markers} bands={bands} height={52} />
           </div>
         ) : (

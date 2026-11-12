@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { autoplay, BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, deckFor, EARLY_ATTACK, HAND_SIZE, OFF_TYPE, oddsFor, phaseOf, PLAYS_PER_TURN, playCard, rideSector, ridersFor, startSector, STREKEN, TEAM_CARDS, unplayCard, type BoardState } from "@/kopman/engine/board";
-import { statBoost } from "@/kopman/engine/race";
+import { BIKE_LENGTH, LANES, laneOf, riding, statBoost, stepRace, uphillFinish } from "@/kopman/engine/race";
+import { launch, rideSprint, SPRINT_FROM, sprinting, steer } from "@/kopman/engine/board";
 import { teamBonus } from "@/kopman/engine/items";
 import { rng } from "@/kopman/engine/rng";
 import { kopmanOf } from "@/kopman/engine/race";
@@ -265,5 +266,69 @@ describe("Kopman: bordspel", () => {
     expect(wheels.vlak).toBeGreaterThanOrEqual(1);
     expect(wheels.klim).toBeUndefined();
     expect(statBoost(card, teamBonus({ "m-remmen-goud": 1 })).afdalen).toBeGreaterThanOrEqual(10);
+  });
+
+  /** Rides a board without cards until the sprint opens; null when it does not. */
+  function toSprint(id: string, seed: number) {
+    const b = createBoard(id, seed, lineup);
+    if (b.tt || uphillFinish(b.race.course)) return null;
+    while (b.phase !== "klaar") {
+      startSector(b);
+      while (!rideSector(b, 600)) if (sprinting(b)) return b;
+    }
+    return null;
+  }
+  const sprintBoard = () => {
+    for (const id of ["kermis-vaart", "molenprijs", "openingsomloop", "polderprijs"]) for (let seed = 1; seed < 8; seed++) { const b = toSprint(id, seed); if (b) return b; }
+    throw new Error("geen sprint");
+  };
+
+  it("opent de sprint een kilometer voor de streep, en zonder input rijdt de kopman op de gewone natuurkunde", () => {
+    const b = sprintBoard();
+    const k = kopmanOf(b.race, PLAYER_TEAM)!;
+    expect(b.race.course.length - k.distance).toBeLessThanOrEqual(SPRINT_FROM);
+    expect(b.race.sprint!.active).toBe(false);
+    while (!rideSprint(b)) { /* */ }
+    expect(riding(k)).toBe(false);
+    expect(b.race.sprint!.active).toBe(false);
+    while (!rideSector(b, 600)) { /* */ }
+    expect(b.phase).toBe("klaar");
+    expect(results(b.race).find((p) => p.id === k.id)!.place).toBeGreaterThan(0);
+  });
+
+  it("stuurt de kopman een baan opzij en laat hem één keer aanzetten", () => {
+    const b = sprintBoard();
+    const s = b.race.sprint!;
+    const from = s.target;
+    const dir = from === 0 ? 1 : -1;
+    // Clear the lane beside him, so there is room.
+    const k = kopmanOf(b.race, PLAYER_TEAM)!;
+    for (const r of b.race.riders) if (r !== k && Math.abs(r.distance - k.distance) < 2) r.distance -= 5;
+    expect(steer(b, dir)).toBe(true);
+    expect(s.target).toBe(from + dir);
+    expect(s.active).toBe(true);
+    for (let i = 0; i < 20; i++) rideSprint(b);
+    expect(s.lane).toBeCloseTo(LANES[from + dir], 5);
+    expect(launch(b)).toBe(true);
+    expect(k.mode).toBe("sprint");
+    expect(launch(b)).toBe(false);
+  });
+
+  it("sluit de kopman in achter een tragere renner in zijn baan", () => {
+    const b = sprintBoard();
+    const s = b.race.sprint!;
+    const k = kopmanOf(b.race, PLAYER_TEAM)!;
+    const r = b.race.riders.find((x) => x.team !== PLAYER_TEAM && riding(x) && Math.abs(x.distance - k.distance) < 40)!;
+    for (const x of b.race.riders) if (x !== k && x !== r && Math.abs(x.distance - k.distance) < 12) x.distance -= 30;
+    s.active = true;
+    s.target = LANES.indexOf(laneOf(b.race, r));
+    s.lane = LANES[s.target];
+    r.distance = k.distance + 2;
+    r.speed = 8;
+    k.speed = 15;
+    stepRace(b.race, 0.05);
+    expect(s.boxed).toBe(true);
+    expect(k.distance).toBeLessThanOrEqual(r.distance - BIKE_LENGTH + 1e-9);
+    expect(k.speed).toBeLessThanOrEqual(r.speed + 1e-9);
   });
 });

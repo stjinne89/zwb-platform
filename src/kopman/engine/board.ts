@@ -1,7 +1,7 @@
 import { cardById } from "./cards";
 import { courseWeights, fitFor } from "./course";
 import { bestItems, type StaffRole } from "./items";
-import { createRace, groupsOf, kopmanOf, riding, stepRace, type Lineup, type Override, type RaceState, type Rider } from "./race";
+import { BIKE_LENGTH, createRace, groupsOf, homeLane, kopmanOf, LANES, laneOf, riding, SAME_LANE, STEP, stepRace, uphillFinish, type Lineup, type Override, type RaceState, type Rider } from "./race";
 import { clamp, hashSeed, rng } from "./rng";
 import { rivalsIn } from "./teams";
 import { GRID, PLAYER_TEAM, type RiderType } from "./types";
@@ -833,7 +833,19 @@ export function startSector(board: BoardState) {
   board.phase = "rijden";
 }
 
-/** Rides up to `steps` seconds of the sector. True once the sector is done. */
+function advance(board: BoardState, dt: number) {
+  stepRace(board.race, dt);
+  for (const id of Object.keys(board.plans)) {
+    const r = byId(board, id);
+    if (r && !r.override && board.plans[id].length) r.override = board.plans[id].shift()!;
+  }
+}
+
+/**
+ * Rides up to `steps` seconds of the sector. True once the sector is done.
+ * In the finale it stops once when the sprint opens; called again, it rides on
+ * to the line without the player.
+ */
 export function rideSector(board: BoardState, steps: number): boolean {
   if (board.phase !== "rijden") return true;
   const state = board.race;
@@ -842,11 +854,8 @@ export function rideSector(board: BoardState, steps: number): boolean {
   for (let i = 0; i < steps; i++) {
     if (state.finished) break;
     if (!sector.finale && (!riding(kopman) || kopman.distance >= sector.end)) break;
-    stepRace(state);
-    for (const id of Object.keys(board.plans)) {
-      const r = byId(board, id);
-      if (r && !r.override && board.plans[id].length) r.override = board.plans[id].shift()!;
-    }
+    if (sprintFits(board)) { openSprint(board); return false; }
+    advance(board, STEP);
   }
   const done = state.finished || (!sector.finale && (!riding(kopman) || kopman.distance >= sector.end));
   if (done) endSector(board);
@@ -998,6 +1007,80 @@ function endSector(board: BoardState) {
   board.intents = intentsFor(board);
   refillHand(board, true);
   board.phase = "plannen";
+}
+
+/** The last kilometre by hand: from here you steer the kopman across the road and choose when he goes. */
+export const SPRINT_FROM = 1000;
+/** Race seconds per step in the sprint. */
+export const SPRINT_DT = 0.05;
+/** Speed lost by moving one lane across, m/s. */
+const LANE_COST = 0.3;
+
+/** On a flat finish, with the kopman in a group of three or more. Not in a time trial. */
+function sprintFits(board: BoardState) {
+  const state = board.race;
+  if (board.tt || state.sprint || !currentSector(board).finale || uphillFinish(state.course)) return false;
+  const k = kopmanOf(state, PLAYER_TEAM);
+  if (!k || !riding(k)) return false;
+  const left = state.course.length - k.distance;
+  if (left > SPRINT_FROM || left < 250) return false;
+  return (groupsOf(state).find((g) => g.includes(k))?.length ?? 0) >= 3;
+}
+
+function openSprint(board: BoardState) {
+  const k = kopmanOf(board.race, PLAYER_TEAM)!;
+  const home = homeLane(k.id);
+  board.race.sprint = { id: k.id, home, lane: LANES[home], target: home, active: false, launched: false, boxed: false };
+}
+
+/** The sprint is open and the kopman is still on his way to the line. */
+export function sprinting(board: BoardState) {
+  const k = kopmanOf(board.race, PLAYER_TEAM);
+  return board.phase === "rijden" && !!board.race.sprint && !!k && riding(k);
+}
+
+/** Race seconds per real second: slow in the run-in, slower still in the last 400 m. */
+export function sprintRate(board: BoardState) {
+  const k = kopmanOf(board.race, PLAYER_TEAM)!;
+  return board.race.course.length - k.distance > 400 ? 4 : 1.6;
+}
+
+/** One lane left (−1) or right (+1). False when there is no room: a rider right beside you. */
+export function steer(board: BoardState, dir: -1 | 1): boolean {
+  const state = board.race;
+  const s = state.sprint;
+  const k = kopmanOf(state, PLAYER_TEAM);
+  if (!s || !k || !sprinting(board)) return false;
+  const next = s.target + dir;
+  if (next < 0 || next >= LANES.length) return false;
+  const beside = state.riders.some((r) => r !== k && riding(r) && Math.abs(laneOf(state, r) - LANES[next]) < SAME_LANE && Math.abs(r.distance - k.distance) < BIKE_LENGTH * 0.8);
+  if (beside) return false;
+  s.active = true;
+  s.target = next;
+  k.speed = Math.max(1, k.speed - LANE_COST);
+  return true;
+}
+
+/** The kopman goes now, whatever the distance. Once. Going counts as steering: from here a wheel in your line can shut you in. */
+export function launch(board: BoardState): boolean {
+  const s = board.race.sprint;
+  const k = kopmanOf(board.race, PLAYER_TEAM);
+  if (!s || !k || !sprinting(board) || s.launched || k.mode === "sprint") return false;
+  s.launched = true;
+  s.active = true;
+  k.override = null;
+  delete board.plans[k.id];
+  k.mode = "sprint";
+  k.modeUntil = 0;
+  k.target = null;
+  return true;
+}
+
+/** One small step of the sprint. True once the kopman is over the line or out of the race. */
+export function rideSprint(board: BoardState, dt = SPRINT_DT): boolean {
+  if (!sprinting(board)) return true;
+  advance(board, dt);
+  return !sprinting(board);
 }
 
 /** Plays a whole board with a simple policy: for tests and balance runs. */

@@ -43,7 +43,8 @@ gaat stabiliteit voor nieuwe features.
    de tijdrit; het overzicht toont sindsdien de koers in vogelvlucht met
    gezichtjes, het getekende koersbeeld is te kiezen. Op 2026-11-12 ook
    gepusht: "Kopman: eerlijk herstel, tempo tegen aanvallen en het weer"
-   (`aedd965a`). Daarna volgt de ronde "de sprint zelf rijden". Op een telefoon vult het bord het scherm. Open: na de
+   (`aedd965a`). Lokaal, nog niet gepusht: "Kopman: de sprint zelf rijden"
+   (2026-11-12): in de laatste kilometer stuur je de kopman met swipes. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12265,6 +12266,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: de sprint zelf rijden
+
+**2026-11-12, de commit "Kopman: de sprint zelf rijden", lokaal (niet
+gepusht).** Geen migratie; de save verandert niet.
+
+- **De vraag.** De eigenaar: "de finale is nu heel erg basic ... door te
+  swipen met je vinger de renner kan besturen langs andere renners zodat je
+  daar nog enigszins invloed kan hebben op de einduitslag". Voorgesteld als
+  een module in de laatste kilometer; akkoord: "Eerst 1–6, dan 7". Tussendoor:
+  "De groene plusjes vallen net een beetje naast de kaart".
+- **Wat er is.** Zie
+  [docs/kopman-bordspel.md](docs/kopman-bordspel.md#de-sprint-zelf-rijden).
+  - Op 1 km van een vlakke finish, met de kopman in een groep van minstens
+    drie, gaat de sprint open: het koersbeeld neemt het over, in vertraagde
+    tijd (`SPRINT_FROM`, `sprintRate`).
+  - Swipe links of rechts voor een baan opzij, omhoog om aan te zetten; ook
+    met de pijltjestoetsen en drie knoppen (`sprint-pad.tsx`). In beeld: de
+    meters tot de streep, de benen (W′) en "Ingesloten" of "Geen ruimte".
+  - In de engine vijf banen (`LANES`, `laneOf`, `state.sprint`), een kleinere
+    tijdstap (`stepRace(state, dt)`), beschutting per baan, ingesloten achter
+    een tragere renner, en opschuiven in een vrije baan uit je W′.
+  - Een finishlijn met doek in het koersbeeld; je kopman wordt in de sprint
+    als laatste getekend, zodat niemand hem verbergt.
+  - De groene plusjes blijven binnen de kaart: de kolommen van de
+    eigenschappen krimpen mee (`minmax(0, 1fr)`), het plusje is kleiner.
+- **Waarom zo.** Zonder input rijdt de kopman op de gewone natuurkunde, dus
+  wie niets doet, verliest niets. Gemeten op 45 ritten (40 met een open
+  sprint): zonder input gemiddeld 42,0e; opschuiven en op 450 m aanzetten
+  37,8e (30 keer beter, nooit slechter); slordig sturen 45,7e. Een eerste
+  versie liet vroeg aanzetten buiten de banen om: dan was op 700 m gaan het
+  beste (35,4e). Nu telt aanzetten als sturen en is dat 46,5e.
+- **Niet meer waar.**
+  - "De finale beslist met de kracht, de statistieken en je laatste kaarten"
+    klopt niet meer voor een vlakke finish: de laatste kilometer stuur je zelf.
+  - `stepRace` rijdt niet altijd hele seconden: in de sprint 0,05 s. De
+    keuzes van de renners blijven op elke vijf seconden koerstijd.
+- **Bewust niet gebouwd:**
+  - een module bergop of in een tijdrit: daar beslist de kracht;
+  - banen voor rivalen onderling, zodat alleen je eigen kopman ingesloten
+    raakt: de koers blijft zo voorspelbaar en snel;
+  - renners die na de streep in beeld blijven;
+  - uitleg in het scherm.
+- **Geverifieerd:**
+  - tsc, eslint en 67 Kopman-tests, waarvan 3 nieuw: de sprint gaat open en
+    zonder input blijft hij uit; een baan opzij en één keer aanzetten;
+    ingesloten achter een tragere renner;
+  - in de preview op 375×812: de sprint gaat open op 995 m, sturen met
+    swipe en pijltjes, "Geen ruimte", aanzetten, de finish met doek, daarna
+    de uitslag; de plusjes binnen de kaart op de ploegpagina.
+- **Niet geverifieerd:**
+  - swipen op een echte telefoon (in de preview met een muis gesleept);
+  - of 25 s voor de laatste kilometer goed speelt;
+  - de piramidebalans: het balansscript rijdt zonder sprint, dus de
+    uitkomst daar verandert niet.
+
 ### Gebouwd — Kopman: eerlijk herstel, tempo tegen aanvallen en het weer
 
 **2026-11-12, de commit "Kopman: eerlijk herstel, tempo tegen aanvallen en het
@@ -12313,7 +12369,7 @@ weer" (`aedd965a`), op 2026-11-12 gepusht naar main.** Geen migratie; de save ve
   - een knecht die na sleuren terugzakt: dan lost hij en betaalt hij bovenop
     de kaart ook voor alleen rijden;
   - plusjes voor rivalen;
-  - de sprint zelf rijden: de volgende ronde, op deze balans.
+  - de sprint zelf rijden: gebouwd in de ronde erboven.
 - **Geverifieerd:**
   - tsc, eslint, 64 Kopman-tests (4 nieuw: herstel zonder meerprijs en zonder
     kosten voor alleen rijden, sleuren alleen voor een knecht, het weer en de
