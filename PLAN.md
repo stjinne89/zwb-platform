@@ -46,7 +46,7 @@ gaat stabiliteit voor nieuwe features.
    (`aedd965a`) en "Kopman: de sprint zelf rijden" (`bf80b0ea`): in de
    laatste kilometer stuur je de kopman met swipes. Daarna lokaal, niet
    gepusht: "Kopman: diamant, en rivalen per niveau" (`a7983b35`) en
-   "Kopman: sterkere pelotons" (de commit van die ronde): hogere banden voor
+   "Kopman: sterkere pelotons" (`52b6dc94`): hogere banden voor
    Interclub en Continentaal en een peloton dat meegroeit. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
@@ -12271,7 +12271,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: sterkere pelotons
 
-**2026-11-13, de commit "Kopman: sterkere pelotons", lokaal, niet gepusht.**
+**2026-11-13, de commit "Kopman: sterkere pelotons" (`52b6dc94`), lokaal, niet gepusht.**
 Geen migratie; de save verandert niet.
 
 - **De vraag.** In de ronde hieronder bleek dat het gedrag van de rivalen het
