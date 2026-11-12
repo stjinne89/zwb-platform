@@ -45,9 +45,9 @@ gaat stabiliteit voor nieuwe features.
    gepusht: "Kopman: eerlijk herstel, tempo tegen aanvallen en het weer"
    (`aedd965a`) en "Kopman: de sprint zelf rijden" (`bf80b0ea`): in de
    laatste kilometer stuur je de kopman met swipes. Daarna lokaal, niet
-   gepusht: "Kopman: diamant, en rivalen per niveau" (de commit van die
-   ronde); de rivalen maken het daarin gemeten niet zwaarder, de eigenaar
-   kiest de volgende knop. Op een telefoon vult het bord het scherm. Open: na de
+   gepusht: "Kopman: diamant, en rivalen per niveau" (`a7983b35`) en
+   "Kopman: sterkere pelotons" (de commit van die ronde): hogere banden voor
+   Interclub en Continentaal en een peloton dat meegroeit. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12269,6 +12269,48 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: sterkere pelotons
+
+**2026-11-13, de commit "Kopman: sterkere pelotons", lokaal, niet gepusht.**
+Geen migratie; de save verandert niet.
+
+- **De vraag.** In de ronde hieronder bleek dat het gedrag van de rivalen het
+  Continentaal niet zwaarder maakt. De eigenaar koos uit "sterkere pelotons"
+  en "tragere groei": "Sterkere pelotons".
+- **Wat er is.** Zie
+  [docs/kopman-piramide.md](docs/kopman-piramide.md#sterkere-pelotons).
+  - `band` van de Interclub 64–58 (was 61–56), van het Continentaal 71–64
+    (was 67–62).
+  - `pelotonForm` in `board.ts`: zitten je vijf boven de top van de band
+    min 2, dan rijden alle rivalen 1% per punt sterker, tot `rivals.form`
+    (Kermis 0, Interclub 4%, daarboven 8%). Bij de start staat "Het peloton
+    is in vorm: +4%" in het logboek, al tijdens het plannen van de eerste
+    sector (`sector: -1`).
+- **Gemeten.** Dezelfde 8 saves bij de start van het Continentaal: 31 zeges
+  van 64 (gemiddeld 6,0e) met de oude band, 22 (9,3e) met de nieuwe, 23
+  (9,3e) met vorm erbij. De band doet het werk; de vorm remt pas wie verder
+  boven het niveau zit. Carrières van 10 seizoenen (4 seeds): in de
+  Wereldtour in seizoen 8, 10 en 10, één seed in seizoen 10 nog in het
+  Continentaal (was 7, 8 en 8). Met vorm in de Kermis bleef een seed 8
+  seizoenen hangen; daarom daar 0%.
+- **Niet meer waar.** In
+  [docs/kopman-piramide.md](docs/kopman-piramide.md): de rivalen in de
+  Interclub 64–57 en het Continentaal 69–62 (nu 67–58 en 72–64). In de ronde
+  hieronder: "er is niets aan veranderd" over de groei of de sterkte per
+  niveau; dat is deze ronde.
+- **Bewust niet gebouwd:**
+  - pelotons die van renners wisselen naarmate je sterker wordt: dan hangt
+    `rivalTeams` van je save af;
+  - tragere groei: niet gekozen;
+  - een uitleg van de vorm in het scherm: alleen de regel in het logboek.
+- **Geverifieerd:** tsc, eslint, 73 Kopman-tests (1 nieuw: geen vorm voor een
+  zwakke ploeg en in de Kermis, het plafond voor een sterke, de rivalen
+  sterker en de regel in het logboek), `next build`; in de preview op een
+  testsave in de Interclub "Het peloton is in vorm: +4%" bij de start.
+- **Niet geverifieerd:** hoe het voor een speler voelt. Een save van versie 1
+  komt bij het laden mogelijk een niveau lager uit, want `divisionFor` gebruikt
+  de ondergrens van `band`.
+
 ### Gebouwd — Kopman: diamant, en rivalen per niveau
 
 **2026-11-13, de commit "Kopman: diamant, en rivalen per niveau" (`a7983b35`), lokaal, niet
@@ -12303,7 +12345,7 @@ erbij; oude saves lezen gewoon.
     rivaliserende kopman kostte maar 9 zeges. Je wint omdat je ploeg (72–76)
     ver boven het niveau (62–67) zit. De knop is dus de groei of de sterkte
     per niveau, niet het gedrag van de rivalen. Dat is aan de eigenaar
-    voorgelegd; er is niets aan veranderd.
+    voorgelegd; zie de ronde "Kopman: sterkere pelotons" erboven.
   - C werkt in de Proftour (beste vijf gemiddeld 72,6, was 70,7), nauwelijks
     in de Wereldtour (78,7, was 78,2): er zijn maar 52 gouden renners voor
     88 plekken.

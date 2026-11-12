@@ -237,6 +237,8 @@ export type BoardState = {
   /** Chance per sector that a rival plays a dirty trick on your kopman, and whether one did this race. */
   trick: number;
   tricked: boolean;
+  /** How much stronger the rivals ride because your five are above the level (`pelotonForm`). */
+  form: number;
   random: () => number;
 };
 
@@ -347,6 +349,20 @@ function refillHand(board: BoardState, rotate: boolean) {
   while (board.hand.length < board.handSize && drawUsable(board)) { /* fill */ }
 }
 
+/**
+ * The peloton grows with a player who outgrows its level (since 2026-11-13):
+ * per point that your five are above the top of the band minus `offset`, every
+ * rival rides `perPoint` stronger, up to the `form` of the level.
+ */
+export const FORM = { perPoint: 0.01, offset: 2 };
+
+export function pelotonForm(raceId: string, riders: string[]): number {
+  if (!riders.length) return 0;
+  const level = DIVISIONS[divisionOfRace(raceId)];
+  const avg = riders.reduce((sum, id) => sum + cardById(id).overall, 0) / riders.length;
+  return Math.round(clamp((avg - level.band[0] + FORM.offset) * FORM.perPoint, 0, level.rivals.form) * 1000) / 1000;
+}
+
 export function createBoard(raceId: string, seed: number, lineup: Lineup, items: Record<string, number> = {}): BoardState {
   const race = createRace(raceId, seed, lineup);
   const level = DIVISIONS[divisionOfRace(raceId)];
@@ -358,8 +374,14 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
   const weather = weatherFor(raceId, sky);
   for (const sector of sectors) sector.odds = oddsFor(sector, weather, sky);
   const kracht: Record<string, number> = {};
+  const form = pelotonForm(raceId, lineup.riders);
   for (const r of race.riders) {
     kracht[r.id] = kracht0(r, level.rivals.xp);
+    if (form && r.team !== PLAYER_TEAM) {
+      r.cpFlat *= 1 + form;
+      r.cpClimb *= 1 + form;
+      r.sprintW *= 1 + form;
+    }
     base.set(r, { cpFlat: r.cpFlat, cpClimb: r.cpClimb, sprintW: r.sprintW, vmax: r.vmax, cda: r.cda });
   }
   const board: BoardState = {
@@ -382,6 +404,7 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
     attacksLeft: Object.fromEntries(rivalsIn(raceId).map((t) => [t.id, level.rivals.attacks])),
     trick: level.rivals.trick,
     tricked: false,
+    form,
     plans: {},
     touched: [],
     forcedWind: false,
@@ -395,6 +418,8 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
     rested: [],
     random,
   };
+  // Before the first sector, so it shows while you plan it.
+  if (form) board.events.push({ sector: -1, text: `Het peloton is in vorm: +${Math.round(form * 100)}%`, team: PLAYER_TEAM, good: false });
   board.intents = intentsFor(board);
   refillHand(board, false);
   return board;

@@ -25,9 +25,10 @@ export type Division = {
    * How the rivals race on the board (since 2026-11-12): extra kracht for their
    * kopmen, attacks per team per race, whether one chases your kopman's attack,
    * the chance per sector of a dirty trick against you, and how many of the
-   * strongest teams also start a diamond rider.
+   * strongest teams also start a diamond rider. `form` is the most the peloton
+   * grows with a player who is above the level (`pelotonForm` in `board.ts`).
    */
-  rivals: { xp: number; attacks: number; chase: boolean; trick: number; diamonds: number };
+  rivals: { xp: number; attacks: number; chase: boolean; trick: number; diamonds: number; form: number };
   /** Ids from `RACES` (world.ts), in calendar order. */
   races: string[];
   teams: Omit<TeamDef, "riders">[];
@@ -52,33 +53,33 @@ export const DIVISIONS: Division[] = [
     promotion: "brons",
     shop: ["brons"],
     gear: null,
-    rivals: { xp: 0, attacks: 2, chase: false, trick: 0, diamonds: 0 },
+    rivals: { xp: 0, attacks: 2, chase: false, trick: 0, diamonds: 0, form: 0 },
     races: ["kermis-vaart", "kempen-dorpsronde", "kasseikermis", "molenprijs", "polderkermis", "dorpsplein", "bosbergkermis", "najaarskermis"],
     teams: teams("k", [["WV De Zwaluw", "ZWA"], ["De Kasseivreters", "KSV"], ["Polderpijl", "PDP"], ["WTC Molenwiek", "MLW"], ["De Dorpsstraat", "DST"], ["Velo Kempenland", "VKL"], ["De Kerktoren", "KTR"], ["Vaartrenners", "VRT"], ["Ploeg Klaproos", "KLP"], ["De Kermisvogels", "KMV"], ["Fietsclub Zuiderwind", "FZW"]]),
   },
   {
     id: "interclub",
     name: "Interclub",
-    band: [61, 56],
+    band: [64, 58],
     prize: 0.22,
     packs: { win: "brons", podium: "brons", top10: null },
     promotion: "brons",
     shop: ["brons"],
     gear: "brons",
-    rivals: { xp: 0, attacks: 2, chase: false, trick: 0, diamonds: 0 },
+    rivals: { xp: 0, attacks: 2, chase: false, trick: 0, diamonds: 0, form: 0.04 },
     races: ["vlaamse-velden", "bosbergprijs", "heuvelland", "paddestraatprijs", "clubchrono", "caubergprijs", "taaienbergprijs", "kustomloop"],
     teams: teams("i", [["Heidebloem Cycling", "HBC"], ["Scheldestroom", "SCS"], ["Kempense Pijl", "KPP"], ["Lindeboom", "LDB"], ["Noorderlicht", "NDL"], ["Dijkgraaf", "DKG"], ["Brabantse Wind", "BRW"], ["Meeuw Racing", "MWR"], ["Zuiderkruis", "ZKR"], ["De Hazelaar", "HZL"], ["Rivierland", "RVL"]]),
   },
   {
     id: "continentaal",
     name: "Continentaal",
-    band: [67, 62],
+    band: [71, 64],
     prize: 0.4,
     packs: { win: "zilver", podium: "brons", top10: null },
     promotion: "zilver",
     shop: ["brons", "zilver"],
     gear: "brons",
-    rivals: { xp: 1, attacks: 3, chase: true, trick: 0, diamonds: 0 },
+    rivals: { xp: 1, attacks: 3, chase: true, trick: 0, diamonds: 0, form: 0.08 },
     races: ["ardennen-omloop", "pevele", "heuvelpijl", "dijkchrono", "comomeer-rit", "ardense-pijl", "polderprijs", "muurprijs"],
     teams: teams("c", [["Granietberg", "GRB"], ["Atlantica Cycling", "ATC"], ["Valkenhorst", "VKH"], ["Korenaar Pro", "KNA"], ["Oostzee Racing", "OZR"], ["Sneeuwgrens", "SNG"], ["Kalkrots", "KKR"], ["Duinvogel", "DVG"], ["Zilvermeer", "ZVM"], ["Bergwind", "BWD"], ["Heidepoort", "HDP"]]),
   },
@@ -91,7 +92,7 @@ export const DIVISIONS: Division[] = [
     promotion: "zilver",
     shop: ["brons", "zilver"],
     gear: "zilver",
-    rivals: { xp: 1, attacks: 3, chase: true, trick: 0.05, diamonds: 0 },
+    rivals: { xp: 1, attacks: 3, chase: true, trick: 0.05, diamonds: 0, form: 0.08 },
     races: ["openingsomloop", "grindtrofee", "westhoekprijs", "limburgprijs", "pijl-van-hoei", "polderchrono", "kustprijs", "provence-bergrit"],
     teams: teams("p", [["Stormvogel Pro", "STV"], ["Lavendel Cycling", "LVD"], ["IJzerberg", "IJB"], ["Zonnedal", "ZND"], ["Hoogland Racing", "HLR"], ["Kastanje Pro", "KST"], ["Toren Racing", "TRR"], ["Golfstroom", "GFS"], ["Heuvelrug", "HVR"], ["Vuurtoren", "VTR"], ["Wilgenhof", "WGH"]]),
   },
@@ -104,7 +105,7 @@ export const DIVISIONS: Division[] = [
     promotion: "diamant",
     shop: ["brons", "zilver"],
     gear: "goud",
-    rivals: { xp: 2, attacks: 4, chase: true, trick: 0.08, diamonds: 3 },
+    rivals: { xp: 2, attacks: 4, chase: true, trick: 0.08, diamonds: 3, form: 0.08 },
     races: ["riviera", "kwaremont", "noorderkasseien", "ourthe", "lombardije-bergrit", "alpenrit", "asturie-bergrit", "herfstklassieker"],
     teams: teams(null, [["Zeevalk Cycling", "ZVK"], ["Montagna Blu", "MBL"], ["Hagedoorn-Polderstaal", "HPS"], ["Kustwind Racing", "KWR"], ["Rotsvast Pro", "RVP"], ["Sierra Alta", "SAL"], ["Nordlys Cycling", "NLY"], ["Tulpenveld", "TPV"], ["Ardennes Forêt", "ADF"], ["Duinzicht", "DZT"], ["Velocità Verde", "VVD"]]),
   },

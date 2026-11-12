@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoplay, BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, deckFor, EARLY_ATTACK, HAND_SIZE, OFF_TYPE, oddsFor, phaseOf, PLAYS_PER_TURN, playCard, rideSector, ridersFor, startSector, STREKEN, TEAM_CARDS, unplayCard, type BoardState } from "@/kopman/engine/board";
+import { FORM, pelotonForm, autoplay, BOARD_CARDS, BOARD_SECTORS, blockedReason, costOf, createBoard, currentSector, deckFor, EARLY_ATTACK, HAND_SIZE, OFF_TYPE, oddsFor, phaseOf, PLAYS_PER_TURN, playCard, rideSector, ridersFor, startSector, STREKEN, TEAM_CARDS, unplayCard, type BoardState } from "@/kopman/engine/board";
 import { BIKE_LENGTH, LANES, laneOf, riding, statBoost, stepRace, uphillFinish } from "@/kopman/engine/race";
 import { launch, rideSprint, SPRINT_FROM, sprinting, steer, KRACHT_KOPMAN } from "@/kopman/engine/board";
 import { DIVISIONS, divisionOfRace } from "@/kopman/engine/divisions";
@@ -403,5 +403,25 @@ describe("Kopman: bordspel", () => {
     expect(b.events.filter((e) => e.text.startsWith("Valse bidon van")).length).toBe(1);
     expect(b.tricked).toBe(true);
     void k;
+  });
+
+  it("laat het peloton meegroeien met een ploeg die boven het niveau zit", () => {
+    const level = DIVISIONS.findIndex((d) => d.rivals.form > 0);
+    const race = DIVISIONS[level].races.find((id) => !createBoard(id, 1, lineup).tt)!;
+    const max = DIVISIONS[level].rivals.form;
+    const [strong] = DIVISIONS[level].band;
+    expect(pelotonForm(DIVISIONS[0].races[0], [...pool().pool].sort((a, b) => b.overall - a.overall).slice(0, 5).map((c) => c.id))).toBe(DIVISIONS[0].rivals.form);
+    const strongest = [...pool().pool].sort((a, b) => b.overall - a.overall).slice(0, 5).map((c) => c.id);
+    const weakest = [...pool().pool].sort((a, b) => a.overall - b.overall).slice(0, 5).map((c) => c.id);
+    expect(pelotonForm(race, weakest)).toBe(0);
+    expect(pelotonForm(race, strongest)).toBe(max);
+    const avg = lineup.riders.reduce((sum, id) => sum + cardById(id).overall, 0) / lineup.riders.length;
+    expect(pelotonForm(race, lineup.riders)).toBeCloseTo(Math.min(max, Math.max(0, (avg - strong + FORM.offset) * FORM.perPoint)), 3);
+    const plain = createBoard(race, 1, { ...lineup, riders: weakest, kopman: weakest[0] });
+    const fit = createBoard(race, 1, { ...lineup, riders: strongest, kopman: strongest[0] });
+    const rival = (b: BoardState) => b.race.riders.find((r) => r.team !== PLAYER_TEAM)!;
+    expect(rival(fit).cpFlat / rival(plain).cpFlat).toBeCloseTo(1 + max, 5);
+    expect(fit.events.some((e) => e.text.startsWith("Het peloton is in vorm"))).toBe(true);
+    expect(plain.events.some((e) => e.text.startsWith("Het peloton is in vorm"))).toBe(false);
   });
 });

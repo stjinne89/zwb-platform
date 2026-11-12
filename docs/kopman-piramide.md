@@ -13,13 +13,14 @@ fictieve ploegen en een eigen kalender van 8 koersen.
 | Niveau | Rivalen (beste vijf, gemeten) | Prijzengeld | Materiaal rivalen |
 | --- | --- | --- | --- |
 | Kermis | 61–52 | 12% | geen |
-| Interclub | 64–57 | 22% | brons |
-| Continentaal | 69–62 | 40% | brons |
+| Interclub | 67–58 | 22% | brons |
+| Continentaal | 72–64 | 40% | brons |
 | Proftour | 78–68 | 65% | zilver |
 | Wereldtour | 87–72 | 100% | goud |
 
 Proftour en Wereldtour zijn op 2026-11-12 opgeschoven (zie "Rivalen die
-terugvechten"); daarvoor was dat 74–67 en 84–73.
+terugvechten"); daarvoor was dat 74–67 en 84–73. Interclub en Continentaal
+schoven op 2026-11-13 op (zie "Sterkere pelotons"); daarvoor 64–57 en 69–62.
 
 - **Prijzengeld** is het aandeel van de bedragen uit de eerste versie: de
   startpremie, het prijzengeld en de seizoensmunten.
@@ -187,7 +188,8 @@ dezelfde 8 saves aan het begin van het Continentaal rijden één seizoen
   eigen groep mee naar je kopman; dat is niet uitgezocht.
 - Zelfs 12% meer vermogen voor elke rivaliserende kopman kost het script maar
   9 van de 24 zeges. Je wint in het Continentaal omdat je ploeg (72 tot 76)
-  ver boven het niveau zit (62 tot 67), niet omdat de rivalen braaf rijden.
+  ver boven het niveau zit (62 tot 67, de band tot 2026-11-13; zie
+  "Sterkere pelotons"), niet omdat de rivalen braaf rijden.
   De proeven met vermogen zijn niet gebouwd.
 - In de Proftour, met dezelfde aanpak op 6 saves (48 koersen): 22
   zeges en gemiddeld 7,1e, met A ook 22 zeges en 7,8e. Ook daar weinig verschil.
@@ -199,6 +201,52 @@ dezelfde 8 saves aan het begin van het Continentaal rijden één seizoen
 - **Meer gouden renners** voor een sterkere Wereldtour: zie C.
 - **Rivalen die ook materiaal of personeel stelen**, of een tweede valse
   bidon: één streek per koers is genoeg om het te merken.
+
+## Sterkere pelotons
+
+Gebouwd op 2026-11-13. Omdat het gedrag van de rivalen het Continentaal niet
+zwaarder maakte, kreeg de eigenaar twee knoppen voorgelegd: sterkere pelotons
+of tragere groei. Ze kozen "Sterkere pelotons".
+
+- **Hogere banden.** De Interclub heeft als `band` 64–58 (was 61–56), het
+  Continentaal 71–64 (was 67–62). De Kermis bleef gelijk: daar begin je, met
+  een ploeg aan de top van de band.
+- **Het peloton in vorm** (`pelotonForm` in `board.ts`). Zitten je vijf in de
+  koers boven het niveau, dan rijden alle rivalen sterker:
+  - 1% per punt dat je gemiddelde boven de top van de band min 2 ligt;
+  - hooguit `rivals.form`: 0% in de Kermis, 4% in de Interclub, 8% vanaf het
+    Continentaal;
+  - het telt per koers, met de vijf die je opstelt; niets in de save;
+  - bij de start staat "Het peloton is in vorm: +4%" in het logboek.
+
+**Gemeten.** Dezelfde 8 saves aan het begin van het Continentaal, één seizoen
+(64 koersen), met A:
+
+| | Zeges | Podium | Gem. beste plek |
+| --- | --- | --- | --- |
+| Band 67–62, zonder vorm | 31 | 35 | 6,0 |
+| Band 71–64, zonder vorm | 22 | 31 | 9,3 |
+| Band 71–64, met vorm | 23 | 30 | 9,3 |
+
+- De hogere band doet het werk. De vorm doet bij deze saves bijna niets: hun
+  vijf zitten maar 1 tot 3 punten boven 71, dus 1 tot 5%. Het is een rem voor
+  wie veel verder boven het niveau zit; eerder kostte 12% vermogen voor alle
+  rivaliserende kopmannen 9 zeges van 24.
+- Carrières (`.tmp/kopman-groei.ts`, 4 seeds, 10 seizoenen): in de
+  Wereldtour in seizoen 8, 10 en 10; één seed staat in seizoen 10 in het
+  Continentaal. Daarvoor 7, 8 en 8 (3 seeds). Het eerste
+  Continentaalseizoen: 7, 3, 1 en 4 zeges van 8. Die 7 is een ploeg die met
+  twee gouden renners van 88 en 86 promoveerde (79 gemiddeld).
+- Een eerste versie had ook vorm in de Kermis, tot 8% vanaf de top van de
+  band. Toen bleef een seed 8 seizoenen in de Kermis hangen.
+
+**Bewust niet gebouwd:**
+
+- **Pelotons die echt van renners wisselen** naarmate je sterker wordt: dan
+  hangt de ploeg van een rivaal af van jouw save, en dat raakt elke plek die
+  `rivalTeams` gebruikt.
+- **Tragere groei** (minder of zwakkere pakketten): de andere knop, niet
+  gekozen.
 
 ## Niet geverifieerd
 
