@@ -7,11 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **ZwiftRacing in de verwachtingen van events (2026-11-12): lokaal
-   gecommit (de commit van deze ronde), niet gepusht.** Migratie
-   `0326_zwiftracing_race_expectations.sql` is **niet toegepast** en niet
-   lokaal te testen. De privacytekst staat erin (goedgekeurd door de
-   eigenaar, geen nieuwe versie). Open: 0326 toepassen, en na de deploy een racebriefje, een
+0. **ZwiftRacing in de verwachtingen van events (2026-11-12): gepusht naar
+   `main` (`d2fa65c2`, privacy `b05806b7`).** Migratie
+   `0326_zwiftracing_race_expectations.sql` is op 2026-11-12 toegepast op
+   productie (eigenaar: "pas toe en push naar main"). De privacytekst staat
+   erin (goedgekeurd door de eigenaar, geen nieuwe versie). Open: na de
+   deploy een racebriefje, een
    ladderevent en een gewone Zwift-race bekijken. Nog niet vastgesteld of
    ZwiftRacing een ZRL-race vooraf kent. Zie de ronde "ZwiftRacing in de verwachtingen van events".
 
@@ -12259,8 +12260,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZwiftRacing in de verwachtingen van events
 
-**2026-11-12, de commit van deze ronde, lokaal, niet gepusht.** Migratie
-`0326_zwiftracing_race_expectations.sql`, **niet toegepast**. Vraag van de
+**2026-11-12, commit `d2fa65c2` (privacy `b05806b7`), gepusht naar `main`**
+(eigenaar: "pas toe en push naar main"). Migratie
+`0326_zwiftracing_race_expectations.sql`, op 2026-11-12 toegepast op productie
+via de Supabase-connector: beide tabellen bestaan, RLS aan, geen policies. Vraag van de
 eigenaar: kan zwiftracing.app, sinds 2026-11-11 vanaf de server bereikbaar,
 de verwachtingen en matchups bij events beter maken? Daarna: kunnen we voor
 de Club Ladder ook extra data halen of leren van hoe ZwiftRacing het doet?
@@ -12339,7 +12342,7 @@ bestanden, Vitest 4401 tests groen (nieuw: `zwiftracing-tsr-data`,
 en de ZwiftRacing-trend in `raceTrend`). `omnium-live` faalt hier alleen omdat
 deze worktree geen `.env.local` heeft. De lezer is tijdens het onderzoek op
 echte eventpagina's (signups en results) gecontroleerd. **Niet geverifieerd:**
-migratie 0326 (geen Docker of Supabase-config), de sync tegen de echte tabellen,
+de sync tegen de echte tabellen (0326 is toegepast, maar nog geen run gezien),
 de schermen in de app (vraagt een deploy), en of ZwiftRacing een ZRL-race
 vooraf kent.
 
