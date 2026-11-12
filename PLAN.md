@@ -43,8 +43,8 @@ gaat stabiliteit voor nieuwe features.
    de tijdrit; het overzicht toont sindsdien de koers in vogelvlucht met
    gezichtjes, het getekende koersbeeld is te kiezen. Op 2026-11-12 ook
    gepusht: "Kopman: eerlijk herstel, tempo tegen aanvallen en het weer"
-   (`aedd965a`). Lokaal, nog niet gepusht: "Kopman: de sprint zelf rijden"
-   (2026-11-12): in de laatste kilometer stuur je de kopman met swipes. Op een telefoon vult het bord het scherm. Open: na de
+   (`aedd965a`) en "Kopman: de sprint zelf rijden" (`bf80b0ea`): in de
+   laatste kilometer stuur je de kopman met swipes. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12268,8 +12268,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: de sprint zelf rijden
 
-**2026-11-12, de commit "Kopman: de sprint zelf rijden", lokaal (niet
-gepusht).** Geen migratie; de save verandert niet.
+**2026-11-12, de commit "Kopman: de sprint zelf rijden" (`bf80b0ea`), op
+2026-11-12 gepusht naar main.** Geen migratie; de save verandert niet.
 
 - **De vraag.** De eigenaar: "de finale is nu heel erg basic ... door te
   swipen met je vinger de renner kan besturen langs andere renners zodat je
