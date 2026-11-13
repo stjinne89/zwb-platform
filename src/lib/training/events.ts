@@ -782,7 +782,7 @@ export async function applyEventBlock(
       event_id: eventId,
       scheduled_at: new Date(event.start_at as string).toISOString(),
       title: event.title,
-      description: `Clubevent: ${event.title}.`,
+      description: eventWorkoutDescription(event.title),
       duration_minutes: durationMinutes,
       intensity,
       target_type: "free",
@@ -813,6 +813,29 @@ export async function applyEventBlock(
   return { inserted: true, removed: false, pushed: ok };
 }
 
+/** De omschrijving die een eventblok bij het aanmaken krijgt. */
+export function eventWorkoutDescription(eventTitle: string): string {
+  return `Clubevent: ${eventTitle}.`;
+}
+
+/**
+ * Titel en omschrijving van een eventblok als het event intussen anders heet, of
+ * null. Alleen zolang het blok nog de tekst van het aanmaken heeft: wie de titel
+ * of omschrijving zelf heeft aangepast, houdt die. Puur.
+ *
+ * Zonder dit hield het schema de titel van het moment van aanmelden. Op
+ * 2026-11-11 heette ZRL ronde 2 week 1 nog "— Race of Truth" in het schema en in
+ * intervals.icu, terwijl het event al "— Team Time Trial" heette.
+ */
+export function eventWorkoutTextUpdate(
+  workout: { title: string | null; description: string | null },
+  eventTitle: string,
+): { title: string; description: string } | null {
+  if (!workout.title || workout.title === eventTitle) return null;
+  if (workout.description !== eventWorkoutDescription(workout.title)) return null;
+  return { title: eventTitle, description: eventWorkoutDescription(eventTitle) };
+}
+
 export type EventWorkoutRefresh = { updated: number; pushed: number; failed: number };
 
 /**
@@ -823,7 +846,8 @@ export type EventWorkoutRefresh = { updated: number; pushed: number; failed: num
  * aangeraakt. Bij de ZRL is dat precies het verkeerde moment: de teamrace staat
  * er dan nog zonder route, en de Zwift-link met afstand en ronden komt pas een
  * week voor de race. Alle ZRL-blokken bleven zo op het uur en de 100 TSS van de
- * terugval staan, ook nadat de route bekend was.
+ * terugval staan, ook nadat de route bekend was. De titel gaat mee (zie
+ * eventWorkoutTextUpdate), ook bij een blok dat iemand heeft opgeknipt.
  *
  * Met `eventIds` alleen die events en de teamevents eronder (een route op de
  * raceweek geldt ook voor de teamraces); zonder alle komende events. Alleen
@@ -855,7 +879,7 @@ export async function refreshEventWorkouts(
   let query = admin
     .from("training_workouts")
     .select(
-      "id, profile_id, event_id, duration_minutes, intensity, structure_json, intervals_event_id, publish_status",
+      "id, profile_id, event_id, title, description, duration_minutes, intensity, structure_json, intervals_event_id, publish_status",
     )
     .eq("origin", "event")
     .eq("status", "planned")
@@ -902,6 +926,12 @@ export async function refreshEventWorkouts(
       workout.intensity as WorkoutIntensity,
     );
     let publishStatus = workout.publish_status as string;
+    const change: Record<string, unknown> = {
+      ...eventWorkoutTextUpdate(
+        { title: workout.title as string | null, description: workout.description as string | null },
+        event.title,
+      ),
+    };
     if (current.length === 1) {
       const options = { racePace: racePaces.get(workout.profile_id as string) ?? 1, clubShortName: clubTexts.shortName };
       const blocks = eventWorkoutBlocks(event, options);
@@ -910,21 +940,17 @@ export async function refreshEventWorkouts(
         Number(workout.duration_minutes) === durationMinutes &&
         workout.intensity === intensity &&
         JSON.stringify(current) === JSON.stringify(blocks);
-      if (!same) {
-        publishStatus = workout.intervals_event_id ? "pending" : publishStatus;
-        const { error } = await admin
-          .from("training_workouts")
-          .update({
-            duration_minutes: durationMinutes,
-            intensity,
-            structure_json: blocks,
-            publish_status: publishStatus,
-          })
-          .eq("id", workout.id)
-          .eq("status", "planned")
-          .is("superseded_at", null);
-        if (!error) result.updated += 1;
-      }
+      if (!same) Object.assign(change, { duration_minutes: durationMinutes, intensity, structure_json: blocks });
+    }
+    if (Object.keys(change).length > 0) {
+      publishStatus = workout.intervals_event_id ? "pending" : publishStatus;
+      const { error } = await admin
+        .from("training_workouts")
+        .update({ ...change, publish_status: publishStatus })
+        .eq("id", workout.id)
+        .eq("status", "planned")
+        .is("superseded_at", null);
+      if (!error) result.updated += 1;
     }
     if (workout.intervals_event_id && publishStatus === "pending") toPush.push(workout.id as string);
   }

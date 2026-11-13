@@ -120,6 +120,13 @@ gaat stabiliteit voor nieuwe features.
    2026-11-11). Open: de knop na de deploy als captain proberen. Zie de ronde
    "Club Ladder: uitdaging klaarzetten voor Discord".
 
+0. **Schema neemt een nieuwe eventtitel over (2026-11-13): lokaal gecommit,
+   niet gepusht.** Geen migratie. Zeven ritten van ZRL R2 W1 zijn in productie
+   al rechtgezet en staan op `pending`. Open: na de volgende dagelijkse run
+   nagaan of ze in intervals.icu "— Team Time Trial" heten
+   (`publish_status = 'published'`). Zie de ronde "Schema neemt een nieuwe
+   eventtitel over".
+
 0. **ZRL: het format komt uit Zwift (2026-11-11): gepusht naar `main`
    (`e8f6f3a8`).** Geen migratie. De events van ronde 2 week 1 zijn al in productie
    rechtgezet. Open: na de deploy, zodra WTRL de Zwift-events van ronde 2
@@ -12293,6 +12300,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Schema neemt een nieuwe eventtitel over
+
+**2026-11-13, lokaal gecommit, niet gepusht.** Op verzoek van de eigenaar ("In
+het schema lijkt nog wel race of truth te staan kun je dat checken en zo nodig
+corrigeren"). Geen migratie. Vervolg op "ZRL: het format komt uit Zwift".
+
+**Wat er mis was.** Een eventblok in het schema (`training_workouts`,
+`origin = 'event'`) kopieert bij de toezegging de eventtitel naar `title` en
+`description` ("Clubevent: …"). `refreshEventWorkouts` rekende daarna wel duur en
+blokken opnieuw uit, maar de titel nooit. Na het rechtzetten van de ZRL-events
+op 2026-11-11 heetten zeven ritten op 17 november in het schema en in
+intervals.icu dus nog "— Race of Truth": vier van ZRL A, één van Bdev, één van
+Zwiftladies B en één aan de raceweek zelf.
+
+**Data rechtgezet (productie, 2026-11-13, via de Supabase-connector).** Die
+zeven ritten hebben nu de eventtitel en de bijbehorende omschrijving, en staan
+op `publish_status = 'pending'`. De dagelijkse run (`refreshEventWorkouts`, ook
+in de code die al live stond) zet ze door; `upsertIntervalsWorkoutEvent` werkt
+het bestaande intervals.icu-event bij op id. Oude AI-ritten die "Race of Truth"
+noemen, zijn allemaal vervangen (`superseded_at`); geen actieve rit noemt het
+nog.
+
+**Nu.** `eventWorkoutTextUpdate` (`src/lib/training/events.ts`, puur): heet het
+event anders dan de rit, en heeft de rit nog de titel en omschrijving van het
+aanmaken, dan neemt `refreshEventWorkouts` de nieuwe titel over en zet de rit
+door naar intervals.icu. Dat geldt ook voor een blok dat iemand heeft
+opgeknipt; de blokken zelf blijven dan zoals ze waren.
+
+**Bewust niet gebouwd.** Geen titelwijziging over een zelf aangepaste titel of
+omschrijving heen: dat is wat het lid of de trainer wilde. Geen directe
+doorzet bij een titelwijziging van het event (de uurlijkse Zwift-sync roept
+`refreshEventWorkouts` niet aan): de dagelijkse run is ruim op tijd voor een
+race.
+
+**Getest.** `training-events.test.ts`: nieuwe titel overnemen, kloppende titel,
+eigen titel en eigen omschrijving met rust laten. `tsc` en lint schoon (op de
+ontbrekende pakketten in de worktree na).
+
+**Niet lokaal te verifiëren.** Of intervals.icu de nieuwe naam toont: dat blijkt
+na de volgende dagelijkse run.
 
 ### Gebouwd — Kopman: de regel voor pakketten, en goud en diamant te koop
 

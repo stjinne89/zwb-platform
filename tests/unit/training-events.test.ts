@@ -3,6 +3,8 @@ import {
   estimateEventMinutes,
   eventWorkoutBlocks,
   eventWorkoutDefaults,
+  eventWorkoutDescription,
+  eventWorkoutTextUpdate,
   loadScheduleEvents,
   zwiftGroupKind,
   zwiftRaceIntensityFactor,
@@ -339,5 +341,23 @@ describe("loadScheduleEvents", () => {
     const gezien = { limit: null as number | null };
     await loadScheduleEvents(fakeAdmin(gezien), "p1", "2026-03-01", "2027-03-01", 400);
     expect(gezien.limit).toBe(400);
+  });
+});
+
+describe("eventWorkoutTextUpdate", () => {
+  const OLD = "ZRL 2026/27 · R2 · W1 · B1 — Race of Truth";
+  const NEW = "ZRL 2026/27 · R2 · W1 · B1 — Team Time Trial";
+
+  it("neemt een nieuwe eventtitel over (ronde 2, 2026/27)", () => {
+    expect(eventWorkoutTextUpdate({ title: OLD, description: eventWorkoutDescription(OLD) }, NEW)).toEqual({
+      title: NEW,
+      description: "Clubevent: ZRL 2026/27 · R2 · W1 · B1 — Team Time Trial.",
+    });
+  });
+
+  it("laat een kloppend of zelf aangepast blok staan", () => {
+    expect(eventWorkoutTextUpdate({ title: NEW, description: eventWorkoutDescription(NEW) }, NEW)).toBeNull();
+    expect(eventWorkoutTextUpdate({ title: "Mijn ZRL-race", description: eventWorkoutDescription(OLD) }, NEW)).toBeNull();
+    expect(eventWorkoutTextUpdate({ title: OLD, description: "Rustig beginnen, kop op de klim." }, NEW)).toBeNull();
   });
 });
