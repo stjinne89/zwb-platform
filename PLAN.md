@@ -21,7 +21,9 @@ gaat stabiliteit voor nieuwe features.
    `0329_nutrition_event_fuel.sql` zijn op 2026-11-13 door de eigenaar op
    productie toegepast, in die volgorde, via de SQL-editor (de connector was
    niet in de sessie); de controlequeries onderaan beide migraties heeft Claude
-   niet zelf gezien. Open: de eventpagina in de browser bekijken (niet gedaan:
+   niet zelf gezien. Daarnaast de sportvoedingslijst (`7c6b4376`, migratie
+   `0330_nutrition_sports_products.sql`, nog niet op productie; ronde
+   "Gebouwd — Sportvoedingslijst"). Open: de eventpagina in de browser bekijken (niet gedaan:
    geen `.env.local` in de worktree), het toetsscript draaien op de echte
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
@@ -12326,7 +12328,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Sportvoedingslijst: bekende merken met de juiste waarden
 
-**2026-11-13, lokaal gecommit, niet gepusht. Migratie
+**2026-11-13, commit `7c6b4376`, lokaal, niet gepusht. Migratie
 `0330_nutrition_sports_products.sql`, niet toegepast op productie.** Op vraag
 van de eigenaar ("meest gebruikte voeding ... uit een database halen en op de
 juiste manier invoeren? Denk aan Nduranz, Amacx"), daarna "Yes, as proposed" op
