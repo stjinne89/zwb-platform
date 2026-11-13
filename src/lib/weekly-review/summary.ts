@@ -398,7 +398,7 @@ export function buildBriljant(snapshots: BriljantSnapshot[], weekStart: string, 
   if (!latest || latest.score == null || latest.week < addDays(weekStart, -BRILJANT_MAX_AGE_DAYS)) return null;
   const position = positionFor(latest.score);
   const before = scored.find((snapshot) => snapshot.week === addDays(latest.week, -7));
-  const grow = winsFromLevels(latest.facets, latest.consistency ?? null, sex, latest.durability)[0] ?? null;
+  const grow = winsFromLevels(latest.facets, latest.consistency ?? null, sex)[0] ?? null;
   return {
     points: briljantPoints(latest.score),
     level: position.reached.n,

@@ -6,9 +6,9 @@
 // ijkwaarden); van anderen bewust niet, want leden zien elkaars metingen niet.
 
 import { FACETS, FACET_LABELS, FACET_MEASURES, points, positionFor, profileScore, scoreFor, type Facet } from "./score";
-import { FACET_WEIGHTS, LEVELS, levelOf } from "./norms";
+import { FACET_WEIGHTS, levelOf } from "./norms";
 import type { Sex } from "./norms";
-import { formatMeasure, meterFor, readingFromLevel, storedConsistencyView, type BriljantView, type FacetMeter, type FacetView } from "./view";
+import { formatMeasure, meterFor, pointsMeter, readingFromLevel, storedConsistencyView, type BriljantView, type FacetView } from "./view";
 
 export type StoredSnapshot = {
   week: string;
@@ -43,24 +43,6 @@ export function snapshotAt(snapshots: StoredSnapshot[], day: string): StoredSnap
   return before.at(-1) ?? scored[0];
 }
 
-/** De balk in punten: van de grens van de klasse naar de volgende (geen meting bewaard). */
-function pointsMeter(level: number): FacetMeter {
-  const reached = levelOf(level);
-  const next = LEVELS[reached.n + 1] ?? null;
-  const value = points(level);
-  if (!next) {
-    return { share: 1, from: `${reached.n * 100} punten`, to: "", fromLevel: reached, toLevel: null, note: `${reached.name}: de score telt door` };
-  }
-  return {
-    share: Math.min(1, Math.max(0, (value - reached.n * 100) / 100)),
-    from: `${reached.n * 100} punten`,
-    to: `${next.n * 100} punten`,
-    fromLevel: reached,
-    toLevel: next,
-    note: `nog ${next.n * 100 - value} punten tot ${next.name}`,
-  };
-}
-
 /**
  * Een steen uit een snapshot, voor een week uit het verleden of een ander lid. Met
  * `sex` (alleen voor je eigen steen) komen de metingen terug, met de balk tussen de
@@ -92,7 +74,6 @@ export function viewFromSnapshot(args: {
       level: levelOf(level),
       weight,
       contribution: Math.round(weight * level * 100),
-      lowerIsBetter: facet === "durability",
       meter: reading ? meterFor(facet, reading) : pointsMeter(level),
     };
   });
@@ -167,7 +148,7 @@ const LEVEL_NOISE = 0.0051;
 /** Wat er op één onderdeel veranderde sinds de vorige steen: de meting en de punten. */
 export type FacetChange = {
   key: Facet;
-  /** Beter: meer vermogen, CTL en ZRS, minder verval. */
+  /** Beter: meer vermogen, CTL en ZRS. */
   up: boolean;
   /** De meting voor en na, met eenheid; null zonder meting (nog geen gegevens). */
   from: string | null;
@@ -215,7 +196,7 @@ export function changesSince(args: {
   const { from, to } = args;
   if (!from || from.score == null || to.score == null) return null;
   const measure = (facet: Facet, level: number | null, value?: number) =>
-    level == null ? null : (value ?? readingFromLevel(facet, level, args.sex).value);
+    level == null ? null : (value ?? readingFromLevel(facet, level, args.sex)?.value ?? null);
 
   const facets = FACETS.flatMap((facet): FacetChange[] => {
     const before = from.facets[facet] ?? null;

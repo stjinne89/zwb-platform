@@ -18,12 +18,12 @@ const week = (index: number, hours: number): ConsistencyWeek => ({ monday: `w${i
 describe("briljantView", () => {
   it("geeft score, klasse en de volgende klasse in punten", () => {
     const view = briljantView({ seed: "lid", input: rider, consistency: null });
-    expect(view.score).toBe(6.15);
-    expect(view.points).toBe(615);
-    expect(view.profilePoints).toBe(615);
-    expect(view.level.name).toBe("Saffier");
-    expect(view.next?.name).toBe("Smaragd");
-    expect(view.toNext).toBe(85);
+    expect(view.score).toBe(5.72);
+    expect(view.points).toBe(572);
+    expect(view.profilePoints).toBe(572);
+    expect(view.level.name).toBe("Amethist");
+    expect(view.next?.name).toBe("Saffier");
+    expect(view.toNext).toBe(28);
     expect(view.facets.map((facet) => facet.key)).toEqual([
       "sprint", "anaeroob", "vo2max", "drempel", "durability", "fitheid", "racen",
     ]);
@@ -47,11 +47,11 @@ describe("briljantView", () => {
     expect(sprint.meter.note).toBe("nog 1,35 W/kg meer tot Robijn");
   });
 
-  it("zegt bij durability 'minder' en meet racen over de hele schaal", () => {
+  it("meet durability in punten en racen over de hele schaal", () => {
     const view = briljantView({ seed: "lid", input: rider, consistency: null });
     const durability = view.facets.find((facet) => facet.key === "durability")!;
-    expect(durability.lowerIsBetter).toBe(true);
-    expect(durability.meter.note).toMatch(/minder tot Amethist$/);
+    expect(durability).toMatchObject({ value: "3,66 en 3,66 W/kg", points: 231, what: "vermoeid op 5 en 20 minuten, telt voor de helft" });
+    expect(durability.meter).toMatchObject({ from: "200 punten", to: "300 punten", note: "nog 69 punten tot Goud" });
     const racen = view.facets.find((facet) => facet.key === "racen")!;
     // De balk over 0 tot 1000; Smaragd begint bij 700 ZRS, dus nog 60.
     expect(racen.meter).toMatchObject({ from: "0 ZRS", to: "1.000 ZRS", fromLevel: null, toLevel: null, note: "nog 60 ZRS tot Smaragd" });
@@ -83,29 +83,27 @@ describe("briljantView", () => {
   it("rekent het verschil met vier weken geleden in punten", () => {
     const history = Array.from({ length: 12 }, (_, i) => ({ week: `w${i}`, score: i === 8 ? 4.5 : null }));
     const view = briljantView({ seed: "lid", input: rider, consistency: null, history });
-    expect(view.delta4w).toBe(165);
+    expect(view.delta4w).toBe(122);
   });
 
   it("schrijft metingen in de eenheid van het onderdeel", () => {
     expect(formatMeasure("fitheid", 78.4)).toBe("78 TSS/dag");
-    expect(formatMeasure("durability", 4.2)).toBe("4,2 % per 10 kJ/kg");
+    expect(formatMeasure("durability", 3.664)).toBe("3,66 W/kg");
   });
 
-  it("toont durability uit ritten op het plafond, en een test met zijn dag", () => {
-    const none = { ...rider, fatigue: DURABILITY_DURATIONS.map((seconds) => ({ afterKj: 1500, seconds, freshWatts: 300, fatiguedWatts: 300 })) };
-    const capped = briljantView({ seed: "lid", input: none, consistency: null }).facets.find((facet) => facet.key === "durability")!;
-    expect(capped.points).toBe(900);
-    expect(capped.meter.share).toBe(1);
-    expect(capped.meter.toLevel?.name).toBe("Diamant");
-    expect(capped.meter.note).toBe("hoger alleen met de durability-test");
-    expect(capped.what).toBe("verval op 1 tot 20 minuten");
-
-    const test = { day: "2026-10-20", afterKj: 1500, freshWatts: 300, fatiguedWatts: 300 };
-    const tested = briljantView({ seed: "lid", input: { ...none, durabilityTest: test }, consistency: null }).facets.find(
+  it("toont een durability-test met zijn dag, voor het hele punt", () => {
+    const test = { day: "2026-10-20", afterKj: 1500, freshWatts: 300, fatiguedWatts: 274.8 };
+    const tested = briljantView({ seed: "lid", input: { ...rider, durabilityTest: test }, consistency: null }).facets.find(
       (facet) => facet.key === "durability",
     )!;
-    expect(tested.points).toBeGreaterThan(900);
-    expect(tested.what).toBe("verval op 20 minuten");
+    // De 20 minuten na 20 kJ/kg: niveau 5,16, nu niet gedeeld.
+    expect(tested).toMatchObject({ value: "3,66 W/kg", points: 515, what: "vermoeid op 20 minuten" });
     expect(tested.source).toBe("durability-test van 20 oktober · intervals.icu");
+  });
+
+  it("noemt alleen de duur die er na het werk was", () => {
+    const only5 = { ...rider, fatigue: DURABILITY_DURATIONS.slice(0, 1).map((seconds) => ({ afterKj: 1500, seconds, freshWatts: 300, fatiguedWatts: 274.8 })) };
+    const durability = briljantView({ seed: "lid", input: only5, consistency: null }).facets.find((facet) => facet.key === "durability")!;
+    expect(durability).toMatchObject({ value: "3,66 W/kg", what: "vermoeid op 5 minuten, telt voor de helft" });
   });
 });

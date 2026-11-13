@@ -18,10 +18,14 @@ const POWER_RECORDS: Record<"man" | "vrouw", Record<PowerDuration, number>> = {
   man: { s15: 19.5, m1: 11.5, m5: 7.8, m20: 7.1 },
   vrouw: { s15: 15.6, m1: 9.45, m5: 6.55, m20: 6.05 },
 };
-/** CTL van de WorldTour in het seizoen, het maximum van ZRS, verval van de beste profs. */
+/**
+ * CTL van de WorldTour in het seizoen en het maximum van ZRS. Durability: het
+ * 20-minutenrecord na 10 kJ/kg met het verval van de beste profs (0,7% per
+ * 10 kJ/kg, Mateo-March 2022), als test zodat het voor het hele punt telt.
+ */
 const CTL_RECORD = 150;
 const ZRS_RECORD = 1000;
-const DURABILITY_RECORD = 0.7;
+const DURABILITY_RECORD_LOSS = 0.007;
 
 /** De houder bij een record, alleen waar die bekend is; de records voor mannen. */
 export const RECORD_HOLDERS: Partial<Record<Facet, string>> = {
@@ -36,13 +40,11 @@ export function recordView(sex: Sex | null): { view: BriljantView; holders: Part
   const power = POWER_RECORDS[sex === "vrouw" ? "vrouw" : "man"];
   const input: BriljantInput = {
     sex,
-    // Durability is verval per 10 kJ/kg: met 1 kg na 10 kJ is het verlies in
-    // procenten precies die waarde. Als test, want uit ritten stopt de schaal bij
-    // Diamant (sinds 2026-10-23).
+    // Met 1 kg zijn watts W/kg en 10 kJ precies 10 kJ/kg.
     weightKg: 1,
     power: { ...power },
     fatigue: [],
-    durabilityTest: { day: "", afterKj: 10, freshWatts: 100, fatiguedWatts: 100 - DURABILITY_RECORD },
+    durabilityTest: { day: "", afterKj: 10, freshWatts: power.m20, fatiguedWatts: power.m20 * (1 - DURABILITY_RECORD_LOSS) },
     ctl: CTL_RECORD,
     zrs: ZRS_RECORD,
   };

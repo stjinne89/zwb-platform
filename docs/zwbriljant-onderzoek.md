@@ -89,7 +89,7 @@ fitheid en racen, en terug naar sprint:
 | Anaeroob | beste minuut, W/kg | 10% | Punchers en aanvallen; beslissend in Zwift-races en bij de top 5 van profvrouwen. | Varesco 2025; van Erp & Lamberts 2022 |
 | VO2max | beste 5 min, W/kg | 20% | De sterkste enkele voorspeller van uitslagen en niveau. | Leo 2022; Mateo-March 2025; Mougin 2026 |
 | Drempel | beste 20 min, W/kg | 15% | Aerobe basis, tijdrijden en lange klimmen. | Valenzuela 2023; Mateo-March 2025; Quod 2010 |
-| Durability | verval op 1 tot 20 minuten (P25; uit de test: 20 minuten), % per 10 kJ/kg | 17,5% | Onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
+| Durability | vermoeid vermogen op 5 en 20 minuten na minstens 10 kJ/kg, W/kg (uit ritten voor de helft; uit de test: 20 minuten, helemaal) | 17,5% | Vermoeid vermogen onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en een betere verse waarde haalt het niet omlaag. | van Erp 2021; Muriel 2021; Mateo-March 2022, 2025; Leo 2024; Voet 2024; Barsumyan 2025 (twee studies); Inoue 2026 |
 | Fitheid | CTL, TSS/dag | 20% | Zwakke voorspeller, maar de steen zegt ook hoe fit je bent en wat je training oplevert. | Marchal 2025; Sanders 2017; Vermeire 2019; Gallo 2022 |
 | Racen | Zwift Racing Score | 12,5% | Wat vermogen niet verklaart: tactiek, positie, wedstrijddynamiek. | Westmattelmann 2022; Phillips 2020 |
 
@@ -200,7 +200,7 @@ tellen. Het past bij de regel dat beschikbaarheid geen belastbaarheid is.
 - **Vorm (TSB) en vermoeidheid (ATL)**: schommelen per dag en voorspellen slecht;
   het weer van de dag, niet de score (nog niet op de pagina).
 - **Herhaalbaarheid** (herhaalde inspanningen boven 95% van het maximum):
-  onderscheidde WorldTour en ProTeam niet (Mateo-March 2021).
+  onderscheidde WorldTour en ProTeam niet (Muriel 2021).
 - **vELO als meting**: de koppeling met ZwiftRacing.app is nog nooit tegen de
   echte API getest. Racen draagt voorlopig alleen ZRS; van vELO gebruiken we alleen
   de namen en kleuren van de klassen.
@@ -339,15 +339,18 @@ Houvast voor Robijn: U23-elite in grote rittenkoersen rijden gemiddeld 5,5 W/kg 
 8,4 en 60 min 4,2 W/kg).
 
 **Schaalversie.** Snapshots dragen de versie van de schaal (`provenance.scale`, nu
-`2026-10-21-sd`). Historie, het ZWB-gemiddelde, de tegel en de wekelijkse job lezen
+`2026-11-13-vermoeid`). Historie, het ZWB-gemiddelde, de tegel en de wekelijkse job lezen
 alleen snapshots van de huidige versie; bij een nieuwe versie maakt de job de
 terugblik opnieuw, zodat oude en nieuwe punten nooit door elkaar staan.
 
-**Durability (verval in % per 10 kJ/kg)**
+**Durability (vermoeid vermogen in W/kg)**
 
-Sinds 2026-10-23 twee bronnen (eigenaar): een schatting uit je ritten, tot Diamant,
-en de durability-test, zonder plafond. Zie [Durability uit ritten en de
-test](#durability-uit-ritten-en-de-test-2026-10-23) voor de onderbouwing.
+Sinds 2026-11-13 het vermogen na het werk, niet het verval: uit je ritten op 5 en 20
+minuten, voor de helft, en uit de durability-test op 20 minuten, helemaal (eigenaar).
+Zie [Durability als vermoeid vermogen](#durability-als-vermoeid-vermogen-2026-11-13).
+Van 2026-10-23 tot 2026-11-13 het verval als P25 over tien duren, uit ritten tot
+Diamant; zie [Durability uit ritten en de
+test](#durability-uit-ritten-en-de-test-2026-10-23).
 
 Daarvoor (2026-10-21 tot 2026-10-23) op de beste minuut, en nog eerder op de beste 20
 (of 5) minuten. De minuut koos de eigenaar omdat een volle 20 minuten na veel werk
@@ -360,8 +363,9 @@ durability zakte van 400 naar 65 punten.
 | 18 | 12,5 | 9,5 | 7 | 5 | 4 | 3,2 | 2,6 | 2,2 | 1,5 |
 
 Sinds 2026-10-21 is Diamant het verval van de WorldTour en Robijn dat van ProTeam,
-zodat Diamant haalbaar is; daarboven loopt de schaal door tot geen verval (ongeveer
-1100). Eerst: 12,5, 9,5, 7, 5, 3,6, 2,6, 1,8, 1,2 en 0,7.
+zodat Diamant haalbaar is. Eerst: 12,5, 9,5, 7, 5, 3,6, 2,6, 1,8, 1,2 en 0,7. Sinds
+2026-11-13 is dit geen schaal meer maar het verval per niveau waarmee de verse
+ijkwaarden van 5 en 20 minuten naar vermoeide ijkwaarden gaan (`DURABILITY_DECLINE`).
 
 Houvast: na 45 kJ/kg verliezen WorldTour-renners 4,7 tot 8,8% en ProTeam-renners
 7,6 tot 11,6% (Mateo-March 2022), ongeveer 1,5 en 2,2% per 10 kJ/kg. Succesvolle
@@ -379,7 +383,69 @@ curves alleen voor de twee drempels die het lid zelf instelt (bij de eigenaar ee
 en 3000 kJ, sinds 2026-10-22 1000 en 2000); een andere drempel kan niet per verzoek
 ([forum](https://forum.intervals.icu/t/calulate-power-best-after-2000kj/2045)).
 
+### Durability als vermoeid vermogen (2026-11-13)
+
+**Het probleem.** Verval is een verhouding tussen vers en vermoeid. Reed je vers een
+betere waarde zonder ook na het werk opnieuw voluit te gaan, dan steeg het verval en
+zakte durability, terwijl je niet slechter was geworden. Bij de eigenaar duwde een
+minuut van 547 W (eerst 481) durability van 148 naar 120 punten. In de studies speelt
+dit niet: daar zijn vers en vermoeid altijd een eerlijk paar, uit een test of uit de
+finale van een koers, waar profs voluit moeten (Maunder 2021; van Erp 2021).
+
+**Wat de literatuur zegt.** Het absolute vermogen na het werk (W/kg) onderscheidt
+niveaus het best. Vers was er tussen WorldTour en ProTeam geen consequent verschil, na
+het werk wel, vooral op 5 minuten en langer (Mateo-March 2022); in de Vuelta was het
+verschil vers alleen op 30 minuten te zien en na 35 kJ/kg op bijna alle duren (Muriel
+2021); na werk boven CP gold hetzelfde (Leo 2024). Bij mountainbikers voorspelde de
+vermoeide test 89% van de tijdritprestatie, beter dan de verse (Inoue 2026); bij
+elitewegrenners hangt de uitslag vooral af van het absolute vermogen na het werk
+(Ørtenblad 2024). Door het seizoen verbetert vermoeid vermogen meer dan vers (Voet
+2024), en het schommelt meer (Spragg 2022, EJSS): het is te trainen. 5 tot 20 minuten
+onderscheidt het best; de minuut is het minst stabiel (Mateo-March 2025).
+
+**Doorgerekend op 18 leden (productie, alleen lezend).**
+
+- *Vermoeid W/kg met het volle gewicht:* mediaan durability van 192 naar 460 punten,
+  totaalscore mediaan +36 (−69 tot +68). Een verse PR doet er niet meer toe, en de drie
+  leden met "geen verval" (hun verse beste waarde viel zelf na 1000 kJ) zakken van 900
+  naar 500 tot 785. Maar de samenhang met vers vermogen gaat van 0,59 naar 0,91:
+  durability wordt grotendeels een derde vermogensfacet.
+- *Verval per week, alleen eerlijke paren* (19 leden, 13 weken, rechtstreeks uit
+  intervals.icu): onbruikbaar. Elke week laten tellen gaf 15 van de 19 leden Diamant,
+  want in een raceweek valt de verse beste waarde vaak zelf na het werk; alleen weken
+  met een verse waarde van minstens 95% van de beste tellen gaf mediaan 91 en sprongen
+  van 0 naar 900 van week tot week. Een eerlijk paar bestaat alleen in de test.
+- *Vermoeid W/kg voor de helft:* totaalscore mediaan +5 (−112 tot +25).
+
+**Gekozen (eigenaar): vermoeid vermogen, uit ritten voor de helft, uit de test
+helemaal.** Uit ritten: je beste 5 en 20 minuten in W/kg na de laagste kJ-stand met
+minstens 10 kJ/kg. Elk krijgt een niveau op een schaal die de verse ijkwaarden van die
+duur verlaagt met het verval dat bij het niveau hoort, voor jouw kJ/kg
+(`fatiguedPowerAnchors`): bij Goud 3,05 W/kg op 20 minuten en 7% per 10 kJ/kg, dus na
+20 kJ/kg 2,62 W/kg. Wie vers Goud is en Goud-verval heeft, is vermoeid Goud. Het
+gemiddelde van de twee niveaus telt voor de helft (`DURABILITY_RIDES_SHARE`), want een
+vermoeide beste waarde uit ritten is een ondergrens, en zo telt vermogen niet dubbel.
+Uit de durability-test telt het niveau van de 20 minuten na het werk helemaal. Het
+gewicht blijft 17,5%. Er is geen plafond meer: zonder verval was de schatting uit
+ritten onecht hoog, met vermoeid vermogen en de halve weging niet. Bij de eigenaar
+(83 kg, 297 en 226 W na 1000 kJ) is dat 163 punten, onafhankelijk van zijn verse
+minuut; zijn test van 262 W na 1000 kJ zou 381 punten geven.
+
+**Gevolgen.** Nieuwe schaalversie `2026-11-13-vermoeid`: oude snapshots blijven
+staan maar worden niet getoond, en zijn niet om te rekenen (een snapshot bewaart alleen
+niveaus). De terugblik maakt de historie opnieuw. "Hier win je het meest" rekent bij
+durability met 5% meer vermoeid vermogen. Het record: het 20-minutenrecord na 10 kJ/kg
+met 0,7% verval, als test. Het verval in procenten staat niet meer op het scherm.
+
+**Bewust niet.** Verval per week als eerlijk paar (zie boven). Een gewicht lager dan
+17,5% in plaats van de halve telling: de eigenaar koos de helft, zodat de test meer
+oplevert. De oude snapshots omrekenen: daarvoor zijn de metingen niet bewaard.
+
 ### Durability uit ritten en de test (2026-10-23)
+
+*Vervangen op 2026-11-13 door vermoeid vermogen, zie hierboven. P25, het verval in
+procenten en het plafond op Diamant gelden niet meer; de test telt nog, maar op zijn
+vermoeide vermogen in plaats van zijn verval.*
 
 **Het probleem.** Een vermoeide beste waarde uit gewone ritten is een ondergrens:
 hij laat zien wat je na het werk wél reed, niet wat je kon. De veldmethode uit de
@@ -516,23 +582,27 @@ uit een koers van 2019), en Pogačars sprintschatting lag onder de Smaragd-grens
 - Granero-Gallegos A et al. (2020). HRV-based training for improving VO2max in endurance athletes. *Int J Environ Res Public Health* (via PubMed). [doi:10.3390/ijerph17217999](https://doi.org/10.3390/ijerph17217999)
 - Hamilton K et al. (2024). Durability of the moderate-to-heavy-intensity transition is related to the effects of prolonged exercise on severe-intensity performance. *Eur J Appl Physiol*. [doi:10.1007/s00421-024-05459-6](https://doi.org/10.1007/s00421-024-05459-6)
 - Hunter B et al. (2025). Durability as an index of endurance exercise performance: methodological considerations. *Exp Physiol*. [doi:10.1113/ep092120](https://doi.org/10.1113/ep092120)
+- Inoue A et al. (2026). Durability predicts performance in Olympic cross-country mountain biking: evidence from intermittent tests under fatigue. *Scand J Med Sci Sports*. [doi:10.1111/sms.70324](https://doi.org/10.1111/sms.70324)
 - Karsten B et al. (2015). Validity and reliability of critical power field testing. *Eur J Appl Physiol*. [doi:10.1007/s00421-014-3001-z](https://doi.org/10.1007/s00421-014-3001-z)
 - Klaris MB et al. (2024). Performance and fatigue patterns in elite cyclists during 6 h of simulated road racing. *Scand J Med Sci Sports* (via PubMed). [doi:10.1111/sms.14699](https://doi.org/10.1111/sms.14699)
 - Leo P et al. (2021). Power profiling and the power-duration relationship in cycling: a narrative review. *Eur J Appl Physiol*. [doi:10.1007/s00421-021-04833-y](https://doi.org/10.1007/s00421-021-04833-y)
 - Leo P et al. (2021). Power profiling, workload characteristics, and race performance of U23 and professional cyclists during the multistage race Tour of the Alps. *Int J Sports Physiol Perform* (via PubMed). [doi:10.1123/ijspp.2020-0381](https://doi.org/10.1123/ijspp.2020-0381)
 - Leo P et al. (2022). Predictors of cycling performance success: traditional approaches and a novel method to assess performance capacity in U23 road cyclists. *J Sci Med Sport* (via PubMed). [doi:10.1016/j.jsams.2022.11.005](https://doi.org/10.1016/j.jsams.2022.11.005)
+- Leo P et al. (2024). The influence of high-intensity work on the record power profile of under-23, pro team, and world tour cyclists. *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2023-0451](https://doi.org/10.1123/ijspp.2023-0451)
 - Manresa-Rocamora A et al. (2021). Heart rate variability-guided training for enhancing cardiac-vagal modulation, aerobic fitness, and endurance performance. *Int J Environ Res Public Health* (via PubMed). [doi:10.3390/ijerph181910299](https://doi.org/10.3390/ijerph181910299)
 - Marchal A et al. (2025). Statistical flaws of the fitness-fatigue sports performance prediction model. *Sci Rep*. [doi:10.1038/s41598-025-88153-7](https://doi.org/10.1038/s41598-025-88153-7)
-- Mateo-March M et al. (2021). Durability and repeatability of professional cyclists during a Grand Tour. *Eur J Sport Sci*. [doi:10.1080/17461391.2021.1987528](https://doi.org/10.1080/17461391.2021.1987528)
 - Mateo-March M et al. (2022). The record power profile in professional female cyclists: normative values. *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2021-0372](https://doi.org/10.1123/ijspp.2021-0372)
 - Mateo-March M et al. (2022). The record power profile of male professional cyclists: fatigue matters. *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2021-0403](https://doi.org/10.1123/ijspp.2021-0403)
 - Mateo-March M et al. (2024). Is all work the same? Performance after accumulated work of differing intensities. *J Sci Med Sport*. [doi:10.1016/j.jsams.2024.03.005](https://doi.org/10.1016/j.jsams.2024.03.005)
 - Mateo-March M et al. (2025). Decoding victory in cycling's grand monuments: a performance analysis of top-5 versus top-6–30 finishers. *Scand J Med Sci Sports*. [doi:10.1111/sms.70057](https://doi.org/10.1111/sms.70057)
 - Mateo-March M et al. (2025). Reliability of the durability concept in professional cyclists. *Int J Sports Med*. [doi:10.1055/a-2555-8961](https://doi.org/10.1055/a-2555-8961)
 - Mateo-March M et al. (2026). The record power profile of male under-23 cyclists: normative values and fatigue effects. *Scand J Med Sci Sports*. [doi:10.1111/sms.70278](https://doi.org/10.1111/sms.70278)
+- Maunder E et al. (2021). The importance of 'durability' in the physiological profiling of endurance athletes. *Sports Med*.
 - Mougin L et al. (2026). 35 years of Joyner's endurance performance model: assessing the contribution of physiological determinants in 888 individuals. *Sports Med*. [doi:10.1007/s40279-026-02439-y](https://doi.org/10.1007/s40279-026-02439-y)
+- Muriel X et al. (2021). Durability and repeatability of professional cyclists during a Grand Tour. *Eur J Sport Sci*. [doi:10.1080/17461391.2021.1987528](https://doi.org/10.1080/17461391.2021.1987528)
 - Muriel X et al. (2023). Is the record power profile repeatable? *J Strength Cond Res*. [doi:10.1519/jsc.0000000000004419](https://doi.org/10.1519/jsc.0000000000004419)
 - Nimmerichter A et al. (2020). Field-derived power-duration variables to predict cycling time-trial performance. *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2019-0621](https://doi.org/10.1123/ijspp.2019-0621)
+- Ørtenblad N et al. (2024). Substrate utilization and durability during prolonged intermittent exercise in elite road cyclists. *Eur J Appl Physiol*. [doi:10.1007/s00421-024-05437-y](https://doi.org/10.1007/s00421-024-05437-y)
 - Pallarés JG et al. (2022). Field-derived maximal power output in cycling: an accurate indicator of maximal performance capacity? *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2022-0208](https://doi.org/10.1123/ijspp.2022-0208)
 - Peeters W et al. (2025). What is a cycling race simulation anyway: a review on protocols to assess durability in cycling. *Eur J Appl Physiol*. [doi:10.1007/s00421-025-05725-1](https://doi.org/10.1007/s00421-025-05725-1)
 - Phillips KE et al. (2020). Determinants of cycling performance: a review of the dimensions and features regulating performance in elite cycling competitions. *Sports Med Open*. [doi:10.1186/s40798-020-00252-z](https://doi.org/10.1186/s40798-020-00252-z)
@@ -540,6 +610,7 @@ uit een koers van 2019), en Pogačars sprintschatting lag onder de Smaragd-grens
 - Quod MJ et al. (2010). The power profile predicts road cycling MMP. *Int J Sports Med*. [doi:10.1055/s-0030-1247528](https://doi.org/10.1055/s-0030-1247528)
 - Raysmith BP, Drew MK (2016). Performance success or failure is influenced by weeks lost to injury and illness in elite Australian track and field athletes. *J Sci Med Sport*.
 - Rothschild JA et al. (2025). Durability of the moderate-to-heavy intensity transition can be predicted using readily available markers of physiological decoupling. *Eur J Appl Physiol*. [doi:10.1007/s00421-025-05815-0](https://doi.org/10.1007/s00421-025-05815-0)
+- Spragg J, Leo P, Swart J (2022). The relationship between training characteristics and durability in professional cyclists across a competitive season. *Eur J Sport Sci*. [doi:10.1080/17461391.2022.2049886](https://doi.org/10.1080/17461391.2022.2049886)
 - Sánchez-Jiménez J et al. (2025). Is intensity the most important factor in determining the amount of prior work accumulated that affects cyclists' acute durability? A systematic review. *Eur J Appl Physiol*. [doi:10.1007/s00421-025-05885-0](https://doi.org/10.1007/s00421-025-05885-0)
 - Sanders D et al. (2017). Methods of monitoring training load and their relationships to changes in fitness and performance in competitive road cyclists. *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2016-0454](https://doi.org/10.1123/ijspp.2016-0454)
 - Spragg J et al. (2022). The relationship between physiological characteristics and durability in male professional cyclists. *Med Sci Sports Exerc*. [doi:10.1249/mss.0000000000003024](https://doi.org/10.1249/mss.0000000000003024)
@@ -551,5 +622,6 @@ uit een koers van 2019), en Pogačars sprintschatting lag onder de Smaragd-grens
 - van Erp T, Lamberts RP (2022). Performance characteristics of TOP5 versus NOT-TOP5 races in female professional cycling. *Int J Sports Physiol Perform* (via PubMed). [doi:10.1123/ijspp.2021-0488](https://doi.org/10.1123/ijspp.2021-0488)
 - Varesco G et al. (2025). Performance analysis in high-level virtual cycling: data from the 2023 Zwift UCI Cycling E-Sports World Championships. *J Sci Cycling*. [doi:10.28985/1425.jsc.10](https://doi.org/10.28985/1425.jsc.10)
 - Vermeire KM et al. (2019). Training progression in recreational cyclists: no linear dose-response relationship with training load. *J Strength Cond Res*. [doi:10.1519/jsc.0000000000003340](https://doi.org/10.1519/jsc.0000000000003340)
+- Voet JG et al. (2024). Durability and underlying physiological factors: how do they change throughout a cycling season in semiprofessional cyclists? *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2023-0543](https://doi.org/10.1123/ijspp.2023-0543)
 - Westmattelmann D et al. (2022). The performance-result gap in mixed-reality cycling: evidence from the Virtual Tour de France 2020 on Zwift. *Front Physiol*. [doi:10.3389/fphys.2022.868902](https://doi.org/10.3389/fphys.2022.868902)
 - Zwift: Racing Score van 0 tot 1000, Racing Score FAQ ([support.zwift.com](https://support.zwift.com/en_us/racing-score-faq-BkG9_Rqrh)).

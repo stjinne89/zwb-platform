@@ -44,8 +44,8 @@ export function BriljantHelp() {
               voor durability: open intervals.icu, kies Beste prestaties en dan Vermogenscurves (op de telefoon
               onder de knop met de drie puntjes). Tik onderaan bij &quot;Na … kJ&quot; op het potloodje, vul 1000
               en 2000 in en vink ze allebei aan. Klik daarna op Mijn vermogen op &quot;Mijn waarden ophalen&quot;. Zonder die standen blijft durability leeg en mis je {pct(FACET_WEIGHTS.durability)} van je
-              score. De laagste stand moet minstens 10 kJ per kilo zijn (800 kJ bij 80 kg); daaronder zegt het verval
-              te weinig. Al ingesteld en nog steeds leeg? Dan reed je in de laatste 90 dagen geen rit waarin je die
+              score. De laagste stand moet minstens 10 kJ per kilo zijn (800 kJ bij 80 kg); daaronder ben je nog
+              niet moe genoeg. Al ingesteld en nog steeds leeg? Dan reed je in de laatste 90 dagen geen rit waarin je die
               stand haalde. Meer bij{" "}
               <Link href="/hulp/training#vermogen" className="underline underline-offset-2">
                 Mijn vermogen
@@ -54,8 +54,8 @@ export function BriljantHelp() {
               <HelpVideoLink video="kj-standen" className="mt-1 flex" />
             </li>
             <li>
-              <strong className="text-foreground">De durability-test</strong>, voor wie boven Diamant wil op
-              durability. Uit je ritten schatten we durability, tot Diamant; de test meet het. Start hem bij{" "}
+              <strong className="text-foreground">De durability-test</strong>, voor de volle punten op
+              durability. Uit je ritten telt durability voor de helft; de test meet het en telt helemaal. Start hem bij{" "}
               <Link href="/zwbeter-worden/protocollen/durability-test" className="underline underline-offset-2">
                 Protocollen
               </Link>
@@ -173,8 +173,7 @@ export function BriljantHelp() {
             <dd className="text-muted-foreground">
               Een groen pijltje omhoog of rood pijltje omlaag bij een onderdeel of de consistentie laat zien wat er
               veranderde sinds je vorige steen, de week ervoor. Wijs het aan of tik erop en je ziet toen en nu: de
-              meting bij Waarden, de punten bij Punten. Bij durability is omlaag in procenten beter, en dus groen. Tik
-              op de regel onder je score voor alle verschillen bij elkaar.
+              meting bij Waarden, de punten bij Punten. Tik op de regel onder je score voor alle verschillen bij elkaar.
             </dd>
             <dt className="font-medium">Ik, <ClubShortName /> en Vergelijken</dt>
             <dd className="text-muted-foreground">
@@ -208,8 +207,8 @@ export function BriljantHelp() {
             </dd>
             <dt className="font-medium">Hier win je het meest</dt>
             <dd className="text-muted-foreground">
-              Klik op je score: per onderdeel rekenen we uit wat 5% beter je oplevert (5% minder verval bij
-              durability), met de gewichten en je consistentie. Een zwaar onderdeel of een onderdeel net onder een
+              Klik op je score: per onderdeel rekenen we uit wat 5% beter je oplevert (bij durability 5% meer
+              vermogen na het werk), met de gewichten en je consistentie. Een zwaar onderdeel of een onderdeel net onder een
               grens wint het meest.
             </dd>
           </dl>
@@ -224,20 +223,17 @@ export function BriljantHelp() {
               <code className="rounded bg-muted px-1">
                 lage grens + (meting − meting lage grens) ÷ (meting hoge grens − meting lage grens) × 100
               </code>
-              . Voorbij Diamant loopt de laatste lijn door. Bij durability is minder verval beter. Racen is één rechte
+              . Voorbij Diamant loopt de laatste lijn door. Racen is één rechte
               lijn: elke ZRS is een punt.
             </dd>
             <dt className="font-medium">Durability</dt>
             <dd className="text-muted-foreground">
-              Per duur het verlies:{" "}
-              <code className="rounded bg-muted px-1">(1 − vermogen na het werk ÷ vers vermogen) × 100</code>, gedeeld
-              door het werk in tientallen kJ per kg (1000 kJ bij 80 kg is 1,25). Uit je ritten: op tien duren van 1 tot
-              20 minuten, na je laagste kJ-stand met minstens 10 kJ per kg, tegen je beste waarden van de laatste 90
-              dagen. Daarvan telt het eerste kwart (P25): een vermoeide beste waarde is een ondergrens, want lang niet
-              elke duur rijd je na het werk voluit. Zo telt wat je wel voluit reed, zonder dat één inspanning de
-              score bepaalt. Uit je ritten kom je niet boven Diamant: geen verval is daar een grens, geen meting. Met
-              de durability-test telt alleen de 20 minuten na het werk, tegen je beste 20 minuten van de 90 dagen tot
-              en met de testdag, zonder plafond. De test gaat 90 dagen voor op je ritten.
+              Je vermogen in W/kg na het werk, niet hoeveel je zakt: zo kost een betere verse waarde je geen
+              durability. Uit je ritten: je beste 5 en 20 minuten van de laatste 90 dagen na je laagste kJ-stand met
+              minstens 10 kJ per kg. Elk krijgt punten op de schaal van die duur, verlaagd met het verval dat bij de
+              klasse hoort (bij Goud 7% per 10 kJ per kg, bij Diamant 1,5%); het gemiddelde telt voor de helft, want
+              lang niet elke rit rijd je na het werk voluit. Met de durability-test tellen de 20 minuten na het werk
+              voor het hele punt. De test gaat 90 dagen voor op je ritten. Er is geen plafond.
             </dd>
             <dt className="font-medium">Profielscore</dt>
             <dd className="text-muted-foreground">

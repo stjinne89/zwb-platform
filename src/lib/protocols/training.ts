@@ -309,7 +309,8 @@ const DURABILITY_TASK = {
 
 /**
  * De durability-test voor ZWBriljant (eigenaar, 2026-10-23): de durability uit je
- * ritten is een schatting met een plafond op Diamant, de test meet het. ZWBriljant
+ * ritten is een schatting en telt voor de helft, de test meet het en telt helemaal
+ * (sinds 2026-11-13, eerst met een plafond op Diamant voor de ritten). ZWBriljant
  * herkent de rit aan de titel in het schema of aan de afgevinkte taak.
  */
 export const DURABILITY_TEST_SLUG = "durability-test";
@@ -614,7 +615,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     title: DURABILITY_TEST_TITLE,
     shortLabel: DURABILITY_TEST_TITLE,
     summary:
-      "Eén lange rit: 1000 kJ op duurtempo en daarna 20 minuten voluit. Het verschil met je beste 20 minuten is je durability in ZWBriljant, 90 dagen lang.",
+      "Eén lange rit: 1000 kJ op duurtempo en daarna 20 minuten voluit. Je vermogen op die 20 minuten is je durability in ZWBriljant, 90 dagen lang.",
     goal: "Meten hoeveel vermogen je na lang werk overhoudt.",
     evidence: "matig",
     anchor: "start",
@@ -643,7 +644,6 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     limits: [
       "Twee kleine studies bij goed getrainde amateurs (14 en 20 renners), thuis gereden. Succesvolle renners verloren op 20 minuten 6,5%, minder succesvolle 12,5%.",
       "In de studie volgde ook een test van 5 minuten; die onderscheidde de renners niet, dus de app laat hem weg.",
-      "Je beste 20 minuten van de 90 dagen tot en met de testdag is je verse waarde; in de studie was dat een aparte test.",
       "Weeg je meer dan 100 kg, dan is 1000 kJ minder dan 10 kJ per kg en telt de test niet.",
     ],
     sources: [BARSUMYAN_AMATEUR_2025, BARSUMYAN_INDEPENDENT_2025],

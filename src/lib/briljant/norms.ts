@@ -51,13 +51,11 @@ export type Sex = "man" | "vrouw";
 
 /**
  * Een schaal: de waarde die 0 oplevert, en per niveau (1 tot en met 9) de
- * waarde die erbij hoort. `lowerIsBetter` draait de richting om (durability:
- * minder verval is beter).
+ * waarde die erbij hoort.
  */
 export type Anchors = {
   zero: number;
   levels: readonly [number, number, number, number, number, number, number, number, number];
-  lowerIsBetter?: boolean;
   /** Een inschatting van ZWB, niet rechtstreeks uit een bron. */
   estimate?: boolean;
 };
@@ -109,13 +107,15 @@ export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors 
  * wordt opnieuw gemaakt, want er staan alleen niveaus in, geen metingen om opnieuw
  * mee te rekenen.
  */
-export const SCALE_VERSION = "2026-10-22-ctl40";
+export const SCALE_VERSION = "2026-11-13-vermoeid";
 
 /**
- * De vorige versie. Migratie 0269 zet die stenen om naar SCALE_VERSION; tot dan
- * mag de terugblik ze niet opruimen, anders valt er niets meer om te zetten.
+ * De vorige versie. De terugblik ruimt die stenen niet op. Bij "2026-10-22-ctl40"
+ * is omzetten niet mogelijk: het oude durability-niveau kwam uit het verval, en
+ * daaruit is je vermoeide vermogen niet terug te rekenen. Ze blijven bewaard maar
+ * tellen niet mee; de terugblik maakt de historie opnieuw.
  */
-export const PREVIOUS_SCALE_VERSION = "2026-10-21-sd3";
+export const PREVIOUS_SCALE_VERSION = "2026-10-22-ctl40";
 
 /**
  * Zwift Racing Score (0–1000) als doorlopende lijn: elke ZRS-punt is een punt, dus
@@ -148,59 +148,68 @@ export const CTL_ANCHORS: Anchors = {
 };
 
 /**
- * Durability als verval in procenten per 10 kJ/kg voorafgaand werk, op de beste
- * minuut (sinds 2026-10-21; eerst de beste 20 of 5 minuten). De ijkwaarden zijn
- * afgeleid uit het verval van het hele vermogensprofiel: WorldTour ongeveer 1,5 en
- * ProTeam 2,2 (Mateo-March 2022, na 45 kJ/kg, voor alle duren van 10 s tot 2 uur),
- * succesvolle amateurs ongeveer 5 en minder succesvolle ongeveer 9,6 (Barsumyan
- * 2025, op 20 minuten na 1000 kJ). Voor de minuut zijn ze dus een inschatting.
- * Minder verval is beter. Sinds 2026-10-21 is Diamant het niveau van de WorldTour
- * (1,5) en Robijn dat van ProTeam (2,2), zodat Diamant haalbaar is; daarboven loopt
- * de schaal door tot geen verval (rond 1100 punten). Eerst was Diamant 0,7.
+ * Het verval dat bij elk niveau hoort, in procenten per 10 kJ/kg voorafgaand werk.
+ * Sinds 2026-11-13 geen schaal meer om te scoren, maar de basis voor de normen van
+ * vermoeid vermogen hieronder (DURABILITY_FATIGUED_DURATIONS). Afgeleid uit het
+ * verval van het hele vermogensprofiel: WorldTour ongeveer 1,5 en ProTeam 2,2
+ * (Mateo-March 2022, na 45 kJ/kg), succesvolle amateurs ongeveer 5 en minder
+ * succesvolle ongeveer 9,6 (Barsumyan 2025, op 20 minuten na 1000 kJ). Diamant is
+ * de WorldTour, Robijn ProTeam (sinds 2026-10-21).
  */
-export const DURABILITY_ANCHORS: Anchors = {
+export const DURABILITY_DECLINE = {
   zero: 18,
   levels: [12.5, 9.5, 7, 5, 4, 3.2, 2.6, 2.2, 1.5],
-  lowerIsBetter: true,
-  estimate: true,
-};
+} as const;
 
 /** Durability telt pas vanaf zoveel voorafgaand werk; daaronder zegt het verval weinig. */
 export const DURABILITY_MIN_KJ_PER_KG = 10;
 
 /**
- * Uit je ritten: het verval op tien duren van 1 tot 20 minuten, ongeveer even ver
- * uit elkaar op een logaritmische schaal (sinds 2026-10-23; eerst alleen de minuut).
- * Korter telt niet mee: korte inspanningen zijn het minst herhaalbaar (Mateo-March
- * 2025). Met één duur kon één verse minuut durability van 400 naar 65 punten
- * duwen (eigenaar, 2026-10-23: een minuut van 547 W).
+ * Durability is sinds 2026-11-13 je vermoeide vermogen in W/kg op 5 en 20 minuten
+ * na de laagste kJ-stand met minstens 10 kJ/kg (eigenaar). Eerst het verval tegen je
+ * verse beste waarde: dan zakte durability als je vers beter werd zonder opnieuw
+ * vermoeid voluit te rijden. Vermoeid vermogen onderscheidt de niveaus het best
+ * (Mateo-March 2022; Muriel 2021; Leo 2024) en stijgt met training meer dan vers
+ * (Voet 2024; Spragg 2022). 5 tot 20 minuten onderscheidt het best; de minuut is
+ * het minst stabiel (Mateo-March 2025). Onderbouwing en doorrekening in
+ * docs/zwbriljant-onderzoek.md.
  */
-export const DURABILITY_DURATIONS = [60, 90, 120, 180, 240, 300, 420, 600, 840, 1200] as const;
-
-/** Zo veel duren moet een kJ-stand minstens hebben om mee te tellen. */
-export const DURABILITY_MIN_DURATIONS = 5;
+export const DURABILITY_DURATIONS = [300, 1200] as const;
+export const DURABILITY_FATIGUED_DURATIONS = { m5: 300, m20: 1200 } as const;
+export type FatiguedDuration = keyof typeof DURABILITY_FATIGUED_DURATIONS;
 
 /**
- * Van die duren telt het eerste kwart (P25), niet het gemiddelde of de mediaan
- * (eigenaar, 2026-10-23). Een vermoeide beste waarde is een ondergrens: op een duur
- * die je na het werk niet voluit reed, lijkt het verval groter dan het is. P25 laat
- * de duren waarop je wel voluit ging zwaarder tellen, zonder op één waarde te
- * leunen. Onderbouwing in docs/zwbriljant-onderzoek.md.
+ * Uit je ritten telt durability voor de helft: de punten gaan door twee (eigenaar,
+ * 2026-11-13). Een vermoeide beste waarde uit gewone ritten is een ondergrens en
+ * hangt sterk samen met je verse vermogen (correlatie 0,91 over 18 leden), dus
+ * zonder test zou vermogen dubbel tellen. De durability-test telt voor het hele punt.
  */
-export const DURABILITY_QUANTILE = 0.25;
+export const DURABILITY_RIDES_SHARE = 0.5;
+
+/** Een lagere factor dan dit geeft de schaal niet: verder dan 55 kJ/kg reikt de afleiding niet. */
+const MIN_FATIGUE_FACTOR = 0.05;
 
 /**
- * Uit je ritten kom je op durability niet boven Diamant (eigenaar, 2026-10-23).
- * Geen verval is daar een grens en geen meting: het gebeurt als je beste verse
- * waarde zelf na het werk viel. Hoger kan alleen met de durability-test.
+ * De normen voor vermoeid vermogen: de verse normen (POWER) maal het verval dat bij
+ * datzelfde niveau hoort, voor jouw kJ/kg. Wie vers op Goud zit en Goud-verval heeft,
+ * zit vermoeid ook op Goud. Een inschatting: per niveau gepubliceerde normen voor
+ * vermoeid vermogen bestaan alleen voor profs (Mateo-March 2022, 2026).
  */
-export const DURABILITY_RIDES_CAP = 9;
+export function fatiguedPowerAnchors(duration: FatiguedDuration, sex: Sex | null, kjPerKg: number): Anchors {
+  const fresh = powerAnchors(duration, sex);
+  const factor = (decline: number) => Math.max(MIN_FATIGUE_FACTOR, 1 - (decline * kjPerKg) / 1000);
+  return {
+    zero: fresh.zero * factor(DURABILITY_DECLINE.zero),
+    levels: fresh.levels.map((value, index) => value * factor(DURABILITY_DECLINE.levels[index])) as unknown as Anchors["levels"],
+    estimate: true,
+  };
+}
 
 /**
- * De durability-test (Barsumyan 2025): na 1000 kJ 20 minuten voluit, tegen je
- * beste 20 minuten van de 90 dagen tot en met de testdag. Alleen het verval op 20
- * minuten: dat onderscheidde de betere amateurs, 5 minuten niet. Geldt 90 dagen
- * en gaat dan voor op de schatting uit ritten, zonder plafond.
+ * De durability-test (Barsumyan 2025): na 1000 kJ 20 minuten voluit. Sinds
+ * 2026-11-13 telt het vermoeide vermogen op die 20 minuten, voor het hele punt
+ * (eigenaar); eerst het verval tegen je beste 20 minuten. Geldt 90 dagen en gaat
+ * dan voor op de ritten.
  */
 export const DURABILITY_TEST_SECONDS = 1200;
 export const DURABILITY_TEST_VALID_DAYS = 90;

@@ -11,17 +11,17 @@
 
 import {
   CTL_ANCHORS,
-  DURABILITY_ANCHORS,
-  DURABILITY_MIN_DURATIONS,
+  DURABILITY_FATIGUED_DURATIONS,
   DURABILITY_MIN_KJ_PER_KG,
-  DURABILITY_QUANTILE,
-  DURABILITY_RIDES_CAP,
+  DURABILITY_RIDES_SHARE,
   LEVELS,
   FACET_WEIGHTS,
   ZRS_ANCHORS,
+  fatiguedPowerAnchors,
   levelOf,
   powerAnchors,
   type Anchors,
+  type FatiguedDuration,
   type Level,
   type PowerDuration,
   type Sex,
@@ -47,7 +47,7 @@ export const FACET_MEASURES: Record<Facet, { what: string; unit: string }> = {
   anaeroob: { what: "beste minuut", unit: "W/kg" },
   vo2max: { what: "beste 5 minuten", unit: "W/kg" },
   drempel: { what: "beste 20 minuten", unit: "W/kg" },
-  durability: { what: "verval op 1 tot 20 minuten", unit: "% per 10 kJ/kg" },
+  durability: { what: "vermoeid op 5 en 20 minuten", unit: "W/kg" },
   fitheid: { what: "CTL", unit: "TSS/dag" },
   racen: { what: "Zwift Racing Score", unit: "ZRS" },
 };
@@ -89,12 +89,11 @@ const interpolate = (value: number, lower: ScalePoint, upper: ScalePoint) =>
 /** Waar `value` op de schaal valt, en welk niveau dat is. */
 export function scaleStep(anchors: Anchors, value: number): ScaleStep {
   const points = scalePoints(anchors);
-  const better = (a: number, b: number) => (anchors.lowerIsBetter ? a < b : a > b);
-  if (!Number.isFinite(value) || !better(value, points[0].value)) {
+  if (!Number.isFinite(value) || !(value > points[0].value)) {
     return { kind: "floor", value, level: 0, lower: points[0], upper: points[1] };
   }
   for (let index = 1; index < points.length; index++) {
-    if (!better(value, points[index].value)) {
+    if (!(value > points[index].value)) {
       const lower = points[index - 1];
       const upper = points[index];
       return { kind: "between", value, level: interpolate(value, lower, upper), lower, upper };
@@ -118,7 +117,7 @@ export function levelAt(anchors: Anchors, value: number): number {
  * De waarde bij een niveau: het omgekeerde van `levelAt`, recht tussen de
  * ijkwaarden en voorbij niveau 9 met de helling van het laatste stuk. Niveau 0 of
  * lager geeft de nulwaarde. Zo is een bewaard niveau terug te rekenen naar W/kg,
- * CTL, verval of ZRS, op de afronding van het niveau na.
+ * CTL of ZRS, op de afronding van het niveau na.
  */
 export function valueAt(anchors: Anchors, level: number): number {
   const points = scalePoints(anchors);
@@ -178,7 +177,7 @@ export type FatigueInput = {
   fatiguedWatts: number;
 };
 
-/** De uitslag van een durability-test: 20 minuten na het werk tegen je beste 20 minuten. */
+/** De uitslag van een durability-test: 20 minuten na het werk; telt alleen het vermoeide vermogen. */
 export type DurabilityTestInput = {
   /** De testdag ("YYYY-MM-DD"); leeg bij de recordsteen. */
   day: string;
@@ -200,92 +199,87 @@ export type BriljantInput = {
 
 /**
  * De meting achter een facet en de omrekening naar een niveau. Bij durability ook
- * waar het verval vandaan komt, en of het plafond van de ritten het niveau afkapte.
+ * waar die vandaan komt, het vermoeide vermogen per duur (W/kg), het werk ervoor
+ * (kJ/kg) en welk deel van de punten telt: de helft uit ritten, alles uit de test.
+ * Bij durability is `value` de 20 minuten (of de 5 als die ontbreekt) en `level`
+ * het niveau na die deling.
  */
 export type FacetReading = ScaleStep & {
   source?: "test" | "ritten";
   testDay?: string;
-  capped?: boolean;
+  fatigued?: Partial<Record<FatiguedDuration, number>>;
+  kjPerKg?: number;
+  share?: number;
 };
 
 function positive(value: number | null | undefined): number | null {
   return value != null && Number.isFinite(value) && value > 0 ? value : null;
 }
 
-/** Het kwantiel `q` (0 tot 1) van een reeks, lineair tussen de waarden. */
-export function quantile(values: number[], q: number): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const index = (sorted.length - 1) * q;
-  const below = Math.floor(index);
-  const above = Math.min(below + 1, sorted.length - 1);
-  return sorted[below] + (sorted[above] - sorted[below]) * (index - below);
-}
-
-/** Verlies in procenten; meer vermogen na het werk dan vers telt als geen verval. */
-const lossPct = (freshWatts: number, fatiguedWatts: number) => Math.max(0, (1 - fatiguedWatts / freshWatts) * 100);
+/** Vermoeid vermogen na de laagste kJ-stand met genoeg werk, in W/kg per duur. */
+export type FatiguedPower = { kjPerKg: number; wkg: Partial<Record<FatiguedDuration, number>> };
 
 /**
- * Verval uit je ritten, in procenten per 10 kJ/kg: het eerste kwart (P25) van het
- * verval op 1 tot 20 minuten, na de laagste kJ-stand met genoeg werk en genoeg duren
- * (eigenaar, 2026-10-23). Eerst alleen de minuut, en daarvoor het gemiddelde over de
- * standen; na 2000 kJ rijdt bijna niemand nog voluit, dus die stand trok durability
- * omlaag (eigenaar, 2026-10-22). Zie DURABILITY_QUANTILE.
+ * Uit je ritten: de laagste kJ-stand met minstens 10 kJ/kg waarop je 5 of 20
+ * minuten reed (zoals sinds 2026-10-22; na 2000 kJ rijdt bijna niemand nog voluit).
+ * Null zonder gewicht of zonder zo'n stand.
  */
-export function durabilityDecline(fatigue: FatigueInput[], weightKg: number | null): number | null {
+export function fatiguedPower(fatigue: FatigueInput[], weightKg: number | null): FatiguedPower | null {
   const weight = positive(weightKg);
   if (!weight) return null;
-  const stands = new Map<number, number[]>();
-  for (const point of fatigue) {
-    if (!positive(point.freshWatts) || !positive(point.fatiguedWatts) || point.afterKj / weight < DURABILITY_MIN_KJ_PER_KG) {
-      continue;
+  const durations = Object.entries(DURABILITY_FATIGUED_DURATIONS) as Array<[FatiguedDuration, number]>;
+  const stands = [...new Set(fatigue.map((point) => point.afterKj))]
+    .filter((afterKj) => afterKj / weight >= DURABILITY_MIN_KJ_PER_KG)
+    .sort((a, b) => a - b);
+  for (const afterKj of stands) {
+    const wkg: Partial<Record<FatiguedDuration, number>> = {};
+    for (const [duration, seconds] of durations) {
+      const watts = positive(fatigue.find((point) => point.afterKj === afterKj && point.seconds === seconds)?.fatiguedWatts);
+      if (watts) wkg[duration] = watts / weight;
     }
-    stands.set(point.afterKj, [...(stands.get(point.afterKj) ?? []), lossPct(point.freshWatts, point.fatiguedWatts)]);
+    if (Object.keys(wkg).length > 0) return { kjPerKg: afterKj / weight, wkg };
   }
-  const lowest = [...stands]
-    .filter(([, losses]) => losses.length >= DURABILITY_MIN_DURATIONS)
-    .sort((a, b) => a[0] - b[0])[0];
-  if (!lowest) return null;
-  const [afterKj, losses] = lowest;
-  return quantile(losses, DURABILITY_QUANTILE) / (afterKj / weight / 10);
-}
-
-/** Verval uit een durability-test, in procenten per 10 kJ/kg; null bij te weinig werk. */
-export function durabilityTestDecline(test: DurabilityTestInput | null | undefined, weightKg: number | null): number | null {
-  const weight = positive(weightKg);
-  if (!test || !weight || !positive(test.freshWatts) || !positive(test.fatiguedWatts)) return null;
-  const kjPerKg = test.afterKj / weight;
-  if (!(kjPerKg >= DURABILITY_MIN_KJ_PER_KG)) return null;
-  return lossPct(test.freshWatts, test.fatiguedWatts) / (kjPerKg / 10);
+  return null;
 }
 
 /**
- * Durability als lezing: uit de test als die er is, zonder plafond; anders uit je
- * ritten, tot Diamant (DURABILITY_RIDES_CAP). Bij het plafond blijft het gemeten
- * verval staan en wordt alleen het niveau afgekapt.
+ * Het niveau bij vermoeid vermogen: per duur tegen de normen voor vermoeid vermogen
+ * bij jouw kJ/kg (fatiguedPowerAnchors), gemiddeld over de duren die er zijn, maal
+ * `share` (de helft uit ritten, 1 uit de test).
  */
-export function durabilityReading(input: BriljantInput): FacetReading | null {
-  const tested = durabilityTestDecline(input.durabilityTest, input.weightKg);
-  if (tested != null) return { ...scaleStep(DURABILITY_ANCHORS, tested), source: "test", testDay: input.durabilityTest!.day };
-  const decline = durabilityDecline(input.fatigue, input.weightKg);
-  if (decline == null) return null;
-  const step = scaleStep(DURABILITY_ANCHORS, decline);
-  if (step.level <= DURABILITY_RIDES_CAP) return { ...step, source: "ritten" };
-  const points = scalePoints(DURABILITY_ANCHORS);
-  return {
-    kind: "between",
-    value: decline,
-    level: DURABILITY_RIDES_CAP,
-    lower: points[DURABILITY_RIDES_CAP - 1],
-    upper: points[DURABILITY_RIDES_CAP],
-    source: "ritten",
-    capped: true,
-  };
+export function fatiguedLevel(power: FatiguedPower, sex: Sex | null, share: number): number {
+  const levels = (Object.entries(power.wkg) as Array<[FatiguedDuration, number]>).map(([duration, wkg]) =>
+    levelAt(fatiguedPowerAnchors(duration, sex, power.kjPerKg), wkg),
+  );
+  return (levels.reduce((sum, level) => sum + level, 0) / levels.length) * share;
 }
 
-/** Het niveau bij een verval, met het plafond voor een schatting uit ritten. */
-export function durabilityLevel(decline: number, source: FacetReading["source"]): number {
-  const level = levelAt(DURABILITY_ANCHORS, decline);
-  return source === "test" ? level : Math.min(DURABILITY_RIDES_CAP, level);
+/** Het vermoeide vermogen uit een durability-test: de 20 minuten na het werk. */
+export function durabilityTestPower(test: DurabilityTestInput | null | undefined, weightKg: number | null): FatiguedPower | null {
+  const weight = positive(weightKg);
+  const watts = positive(test?.fatiguedWatts);
+  if (!test || !weight || !watts) return null;
+  const kjPerKg = test.afterKj / weight;
+  if (!(kjPerKg >= DURABILITY_MIN_KJ_PER_KG)) return null;
+  return { kjPerKg, wkg: { m20: watts / weight } };
+}
+
+function readingFor(power: FatiguedPower, sex: Sex | null, share: number): FacetReading {
+  const duration: FatiguedDuration = power.wkg.m20 != null ? "m20" : "m5";
+  const step = scaleStep(fatiguedPowerAnchors(duration, sex, power.kjPerKg), power.wkg[duration]!);
+  return { ...step, level: fatiguedLevel(power, sex, share), fatigued: power.wkg, kjPerKg: power.kjPerKg, share };
+}
+
+/**
+ * Durability als lezing: uit de test als die er is, voor het hele punt; anders uit
+ * je ritten, voor de helft (DURABILITY_RIDES_SHARE). Geen plafond meer: dat was er
+ * voor "geen verval", en vermoeid vermogen kent dat meetartefact niet.
+ */
+export function durabilityReading(input: BriljantInput): FacetReading | null {
+  const tested = durabilityTestPower(input.durabilityTest, input.weightKg);
+  if (tested) return { ...readingFor(tested, input.sex, 1), source: "test", testDay: input.durabilityTest!.day };
+  const rides = fatiguedPower(input.fatigue, input.weightKg);
+  return rides ? { ...readingFor(rides, input.sex, DURABILITY_RIDES_SHARE), source: "ritten" } : null;
 }
 
 /** Per facet de meting en het niveau tegen de wereld; null waar de gegevens ontbreken. */

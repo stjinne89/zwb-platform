@@ -4,7 +4,6 @@
 
 import {
   CTL_ANCHORS,
-  DURABILITY_ANCHORS,
   FACET_WEIGHTS,
   LEVELS,
   ZRS_ANCHORS,
@@ -22,8 +21,8 @@ import {
   FACET_MEASURES,
   consistencyFactor,
   consistencyFrom,
-  durabilityLevel,
   facetReadings,
+  fatiguedLevel,
   levelAt,
   points,
   positionFor,
@@ -50,13 +49,27 @@ export const FACET_SOURCES: Record<Facet, string> = {
   racen: "huidige score · Zwift",
 };
 
-/** Wat er gemeten is en waar het vandaan komt; bij een durability-test de test. */
+/**
+ * Wat er gemeten is en waar het vandaan komt. Bij durability welke duren er waren,
+ * en uit ritten dat het voor de helft telt; bij een durability-test de test.
+ */
 function measureText(facet: Facet, reading: FacetReading): { what: string; source: string } {
   if (facet === "durability" && reading.source === "test" && reading.testDay) {
     const day = new Date(`${reading.testDay}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "long" });
-    return { what: "verval op 20 minuten", source: `durability-test van ${day} · intervals.icu` };
+    return { what: "vermoeid op 20 minuten", source: `durability-test van ${day} · intervals.icu` };
+  }
+  if (facet === "durability" && reading.source === "ritten" && reading.fatigued) {
+    const { m5, m20 } = reading.fatigued;
+    const durations = m5 != null && m20 != null ? "5 en 20 minuten" : m20 != null ? "20 minuten" : "5 minuten";
+    return { what: `vermoeid op ${durations}, telt voor de helft`, source: FACET_SOURCES[facet] };
   }
   return { what: FACET_MEASURES[facet].what, source: FACET_SOURCES[facet] };
+}
+
+/** Vermoeid vermogen per duur, zoals naast het getal: "4,4 en 3,6 W/kg". */
+function fatiguedText(reading: FacetReading): string {
+  const values = [reading.fatigued?.m5, reading.fatigued?.m20].filter((value): value is number => value != null);
+  return `${values.map((value) => formatMeasure("durability", value).replace(" W/kg", "")).join(" en ")} W/kg`;
 }
 
 /** De balk onder een meting: van de grens van je klasse naar de volgende, bij racen over de hele schaal. */
@@ -86,7 +99,6 @@ export type FacetView = {
   weight: number;
   /** Bijdrage aan de profielscore in punten. */
   contribution: number;
-  lowerIsBetter: boolean;
   meter: FacetMeter;
 };
 
@@ -137,7 +149,30 @@ export function formatMeasure(facet: Facet, value: number): string {
   return `${value.toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} ${unit}`;
 }
 
+/**
+ * De balk in punten: van de grens van de klasse naar de volgende. Voor een bewaarde
+ * steen (geen meting bewaard) en voor durability, waar het niveau uit twee duren en
+ * een deling komt en dus geen enkele waarde de grens is.
+ */
+export function pointsMeter(level: number): FacetMeter {
+  const reached = levelOf(level);
+  const next = LEVELS[reached.n + 1] ?? null;
+  const value = points(level);
+  if (!next) {
+    return { share: 1, from: `${reached.n * 100} punten`, to: "", fromLevel: reached, toLevel: null, note: `${reached.name}: de score telt door` };
+  }
+  return {
+    share: Math.min(1, Math.max(0, (value - reached.n * 100) / 100)),
+    from: `${reached.n * 100} punten`,
+    to: `${next.n * 100} punten`,
+    fromLevel: reached,
+    toLevel: next,
+    note: `nog ${next.n * 100 - value} punten tot ${next.name}`,
+  };
+}
+
 export function meterFor(facet: Facet, reading: FacetReading): FacetMeter {
+  if (facet === "durability") return pointsMeter(reading.level);
   if (facet === "racen") {
     // De balk over de hele schaal, de zin naar de volgende klasse (eigenaar,
     // 2026-10-21): de grens is de ZRS waarbij die klasse begint.
@@ -155,17 +190,6 @@ export function meterFor(facet: Facet, reading: FacetReading): FacetMeter {
     };
   }
   const top = LEVELS[LEVELS.length - 1];
-  if (reading.capped) {
-    // Durability uit ritten op het plafond: de balk vol tot Diamant, hoger alleen met de test.
-    return {
-      share: 1,
-      from: formatMeasure(facet, reading.lower.value),
-      to: formatMeasure(facet, reading.upper.value),
-      fromLevel: LEVELS[reading.lower.level],
-      toLevel: top,
-      note: "hoger alleen met de durability-test",
-    };
-  }
   if (reading.kind === "beyond") {
     return {
       share: 1,
@@ -215,13 +239,12 @@ export function briljantView(args: {
     return {
       key: facet,
       label: FACET_LABELS[facet],
-      value: formatMeasure(facet, reading.value),
+      value: facet === "durability" && reading.fatigued ? fatiguedText(reading) : formatMeasure(facet, reading.value),
       ...measureText(facet, reading),
       points: points(reading.level),
       level: levelOf(reading.level),
       weight,
       contribution: Math.round(weight * reading.level * 100),
-      lowerIsBetter: facet === "durability",
       meter: meterFor(facet, reading),
     };
   });
@@ -289,15 +312,18 @@ export type Win = {
   gain: number;
 };
 
-/** Hoeveel 5% beter is: meer vermogen, CTL en ZRS, minder verval. */
+/** Hoeveel 5% beter is: meer vermogen (ook vermoeid), CTL en ZRS. */
 const IMPROVEMENT = 0.05;
 
 const POWER_DURATION: Partial<Record<Facet, PowerDuration>> = { sprint: "s15", anaeroob: "m1", vo2max: "m5", drempel: "m20" };
 
-export function anchorsFor(facet: Facet, sex: Sex | null): Anchors {
+/**
+ * De schaal van een facet. Durability heeft er geen vaste: de normen hangen af van
+ * je kJ/kg en het niveau komt uit twee duren (fatiguedLevel).
+ */
+export function anchorsFor(facet: Exclude<Facet, "durability">, sex: Sex | null): Anchors {
   const duration = POWER_DURATION[facet];
   if (duration) return powerAnchors(duration, sex);
-  if (facet === "durability") return DURABILITY_ANCHORS;
   if (facet === "fitheid") return CTL_ANCHORS;
   return ZRS_ANCHORS;
 }
@@ -313,20 +339,20 @@ export function bestWins(input: BriljantInput, consistency: number | null): Win[
 
 /**
  * Hetzelfde voor een bewaarde steen: de meting terug uit het niveau (alleen voor
- * je eigen steen; zie compare.ts). `durability` is de bron uit `provenance`.
+ * je eigen steen; zie compare.ts). Durability is hier geen winst: uit het bewaarde
+ * niveau is je vermoeide vermogen niet terug te rekenen. Het niveau telt wel mee in
+ * de score waartegen de winst van de rest gerekend wordt.
  */
 export function winsFromLevels(
   facets: Partial<Record<Facet, number | null>>,
   consistency: number | null,
   sex: Sex | null,
-  durability: FacetReading["source"] = "ritten",
 ): Win[] {
   const readings = Object.fromEntries(
     FACETS.map((facet) => {
       const level = facets[facet];
       if (level == null) return [facet, null];
-      const reading: FacetReading = readingFromLevel(facet, level, sex);
-      return [facet, facet === "durability" ? { ...reading, source: durability } : reading];
+      return [facet, readingFromLevel(facet, level, sex) ?? { kind: "between", value: 0, level, lower: { level: 0, value: 0 }, upper: { level: 0, value: 0 } }];
     }),
   ) as Record<Facet, FacetReading | null>;
   return winsFromReadings(readings, consistency, sex);
@@ -339,13 +365,20 @@ function winsFromReadings(readings: Record<Facet, FacetReading | null>, consiste
   return FACETS.flatMap((facet) => {
     const reading = readings[facet];
     if (!reading) return [];
-    const better =
+    // Durability alleen met een echte meting (niet uit een bewaard niveau).
+    if (facet === "durability" && (!reading.fatigued || reading.kjPerKg == null)) return [];
+    const better = facet === "racen" ? Math.min(1000, reading.value * (1 + IMPROVEMENT)) : reading.value * (1 + IMPROVEMENT);
+    const level =
       facet === "durability"
-        ? reading.value * (1 - IMPROVEMENT)
-        : facet === "racen"
-          ? Math.min(1000, reading.value * (1 + IMPROVEMENT))
-          : reading.value * (1 + IMPROVEMENT);
-    const level = facet === "durability" ? durabilityLevel(better, reading.source) : levelAt(anchorsFor(facet, sex), better);
+        ? fatiguedLevel(
+            {
+              kjPerKg: reading.kjPerKg!,
+              wkg: Object.fromEntries(Object.entries(reading.fatigued!).map(([duration, wkg]) => [duration, wkg * (1 + IMPROVEMENT)])),
+            },
+            sex,
+            reading.share ?? 1,
+          )
+        : levelAt(anchorsFor(facet, sex), better);
     const improved = scoreFor({ ...levels, [facet]: level }, consistency);
     const gain = improved == null ? 0 : points(improved) - points(base);
     if (gain <= 0) return [];
@@ -355,8 +388,12 @@ function winsFromReadings(readings: Record<Facet, FacetReading | null>, consiste
   }).sort((a, b) => b.gain - a.gain);
 }
 
-/** De meting bij een bewaard niveau, als lezing zoals `facetReadings` die geeft. */
-export function readingFromLevel(facet: Facet, level: number, sex: Sex | null) {
+/**
+ * De meting bij een bewaard niveau, als lezing zoals `facetReadings` die geeft.
+ * Null bij durability: dat niveau hangt aan je kJ/kg, twee duren en de bron.
+ */
+export function readingFromLevel(facet: Facet, level: number, sex: Sex | null): FacetReading | null {
+  if (facet === "durability") return null;
   const anchors = anchorsFor(facet, sex);
   return scaleStep(anchors, valueAt(anchors, level));
 }
