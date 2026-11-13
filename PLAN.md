@@ -11,7 +11,8 @@ gaat stabiliteit voor nieuwe features.
    besluiten in §6 van [eventvoeding-plan.md](docs/eventvoeding-plan.md) zijn
    akkoord (eigenaar, 2026-11-13). Lokaal gecommit, niets gepusht: stap 1 (het
    model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
-   het racebriefje, `844876ce`) en stap 3 (soort koolhydraten op recepten).
+   het racebriefje, `844876ce`) en stap 3 (soort koolhydraten op recepten,
+   `ae72d7cf`).
    Open: migratie `0328_nutrition_recipe_carb_mix.sql` toepassen op productie
    (alleen op verzoek; tot dan rekent de planner zonder tasgrens), de
    eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
@@ -12316,7 +12317,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Eventvoeding, stap 3: soort koolhydraten op recepten
 
-**2026-11-13, lokaal gecommit, niet gepusht. Migratie
+**2026-11-13, commit `ae72d7cf`, lokaal, niet gepusht. Migratie
 `0328_nutrition_recipe_carb_mix.sql`, niet toegepast op productie.** Op verzoek
 van de eigenaar ("Ga door", na stap 2). Stap 3 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md), besluit 5 en 6; de vraag
