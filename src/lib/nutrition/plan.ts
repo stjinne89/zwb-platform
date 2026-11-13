@@ -104,10 +104,14 @@ export function planDayMenu({
 
   // Het ritplan bouwt op het recept dat het menu bij "Tijdens de rit" zet.
   const rideSlot = slots.find((slot) => slot.moment === "tijdens_rit");
+  // Bewaarde keuzes voor een event (0329) gaan voor: dezelfde bidons als op de eventpagina.
+  const fuel = input.rideFuel ?? null;
   const ride =
     rideSlot && nutrition.rideMinutes
       ? ridePlan({
-          minutes: nutrition.rideMinutes,
+          minutes: fuel?.minutes ?? nutrition.rideMinutes,
+          perHourG: fuel?.perHourG ?? null,
+          fluidMlPerHour: fuel?.fluidMlPerHour ?? null,
           intensity: nutrition.rideIntensity,
           gut: nutrition.rideGut,
           sweatMlPerHour: input.sweatMlPerHour ?? null,

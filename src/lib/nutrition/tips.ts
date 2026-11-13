@@ -43,6 +43,8 @@ export type NutritionDayInput = {
   gut?: GutTraining | null;
   /** Zweetverlies per uur uit de laatste zweettest (sweat.ts), voor het ritplan. */
   sweatMlPerHour?: number | null;
+  /** Eigen keuzes voor een event op deze dag (0329): duur, doel en vocht van het ritplan. */
+  rideFuel?: { minutes: number; perHourG: number; fluidMlPerHour: number } | null;
   readinessState?: "ready" | "caution" | "recovery" | "unknown" | null;
   wellnessState?: "fresh" | "normal" | "fatigued" | "unknown" | null;
 };

@@ -398,8 +398,10 @@ export function KennisHelp() {
                   aanspreekt. Helpt laden, dan staat er een link naar
                   koolhydraten laden, met de dag waarop je begint. Zonder
                   zweettest schat <ClubShortName /> het vocht uit de warmte die
-                  je kwijt moet: binnen meer dan buiten. Je keuzes gelden alleen
-                  voor wat je op dat moment bekijkt.
+                  je kwijt moet: binnen meer dan buiten. Je keuzes bewaart{" "}
+                  <ClubShortName /> per event, ook in de racebriefing; het
+                  dagmenu, Boodschappen en de herinnering de dag ervoor rekenen
+                  er dan mee. &quot;Terug naar het advies&quot; wist ze.
                 </span>
               </li>
               <li className="flex gap-2">

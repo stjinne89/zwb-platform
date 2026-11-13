@@ -6,7 +6,7 @@ import { portionFit, rankRecipes } from "@/lib/nutrition/menu";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 
-// 0168, 0169, 0213, 0214, 0259, 0261, 0264, 0272, 0273 en 0328 tegen een geïsoleerde PostgreSQL. Zegt niets over de
+// 0168, 0169, 0213, 0214, 0259, 0261, 0264, 0272, 0273, 0328 en 0329 tegen een geïsoleerde PostgreSQL. Zegt niets over de
 // productiedatabase zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -41,6 +41,8 @@ beforeAll(async () => {
   await db.exec(await migration("0272_nutrition_ride_carbs_120.sql"));
   await db.exec(await migration("0273_nutrition_sweat_tests.sql"));
   await db.exec(await migration("0328_nutrition_recipe_carb_mix.sql"));
+  await db.exec("create table events(id uuid primary key);");
+  await db.exec(await migration("0329_nutrition_event_fuel.sql"));
   await db.exec(
     "grant usage on schema public to authenticated; grant all on all tables in schema public to authenticated;",
   );
@@ -575,5 +577,38 @@ describe("soort koolhydraten onderweg (0328)", () => {
   it("kan twee keer draaien zonder iets te veranderen", async () => {
     await db.exec(await migration("0328_nutrition_recipe_carb_mix.sql"));
     expect(await count("select count(*) from nutrition_recipes where carb_mix = 'eten'")).toBe(10);
+  });
+});
+
+describe("eigen keuzes per event (0329)", () => {
+  const EVENT = "00000000-0000-0000-0000-0000000000e1";
+  const insert = (owner: string, minutes = 120) =>
+    db.query(
+      "insert into nutrition_event_fuel(profile_id, event_id, preset, intensity_factor, minutes, plan_g_per_hour, plan_fluid_ml_per_hour) values($1, $2, 'race', 0.85, $3, 90, 650)",
+      [owner, EVENT, minutes],
+    );
+
+  beforeAll(async () => {
+    await db.query("insert into events values($1) on conflict do nothing", [EVENT]);
+  });
+
+  it("laat alleen het lid zelf zijn keuzes bewaren, lezen en wissen", async () => {
+    await as(APPROVED, () => insert(APPROVED));
+    expect(await as(APPROVED, () => count("select count(*) from nutrition_event_fuel"))).toBe(1);
+    expect(await as(OTHER, () => count("select count(*) from nutrition_event_fuel"))).toBe(0);
+    await expect(as(OTHER, () => insert(APPROVED))).rejects.toThrow();
+    await as(OTHER, () => db.query("delete from nutrition_event_fuel"));
+    expect(await count("select count(*) from nutrition_event_fuel")).toBe(1);
+    // Eén rij per lid per event.
+    await expect(as(APPROVED, () => insert(APPROVED))).rejects.toThrow();
+    await as(APPROVED, () => db.query("delete from nutrition_event_fuel where profile_id = $1", [APPROVED]));
+    expect(await count("select count(*) from nutrition_event_fuel")).toBe(0);
+  });
+
+  it("weigert waarden buiten de schuifjes en verdwijnt met het event", async () => {
+    await expect(as(APPROVED, () => insert(APPROVED, 5))).rejects.toThrow();
+    await as(APPROVED, () => insert(APPROVED));
+    await db.query("delete from events where id = $1", [EVENT]);
+    expect(await count("select count(*) from nutrition_event_fuel")).toBe(0);
   });
 });

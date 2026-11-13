@@ -5,6 +5,7 @@
 
 import {
   AVG_SHARE_OF_NP,
+  FUEL_PRESETS,
   PRESET_IF,
   bagCap,
   carbMixOf,
@@ -241,4 +242,110 @@ export function eventFuelPlanner(input: {
       perHourG: null,
     },
   };
+}
+
+export function sameChoice(a: PlannerChoice, b: PlannerChoice): boolean {
+  return (
+    a.preset === b.preset &&
+    a.intensityFactor === b.intensityFactor &&
+    a.minutes === b.minutes &&
+    a.fluidMlPerHour === b.fluidMlPerHour &&
+    a.perHourG === b.perHourG
+  );
+}
+
+/**
+ * Een bewaarde keuze per lid per event (0329, besluit 7). Naast de keuzes zelf
+ * het getal en het vocht waarmee het plan rekende: de herinnering en
+ * Boodschappen hebben de planner niet en nemen die over.
+ */
+export type EventFuelRow = {
+  preset: FuelPreset;
+  intensity_factor: number;
+  minutes: number;
+  fluid_ml_per_hour: number | null;
+  per_hour_g: number | null;
+  plan_g_per_hour: number;
+  plan_fluid_ml_per_hour: number;
+};
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function stepped(value: number, step: number): number {
+  return Math.round(value / step) * step;
+}
+
+/**
+ * Een keuze binnen de grenzen van de schuifjes, of null als er niets bruikbaars
+ * in staat. Voor wat de browser stuurt en voor wat er bewaard is.
+ */
+export function plannerChoiceFrom(
+  planner: Pick<EventFuelPlanner, "expectedMinutes">,
+  raw: {
+    preset?: unknown;
+    intensityFactor?: unknown;
+    minutes?: unknown;
+    fluidMlPerHour?: unknown;
+    perHourG?: unknown;
+  },
+): PlannerChoice | null {
+  const presets: readonly unknown[] = FUEL_PRESETS;
+  if (!presets.includes(raw.preset)) return null;
+  const intensityFactor = Number(raw.intensityFactor);
+  const minutes = Number(raw.minutes);
+  if (!Number.isFinite(intensityFactor) || !Number.isFinite(minutes)) return null;
+  const optional = (value: unknown, limit: { min: number; max: number; step: number }) => {
+    if (value == null || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? clamp(stepped(number, limit.step), limit.min, limit.max) : null;
+  };
+  const { intensityFactor: ifLimit, minutes: minuteLimit } = PLANNER_LIMITS;
+  return {
+    preset: raw.preset as FuelPreset,
+    intensityFactor: round2(clamp(intensityFactor, ifLimit.min, ifLimit.max)),
+    minutes: clamp(stepped(minutes, minuteLimit.step), minuteLimit.min, maxPlannerMinutes(planner.expectedMinutes)),
+    fluidMlPerHour: optional(raw.fluidMlPerHour, PLANNER_LIMITS.fluidMlPerHour),
+    // Reken met neemt elk heel getal aan, niet alleen stappen van 5.
+    perHourG: optional(raw.perHourG, { ...PLANNER_LIMITS.perHourG, step: 1 }),
+  };
+}
+
+export function choiceFromRow(planner: Pick<EventFuelPlanner, "expectedMinutes">, row: EventFuelRow): PlannerChoice | null {
+  return plannerChoiceFrom(planner, {
+    preset: row.preset,
+    intensityFactor: row.intensity_factor,
+    minutes: row.minutes,
+    fluidMlPerHour: row.fluid_ml_per_hour,
+    perHourG: row.per_hour_g,
+  });
+}
+
+export function eventFuelRow(planner: EventFuelPlanner, choice: PlannerChoice): EventFuelRow {
+  const result = plannerResult(planner, choice);
+  return {
+    preset: choice.preset,
+    intensity_factor: choice.intensityFactor,
+    minutes: choice.minutes,
+    fluid_ml_per_hour: choice.fluidMlPerHour,
+    per_hour_g: choice.perHourG,
+    plan_g_per_hour: clamp(Math.round(result.perHourG), PLANNER_LIMITS.perHourG.min, PLANNER_LIMITS.perHourG.max),
+    plan_fluid_ml_per_hour: clamp(
+      Math.round(result.fluidMlPerHour),
+      PLANNER_LIMITS.fluidMlPerHour.min,
+      PLANNER_LIMITS.fluidMlPerHour.max,
+    ),
+  };
+}
+
+/** Wat een bewaarde keuze aan ridePlan meegeeft, buiten de eventpagina. */
+export type SavedRideFuel = { minutes: number; perHourG: number; fluidMlPerHour: number };
+
+export function savedRideFuel(row: Pick<EventFuelRow, "minutes" | "plan_g_per_hour" | "plan_fluid_ml_per_hour">): SavedRideFuel | null {
+  const minutes = Number(row.minutes);
+  const perHourG = Number(row.plan_g_per_hour);
+  const fluidMlPerHour = Number(row.plan_fluid_ml_per_hour);
+  if (![minutes, perHourG, fluidMlPerHour].every(Number.isFinite) || minutes <= 0) return null;
+  return { minutes, perHourG, fluidMlPerHour };
 }

@@ -40,6 +40,8 @@ const PROFILE_TABLES: string[] = [
   "nutrition_log_meals",
   "nutrition_log_ai_usage",
   "nutrition_sweat_tests",
+  // Eventvoeding (0329): je eigen keuzes per event.
+  "nutrition_event_fuel",
   "member_zwift_bikes",
   "member_protocols",
   "member_knowledge",

@@ -11,15 +11,16 @@ gaat stabiliteit voor nieuwe features.
    besluiten in §6 van [eventvoeding-plan.md](docs/eventvoeding-plan.md) zijn
    akkoord (eigenaar, 2026-11-13). Lokaal gecommit, niets gepusht: stap 1 (het
    model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
-   het racebriefje, `844876ce`) en stap 3 (soort koolhydraten op recepten,
-   `ae72d7cf`).
-   Open: migratie `0328_nutrition_recipe_carb_mix.sql` toepassen op productie
+   het racebriefje, `844876ce`), stap 3 (soort koolhydraten op recepten,
+   `ae72d7cf`) en stap 4 (keuzes per event bewaren).
+   Open: de privacyzin voor stap 4 (voorgelegd 2026-11-13, nog niet
+   geplaatst); migratie `0329_nutrition_event_fuel.sql` pas toepassen als die
+   zin op `/privacy` staat. Verder open: migratie `0328_nutrition_recipe_carb_mix.sql` toepassen op productie
    (alleen op verzoek; tot dan rekent de planner zonder tasgrens), de
    eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
    worktree), het toetsscript draaien op de echte events zodra de
-   Supabase-connector er weer is, daarna stap 4 (keuzes bewaren, migratie). Zie
-   de rondes "Gebouwd — Eventvoeding, stap 1, 2 en 3" en "Ontwerp —
-   Eventvoeding".
+   Supabase-connector er weer is, daarna stap 5 (duur met marge). Zie de rondes
+   "Gebouwd — Eventvoeding, stap 1 tot en met 4" en "Ontwerp — Eventvoeding".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
@@ -12315,9 +12316,67 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Eventvoeding, stap 4: keuzes per event bewaren
+
+**2026-11-13, lokaal gecommit, niet gepusht. Migratie
+`0329_nutrition_event_fuel.sql`, niet toegepast op productie.** Op verzoek van de
+eigenaar ("ga verder", na stap 3). Stap 4 van
+[eventvoeding-plan.md](docs/eventvoeding-plan.md), besluit 7.
+
+**Wat er is.** Tabel `nutrition_event_fuel`: per lid per event de stand van de
+knop, de IF, de duur, het vocht en Reken met (leeg: het advies volgen), plus het
+getal en het vocht waarmee het plan rekende (`plan_g_per_hour`,
+`plan_fluid_ml_per_hour`). RLS: alleen het lid zelf; weg met het event of het
+account; in de data-export. Op de eventpagina en in de racebriefing bewaart de
+planner je keuzes 0,8 seconde na de laatste wijziging
+(`_event-fuel-actions.ts`); "Terug naar het advies" wist de rij. Mislukt het,
+dan staat er "Niet bewaard". De server rekent het plan zelf opnieuw met dezelfde
+planner; de browser stuurt alleen de keuzes, binnen de grenzen van de schuifjes
+(`plannerChoiceFrom`). Bij het openen begint de planner bij je bewaarde keuzes.
+Het dagmenu en Boodschappen (`loadNutritionDayInputs` → `planDayMenu`) en de
+herinnering voor morgen (`reminders.ts`) nemen bij een event in het schema met
+bewaarde keuzes de duur, het getal en het vocht over.
+
+**Keuzes van ZWB in deze stap.** Automatisch bewaren in plaats van een knop: het
+scherm blijft kort en je keuze gaat niet verloren als je wegklikt. Het getal en
+het vocht staan erbij omdat de herinnering en Boodschappen de planner (FTP,
+pacingplan, race-IF) niet hebben; ze kunnen daardoor verouderen als je FTP of
+pacingplan daarna verandert, tot je de eventpagina weer aanpast. Zonder de
+tabel (0329 niet toegepast) leest alles niets en mislukt bewaren met "Niet
+bewaard".
+
+**Nu niet meer waar.** "Je keuzes gelden alleen voor wat je op dat moment
+bekijkt" (`/hulp#voeding`, stap 2): bijgewerkt. In de ronde van stap 2 staat bij
+"Nu niet meer waar" dat de herinnering en Boodschappen nog als voorheen rekenen:
+aangevuld.
+
+**Bewust niet in deze stap.** Het schema (`loadRidePlans`) en de dagkaart op
+Vandaag (`NutritionTodayCard`) lezen de bewaarde keuzes niet: ze bouwen hun
+invoer elders op, en het event zelf heeft het plan. Geen geschiedenis van
+keuzes: één rij per event, overschreven bij elke wijziging.
+
+**Privacy: nog niet geplaatst.** Voorgelegd aan de eigenaar (geen nieuwe versie,
+zoals afgesproken bij het verruimen van een bestaande alinea), voor de alinea
+over recepten en menukeuzes op `/privacy`: "Pas je bij een event je
+voedingsplan aan, dan bewaren we je keuzes per event: de zwaarte, de
+intensiteit, de duur, het vocht en de koolhydraten per uur, en het plan dat
+daaruit volgt. Alleen jij ziet ze; met "Terug naar het advies" wis je
+ze." 0329 pas toepassen als die zin er staat.
+
+**Getest.** De migratie tegen PGlite in `tests/unit/nutrition-migration.test.ts`
+(alleen het lid zelf, één rij per event, waarden buiten de schuifjes geweigerd,
+weg met het event). Drie tests in `tests/unit/nutrition-event-planner.test.ts`
+(grenzen, teruglezen, het dagmenu volgt de bewaarde keuze). Alle 297
+voedingstests en de hele suite (4515) groen, op `omnium-live.test.ts` na
+(`.env.local`). `tsc` en eslint schoon.
+
+**Niet geverifieerd.** Het bewaren zelf in de browser en tegen Supabase (geen
+`.env.local` in de worktree, 0329 niet toegepast), en de herinnering met een
+bewaarde keuze (alleen getypt, niet gedraaid).
+
 ### Kennisbank — bicarbonaat tijdens de rit (Norte 2026)
 
-**2026-11-13, lokaal gecommit, niet gepusht. Geen migratie.** De eigenaar kreeg
+**2026-11-13, commit `36dc94e4`, lokaal, niet gepusht. Geen migratie.** De eigenaar kreeg
 [Norte e.a. 2026](https://doi.org/10.1111/sms.70373) doorgestuurd en vroeg of
 het in de kennisbank zat; dat was niet zo (wel een ander Norte-artikel uit 2026,
 over koolhydraten en CP). Het verscheen eind september, voor het venster van de
@@ -12434,6 +12493,8 @@ een link naar koolhydraten laden" (`/hulp`, ritvoeding stap 2b) geldt op de
 eventpagina alleen nog zonder vermogen; met vermogen beslist de balans. Bijgewerkt
 op `/hulp`. Het schema, de dagkaart, de herinnering en Boodschappen rekenen
 nog zoals voorheen: het advies van het model staat alleen bij een event.
+*(Sinds stap 4 volgen het dagmenu, Boodschappen en de herinnering wel de
+bewaarde keuzes voor een event; het schema en de dagkaart op Vandaag niet.)*
 
 **Bewust niet in deze stap.** Keuzes bewaren (stap 4, migratie): de herinnering
 en Boodschappen tonen dus het plan van het advies, niet je eigen keuze. Geen

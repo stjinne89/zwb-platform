@@ -1500,6 +1500,7 @@ export default async function EventDetailPage({
           loadFrom={eventRidePlan.loadFrom}
           loadDay={eventRidePlan.loadDay}
           planner={eventRidePlan.planner}
+          saved={eventRidePlan.saved}
         />
       )}
 

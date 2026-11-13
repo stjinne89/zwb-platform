@@ -3,8 +3,14 @@ import type { Recipe } from "@/lib/nutrition/recipes";
 import { ridePlan } from "@/lib/nutrition/ride-plan";
 import type { NutritionFood } from "@/lib/nutrition/scale";
 import { presetFloor, presetFor } from "@/lib/nutrition/event-fuel";
+import { planDayMenu } from "@/lib/nutrition/plan";
 import {
+  choiceFromRow,
   eventFuelPlanner,
+  eventFuelRow,
+  plannerChoiceFrom,
+  sameChoice,
+  savedRideFuel,
   maxPlannerMinutes,
   plannerPlanInput,
   plannerResult,
@@ -244,5 +250,54 @@ describe("de grens van wat je meeneemt (0328)", () => {
   it("telt een recept zonder soort als onbekend: 60", () => {
     const p = bagPlanner(withMix(DRINK, null), withMix(CAKES, null));
     expect(plannerResult(p, { ...p.defaults, minutes: 240 }).capG).toBe(60);
+  });
+});
+
+describe("eigen keuzes bewaren (0329)", () => {
+  it("houdt wat de browser stuurt binnen de schuifjes", () => {
+    const p = planner();
+    expect(plannerChoiceFrom(p, { preset: "sprint", intensityFactor: 0.8, minutes: 90 })).toBeNull();
+    expect(plannerChoiceFrom(p, { preset: "race", intensityFactor: "x", minutes: 90 })).toBeNull();
+    expect(
+      plannerChoiceFrom(p, { preset: "race", intensityFactor: 1.4, minutes: 9999, fluidMlPerHour: 777, perHourG: 137 }),
+    ).toEqual({ preset: "race", intensityFactor: 1.05, minutes: 270, fluidMlPerHour: 800, perHourG: 137 });
+    expect(plannerChoiceFrom(p, { preset: "duur", intensityFactor: 0.651, minutes: 12, fluidMlPerHour: null, perHourG: "" })).toEqual({
+      preset: "duur",
+      intensityFactor: 0.65,
+      minutes: 20,
+      fluidMlPerHour: null,
+      perHourG: null,
+    });
+  });
+
+  it("bewaart naast de keuzes het getal en het vocht waarmee het plan rekent", () => {
+    const p = planner();
+    const choice = { ...p.defaults, minutes: 180, perHourG: null, fluidMlPerHour: 600 };
+    const row = eventFuelRow(p, choice);
+    const result = plannerResult(p, choice);
+    expect(row.plan_g_per_hour).toBe(result.adviceG);
+    expect(row.plan_fluid_ml_per_hour).toBe(600);
+    expect(row.per_hour_g).toBeNull();
+    // Teruglezen geeft dezelfde keuze.
+    expect(sameChoice(choiceFromRow(p, row)!, choice)).toBe(true);
+    expect(savedRideFuel(row)).toEqual({ minutes: 180, perHourG: result.adviceG, fluidMlPerHour: 600 });
+  });
+
+  it("laat Boodschappen en het dagmenu het bewaarde plan volgen", () => {
+    const day = "2026-11-20";
+    const base = {
+      recipes: [DRINK, CAKES],
+      energyFactor: 1,
+      prefs: new Map(),
+      diet: null,
+      choices: [],
+    };
+    const input = { today: day, weightKg: 75, plannedToday: [{ minutes: 120, intensity: "race" }], ridesToday: [], plannedTomorrow: [] };
+    const plain = planDayMenu({ ...base, input }).ride!;
+    const saved = planDayMenu({ ...base, input: { ...input, rideFuel: { minutes: 150, perHourG: 100, fluidMlPerHour: 900 } } }).ride!;
+    expect(plain.perHourG).toBe(60);
+    expect(saved.perHourG).toBe(100);
+    expect(saved.fluid).toEqual({ minMl: 900, maxMl: 900 });
+    expect(saved.totalG).toBeGreaterThan(plain.totalG);
   });
 });

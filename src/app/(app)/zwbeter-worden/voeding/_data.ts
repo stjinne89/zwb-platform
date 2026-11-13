@@ -27,7 +27,14 @@ import {
   type ClubEventRow,
 } from "@/lib/training/events";
 import { eventSetting } from "@/lib/nutrition/event-fuel";
-import { eventFuelPlanner, plannerPlanInput, type EventFuelPlanner } from "@/lib/nutrition/event-planner";
+import {
+  choiceFromRow,
+  eventFuelPlanner,
+  plannerPlanInput,
+  type EventFuelPlanner,
+  type PlannerChoice,
+} from "@/lib/nutrition/event-planner";
+import { eventFuelKey, loadEventFuelRows, loadSavedRideFuel } from "@/lib/nutrition/event-fuel-store";
 import { GUT_PROTOCOLS, gutTrainingOn, type GutRun, type GutSource } from "@/lib/nutrition/gut-training";
 import { currentSweatRate, type SweatSetting, type SweatTest } from "@/lib/nutrition/sweat";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
@@ -369,7 +376,7 @@ export async function loadNutritionDayInputs(
   const [workouts, proposals, rides, wellness, gut, sweatTests] = await Promise.all([
     viewer.supabase
       .from("training_workouts")
-      .select("scheduled_at, duration_minutes, intensity, status, plan_id")
+      .select("scheduled_at, duration_minutes, intensity, status, plan_id, event_id")
       .eq("profile_id", profileId)
       .is("superseded_at", null)
       .gte("scheduled_at", from)
@@ -394,7 +401,22 @@ export async function loadNutritionDayInputs(
     duration_minutes: number | null;
     intensity: string | null;
     status: string | null;
+    event_id?: string | null;
   }[];
+  // Een event in het schema met eigen keuzes (0329): het ritplan van die dag volgt die.
+  const eventRows = rows.filter((row) => row.event_id && row.status !== "skipped");
+  const savedFuel = await loadSavedRideFuel(
+    viewer.supabase,
+    [profileId],
+    eventRows.map((row) => row.event_id as string),
+  );
+  const rideFuelOn = (day: string) => {
+    const row = eventRows.find(
+      (item) =>
+        String(item.scheduled_at).slice(0, 10) === day && savedFuel.has(eventFuelKey(profileId, item.event_id as string)),
+    );
+    return row ? (savedFuel.get(eventFuelKey(profileId, row.event_id as string)) ?? null) : null;
+  };
 
   const rideRows = (rides.data ?? []) as { start_date: string; moving_time_seconds: number | null }[];
   return new Map(
@@ -408,6 +430,7 @@ export async function loadNutritionDayInputs(
         wellnessState: wellness?.state ?? null,
         gut: gutTrainingOn(gut, day),
         sweatMlPerHour,
+        rideFuel: rideFuelOn(day),
       },
     ]),
   );
@@ -575,6 +598,8 @@ export type EventRidePlan = {
   loadDay: string;
   /** Wat de knop en de schuifjes nodig hebben om in de browser opnieuw te rekenen; null zonder plan om aan te passen. */
   planner: EventFuelPlanner | null;
+  /** De eigen keuzes die het lid voor dit event bewaarde (0329); null: het advies. */
+  saved: PlannerChoice | null;
 };
 
 /** De laadfase van het protocol begint twee dagen voor de wedstrijd. */
@@ -596,7 +621,7 @@ export async function loadEventRidePlan(
   const day = new Date(event.start_at).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
   if (day < today) return null;
   const defaults = eventWorkoutDefaults(event);
-  const [pacing, { data: workout }, { data: power }] = await Promise.all([
+  const [pacing, { data: workout }, { data: power }, fuelRows] = await Promise.all([
     import("@/lib/pacing/session")
       .then(({ readOwnPlan }) => readOwnPlan(event.id, viewer.user.id))
       .catch(() => null),
@@ -610,6 +635,7 @@ export async function loadEventRidePlan(
       .limit(1)
       .maybeSingle(),
     viewer.supabase.from("profiles").select("ftp_watts").eq("id", viewer.user.id).maybeSingle(),
+    loadEventFuelRows(viewer.supabase, [viewer.user.id], [event.id]),
   ]);
   const { minutes, intensity, longRace } = eventRide({
     pacedSeconds: pacing?.summary?.totalSeconds ?? null,
@@ -638,8 +664,10 @@ export async function loadEventRidePlan(
         : null,
     ftpWatts: ftp > 0 ? ftp : null,
   });
-  const plan = ridePlan(plannerPlanInput(planner, planner.defaults));
+  const row = fuelRows.get(eventFuelKey(viewer.user.id, event.id));
+  const saved = row ? choiceFromRow(planner, row) : null;
+  const plan = ridePlan(plannerPlanInput(planner, saved ?? planner.defaults));
   if (!plan) return null;
   const loadDay = shiftDayKey(day, -LOADING_DAYS_BEFORE);
-  return { plan, loadFrom: longRace ? loadDay : null, loadDay, planner };
+  return { plan, loadFrom: longRace ? loadDay : null, loadDay, planner, saved };
 }

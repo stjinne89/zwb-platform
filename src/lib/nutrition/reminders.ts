@@ -23,6 +23,8 @@ import { PRODUCT_COLUMNS } from "./products";
 import { GUT_PROTOCOLS, gutTrainingOn, type GutRun } from "./gut-training";
 import { currentSweatRate } from "./sweat";
 import { ridePlan, ridePlanSummary, type RidePlan } from "./ride-plan";
+import { eventFuelKey, loadSavedRideFuel } from "./event-fuel-store";
+import type { SavedRideFuel } from "./event-planner";
 import { ageFromBirthDate, portionEnergyFactor } from "./targets";
 import { memberHiddenPlanIds } from "@/lib/training/member-hidden-plans";
 
@@ -79,6 +81,7 @@ type Workout = {
   intensity: string | null;
   status: string | null;
   plan_id: string | null;
+  event_id?: string | null;
 };
 
 /** Met de barcodeproducten als ingrediënt (0276); zonder die migratie zonder. */
@@ -179,6 +182,8 @@ export function tomorrowRidePlan(
   tomorrow: string,
   today: string,
   intensity: string | null = null,
+  /** Eigen keuzes voor het event van morgen (0329): duur, doel en vocht zoals op de eventpagina. */
+  fuel: SavedRideFuel | null = null,
 ): RidePlan | null {
   const recipes = ctx.recipes
     .filter((recipe) => recipe.is_standard || recipe.owner_id === profileId || recipe.visibility === "leden")
@@ -215,7 +220,9 @@ export function tomorrowRidePlan(
   const choiceId = ctx.choices.find((row) => row.profile_id === profileId)?.recipe_id;
   const chosen = choiceId ? recipes.find((recipe) => recipe.id === choiceId) : undefined;
   return ridePlan({
-    minutes,
+    minutes: fuel?.minutes ?? minutes,
+    perHourG: fuel?.perHourG ?? null,
+    fluidMlPerHour: fuel?.fluidMlPerHour ?? null,
     intensity,
     gut,
     sweatMlPerHour: currentSweatRate(ctx.sweatTests.filter((row) => row.profileId === profileId)),
@@ -246,7 +253,7 @@ export async function processNutritionReminders(admin: SupabaseClient, now: Date
   const [workouts, drafts, rides, meals, sends] = await Promise.all([
     admin
       .from("training_workouts")
-      .select("profile_id, scheduled_at, duration_minutes, intensity, status, plan_id")
+      .select("profile_id, scheduled_at, duration_minutes, intensity, status, plan_id, event_id")
       .in("profile_id", profileIds)
       .is("superseded_at", null)
       .gte("scheduled_at", from)
@@ -293,9 +300,16 @@ export async function processNutritionReminders(admin: SupabaseClient, now: Date
     let tomorrowRide: RidePlan | null = null;
     if (isKeyDay(tomorrowType) && tomorrowMinutes >= 60 && !alreadySent.has(`${profileId}:morgen_zwaar`)) {
       rideContext ??= loadRideContext(admin, profileIds, tomorrow);
+      // Een event morgen met eigen keuzes (0329): de herinnering toont dat plan.
+      const eventIds = own
+        .filter((row) => row.event_id && row.status !== "skipped" && String(row.scheduled_at).slice(0, 10) === tomorrow)
+        .map((row) => row.event_id as string);
+      const fuel = await loadSavedRideFuel(admin, [profileId], eventIds)
+        .then((saved) => eventIds.map((id) => saved.get(eventFuelKey(profileId, id))).find(Boolean) ?? null)
+        .catch(() => null);
       // Een fout in de voedingsdata mag de herinnering zelf niet tegenhouden.
       tomorrowRide = await rideContext
-        .then((ctx) => tomorrowRidePlan(ctx, profileId, tomorrowMinutes, tomorrow, today, tomorrowIntensity))
+        .then((ctx) => tomorrowRidePlan(ctx, profileId, tomorrowMinutes, tomorrow, today, tomorrowIntensity, fuel))
         .catch(() => null);
     }
     const reminders = remindersFor({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useId, useMemo, useState, type ReactNode } from "react";
+import { useDeferredValue, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { FUEL_PRESETS, FUEL_PRESET_LABELS, type FuelPreset } from "@/lib/nutrition/event-fuel";
 import {
   PLANNER_LIMITS,
@@ -8,30 +8,26 @@ import {
   plannerPlanInput,
   plannerResult,
   presetIntensity,
+  sameChoice,
   type EventFuelPlanner as Planner,
   type PlannerChoice,
 } from "@/lib/nutrition/event-planner";
 import { formatRideMinute, ridePlan, type RidePlan } from "@/lib/nutrition/ride-plan";
 import { cn } from "@/lib/utils";
+import { saveEventFuel } from "../voeding/_event-fuel-actions";
 import { bidonGroupClass, bidonOptionClass } from "./bidon-options";
 
 // De knop, de schuifjes en "Reken met" boven Klaarzetten bij een event (stap 2
 // van docs/eventvoeding-plan.md). Alles rekent in de browser opnieuw
-// (event-planner.ts); de keuzes gelden alleen voor deze weergave. Uitleg staat
-// op /hulp#voeding, niet hier.
+// (event-planner.ts). De keuzes bewaart de app per lid per event (stap 4, 0329),
+// even na de laatste wijziging; terug naar het advies wist ze. Uitleg staat op
+// /hulp#voeding, niet hier.
 
 const decimal = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const liters = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
 
-function sameChoice(a: PlannerChoice, b: PlannerChoice): boolean {
-  return (
-    a.preset === b.preset &&
-    a.intensityFactor === b.intensityFactor &&
-    a.minutes === b.minutes &&
-    a.fluidMlPerHour === b.fluidMlPerHour &&
-    a.perHourG === b.perHourG
-  );
-}
+/** Zo lang na de laatste wijziging bewaart de app je keuzes. */
+const SAVE_DELAY_MS = 800;
 
 function Slider({
   label,
@@ -71,12 +67,28 @@ function Slider({
   );
 }
 
-export function useEventFuelPlan(planner: Planner) {
-  const [choice, setChoice] = useState<PlannerChoice>(planner.defaults);
+export function useEventFuelPlan(planner: Planner, eventId: string, saved: PlannerChoice | null = null) {
+  const [choice, setChoice] = useState<PlannerChoice>(saved ?? planner.defaults);
   const deferred = useDeferredValue(choice);
   const result = useMemo(() => plannerResult(planner, deferred), [planner, deferred]);
   const plan = useMemo<RidePlan | null>(() => ridePlan(plannerPlanInput(planner, deferred)), [planner, deferred]);
-  return { choice, setChoice, result, plan };
+
+  // Bewaren na de laatste wijziging; alleen het antwoord op de laatste poging telt.
+  const [saveFailed, setSaveFailed] = useState(false);
+  const loaded = useRef(choice);
+  const attempt = useRef(0);
+  useEffect(() => {
+    if (choice === loaded.current) return;
+    const timer = setTimeout(() => {
+      const current = ++attempt.current;
+      saveEventFuel(eventId, choice)
+        .then((result) => current === attempt.current && setSaveFailed(!result.ok))
+        .catch(() => current === attempt.current && setSaveFailed(true));
+    }, SAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [eventId, choice]);
+
+  return { choice, setChoice, result, plan, saveFailed };
 }
 
 export function EventFuelControls({
@@ -84,11 +96,13 @@ export function EventFuelControls({
   choice,
   setChoice,
   result,
+  saveFailed = false,
 }: {
   planner: Planner;
   choice: PlannerChoice;
   setChoice: (update: (current: PlannerChoice) => PlannerChoice) => void;
   result: ReturnType<typeof plannerResult>;
+  saveFailed?: boolean;
 }) {
   const presetLabel = useId();
   const perHourId = useId();
@@ -194,6 +208,7 @@ export function EventFuelControls({
           ) : null}
         </p>
       ) : null}
+      {saveFailed ? <p className="text-sm text-amber-700 dark:text-amber-400">Niet bewaard</p> : null}
       {!sameChoice(choice, planner.defaults) ? (
         <button
           type="button"

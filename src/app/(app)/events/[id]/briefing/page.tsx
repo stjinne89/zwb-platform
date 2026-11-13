@@ -346,6 +346,7 @@ export default async function RaceBriefingPage({ params }: PageProps) {
           loadFrom={eventRidePlan.loadFrom}
           loadDay={eventRidePlan.loadDay}
           planner={eventRidePlan.planner}
+          saved={eventRidePlan.saved}
         />
       )}
 

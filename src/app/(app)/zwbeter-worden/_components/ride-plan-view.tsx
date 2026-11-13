@@ -19,7 +19,7 @@ import { scoopsLabel } from "@/lib/nutrition/scoops";
 import { LogActionButton } from "../voeding/_components/log-controls";
 import { BidonChoice, BidonIcon } from "./bidon-icon";
 import { EventFuelControls, useEventFuelPlan } from "./event-fuel-planner";
-import type { EventFuelPlanner } from "@/lib/nutrition/event-planner";
+import type { EventFuelPlanner, PlannerChoice } from "@/lib/nutrition/event-planner";
 import { bidonGroupClass, bidonLabel, bidonOptionClass } from "./bidon-options";
 
 // Het ritplan bij een training: wat je klaarzet en wanneer je het neemt
@@ -111,12 +111,14 @@ export function EventRidePlan({
   loadFrom,
   loadDay: loadDayKey,
   planner,
+  saved = null,
 }: {
   eventId: string;
   plan: RidePlan;
   loadFrom: string | null;
   loadDay?: string;
   planner?: EventFuelPlanner | null;
+  saved?: PlannerChoice | null;
 }) {
   if (!planner) {
     return (
@@ -126,7 +128,16 @@ export function EventRidePlan({
       </div>
     );
   }
-  return <PlannedEventRide eventId={eventId} initial={plan} loadFrom={loadFrom} loadDay={loadDayKey ?? loadFrom} planner={planner} />;
+  return (
+    <PlannedEventRide
+      eventId={eventId}
+      initial={plan}
+      loadFrom={loadFrom}
+      loadDay={loadDayKey ?? loadFrom}
+      planner={planner}
+      saved={saved}
+    />
+  );
 }
 
 function PlannedEventRide({
@@ -135,20 +146,24 @@ function PlannedEventRide({
   loadFrom,
   loadDay: loadDayKey,
   planner,
+  saved,
 }: {
   eventId: string;
   initial: RidePlan;
   loadFrom: string | null;
   loadDay: string | null;
   planner: EventFuelPlanner;
+  saved: PlannerChoice | null;
 }) {
-  const { choice, setChoice, result, plan } = useEventFuelPlan(planner);
+  const { choice, setChoice, result, plan, saveFailed } = useEventFuelPlan(planner, eventId, saved);
   const loading = result.advice ? result.advice.loadingHelps : loadFrom != null;
   return (
     <div className="space-y-2">
       <RidePlanView
         plan={plan ?? initial}
-        controls={<EventFuelControls planner={planner} choice={choice} setChoice={setChoice} result={result} />}
+        controls={
+          <EventFuelControls planner={planner} choice={choice} setChoice={setChoice} result={result} saveFailed={saveFailed} />
+        }
       />
       {loading && loadDayKey ? <LoadingLink eventId={eventId} day={loadDayKey} /> : null}
     </div>
