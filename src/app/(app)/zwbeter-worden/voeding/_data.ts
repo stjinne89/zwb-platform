@@ -15,7 +15,8 @@ import {
   type RecipeIngredientDbRow,
 } from "@/lib/nutrition/recipes";
 import type { NutritionDayInput } from "@/lib/nutrition/tips";
-import type { LoggedMeal } from "@/lib/nutrition/log";
+import { dayTotals, type LoggedMeal } from "@/lib/nutrition/log";
+import { eventFuelReview, pickRide, rideIntensity, type EventFuelReview, type ReviewRide } from "@/lib/nutrition/event-review";
 import { PRODUCT_COLUMNS, productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import { RECIPE_PREFS, rankRecipes, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { classifyFuelDay } from "@/lib/nutrition/day-type";
@@ -34,6 +35,7 @@ import {
   choiceFromRow,
   eventFuelPlanner,
   plannerPlanInput,
+  plannerResult,
   type EventFuelPlanner,
   type PlannerChoice,
 } from "@/lib/nutrition/event-planner";
@@ -624,7 +626,7 @@ async function eventTemperature(
 ): Promise<number | null> {
   if (eventSetting(event.type) === "binnen") return null;
   const season = seasonTemperature(day);
-  if (day > shiftDayKey(today, FORECAST_DAYS)) return season;
+  if (day < today || day > shiftDayKey(today, FORECAST_DAYS)) return season;
   const { data } = await viewer.supabase.from("events").select("start_lat, start_lon").eq("id", event.id).maybeSingle();
   const lat = Number((data as { start_lat?: number | null } | null)?.start_lat);
   const lon = Number((data as { start_lon?: number | null } | null)?.start_lon);
@@ -690,8 +692,17 @@ export async function loadEventRidePlan(
   event: ClubEventRow,
   today: string,
 ): Promise<EventRidePlan | null> {
-  const day = new Date(event.start_at).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
-  if (day < today) return null;
+  if (eventDay(event) < today) return null;
+  return buildEventRidePlan(viewer, event, today);
+}
+
+function eventDay(event: Pick<ClubEventRow, "start_at">): string {
+  return new Date(event.start_at).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
+}
+
+/** Het ritplan voor een event, ook als het voorbij is (voor Na afloop). */
+async function buildEventRidePlan(viewer: Viewer, event: ClubEventRow, today: string): Promise<EventRidePlan | null> {
+  const day = eventDay(event);
   const racePace = await racePaceFor(
     viewer.supabase as unknown as Parameters<typeof racePaceFor>[0],
     viewer.user.id,
@@ -761,4 +772,78 @@ export async function loadEventRidePlan(
   if (!plan) return null;
   const loadDay = shiftDayKey(day, -LOADING_DAYS_BEFORE);
   return { plan, loadFrom: longRace ? loadDay : null, loadDay, planner, saved };
+}
+
+/** Ritten die zo ver voor of na de start beginnen, tellen als de rit van het event (Strava). */
+const REVIEW_WINDOW_MS = 3 * 60 * 60_000;
+
+/**
+ * Na het event: het plan naast de gereden rit en wat je vastlegde (stap 8 van
+ * docs/eventvoeding-plan.md, besluit 10). De rit komt uit intervals.icu (duur,
+ * kJ, IF), anders uit Strava; het eten uit "Tijdens de rit" in het eetdagboek.
+ * Null voor de start, zonder plan of zonder rit. Niets wordt bewaard.
+ */
+export async function loadEventFuelReview(
+  viewer: Viewer,
+  event: ClubEventRow,
+  today: string,
+  now = new Date(),
+): Promise<EventFuelReview | null> {
+  const start = new Date(event.start_at).getTime();
+  if (!Number.isFinite(start) || now.getTime() < start) return null;
+  const day = eventDay(event);
+  const [ride, intervals, strava, meals] = await Promise.all([
+    buildEventRidePlan(viewer, event, today).catch(() => null),
+    viewer.supabase
+      .from("intervals_activities")
+      .select("moving_time_seconds, kilojoules, normalized_watts, ftp_watts, intensity")
+      .eq("profile_id", viewer.user.id)
+      .eq("start_date_local", day),
+    viewer.supabase
+      .from("strava_activities")
+      .select("moving_time_seconds, kilojoules:raw->kilojoules")
+      .eq("profile_id", viewer.user.id)
+      .gte("start_date", new Date(start - REVIEW_WINDOW_MS).toISOString())
+      .lte("start_date", new Date(start + REVIEW_WINDOW_MS).toISOString()),
+    loadLoggedMeals(viewer, day, day).catch(() => [] as LoggedMeal[]),
+  ]);
+  if (!ride?.planner) return null;
+  const { planner } = ride;
+  const choice = ride.saved ?? planner.defaults;
+  const result = plannerResult(planner, choice);
+
+  type IntervalsRow = {
+    moving_time_seconds: number | null;
+    kilojoules: number | string | null;
+    normalized_watts: number | string | null;
+    ftp_watts: number | string | null;
+    intensity: number | string | null;
+  };
+  type StravaRow = { moving_time_seconds: number | null; kilojoules: number | string | null };
+  const kjOf = (value: number | string | null) => (Number(value ?? 0) > 0 ? Math.round(Number(value)) : null);
+  const fromIntervals: ReviewRide[] = ((intervals.error ? [] : (intervals.data ?? [])) as IntervalsRow[]).map((row) => ({
+    minutes: Math.round(Number(row.moving_time_seconds ?? 0) / 60),
+    kj: kjOf(row.kilojoules),
+    intensityFactor: rideIntensity(row),
+  }));
+  const fromStrava: ReviewRide[] = ((strava.error ? [] : (strava.data ?? [])) as StravaRow[]).map((row) => ({
+    minutes: Math.round(Number(row.moving_time_seconds ?? 0) / 60),
+    kj: kjOf(row.kilojoules),
+    intensityFactor: null,
+  }));
+  const actual = pickRide(fromIntervals, choice.minutes) ?? pickRide(fromStrava, choice.minutes);
+  if (!actual) return null;
+
+  const during = meals.filter((meal) => meal.moment === "tijdens_rit");
+  const eaten = during.length > 0 ? dayTotals(during) : null;
+  return eventFuelReview({
+    plan: {
+      minutes: choice.minutes,
+      perHourG: result.perHourG,
+      burnG: result.balance?.burnG ?? null,
+      intensityFactor: choice.intensityFactor,
+    },
+    ride: actual,
+    eaten: eaten ? { carbsG: eaten.carbsG, incomplete: eaten.incomplete } : null,
+  });
 }

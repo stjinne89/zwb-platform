@@ -72,7 +72,13 @@ import { WindSummary } from "./_components/wind-summary";
 import { RouteWeather } from "./_components/route-weather";
 import { RsvpPicker } from "./_components/rsvp-buttons";
 import { EventRidePlan } from "../../zwbeter-worden/_components/ride-plan-view";
-import { loadEventRidePlan, requireViewer, todayKeyAmsterdam } from "../../zwbeter-worden/voeding/_data";
+import {
+  loadEventFuelReview,
+  loadEventRidePlan,
+  requireViewer,
+  todayKeyAmsterdam,
+} from "../../zwbeter-worden/voeding/_data";
+import { EventFuelReviewCard } from "../../zwbeter-worden/_components/event-fuel-review";
 import { TeamAvailabilityButtons } from "../../teams/[id]/_components/team-availability-buttons";
 import { ShareLiveButton } from "./_components/share-live-button";
 import { RefreshResultsButton } from "./_components/refresh-results-button";
@@ -272,6 +278,14 @@ export default async function EventDetailPage({
         .then((viewer) => loadEventRidePlan(viewer, event, todayKeyAmsterdam()))
         .catch(() => null)
     : Promise.resolve(null);
+  // Na de start: het plan naast je rit en wat je at (eventvoeding, stap 8).
+  // Voor de start stopt de loader meteen, zonder query.
+  const fuelReviewPromise =
+    user
+      ? requireViewer()
+          .then((viewer) => loadEventFuelReview(viewer, event, todayKeyAmsterdam()))
+          .catch(() => null)
+      : Promise.resolve(null);
 
   // Hoofdevent en teamevents (migr. 0178): een teamevent toont de gedeelde
   // omschrijving van zijn hoofdevent, een hoofdevent de teams eronder.
@@ -1362,7 +1376,7 @@ export default async function EventDetailPage({
       .reverse();
   }
 
-  const eventRidePlan = await ridePlanPromise;
+  const [eventRidePlan, fuelReview] = await Promise.all([ridePlanPromise, fuelReviewPromise]);
 
   return (
     <div className="space-y-6">
@@ -1493,7 +1507,9 @@ export default async function EventDetailPage({
         links={raceLinks}
       />
 
-      {eventRidePlan && (
+      {fuelReview ? (
+        <EventFuelReviewCard review={fuelReview} />
+      ) : eventRidePlan && (
         <EventRidePlan
           eventId={event.id}
           plan={eventRidePlan.plan}

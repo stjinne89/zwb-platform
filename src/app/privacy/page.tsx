@@ -280,7 +280,11 @@ export default function PrivacyPage() {
             voedingsplan aan, dan bewaren we je keuzes per event: de zwaarte, de
             intensiteit, de duur, het vocht en de koolhydraten per uur, en het
             plan dat daaruit volgt. Alleen jij ziet ze; met &quot;Terug naar het
-            advies&quot; wis je ze.
+            advies&quot; wis je ze. Na het event zetten we op de eventpagina dat
+            plan naast je gereden duur en kJ uit intervals.icu of Strava en, als
+            je Naleving aan hebt, wat je bij Tijdens de rit vastlegde. Dat
+            rekenen we uit bij het tonen en bewaren we niet apart; alleen jij
+            ziet het.
           </li>
           <li>
             <strong>Gezin:</strong> vul je op je profiel in wie er mee-eet

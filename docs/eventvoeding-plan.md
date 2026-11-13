@@ -30,6 +30,9 @@ legt ZWB het plan naast wat je echt reed en at.
 
 ## 1. Hoe het nu rekent
 
+*Dit is de stand van vóór het plan (2026-11-13). Stap 1 tot en met 8 zijn
+gebouwd; wat er nu is, staat bij elke stap in §7 en in `PLAN.md`.*
+
 `loadEventRidePlan` (`voeding/_data.ts`) → `eventRide` → `ridePlan`
 (`src/lib/nutrition/ride-plan.ts`):
 
@@ -328,6 +331,12 @@ Elke stap een eigen ronde met commit, `PLAN.md`-blok en waar nodig `/hulp`.
    zonder pacingplan, want de IF staat altijd op het schuifje. Geen migratie.*
 8. **Na het event.** Plan, gereden en gegeten naast elkaar; de standaardwaarden
    van stap 5 komen hieruit. Eerst de privacyzin voorleggen (besluit 10).
+
+   *Gebouwd op 2026-11-13, zie `PLAN.md`: `src/lib/nutrition/event-review.ts`,
+   blok "Na afloop" op de eventpagina. De privacyzin is voorgelegd en akkoord.
+   De standaardduur uit je eigen events zat al in stap 5 (`durationRatios`);
+   die rekent nog met Strava, niet met deze vergelijking. Geen migratie, niets
+   bewaard.*
 
 Migraties zijn hier niet lokaal te testen (geen Docker of Supabase-config);
 alleen tegen PGlite, en toepassen op productie alleen op verzoek.

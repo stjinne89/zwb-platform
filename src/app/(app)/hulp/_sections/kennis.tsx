@@ -412,7 +412,13 @@ export function KennisHelp() {
                   laatste halfuur; wat je zelf kiest, blijft. Je keuzes bewaart{" "}
                   <ClubShortName /> per event, ook in de racebriefing; het
                   dagmenu, Boodschappen en de herinnering de dag ervoor rekenen
-                  er dan mee. &quot;Terug naar het advies&quot; wist ze.
+                  er dan mee. &quot;Terug naar het advies&quot; wist ze. Na het
+                  event staat er Na afloop: je plan naast de rit van die dag die
+                  in duur het dichtst bij het plan ligt, uit intervals.icu of
+                  Strava. Het verbruik rekent met de kJ en IF van die rit; zonder
+                  IF met die van het plan. Met Naleving aan staat erbij wat je bij
+                  Tijdens de rit vastlegde; ≥ betekent dat er van een product
+                  geen koolhydraten bekend zijn.
                 </span>
               </li>
               <li className="flex gap-2">

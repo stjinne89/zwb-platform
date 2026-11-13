@@ -13,17 +13,17 @@ gaat stabiliteit voor nieuwe features.
    model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
    het racebriefje, `844876ce`), stap 3 (soort koolhydraten op recepten,
    `ae72d7cf`), stap 4 (keuzes per event bewaren, `3b06249d`) en stap 5 (duur
-   met marge, `e0f00852`), stap 6 (vocht naar het weer, zout, `ae188fd8`) en
-   stap 7 (eetmomenten uit het pacingplan, `22552a90`).
+   met marge, `e0f00852`), stap 6 (vocht naar het weer, zout, `ae188fd8`),
+   stap 7 (eetmomenten uit het pacingplan, `22552a90`) en stap 8 (na het event:
+   plan naast rit en eten). Daarmee zijn alle acht stappen gebouwd.
    De privacyzin voor stap 4 staat op `/privacy` (akkoord eigenaar,
    2026-11-13). Open: migraties `0328_nutrition_recipe_carb_mix.sql` en
    `0329_nutrition_event_fuel.sql` toepassen op productie (alleen op verzoek).
    Tot 0328 er is rekent de planner zonder tasgrens, tot 0329 er is lukt
    bewaren niet. Verder open: de eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
    worktree), het toetsscript draaien op de echte events zodra de
-   Supabase-connector er weer is, daarna stap 8 (na het event; eerst de
-   privacyzin voorleggen, besluit 10). Zie de rondes "Gebouwd — Eventvoeding,
-   stap 1 tot en met 7" en "Ontwerp — Eventvoeding".
+   Supabase-connector er weer is, en pushen (alleen op verzoek). Zie de rondes
+   "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
@@ -12318,6 +12318,62 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Eventvoeding, stap 8: na het event
+
+**2026-11-13, lokaal gecommit, niet gepusht. Geen migratie.** Op verzoek van de
+eigenaar ("Kom maar door" na stap 7, daarna "Ja" op het voorstel en de
+privacyzin). Stap 8 van [eventvoeding-plan.md](docs/eventvoeding-plan.md),
+besluit 10.
+
+**Wat er is.** Na de start van een event staat op de eventpagina, op de plek
+van de planner, het blok "Na afloop" zodra er een rit is: Duur, Verbruik,
+Gegeten en Per uur, met Plan en Echt naast elkaar
+(`src/app/(app)/zwbeter-worden/_components/event-fuel-review.tsx`). Het plan
+is je bewaarde keuze voor het event, anders het advies zoals de planner het nu
+uitrekent. De rit is de rit van die dag die in duur het dichtst bij het plan
+ligt (vanaf een kwartier): eerst uit `intervals_activities` (duur, kJ, IF als
+NP/FTP, anders `icu_intensity`), anders uit `strava_activities` die binnen drie
+uur van de start begint (duur, kJ uit `raw`). Het verbruik rekent met hetzelfde
+model als het advies, uit het gemiddelde vermogen over de rijtijd; zonder IF van
+de rit met die van het plan, zonder kJ geen verbruik. Gegeten is de som van
+"Tijdens de rit" in het eetdagboek die dag, alleen als daar iets staat; "≥" als
+een product geen koolhydraatwaarde heeft. Niets wordt bewaard
+(`loadEventFuelReview` in `voeding/_data.ts`, rekenwerk in
+`src/lib/nutrition/event-review.ts`). Tijdens de race, zonder rit, staat de
+planner er nog.
+
+**Privacy.** De zin op `/privacy` (alinea recepten en menukeuzes), voorgelegd
+en akkoord op 2026-11-13, geen nieuwe versie: "Na het event zetten we op de
+eventpagina dat plan naast je gereden duur en kJ uit intervals.icu of Strava
+en, als je Naleving aan hebt, wat je bij Tijdens de rit vastlegde. Dat rekenen
+we uit bij het tonen en bewaren we niet apart; alleen jij ziet het."
+
+**Keuzes van ZWB in deze stap.** De dichtstbijzijnde duur als koppeling, zoals
+in stap 5; drie uur rond de start voor Strava, omdat Strava een tijdstip heeft
+en intervals.icu hier alleen een datum. Geen bewaarde momentopname van het
+plan: als je FTP of pacingplan na het event verandert, verschuift het plan
+zonder bewaarde keuze mee. Vocht staat er niet bij: het eetdagboek legt water
+niet vast.
+
+**Nu niet meer waar.** "Na afloop: niets" in de tabel van §1 van het plan: die
+tabel is de stand van vóór het plan, en staat nu zo gemarkeerd.
+
+**Bewust niet in deze stap.** De standaardduur van stap 5 leest deze
+vergelijking niet: die rekent al met je eigen gereden / gepland uit Strava, en
+een tweede bron zou alleen de koppeling verdubbelen. Geen trainer-inzage (het
+eetdagboek deelt dat al apart, met eigen toestemming), niets in de racebriefing
+of het weekoverzicht, geen oordeel of kleur: alleen de getallen.
+
+**Getest.** `tests/unit/nutrition-event-review.test.ts` (5 tests: de rit
+kiezen, de IF, het verbruik, plan naast rit en eten, zonder kJ of eetdagboek).
+De hele suite (4541) groen, op `omnium-live.test.ts` na (`.env.local`). `tsc` en
+eslint schoon.
+
+**Niet geverifieerd.** De queries (`intervals_activities`, `strava_activities`
+met `raw->kilojoules`) en het blok in de browser: niet tegen Supabase gedraaid
+(geen `.env.local`). Of `icu_intensity` als fractie of percentage binnenkomt, is
+niet nagekeken; NP/FTP gaat voor, en beide vormen worden gelezen.
 
 ### Gebouwd — Eventvoeding, stap 7: eetmomenten uit het pacingplan
 
