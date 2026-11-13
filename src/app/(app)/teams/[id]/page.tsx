@@ -19,6 +19,7 @@ import {
 } from "../_components/team-roster-table";
 import { AdminPanel, DeleteResultButton } from "./_components/admin-panel";
 import { GraveyardToggle } from "./_components/graveyard-toggle";
+import { DeleteTeamButton } from "./_components/delete-team-button";
 import { TeamAvailabilityButtons } from "./_components/team-availability-buttons";
 import { loadWtrlSummaries } from "@/lib/teams/wtrl-summary";
 import {
@@ -558,6 +559,7 @@ export default async function TeamDetailPage({
             {canManageRoster && (
               <GraveyardToggle teamId={team.id} isGraveyard={team.is_graveyard ?? false} />
             )}
+            {canManageRoster && <DeleteTeamButton teamId={team.id} teamName={team.name} />}
           </div>
         </div>
         {scopeTeams.length > 1 && (

@@ -174,6 +174,68 @@ export async function toggleGraveyard(teamId: string, isGraveyard: boolean) {
 }
 
 /**
+ * Een team helemaal weghalen. Alleen een leeg team: geen subteams, leden, races
+ * of uitslagen. Een team met geschiedenis archiveer je. Was dit het laatste
+ * subteam, dan rijdt het hoofdteam weer zelf (trigger, migr. 0327).
+ */
+export async function deleteTeam(teamId: string) {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("teams.manage_roster")) {
+    return { ok: false as const, error: "Geen recht om teams te beheren." };
+  }
+
+  const admin = createAdminClient();
+  const { data: team, error: teamError } = await admin
+    .from("teams")
+    .select("id, parent_team_id")
+    .eq("id", teamId)
+    .maybeSingle();
+  if (teamError) return { ok: false as const, error: teamError.message };
+  if (!team) return { ok: false as const, error: "Team niet gevonden." };
+
+  const count = async (table: string, column: string) => {
+    const { count: rows, error } = await admin
+      .from(table)
+      .select(column, { count: "exact", head: true })
+      .eq(column, teamId);
+    if (error) throw new Error(error.message);
+    return rows ?? 0;
+  };
+  try {
+    const [subteams, members, races, results, riderResults, roster] = await Promise.all([
+      count("teams", "parent_team_id"),
+      count("team_members", "team_id"),
+      count("events", "team_id"),
+      count("team_results", "team_id"),
+      count("zrl_rider_results", "team_id"),
+      count("roster_entries", "team_id"),
+    ]);
+    if (subteams > 0) {
+      return { ok: false as const, error: "Verwijder eerst de subteams." };
+    }
+    if (members + races + results + riderResults + roster > 0) {
+      return {
+        ok: false as const,
+        error: "Dit team heeft leden, races of uitslagen. Archiveer het.",
+      };
+    }
+  } catch (error) {
+    return { ok: false as const, error: (error as Error).message };
+  }
+
+  const { error } = await admin.from("teams").delete().eq("id", teamId);
+  if (error) return { ok: false as const, error: error.message };
+
+  if (team.parent_team_id) revalidateTeam(team.parent_team_id);
+  revalidatePath("/teams");
+  revalidatePath("/kalender");
+  revalidatePath("/dashboard");
+  return { ok: true as const, redirectTo: team.parent_team_id ? `/teams/${team.parent_team_id}` : "/teams" };
+}
+
+/**
  * De chatkanalen van een team. Leeg opslaan haalt een link weer weg.
  *
  * Discord staat als kolom op teams, WhatsApp blijft in whatsapp_groups: die

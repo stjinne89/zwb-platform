@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): lokaal
+   gecommit, niet gepusht.** Migratie `0327_zrl_umbrella_restore.sql`. Open:
+   toepassen op productie, A1 en A2 verwijderen, nagaan dat ZRL A zijn races
+   terug heeft. Zie de ronde "Teams verwijderen, en ZRL A weer een gewoon team".
+
 0. **ZWBriljant: durability als vermoeid vermogen (2026-11-13): gepusht naar
    `main` (`30ca9d7b`).** Geen migratie. Nieuwe schaalversie
    `2026-11-13-vermoeid`. Open: na de deploy de terugblik-job laten lopen en
@@ -12277,6 +12282,56 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Teams verwijderen, en ZRL A weer een gewoon team
+
+**2026-11-13, de commit "Teams verwijderen, hoofdteam rijdt weer zelf".**
+Migratie `0327_zrl_umbrella_restore.sql`.
+
+- **De vraag.** Bart maakte op 2026-11-10 de subteams ZRL A1 en A2 aan. Er komt
+  toch maar één A-team. Hij archiveerde ze, maar ZRL A werkte niet meer zoals
+  eerst. Verwijderen kon nergens.
+- **Wat er gebeurd was (productie, alleen lezend bekeken).** Het eerste subteam
+  liet `teams_become_umbrella` (0179, 0323) afgaan: ZRL A werd paraplu en zijn
+  12 eigen races (R1 en R2) werden verwijderd. 44 opgaven, 30 opstellingen
+  en 2 TTT-plannen verhuisden naar de hoofdevents van de raceweken. Archiveren
+  hielp niet: de teampagina en de import tellen een gearchiveerd subteam
+  gewoon mee. A1 en A2 zelf waren leeg: geen leden, races, uitslagen of andere
+  koppelingen.
+- **Wat er is.**
+  - `restore_zrl_team_races(team)`: het omgekeerde van
+    `convert_zrl_umbrella_races`, voor één team zonder subteams. Een eigen
+    race onder elk hoofdevent met teamraces, voor de weken waarin het team iets
+    had staan (beschikbaarheid, opstelling, TTT-plan) en voor alle komende
+    weken. Titel zoals de import, met het formaatlabel ("… · W1 · ZRL A — Race
+    of Truth"), starttijd van het hoofdevent. Daarna gaan beschikbaarheid,
+    opstellingen en TTT-plannen terug naar die race. Nogmaals draaien maakt
+    geen dubbele races.
+  - Trigger `teams_leave_umbrella` (na delete of wijziging van
+    `parent_team_id`): is het oude hoofdteam zijn laatste subteam kwijt, dan
+    draait de herstelfunctie.
+  - `deleteTeam` en de knop "Verwijderen" op de teampagina, naast archiveren,
+    voor wie `teams.manage_roster` heeft. Alleen een leeg team: geen subteams,
+    leden, races, uitslagen (`team_results`, `zrl_rider_results`) of
+    rosternamen. Anders: archiveren.
+  - `tests/unit/zrl-umbrella-restore.test.ts` (PGlite, nagebouwde tabellen):
+    subteam aanmaken, één weghalen, het laatste weghalen, idempotent.
+- **Wat niet terugkomt.** Bij het verwijderen in 0179 vielen weg (cascade):
+  de Zwift-links met route en afstand van de 6 races van R1, 6 berekende
+  teamuitslagen (`zrl_team_results`), 3 pacingplannen en 19 aanmeldingen. Die
+  laatste waren al omgezet in beschikbaarheid, maar "misschien" en "nee"
+  deels niet meer te onderscheiden. Trainingsblokken die aan de races hingen,
+  staan los in het schema (`on delete set null`); niet opnieuw gekoppeld,
+  omdat niet vast te stellen is welke het waren. Volledig herstel kan alleen
+  via een back-up in het Supabase-dashboard, en dat zet ook ander werk terug.
+- **Bewust niet gebouwd.**
+  - Een team met geschiedenis verwijderen: dan verdwijnen uitslagen en
+    opgaven via cascade. Daarvoor is archiveren er.
+  - De paraplu-trigger zelf veranderen (pas omzetten na bevestiging, of
+    gearchiveerde subteams niet meetellen). Met de herstelfunctie is een
+    vergist subteam nu omkeerbaar; de regel uit 0179 blijft staan.
+- **Niet lokaal te verifiëren.** De migratie draait alleen in de PGlite-test,
+  niet tegen het echte schema (geen Docker of Supabase-config hier).
 
 ### Gebouwd — ZWBriljant: durability als vermoeid vermogen
 
