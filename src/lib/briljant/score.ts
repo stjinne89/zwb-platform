@@ -11,6 +11,7 @@
 
 import {
   CTL_ANCHORS,
+  DURABILITY_DECLINE_ANCHORS,
   DURABILITY_FATIGUED_DURATIONS,
   DURABILITY_MIN_KJ_PER_KG,
   DURABILITY_RIDES_SHARE,
@@ -89,11 +90,12 @@ const interpolate = (value: number, lower: ScalePoint, upper: ScalePoint) =>
 /** Waar `value` op de schaal valt, en welk niveau dat is. */
 export function scaleStep(anchors: Anchors, value: number): ScaleStep {
   const points = scalePoints(anchors);
-  if (!Number.isFinite(value) || !(value > points[0].value)) {
+  const better = (a: number, b: number) => (anchors.lowerIsBetter ? a < b : a > b);
+  if (!Number.isFinite(value) || !better(value, points[0].value)) {
     return { kind: "floor", value, level: 0, lower: points[0], upper: points[1] };
   }
   for (let index = 1; index < points.length; index++) {
-    if (!(value > points[index].value)) {
+    if (!better(value, points[index].value)) {
       const lower = points[index - 1];
       const upper = points[index];
       return { kind: "between", value, level: interpolate(value, lower, upper), lower, upper };
@@ -177,7 +179,7 @@ export type FatigueInput = {
   fatiguedWatts: number;
 };
 
-/** De uitslag van een durability-test: 20 minuten na het werk; telt alleen het vermoeide vermogen. */
+/** De uitslag van een durability-test: 20 minuten na het werk tegen je beste 20 minuten van het jaar. */
 export type DurabilityTestInput = {
   /** De testdag ("YYYY-MM-DD"); leeg bij de recordsteen. */
   day: string;
@@ -199,10 +201,10 @@ export type BriljantInput = {
 
 /**
  * De meting achter een facet en de omrekening naar een niveau. Bij durability ook
- * waar die vandaan komt, het vermoeide vermogen per duur (W/kg), het werk ervoor
- * (kJ/kg) en welk deel van de punten telt: de helft uit ritten, alles uit de test.
- * Bij durability is `value` de 20 minuten (of de 5 als die ontbreekt) en `level`
- * het niveau na die deling.
+ * waar die vandaan komt en welk deel van de punten telt: de helft uit ritten, alles
+ * uit de test. Uit ritten het vermoeide vermogen per duur (W/kg) en het werk ervoor
+ * (kJ/kg); `value` is dan de 20 minuten (of de 5 als die ontbreekt) en `level` het
+ * niveau na die deling. Uit de test is `value` het verval in % per 10 kJ/kg.
  */
 export type FacetReading = ScaleStep & {
   source?: "test" | "ritten";
@@ -254,14 +256,18 @@ export function fatiguedLevel(power: FatiguedPower, sex: Sex | null, share: numb
   return (levels.reduce((sum, level) => sum + level, 0) / levels.length) * share;
 }
 
-/** Het vermoeide vermogen uit een durability-test: de 20 minuten na het werk. */
-export function durabilityTestPower(test: DurabilityTestInput | null | undefined, weightKg: number | null): FatiguedPower | null {
+/**
+ * Het verval uit een durability-test, in procenten per 10 kJ/kg: de test-20-minuten
+ * tegen je beste 20 minuten van het jaar tot en met de testdag. Was de test beter,
+ * dan is dat geen verval. Null zonder gewicht of bij te weinig werk voor je gewicht.
+ */
+export function durabilityTestDecline(test: DurabilityTestInput | null | undefined, weightKg: number | null): number | null {
   const weight = positive(weightKg);
-  const watts = positive(test?.fatiguedWatts);
-  if (!test || !weight || !watts) return null;
+  if (!test || !weight || !positive(test.freshWatts) || !positive(test.fatiguedWatts)) return null;
   const kjPerKg = test.afterKj / weight;
   if (!(kjPerKg >= DURABILITY_MIN_KJ_PER_KG)) return null;
-  return { kjPerKg, wkg: { m20: watts / weight } };
+  const lossPct = Math.max(0, (1 - test.fatiguedWatts / test.freshWatts) * 100);
+  return lossPct / (kjPerKg / 10);
 }
 
 function readingFor(power: FatiguedPower, sex: Sex | null, share: number): FacetReading {
@@ -271,13 +277,15 @@ function readingFor(power: FatiguedPower, sex: Sex | null, share: number): Facet
 }
 
 /**
- * Durability als lezing: uit de test als die er is, voor het hele punt; anders uit
- * je ritten, voor de helft (DURABILITY_RIDES_SHARE). Geen plafond meer: dat was er
- * voor "geen verval", en vermoeid vermogen kent dat meetartefact niet.
+ * Durability als lezing: uit de test als die er is, het verval voor het hele punt;
+ * anders het vermoeide vermogen uit je ritten, voor de helft (DURABILITY_RIDES_SHARE).
+ * Zonder plafond: de test loopt voorbij Diamant door tot geen verval.
  */
 export function durabilityReading(input: BriljantInput): FacetReading | null {
-  const tested = durabilityTestPower(input.durabilityTest, input.weightKg);
-  if (tested) return { ...readingFor(tested, input.sex, 1), source: "test", testDay: input.durabilityTest!.day };
+  const decline = durabilityTestDecline(input.durabilityTest, input.weightKg);
+  if (decline != null) {
+    return { ...scaleStep(DURABILITY_DECLINE_ANCHORS, decline), source: "test", testDay: input.durabilityTest!.day, share: 1 };
+  }
   const rides = fatiguedPower(input.fatigue, input.weightKg);
   return rides ? { ...readingFor(rides, input.sex, DURABILITY_RIDES_SHARE), source: "ritten" } : null;
 }

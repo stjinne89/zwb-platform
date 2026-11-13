@@ -4,6 +4,7 @@
 
 import {
   CTL_ANCHORS,
+  DURABILITY_DECLINE_ANCHORS,
   FACET_WEIGHTS,
   LEVELS,
   ZRS_ANCHORS,
@@ -56,7 +57,7 @@ export const FACET_SOURCES: Record<Facet, string> = {
 function measureText(facet: Facet, reading: FacetReading): { what: string; source: string } {
   if (facet === "durability" && reading.source === "test" && reading.testDay) {
     const day = new Date(`${reading.testDay}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "long" });
-    return { what: "vermoeid op 20 minuten", source: `durability-test van ${day} · intervals.icu` };
+    return { what: "verval op 20 minuten", source: `durability-test van ${day} · intervals.icu` };
   }
   if (facet === "durability" && reading.source === "ritten" && reading.fatigued) {
     const { m5, m20 } = reading.fatigued;
@@ -70,6 +71,11 @@ function measureText(facet: Facet, reading: FacetReading): { what: string; sourc
 function fatiguedText(reading: FacetReading): string {
   const values = [reading.fatigued?.m5, reading.fatigued?.m20].filter((value): value is number => value != null);
   return `${values.map((value) => formatMeasure("durability", value).replace(" W/kg", "")).join(" en ")} W/kg`;
+}
+
+/** Het verval uit de durability-test, zoals naast het getal: "4,2% per 10 kJ/kg". */
+function declineText(decline: number): string {
+  return `${decline.toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% per 10 kJ/kg`;
 }
 
 /** De balk onder een meting: van de grens van je klasse naar de volgende, bij racen over de hele schaal. */
@@ -239,7 +245,12 @@ export function briljantView(args: {
     return {
       key: facet,
       label: FACET_LABELS[facet],
-      value: facet === "durability" && reading.fatigued ? fatiguedText(reading) : formatMeasure(facet, reading.value),
+      value:
+        facet === "durability" && reading.source === "test"
+          ? declineText(reading.value)
+          : facet === "durability" && reading.fatigued
+            ? fatiguedText(reading)
+            : formatMeasure(facet, reading.value),
       ...measureText(facet, reading),
       points: points(reading.level),
       level: levelOf(reading.level),
@@ -312,7 +323,7 @@ export type Win = {
   gain: number;
 };
 
-/** Hoeveel 5% beter is: meer vermogen (ook vermoeid), CTL en ZRS. */
+/** Hoeveel 5% beter is: meer vermogen (ook vermoeid), CTL en ZRS, minder verval uit de test. */
 const IMPROVEMENT = 0.05;
 
 const POWER_DURATION: Partial<Record<Facet, PowerDuration>> = { sprint: "s15", anaeroob: "m1", vo2max: "m5", drempel: "m20" };
@@ -366,10 +377,16 @@ function winsFromReadings(readings: Record<Facet, FacetReading | null>, consiste
     const reading = readings[facet];
     if (!reading) return [];
     // Durability alleen met een echte meting (niet uit een bewaard niveau).
-    if (facet === "durability" && (!reading.fatigued || reading.kjPerKg == null)) return [];
-    const better = facet === "racen" ? Math.min(1000, reading.value * (1 + IMPROVEMENT)) : reading.value * (1 + IMPROVEMENT);
-    const level =
-      facet === "durability"
+    const tested = facet === "durability" && reading.source === "test";
+    if (facet === "durability" && !tested && (!reading.fatigued || reading.kjPerKg == null)) return [];
+    const better = tested
+      ? reading.value * (1 - IMPROVEMENT)
+      : facet === "racen"
+        ? Math.min(1000, reading.value * (1 + IMPROVEMENT))
+        : reading.value * (1 + IMPROVEMENT);
+    const level = tested
+      ? levelAt(DURABILITY_DECLINE_ANCHORS, better)
+      : facet === "durability"
         ? fatiguedLevel(
             {
               kjPerKg: reading.kjPerKg!,
@@ -382,6 +399,10 @@ function winsFromReadings(readings: Record<Facet, FacetReading | null>, consiste
     const improved = scoreFor({ ...levels, [facet]: level }, consistency);
     const gain = improved == null ? 0 : points(improved) - points(base);
     if (gain <= 0) return [];
+    if (tested) {
+      const [from, to] = [reading.value, better].map((value) => declineText(value).replace(" per 10 kJ/kg", ""));
+      return [{ key: facet, label: FACET_LABELS[facet], step: `${from} → ${to} per 10 kJ/kg`, gain }];
+    }
     const unit = FACET_MEASURES[facet].unit;
     const plain = (value: number) => formatMeasure(facet, value).replace(` ${unit}`, "");
     return [{ key: facet, label: FACET_LABELS[facet], step: `${plain(reading.value)} → ${plain(better)} ${unit}`, gain }];

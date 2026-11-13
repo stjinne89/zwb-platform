@@ -13,7 +13,7 @@ import {
   FACETS,
   clubPercentile,
   consistencyFrom,
-  durabilityTestPower,
+  durabilityTestDecline,
   fatiguedPower,
   consistencyFactor,
   formatScore,
@@ -241,27 +241,37 @@ describe("facetten en score", () => {
     expect(facetReadings({ ...owner, fatigue: stand(1000, ownerFresh, [310, 240]) }).durability!.level).toBeGreaterThan(now.level);
   });
 
-  it("telt uit ritten voor de helft en uit de test voor het hele punt, zonder plafond", () => {
-    // Dezelfde 20 minuten na 1500 kJ, uit ritten en uit de test.
-    const rides = facetReadings({ ...rider, fatigue: stand(1500, 300, 300).slice(1) }).durability!;
-    const tested = facetReadings({ ...rider, fatigue: [], durabilityTest: { day: "2026-10-20", afterKj: 1500, freshWatts: 300, fatiguedWatts: 300 } })
+  it("telt uit de test het verval, voor het hele punt en zonder plafond", () => {
+    // 8,4% minder na 20 kJ/kg: 4,2% per 10 kJ/kg, tussen Platina (5) en Amethist (4).
+    const tested = facetReadings({ ...rider, fatigue: [], durabilityTest: { day: "2026-10-20", afterKj: 1500, freshWatts: 300, fatiguedWatts: 274.8 } })
       .durability!;
     expect(tested).toMatchObject({ source: "test", testDay: "2026-10-20", share: 1 });
-    expect(rides.level).toBeCloseTo(tested.level / 2, 12);
-    // Ver boven de Diamant-norm loopt de schaal door.
-    const strong = facetReadings({ ...rider, fatigue: [], durabilityTest: { day: "2026-10-20", afterKj: 1500, freshWatts: 450, fatiguedWatts: 450 } })
+    expect(tested.value).toBeCloseTo(4.2, 12);
+    expect(tested.level).toBeCloseTo(4.8, 12);
+    // Geen verval: voorbij Diamant loopt de schaal door; een betere test is ook geen verval.
+    const none = facetReadings({ ...rider, fatigue: [], durabilityTest: { day: "2026-10-20", afterKj: 1500, freshWatts: 300, fatiguedWatts: 300 } })
       .durability!;
-    expect(strong.level).toBeGreaterThan(9);
+    expect(none.level).toBeGreaterThan(9);
+    expect(durabilityTestDecline({ day: "2026-10-20", afterKj: 1500, freshWatts: 300, fatiguedWatts: 310 }, 75)).toBe(0);
+  });
+
+  it("telt bij de test het verval en niet hoe sterk je bent", () => {
+    const test = (fresh: number) => ({ day: "2026-10-20", afterKj: 1500, freshWatts: fresh, fatiguedWatts: fresh * 0.916 });
+    const weak = facetReadings({ ...rider, fatigue: [], durabilityTest: test(250) }).durability!;
+    const strong = facetReadings({ ...rider, fatigue: [], durabilityTest: test(400) }).durability!;
+    expect(strong.level).toBeCloseTo(weak.level, 12);
   });
 
   it("laat de test voorgaan op de ritten, ook als hij lager uitvalt", () => {
-    // 262 W na 1000 kJ bij 83 kg: 3,16 W/kg na 12,05 kJ/kg, niveau 3,81.
+    // 282 en 262 W na 1000 kJ bij 83 kg: 7,09% na 12,05 kJ/kg, 5,89% per 10 kJ/kg.
     const test = { day: "2026-10-25", afterKj: 1000, freshWatts: 282, fatiguedWatts: 262 };
-    expect(durabilityTestPower(test, 83)).toEqual({ kjPerKg: 1000 / 83, wkg: { m20: 262 / 83 } });
+    expect(durabilityTestDecline(test, 83)).toBeCloseTo((1 - 262 / 282) * 100 / (1000 / 83 / 10), 12);
     const reading = facetReadings({ ...rider, weightKg: 83, fatigue: stand(1000, 300, 300), durabilityTest: test }).durability!;
-    expect(reading.level).toBeCloseTo(3.8097, 3);
+    expect(reading.source).toBe("test");
+    expect(reading.level).toBeCloseTo(3.5565, 3);
     // Te weinig werk voor het gewicht: geen uitslag, dan weer de ritten.
-    expect(durabilityTestPower({ ...test, afterKj: 1000 }, 105)).toBeNull();
+    expect(durabilityTestDecline(test, 105)).toBeNull();
+    expect(facetReadings({ ...rider, weightKg: 105, fatigue: stand(1100, 300, 300), durabilityTest: test }).durability!.source).toBe("ritten");
   });
 });
 

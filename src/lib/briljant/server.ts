@@ -28,7 +28,7 @@ import {
   type DurabilityTestInput,
   type HistoryPoint,
 } from "./score";
-import { DURABILITY_TEST_VALID_DAYS, PREVIOUS_SCALE_VERSION, SCALE_VERSION, ZRS_ANCHORS, type Sex } from "./norms";
+import { DURABILITY_TEST_FRESH_DAYS, DURABILITY_TEST_VALID_DAYS, PREVIOUS_SCALE_VERSION, SCALE_VERSION, ZRS_ANCHORS, type Sex } from "./norms";
 import { DURABILITY_TEST_SLUG, DURABILITY_TEST_TASK, DURABILITY_TEST_TITLE } from "@/lib/protocols/training";
 import { clubAverages, storedScore, type StoredSnapshot } from "./compare";
 import { decidedZrs, loadRaceScores } from "./zrs-history";
@@ -243,7 +243,7 @@ function latestWellness(rows: IntervalsWellness[]): IntervalsWellness | null {
 const DURABILITY_TEST_TRIES = 3;
 
 /**
- * De dagen van de laatste 90 dagen waarop dit lid de durability-test reed: een
+ * De dagen van het laatste jaar waarop dit lid de durability-test reed: een
  * training in het schema met die titel, of de afgevinkte taak van het protocol.
  * Nieuwste eerst.
  */
@@ -295,7 +295,7 @@ async function loadDurabilityTest(
       connection.api_key,
       connection.athlete_id,
       day,
-      shiftDay(day, -89),
+      shiftDay(day, -(DURABILITY_TEST_FRESH_DAYS - 1)),
       thresholds,
     ).catch(() => null);
     const test = curves ? durabilityTestFrom(day, curves.fresh, curves.fatigued, weightKg) : null;

@@ -51,11 +51,13 @@ export type Sex = "man" | "vrouw";
 
 /**
  * Een schaal: de waarde die 0 oplevert, en per niveau (1 tot en met 9) de
- * waarde die erbij hoort.
+ * waarde die erbij hoort. `lowerIsBetter` draait de richting om (het verval van de
+ * durability-test: minder is beter).
  */
 export type Anchors = {
   zero: number;
   levels: readonly [number, number, number, number, number, number, number, number, number];
+  lowerIsBetter?: boolean;
   /** Een inschatting van ZWB, niet rechtstreeks uit een bron. */
   estimate?: boolean;
 };
@@ -149,8 +151,8 @@ export const CTL_ANCHORS: Anchors = {
 
 /**
  * Het verval dat bij elk niveau hoort, in procenten per 10 kJ/kg voorafgaand werk.
- * Sinds 2026-11-13 geen schaal meer om te scoren, maar de basis voor de normen van
- * vermoeid vermogen hieronder (DURABILITY_FATIGUED_DURATIONS). Afgeleid uit het
+ * De schaal van de durability-test (DURABILITY_DECLINE_ANCHORS) en de basis voor de
+ * normen van vermoeid vermogen uit ritten (fatiguedPowerAnchors). Afgeleid uit het
  * verval van het hele vermogensprofiel: WorldTour ongeveer 1,5 en ProTeam 2,2
  * (Mateo-March 2022, na 45 kJ/kg), succesvolle amateurs ongeveer 5 en minder
  * succesvolle ongeveer 9,6 (Barsumyan 2025, op 20 minuten na 1000 kJ). Diamant is
@@ -160,6 +162,14 @@ export const DURABILITY_DECLINE = {
   zero: 18,
   levels: [12.5, 9.5, 7, 5, 4, 3.2, 2.6, 2.2, 1.5],
 } as const;
+
+/** Het verval als schaal: minder is beter, voorbij Diamant loopt hij door tot geen verval. */
+export const DURABILITY_DECLINE_ANCHORS: Anchors = {
+  zero: DURABILITY_DECLINE.zero,
+  levels: DURABILITY_DECLINE.levels,
+  lowerIsBetter: true,
+  estimate: true,
+};
 
 /** Durability telt pas vanaf zoveel voorafgaand werk; daaronder zegt het verval weinig. */
 export const DURABILITY_MIN_KJ_PER_KG = 10;
@@ -206,13 +216,18 @@ export function fatiguedPowerAnchors(duration: FatiguedDuration, sex: Sex | null
 }
 
 /**
- * De durability-test (Barsumyan 2025): na 1000 kJ 20 minuten voluit. Sinds
- * 2026-11-13 telt het vermoeide vermogen op die 20 minuten, voor het hele punt
- * (eigenaar); eerst het verval tegen je beste 20 minuten. Geldt 90 dagen en gaat
- * dan voor op de ritten.
+ * De durability-test (Barsumyan 2025): na 1000 kJ 20 minuten voluit, tegen je beste
+ * 20 minuten van het jaar tot en met de testdag. Telt het verval, voor het hele punt
+ * (eigenaar, 2026-11-13): beide 20 minuten zijn bewust voluit gereden, dus het
+ * verschil is durability en geen inzet. Uit ritten weet je dat niet; daar telt het
+ * vermoeide vermogen (fatiguedPower). Een jaar terug en niet 90 dagen, zodat er
+ * vrijwel zeker een echte beste 20 minuten bij zit. Die ligt vast op de testdag, dus
+ * vers beter worden na de test kost geen durability. De uitslag geldt een jaar en
+ * gaat dan voor op de ritten.
  */
 export const DURABILITY_TEST_SECONDS = 1200;
-export const DURABILITY_TEST_VALID_DAYS = 90;
+export const DURABILITY_TEST_VALID_DAYS = 365;
+export const DURABILITY_TEST_FRESH_DAYS = 365;
 
 /**
  * Het gewicht van elke facet in de score (onderbouwing in

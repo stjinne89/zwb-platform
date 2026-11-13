@@ -1,8 +1,9 @@
 "use client";
 
 // "Durability in ZWBriljant is veranderd": één keer, voor wie een steen heeft
-// (tekst goedgekeurd door de eigenaar, 2026-11-13). Gezien onthoudt de browser;
-// wie op een tweede apparaat kijkt, ziet hem daar nog één keer. Na NOTICE_UNTIL
+// (eigenaar, 2026-11-13). De sleutel kreeg een b toen de test weer op verval ging,
+// zodat wie de eerste tekst zag de juiste ziet. Gezien onthoudt de browser; wie op
+// een tweede apparaat kijkt, ziet hem daar nog één keer. Na NOTICE_UNTIL
 // verschijnt hij niet meer, ook niet voor nieuwe leden.
 //
 // Opent pas na een tel en alleen als er geen andere dialoog openstaat. Dan komt
@@ -22,7 +23,7 @@ import {
 import { hasBriljantStone } from "./durability-notice-actions";
 import { ClubText } from "@/components/club-texts-provider";
 
-const SEEN_KEY = "zwb-nieuw-durability-2026-11";
+const SEEN_KEY = "zwb-nieuw-durability-2026-11b";
 const NOTICE_UNTIL = Date.parse("2026-12-16T00:00:00+01:00");
 const OPEN_DELAY_MS = 2000;
 
@@ -43,16 +44,12 @@ function markSeen() {
 
 const ITEMS = [
   {
-    title: "Wat telt nu.",
-    text: "Je vermogen ná lang werk, niet hoeveel je zakt. Een betere verse waarde kost je dus geen durability meer.",
+    title: "Uit je ritten telt je vermogen na het werk.",
+    text: "Je beste 5 en 20 minuten na 1000 kJ, in W/kg, voor de helft. Na een lange rit ga je lang niet altijd nog voluit.",
   },
   {
-    title: "Uit je ritten telt het voor de helft.",
-    text: "Je beste 5 en 20 minuten na 1000 kJ, in W/kg. Na een lange rit ga je lang niet altijd nog voluit.",
-  },
-  {
-    title: "Met de durability-test telt het helemaal.",
-    text: "15 minuten inrijden, op 80% FTP door tot 1000 kJ, 5 minuten rustig, dan 20 minuten zo hard als je kunt (niet in ERG). Rij hem uitgerust. De uitslag geldt 90 dagen.",
+    title: "Met de durability-test telt je verval, helemaal.",
+    text: "Hoeveel je 20 minuten na 1000 kJ lager zijn dan je beste 20 minuten van het jaar. 15 minuten inrijden, op 80% FTP door tot 1000 kJ, 5 minuten rustig, dan 20 minuten zo hard als je kunt (niet in ERG). Rij hem uitgerust. De uitslag geldt een jaar.",
   },
   {
     title: "Zo tellen we hem.",

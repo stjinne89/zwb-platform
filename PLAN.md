@@ -38,6 +38,12 @@ gaat stabiliteit voor nieuwe features.
    plakken. Zie de
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
+0. **ZWBriljant: durability-test weer op verval (2026-11-13): lokaal, niet
+   gepusht.** Geen migratie, geen nieuwe schaalversie. De test telt het verval
+   tegen je beste 20 minuten van het jaar en geldt een jaar. Open: pushen op
+   verzoek, daarna Barts steen bekijken. Zie de ronde "Durability-test weer op
+   verval".
+
 0. **ZWBriljant: popup over de nieuwe durability (2026-11-13): gepusht naar
    `main` (`8e767d3a`).** Geen migratie. In de preview bekeken. Zie de ronde "ZWBriljant: popup over de nieuwe
    durability".
@@ -12327,6 +12333,64 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Durability-test weer op verval
+
+**2026-11-13, de commit "Durability-test weer op verval", lokaal, niet
+gepusht.** Geen migratie, geen nieuwe schaalversie.
+
+- **De vraag.** De eigenaar: "Dat is toch niet het pad wat we bedacht hadden
+  voor een test? ... dat maakt geen reet uit of je die nu uit een test rijdt
+  of in een rit." Bij de test zijn de verse 20 minuten en de test-20-minuten
+  allebei bewust voluit gereden, dus het verval zegt echt iets over
+  durability. De eerdere uitwerking volgde de letterlijke zin "dat ze voor
+  100% tellen" (de vermoeide waarden), niet die bedoeling. Daarna: "We kunnen
+  ook de beste 20 minuten waarde van het afgelopen jaar nemen ... een test
+  resultaat mag van mij dan ook voor een jaar gelden."
+- **Wat er is.**
+  - `durabilityTestDecline` (`score.ts`): het verval in % per 10 kJ/kg tussen
+    je beste 20 minuten van het jaar tot en met de testdag en de 20 minuten na
+    het werk; een betere test is 0%. Gescoord op `DURABILITY_DECLINE_ANCHORS`
+    (`norms.ts`, dezelfde grenzen als `DURABILITY_DECLINE`: Goud 7%, Platina
+    5%, Diamant 1,5%), minder is beter, voor het hele punt, zonder plafond.
+    `lowerIsBetter` is terug op `Anchors` en in `scaleStep`.
+  - `DURABILITY_TEST_VALID_DAYS` en `DURABILITY_TEST_FRESH_DAYS` 365 (waren
+    90): de test geldt een jaar, de verse 20 minuten komen uit het jaar tot
+    en met de testdag (`loadDurabilityTest` in `server.ts`). Die verse waarde
+    ligt vast op de testdag, dus vers beter worden na de test kost geen
+    durability.
+  - Uit ritten verandert niets: vermoeid vermogen, voor de helft.
+  - Scherm: bij de test "4,2% per 10 kJ/kg", "verval op 20 minuten"; "Hier
+    win je het meest" rekent met 5% minder verval.
+  - Record weer 1182 (man) en 1173 (vrouw): 0,7% verval, nu op de
+    vervalschaal.
+  - Teksten: `/hulp` (de test en de formule), de samenvatting van het
+    protocol en de popup. De popup kreeg een nieuwe sleutel
+    (`zwb-nieuw-durability-2026-11b`), zodat wie vandaag de eerste tekst zag
+    de juiste ziet.
+- **Geen nieuwe schaalversie, bewust.** Uit ritten blijft alles gelijk, en een
+  steen met een test wordt bij elk bezoek opnieuw berekend. Op productie had
+  op 2026-11-13 één lid een test (Bart, afgevinkt op 13 november); zijn
+  weeksteen staat nog op de oude telling (572 punten durability) tot zijn
+  volgende bezoek of de wekelijkse job.
+- **Gevoelig voor de verse waarde.** Bart: 332 W na 1000 kJ bij 82 kg. Met
+  zijn beste 20 minuten over 90 dagen (345 W) is het 3,1% per 10 kJ/kg, 618
+  punten; was zijn beste van het jaar 355 W, dan 385, bij 365 W 284. Zijn
+  jaarcurve is niet opgevraagd.
+- **Bewust niet gebouwd:**
+  - een kortere periode voor de verse waarde rond de test: dan is de kans
+    groter dat het geen echte beste 20 minuten is (keuze eigenaar: een jaar);
+  - verval uit ritten: daar is geen eerlijk paar, zie "durability als
+    vermoeid vermogen".
+- **Niet meer waar.** In de ronde "durability als vermoeid vermogen": de test
+  telt het vermoeide vermogen, geldt 90 dagen, en de records 1224 en 1199 (daar
+  gemarkeerd). In de popup-ronde: de eerste tekst ("met de durability-test
+  telt het helemaal" voor vermogen, "geldt 90 dagen"). In mijn uitleg aan de
+  eigenaar stond "Goud 5%": Goud is 7%, Platina 5%.
+- **Geverifieerd:** de unittests van ZWBriljant (111) en tsc.
+- **Niet geverifieerd:** de steen met een test in de browser; of intervals.icu
+  een curve over een jaar zonder problemen levert (zelfde aanroep, langere
+  periode); `next build`.
+
 ### Hersteld — Durability-test: altijd afvinken
 
 **2026-11-13, de commit "Durability-test: altijd afvinken" (`95512496`), op
@@ -12924,7 +12988,9 @@ aannames tot stap 1 ze met bronnen onderbouwt.
   de dag erna; dan staat bij durability "durability-test van" met de datum).
   Eerst stond er "met een schema plant ZWBeter hem in"; dat klopte niet, zie
   "Durability-test: altijd afvinken". Knop "Naar de test"
-  naar het protocol, als de club die pagina heeft.
+  naar het protocol, als de club die pagina heeft. *Sinds "Durability-test weer op verval"
+  zegt de popup dat de test je verval telt en een jaar geldt, met een nieuwe
+  sleutel.*
 - **Bewust niet gebouwd:**
   - stappen om de test in intervals.icu terug te zien: de periodekiezer daar
     kent geen losse dag en de curves na 1000 kJ stelt elk lid zelf in, dus
@@ -13339,7 +13405,10 @@ Geen migratie. De save krijgt `riders` (het leven per renner), `legends`,
     minuten na de laagste kJ-stand met minstens 10 kJ/kg, het gemiddelde van
     de twee niveaus maal `DURABILITY_RIDES_SHARE` (0,5). Uit de test
     (`durabilityTestPower`) het niveau van de 20 minuten na het werk, maal 1.
-    De test gaat 90 dagen voor, zoals eerst.
+    De test gaat 90 dagen voor, zoals eerst. *Niet meer waar sinds dezelfde
+    avond:* de test telt weer verval, tegen je beste 20 minuten van het jaar,
+    en geldt een jaar; `durabilityTestPower` is weg. Zie "Durability-test
+    weer op verval".
   - `fatigueInputs` haalt alleen nog 5 en 20 minuten op (`DURABILITY_DURATIONS`).
   - Scherm: durability toont "3,66 en 3,66 W/kg", "vermoeid op 5 en 20
     minuten, telt voor de helft" of "vermoeid op 20 minuten" bij de test, en
@@ -13347,7 +13416,8 @@ Geen migratie. De save krijgt `riders` (het leven per renner), `legends`,
     vermogen. Weg: "(minder is beter)", `lowerIsBetter` op schalen en
     stenen.
   - Record: het 20-minutenrecord na 10 kJ/kg met 0,7% verval, als test
-    (records nu 1224 man, 1199 vrouw; waren 1182 en 1173).
+    (records nu 1224 man, 1199 vrouw; waren 1182 en 1173). *Sinds de test weer
+    op verval telt, zijn het weer 1182 en 1173.*
   - `/hulp` (ZWBriljant): de durability-formule en de test opnieuw beschreven.
 - **Bewust niet gebouwd:**
   - verval per week als eerlijk paar: uit gewone ritten onbruikbaar (zie

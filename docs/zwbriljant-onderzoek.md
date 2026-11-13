@@ -383,6 +383,35 @@ curves alleen voor de twee drempels die het lid zelf instelt (bij de eigenaar ee
 en 3000 kJ, sinds 2026-10-22 1000 en 2000); een andere drempel kan niet per verzoek
 ([forum](https://forum.intervals.icu/t/calulate-power-best-after-2000kj/2045)).
 
+### De durability-test weer op verval (2026-11-13, avond)
+
+De eerste uitwerking van vermoeid vermogen liet de test op dezelfde manier tellen als
+een rit: het vermoeide vermogen, alleen voor het hele punt. Daarmee voegde de test niets
+toe behalve de dubbele weging, en telde vermogen via de test nog een keer mee
+(correlatie 0,91 tussen vermoeid en vers, zie hieronder). De eigenaar: bij de test zijn
+je verse 20 minuten en je test-20-minuten allebei bewust voluit gereden, dus het verschil
+zegt echt iets over durability. Het probleem van verval uit ritten (geen eerlijk paar)
+geldt voor de test niet.
+
+**Gekozen (eigenaar).** De test telt het verval: de 20 minuten na het werk tegen je beste
+20 minuten van het jaar tot en met de testdag, in procenten per 10 kJ/kg, voor het hele
+punt, op de vervalgrenzen `DURABILITY_DECLINE_ANCHORS` (Goud 7%, Platina 5%, Diamant
+1,5%; minder is beter, voorbij Diamant door tot geen verval). Een jaar terug in plaats
+van 90 dagen, zodat er vrijwel zeker een echte beste 20 minuten bij zit; de uitslag
+geldt ook een jaar. De verse waarde ligt vast op de testdag, dus vers beter worden na de
+test kost geen durability (het bezwaar tegen het oude verval). Een test die beter is dan
+je verse beste is 0% verval. Uit ritten blijft het vermoeide vermogen, voor de helft.
+
+**Gevoelig voor de verse waarde.** Bij de eerste test (82 kg, 332 W na 1000 kJ, 12,2
+kJ/kg) en een beste 20 minuten van 345 W over 90 dagen is het verval 3,1% per 10 kJ/kg,
+618 punten; was zijn beste van het jaar 355 W, dan 385 punten, en bij 365 W 284. Een
+jaar terug kan een piek uit een ander deel van het seizoen zijn; dat is de prijs van een
+zekere beste waarde, en bewust zo gekozen.
+
+**Bewust niet.** De verse waarde beperken tot een kortere periode rond de test (dan is
+de kans groter dat het geen echte beste 20 minuten is). Een nieuwe schaalversie: uit
+ritten verandert niets, en een steen met een test wordt bij elk bezoek opnieuw berekend.
+
 ### Durability als vermoeid vermogen (2026-11-13)
 
 **Het probleem.** Verval is een verhouding tussen vers en vermoeid. Reed je vers een
@@ -425,7 +454,8 @@ duur verlaagt met het verval dat bij het niveau hoort, voor jouw kJ/kg
 20 kJ/kg 2,62 W/kg. Wie vers Goud is en Goud-verval heeft, is vermoeid Goud. Het
 gemiddelde van de twee niveaus telt voor de helft (`DURABILITY_RIDES_SHARE`), want een
 vermoeide beste waarde uit ritten is een ondergrens, en zo telt vermogen niet dubbel.
-Uit de durability-test telt het niveau van de 20 minuten na het werk helemaal. Het
+Uit de durability-test telde eerst het niveau van de 20 minuten na het werk helemaal
+(dezelfde dag vervangen door het verval, zie hierboven). Het
 gewicht blijft 17,5%. Er is geen plafond meer: zonder verval was de schatting uit
 ritten onecht hoog, met vermoeid vermogen en de halve weging niet. Bij de eigenaar
 (83 kg, 297 en 226 W na 1000 kJ) is dat 163 punten, onafhankelijk van zijn verse

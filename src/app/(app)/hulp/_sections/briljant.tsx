@@ -55,12 +55,12 @@ export function BriljantHelp() {
             </li>
             <li>
               <strong className="text-foreground">De durability-test</strong>, voor de volle punten op
-              durability. Uit je ritten telt durability voor de helft; de test meet het en telt helemaal. Start hem bij{" "}
+              durability. Uit je ritten telt durability voor de helft; de test meet je verval en telt helemaal. Start hem bij{" "}
               <Link href="/zwbeter-worden/protocollen/durability-test" className="underline underline-offset-2">
                 Protocollen
               </Link>
               : 1000 kJ op duurtempo en daarna 20 minuten voluit. Start het protocol vóór je rijdt en vink de test af op
-              de dag zelf of de dag erna, ook als je een schema hebt. De uitslag geldt 90 dagen.
+              de dag zelf of de dag erna, ook als je een schema hebt. De uitslag geldt een jaar.
             </li>
             <li>
               <strong className="text-foreground">Je gewicht bijhouden in intervals.icu.</strong> Alle vermogens
@@ -228,12 +228,14 @@ export function BriljantHelp() {
             </dd>
             <dt className="font-medium">Durability</dt>
             <dd className="text-muted-foreground">
-              Je vermogen in W/kg na het werk, niet hoeveel je zakt: zo kost een betere verse waarde je geen
-              durability. Uit je ritten: je beste 5 en 20 minuten van de laatste 90 dagen na je laagste kJ-stand met
-              minstens 10 kJ per kg. Elk krijgt punten op de schaal van die duur, verlaagd met het verval dat bij de
-              klasse hoort (bij Goud 7% per 10 kJ per kg, bij Diamant 1,5%); het gemiddelde telt voor de helft, want
-              lang niet elke rit rijd je na het werk voluit. Met de durability-test tellen de 20 minuten na het werk
-              voor het hele punt. De test gaat 90 dagen voor op je ritten. Er is geen plafond.
+              Uit je ritten: je vermogen in W/kg na het werk. Je beste 5 en 20 minuten van de laatste 90 dagen na
+              je laagste kJ-stand met minstens 10 kJ per kg krijgen elk punten op de schaal van die duur, verlaagd
+              met het verval dat bij de klasse hoort (bij Goud 7% per 10 kJ per kg, bij Diamant 1,5%). Het
+              gemiddelde telt voor de helft, want lang niet elke rit rijd je na het werk voluit. Met de
+              durability-test telt je verval: hoeveel je 20 minuten na het werk lager zijn dan je beste 20 minuten
+              van het jaar tot en met de testdag, in procenten per 10 kJ per kg. Dat telt voor het hele punt, op
+              dezelfde verval-grenzen (Goud 7%, Diamant 1,5%; minder is beter). De test gaat een jaar voor op je
+              ritten. Er is geen plafond.
             </dd>
             <dt className="font-medium">Profielscore</dt>
             <dd className="text-muted-foreground">
