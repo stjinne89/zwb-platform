@@ -38,10 +38,10 @@ gaat stabiliteit voor nieuwe features.
    plakken. Zie de
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
-0. **ZWBriljant: durability-test weer op verval (2026-11-13): lokaal, niet
-   gepusht (`8b093630`).** Geen migratie, geen nieuwe schaalversie. De test telt het verval
-   tegen je beste 20 minuten van het jaar en geldt een jaar. Open: pushen op
-   verzoek, daarna Barts steen bekijken. Zie de ronde "Durability-test weer op
+0. **ZWBriljant: durability-test weer op verval (2026-11-13): gepusht naar
+   `main` (`8b093630`).** Geen migratie, geen nieuwe schaalversie. De test telt het verval
+   tegen je beste 20 minuten van het jaar en geldt een jaar. Open: na de
+   deploy Barts steen bekijken. Zie de ronde "Durability-test weer op
    verval".
 
 0. **ZWBriljant: popup over de nieuwe durability (2026-11-13): gepusht naar
@@ -12335,8 +12335,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Durability-test weer op verval
 
-**2026-11-13, commit `8b093630` ("Durability-test weer op verval"), lokaal,
-niet gepusht.** Geen migratie, geen nieuwe schaalversie.
+**2026-11-13, commit `8b093630` ("Durability-test weer op verval"), op
+2026-11-13 gepusht naar main (eigenaar: "Ja, push").** Geen migratie, geen nieuwe schaalversie.
 
 - **De vraag.** De eigenaar: "Dat is toch niet het pad wat we bedacht hadden
   voor een test? ... dat maakt geen reet uit of je die nu uit een test rijdt
