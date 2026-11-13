@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **ZWBriljant: durability als vermoeid vermogen (2026-11-13): lokaal
-   gecommit (`584a0020`), niet gepusht.** Geen migratie. Nieuwe schaalversie
+0. **ZWBriljant: durability als vermoeid vermogen (2026-11-13): gepusht naar
+   `main` (`30ca9d7b`).** Geen migratie. Nieuwe schaalversie
    `2026-11-13-vermoeid`. Open: na de deploy de terugblik-job laten lopen en
    een steen, de historie en het ZWB-gemiddelde bekijken. Zie de ronde
    "ZWBriljant: durability als vermoeid vermogen".
@@ -12281,7 +12281,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — ZWBriljant: durability als vermoeid vermogen
 
 **2026-11-13, de commit "ZWBriljant: durability als vermoeid vermogen"
-(`584a0020`), lokaal, niet gepusht.** Geen migratie. Schaalversie `2026-11-13-vermoeid` (was
+(`30ca9d7b`), op 2026-11-13 gepusht naar main.** Geen migratie. Schaalversie `2026-11-13-vermoeid` (was
 `2026-10-22-ctl40`).
 
 - **De vraag.** Durability was verval: vers tegen vermoeid. Reed je vers beter
