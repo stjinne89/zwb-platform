@@ -8,6 +8,7 @@ import {
   maxPlannerMinutes,
   plannerPlanInput,
   plannerResult,
+  planBagCap,
   plannerWatts,
   presetIntensity,
   type EventFuelPlanner,
@@ -203,4 +204,45 @@ it("laat het duurschuifje tot twee keer de verwachte duur lopen, tussen 4 en 12 
   expect(maxPlannerMinutes(45)).toBe(240);
   expect(maxPlannerMinutes(206)).toBe(420);
   expect(maxPlannerMinutes(540)).toBe(720);
+});
+
+describe("de grens van wat je meeneemt (0328)", () => {
+  const withMix = (recipe: Recipe, carb_mix: string | null): Recipe => ({ ...recipe, carb_mix });
+  const sugarDrink = withMix(DRINK, "1:0.8");
+  const maltoDrink = withMix(DRINK, "glucose");
+  const cakes = withMix(CAKES, "eten");
+  const bagPlanner = (drink: Recipe, food: Recipe) =>
+    planner({ input: { ...INPUT, ranked: [drink, food], lead: drink } });
+
+  it("weegt de bidons en het vaste eten van het plan naar gram", () => {
+    const plan = ridePlan({ ...INPUT, ranked: [sugarDrink, cakes], lead: sugarDrink, minutes: 180, perHourG: 120, fluidMlPerHour: 400 });
+    expect(plan!.solid).not.toBeNull();
+    const cap = planBagCap(plan, [sugarDrink, cakes])!;
+    expect(cap).toBeGreaterThan(60);
+    expect(cap).toBeLessThan(120);
+    // Zonder 0328 hebben de recepten geen soort: dan telt de tas niet mee.
+    expect(planBagCap(plan, [DRINK, CAKES])).toBeNull();
+  });
+
+  it("houdt het advies met alleen maltodextrine en gewoon eten op 60", () => {
+    const p = bagPlanner(maltoDrink, cakes);
+    const result = plannerResult(p, { ...p.defaults, preset: "race", minutes: 240 });
+    expect(result.capG).toBe(60);
+    expect(result.capBy).toBe("tas");
+    expect(result.adviceG).toBe(60);
+    // Zelf meer invullen mag, maar kleurt.
+    expect(plannerResult(p, { ...p.defaults, preset: "race", minutes: 240, perHourG: 90 }).aboveCap).toBe(true);
+  });
+
+  it("laat de darm de grens zetten als de tas meer aankan", () => {
+    const p = bagPlanner(sugarDrink, cakes);
+    const result = plannerResult(p, { ...p.defaults, preset: "race", minutes: 120 });
+    expect(result.capBy).toBe("darm");
+    expect(result.capG).toBe(90);
+  });
+
+  it("telt een recept zonder soort als onbekend: 60", () => {
+    const p = bagPlanner(withMix(DRINK, null), withMix(CAKES, null));
+    expect(plannerResult(p, { ...p.defaults, minutes: 240 }).capG).toBe(60);
+  });
 });

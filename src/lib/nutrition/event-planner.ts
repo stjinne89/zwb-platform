@@ -6,7 +6,10 @@
 import {
   AVG_SHARE_OF_NP,
   PRESET_IF,
+  bagCap,
+  carbMixOf,
   eventFluid,
+  gutCap,
   fuelAdvice,
   fuelBalance,
   intakeCap,
@@ -16,7 +19,8 @@ import {
   type FuelBalance,
   type FuelPreset,
 } from "./event-fuel";
-import type { RidePlanInput } from "./ride-plan";
+import { ridePlanForHolders, type RidePlan, type RidePlanInput } from "./ride-plan";
+import type { Recipe } from "./recipes";
 import { DEFAULT_BIDON_ML, fluidMl, fluidPerHour } from "./sweat";
 import { REFERENCE_RIDER } from "./targets";
 
@@ -93,6 +97,8 @@ export type PlannerResult = {
   advice: FuelAdvice | null;
   adviceG: number;
   capG: number;
+  /** Wat de grens zet: je darm of wat je meeneemt (de soort koolhydraten, 0328). */
+  capBy: "darm" | "tas";
   /** Waar het plan mee rekent: Reken met, anders het advies. */
   perHourG: number;
   aboveCap: boolean;
@@ -102,26 +108,46 @@ export type PlannerResult = {
   balance: FuelBalance | null;
 };
 
+/**
+ * De grens van de tas: wat het plan bij dit doel meeneemt, gewogen naar gram
+ * koolhydraten per soort (bagCap). Null zonder koolhydraten in het plan, en
+ * zolang 0328 er niet is (de recepten hebben dan geen carb_mix): anders zou
+ * elk clubrecept als onbekend op 60 uitkomen.
+ */
+export function planBagCap(plan: RidePlan | null, recipes: readonly Recipe[]): number | null {
+  if (!plan) return null;
+  if (recipes.some((recipe) => recipe.carb_mix === undefined)) return null;
+  const bySlug = new Map(recipes.map((recipe) => [recipe.slug, recipe]));
+  const items = [...plan.bidons, ...(plan.solid ? [plan.solid] : [])].flatMap((item) =>
+    item.recipe && item.carbsG > 0
+      ? [{ carbsG: item.carbsG * item.count, mix: carbMixOf(bySlug.get(item.recipe.slug) ?? {}) }]
+      : [],
+  );
+  return bagCap(items);
+}
+
+/**
+ * De tasgrens bij deze keuzes. Wat er meegaat, hangt af van het doel (eerst
+ * bidons, dan vast eten), dus eerst het plan op de grens van de darm, en ligt
+ * de tas lager, nog eens op die lagere grens.
+ */
+function bagCapFor(planner: EventFuelPlanner, minutes: number, fluidMlPerHour: number): number | null {
+  const { input } = planner;
+  const recipes = [input.lead, ...input.ranked].filter((recipe): recipe is Recipe => recipe != null);
+  const at = (perHourG: number) =>
+    planBagCap(ridePlanForHolders({ ...input, minutes, perHourG, fluidMlPerHour }), recipes);
+  const fromGut = gutCap(minutes, input.gut ?? null);
+  const first = at(fromGut);
+  if (first == null || first >= fromGut) return first;
+  return at(first) ?? first;
+}
+
 export function plannerResult(planner: EventFuelPlanner, choice: PlannerChoice): PlannerResult {
   const { input } = planner;
   const minutes = choice.minutes;
   const weightKg = input.weightKg ?? REFERENCE_RIDER.weightKg;
   const watts = plannerWatts(planner, choice.preset, choice.intensityFactor);
   const floorG = presetFloor(choice.preset, minutes);
-  const advice =
-    watts != null
-      ? fuelAdvice({
-          minutes,
-          watts,
-          intensityFactor: choice.intensityFactor,
-          weightKg,
-          floorG,
-          gut: input.gut ?? null,
-        })
-      : null;
-  const cap = advice?.cap ?? intakeCap(minutes, input.gut ?? null);
-  const training = input.gut?.weekGrams != null && minutes >= input.gut.minMinutes;
-  const adviceG = advice?.perHourG ?? (training ? input.gut!.weekGrams! : Math.min(cap.capG, floorG));
 
   const fluid =
     watts != null
@@ -137,6 +163,24 @@ export function plannerResult(planner: EventFuelPlanner, choice: PlannerChoice):
         ? fluidPerHour(input.sweatMlPerHour, input.weightKg ?? null, minutes)
         : null;
   const adviceFluidMl = fluid && minutes > 0 ? round50((fluidMl(fluid, minutes) * 60) / minutes) : DEFAULT_BIDON_ML;
+  const fluidMlPerHour = choice.fluidMlPerHour ?? adviceFluidMl;
+
+  const bag = bagCapFor(planner, minutes, fluidMlPerHour);
+  const advice =
+    watts != null
+      ? fuelAdvice({
+          minutes,
+          watts,
+          intensityFactor: choice.intensityFactor,
+          weightKg,
+          floorG,
+          gut: input.gut ?? null,
+          bag,
+        })
+      : null;
+  const cap = advice?.cap ?? intakeCap(minutes, input.gut ?? null, bag);
+  const training = input.gut?.weekGrams != null && minutes >= input.gut.minMinutes;
+  const adviceG = advice?.perHourG ?? (training ? input.gut!.weekGrams! : Math.min(cap.capG, floorG));
 
   const perHourG = choice.perHourG ?? adviceG;
   return {
@@ -144,10 +188,11 @@ export function plannerResult(planner: EventFuelPlanner, choice: PlannerChoice):
     advice,
     adviceG,
     capG: cap.capG,
+    capBy: cap.limitedBy,
     perHourG,
     aboveCap: perHourG > cap.capG,
     adviceFluidMl,
-    fluidMlPerHour: choice.fluidMlPerHour ?? adviceFluidMl,
+    fluidMlPerHour,
     balance:
       watts != null
         ? fuelBalance({ minutes, watts, intensityFactor: choice.intensityFactor, weightKg, intakePerHourG: perHourG })

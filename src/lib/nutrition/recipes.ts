@@ -93,6 +93,8 @@ export type Recipe = {
   sharer?: { display_name: string | null; avatar_url: string | null } | null;
   /** Gedeeld door een ander lid: niet nagekeken, dus niet vanzelf in het menu (menu.ts). */
   from_member?: boolean;
+  /** Soort koolhydraten van een recept voor onderweg (0328, event-fuel.ts); leeg is onbekend. */
+  carb_mix?: string | null;
   ingredients: RecipeIngredientRow[];
 };
 

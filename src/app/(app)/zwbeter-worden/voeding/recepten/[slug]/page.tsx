@@ -35,6 +35,7 @@ import { BackLink } from "@/components/app-ui";
 import { BidonChoice } from "../../../_components/bidon-icon";
 import { bidonGroupClass, bidonOptionClass } from "../../../_components/bidon-options";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
+import { CARB_MIX_LABELS, carbMixOf } from "@/lib/nutrition/event-fuel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -139,6 +140,7 @@ export default async function RecipePage({
           {[
             MEAL_MOMENT_LABELS[recipe.meal_moment],
             FUEL_PROFILE_LABELS[recipe.fuel_profile],
+            recipe.meal_moment === "tijdens_rit" && recipe.carb_mix ? CARB_MIX_LABELS[carbMixOf(recipe)] : null,
             recipe.prep_minutes ? `${recipe.prep_minutes} min` : null,
             ...recipe.diet_tags.map((tag) => DIET_TAG_LABELS[tag]),
           ]

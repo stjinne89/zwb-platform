@@ -209,9 +209,12 @@ tegen PGlite te testen; toepassen op productie alleen op verzoek.
 
 - **Voorraadbeheer met waarschuwingen.** Te veel beheer voor een clubapp; wat je
   eerder vastlegde is genoeg als voorraad.
-- **Glucose:fructose per product.** Open Food Facts levert geen fructose, en
-  afleiden uit de ingrediëntenlijst is onbetrouwbaar. De clubrecepten zijn al
-  op een mix gebouwd; de tekst blijft.
+- **Glucose:fructose afleiden per product.** Open Food Facts levert geen
+  fructose, en afleiden uit de ingrediëntenlijst is onbetrouwbaar. *Sinds
+  2026-11-13 deels ingehaald:* het lid kiest de soort zelf bij een recept voor
+  onderweg en de clubrecepten hebben er een (`nutrition_recipes.carb_mix`,
+  migratie 0328, stap 3 van [eventvoeding-plan.md](eventvoeding-plan.md)).
+  Afleiden blijft bewust niet.
 - **Natrium als mg-doel.** Zie besluit 6.
 - **Plafonds boven 120 g/u als standaard.** Darmtraining-150 blijft een protocol
   dat je bewust start.

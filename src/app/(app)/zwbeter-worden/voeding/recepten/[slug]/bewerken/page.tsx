@@ -29,6 +29,7 @@ export default async function EditRecipePage({ params }: { params: Promise<{ slu
           title: recipe.title,
           meal_moment: recipe.meal_moment,
           fuel_profile: recipe.fuel_profile,
+          carb_mix: recipe.carb_mix ?? null,
           diet_tags: recipe.diet_tags,
           servings: recipe.servings,
           prep_minutes: recipe.prep_minutes,

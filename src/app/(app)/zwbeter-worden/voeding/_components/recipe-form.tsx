@@ -12,6 +12,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DIET_TAGS, DIET_TAG_LABELS, FUEL_PROFILE_LABELS } from "@/lib/nutrition/labels";
+import { CARB_MIX_LABELS, STORED_CARB_MIXES } from "@/lib/nutrition/event-fuel";
 import { INGREDIENT_ROLES, INGREDIENT_ROLE_LABELS, guessRole, type IngredientRole } from "@/lib/nutrition/scale";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import type { RecipeVisibility } from "@/lib/nutrition/recipes";
@@ -40,6 +41,8 @@ export type RecipeFormInitial = {
   title: string;
   meal_moment: string;
   fuel_profile: string;
+  /** Soort koolhydraten, alleen bij een recept voor onderweg (0328); leeg is onbekend. */
+  carb_mix?: string | null;
   diet_tags: string[];
   servings: number;
   prep_minutes: number | null;
@@ -89,6 +92,7 @@ export function RecipeForm({
   defaultMoment?: string;
 }) {
   const [rows, setRows] = useState<Row[]>(initial?.rows ?? []);
+  const [moment, setMoment] = useState(initial?.meal_moment ?? defaultMoment);
   const titleRef = useRef<HTMLInputElement>(null);
   const [pendingLines, setPendingLines] = useState<IngredientLine[]>(initialPending);
   // De losse regel waarvoor nu gezocht wordt; die krijgt de gekozen NEVO-naam.
@@ -186,7 +190,12 @@ export function RecipeForm({
         </label>
         <label className="text-sm">
           <span className="mb-1 block font-medium">Moment</span>
-          <select name="meal_moment" defaultValue={initial?.meal_moment ?? defaultMoment} className={inputClass}>
+          <select
+            name="meal_moment"
+            value={moment}
+            onChange={(event) => setMoment(event.target.value)}
+            className={inputClass}
+          >
             {MEAL_MOMENTS.map((value) => (
               <option key={value} value={value}>
                 {MEAL_MOMENT_LABELS[value]}
@@ -204,6 +213,19 @@ export function RecipeForm({
             ))}
           </select>
         </label>
+        {moment === "tijdens_rit" ? (
+          <label className="text-sm sm:col-span-2">
+            <span className="mb-1 block font-medium">Koolhydraten</span>
+            <select name="carb_mix" defaultValue={initial?.carb_mix ?? ""} className={inputClass}>
+              <option value="">{CARB_MIX_LABELS.onbekend}</option>
+              {STORED_CARB_MIXES.map((value) => (
+                <option key={value} value={value}>
+                  {CARB_MIX_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label className="text-sm">
           <span className="mb-1 block font-medium">Porties</span>
           <input

@@ -9,14 +9,16 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Eventvoeding: een plan dat sluit op tempo en duur (2026-11-13).** De
    besluiten in §6 van [eventvoeding-plan.md](docs/eventvoeding-plan.md) zijn
-   akkoord (eigenaar, 2026-11-13). Stap 1 (het model) is lokaal gecommit
-   (`68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en het
-   racebriefje) is gebouwd en lokaal getest, niet gecommit; niets gepusht.
-   Open: de eventpagina in de browser bekijken (niet gedaan: geen `.env.local`
-   in de worktree), het toetsscript draaien op de echte events zodra de
-   Supabase-connector er weer is, daarna stap 3 (soort koolhydraten,
-   migratie). Zie de rondes "Gebouwd — Eventvoeding, stap 1 en 2" en
-   "Ontwerp — Eventvoeding".
+   akkoord (eigenaar, 2026-11-13). Lokaal gecommit, niets gepusht: stap 1 (het
+   model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
+   het racebriefje, `844876ce`) en stap 3 (soort koolhydraten op recepten).
+   Open: migratie `0328_nutrition_recipe_carb_mix.sql` toepassen op productie
+   (alleen op verzoek; tot dan rekent de planner zonder tasgrens), de
+   eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
+   worktree), het toetsscript draaien op de echte events zodra de
+   Supabase-connector er weer is, daarna stap 4 (keuzes bewaren, migratie). Zie
+   de rondes "Gebouwd — Eventvoeding, stap 1, 2 en 3" en "Ontwerp —
+   Eventvoeding".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
@@ -12312,9 +12314,64 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Eventvoeding, stap 3: soort koolhydraten op recepten
+
+**2026-11-13, lokaal gecommit, niet gepusht. Migratie
+`0328_nutrition_recipe_carb_mix.sql`, niet toegepast op productie.** Op verzoek
+van de eigenaar ("Ga door", na stap 2). Stap 3 van
+[eventvoeding-plan.md](docs/eventvoeding-plan.md), besluit 5 en 6; de vraag
+kwam van Bart de Groot: met 2:1-producten haal je geen 120 g per uur, met alleen
+bananen en kruidkoek 60.
+
+**Wat er is.** `nutrition_recipes.carb_mix` (leeg, `glucose`, `2:1`, `1:0.8` of
+`eten`). De migratie vult de twaalf clubrecepten voor onderweg: de zelfgemaakte
+sportdrank `1:0.8` (suiker), de appelsap-sportdrank `2:1`, de rest `eten`. Bij
+een eigen recept voor onderweg staat een keuze "Koolhydraten" (ook als het
+recept uit een gescand product bestaat: dat is een recept met een barcode); de
+receptpagina toont de soort. De planner bij een event rekent de grens van wat
+je meeneemt: per soort 60, 90, 120 of 60 g per uur, gewogen naar de grammen
+van de bidons en het vaste eten in het plan (`planBagCap`). Ligt die onder de
+darmgrens, dan rekent hij het plan opnieuw op die grens, want met minder gram
+verschuift de verhouding tussen drank en eten; het scherm toont dan "grens …
+(wat je meeneemt)". `/hulp#voeding` beschrijft het.
+
+**Keuzes van ZWB in deze stap.** Leeg telt als 60, net als in §4e van het plan:
+voorzichtig, zodat een onbekend recept het advies niet opdrijft. De
+appelsap-sportdrank heeft meer fructose dan glucose; ZWB rekent die als 2:1, het
+dichtstbijzijnde getal dat niet te hoog uitvalt. Zolang de kolom ontbreekt (de
+migratie is nog niet toegepast) laat de planner de tasgrens weg in plaats van
+alles als onbekend te tellen: anders zakt elk race-advies naar 60. Opslaan van
+een recept valt zonder de kolom terug op opslaan zonder soort (PGRST204, zoals
+het delen).
+
+**Nu niet meer waar.** In [ritvoeding-plan.md](docs/ritvoeding-plan.md) §4
+staat "Glucose:fructose per product" onder bewust niet. Dat geldt nog voor het
+afleiden uit Open Food Facts of de ingrediëntenlijst; het lid kiest de soort nu
+zelf. Daar bijgewerkt.
+
+**Bewust niet in deze stap.** Geen soort afleiden uit het etiket of de NEVO-code
+(geen fructose in beide bronnen). Geen grens per moment in de rit: de grens
+geldt voor het hele plan. Het schema, de dagkaart en Boodschappen rekenen nog
+zonder de tasgrens; die staat alleen bij een event, net als de rest van het
+model.
+
+**Getest.** De migratie tegen PGlite in
+`tests/unit/nutrition-migration.test.ts` (geen lege soort bij de clubrecepten
+voor onderweg, `3:1` geweigerd, twee keer draaien geeft hetzelfde). Vier nieuwe
+tests in `tests/unit/nutrition-event-planner.test.ts` (alleen maltodextrine en
+eten: advies 60, grens "tas"; sportdrank met suiker: de darm beslist; zonder
+kolom geen tasgrens). Alle 292 voedingstests groen; de hele suite op vier
+bestanden na: `omnium-live.test.ts` zoekt `.env.local`, en drie bestanden
+(`club-theme`, `admin-areas`, `intervals-ride-sync`) liepen onder volle belasting
+in een tijdslimiet en slagen los gedraaid. `tsc` en eslint schoon.
+
+**Niet geverifieerd.** De migratie op productie (niet toegepast, alleen op
+verzoek; daarna de controlequery onderaan het bestand: eten 10, `1:0.8` 1,
+`2:1` 1). De receptkeuze en de grens op de eventpagina in de browser.
+
 ### Gebouwd — Eventvoeding, stap 2: het plan zelf aanpassen
 
-**2026-11-13, lokaal getest, nog niet gecommit; niet in de browser bekeken.** Op
+**2026-11-13, commit `844876ce`, lokaal, niet gepusht; niet in de browser bekeken.** Op
 verzoek van de eigenaar ("Ga maar verder", na stap 1). Geen migratie. Stap 2 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md).
 
@@ -12351,8 +12408,8 @@ nog zoals voorheen: het advies van het model staat alleen bij een event.
 
 **Bewust niet in deze stap.** Keuzes bewaren (stap 4, migratie): de herinnering
 en Boodschappen tonen dus het plan van het advies, niet je eigen keuze. Geen
-soort koolhydraten (stap 3), geen weer (stap 6): buiten rekent het vocht met
-15 °C.
+soort koolhydraten (kwam in stap 3), geen weer (stap 6): buiten rekent het
+vocht met 15 °C.
 
 **Getest.** `tests/unit/nutrition-event-planner.test.ts`, 14 tests; alle 285
 voedingstests en de hele suite (4503 tests) groen, op `omnium-live.test.ts` na,

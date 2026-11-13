@@ -6,7 +6,7 @@ import { portionFit, rankRecipes } from "@/lib/nutrition/menu";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 
-// 0168, 0169, 0213, 0214, 0259, 0261, 0264, 0272 en 0273 tegen een geïsoleerde PostgreSQL. Zegt niets over de
+// 0168, 0169, 0213, 0214, 0259, 0261, 0264, 0272, 0273 en 0328 tegen een geïsoleerde PostgreSQL. Zegt niets over de
 // productiedatabase zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -40,6 +40,7 @@ beforeAll(async () => {
   await db.exec(await migration("0264_nutrition_recipe_sharing.sql"));
   await db.exec(await migration("0272_nutrition_ride_carbs_120.sql"));
   await db.exec(await migration("0273_nutrition_sweat_tests.sql"));
+  await db.exec(await migration("0328_nutrition_recipe_carb_mix.sql"));
   await db.exec(
     "grant usage on schema public to authenticated; grant all on all tables in schema public to authenticated;",
   );
@@ -553,5 +554,26 @@ describe("zweettests (0273)", () => {
   it("weigert een onwaarschijnlijke of te korte test", async () => {
     await expect(as(APPROVED, () => insert(APPROVED, 100))).rejects.toThrow();
     await expect(as(APPROVED, () => insert(APPROVED, 900, 30))).rejects.toThrow();
+  });
+});
+
+describe("soort koolhydraten onderweg (0328)", () => {
+  it("geeft elk clubrecept voor onderweg een soort, en laat de rest leeg", async () => {
+    expect(
+      await count("select count(*) from nutrition_recipes where is_standard and meal_moment = 'tijdens_rit' and carb_mix is null"),
+    ).toBe(0);
+    expect(await count("select count(*) from nutrition_recipes where slug = 'sportdrank-zelfgemaakt' and carb_mix = '1:0.8'")).toBe(1);
+    expect(await count("select count(*) from nutrition_recipes where meal_moment <> 'tijdens_rit' and carb_mix is not null")).toBe(0);
+  });
+
+  it("weigert een onbekende soort", async () => {
+    await expect(
+      db.query("update nutrition_recipes set carb_mix = '3:1' where slug = 'sportdrank-zelfgemaakt'"),
+    ).rejects.toThrow();
+  });
+
+  it("kan twee keer draaien zonder iets te veranderen", async () => {
+    await db.exec(await migration("0328_nutrition_recipe_carb_mix.sql"));
+    expect(await count("select count(*) from nutrition_recipes where carb_mix = 'eten'")).toBe(10);
   });
 });

@@ -287,6 +287,12 @@ Elke stap een eigen ronde met commit, `PLAN.md`-blok en waar nodig `/hulp`.
 3. **Soort koolhydraten op recepten** (besluit 5 en 6). Kolom op
    `nutrition_recipes`, gevuld voor de clubrecepten, een keuze bij een eigen
    recept of gescand product; de opnamegrens van §4e telt mee. Migratie.
+
+   *Gebouwd op 2026-11-13, zie `PLAN.md`: migratie
+   `0328_nutrition_recipe_carb_mix.sql` (nog niet op productie), de keuze in het
+   receptformulier en `planBagCap` in `event-planner.ts`. Een gescand product
+   is hier een recept met een barcode en krijgt dezelfde keuze. Zonder de kolom
+   laat de planner de tasgrens weg.*
 4. **Keuzes bewaren per event** (besluit 7). Herinnering, Boodschappen en
    briefing lezen ze. Migratie, privacyzin en data-export.
 5. **Duur met marge.** De eigen verhouding per eventtype (p90) en de

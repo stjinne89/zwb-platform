@@ -386,7 +386,12 @@ export function KennisHelp() {
                   kg lichaamsgewicht, de rest blijft over voor de finale. Het
                   vermogen komt uit je pacingplan, anders uit je FTP. Het advies
                   gaat nooit boven wat je darm kan opnemen: 90 g per uur, of
-                  meer na de darmtraining. Bij &quot;Reken met&quot; vul je
+                  meer na de darmtraining. Ook wat je meeneemt telt: met alleen
+                  glucose (maltodextrine) of gewoon eten neem je ongeveer 60 g
+                  per uur op, met glucose en fructose 2:1 ongeveer 90, met 1:0,8
+                  of gewone suiker tot 120. Bij een eigen recept voor onderweg
+                  kies je die soort; weet je het niet, dan rekent{" "}
+                  <ClubShortName /> met 60. Bij &quot;Reken met&quot; vul je
                   zelf in waar het plan mee rekent, tot 150 g per uur; boven de
                   grens kleurt het getal. Daaronder zie je hoeveel je verbruikt,
                   eet en uit je voorraad haalt, en wanneer je de reserve

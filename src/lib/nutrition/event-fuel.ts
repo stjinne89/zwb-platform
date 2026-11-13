@@ -93,6 +93,27 @@ export function usableGlycogen(weightKg: number, loaded = false): number {
 export const CARB_MIXES = ["glucose", "2:1", "1:0.8", "eten", "onbekend"] as const;
 export type CarbMix = (typeof CARB_MIXES)[number];
 
+/** Wat er in nutrition_recipes.carb_mix kan staan (0328); leeg is onbekend. */
+export const STORED_CARB_MIXES = ["glucose", "2:1", "1:0.8", "eten"] as const;
+export type StoredCarbMix = (typeof STORED_CARB_MIXES)[number];
+
+export const CARB_MIX_LABELS: Record<CarbMix, string> = {
+  glucose: "Alleen glucose (maltodextrine)",
+  "2:1": "Glucose en fructose 2:1",
+  "1:0.8": "Glucose en fructose 1:0,8 of 1:1 (suiker)",
+  eten: "Gewoon eten",
+  onbekend: "Weet ik niet",
+};
+
+export function isStoredCarbMix(value: unknown): value is StoredCarbMix {
+  return (STORED_CARB_MIXES as readonly unknown[]).includes(value);
+}
+
+/** De soort van een recept; zonder (of zonder 0328) onbekend. */
+export function carbMixOf(recipe: { carb_mix?: string | null }): CarbMix {
+  return isStoredCarbMix(recipe.carb_mix) ? recipe.carb_mix : "onbekend";
+}
+
 /**
  * Opname per uur per soort. Alleen glucose (maltodextrine, dextrose, zetmeel):
  * ~60, de verzadiging van één transporter (Jeukendrup 2014). 2:1

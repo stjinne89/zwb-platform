@@ -18,6 +18,7 @@ import { foodSearchTokens } from "@/lib/nutrition/food-search";
 import { queryFoods, type FoodOption } from "@/lib/nutrition/food-query";
 import { RECIPE_VISIBILITIES, type RecipeVisibility } from "@/lib/nutrition/recipes";
 import { SWEAT_CONSENT_VERSION, SWEAT_SETTINGS, sweatRate } from "@/lib/nutrition/sweat";
+import { isStoredCarbMix } from "@/lib/nutrition/event-fuel";
 
 export type { FoodOption } from "@/lib/nutrition/food-query";
 
@@ -106,6 +107,9 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
   }
   const fuelProfile = text(formData.get("fuel_profile"));
   if (!(FUEL_PROFILES as readonly string[]).includes(fuelProfile)) return { ok: false, error: "Kies een profiel." };
+  // Alleen voor onderweg; leeg of onbekend bewaart "weet ik niet" (0328).
+  const carbMixRaw = text(formData.get("carb_mix"));
+  const carbMix = mealMoment === "tijdens_rit" && isStoredCarbMix(carbMixRaw) ? carbMixRaw : null;
 
   const servings = Math.round(Number(text(formData.get("servings"))));
   if (!Number.isFinite(servings) || servings < 1 || servings > 20) {
@@ -166,7 +170,9 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
     show_owner: visibility === "leden" && formData.get("show_owner") === "on",
     image_url: httpsUrl(text(formData.get("image_url"))),
   };
-  // Een kolom die er nog niet is: delen (0264) of de schep (0305).
+  // Pas na 0328; zonder die migratie bewaart het formulier het recept zonder soort.
+  const mix = { carb_mix: carbMix };
+  // Een kolom die er nog niet is: delen (0264), de schep (0305) of de soort (0328).
   const missingColumn = (error: { code?: string } | null) => error?.code === "PGRST204";
 
   const recipeId = text(formData.get("recipe_id"));
@@ -183,7 +189,8 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
         .eq("is_standard", false)
         .select("id, slug")
         .maybeSingle();
-    let { data: updated, error } = await update({ ...fields, ...sharing });
+    let { data: updated, error } = await update({ ...fields, ...sharing, ...mix });
+    if (missingColumn(error)) ({ data: updated, error } = await update({ ...fields, ...sharing }));
     if (missingColumn(error)) ({ data: updated, error } = await update(fields));
     if (error) return { ok: false, error: error.message };
     if (!updated) return { ok: false, error: "Dit recept kun je niet wijzigen." };
@@ -204,7 +211,8 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
     };
     const insert = (values: Record<string, unknown>) =>
       supabase.from("nutrition_recipes").insert(values).select("id, slug").single();
-    let { data: created, error } = await insert({ ...base, ...sharing });
+    let { data: created, error } = await insert({ ...base, ...sharing, ...mix });
+    if (missingColumn(error)) ({ data: created, error } = await insert({ ...base, ...sharing }));
     if (missingColumn(error)) ({ data: created, error } = await insert(base));
     if (error || !created) return { ok: false, error: error?.message ?? "Recept opslaan mislukt." };
     id = created.id as string;

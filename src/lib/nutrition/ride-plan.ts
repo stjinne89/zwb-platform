@@ -246,6 +246,11 @@ export function ridePlan(input: RidePlanInput): RidePlan | null {
   return plan ? { ...plan, options } : null;
 }
 
+/** Hetzelfde plan, maar alleen voor de gekozen houders: zonder `options`, voor tussenstappen. */
+export function ridePlanForHolders(input: RidePlanInput): RidePlan | null {
+  return planForHolders(input, input.holders ?? DEFAULT_HOLDERS);
+}
+
 function planForHolders(
   {
     minutes,

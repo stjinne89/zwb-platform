@@ -180,6 +180,7 @@ export function EventFuelControls({
         </span>
         <span className="text-sm tabular-nums text-muted-foreground">
           Advies {result.adviceG} · grens {result.capG}
+          {result.capBy === "tas" ? " (wat je meeneemt)" : ""}
         </span>
       </div>
       {balance ? (
