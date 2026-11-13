@@ -103,7 +103,8 @@ goed speelt, gaat sneller dan dit script.
 
 - **Grandtours** (meerdaagse rondes) bovenop de Wereldtour. Dat is een nieuwe
   spelvorm met klassementen over dagen; eerst moet blijken of de piramide
-  bevalt.
+  bevalt. Op 2026-11-13 vroeg de eigenaar er wel om; uitgewerkt in
+  [kopman-breder.md](kopman-breder.md), nog niet gebouwd.
 - **De daglimiet.** Die is weg: een pakket hangt nu aan je uitslag, niet aan
   de klok.
 - **Een salarisplafond of budget per niveau.** Overwogen om de groei verder te

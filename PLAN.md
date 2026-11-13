@@ -12269,6 +12269,29 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Ontwerp — Kopman: het spel breder maken (geen code)
+
+**2026-11-13, de commit "Kopman: onderzoek naar een breder spel", lokaal,
+niet gepusht.** Alleen documentatie.
+
+- **De vraag.** De eigenaar na 6 seizoenen: "elk seizoen makkelijk gewonnen
+  en het hoogste seizoen met 2x de punten van de nummer 2 ... De weg naar
+  boven is nogal een te rechte lijn ... er moet sowieso de top op de piramide
+  met de meerdaagse tours, maar onderzoek meerdere mogelijkheden".
+- **Wat er is.** [docs/kopman-breder.md](docs/kopman-breder.md): waarom het
+  een rechte lijn is (één lus zonder kosten of verval, geen keuzes buiten de
+  koers, alleen promotie als doel, een stilstaande wereld), wat Pro Cycling
+  Manager, Motorsport Manager, Football GM, Flamme Rouge Grand Tour, Slay the
+  Spire en Ultimate Team doen, en tien mogelijkheden met een omvang. Advies:
+  grote rondes als zesde trede, dan renners die ouder worden, dan sponsors
+  met doelen, dan gebeurtenissen en opdrachten.
+- **Niet meer waar.** In [docs/kopman-piramide.md](docs/kopman-piramide.md)
+  stond bij de grandtours "eerst moet blijken of de piramide bevalt"; de
+  eigenaar vraagt er nu om.
+- **Bewust niet gebouwd:** alles; de eigenaar kiest eerst.
+- **Niet geverifieerd:** de bronnen zijn winkelpagina's, recensies,
+  handleidingen en een blog, geen ontwerpdocumenten van de makers.
+
 ### Gebouwd — Kopman: sterkere pelotons
 
 **2026-11-13, de commit "Kopman: sterkere pelotons" (`52b6dc94`), op 2026-11-13
