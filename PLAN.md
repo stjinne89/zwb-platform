@@ -55,8 +55,7 @@ gaat stabiliteit voor nieuwe features.
    "Kopman: renners leven" (`dcc2f78b`) en "Kopman: sponsors en een
    salarisplafond" (`a5b058a7`) en "Kopman: keuzes, opdrachten en een
    kampioenschap" (`757749f8`), "Kopman: een wereld die beweegt"
-   (`efa5500a`) en "Kopman: de Wereldtour tot 100" (de commit van die
-   ronde). Op een telefoon vult het bord het scherm. Open: na de
+   (`efa5500a`) en "Kopman: de Wereldtour tot 100" (`f013b245`). Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12280,8 +12279,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: de Wereldtour tot 100
 
-**2026-11-13, de commit "Kopman: de Wereldtour tot 100", lokaal, niet
-gepusht.** Geen migratie, niets nieuws in de save.
+**2026-11-13, `f013b245`, lokaal, niet gepusht.** Geen migratie, niets nieuws in de save.
 
 - **Wat er is.** Zie
   [docs/kopman-breder.md](docs/kopman-breder.md#bijgesteld-de-wereldtour-tot-100).
