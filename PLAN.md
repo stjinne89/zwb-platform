@@ -7,6 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Eventvoeding: een plan dat sluit op tempo en duur (2026-11-13).** De
+   besluiten in §6 van [eventvoeding-plan.md](docs/eventvoeding-plan.md) zijn
+   akkoord (eigenaar, 2026-11-13). Stap 1 (het model, zonder scherm) is
+   gebouwd en lokaal getest, niet gecommit. Open: het toetsscript draaien op de
+   echte events zodra de Supabase-connector er weer is, daarna stap 2 (het
+   aanpasbare plan op de eventpagina). Zie de rondes "Gebouwd — Eventvoeding,
+   stap 1" en "Ontwerp — Eventvoeding".
+
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
    `0327_zrl_umbrella_restore.sql` is op 2026-11-13 toegepast op productie
@@ -12300,6 +12308,87 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Eventvoeding, stap 1: het model achter het advies
+
+**2026-11-13, lokaal getest, nog niet gecommit.** Op verzoek van de eigenaar
+("Ja, begin stap 1"). Geen migratie, niets in beeld. Stap 1 van
+[eventvoeding-plan.md](docs/eventvoeding-plan.md).
+
+**Wat er is.** `src/lib/nutrition/event-fuel.ts`, puur: verbruik uit vermogen
+(22% bruto-efficiëntie, aandeel koolhydraten naar IF), de balans met een te
+gebruiken voorraad van 60% van 6 g/kg (8 na laden), de opnamegrens als het
+laagste van darm (90, weekgetal darmtraining, of 120 na de eigen keuze) en tas
+(glucose 60, 2:1 90, 1:0,8 120, gewoon eten en onbekend 60, gewogen naar gram),
+het advies per uur (het hoogste van `rideTargetPerHour` en wat de balans vraagt,
+naar boven op 5 g, begrensd op de opnamegrens; het weekgetal tijdens de
+darmtraining), of laden helpt, en een vochtschatting uit de warmte (binnen
+alles via zweet, buiten naar temperatuur). `scripts/event-fuel-check.mjs` legt
+het model langs een export van gereden events (query in de kop van het script).
+Onderbouwing en bronnen in [voeding-wielrennen.md](docs/voeding-wielrennen.md)
+§3 en §6.
+
+**Waarom zo.** Het advies komt nooit lager uit dan het huidige doel (besluit 2):
+wie het plan nu volgt, krijgt niet ineens minder. Naar boven afronden, omdat het
+advies van 75 bij de race van 2 uur de balans net niet liet sluiten.
+
+**Voorbeelden uit het voorstel nu als test.** Daarbij veranderden twee getallen
+uit de eerste versie van het voorstel: de race van 2 uur geeft 80 g per uur
+(was 75, met de hand), de gran fondo zonder laden 75 (was 70). Bijgewerkt in §4
+van het voorstel.
+
+**Bewust niet in deze stap.** Geen scherm, geen koppeling met `ridePlan` of
+`loadEventRidePlan`: dat is stap 2. Geen kolom voor de soort koolhydraten: stap 3.
+
+**Getest.** `tests/unit/nutrition-event-fuel.test.ts`, 19 tests, alle groen; `tsc`
+schoon. Het toetsscript draait (op proefdata in de scratchpad).
+
+**Niet geverifieerd.** De toets tegen de echte events: de Supabase-connector viel
+tijdens deze ronde weg, dus het script is niet op productiedata gedraaid. De
+vindplaats van Ettema & Lorås (2009) is niet nagekeken, en of het SiS GO-poeder
+alleen maltodextrine is ook niet (de GO-gel wel, via winkelvermeldingen).
+Intervals.icu rekent de IF op NP; zonder pacingplan moet stap 2 dus van NP naar
+gemiddeld vermogen, anders is het verbruik te hoog.
+
+### Ontwerp — Eventvoeding: een plan dat sluit op tempo en duur (geen code)
+
+**2026-11-13, voorstel; besluiten akkoord (eigenaar, 2026-11-13).** Op verzoek van de eigenaar ("het
+advies qua voeding en drank voor een event lijkt nogal af te wijken van de
+werkelijkheid"). Geen code, geen migratie. Analyse en bouwvolgorde in
+[eventvoeding-plan.md](docs/eventvoeding-plan.md).
+
+**Gevonden (productie, alleen lezen, 2026-11-13).** Het ritplan bij een event
+rekent met een duurband, een zwaarte van één woord en vast 750 ml per uur; het
+gebruikt van het pacingplan alleen de duur. Niemand heeft een zweettest, dus
+die 750 ml geldt voor iedereen. Onder een uur is er geen plan, ook geen bidon.
+Toertochten duurden twee keer zo lang als gepland (`toertocht` staat niet in
+`EVENT_DEFAULTS`). De enige die onderweg eten vastlegt, at 66–119 g per uur
+waar het plan 30–60 gaf.
+
+**Voorstel.** Een balans uit het verwachte vermogen: verbruik, voorraad en wat
+je moet eten om niet leeg te rijden, begrensd op wat je darm opneemt en nooit
+lager dan het huidige doel. Vocht uit de warmte die je kwijt moet, binnen en
+buiten, met het weer. Eetmomenten uit de accenten van het pacingplan. Na het
+event het plan naast de gereden rit en het eetdagboek, als ijking per lid.
+
+**Tweede versie, dezelfde dag.** Op verzoek van de eigenaar, met input van
+clublid Bart de Groot: een knop Duur, Tempo, Race (advies 60, 90 of 120 g per
+uur bij een lange rit), schuifjes voor intensiteit, duur en vocht, en een veld
+"Reken met" naast het advies ("ik adviseer 120, reken met 135"). De grens per
+uur hangt dan ook af van wat je meeneemt: alleen glucose of gewoon eten ~60,
+2:1 ~90, 1:0,8 of 1:1 tot 120. Het lid kiest de soort per recept, omdat Open
+Food Facts en NEVO geen fructose geven. Daarmee wordt "glucose:fructose per
+product" uit "Bewust niet" van ritvoeding-plan.md teruggetrokken zodra stap 3
+gebouwd is; afleiden uit het etiket blijft bewust niet. Stap 3 en 4 vragen een
+migratie.
+
+**Bewust niet.** Verbruik gelijk aan inname, fructose afleiden uit het etiket,
+een kcal-getal in beeld, een dagelijkse "glycogeentank", een harde blokkade
+boven de grens, een mg-doel voor natrium; zie §8 van het voorstel.
+
+**Niet geverifieerd.** De rekenvoorbeelden zijn met de hand gemaakt. De
+bruto-efficiëntie, het aandeel koolhydraten per IF en de voorraad per kg zijn
+aannames tot stap 1 ze met bronnen onderbouwt.
 
 ### Hersteld — Schema neemt een nieuwe eventtitel over
 

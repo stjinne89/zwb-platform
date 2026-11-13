@@ -135,6 +135,28 @@ koolhydraten. Bij twee ritten op een dag telt de zwaarte van de langste. *Tot
   aantal bidons uit het vochtdoel als het lid een zweettest heeft, zie §6.*
 - **Hitte en hoogte.** Die verlagen de oxidatie met 20–50%. De richtlijn
   verandert daardoor niet.
+- **Verbruik en balans bij een event** (`src/lib/nutrition/event-fuel.ts`,
+  sinds 2026-11-13, nog niet in beeld; zie
+  [eventvoeding-plan.md](eventvoeding-plan.md)). Energie = vermogen / 22%
+  bruto-efficiëntie (18–25% bij getrainden, Ettema & Lorås 2009). Het aandeel
+  koolhydraten stijgt met de IF: 45% bij 0,55, 58% bij 0,65, 70% bij 0,75, 82%
+  bij 0,85 en 92% vanaf 0,95, lineair daartussen. Die punten zijn een vertaling
+  van ZWB uit Romijn et al. (1993) en van Loon et al. (2001), die zagen dat de
+  vetverbranding rond 55% Wmax piekt en bij 75% Wmax weer daalt. Te gebruiken
+  voorraad: 6 g glycogeen per kg (8 na laden), waarvan het model 60% laat
+  opmaken; de rest is reserve voor de finale. De 6 en 8 zijn een vertaling van
+  ZWB voor beenspieren en lever, met Areta & Hopkins (2018, 181 studies naar
+  spierglycogeen in rust en tijdens duurinspanning) als richting; de 60% is een
+  keuze van ZWB. Het advies per uur is het hoogste van het doel hierboven en wat
+  de balans vraagt, begrensd op de opnamegrens.
+- **Opnamegrens per soort** (zelfde module). Alleen glucose (maltodextrine,
+  dextrose, zetmeel) ~60 g/u, de grens van één transporter (Jeukendrup 2014);
+  2:1 glucose:fructose ~90; 1:0,8 en 1:1 tot ~120 (Podlogar & Wallis 2022). Gewoon
+  eten (banaan, koek, broodje) telt als 60: een praktische grens van ZWB
+  (kauwen, vezels, volume), geen opnamegrens. Een onbekende soort telt
+  voorzichtig als 60. Bij een mix het gemiddelde naar gram koolhydraten (keuze
+  van ZWB). De grens van de darm blijft 90, het weekgetal van de darmtraining, of
+  120 na de eigen keuze daarvoor (§4).
 - **Profpeloton.** Het ≥100 g/u daar hangt samen met een hoge dagelijkse inname.
   Dat is observationeel, en de overdraagbaarheid naar recreanten is onbekend
   (Wilson 2025).
@@ -144,6 +166,11 @@ Bronnen:
 - Podlogar T, Wallis GA (2022). New Horizons in Carbohydrate Research and Application for Endurance Athletes. *Sports Med* 52(Suppl 1):5–23 — https://pmc.ncbi.nlm.nih.gov/articles/PMC9734239/
 - Wilson PB (2025). A Narrative Review of the High-Carbohydrate Fueling Revolution (≥100 g/h) in the Professional Peloton. *Sports Med* 56(2):295–313 — https://link.springer.com/article/10.1007/s40279-025-02372-6
 - Jeukendrup AE, et al. (2026). UCI Sports Nutrition Project: Race Nutrition for Road Cycling. *IJSNEM* — https://pubmed.ncbi.nlm.nih.gov/41911900/
+- Jeukendrup AE (2014). A Step Towards Personalized Sports Nutrition: Carbohydrate Intake During Exercise. *Sports Med* 44(Suppl 1):S25–S33 — https://pmc.ncbi.nlm.nih.gov/articles/PMC4008807/
+- Romijn JA, Coyle EF, Sidossis LS, et al. (1993). Regulation of endogenous fat and carbohydrate metabolism in relation to exercise intensity and duration. *Am J Physiol* 265(3):E380–E391 — https://pubmed.ncbi.nlm.nih.gov/8214047/
+- van Loon LJC, Greenhaff PL, Constantin-Teodosiu D, Saris WHM, Wagenmakers AJM (2001). The effects of increasing exercise intensity on muscle fuel utilisation in humans. *J Physiol* 536(1):295–304 — https://pmc.ncbi.nlm.nih.gov/articles/PMC2278845/
+- Ettema G, Lorås HW (2009). Efficiency in cycling: a review. *Eur J Appl Physiol* 106(1):1–14 (tijdschrift en pagina's niet nagekeken; de vindplaats volgt in de kennisbank-scan)
+- Areta JL, Hopkins WG (2018). Skeletal Muscle Glycogen Content at Rest and During Endurance Exercise in Humans: A Meta-Analysis. *Sports Med* 48(9):2091–2102 — https://pubmed.ncbi.nlm.nih.gov/29923148/
 - de Oliveira EP, Burini RC (2014). Carbohydrate-dependent, exercise-induced gastrointestinal distress. *Nutrients* 6(10):4191–4199 — https://pmc.ncbi.nlm.nih.gov/articles/PMC4210913/
 
 ## 4. Darmtraining en maagklachten
@@ -204,6 +231,14 @@ wat nodig is om onder 2% gewichtsverlies te blijven en het zweetverlies zelf
 midden daarvan. ZWB rekent met de laatste test. Natrium krijgt geen getal: het
 zoutgehalte van zweet is niet uit gewicht af te leiden. De grenzen (45 minuten,
 0,2–3 l) zijn keuzes van ZWB.
+
+**Vocht zonder zweettest** (`event-fuel.ts`, sinds 2026-11-13, nog niet in
+beeld). Warmte = energie − werk; zweet dat nodig is = warmte / 2,43 kJ per gram
+(verdampingswarmte), maal het deel dat via zweet weg moet. Binnen is dat alles,
+buiten 40% bij 10 °C, 60% bij 20, 90% bij 30 en alles vanaf 35 °C, met 15 °C
+als er geen verwachting is. Die delen zijn een keuze van ZWB, te ijken zodra er
+zweettests zijn; een test gaat altijd voor. Daarna dezelfde regel als met een
+test.
 
 - **Snel herstel.** Valt de volgende zware sessie binnen ongeveer 8 uur, dan
   1,0–1,2 g/kg/u koolhydraten in de eerste uren. ZWB geeft deze tip als je al
