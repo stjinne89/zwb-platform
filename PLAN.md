@@ -12329,8 +12329,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Durability-test: altijd afvinken
 
-**2026-11-13, de commit "Durability-test: altijd afvinken", lokaal, niet
-gepusht.** Geen migratie.
+**2026-11-13, de commit "Durability-test: altijd afvinken" (`95512496`), op
+2026-11-13 gepusht naar main.** Geen migratie.
 
 - **Waarom.** Bart reed vandaag de test ("Zwift - Durability protocol", 1432
   kJ) en startte het protocol, maar vinkte nog niet af, dus de app telde hem
