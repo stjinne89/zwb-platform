@@ -582,3 +582,7 @@
 .offerTerms dd { margin: 0; font-weight: 750; font-variant-numeric: tabular-nums; }
 .overBudget { color: var(--red); font-size: 0.85rem; font-weight: 800; }
 .salary { display: inline-flex; align-items: center; gap: 2px; font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Choices, championships and tasks (2026-11-13). */
+.eventPanel { background: var(--dots), var(--yellow-soft); }
+.champMark { position: absolute; right: -6px; top: -11px; padding: 1px 6px; border-radius: 4px; border: 1.5px solid var(--line-ink); font-size: 0.6rem; font-weight: 850; text-transform: uppercase; letter-spacing: 0.05em; color: var(--line-ink); background: linear-gradient(90deg, #4f8fe8 0 20%, #e0523f 20% 40%, #1b1712 40% 60%, #ffc53d 60% 80%, #3fb565 80%); color: #fff; text-shadow: 0 1px 0 #1b1712; transform: rotate(4deg); }

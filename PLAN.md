@@ -53,7 +53,8 @@ gaat stabiliteit voor nieuwe features.
    in de Wereldtour. Daarna lokaal, niet gepusht: de rondes van het
    samengevoegde voorstel om het spel te verbreden, te beginnen met
    "Kopman: renners leven" (`dcc2f78b`) en "Kopman: sponsors en een
-   salarisplafond" (de commit van die ronde). Op een telefoon vult het bord het scherm. Open: na de
+   salarisplafond" (`a5b058a7`) en "Kopman: keuzes, opdrachten en een
+   kampioenschap" (de commit van die ronde). Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12275,10 +12276,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: keuzes, opdrachten en een kampioenschap (ronde C)
+
+**2026-11-13, de commit "Kopman: keuzes, opdrachten en een kampioenschap",
+lokaal, niet gepusht.** Geen migratie. De save krijgt `event`, `pledge`,
+`tasks` en `champ`. Een save zonder die velden krijgt de opdrachten van het
+lopende seizoen bij het laden.
+
+- **Wat er is.** Zie
+  [docs/kopman-breder.md](docs/kopman-breder.md#gebouwd-ronde-c-een-seizoen-met-keuzes).
+  - `src/kopman/engine/events.ts`: vier soorten keuzes, en drie opdrachten
+    per seizoen.
+  - `economy.ts`:
+    - na elke koers `afterwards` (de pers, groeiopdrachten, een keuze);
+    - `answerEvent`, `handIn`;
+    - het kampioenschap (`champOpen`, `champSetup`, `finishChampionship`).
+  - `world.ts`: vijf kampioenschapskoersen, één per niveau. Ze staan in
+    `raceById`, maar niet in de kalender.
+  - Een sponsordoel "Word kampioen".
+  - Schermen:
+    - de keuze en het kampioenschap op het koersscherm;
+    - de opdrachten op het seizoensscherm;
+    - een kampioenstitel op de kaart.
+- **Waarom.** Tussen twee koersen viel niets te kiezen, en dubbele kaarten
+  hadden alleen een doel bij ruilen en verkopen. Een kampioenschap laat de
+  breedte van een verzameling tellen.
+- **Niet meer waar.** `raceById` bevat ook de kampioenschappen; wie alle
+  koersen van de kalender wil, gebruikt `RACES` of `calendarOf`.
+- **Bewust niet gebouwd:**
+  - een knecht die minder hard rijdt na een nee (hij verliest vorm, verder
+    niets);
+  - keuzes midden in een ronde;
+  - een nationaal kampioenschap per land met eigen pelotons: je rijdt tegen
+    het peloton van je niveau.
+- **Geverifieerd:**
+  - tsc, eslint, en de Kopman-tests (103, waarvan 8 nieuw in
+    `tests/unit/kopman-season.test.ts`, met een bord van drie eigen renners);
+  - in de preview op een testsave op 127.0.0.1 de keuze van de pers, de
+    opdrachten, de landen van het kampioenschap en de start ervan.
+- **Niet geverifieerd:** een kampioenschap tot de finish in de app; `next
+  build`.
+
 ### Gebouwd — Kopman: sponsors en een salarisplafond (ronde B)
 
-**2026-11-13, de commit "Kopman: sponsors en een salarisplafond", lokaal,
-niet gepusht.** Geen migratie. De save krijgt `fame`, `sponsor` en `loyal`;
+**2026-11-13, `a5b058a7`, lokaal, niet gepusht.** Geen migratie. De save krijgt `fame`, `sponsor` en `loyal`;
 een save zonder krijgt populariteit 20 en geen sponsor.
 
 - **Wat er is.** Zie

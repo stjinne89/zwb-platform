@@ -108,4 +108,16 @@ export const PLAYER_COLOR = "#ffc53d";
 
 export const climbById = new Map(CLIMBS.map((c) => [c.id, c]));
 export const sectorById = new Map(SECTORS.map((x) => [x.id, x]));
-export const raceById = new Map(RACES.map((r) => [r.id, r]));
+/**
+ * Championships (since 2026-11-13): one a season per level, ridden with
+ * riders of one country only (economy.ts, `champSetup`).
+ */
+export const CHAMPIONSHIPS: RaceDef[] = [
+  { id: "kampioenschap-0", name: "Kampioenschap", country: "", kind: "klassieker", items: [v(30), k("cauberg"), v(15), k("cauberg"), v(10)] },
+  { id: "kampioenschap-1", name: "Kampioenschap", country: "", kind: "klassieker", items: [v(40), k("cauberg"), v(20), k("cauberg"), v(15), k("cauberg"), v(8)] },
+  { id: "kampioenschap-2", name: "Kampioenschap", country: "", kind: "klassieker", items: [v(50), k("la-redoute"), v(25), k("roche-aux-faucons"), v(15)] },
+  { id: "kampioenschap-3", name: "Kampioenschap", country: "", kind: "klassieker", items: [v(60), k("la-redoute"), v(30), k("roche-aux-faucons"), v(12), k("mur-de-huy")] },
+  { id: "kampioenschap-4", name: "Kampioenschap", country: "", kind: "klassieker", items: [v(70), k("ghisallo"), d(8, 6), v(30), k("san-fermo"), d(2.5, 6), v(15)] },
+];
+
+export const raceById = new Map([...RACES, ...CHAMPIONSHIPS].map((r) => [r.id, r]));

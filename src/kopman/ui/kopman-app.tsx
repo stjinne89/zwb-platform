@@ -4,9 +4,10 @@ import { CalendarDays, ChevronDown, ChevronUp, Coins, Crown, Flag, Megaphone, Mo
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cardById, TIER_LABELS, TYPE_LABELS } from "../engine/cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "../engine/course";
-import { altitudeCamp, bestLineup, budgetOf, buyPack, calendarOf, campCost, campDone, canSkip, canStart, chooseSponsor, currentRace, lineupSalary, needsSponsor, offersFor, salaryFor, currentTour, liveCard, raceSetup, skipRace, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save, type TourReward } from "../engine/economy";
+import { altitudeCamp, answerEvent, bestLineup, budgetOf, champCountries, champOpen, champSetup, finishChampionship, handIn, handInPicks, buyPack, calendarOf, campCost, campDone, canSkip, canStart, chooseSponsor, currentRace, lineupSalary, needsSponsor, offersFor, salaryFor, currentTour, liveCard, raceSetup, skipRace, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save, type TourReward } from "../engine/economy";
 import { generalOf, jerseysOf, type GcRow, type Jerseys } from "../engine/tour";
 import { goalTarget, goalText, type Sponsor } from "../engine/sponsors";
+import { EVENT_ANSWERS, PERS, taskText, type GameEvent } from "../engine/events";
 import type { Carry } from "../engine/board";
 import type { Lineup } from "../engine/race";
 import { bestItems, GEAR_SLOTS, isItem, ITEMS, STAFF_ROLES, teamBonus, type ItemSlot } from "../engine/items";
@@ -37,7 +38,7 @@ const pct = (n: number) => `${Math.round(n * 100)}%`;
 /** Age and form of a rider you own; his talent only when you have a scout. */
 function lifeOf(save: Save, id: string): CardLife | undefined {
   const life = save.riders[id];
-  return life ? { age: life.age, form: life.form, talent: bestItems(save.items).scout ? life.talent : null } : undefined;
+  return life ? { age: life.age, form: life.form, talent: bestItems(save.items).scout ? life.talent : null, titles: life.titles } : undefined;
 }
 
 function newSeed() {
@@ -58,7 +59,7 @@ export function KopmanApp() {
   const saveRef = useRef<Save | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("koers");
-  const [racing, setRacing] = useState<{ raceId: string; seed: number; lineup: Lineup; carry?: Carry; title?: string } | null>(null);
+  const [racing, setRacing] = useState<{ raceId: string; seed: number; lineup: Lineup; carry?: Carry; title?: string; champ?: boolean } | null>(null);
   // Back from a race leaves it standing; Verder on the race tab picks it up again.
   const [away, setAway] = useState(false);
   const [result, setResult] = useState<{ raceId: string; placings: Placing[]; reward: RaceReward } | null>(null);
@@ -87,11 +88,13 @@ export function KopmanApp() {
     return () => cancelAnimationFrame(frame);
   }, [update]);
 
+  const champ = useRef(false);
   const onFinish = useCallback((state: RaceState, kracht: Record<string, number>) => {
     const current = saveRef.current;
     if (!current) return;
     const placings = results(state);
-    const { save: next, reward } = finishRace(current, placings, kracht);
+    const { save: next, reward } = champ.current ? finishChampionship(current, placings) : finishRace(current, placings, kracht);
+    champ.current = false;
     update(next);
     setRacing(null);
     setAway(false);
@@ -109,6 +112,19 @@ export function KopmanApp() {
     const tour = currentTour(save);
     // In a stage race the board says which stage it is.
     if (setup) setRacing({ ...setup, title: tour ? `Etappe ${(save.tour?.stage ?? 0) + 1}/${tour.stages.length}` : undefined });
+  };
+  const startChamp = (country: string) => {
+    if (racing) return;
+    const setup = champSetup(save, country);
+    if (!setup) return;
+    champ.current = true;
+    setRacing({ ...setup, title: `Kampioenschap ${country}`, champ: true });
+  };
+  const handInTask = (index: number) => {
+    const done = handIn(save, index);
+    if (!done) return;
+    update(done.save);
+    if (done.pull) setReveal({ title: "Opdracht", pulls: [done.pull] });
   };
   const open = (type: PackType) => {
     const opened = openPackOf(save, type);
@@ -149,10 +165,10 @@ export function KopmanApp() {
           </button>
         ))}
       </div>
-      {tab === "koers" ? <RaceTab save={save} update={update} running={!!racing} onStart={start} /> : null}
+      {tab === "koers" ? <RaceTab save={save} update={update} running={!!racing} onStart={start} onChamp={startChamp} /> : null}
       {tab === "ploeg" ? <TeamTab save={save} update={update} /> : null}
       {tab === "pakketten" ? <PacksTab save={save} update={update} onOpen={open} onTrade={trade} onPick={setPicking} /> : null}
-      {tab === "seizoen" ? <SeasonTab save={save} update={update} /> : null}
+      {tab === "seizoen" ? <SeasonTab save={save} update={update} onHandIn={handInTask} /> : null}
 
       {racing ? (
         <div className={styles.race} role="region" aria-label={raceById.get(racing.raceId)?.name} style={away ? { display: "none" } : undefined}>
@@ -166,7 +182,7 @@ export function KopmanApp() {
   );
 }
 
-function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: Save) => void; running: boolean; onStart: () => void }) {
+function RaceTab({ save, update, running, onStart, onChamp }: { save: Save; update: (s: Save) => void; running: boolean; onStart: () => void; onChamp: (country: string) => void }) {
   if (seasonDone(save)) {
     const standings = seasonStandings(save);
     const rank = standings.findIndex((t) => t.id === PLAYER_TEAM) + 1;
@@ -203,6 +219,8 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
     <div className={styles.stack}>
       {save.report ? <SeasonReportPanel save={save} update={update} /> : null}
       {needsSponsor(save) ? <SponsorChoice save={save} update={update} /> : null}
+      {save.event ? <EventPanel save={save} event={save.event} update={update} /> : null}
+      {champOpen(save) && champCountries(save).length ? <ChampionshipPanel save={save} running={running} onChamp={onChamp} /> : null}
       <div className={styles.panel}>
         <div className={styles.raceHead}>
           <div>
@@ -505,12 +523,13 @@ function StandingsTable({ save }: { save: Save }) {
   );
 }
 
-function SeasonTab({ save, update }: { save: Save; update: (s: Save) => void }) {
+function SeasonTab({ save, update, onHandIn }: { save: Save; update: (s: Save) => void; onHandIn: (index: number) => void }) {
   return (
     <div className={styles.stack}>
       <div className={styles.h2}>Seizoen {save.season} · {DIVISIONS[save.division].name}</div>
       <Pyramid division={save.division} />
       {save.sponsor ? <SponsorPanel sponsor={save.sponsor} /> : null}
+      {save.tasks?.length ? <TasksPanel save={save} onHandIn={onHandIn} /> : null}
       <StandingsTable save={save} />
       {save.seasonResults.length ? (
         <div className={styles.panel}>
@@ -677,6 +696,63 @@ function SponsorPanel({ sponsor }: { sponsor: Sponsor }) {
         <span className={sponsor.met ? styles.badge : styles.muted}>{sponsor.met ? "Doel gehaald" : `${Math.min(sponsor.progress, goalTarget(sponsor.goal))}/${goalTarget(sponsor.goal)}`}</span>
       </div>
       <div className={styles.muted} style={{ marginTop: 4 }}>{goalText(sponsor.goal)} · bonus {sponsor.bonus.toLocaleString("nl-NL")} · {sponsor.pay.toLocaleString("nl-NL")} per koers · budget {sponsor.budget}</div>
+    </div>
+  );
+}
+
+function eventText(event: GameEvent, own: string) {
+  if (event.kind === "kopman") return `${riderName(event.rider)} wil kopman zijn`;
+  if (event.kind === "bod") return `${teamName(event.team, own)} biedt ${event.coins.toLocaleString("nl-NL")} voor ${riderName(event.rider)}`;
+  if (event.kind === "val") return `${riderName(event.rider)} valt op training`;
+  return `De pers wil een podium in de volgende koers (top ${PERS.place})`;
+}
+
+/** A choice between two races: it waits for an answer before the next start. */
+function EventPanel({ save, event, update }: { save: Save; event: GameEvent; update: (s: Save) => void }) {
+  const [yes, no] = EVENT_ANSWERS[event.kind];
+  return (
+    <div className={`${styles.panel} ${styles.eventPanel}`} role="group" aria-label="Keuze">
+      <div className={styles.h3}>{eventText(event, save.teamName)}</div>
+      <div className={styles.row} style={{ marginTop: 10 }}>
+        <button type="button" className={styles.primary} onClick={() => update(answerEvent(save, 0))}>{yes}</button>
+        <button type="button" className={styles.secondary} onClick={() => update(answerEvent(save, 1))}>{no}</button>
+      </div>
+    </div>
+  );
+}
+
+/** The championship of the season: pick a country, ride with its riders. */
+function ChampionshipPanel({ save, running, onChamp }: { save: Save; running: boolean; onChamp: (country: string) => void }) {
+  return (
+    <div className={styles.panel}>
+      <div className={styles.h3} style={{ marginBottom: 8 }}>Kampioenschap</div>
+      <div className={styles.row}>
+        {champCountries(save).map((c) => (
+          <button key={c.country} type="button" className={styles.ghost} disabled={running} onClick={() => onChamp(c.country)}><Flag size={14} aria-hidden />{c.country} · {Math.min(c.riders, LINEUP_SIZE)}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TasksPanel({ save, onHandIn }: { save: Save; onHandIn: (index: number) => void }) {
+  return (
+    <div className={styles.panel}>
+      <div className={styles.h3} style={{ marginBottom: 8 }}>Opdrachten</div>
+      <ul className={styles.reportList}>
+        {save.tasks!.map((task, i) => {
+          const picks = handInPicks(save, task);
+          const ask = () => { if (window.confirm(`Inleveren: ${picks.map(riderName).join(", ")}?`)) onHandIn(i); };
+          return (
+            <li key={i} className={styles.row} style={{ justifyContent: "space-between" }}>
+              <span>{taskText(task)}</span>
+              {task.done ? <span className={styles.badge}>Klaar</span>
+                : task.kind === "groei" ? <span className={styles.muted}>{task.progress}/{task.n}</span>
+                : <button type="button" className={styles.ghost} disabled={!picks.length} onClick={ask}>Inleveren</button>}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

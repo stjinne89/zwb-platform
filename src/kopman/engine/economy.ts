@@ -1,6 +1,7 @@
 import { cardById, pool } from "./cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "./course";
-import { BASE_BUDGET, FAME_JERSEY, FAME_SKIP, FAME_START, fameAfter, fameNextSeason, goalStep, goalTarget, salaryOf, sponsorOffers, type Sponsor } from "./sponsors";
+import { BASE_BUDGET, FAME_JERSEY, FAME_SKIP, FAME_START, fameAfter, fameNextSeason, goalStep, goalTarget, kindsIn, salaryOf, sponsorOffers, type Sponsor } from "./sponsors";
+import { crashHurts, drawEvent, EVENT_FORM, GROWTH_POINTS, GROWTH_STAT, PERS, tasksFor, type GameEvent, type Task } from "./events";
 import { ITEMS, itemById, teamBonus } from "./items";
 import { KIND_ODDS, openPack, PACK_PRICE } from "./packs";
 import type { Lineup, Placing } from "./race";
@@ -8,7 +9,7 @@ import type { Carry } from "./board";
 import { bookStage, generalOf, jerseysOf, newTour, TOUR_RECOVERY, tourRivals, type GcRow, type Jerseys, type TourState } from "./tour";
 import { clamp, hashSeed, rng } from "./rng";
 import { baseOverall, FORM_CAMP, FORM_COST, FORM_REST, FORM_SKIP, lifeFor, liveCardOf, restLives, retireAge, seasonChange, type RiderLife } from "./riders";
-import { DIVISIONS, PROMOTED, RELEGATED, TOP_DIVISION } from "./divisions";
+import { CHAMPIONSHIP_AFTER, championshipOf, DIVISIONS, PROMOTED, RELEGATED, TOP_DIVISION } from "./divisions";
 import { rivalTeams } from "./teams";
 import { PLAYER_TEAM, RIDER_TYPES, type PackType, type RaceDef, type Tier, type TourDef } from "./types";
 import { raceById, tourById } from "./world";
@@ -83,6 +84,11 @@ export type Save = {
   fame: number;
   sponsor: Sponsor | null;
   loyal: string | null;
+  /** Round C (events.ts): the choice after the last race, the press challenge for the next, the tasks of the season, the season of your last championship. */
+  event: GameEvent | null;
+  pledge: "pers" | null;
+  tasks: Task[] | null;
+  champ: number | null;
 };
 
 export type Legend = { id: string; season: number; age: number; wins: number; titles: number };
@@ -95,11 +101,14 @@ export const CAMP_COINS = 1500;
 export function withLives(save: Save): Save {
   const riders = save.riders ?? {};
   const missing = Object.keys(save.collection).filter((id) => !riders[id]);
-  if (!missing.length && save.riders) return save;
+  if (!missing.length && save.riders && save.tasks) return save;
   const next = { ...riders };
   for (const id of missing) next[id] = lifeFor(save.seed, id);
-  return { ...save, riders: next, legends: save.legends ?? [], camp: save.camp ?? null, report: save.report ?? null, fame: save.fame ?? FAME_START, sponsor: save.sponsor ?? null, loyal: save.loyal ?? null };
+  const filled: Save = { ...save, riders: next, legends: save.legends ?? [], camp: save.camp ?? null, report: save.report ?? null, fame: save.fame ?? FAME_START, sponsor: save.sponsor ?? null, loyal: save.loyal ?? null, event: save.event ?? null, pledge: save.pledge ?? null, tasks: save.tasks ?? null, champ: save.champ ?? null };
+  return filled.tasks ? filled : { ...filled, tasks: seasonTasks(filled) };
 }
+
+const seasonTasks = (save: Save) => tasksFor(save.seed, save.season, save.division, save.collection, [...kindsIn(save.division)]);
 
 /** What a rider of yours earns: by his overall without the form. */
 export const salaryFor = (save: Save, id: string) => salaryOf(save.riders?.[id] ? baseOverall(id, save.riders[id]) : cardById(id).overall);
@@ -122,7 +131,7 @@ export function chooseSponsor(save: Save, index: number): Save {
   return offer ? { ...save, sponsor: offer } : save;
 }
 /** Whether the next race can start: five riders, a kopman, a sponsor, and within the budget. */
-export const canStart = (save: Save) => save.lineup.length === LINEUP_SIZE && !!save.kopman && !needsSponsor(save) && lineupSalary(save) <= budgetOf(save);
+export const canStart = (save: Save) => save.lineup.length === LINEUP_SIZE && !!save.kopman && !needsSponsor(save) && !save.event && lineupSalary(save) <= budgetOf(save);
 
 /** A rider as he rides today: his card with growth, and minus what he lacks in form. */
 export const liveCard = (save: Save, id: string) => liveCardOf(id, save.riders?.[id]);
@@ -167,6 +176,10 @@ export function newSave(seed: number): Save {
     fame: FAME_START,
     sponsor: null,
     loyal: null,
+    event: null,
+    pledge: null,
+    tasks: null,
+    champ: null,
   });
 }
 
@@ -438,8 +451,141 @@ export function finishRace(save: Save, placings: Placing[], kracht: Record<strin
     raceIndex: save.raceIndex + 1,
     seasonResults: [...save.seasonResults, { race: race.id, winner: placings[0]?.id ?? "", best, points, coins: earned, pack }],
   };
-  const closed = closeSeason(next);
+  const closed = closeSeason(afterwards(save, next, placings, best, race.id));
   return { save: closed.save, reward: { coins: earned, points, pack, best, season: closed.season, pay: pub.pay, bonus: pub.bonus } };
+}
+
+/**
+ * After any race: the press challenge comes in, growth tasks count, and
+ * outside a stage race there may be a choice for the next.
+ */
+function afterwards(before: Save, next: Save, placings: Placing[], best: number, raceId: string): Save {
+  let out = next;
+  if (before.pledge === "pers") out = { ...out, pledge: null, fame: clamp(out.fame + (best >= 1 && best <= PERS.place ? PERS.win : PERS.lose), 0, 100) };
+  const kind = courseKind(buildCourse(raceById.get(raceId)!));
+  const top10 = new Set(placings.filter((p) => p.team === PLAYER_TEAM && p.place >= 1 && p.place <= 10).map((p) => p.id));
+  const riders = { ...out.riders };
+  const tasks = (out.tasks ?? []).map((t) => {
+    if (t.kind !== "groei" || t.done || t.soort !== kind || !top10.has(t.rider)) return t;
+    const progress = t.progress + 1;
+    const done = progress >= t.n;
+    const life = riders[t.rider];
+    if (done && life) riders[t.rider] = { ...life, extra: { ...life.extra, [GROWTH_STAT[t.soort]]: (life.extra[GROWTH_STAT[t.soort]] ?? 0) + GROWTH_POINTS } };
+    return { ...t, progress, done };
+  });
+  out = { ...out, riders, tasks };
+  if (out.tour || seasonDone(out)) return { ...out, event: null };
+  const spare = Object.keys(out.collection).filter((id) => !out.lineup.includes(id)).sort();
+  const event = drawEvent(out.seed, [out.season, out.division, before.raceIndex, before.tour?.stage ?? 0], out.lineup, out.kopman, spare, rivalTeams(out.division).map((t) => t.id), (id) => DUPLICATE_COINS[cardById(id).tier]);
+  return { ...out, event };
+}
+
+/** Answers the choice: 0 is the first button, 1 the second. */
+export function answerEvent(save: Save, answer: 0 | 1): Save {
+  const event = save.event;
+  if (!event) return save;
+  const done: Save = { ...save, event: null };
+  const form = (id: string, delta: number) => (done.riders[id] ? { ...done.riders, [id]: { ...done.riders[id], form: clamp(done.riders[id].form + delta, 0, 100) } } : done.riders);
+  switch (event.kind) {
+    case "kopman":
+      return answer === 0 && save.lineup.includes(event.rider) ? { ...done, kopman: event.rider, riders: form(event.rider, EVENT_FORM.yes) } : { ...done, riders: form(event.rider, answer === 0 ? 0 : EVENT_FORM.no) };
+    case "bod": {
+      if (answer !== 0 || !save.collection[event.rider] || save.lineup.includes(event.rider)) return done;
+      const collection = { ...save.collection };
+      collection[event.rider] -= 1;
+      if (collection[event.rider] <= 0) delete collection[event.rider];
+      return { ...done, collection, coins: save.coins + event.coins };
+    }
+    case "val": {
+      const key = [save.season, save.raceIndex, event.rider];
+      return { ...done, riders: form(event.rider, answer === 0 ? EVENT_FORM.rest : crashHurts(save.seed, key) ? EVENT_FORM.crash : 0) };
+    }
+    case "pers":
+      return answer === 0 ? { ...done, pledge: "pers" } : { ...done, fame: clamp(save.fame + PERS.refuse, 0, 100) };
+  }
+}
+
+/** The copies a task can take: riders that fit it, the weakest first, never the last copy of a rider in the lineup. */
+export function handInPicks(save: Save, task: Task): string[] {
+  if (task.kind === "groei" || task.done) return [];
+  const fits = Object.keys(save.collection).map(cardById).filter((c) => (task.kind === "soort" ? c.type === task.type && c.tier === task.tier : c.country === task.country));
+  const copies = fits.sort((a, b) => a.overall - b.overall || a.id.localeCompare(b.id)).flatMap((c) => Array.from({ length: tradeable(save, c.id) }, () => c.id));
+  return copies.length >= task.n ? copies.slice(0, task.n) : [];
+}
+
+/**
+ * Hands in the riders for a task. A kind gives one rider of that kind a tier
+ * higher, a country a pack of your level's win.
+ */
+export function handIn(save: Save, index: number): { save: Save; pull: Pull | null; pack: PackType | null } | null {
+  const task = save.tasks?.[index];
+  const picks = task ? handInPicks(save, task) : [];
+  if (!task || !picks.length) return null;
+  const collection = { ...save.collection };
+  for (const id of picks) {
+    collection[id] -= 1;
+    if (collection[id] <= 0) delete collection[id];
+  }
+  const lineup = save.lineup.filter((id) => collection[id]);
+  const tasks = save.tasks!.map((t, i) => (i === index ? { ...t, done: true } : t));
+  const base: Save = { ...save, collection, lineup, kopman: save.kopman && lineup.includes(save.kopman) ? save.kopman : lineup[0] ?? null, tasks };
+  if (task.kind === "land") {
+    const pack = DIVISIONS[save.division].packs.win;
+    return { save: { ...base, packs: [...base.packs, pack] }, pull: null, pack };
+  }
+  if (task.kind !== "soort") return null;
+  const up = NEXT_TIER[task.tier] ?? task.tier;
+  const random = rng(hashSeed(save.seed, save.season, "opdracht", index));
+  const gone = new Set(save.legends.map((l) => l.id));
+  const options = pool().pool.filter((c) => c.type === task.type && c.tier === up && !gone.has(c.id));
+  const fresh = options.filter((c) => !collection[c.id]);
+  const choice = (fresh.length ? fresh : options)[Math.floor(random() * (fresh.length ? fresh : options).length)].id;
+  const duplicate = !!collection[choice];
+  return { save: withLives({ ...base, collection: { ...collection, [choice]: (collection[choice] ?? 0) + 1 } }), pull: { id: choice, duplicate }, pack: null };
+}
+
+/** The championship is open after the fourth race, once a season, outside a stage race. */
+export const champOpen = (save: Save) => !seasonDone(save) && !save.tour && save.raceIndex >= CHAMPIONSHIP_AFTER && save.champ !== save.season && !save.event;
+export const CHAMP_MIN = 3;
+/** Countries you have at least three riders of, the most first. */
+export function champCountries(save: Save): { country: string; riders: number }[] {
+  const counts = new Map<string, number>();
+  for (const id of Object.keys(save.collection)) counts.set(cardById(id).country, (counts.get(cardById(id).country) ?? 0) + 1);
+  return [...counts].filter(([, n]) => n >= CHAMP_MIN).map(([country, riders]) => ({ country, riders })).sort((a, b) => b.riders - a.riders || a.country.localeCompare(b.country));
+}
+
+/** The championship with up to five riders of one country, best fit first. */
+export function champSetup(save: Save, country: string): { raceId: string; seed: number; lineup: Lineup } | null {
+  if (!champOpen(save)) return null;
+  const raceId = championshipOf(save.division);
+  const weights = courseWeights(buildCourse(raceById.get(raceId)!));
+  const riders = Object.keys(save.collection).filter((id) => cardById(id).country === country).sort((a, b) => fitFor(liveCard(save, b), weights) - fitFor(liveCard(save, a), weights) || a.localeCompare(b)).slice(0, LINEUP_SIZE);
+  if (riders.length < CHAMP_MIN) return null;
+  return { raceId, seed: hashSeed(save.seed, save.season, "kampioenschap"), lineup: { riders, kopman: riders[0], bonus: teamBonus(save.items), cards: liveCards(save, riders) } };
+}
+
+/** Books a championship: no season points; prize money, popularity, a pack, and a title for a winner of yours. */
+export function finishChampionship(save: Save, placings: Placing[]): { save: Save; reward: RaceReward } {
+  const level = DIVISIONS[save.division];
+  const mine = placings.filter((p) => p.team === PLAYER_TEAM && p.place > 0);
+  const best = mine.length ? Math.min(...mine.map((p) => p.place)) : 0;
+  const coins = Math.round(mine.reduce((sum, p) => sum + prizeFor(p.place), 0) * level.prize);
+  const pack = best === 1 ? level.packs.win : best >= 1 && best <= 3 ? level.packs.podium : null;
+  const winner = placings.find((p) => p.place === 1 && p.team === PLAYER_TEAM)?.id;
+  const riders = afterRide(save, placings, FORM_COST.kampioenschap);
+  if (winner && riders[winner]) riders[winner] = { ...riders[winner], titles: riders[winner].titles + 1 };
+  const titel = save.sponsor?.goal.kind === "titel" ? meet(save.sponsor, winner ? 1 : 0) : null;
+  const bonus = titel?.bonus ?? 0;
+  const next: Save = {
+    ...save,
+    riders,
+    coins: save.coins + coins + bonus,
+    fame: fameAfter(save.fame, best, 1, teamBonus(save.items).fame),
+    sponsor: titel?.sponsor ?? save.sponsor,
+    packs: pack ? [...save.packs, pack] : save.packs,
+    champ: save.season,
+  };
+  return { save: next, reward: { coins, points: 0, pack, best, season: null, bonus } };
 }
 
 /** A race for the sponsor and the public: his pay, his goal, your popularity. */
@@ -583,7 +729,7 @@ function finishStage(save: Save, tour: TourDef, placings: Placing[], kracht: Rec
       seasonResults: [...save.seasonResults, { race: tour.id, winner: jerseys.geel ?? "", best: gcBest, points: state.seasonPoints + gcPoints, coins: state.coins, pack: packs[0] ?? null }],
     };
   }
-  const closed = closeSeason(next);
+  const closed = closeSeason(afterwards(save, next, placings, best, race.id));
   return { save: closed.save, reward: { coins: coins + pub.pay, points, pack, best, season: closed.season, pay: pub.pay, bonus, tour: { id: tour.id, stage: state.stage, of: tour.stages.length, done, general, jerseys, packs } } };
 }
 
@@ -596,7 +742,7 @@ export function seasonMove(save: Save) {
 /** The next season, a level up or down after promotion or relegation. Your riders turn a year older. */
 export function newSeason(save: Save): Save {
   const division = Math.min(TOP_DIVISION, Math.max(0, save.division + (seasonDone(save) ? seasonMove(save) : 0)));
-  return { ...ageRiders(save), season: save.season + 1, division, raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null, fame: fameNextSeason(save.fame ?? FAME_START), sponsor: null, loyal: save.sponsor?.met ? save.sponsor.name : null };
+  return withLives({ ...ageRiders(save), season: save.season + 1, division, raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null, fame: fameNextSeason(save.fame ?? FAME_START), sponsor: null, loyal: save.sponsor?.met ? save.sponsor.name : null, event: null, pledge: null, tasks: null });
 }
 
 /** Riders a fresh team starts with after retirements, so there are always five. */

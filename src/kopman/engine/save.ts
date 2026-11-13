@@ -70,12 +70,26 @@ const schema = z.object({
     name: z.string().max(60),
     pay: count,
     budget: count,
-    goal: z.object({ kind: z.enum(["zeges", "soort", "top5", "eindstand", "jong", "trui"]), n: z.number().int().min(0).max(100), soort: z.string().max(20).optional() }),
+    goal: z.object({ kind: z.enum(["zeges", "soort", "top5", "eindstand", "jong", "trui", "titel"]), n: z.number().int().min(0).max(100), soort: z.string().max(20).optional() }),
     bonus: count,
     progress: count,
     met: z.boolean(),
   }).nullable().default(null),
   loyal: z.string().max(60).nullable().default(null),
+  // Round C: the choice after a race, a challenge of the press, the tasks of the season, the season of the last championship.
+  event: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("kopman"), rider: cardId }),
+    z.object({ kind: z.literal("bod"), rider: cardId, team: z.string().max(20), coins: count }),
+    z.object({ kind: z.literal("val"), rider: cardId }),
+    z.object({ kind: z.literal("pers") }),
+  ]).nullable().default(null),
+  pledge: z.literal("pers").nullable().default(null),
+  tasks: z.array(z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("soort"), type: z.enum(["sprinter", "klimmer", "klassieker", "tijdrijder", "allrounder"]), tier: z.enum(["brons", "zilver", "goud", "diamant"]), n: z.number().int().min(1).max(20), done: z.boolean() }),
+    z.object({ kind: z.literal("land"), country: z.string().max(5), n: z.number().int().min(1).max(20), done: z.boolean() }),
+    z.object({ kind: z.literal("groei"), rider: cardId, soort: z.string().max(20), n: z.number().int().min(1).max(20), progress: count, done: z.boolean() }),
+  ])).max(10).nullable().default(null),
+  champ: z.number().int().min(1).nullable().default(null),
 });
 
 /** Before the pyramid: one calendar of 16 races and a daily limit on packs. */
@@ -87,7 +101,7 @@ const v1 = z.object({ ...base, v: z.literal(1), raceIndex: z.number().int().min(
  * collection, coins and packs stay.
  */
 function fromV1(old: z.infer<typeof v1>): Save {
-  return { ...old, v: SAVE_VERSION, division: divisionFor(old.collection), raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null, riders: {}, legends: [], camp: null, report: null, fame: 20, sponsor: null, loyal: null };
+  return { ...old, v: SAVE_VERSION, division: divisionFor(old.collection), raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null, riders: {}, legends: [], camp: null, report: null, fame: 20, sponsor: null, loyal: null, event: null, pledge: null, tasks: null, champ: null };
 }
 
 /** Reads a save; anything broken or tampered beyond repair gives null. */

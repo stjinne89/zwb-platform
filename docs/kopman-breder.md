@@ -428,6 +428,77 @@ seed 22:
 **Niet geverifieerd:** of een mens met deze budgetten in de Wereldtour nog te
 makkelijk wint. Ronde D voegt daar de aartsrivaal en transfers aan toe.
 
+### Gebouwd: ronde C, een seizoen met keuzes
+
+Gebouwd op 2026-11-13. De code staat in `src/kopman/engine/events.ts` en in
+`economy.ts` (`afterwards`, `answerEvent`, `handIn`, `champSetup`,
+`finishChampionship`).
+
+- **Gebeurtenissen**: na een koers buiten een ronde 40 procent kans op een
+  keuze. Start wacht tot je antwoordt.
+  - Een knecht wil kopman zijn: ja maakt hem kopman met +10 vorm; nee kost
+    hem 20 vorm.
+  - Een rivaal biedt twee keer de verkoopwaarde voor een renner buiten je
+    opstelling.
+  - Een val op training: rust kost 30 vorm; doorrijden kost de helft van de
+    keren niets en anders 60.
+  - De pers daagt je uit: met een podium in de volgende koers +6
+    populariteit, zonder -4; weigeren kost 1.
+- **Opdrachten**, drie per seizoen (`tasksFor`), op het seizoensscherm:
+  - lever 3 renners van één soort in: brons in Kermis en Interclub, zilver
+    in Continentaal en Proftour, goud in de Wereldtour. Je krijgt een renner
+    van die soort een trede hoger;
+  - lever 4 renners van één land in (een land waar je renners van hebt) voor
+    het winpakket van je niveau;
+  - rijd met één renner 3 keer de top 10 in een soort koers: hij krijgt +2 op
+    de waarde die erbij hoort (`GROWTH_STAT`).
+  - Inleveren neemt de zwakste kaarten eerst, en nooit het laatste exemplaar
+    van een renner in je opstelling.
+- **Kampioenschap**: na de vierde koers, één keer per seizoen, op een eigen
+  heuvelparcours per niveau (`CHAMPIONSHIPS` in `world.ts`). Je kiest een land
+  waar je minstens drie renners van hebt; de best passende vijf (of minder)
+  rijden. Geen seizoenspunten. Wel:
+  - prijzengeld en populariteit;
+  - het winpakket of podiumpakket van je niveau;
+  - een titel op de kaart van de winnaar, en in de erelijst.
+  - "Word kampioen" is ook een sponsordoel.
+
+**Gemeten** met het groei-script. Het script beantwoordt elke keuze met de
+eerste knop, behalve een bod. Het levert in wat kan en rijdt het
+kampioenschap met het land waar het de meeste renners van heeft:
+
+```
+seed 11:
+  s1 Kermis        4e  zeges 2/8 podium 2/8  ploeg 61 (band 51–56)  populair 34  doel gehaald  salaris 76/147  kampioen 0  opdrachten 0/3
+  s2 Kermis        3e  zeges 5/8 podium 5/8  ploeg 65 (band 51–56)  populair 61  doel gehaald  salaris 139/148  kampioen 0  opdrachten 2/3
+  s3 Kermis        2e  zeges 5/8 podium 7/8  ploeg 70 (band 51–56)  populair 84  doel gehaald  salaris 143/150  kampioen 0  opdrachten 1/3
+  s4 Interclub     1e  zeges 4/8 podium 5/8  ploeg 71 (band 58–64)  populair 84  doel gehaald  salaris 193/233  kampioen 0  opdrachten 2/3
+  s5 Continentaal  1e  zeges 4/8 podium 5/8  ploeg 80 (band 64–71)  populair 98  doel gehaald  salaris 315/315  kampioen 0  opdrachten 2/3
+  s6 Proftour      2e  zeges 3/8 podium 4/8  ploeg 85 (band 68–75)  populair 100  doel gehaald  salaris 331/376  kampioen 0  opdrachten 2/3
+  s7 Wereldtour    1e  zeges 6/8 podium 6/8  ploeg 88 (band 76–86)  populair 100  doel gehaald  salaris 422/423  kampioen 0  opdrachten 2/3
+  s8 Wereldtour    1e  zeges 5/8 podium 6/8  ploeg 92 (band 76–86)  populair 100  doel gehaald  salaris 423/423  kampioen 1  opdrachten 2/3
+  s9 Wereldtour    1e  zeges 7/8 podium 8/8  ploeg 93 (band 76–86)  populair 100  doel gehaald  salaris 423/423  kampioen 1  opdrachten 2/3
+  s10 Wereldtour    1e  zeges 6/8 podium 6/8  ploeg 94 (band 76–86)  populair 100  doel gehaald  salaris 421/423  kampioen 1  opdrachten 2/3
+seed 22:
+  s1 Kermis        4e  zeges 2/8 podium 3/8  ploeg 63 (band 51–56)  populair 36  doel niet  salaris 134/147  kampioen 0  opdrachten 1/3
+  s2 Kermis        1e  zeges 6/8 podium 7/8  ploeg 70 (band 51–56)  populair 74  doel gehaald  salaris 147/148  kampioen 0  opdrachten 1/3
+  s3 Interclub     1e  zeges 5/8 podium 7/8  ploeg 73 (band 58–64)  populair 100  doel gehaald  salaris 218/232  kampioen 1  opdrachten 1/3
+  s4 Continentaal  1e  zeges 6/8 podium 7/8  ploeg 81 (band 64–71)  populair 100  doel gehaald  salaris 317/317  kampioen 1  opdrachten 2/3
+  s5 Proftour      1e  zeges 6/8 podium 7/8  ploeg 84 (band 68–75)  populair 99  doel gehaald  salaris 370/376  kampioen 0  opdrachten 2/3
+  s6 Wereldtour    2e  zeges 3/8 podium 4/8  ploeg 86 (band 76–86)  populair 100  doel gehaald  salaris 415/422  kampioen 0  opdrachten 2/3
+  s7 Wereldtour    1e  zeges 5/8 podium 7/8  ploeg 88 (band 76–86)  populair 100  doel gehaald  salaris 423/423  kampioen 0  opdrachten 1/3
+  s8 Wereldtour    1e  zeges 6/8 podium 8/8  ploeg 90 (band 76–86)  populair 100  doel gehaald  salaris 423/423  kampioen 0  opdrachten 2/3
+  s9 Wereldtour    1e  zeges 6/8 podium 7/8  ploeg 93 (band 76–86)  populair 100  doel niet  salaris 423/423  kampioen 0  opdrachten 2/3
+  s10 Wereldtour    1e  zeges 8/8 podium 8/8  ploeg 93 (band 76–86)  populair 100  doel gehaald  salaris 420/423  kampioen 1  opdrachten 2/3
+```
+
+De klim gaat sneller dan na ronde B: de Wereldtour in seizoen 5 tot 7 in plaats
+van 8. De opdrachten leveren betere renners op, en het script doet ze allemaal.
+Ronde D maakt de top zwaarder.
+
+**Niet geverifieerd:** een kampioenschap tot de finish in de app (in de
+preview alleen de start met drie Belgen), en een inlevering in de app.
+
 **Niet in dit voorstel:** een zesde trede (gekozen is de ronde), een eigen
 kalender van 12 koersen waar je er 8 uit kiest (overslaan geeft die keuze
 goedkoper), en salaris dat elk seizoen van je munten afgaat (het plafond

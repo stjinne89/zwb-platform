@@ -29,7 +29,7 @@ export const BASE_BUDGET = [130, 200, 270, 320, 360];
 /** What a sponsor pays per race, times the prize share of the level. */
 export const BASE_PAY = 600;
 
-export type GoalKind = "zeges" | "soort" | "top5" | "eindstand" | "jong" | "trui";
+export type GoalKind = "zeges" | "soort" | "top5" | "eindstand" | "jong" | "trui" | "titel";
 export type Goal = { kind: GoalKind; n: number; soort?: string };
 export type Sponsor = { name: string; pay: number; budget: number; goal: Goal; bonus: number; progress: number; met: boolean };
 
@@ -44,6 +44,7 @@ export function goalText(goal: Goal) {
     case "eindstand": return goal.n === 1 ? "Win het seizoen" : `Eindig in de top ${goal.n}`;
     case "jong": return `Top 10 met een renner van ${goal.n} of jonger`;
     case "trui": return "Een trui in de ronde";
+    case "titel": return "Word kampioen";
   }
 }
 
@@ -51,12 +52,12 @@ export function goalText(goal: Goal) {
 function goalsFor(level: number, hard: 0 | 1 | 2, kinds: Set<string>): Goal[] {
   const top = level === TOP_DIVISION;
   if (hard === 0) return [{ kind: "top5", n: 2 }, { kind: "jong", n: 25 }, { kind: "eindstand", n: 8 }];
-  if (hard === 1) return [{ kind: "zeges", n: 1 }, { kind: "top5", n: 4 }, { kind: "eindstand", n: 4 }, ...SOORTEN.filter((s) => kinds.has(s)).map((soort) => ({ kind: "soort" as const, n: 1, soort })), { kind: "jong", n: 23 }];
+  if (hard === 1) return [{ kind: "zeges", n: 1 }, { kind: "top5", n: 4 }, { kind: "eindstand", n: 4 }, ...SOORTEN.filter((s) => kinds.has(s)).map((soort) => ({ kind: "soort" as const, n: 1, soort })), { kind: "jong", n: 23 }, { kind: "titel", n: 1 }];
   return [{ kind: "zeges", n: 3 }, { kind: "eindstand", n: top ? 1 : PROMOTED }, { kind: "top5", n: 6 }, ...(top ? [{ kind: "trui" as const, n: 1 }] : [])];
 }
 
 /** The kinds of course in a level's calendar. */
-const kindsIn = (level: number) => new Set(DIVISIONS[level].races.flatMap((id) => (raceById.get(id) ? [courseKind(buildCourse(raceById.get(id)!))] : [])));
+export const kindsIn = (level: number) => new Set(DIVISIONS[level].races.flatMap((id) => (raceById.get(id) ? [courseKind(buildCourse(raceById.get(id)!))] : [])));
 
 /**
  * Three offers for a season: one that pays well with a hard goal and a tight

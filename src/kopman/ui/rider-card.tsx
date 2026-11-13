@@ -19,7 +19,7 @@ export function FrameStar({ className }: { className: string }) {
  * caption. `live` keeps the portrait moving; otherwise it only moves on hover.
  */
 /** What a rider in your team is today: age, form, and his talent when a scout has seen it. */
-export type CardLife = { age: number; form: number; talent: number | null };
+export type CardLife = { age: number; form: number; talent: number | null; titles?: number };
 
 /** `boost`: points from equipment and staff per stat, shown as a green plus. `life`: age and form of a rider you own. */
 export function RiderCardView({ card, kopman, fit, small, mood = "rust", live = false, boost, life, children }: { card: RiderCard; kopman?: boolean; fit?: number; small?: boolean; mood?: Mood; live?: boolean; boost?: Partial<Record<StatKey, number>>; life?: CardLife; children?: React.ReactNode }) {
@@ -39,7 +39,7 @@ export function RiderCardView({ card, kopman, fit, small, mood = "rust", live = 
         </>
       ) : null}
       <div className={styles.cardName}>
-        {kopman ? <span className={styles.kopmanMark}>Kopman</span> : null}
+        {kopman ? <span className={styles.kopmanMark}>Kopman</span> : life?.titles ? <span className={styles.champMark}>Kampioen{life.titles > 1 ? ` ×${life.titles}` : ""}</span> : null}
         <small>{card.first}{life ? ` · ${life.age} j` : ""}</small>
         <strong>{card.last}</strong>
       </div>

@@ -120,7 +120,10 @@ export const PROMOTED = 2;
 export const RELEGATED = 2;
 
 // A stage race and each of its stages belong to the level of its calendar.
-const raceDivision = new Map(DIVISIONS.flatMap((d, i) => d.races.flatMap((id) => [id, ...(tourById.get(id)?.stages ?? [])].map((x) => [x, i] as const))));
+const raceDivision = new Map(DIVISIONS.flatMap((d, i) => [...d.races, `kampioenschap-${i}`].flatMap((id) => [id, ...(tourById.get(id)?.stages ?? [])].map((x) => [x, i] as const))));
+/** The championship of a level: one a season, after the fourth race. */
+export const championshipOf = (division: number) => `kampioenschap-${division}`;
+export const CHAMPIONSHIP_AFTER = 4;
 /** The level a race belongs to; every race belongs to exactly one. */
 export function divisionOfRace(raceId: string) {
   const i = raceDivision.get(raceId);
