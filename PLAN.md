@@ -13,7 +13,7 @@ gaat stabiliteit voor nieuwe features.
    model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
    het racebriefje, `844876ce`), stap 3 (soort koolhydraten op recepten,
    `ae72d7cf`), stap 4 (keuzes per event bewaren, `3b06249d`) en stap 5 (duur
-   met marge).
+   met marge, `e0f00852`).
    De privacyzin voor stap 4 staat op `/privacy` (akkoord eigenaar,
    2026-11-13). Open: migraties `0328_nutrition_recipe_carb_mix.sql` en
    `0329_nutrition_event_fuel.sql` toepassen op productie (alleen op verzoek).
@@ -12320,7 +12320,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Eventvoeding, stap 5: duur met marge
 
-**2026-11-13, lokaal gecommit, niet gepusht. Geen migratie.** Op verzoek van de
+**2026-11-13, commit `e0f00852`, lokaal, niet gepusht. Geen migratie.** Op verzoek van de
 eigenaar ("Plaats zo en ga door", na stap 4). Stap 5 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md), §4a.
 
