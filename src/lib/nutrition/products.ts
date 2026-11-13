@@ -26,6 +26,8 @@ export type NutritionProduct = {
   carb_mix?: StoredCarbMix | null;
   scoop_g?: number | null;
   sodium_mg?: number | null;
+  /** Poeder voor de bidon (0331): in gram, maar het telt als drank. */
+  drink_mix?: boolean;
 };
 
 /** EAN-8, UPC-A, EAN-13 of ITF-14, zonder spaties of streepjes. Null als het geen barcode is. */
@@ -85,6 +87,8 @@ export function productLabel(product: Pick<NutritionProduct, "name" | "brand">):
 export const PRODUCT_COLUMNS = "barcode, name, brand, quantity_unit, carbs_g, protein_g, serving_g";
 /** Met de velden van de sportvoedingslijst (0330); zonder 0330 geeft deze selectie een fout. */
 export const SPORTS_PRODUCT_COLUMNS = `${PRODUCT_COLUMNS}, carb_mix, scoop_g, sodium_mg`;
+/** Voor een product in een recept: ook of het een poeder voor de bidon is (0331). */
+export const RECIPE_PRODUCT_COLUMNS = `${PRODUCT_COLUMNS}, drink_mix`;
 
 /** Een rij uit nutrition_products als product; null zonder koolhydraten of eiwit. */
 export function productFromRow(row: Record<string, unknown>): NutritionProduct | null {
@@ -147,7 +151,7 @@ export function productAsFood(product: ProductRow): NutritionFood & { quantity_u
     fat_g: null,
     fiber_g: null,
     sodium_mg: product.sodium_mg == null ? null : Number(product.sodium_mg),
-    food_group: unit === "ml" ? DRINK_GROUP : null,
+    food_group: unit === "ml" || product.drink_mix === true ? DRINK_GROUP : null,
     serving_g: product.serving_g == null ? null : Number(product.serving_g),
   };
 }

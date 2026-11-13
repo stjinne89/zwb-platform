@@ -311,7 +311,13 @@ export function KennisHelp() {
                   en de soort koolhydraten en de schep staan dan al ingevuld,
                   als de fabrikant ze noemt. Een reep telt als gewoon eten. Bij
                   een gel die de fabrikant per ml opgeeft, staat de portie in
-                  gram; de koolhydraten per gel kloppen.
+                  gram; de koolhydraten per gel kloppen. Een poeder van die
+                  lijst is vanzelf een bidon, zonder water erbij. Alle
+                  producten van de lijst staan ook als recept in het
+                  receptenboek, onder Merkproducten, en bij Kiezen. Het
+                  menu en het ritplan nemen er een pas als je het als
+                  favoriet markeert of zelf kiest: niet iedereen heeft dat
+                  merk in huis.
                 </span>
               </li>
               <li className="flex gap-2">

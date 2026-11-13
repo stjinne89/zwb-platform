@@ -19,7 +19,7 @@ import { shiftDayKey } from "@/lib/training/mobility";
 import { FUEL_DAY_LABELS, classifyFuelDay, isKeyDay, totalMinutes, type FuelDayType } from "./day-type";
 import { rankRecipes, type RecipePref } from "./menu";
 import { plannedSessions, recipeIngredients, ridesOnDay, type Recipe, type RecipeIngredientDbRow } from "./recipes";
-import { PRODUCT_COLUMNS } from "./products";
+import { PRODUCT_COLUMNS, RECIPE_PRODUCT_COLUMNS } from "./products";
 import { GUT_PROTOCOLS, gutTrainingOn, type GutRun } from "./gut-training";
 import { currentSweatRate } from "./sweat";
 import { ridePlan, ridePlanSummary, type RidePlan } from "./ride-plan";
@@ -84,20 +84,25 @@ type Workout = {
   event_id?: string | null;
 };
 
-/** Met de barcodeproducten als ingrediënt (0276); zonder die migratie zonder. */
-function rideRecipeColumns(withProducts: boolean) {
+/**
+ * Met de barcodeproducten als ingrediënt (0276), en of een product een poeder
+ * voor de bidon is (0331); zonder die migraties zonder.
+ */
+function rideRecipeColumns(products: string | null) {
   return (
     "id, slug, title, meal_moment, fuel_profile, diet_tags, servings, prep_minutes, steps_md, is_standard, owner_id, visibility, " +
     "ingredients:nutrition_recipe_ingredients(id, sort_order, grams, role, food:nutrition_foods(id, nevo_code, name_nl, quantity_unit, kcal, carbs_g, sugars_g, protein_g, fat_g, fiber_g, sodium_mg, food_group)" +
-    (withProducts ? `, product:nutrition_products(${PRODUCT_COLUMNS}))` : ")")
+    (products ? `, product:nutrition_products(${products}))` : ")")
   );
 }
 
 async function loadRideRecipes(admin: SupabaseClient) {
-  const query = (withProducts: boolean) =>
-    admin.from("nutrition_recipes").select(rideRecipeColumns(withProducts)).eq("meal_moment", "tijdens_rit");
-  const result = await query(true);
-  return result.error ? query(false) : result;
+  const query = (products: string | null) =>
+    admin.from("nutrition_recipes").select(rideRecipeColumns(products)).eq("meal_moment", "tijdens_rit");
+  const result = await query(RECIPE_PRODUCT_COLUMNS);
+  if (!result.error) return result;
+  const older = await query(PRODUCT_COLUMNS);
+  return older.error ? query(null) : older;
 }
 
 type RideProfile = { id: string; weight_kg: number | null; sex: string | null; birth_date: string | null };

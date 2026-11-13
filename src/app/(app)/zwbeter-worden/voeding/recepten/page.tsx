@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Inbox, Plus, ScanBarcode } from "lucide-react";
-import { DIET_TAGS, DIET_TAG_LABELS, matchesDiet, portionForRider, type DietTag } from "@/lib/nutrition/recipes";
+import { DIET_TAGS, DIET_TAG_LABELS, isBrandRecipe, matchesDiet, portionForRider, type DietTag } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS, type MealMoment } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
 import {
@@ -20,9 +20,14 @@ export const revalidate = 0;
 
 type Search = { moment?: string | string[]; dieet?: string | string[]; toon?: string | string[] };
 
-const VIEWS = ["favorieten", "leden", "verborgen"] as const;
+const VIEWS = ["favorieten", "merken", "leden", "verborgen"] as const;
 type View = (typeof VIEWS)[number];
-const VIEW_LABELS: Record<View, string> = { favorieten: "Favorieten", leden: "Van leden", verborgen: "Niet voor mij" };
+const VIEW_LABELS: Record<View, string> = {
+  favorieten: "Favorieten",
+  merken: "Merkproducten",
+  leden: "Van leden",
+  verborgen: "Niet voor mij",
+};
 
 function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -77,13 +82,16 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
     return `/zwbeter-worden/voeding/recepten${text ? `?${text}` : ""}`;
   };
 
-  // Wat "niet voor mij" is, staat alleen nog onder zijn eigen filter.
+  // Wat "niet voor mij" is, staat alleen nog onder zijn eigen filter. De
+  // merkproducten hebben een eigen filter; een favoriet staat ook gewoon tussen
+  // de recepten.
   const inView = (recipe: (typeof recipes)[number]) => {
     const pref = prefs.get(recipe.id);
     if (view === "verborgen") return pref === "verborgen";
     if (view === "favorieten") return pref === "favoriet";
     if (view === "leden") return recipe.visibility === "leden" && pref !== "verborgen";
-    return pref !== "verborgen";
+    if (view === "merken") return isBrandRecipe(recipe) && pref !== "verborgen";
+    return pref !== "verborgen" && (!isBrandRecipe(recipe) || pref === "favoriet");
   };
   const shown = recipes.filter(
     (recipe) =>

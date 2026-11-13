@@ -24,7 +24,9 @@ gaat stabiliteit voor nieuwe features.
    niet zelf gezien. Daarnaast de sportvoedingslijst (`7c6b4376`, migratie
    `0330_nutrition_sports_products.sql`, op 2026-11-13 door de eigenaar op
    productie toegepast via de SQL-editor; ronde
-   "Gebouwd — Sportvoedingslijst"). Open: de eventpagina in de browser bekijken (niet gedaan:
+   "Gebouwd — Sportvoedingslijst"), en de merkproducten in het receptenboek
+   (migratie `0331_nutrition_sports_recipes.sql`, nog niet op productie; ronde
+   "Gebouwd — Merkproducten in het receptenboek"). Open: de eventpagina in de browser bekijken (niet gedaan:
    geen `.env.local` in de worktree), het toetsscript draaien op de echte
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
@@ -12342,6 +12344,57 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Merkproducten in het receptenboek
+
+**2026-11-13, lokaal gecommit, niet gepusht. Migratie
+`0331_nutrition_sports_recipes.sql`, niet toegepast op productie.** Op vraag van
+de eigenaar ("staat deze lijst dan nog niet in het receptenboek"), daarna "Yes,
+as proposed" op het voorstel.
+
+**Waarom.** Na 0330 stonden de 57 producten alleen in `nutrition_products`: je
+vond ze bij scannen en bij "Zoek in sportvoeding", maar het ritplan, de
+eventplanner en het menu kiezen uit recepten. Wie een Maurten-gel in zijn plan
+wilde, moest er eerst zelf een recept van maken.
+
+**Wat er is.** Migratie 0331 zet elk product van de lijst als clubrecept voor
+Tijdens de rit (slug `merk-<merk>-<naam>`, titel merk en naam, bron de pagina
+van de fabrikant, soort koolhydraten van het product). Het recept is alleen het
+product: één stuk, of bij poeder één portie met de schep. Nieuwe kolom
+`nutrition_products.drink_mix` (17 poeders): zo'n poeder staat in gram maar telt
+als drank, dus het recept wordt een bidon zonder water erbij (`productAsFood`,
+`RECIPE_PRODUCT_COLUMNS`, kolomniveau 6 in `_data.ts`, en in `reminders.ts`).
+Opnieuw draaien houdt het id van het recept (keuzes en favorieten blijven) en
+vervangt de regel; een recept van een lid met dezelfde slug blijft staan.
+
+**De regel.** Een clubrecept met alleen barcodeproducten is een merkproduct
+(`isBrandRecipe`). Het menu, het ritplan, de eventplanner en de herinnering
+nemen een merkproduct alleen als het lid het als favoriet heeft of zelf koos
+(`rankRecipes`, `includeBrands`). Anders kreeg elk lid in de dagelijkse wissel
+van de rangorde merken voorgesteld die hij niet in huis heeft. Het receptenboek
+toont ze onder een eigen filter Merkproducten (een favoriet staat ook gewoon
+tussen de recepten); Kiezen toont ze in een eigen blok, op naam. Ook een
+clubrecept dat een lid met alleen gescande producten voorstelde, valt onder die
+regel.
+
+**Bewust niet.** Geen eigen kolom op `nutrition_recipes` voor de lijst: alleen
+barcodeproducten zegt genoeg. Geen water in het recept van een poeder: dan
+schaalt het ritplan de portie en klopt de dosering van de fabrikant niet meer.
+Geen dieetlabels (vegan, glutenvrij): die zijn niet per product nagekeken. Het
+filter heet Merkproducten en niet Sportvoeding, omdat de knop Sportvoeding in
+het receptenboek al een eigen recept met een barcode begint.
+
+**Getest.** `tests/unit/nutrition-brand-recipes.test.ts` (4 tests: wat een
+merkproduct is, poeder als drank, alleen als favoriet of bij Kiezen, een
+favoriet poeder als bidon met de portie van de fabrikant) en in
+`tests/unit/nutrition-migration.test.ts` 0276, 0305 en 0331 tegen PGlite (één
+recept en één regel per product, 17 poeders, schep mee, een recept van een lid
+met dezelfde slug blijft, alleen leesbaar voor goedgekeurde leden, twee keer te
+draaien met hetzelfde id). Alle 23 voedingstestbestanden groen (338 tests);
+`tsc` en eslint schoon.
+
+**Niet geverifieerd.** 0331 op productie, en het receptenboek, Kiezen en het
+ritplan met een favoriet merkproduct in de browser.
+
 ### Gebouwd — ZWBriljant: vermogen als compound score
 
 **2026-11-13, commit `0f5f8b93` ("ZWBriljant: vermogen als compound score"),
@@ -12557,8 +12610,9 @@ alleen als de fabrikant hem noemt of uit "2 schepjes = 65 g" volgt.
 van een winkel zijn niet het etiket. Producten zonder barcode die te bevestigen
 was (Amacx Energy Drink, Turbo Drink, Drink Gel en Turbo Fruit Chew; Torq
 Energy Drink, Jellies en reep; PF Carb Only): de tabel heeft een barcode als
-sleutel. Geen clubrecepten per product (het receptenboek en het advies blijven
-gelijk), geen automatisch uitlezen van fabriekssites, en geen verhouding uit
+sleutel. Clubrecepten per product kwamen er in deze ronde niet; die volgden
+dezelfde dag in "Gebouwd — Merkproducten in het receptenboek" (0331). Geen
+automatisch uitlezen van fabriekssites, en geen verhouding uit
 het etiket afleiden. Welke barcodes leden al scanden, is niet gebruikt: de
 Supabase-connector was er niet.
 

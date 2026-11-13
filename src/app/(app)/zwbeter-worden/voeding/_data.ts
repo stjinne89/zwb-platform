@@ -19,6 +19,7 @@ import { dayTotals, type LoggedMeal } from "@/lib/nutrition/log";
 import { eventFuelReview, pickRide, rideIntensity, type EventFuelReview, type ReviewRide } from "@/lib/nutrition/event-review";
 import {
   PRODUCT_COLUMNS,
+  RECIPE_PRODUCT_COLUMNS,
   SPORTS_PRODUCT_COLUMNS,
   productFromRow,
   productLabel,
@@ -67,11 +68,11 @@ const BASE_RECIPE_COLUMNS =
 const FOOD_COLUMNS = `${BASE_FOOD_COLUMNS}, food_group, calcium_mg, iron_mg, magnesium_mg, zinc_mg, vitamin_d_ug, vitamin_c_mg, epa_g, dha_g`;
 
 /**
- * 5: met de soort koolhydraten (0328), 4: met gram per schep (0305), 3: met barcodeproducten als ingrediënt (0276), 2: met delen onder leden
+ * 6: met poeder voor de bidon bij een product (0331), 5: met de soort koolhydraten (0328), 4: met gram per schep (0305), 3: met barcodeproducten als ingrediënt (0276), 2: met delen onder leden
  * (0264), 1: met bron en voorstellen (0213), 0: de kolommen van 0168. Zo werkt
  * de pagina ook zolang een migratie ontbreekt.
  */
-type ColumnLevel = 0 | 1 | 2 | 3 | 4 | 5;
+type ColumnLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 function recipeColumns(level: ColumnLevel) {
   const sharing =
@@ -80,7 +81,8 @@ function recipeColumns(level: ColumnLevel) {
     level >= 1
       ? `${BASE_RECIPE_COLUMNS}, source_name, source_url, share_status, contributor:profiles!contributed_by(display_name)${sharing}`
       : BASE_RECIPE_COLUMNS;
-  const product = level >= 3 ? `, product:nutrition_products(${PRODUCT_COLUMNS})` : "";
+  const product =
+    level >= 3 ? `, product:nutrition_products(${level >= 6 ? RECIPE_PRODUCT_COLUMNS : PRODUCT_COLUMNS})` : "";
   const scoop = level >= 4 ? ", scoop_g" : "";
   const mix = level >= 5 ? ", carb_mix" : "";
   return `${recipe}${mix}, ingredients:nutrition_recipe_ingredients(id, sort_order, grams, role${scoop}, food:nutrition_foods(${level >= 1 ? FOOD_COLUMNS : BASE_FOOD_COLUMNS})${product})`;
@@ -89,7 +91,7 @@ function recipeColumns(level: ColumnLevel) {
 /** Dezelfde query met minder kolommen zolang de select faalt. */
 async function withColumnFallback<T>(
   run: (columns: string) => PromiseLike<{ data: T | null; error: unknown }>,
-  levels: readonly ColumnLevel[] = [5, 4, 3, 2, 1, 0],
+  levels: readonly ColumnLevel[] = [6, 5, 4, 3, 2, 1, 0],
 ): Promise<T | null> {
   for (const level of levels) {
     const { data, error } = await run(recipeColumns(level));

@@ -115,7 +115,16 @@ export type Rider = {
   rideGut?: GutTraining | null;
 };
 
-/** Een recept met een drank (NEVO-groep of een gescande drank in ml) gaat in een bidon. */
+/**
+ * Een clubrecept met alleen barcodeproducten, zoals de sportvoedingslijst (0331):
+ * een merkproduct. Het menu en het ritplan kiezen het alleen als het lid het als
+ * favoriet heeft (menu.ts); het receptenboek toont ze onder Merkproducten.
+ */
+export function isBrandRecipe(recipe: Pick<Recipe, "is_standard" | "ingredients">): boolean {
+  return recipe.is_standard && isPackagedRecipe(recipe);
+}
+
+/** Een recept met een drank (NEVO-groep, een gescande drank in ml of een poeder voor de bidon) gaat in een bidon. */
 export function isBidonRecipe(recipe: Pick<Recipe, "ingredients">): boolean {
   return recipe.ingredients.some((item) => item.food.food_group === DRINK_GROUP);
 }

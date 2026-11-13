@@ -6,7 +6,7 @@ import { portionFit, rankRecipes } from "@/lib/nutrition/menu";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 
-// 0168, 0169, 0213, 0214, 0259, 0261, 0264, 0272, 0273, 0328, 0329, 0231, 0233 en 0330 tegen een geïsoleerde PostgreSQL. Zegt niets over de
+// 0168, 0169, 0213, 0214, 0259, 0261, 0264, 0272, 0273, 0328, 0329, 0231, 0233, 0330, 0276, 0305 en 0331 tegen een geïsoleerde PostgreSQL. Zegt niets over de
 // productiedatabase zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -649,5 +649,61 @@ describe("sportvoedingslijst (0330)", () => {
     await db.exec(await migration("0330_nutrition_sports_products.sql"));
     expect(await count("select count(*) from nutrition_products where barcode = '73160717' and carbs_g = 62.5 and source = 'zwb'")).toBe(1);
     expect(await count("select count(*) from nutrition_products where source = 'zwb'")).toBe(57);
+  });
+});
+
+describe("merkproducten in het receptenboek (0331)", () => {
+  beforeAll(async () => {
+    // Een lid met toevallig dezelfde slug: dat recept blijft van het lid.
+    await db.query(
+      `insert into nutrition_recipes(slug, title, meal_moment, fuel_profile, is_standard, owner_id) values('merk-maurten-solid-160', 'Mijn Solid', 'tijdens_rit', 'hoog_kh', false, '${OTHER}')`,
+    );
+    await db.exec(await migration("0276_nutrition_recipe_products.sql"));
+    await db.exec(await migration("0305_nutrition_recipe_scoops.sql"));
+    await db.exec(await migration("0331_nutrition_sports_recipes.sql"));
+  });
+
+  const brandRecipes = () => count("select count(*) from nutrition_recipes where slug like 'merk-%' and is_standard");
+  const brandLines = () =>
+    count(
+      "select count(*) from nutrition_recipe_ingredients i join nutrition_recipes r on r.id = i.recipe_id where r.slug like 'merk-%' and r.is_standard and i.product_barcode is not null and i.food_id is null",
+    );
+
+  it("zet elk product als clubrecept voor onderweg, met één regel", async () => {
+    expect(await brandRecipes()).toBe(56);
+    expect(await brandLines()).toBe(56);
+    expect(await count("select count(*) from nutrition_recipes where slug like 'merk-%' and is_standard and meal_moment <> 'tijdens_rit'")).toBe(0);
+    expect(await count("select count(*) from nutrition_products where drink_mix")).toBe(17);
+    expect(
+      await count(
+        "select count(*) from nutrition_recipes r join nutrition_recipe_ingredients i on i.recipe_id = r.id where r.slug = 'merk-maurten-gel-100' and r.title = 'Maurten Gel 100' and r.carb_mix = '1:0.8' and i.grams = 40 and i.product_barcode = '73160717'",
+      ),
+    ).toBe(1);
+    expect(
+      await count(
+        "select count(*) from nutrition_recipe_ingredients i join nutrition_recipes r on r.id = i.recipe_id where r.slug = 'merk-nduranz-nrgy-drink-45-lemon' and i.scoop_g = 24",
+      ),
+    ).toBe(1);
+  });
+
+  it("laat een recept van een lid met dezelfde slug staan", async () => {
+    expect(
+      await count(`select count(*) from nutrition_recipes where slug = 'merk-maurten-solid-160' and title = 'Mijn Solid' and owner_id = '${OTHER}'`),
+    ).toBe(1);
+  });
+
+  it("leesbaar voor goedgekeurde leden", async () => {
+    expect(await as(APPROVED, () => brandRecipes())).toBe(56);
+    expect(await as(PENDING, () => brandRecipes())).toBe(0);
+  });
+
+  it("kan twee keer draaien en houdt het id van het recept", async () => {
+    const before = await db.query<{ id: string }>("select id from nutrition_recipes where slug = 'merk-maurten-gel-100'");
+    await db.query("update nutrition_recipes set title = 'x' where slug = 'merk-maurten-gel-100'");
+    await db.exec(await migration("0331_nutrition_sports_recipes.sql"));
+    const after = await db.query<{ id: string; title: string }>("select id, title from nutrition_recipes where slug = 'merk-maurten-gel-100'");
+    expect(after.rows[0]).toEqual({ id: before.rows[0].id, title: "Maurten Gel 100" });
+    expect(await brandRecipes()).toBe(56);
+    expect(await brandLines()).toBe(56);
   });
 });

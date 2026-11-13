@@ -5,6 +5,7 @@ import { BackLink } from "@/components/app-ui";
 import { shiftDayKey } from "@/lib/training/mobility";
 import { choiceMoments, rankRecipes, type RankedRecipe } from "@/lib/nutrition/menu";
 import { CHOICE_DAYS_AHEAD } from "@/lib/nutrition/plan";
+import { isBrandRecipe } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS, type MealMoment } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
 import {
@@ -84,13 +85,18 @@ export default async function KiezenPage({ searchParams }: { searchParams: Promi
     prefs,
     diet: null,
     includeShared: true,
+    includeBrands: true,
   };
   // Best passend eerst; bij lunch en diner daarna de recepten van het andere moment.
   const ranked = choiceMoments(moment).flatMap((item) => rankRecipes(recipes, item, context));
   const current = choices.find((choice) => choice.moment === moment)?.recipeId ?? null;
   const own = ranked.filter((item) => item.recipe.owner_id === viewer.user.id);
   const shared = ranked.filter((item) => item.recipe.from_member);
-  const club = ranked.filter((item) => item.recipe.is_standard);
+  const club = ranked.filter((item) => item.recipe.is_standard && !isBrandRecipe(item.recipe));
+  // Op merk en naam, zoals het receptenboek: een lijst om in te zoeken, geen advies.
+  const brands = ranked
+    .filter((item) => isBrandRecipe(item.recipe))
+    .sort((a, b) => a.recipe.title.localeCompare(b.recipe.title, "nl"));
 
   const row = (item: RankedRecipe) => (
     <li key={item.recipe.id} className="flex items-center justify-between gap-3 py-2">
@@ -166,6 +172,13 @@ export default async function KiezenPage({ searchParams }: { searchParams: Promi
           <ul className="mt-1 divide-y">{club.map(row)}</ul>
         )}
       </section>
+
+      {brands.length > 0 && (
+        <section className="rounded-lg border bg-card p-4">
+          <h3 className="font-semibold">Merkproducten</h3>
+          <ul className="mt-1 divide-y">{brands.map(row)}</ul>
+        </section>
+      )}
 
       <Link
         href="/zwbeter-worden/voeding/recepten/nieuw"

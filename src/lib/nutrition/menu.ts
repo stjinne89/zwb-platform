@@ -16,7 +16,7 @@
 import { dayIndex } from "@/lib/training/zwbeterworden";
 import { isKeyDay, totalMinutes, type FuelDayType } from "./day-type";
 import type { DietTag, FuelProfile } from "./labels";
-import { isPackagedRecipe, matchesDiet, portionForRider, type Recipe, type Rider } from "./recipes";
+import { isBrandRecipe, isPackagedRecipe, matchesDiet, portionForRider, type Recipe, type Rider } from "./recipes";
 import { SCALE_MAX, macrosFor, roundGrams, type IngredientRole, type ScaledRecipe } from "./scale";
 import { MEAL_MOMENTS, RECOVERY_RIDE_MINUTES, mealTarget, type MealMoment } from "./targets";
 import { EVENING_START_HOUR, type NutritionDay, type NutritionDayInput } from "./tips";
@@ -72,6 +72,11 @@ export type MenuContext = {
    * lid ze als favoriet heeft: ze zijn niet nagekeken zoals de clubrecepten.
    */
   includeShared?: boolean;
+  /**
+   * Ook de merkproducten (isBrandRecipe). Zonder dit tellen die alleen als
+   * favoriet: niet elk lid heeft dat merk in huis.
+   */
+  includeBrands?: boolean;
 };
 
 export type RankedRecipe = {
@@ -133,6 +138,7 @@ export function rankRecipes(recipes: Recipe[], moment: MealMoment, context: Menu
         recipe.meal_moment === moment &&
         context.prefs.get(recipe.id) !== "verborgen" &&
         (!recipe.from_member || context.includeShared || context.prefs.get(recipe.id) === "favoriet") &&
+        (!isBrandRecipe(recipe) || context.includeBrands || context.prefs.get(recipe.id) === "favoriet") &&
         matchesDiet(recipe, context.diet),
     )
     .map((recipe) => {
