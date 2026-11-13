@@ -7,12 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): lokaal
-   gecommit (`d4c05a11`), niet gepusht.** Migratie
+0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
+   naar `main` (`d4c05a11`).** Migratie
    `0327_zrl_umbrella_restore.sql` is op 2026-11-13 toegepast op productie
    (eigenaar: "Ja, bouwen" op het voorstel); A1 en A2 zijn verwijderd en ZRL A
-   heeft zijn 12 races terug. Open: pushen (de knop staat pas live na de
-   deploy), en de Zwift-links van de races van ZRL A opnieuw plakken. Zie de
+   heeft zijn 12 races terug. Open: na de deploy de verwijderknop op een
+   teampagina bekijken, en de Zwift-links van de races van ZRL A opnieuw
+   plakken. Zie de
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
 0. **ZWBriljant: durability als vermoeid vermogen (2026-11-13): gepusht naar
@@ -12289,7 +12290,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Teams verwijderen, en ZRL A weer een gewoon team
 
 **2026-11-13, de commit "Teams verwijderen, hoofdteam rijdt weer zelf"
-(`d4c05a11`), niet gepusht.** Migratie `0327_zrl_umbrella_restore.sql`, op
+(`d4c05a11`), op 2026-11-13 gepusht naar main.** Migratie `0327_zrl_umbrella_restore.sql`, op
 2026-11-13 toegepast op productie.
 
 - **Productie na het toepassen.** A1 en A2 verwijderd (via SQL, de knop is nog
