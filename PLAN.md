@@ -42,7 +42,8 @@ gaat stabiliteit voor nieuwe features.
 
 0. **ZWBriljant: vermogen als compound score (2026-11-13): gepusht naar
    `main` (`0f5f8b93`).** b = 0,75, ijkgewicht 75/62 kg, echte W/kg op het scherm. Nieuwe
-   schaalversie `2026-11-13-compound`: na de deploy de terugblik-job draaien.
+   schaalversie `2026-11-13-compound`; de terugblik-job liep na de deploy
+   voor alle 34 leden. Open: een steen in de browser bekijken.
    Zie de ronde "ZWBriljant: vermogen als compound score".
 
 0. **ZWBriljant: eigen grenzen voor de durability-test (2026-11-13): gepusht
@@ -12434,9 +12435,15 @@ op 2026-11-13 gepusht naar main (eigenaar: "Push maar").** Geen migratie. Schaal
   onder 80 kg); de omgerekende W/kg op het scherm (keuze eigenaar: A).
 - **Niet meer waar.** "Alle vermogens tellen in W/kg" op `/hulp`; in het
   onderzoek de metingen in W/kg in de tabel van de facetten (verbeterd).
-- **Na de deploy nodig:** de terugblik-job opnieuw voor alle leden (nieuwe
-  schaalversie; die rekent per maand met het gewicht van toen). Tot dan
-  tellen de oude stenen niet mee in de tijdlijn.
+- **Na de deploy (2026-11-13, avond):** de job `/api/briljant/weekly` twaalf
+  keer met de hand gestart (testrun op cron-job.org, 3 leden per run, alle
+  200 OK). Alle 34 leden hebben een terugblik en een weekopname op
+  `2026-11-13-compound`; geen terugblik meer op `2026-11-13-vermoeid`. Score
+  mediaan +6 punten (−43 tot +33) tegen de weekopname op de vorige schaal,
+  gelijk aan de doorrekening (mediaan 1 punt ernaast). Twee uitzonderingen:
+  Bart −35, omdat zijn test nu op verval telt (363 punten durability:
+  ongeveer 5,7% per 10 kJ/kg, dus zijn beste 20 minuten van het jaar liggen
+  rond 357 W, niet 345), en een lid +22 dat nu durability uit ritten heeft.
 - **Geverifieerd:** tsc; de unittests van ZWBriljant en de doelen (148); de
   hele suite op omnium-live (geen `.env.local`) en tijdsoverschrijdingen
   onder belasting na, die los slagen.
