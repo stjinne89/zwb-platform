@@ -573,3 +573,12 @@
 .lifeLine { display: flex; justify-content: space-between; gap: 6px; padding: 0 2px; font-size: 0.7rem; font-weight: 750; font-variant-numeric: tabular-nums; color: #3d342b; }
 .reportList { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 0.88rem; }
 .reportList b { font-variant-numeric: tabular-nums; }
+
+/* Sponsors and salaries (2026-11-13). */
+.offer { flex: 1 1 180px; display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 2px solid var(--ink); border-radius: 10px; background: var(--paper-2); }
+.offer button { margin-top: auto; padding: 6px 10px 5px; border-radius: var(--wobble); border: 2px solid var(--ink); border-bottom-width: 3px; background: var(--yellow); font-weight: 800; }
+.offerTerms { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 0.84rem; }
+.offerTerms dt { color: var(--muted); }
+.offerTerms dd { margin: 0; font-weight: 750; font-variant-numeric: tabular-nums; }
+.overBudget { color: var(--red); font-size: 0.85rem; font-weight: 800; }
+.salary { display: inline-flex; align-items: center; gap: 2px; font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums; }

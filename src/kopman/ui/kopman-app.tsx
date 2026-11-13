@@ -1,11 +1,12 @@
 "use client";
 
-import { CalendarDays, ChevronDown, ChevronUp, Coins, Crown, Flag, Mountain, Package, Play, SkipForward, Trophy, Users, Wand2 } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronUp, Coins, Crown, Flag, Megaphone, Mountain, Package, Play, SkipForward, Trophy, Users, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cardById, TIER_LABELS, TYPE_LABELS } from "../engine/cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "../engine/course";
-import { altitudeCamp, bestLineup, buyPack, calendarOf, campCost, campDone, canSkip, currentRace, currentTour, liveCard, raceSetup, skipRace, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save, type TourReward } from "../engine/economy";
+import { altitudeCamp, bestLineup, budgetOf, buyPack, calendarOf, campCost, campDone, canSkip, canStart, chooseSponsor, currentRace, lineupSalary, needsSponsor, offersFor, salaryFor, currentTour, liveCard, raceSetup, skipRace, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save, type TourReward } from "../engine/economy";
 import { generalOf, jerseysOf, type GcRow, type Jerseys } from "../engine/tour";
+import { goalTarget, goalText, type Sponsor } from "../engine/sponsors";
 import type { Carry } from "../engine/board";
 import type { Lineup } from "../engine/race";
 import { bestItems, GEAR_SLOTS, isItem, ITEMS, STAFF_ROLES, teamBonus, type ItemSlot } from "../engine/items";
@@ -103,7 +104,7 @@ export function KopmanApp() {
 
   const start = () => {
     if (racing) { setAway(false); return; }
-    if (!race || save.lineup.length !== LINEUP_SIZE || !save.kopman) return;
+    if (!race || !canStart(save)) return;
     const setup = raceSetup(save);
     const tour = currentTour(save);
     // In a stage race the board says which stage it is.
@@ -136,6 +137,7 @@ export function KopmanApp() {
         <div className={styles.wallet}>
           <span className={styles.chip} title="Munten"><Coins size={15} aria-hidden /><span className={styles.stat}>{save.coins.toLocaleString("nl-NL")}</span><span className={styles.srOnly}>munten</span></span>
           <span className={styles.chip} title="Ongeopende pakketten"><Package size={15} aria-hidden />{save.packs.length}<span className={styles.srOnly}>pakketten</span></span>
+          <span className={styles.chip} title="Populariteit"><Megaphone size={15} aria-hidden />{save.fame}<span className={styles.srOnly}>populariteit</span></span>
           <span className={styles.chip} title="Niveau"><Trophy size={15} aria-hidden />{DIVISIONS[save.division].name}</span>
         </div>
       </header>
@@ -187,7 +189,9 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
   const course = buildCourse(race);
   const weights = courseWeights(course);
   const climbs = course.features;
-  const ready = save.lineup.length === LINEUP_SIZE && !!save.kopman;
+  const ready = canStart(save);
+  const salary = lineupSalary(save);
+  const budget = budgetOf(save);
   const slot = `Koers ${save.raceIndex + 1} van ${calendarOf(save.division).length}`;
   const cost = campCost(save);
   const skip = () => {
@@ -198,6 +202,7 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
   return (
     <div className={styles.stack}>
       {save.report ? <SeasonReportPanel save={save} update={update} /> : null}
+      {needsSponsor(save) ? <SponsorChoice save={save} update={update} /> : null}
       <div className={styles.panel}>
         <div className={styles.raceHead}>
           <div>
@@ -221,7 +226,7 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
       ) : null}
       <div className={styles.panel}>
         <div className={styles.row} style={{ justifyContent: "space-between", marginBottom: 10 }}>
-          <span className={styles.h3}>Opstelling</span>
+          <span className={styles.h3}>Opstelling <span className={salary > budget ? styles.overBudget : styles.muted}><Coins size={13} aria-hidden /> {salary}/{budget}</span></span>
           <button type="button" className={styles.ghost} onClick={() => update(bestLineup(save, race.id))}><Wand2 size={15} aria-hidden />Beste opstelling</button>
         </div>
         <div className={`${styles.lineupGrid} ${styles.lineupRace}`}>
@@ -278,7 +283,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
         </label>
       </div>
       <div className={styles.panel}>
-        <div className={styles.h3} style={{ marginBottom: 10 }}>Opstelling {save.lineup.length}/{LINEUP_SIZE}</div>
+        <div className={styles.h3} style={{ marginBottom: 10 }}>Opstelling {save.lineup.length}/{LINEUP_SIZE} <span className={lineupSalary(save) > budgetOf(save) ? styles.overBudget : styles.muted}><Coins size={13} aria-hidden /> {lineupSalary(save)}/{budgetOf(save)}</span></div>
         <div className={styles.lineupGrid}>
           {Array.from({ length: LINEUP_SIZE }, (_, i) => save.lineup[i]).map((id, i) => id ? (
             <RiderCardView key={id} card={liveCard(save, id)} small live kopman={id === save.kopman} fit={weights ? fitFor(liveCard(save, id), weights) : undefined} life={lifeOf(save, id)}>
@@ -306,6 +311,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
               <RiderCardView key={card.id} card={card} kopman={card.id === save.kopman} fit={weights ? fitFor(card, weights) : undefined} boost={statBoost(card, bonus)} life={lifeOf(save, card.id)}>
                 <div className={styles.cardActions}>
                   <button type="button" aria-pressed={inLineup} disabled={!!save.tour || (!inLineup && save.lineup.length >= LINEUP_SIZE)} onClick={() => update(toggleLineup(save, card.id))}>{inLineup ? "In ploeg" : "Opstellen"}</button>
+                  <span className={styles.salary} title="Salaris"><Coins size={12} aria-hidden />{salaryFor(save, card.id)}</span>
                   {save.collection[card.id] > 1 ? <span className={styles.badge}>×{save.collection[card.id]}</span> : null}
                 </div>
               </RiderCardView>
@@ -504,6 +510,7 @@ function SeasonTab({ save, update }: { save: Save; update: (s: Save) => void }) 
     <div className={styles.stack}>
       <div className={styles.h2}>Seizoen {save.season} · {DIVISIONS[save.division].name}</div>
       <Pyramid division={save.division} />
+      {save.sponsor ? <SponsorPanel sponsor={save.sponsor} /> : null}
       <StandingsTable save={save} />
       {save.seasonResults.length ? (
         <div className={styles.panel}>
@@ -580,6 +587,7 @@ function ResultView({ result, own, onClose, onPacks }: { result: { raceId: strin
           <div className={styles.reward}><span className={styles.muted}>Munten</span><b>+{reward.coins.toLocaleString("nl-NL")}</b></div>
           <div className={styles.reward}><span className={styles.muted}>Punten</span><b>+{reward.points}</b></div>
           <div className={styles.reward}><span className={styles.muted}>Pakket</span><b>{[reward.pack, ...(tour?.packs ?? [])].filter((p): p is PackType => !!p).map((p) => PACK_LABELS[p]).join(" · ") || "–"}</b></div>
+          {reward.bonus || reward.season?.bonus ? <div className={styles.reward}><span className={styles.muted}>Sponsordoel</span><b>+{((reward.bonus ?? 0) + (reward.season?.bonus ?? 0)).toLocaleString("nl-NL")}</b></div> : null}
           {reward.season ? <div className={styles.reward}><span className={styles.muted}>Seizoen: {reward.season.rank}e{reward.season.move > 0 ? " · promotie" : reward.season.move < 0 ? " · degradatie" : ""}</span><b>+{reward.season.coins.toLocaleString("nl-NL")}{reward.season.pack ? ` · ${PACK_LABELS[reward.season.pack]}` : ""}</b></div> : null}
         </div>
         <div className={styles.row}>
@@ -634,6 +642,41 @@ function TourStanding({ tour, own }: { tour: TourReward; own: string }) {
     <div className={styles.panel} style={{ width: "100%" }}>
       <JerseyLine jerseys={tour.jerseys} />
       <GeneralTable general={tour.general} own={own} caption={tour.done ? "Eindklassement" : `Klassement na etappe ${tour.stage} van ${tour.of}`} />
+    </div>
+  );
+}
+
+/** The three sponsors of a new season: pay per race, budget, goal and its bonus. */
+function SponsorChoice({ save, update }: { save: Save; update: (s: Save) => void }) {
+  return (
+    <div className={styles.panel}>
+      <div className={styles.h3} style={{ marginBottom: 10 }}>Sponsor</div>
+      <div className={styles.packRow}>
+        {offersFor(save).map((offer, i) => (
+          <div key={offer.name} className={styles.offer}>
+            <div className={styles.h3}>{offer.name}{save.loyal === offer.name ? <span className={styles.badge} style={{ marginLeft: 6 }}>Trouw</span> : null}</div>
+            <dl className={styles.offerTerms}>
+              <dt>Per koers</dt><dd>{offer.pay.toLocaleString("nl-NL")}</dd>
+              <dt>Budget</dt><dd>{offer.budget}</dd>
+              <dt>Doel</dt><dd>{goalText(offer.goal)}</dd>
+              <dt>Bonus</dt><dd>{offer.bonus.toLocaleString("nl-NL")}</dd>
+            </dl>
+            <button type="button" onClick={() => update(chooseSponsor(save, i))}>Kiezen</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SponsorPanel({ sponsor }: { sponsor: Sponsor }) {
+  return (
+    <div className={styles.panel}>
+      <div className={styles.row} style={{ justifyContent: "space-between" }}>
+        <span className={styles.h3}>{sponsor.name}</span>
+        <span className={sponsor.met ? styles.badge : styles.muted}>{sponsor.met ? "Doel gehaald" : `${Math.min(sponsor.progress, goalTarget(sponsor.goal))}/${goalTarget(sponsor.goal)}`}</span>
+      </div>
+      <div className={styles.muted} style={{ marginTop: 4 }}>{goalText(sponsor.goal)} · bonus {sponsor.bonus.toLocaleString("nl-NL")} · {sponsor.pay.toLocaleString("nl-NL")} per koers · budget {sponsor.budget}</div>
     </div>
   );
 }

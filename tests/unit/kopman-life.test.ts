@@ -34,7 +34,7 @@ describe("Kopman: renners leven", () => {
     const id = save.lineup[0];
     const tired = withLife(save, id, { form: 40 });
     const penalty = formPenalty(40);
-    expect(penalty).toBe(5);
+    expect(penalty).toBe(4);
     for (const k of STAT_KEYS) expect(liveCard(tired, id).stats[k]).toBe(Math.max(30, cardById(id).stats[k] - penalty));
     expect(raceSetup(tired)!.lineup.cards![id].overall).toBeLessThan(cardById(id).overall);
   });

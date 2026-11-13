@@ -24,8 +24,8 @@ export type RiderLife = {
 };
 
 export const AGE = { min: 19, max: 33, growUntil: 25, declineFrom: 31, retireFrom: 34 };
-export const FORM_STEP = 12;
-export const FORM_COST = { race: 15, stage: 8, kampioenschap: 10 };
+export const FORM_STEP = 15;
+export const FORM_COST = { race: 10, stage: 5, kampioenschap: 8 };
 export const FORM_REST = 20;
 export const FORM_SKIP = 30;
 export const FORM_CAMP = 30;

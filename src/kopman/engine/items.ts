@@ -10,7 +10,8 @@ import type { Tier } from "./types";
 export const GEAR_SLOTS = ["frame", "wielen", "banden", "aandrijving", "remmen", "kleding", "voeding"] as const;
 export type GearSlot = (typeof GEAR_SLOTS)[number];
 /** Scout since 2026-11-13: young riders grow faster, and you see their talent. */
-export const STAFF_ROLES = ["trainer", "mechanieker", "fysio", "ploegleider", "chauffeur", "scout"] as const;
+/** Pers since 2026-11-13 too: popularity rises faster. */
+export const STAFF_ROLES = ["trainer", "mechanieker", "fysio", "ploegleider", "chauffeur", "scout", "pers"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 export type ItemSlot = GearSlot | StaffRole;
 export type ItemGroup = "materiaal" | "personeel";
@@ -46,6 +47,7 @@ export const STAFF: Record<StaffRole, Spec> = {
   ploegleider: { label: "Ploegleider", names: ["Stagiair", "Assistent-ploegleider", "Ervaren ploegleider", "Sportief directeur"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} langere orders` },
   chauffeur: { label: "Buschauffeur", names: ["Busje", "Buschauffeur", "Teambus", "Luxe teambus"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} startgeld` },
   scout: { label: "Scout", names: ["Talentspotter", "Scout", "Hoofdscout", "Scoutingnetwerk"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} groei jonge renners` },
+  pers: { label: "Persvoorlichter", names: ["Persstagiair", "Persvoorlichter", "Persattaché", "Mediateam"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} populariteit` },
 };
 
 const TIER_ORDER: Tier[] = ["brons", "zilver", "goud", "diamant"];
@@ -106,9 +108,11 @@ export type TeamBonus = {
   startFee: number;
   /** Young riders grow faster. */
   growth: number;
+  /** Popularity rises faster. */
+  fame: number;
 };
 
-export const NO_BONUS: TeamBonus = { bikeMass: 0, cda: 0, crr: 0, drivetrain: 0, descent: 0, wprime: 0, power: 0, recovery: 0, orders: 0, startFee: 0, growth: 0 };
+export const NO_BONUS: TeamBonus = { bikeMass: 0, cda: 0, crr: 0, drivetrain: 0, descent: 0, wprime: 0, power: 0, recovery: 0, orders: 0, startFee: 0, growth: 0, fame: 0 };
 
 export function teamBonus(items: Record<string, number> | undefined): TeamBonus {
   if (!items) return NO_BONUS;
@@ -128,5 +132,6 @@ export function teamBonus(items: Record<string, number> | undefined): TeamBonus 
     orders: v("ploegleider"),
     startFee: v("chauffeur"),
     growth: v("scout"),
+    fame: v("pers"),
   };
 }

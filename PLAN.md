@@ -52,7 +52,8 @@ gaat stabiliteit voor nieuwe features.
    "Kopman: de Ronde van de Alpen" (`a4772a41`), een ronde van 5 etappes
    in de Wereldtour. Daarna lokaal, niet gepusht: de rondes van het
    samengevoegde voorstel om het spel te verbreden, te beginnen met
-   "Kopman: renners leven" (de commit van die ronde). Op een telefoon vult het bord het scherm. Open: na de
+   "Kopman: renners leven" (`dcc2f78b`) en "Kopman: sponsors en een
+   salarisplafond" (de commit van die ronde). Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12274,9 +12275,52 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: sponsors en een salarisplafond (ronde B)
+
+**2026-11-13, de commit "Kopman: sponsors en een salarisplafond", lokaal,
+niet gepusht.** Geen migratie. De save krijgt `fame`, `sponsor` en `loyal`;
+een save zonder krijgt populariteit 20 en geen sponsor.
+
+- **Wat er is.** Zie
+  [docs/kopman-breder.md](docs/kopman-breder.md#gebouwd-ronde-b-sponsors-populariteit-en-een-plafond).
+  - `src/kopman/engine/sponsors.ts`: populariteit, drie aanbiedingen per
+    seizoen, doelen, salaris.
+  - `economy.ts`:
+    - `budgetOf`, `lineupSalary` en `canStart`;
+    - `bestLineup` binnen het budget;
+    - betaling en doel per koers (`publicity`), eindstand en trui als doel;
+    - een trouwe sponsor in `newSeason`.
+  - Een persvoorlichter bij het personeel (`TeamBonus.fame`).
+- **Waarom.** Volgens het onderzoek zijn doelen naast promotie en een plafond
+  de sterkste middelen tegen een sneeuwbal. Het plafond is de lichte vorm:
+  geen salaris dat van je munten afgaat, alleen een grens voor de vijf die
+  starten. Verzamelen doet zo geen pijn.
+- **Bijgesteld na meten.**
+  - De vorm van ronde A is milder: een koers kost 10 in plaats van 15, een
+    etappe 5 in plaats van 8, en -1 per 15 punten in plaats van per 12.
+  - De budgetten bovenin zijn krapper.
+  - Een trouwe sponsor geeft geen ruimer budget.
+- **Gemeten.** Zie het doc. Met de krappere budgetten wint het script in de
+  Wereldtour nog steeds de meeste koersen; ronde D moet daar meer doen.
+- **Niet meer waar.**
+  - In ronde A hieronder staan de oude vormgetallen; het doc is bijgewerkt.
+  - Het personeel heeft nu zeven rollen.
+  - De beloning van een koers telt de sponsorbetaling mee (`RaceReward.pay`,
+    in `coins`).
+- **Bewust niet gebouwd:** salaris dat elk seizoen van je munten afgaat (dat
+  maakt het trekken van een dure renner een straf), en contracten die
+  aflopen.
+- **Geverifieerd:**
+  - tsc, eslint, en de Kopman-tests (95, waarvan 7 nieuw in
+    `tests/unit/kopman-sponsor.test.ts`);
+  - in de preview op een testsave op 127.0.0.1: de drie sponsors, de rode
+    salarisregel en de Start-knop die wacht.
+- **Niet geverifieerd:** een seizoen met sponsor gespeeld in de app; `next
+  build`.
+
 ### Gebouwd — Kopman: renners leven (ronde A van het brede voorstel)
 
-**2026-11-13, de commit "Kopman: renners leven", lokaal, niet gepusht.**
+**2026-11-13, `dcc2f78b`, lokaal, niet gepusht.**
 Geen migratie. De save krijgt `riders` (het leven per renner), `legends`,
 `camp` en `report`. Een save zonder die velden krijgt ze bij het laden.
 
@@ -12315,6 +12359,8 @@ Geen migratie. De save krijgt `riders` (het leven per renner), `legends`,
     personeel uit een pakket met dezelfde seed anders dan voorheen.
 - **Bewust niet gebouwd:**
   - Leeftijd voor rivaliserende renners: hun ploegen wisselen in ronde D.
+- **Bijgesteld in ronde B.** De vorm van deze ronde (15 per koers, -1 per
+  12 punten) bleek te zwaar en is milder gemaakt; zie ronde B.
   - Een kalender van 12 koersen waaruit je 8 kiest: overslaan geeft die
     keuze goedkoper.
 - **Geverifieerd:**

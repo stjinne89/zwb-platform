@@ -254,9 +254,10 @@ en krijgt een eigen commit.
   bronzen renners (neoprofs).
 - Een **scout** (nieuw personeel) toont het talent en laat jonge renners
   sneller groeien. Zonder scout zie je een vraagteken.
-- **Vorm** per renner, van 0 tot 100. Een koers kost 15 vorm, een etappe 8;
-  wie niet rijdt, krijgt 20 terug. Elke 12 punten onder de 100 kost een punt
-  op elke waarde. Een nieuw seizoen begint fris.
+- **Vorm** per renner, van 0 tot 100. Een koers kost 10 vorm, een etappe 5;
+  wie niet rijdt, krijgt 20 terug. Elke 15 punten onder de 100 kost een punt
+  op elke waarde. Een nieuw seizoen begint fris. (Eerst 15, 8 en 12; zie de
+  meting bij ronde B.)
 - **Overslaan**: een koers niet rijden. Iedereen krijgt 30 vorm terug, je
   krijgt niets voor die koers.
 - **Hoogtestage**: tussen twee koersen voor munten +30 vorm voor je vijf.
@@ -325,10 +326,12 @@ Gebouwd op 2026-11-13. De code staat in `src/kopman/engine/riders.ts` en in
   (19 tot 21 jaar, 6 tot 14 punten talent), en de opstelling vult zich met de
   beste die over zijn. Een gestopte renner die je weer trekt, levert zijn
   verkoopwaarde op.
-- **Vorm**: een koers kost 15, een etappe 8, rust geeft 20, overslaan 30,
-  een hoogtestage 30 voor je vijf (1500 munten maal het aandeel van het
-  niveau, één keer per koers). Elke 12 punten onder de 100 is -1 op elke
-  waarde. Een nieuw seizoen begint op 100.
+- **Vorm**: een koers kost 10, een etappe 5, een kampioenschap 8, rust geeft
+  20, overslaan 30, een hoogtestage 30 voor je vijf (1500 munten maal het
+  aandeel van het niveau, één keer per koers). Elke 15 punten onder de 100 is
+  -1 op elke waarde. Een nieuw seizoen begint op 100. Bij de meting hieronder
+  kostte een koers nog 15 en was het -1 per 12 punten; dat bleek te zwaar (zie
+  ronde B).
 - **Scout**: nieuw personeel, vier kaarten van +10 tot +40 procent groei. Met
   een scout staat het talent op de kaart, anders een vraagteken.
 - **Scherm**: op elke kaart van je ploeg de leeftijd achter de voornaam en een
@@ -350,6 +353,80 @@ Voor deze ronde gingen beide seeds sneller door de piramide.
 **Niet geverifieerd:** de groei en het stoppen in de app over meer seizoenen
 (in de preview alleen de kaarten en de knoppen op een testsave), en of het
 nu te zwaar is voor een mens die beter speelt dan het script.
+
+### Gebouwd: ronde B, sponsors, populariteit en een plafond
+
+Gebouwd op 2026-11-13. De code staat in `src/kopman/engine/sponsors.ts` en in
+`economy.ts` (`offersFor`, `chooseSponsor`, `budgetOf`, `lineupSalary`,
+`canStart`, `publicity`).
+
+- **Populariteit** van 0 tot 100, begint op 20 (`fameAfter`):
+  - +5 voor een zege, +3 voor een podium, +1 voor een top 10, anders -1;
+  - een etappe telt half, elke eigen trui na de ronde +3, overslaan -2;
+  - een persvoorlichter (nieuw personeel, +10 tot +40 procent) maakt de winst
+    tot twee keer zo groot;
+  - elk nieuw seizoen zakt hij terug: 60 procent plus 12.
+- **Drie sponsors per seizoen** (`sponsorOffers`), te kiezen voor de eerste
+  koers. De Start-knop wacht daarop.
+  - een die goed betaalt (1,4 keer) met een moeilijk doel en een krap budget
+    (0,9 keer);
+  - een met ruimte in het budget (1,1 keer) en een gewoon doel;
+  - een met een makkelijk doel.
+  - Populariteit maakt betaling en budget beter.
+  - Een sponsor wiens doel je haalde, komt het volgende seizoen terug en
+    betaalt een tiende meer.
+- **Doelen**: zeges, een zege in een soort koers, top 5's, een eindstand, een
+  top 10 met een jonge renner, een trui in de ronde (alleen de Wereldtour).
+  De bonus is 5, 7 of 10 keer de betaling per koers, één keer.
+- **Salaris** naar het totaal van een renner (zonder vorm):
+  `(totaal - 45)^1,6 / 4`. Dat is 12 bij 56, 58 bij 75 en 118 bij 92.
+- **Budget** zonder sponsor: 130, 200, 270, 320 en 360 van Kermis tot
+  Wereldtour. De vijf die starten moeten erin passen. Het budget is nooit
+  lager dan je vijf goedkoopste renners, zodat een ploeg altijd kan starten.
+  "Beste opstelling" kiest binnen het budget.
+- **Scherm**:
+  - de populariteit bovenaan;
+  - de drie sponsors op het koersscherm;
+  - salaris tegen budget bij de opstelling, rood als het te veel is;
+  - het salaris bij elke kaart in de verzameling;
+  - de sponsor en zijn doel op het seizoensscherm;
+  - de bonus in de uitslag.
+
+**Gemeten** met `.tmp/kopman-groei.ts`: 2 seeds, 10 seizoenen, het script
+kiest de sponsor met het ruimste budget. Eerst bleek de vorm uit ronde A te
+zwaar: een script dat altijd dezelfde vijf laat rijden, zat aan het eind van
+het seizoen op nul. Daarom kost een koers nu 10 vorm en is het -1 per 15
+punten. Daarna waren de budgetten bovenin te ruim: in de Wereldtour won het
+script 7 tot 8 van de 8 koersen. Ze zijn verlaagd tot de stand hierboven.
+Met die stand:
+
+```
+seed 11:
+  s1 Kermis        5e  zeges 1/8 podium 3/8  ploeg 62 (band 51–56)  populair 34  doel gehaald  salaris 90/147
+  s2 Kermis        1e  zeges 6/8 podium 7/8  ploeg 68 (band 51–56)  populair 64  doel gehaald  salaris 101/148
+  s3 Interclub     5e  zeges 1/8 podium 2/8  ploeg 69 (band 58–64)  populair 58  doel niet  salaris 146/231
+  s4 Interclub     3e  zeges 2/8 podium 3/8  ploeg 70 (band 58–64)  populair 59  doel gehaald  salaris 191/230
+  s5 Interclub     1e  zeges 4/8 podium 5/8  ploeg 71 (band 58–64)  populair 79  doel gehaald  salaris 182/230
+  s6 Continentaal  1e  zeges 3/8 podium 5/8  ploeg 76 (band 64–71)  populair 99  doel gehaald  salaris 278/314
+  s7 Proftour      1e  zeges 4/8 podium 5/8  ploeg 78 (band 68–75)  populair 98  doel gehaald  salaris 303/376
+  s8 Wereldtour    2e  zeges 3/8 podium 5/8  ploeg 86 (band 76–86)  populair 100  doel gehaald  salaris 373/422
+  s9 Wereldtour    1e  zeges 7/8 podium 8/8  ploeg 90 (band 76–86)  populair 100  doel gehaald  salaris 423/423
+  s10 Wereldtour    1e  zeges 6/8 podium 7/8  ploeg 90 (band 76–86)  populair 100  doel gehaald  salaris 423/423
+seed 22:
+  s1 Kermis        3e  zeges 3/8 podium 5/8  ploeg 65 (band 51–56)  populair 38  doel gehaald  salaris 108/147
+  s2 Kermis        3e  zeges 4/8 podium 5/8  ploeg 67 (band 51–56)  populair 59  doel gehaald  salaris 129/148
+  s3 Kermis        3e  zeges 4/8 podium 4/8  ploeg 69 (band 51–56)  populair 84  doel gehaald  salaris 145/150
+  s4 Kermis        2e  zeges 7/8 podium 7/8  ploeg 72 (band 51–56)  populair 100  doel gehaald  salaris 151/152
+  s5 Interclub     1e  zeges 5/8 podium 6/8  ploeg 74 (band 58–64)  populair 100  doel gehaald  salaris 207/235
+  s6 Continentaal  1e  zeges 6/8 podium 7/8  ploeg 77 (band 64–71)  populair 100  doel gehaald  salaris 242/317
+  s7 Proftour      1e  zeges 6/8 podium 6/8  ploeg 80 (band 68–75)  populair 99  doel gehaald  salaris 364/376
+  s8 Wereldtour    2e  zeges 3/8 podium 4/8  ploeg 85 (band 76–86)  populair 100  doel gehaald  salaris 384/422
+  s9 Wereldtour    1e  zeges 7/8 podium 8/8  ploeg 88 (band 76–86)  populair 100  doel gehaald  salaris 423/423
+  s10 Wereldtour    1e  zeges 8/8 podium 8/8  ploeg 91 (band 76–86)  populair 100  doel gehaald  salaris 422/423
+```
+
+**Niet geverifieerd:** of een mens met deze budgetten in de Wereldtour nog te
+makkelijk wint. Ronde D voegt daar de aartsrivaal en transfers aan toe.
 
 **Niet in dit voorstel:** een zesde trede (gekozen is de ronde), een eigen
 kalender van 12 koersen waar je er 8 uit kiest (overslaan geeft die keuze

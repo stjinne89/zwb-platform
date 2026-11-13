@@ -65,6 +65,17 @@ const schema = z.object({
     grown: z.array(z.object({ id: cardId, delta: z.number().int() })).max(500),
     neo: z.array(cardId).max(50),
   }).nullable().default(null),
+  fame: z.number().min(0).max(100).default(20),
+  sponsor: z.object({
+    name: z.string().max(60),
+    pay: count,
+    budget: count,
+    goal: z.object({ kind: z.enum(["zeges", "soort", "top5", "eindstand", "jong", "trui"]), n: z.number().int().min(0).max(100), soort: z.string().max(20).optional() }),
+    bonus: count,
+    progress: count,
+    met: z.boolean(),
+  }).nullable().default(null),
+  loyal: z.string().max(60).nullable().default(null),
 });
 
 /** Before the pyramid: one calendar of 16 races and a daily limit on packs. */
@@ -76,7 +87,7 @@ const v1 = z.object({ ...base, v: z.literal(1), raceIndex: z.number().int().min(
  * collection, coins and packs stay.
  */
 function fromV1(old: z.infer<typeof v1>): Save {
-  return { ...old, v: SAVE_VERSION, division: divisionFor(old.collection), raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null, riders: {}, legends: [], camp: null, report: null };
+  return { ...old, v: SAVE_VERSION, division: divisionFor(old.collection), raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null, riders: {}, legends: [], camp: null, report: null, fame: 20, sponsor: null, loyal: null };
 }
 
 /** Reads a save; anything broken or tampered beyond repair gives null. */
