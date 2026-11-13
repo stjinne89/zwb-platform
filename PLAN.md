@@ -38,6 +38,11 @@ gaat stabiliteit voor nieuwe features.
    plakken. Zie de
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
+0. **ZWBriljant: vermogen als compound score (2026-11-13): lokaal, niet
+   gepusht.** b = 0,75, ijkgewicht 75/62 kg, echte W/kg op het scherm. Nieuwe
+   schaalversie `2026-11-13-compound`: na de deploy de terugblik-job draaien.
+   Zie de ronde "ZWBriljant: vermogen als compound score".
+
 0. **ZWBriljant: eigen grenzen voor de durability-test (2026-11-13): lokaal,
    niet gepusht (`db040da6`).** Diamant 2,5% per 10 kJ/kg (WorldTour-p75), Platina 5. Zie
    de ronde "Eigen grenzen voor de durability-test".
@@ -12336,6 +12341,53 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBriljant: vermogen als compound score
+
+**2026-11-13, de commit "ZWBriljant: vermogen als compound score", lokaal,
+niet gepusht.** Geen migratie. Schaalversie `2026-11-13-compound` (was
+`2026-11-13-vermoeid`).
+
+- **De vraag.** De eigenaar wilde de waarden "een beetje weg ... bij watts per
+  kilo" en absolute watts laten meetellen, met de compound score. Doorgerekend
+  op 30 leden (productie, alleen lezend; tabel in
+  [het onderzoek](docs/zwbriljant-onderzoek.md#vermogen-als-compound-score-2026-11-13-avond)).
+  Keuze eigenaar: "B 0,75 lijkt mij me fair en ijkgewichten ook", daarna "A
+  en bouw maar" (echte W/kg op het scherm).
+- **Wat er is.**
+  - `COMPOUND_EXPONENT` 0,75, `REFERENCE_WEIGHT_KG` 75 (man) en 62 (vrouw) en
+    `compoundFactor` in `norms.ts`: W/kg × (gewicht ÷ ijkgewicht)^0,25 op de
+    normen. Zonder gewicht gewone W/kg; zonder geslacht het ijkgewicht van
+    mannen.
+  - `facetReadings` (`score.ts`): sprint, anaeroob, VO2max en drempel op de
+    normen met die factor; `value` blijft je echte W/kg, `compound` op de
+    lezing. Durability uit ritten idem (`fatiguedLevel` met `compound`). De
+    test niet: verval is een verhouding. `BriljantInput.compoundKg` (de
+    recordsteen: null, dus gewone W/kg; records 1240 en 1232 ongewijzigd).
+  - Scherm (`view.ts`): naast elk onderdeel je echte W/kg, de balk in punten
+    (`pointsMeter`) zodra er een gewicht is. "Hier win je het meest" rekent
+    met 5% meer echte W/kg. `readingFromLevel` geeft met een gewicht je echte
+    W/kg terug (met je gewicht van nu); je eigen bewaarde stenen en "sinds
+    vorige week" krijgen dat gewicht mee (`stats/zwbriljant/page.tsx`).
+  - Eisen bij een doeltijd (`goal-requirements.ts`, `loadSteenInputs`): de
+    drempel met dezelfde factor, anders spreken doel en steen elkaar tegen.
+  - Hersteld in passing: bij "sinds vorige week" ging het verval van de
+    durability-test als W/kg mee; nu zonder meting.
+  - `/hulp`: de formule onder De formules (Vermogen), de grenzen in de tabel
+    gelden bij 75 en 62 kg.
+- **Bewust niet gebouwd:** b = 0,5 (watt × W/kg, het dubbele effect), een b
+  per duur, het ijkgewicht van de club (80/65 kg, dan zakt bijna iedereen
+  onder 80 kg); de omgerekende W/kg op het scherm (keuze eigenaar: A).
+- **Niet meer waar.** "Alle vermogens tellen in W/kg" op `/hulp`; in het
+  onderzoek de metingen in W/kg in de tabel van de facetten (verbeterd).
+- **Na de deploy nodig:** de terugblik-job opnieuw voor alle leden (nieuwe
+  schaalversie; die rekent per maand met het gewicht van toen). Tot dan
+  tellen de oude stenen niet mee in de tijdlijn.
+- **Geverifieerd:** tsc; de unittests van ZWBriljant en de doelen (148); de
+  hele suite op omnium-live (geen `.env.local`) en tijdsoverschrijdingen
+  onder belasting na, die los slagen.
+- **Niet geverifieerd:** de steen in de browser; `next build`; de
+  terugblik met de nieuwe schaal.
 
 ### Hersteld — Eigen grenzen voor de durability-test
 

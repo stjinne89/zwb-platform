@@ -18,6 +18,7 @@ import {
   LEVELS,
   FACET_WEIGHTS,
   ZRS_ANCHORS,
+  compoundFactor,
   fatiguedPowerAnchors,
   levelOf,
   powerAnchors,
@@ -191,6 +192,11 @@ export type DurabilityTestInput = {
 export type BriljantInput = {
   sex: Sex | null;
   weightKg: number | null;
+  /**
+   * Het gewicht voor de compound score (compoundFactor); weggelaten is het
+   * `weightKg`, null rekent met gewone W/kg (de recordsteen, die met 1 kg rekent).
+   */
+  compoundKg?: number | null;
   power: PowerInput | null;
   fatigue: FatigueInput[];
   /** Een durability-test van de laatste 90 dagen; gaat voor op `fatigue`. */
@@ -207,6 +213,12 @@ export type BriljantInput = {
  * niveau na die deling. Uit de test is `value` het verval in % per 10 kJ/kg.
  */
 export type FacetReading = ScaleStep & {
+  /**
+   * Bij vermogen en durability uit ritten: de compound-factor waarmee je W/kg op de
+   * normen telt. `value` blijft je echte W/kg; `lower` en `upper` zijn dan grenzen
+   * op de omgerekende schaal, dus de balk staat in punten.
+   */
+  compound?: number;
   source?: "test" | "ritten";
   testDay?: string;
   fatigued?: Partial<Record<FatiguedDuration, number>>;
@@ -247,11 +259,11 @@ export function fatiguedPower(fatigue: FatigueInput[], weightKg: number | null):
 /**
  * Het niveau bij vermoeid vermogen: per duur tegen de normen voor vermoeid vermogen
  * bij jouw kJ/kg (fatiguedPowerAnchors), gemiddeld over de duren die er zijn, maal
- * `share` (de helft uit ritten, 1 uit de test).
+ * `share` (de helft uit ritten), met je W/kg maal `compound` (compoundFactor).
  */
-export function fatiguedLevel(power: FatiguedPower, sex: Sex | null, share: number): number {
+export function fatiguedLevel(power: FatiguedPower, sex: Sex | null, share: number, compound = 1): number {
   const levels = (Object.entries(power.wkg) as Array<[FatiguedDuration, number]>).map(([duration, wkg]) =>
-    levelAt(fatiguedPowerAnchors(duration, sex, power.kjPerKg), wkg),
+    levelAt(fatiguedPowerAnchors(duration, sex, power.kjPerKg), wkg * compound),
   );
   return (levels.reduce((sum, level) => sum + level, 0) / levels.length) * share;
 }
@@ -270,10 +282,27 @@ export function durabilityTestDecline(test: DurabilityTestInput | null | undefin
   return lossPct / (kjPerKg / 10);
 }
 
-function readingFor(power: FatiguedPower, sex: Sex | null, share: number): FacetReading {
+function readingFor(power: FatiguedPower, sex: Sex | null, share: number, compound: number | null): FacetReading {
   const duration: FatiguedDuration = power.wkg.m20 != null ? "m20" : "m5";
-  const step = scaleStep(fatiguedPowerAnchors(duration, sex, power.kjPerKg), power.wkg[duration]!);
-  return { ...step, level: fatiguedLevel(power, sex, share), fatigued: power.wkg, kjPerKg: power.kjPerKg, share };
+  const step = scaleStep(fatiguedPowerAnchors(duration, sex, power.kjPerKg), power.wkg[duration]! * (compound ?? 1));
+  return {
+    ...step,
+    value: power.wkg[duration]!,
+    level: fatiguedLevel(power, sex, share, compound ?? 1),
+    ...(compound == null ? {} : { compound }),
+    fatigued: power.wkg,
+    kjPerKg: power.kjPerKg,
+    share,
+  };
+}
+
+/**
+ * De compound-factor van deze invoer: met `compoundKg`, anders met `weightKg`. Null
+ * zonder gewicht: dan telt gewone W/kg.
+ */
+export function compoundOf(input: BriljantInput): number | null {
+  const weight = positive(input.compoundKg === undefined ? input.weightKg : input.compoundKg);
+  return weight == null ? null : compoundFactor(weight, input.sex);
 }
 
 /**
@@ -287,15 +316,21 @@ export function durabilityReading(input: BriljantInput): FacetReading | null {
     return { ...scaleStep(DURABILITY_TEST_ANCHORS, decline), source: "test", testDay: input.durabilityTest!.day, share: 1 };
   }
   const rides = fatiguedPower(input.fatigue, input.weightKg);
-  return rides ? { ...readingFor(rides, input.sex, DURABILITY_RIDES_SHARE), source: "ritten" } : null;
+  return rides ? { ...readingFor(rides, input.sex, DURABILITY_RIDES_SHARE, compoundOf(input)), source: "ritten" } : null;
 }
 
-/** Per facet de meting en het niveau tegen de wereld; null waar de gegevens ontbreken. */
+/**
+ * Per facet de meting en het niveau tegen de wereld; null waar de gegevens ontbreken.
+ * Vermogen telt als compound score (compoundOf); de meting blijft je echte W/kg.
+ */
 export function facetReadings(input: BriljantInput): Record<Facet, FacetReading | null> {
-  const power = (facet: keyof typeof POWER_FACETS) => {
+  const compound = compoundOf(input);
+  const power = (facet: keyof typeof POWER_FACETS): FacetReading | null => {
     const duration = POWER_FACETS[facet];
     const value = positive(input.power?.[duration]);
-    return value == null ? null : scaleStep(powerAnchors(duration, input.sex), value);
+    if (value == null) return null;
+    const step = scaleStep(powerAnchors(duration, input.sex), value * (compound ?? 1));
+    return compound == null ? step : { ...step, value, compound };
   };
   const ctl = input.ctl != null && Number.isFinite(input.ctl) && input.ctl >= 0 ? input.ctl : null;
   const zrs = positive(input.zrs);

@@ -109,15 +109,41 @@ export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors 
  * wordt opnieuw gemaakt, want er staan alleen niveaus in, geen metingen om opnieuw
  * mee te rekenen.
  */
-export const SCALE_VERSION = "2026-11-13-vermoeid";
+export const SCALE_VERSION = "2026-11-13-compound";
 
 /**
- * De vorige versie. De terugblik ruimt die stenen niet op. Bij "2026-10-22-ctl40"
- * is omzetten niet mogelijk: het oude durability-niveau kwam uit het verval, en
- * daaruit is je vermoeide vermogen niet terug te rekenen. Ze blijven bewaard maar
+ * De vorige versie. De terugblik ruimt die stenen niet op. Omzetten kan niet: een
+ * snapshot bewaart alleen niveaus en niet het gewicht van die week, dus de compound
+ * score (COMPOUND_EXPONENT) is er niet uit terug te rekenen. Ze blijven bewaard maar
  * tellen niet mee; de terugblik maakt de historie opnieuw.
  */
-export const PREVIOUS_SCALE_VERSION = "2026-10-22-ctl40";
+export const PREVIOUS_SCALE_VERSION = "2026-11-13-vermoeid";
+
+/**
+ * Vermogen telt als compound score: watt ÷ kg^0,75 in plaats van watt ÷ kg (eigenaar,
+ * 2026-11-13: "een beetje weg bij watts per kilo", absolute watts helpen ook). Op het
+ * vlakke en in de sprint telt absoluut vermogen, bergop W/kg; 0,75 houdt het dicht
+ * bij W/kg. Doorgerekend op 30 leden: mediaan +6 punten, van −44 (58 kg) tot +33
+ * (111 kg); 0,5 (watt × W/kg) gaf het dubbele.
+ */
+export const COMPOUND_EXPONENT = 0.75;
+
+/**
+ * Bij dit gewicht is de compound score gelijk aan je W/kg, zodat hij op de normen in
+ * W/kg past: ongeveer het midden van de Zwift-renners waar die normen uit komen
+ * (eigenaar, 2026-11-13). Zwaarder telt iets hoger, lichter iets lager.
+ */
+export const REFERENCE_WEIGHT_KG: Record<Sex, number> = { man: 75, vrouw: 62 };
+
+/**
+ * Waarmee je W/kg vermenigvuldigd wordt voor de normen: (gewicht ÷ ijkgewicht)^0,25.
+ * Zonder gewicht 1, dan telt gewone W/kg. Zonder geslacht het ijkgewicht van mannen,
+ * net als de normen.
+ */
+export function compoundFactor(weightKg: number | null | undefined, sex: Sex | null): number {
+  if (weightKg == null || !Number.isFinite(weightKg) || weightKg <= 0) return 1;
+  return (weightKg / REFERENCE_WEIGHT_KG[sex === "vrouw" ? "vrouw" : "man"]) ** (1 - COMPOUND_EXPONENT);
+}
 
 /**
  * Zwift Racing Score (0–1000) als doorlopende lijn: elke ZRS-punt is een punt, dus

@@ -117,3 +117,12 @@ describe("eisen bij de prognose", () => {
     expect(forecastGoal({ ...base, targetSeconds: fastest }).requirements).toBeNull();
   });
 });
+
+describe("goalRequirements met de compound score", () => {
+  it("rekent de drempel zoals de steen: W/kg maal (gewicht ÷ 75)^0,25", () => {
+    const at75 = goalRequirements({ cpFactor: 1, eventLoad: 0, steen: { ...STEEN, weightKg: 75 } });
+    const at90 = goalRequirements({ cpFactor: 1, eventLoad: 0, steen: { ...STEEN, weightKg: 90 } });
+    expect(at75.drempel.current).toBe(goalRequirements({ cpFactor: 1, eventLoad: 0, steen: STEEN }).drempel.current);
+    expect(at90.drempel.current).toBe(Math.round(levelAt(powerAnchors("m20", "man"), 3.56 * (90 / 75) ** 0.25) * 100) / 100);
+  });
+});

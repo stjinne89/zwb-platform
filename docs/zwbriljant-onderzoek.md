@@ -85,11 +85,11 @@ fitheid en racen, en terug naar sprint:
 
 | Facet | Meting | Gewicht | Waarom | Bronnen |
 |---|---|---|---|---|
-| Sprint | beste 15 s, W/kg | 5% | Beslist alleen sprintfinishes; daalt na twee uur nauwelijks nog. | van Erp 2021 (top 5); Klaris 2024; Pinot & Grappe 2011 |
-| Anaeroob | beste minuut, W/kg | 10% | Punchers en aanvallen; beslissend in Zwift-races en bij de top 5 van profvrouwen. | Varesco 2025; van Erp & Lamberts 2022 |
-| VO2max | beste 5 min, W/kg | 20% | De sterkste enkele voorspeller van uitslagen en niveau. | Leo 2022; Mateo-March 2025; Mougin 2026 |
-| Drempel | beste 20 min, W/kg | 15% | Aerobe basis, tijdrijden en lange klimmen. | Valenzuela 2023; Mateo-March 2025; Quod 2010 |
-| Durability | vermoeid vermogen op 5 en 20 minuten na minstens 10 kJ/kg, W/kg (uit ritten voor de helft; uit de test: 20 minuten, helemaal) | 17,5% | Vermoeid vermogen onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en een betere verse waarde haalt het niet omlaag. | van Erp 2021; Muriel 2021; Mateo-March 2022, 2025; Leo 2024; Voet 2024; Barsumyan 2025 (twee studies); Inoue 2026 |
+| Sprint | beste 15 s, compound score (watt ÷ kg^0,75) | 5% | Beslist alleen sprintfinishes; daalt na twee uur nauwelijks nog. | van Erp 2021 (top 5); Klaris 2024; Pinot & Grappe 2011 |
+| Anaeroob | beste minuut, compound score | 10% | Punchers en aanvallen; beslissend in Zwift-races en bij de top 5 van profvrouwen. | Varesco 2025; van Erp & Lamberts 2022 |
+| VO2max | beste 5 min, compound score | 20% | De sterkste enkele voorspeller van uitslagen en niveau. | Leo 2022; Mateo-March 2025; Mougin 2026 |
+| Drempel | beste 20 min, compound score | 15% | Aerobe basis, tijdrijden en lange klimmen. | Valenzuela 2023; Mateo-March 2025; Quod 2010 |
+| Durability | uit ritten: vermoeid vermogen op 5 en 20 minuten na minstens 10 kJ/kg, compound score, voor de helft; uit de test: het verval op 20 minuten, helemaal | 17,5% | Vermoeid vermogen onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en een betere verse waarde haalt het niet omlaag. | van Erp 2021; Muriel 2021; Mateo-March 2022, 2025; Leo 2024; Voet 2024; Barsumyan 2025 (twee studies); Inoue 2026 |
 | Fitheid | CTL, TSS/dag | 20% | Zwakke voorspeller, maar de steen zegt ook hoe fit je bent en wat je training oplevert. | Marchal 2025; Sanders 2017; Vermeire 2019; Gallo 2022 |
 | Racen | Zwift Racing Score | 12,5% | Wat vermogen niet verklaart: tactiek, positie, wedstrijddynamiek. | Westmattelmann 2022; Phillips 2020 |
 
@@ -384,6 +384,44 @@ boven CP meer kost (Spragg 2024; Mateo-March 2024). En intervals.icu geeft vermo
 curves alleen voor de twee drempels die het lid zelf instelt (bij de eigenaar eerst 2000
 en 3000 kJ, sinds 2026-10-22 1000 en 2000); een andere drempel kan niet per verzoek
 ([forum](https://forum.intervals.icu/t/calulate-power-best-after-2000kj/2045)).
+
+### Vermogen als compound score (2026-11-13, avond)
+
+De eigenaar: "de waarden een beetje weg ... bij watts per kilo en ook de absolute watts
+mee laten doen", met de compound score als principe. Watt × W/kg (watt²/kg) heeft
+dezelfde volgorde als watt ÷ kg^0,5; voor de schaal telt de vorm watt ÷ kg^b, zodat 5%
+meer vermogen 5% blijft. Fysiek: op het vlakke en in de sprint telt absoluut vermogen
+(luchtweerstand groeit veel minder hard dan gewicht), bergop W/kg.
+
+**Doorgerekend op 30 leden** (de weekstenen van 2026-11-13, alleen lezend; de niveaus
+terug naar W/kg, omgerekend, opnieuw op dezelfde normen; vier leden zonder gewicht
+niet meegeteld):
+
+| Variant | Mediaan | Spreiding |
+|---|---|---|
+| b = 0,5 (watt × W/kg) | +12 | −85 (58 kg) tot +69 (111 kg) |
+| b = 0,75 | +6 | −44 tot +33 |
+| per duur (sprint en minuut 0,5, de rest 0,75) | +7 | −52 tot +44 |
+| b = 0,5, ijkgewicht de mediaan van de club (80/65 kg) | 0 | −103 tot +58 |
+
+Onder ongeveer 72 kg zakt een lid, daarboven stijgt het. De sterkste renner blijft
+bovenaan.
+
+**Gekozen (eigenaar): b = 0,75, ijkgewicht 75 kg (man) en 62 kg (vrouw).** Vermogen
+telt als W/kg × (gewicht ÷ ijkgewicht)^0,25 (`compoundFactor`). Het ijkgewicht is het
+gewicht waarbij de compound score gelijk is aan je W/kg, zodat de normen in W/kg blijven
+gelden: ongeveer het midden van de Zwift-renners waar ze uit komen. Geldt voor sprint,
+anaeroob, VO2max, drempel en durability uit ritten; niet voor de durability-test
+(verval is een verhouding). Op het scherm je echte W/kg en een balk in punten (keuze
+eigenaar: "A"). De recordsteen rekent op het ijkgewicht. De eisen bij een doeltijd
+rekenen mee. Nieuwe schaalversie `2026-11-13-compound`.
+
+**Een benadering.** De normen zijn verdelingen van W/kg, niet van een compound score.
+Omrekenen naar "wat dit bij 75 kg zou zijn" neemt aan dat de verdeling bij elk gewicht
+dezelfde vorm heeft.
+
+**Bewust niet.** b = 0,5 (het dubbele effect), een b per duur, en het ijkgewicht van de
+club (dan zakt bijna iedereen onder 80 kg).
 
 ### De durability-test weer op verval (2026-11-13, avond)
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BriljantInput, ConsistencyWeek } from "@/lib/briljant/score";
-import { briljantView, formatMeasure } from "@/lib/briljant/view";
+import { briljantView, formatMeasure, readingFromLevel } from "@/lib/briljant/view";
 import { DURABILITY_DURATIONS } from "@/lib/briljant/norms";
 
 // Het voorbeeld van de eigenaar (man), zoals in briljant-score.test.ts.
@@ -39,12 +39,26 @@ describe("briljantView", () => {
     expect(view.points).toBeLessThan(view.profilePoints);
   });
 
-  it("toont de meting als balk tussen de grenzen van de klassen", () => {
-    const sprint = briljantView({ seed: "lid", input: rider, consistency: null }).facets[0];
+  it("toont vermogen zonder gewicht als balk tussen de grenzen van de klassen", () => {
+    const sprint = briljantView({ seed: "lid", input: { ...rider, weightKg: null }, consistency: null }).facets[0];
     expect(sprint).toMatchObject({ value: "13,2 W/kg", points: 710, level: { name: "Smaragd" } });
     expect(sprint.meter).toMatchObject({ from: "13,05 W/kg", to: "14,55 W/kg", fromLevel: { name: "Smaragd" }, toLevel: { name: "Robijn" } });
     expect(sprint.meter.share).toBeCloseTo(0.15 / 1.5, 6);
     expect(sprint.meter.note).toBe("nog 1,35 W/kg meer tot Robijn");
+  });
+
+  it("telt vermogen als compound score, met je echte W/kg en een balk in punten", () => {
+    const at75 = briljantView({ seed: "lid", input: rider, consistency: null }).facets[0];
+    expect(at75).toMatchObject({ value: "13,2 W/kg", points: 710 });
+    expect(at75.meter).toMatchObject({ from: "700 punten", to: "800 punten", note: "nog 90 punten tot Robijn" });
+    // 90 kg: 13,2 × (90/75)^0,25 = 13,82 W/kg op de normen; 60 kg: 12,48.
+    const heavy = briljantView({ seed: "lid", input: { ...rider, weightKg: 90 }, consistency: null }).facets[0];
+    const light = briljantView({ seed: "lid", input: { ...rider, weightKg: 60 }, consistency: null }).facets[0];
+    expect(heavy).toMatchObject({ value: "13,2 W/kg", points: 751 });
+    expect(light).toMatchObject({ value: "13,2 W/kg", points: 662 });
+    // Een bewaard niveau terug: met je gewicht je echte W/kg, zonder de W/kg op 75 kg.
+    expect(readingFromLevel("sprint", 7.51, "man", 90)!.value).toBeCloseTo(13.2, 2);
+    expect(readingFromLevel("sprint", 7.51, "man")!.value).toBeCloseTo(13.815, 3);
   });
 
   it("meet durability in punten en racen over de hele schaal", () => {

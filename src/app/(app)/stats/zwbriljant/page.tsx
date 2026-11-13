@@ -126,7 +126,7 @@ export default async function BriljantPage({
   // Een gekozen datum toont de week op of vóór die datum, uit de snapshots.
   const past = datum && datum < today ? snapshotAt(snapshots, datum) : null;
   // Je eigen stenen tonen ook de meting, teruggerekend uit de punten.
-  const own = { sex: collected.input.sex };
+  const own = { sex: collected.input.sex, weightKg: collected.input.weightKg };
   const view = past
     ? viewFromSnapshot({ seed: user.id, snapshot: past, source: `week van ${weekLabel(past.week)}`, own })
     : live;
@@ -137,7 +137,7 @@ export default async function BriljantPage({
   const previous = snapshots.filter((snapshot) => snapshot.score != null && snapshot.week < shownWeek).at(-1) ?? null;
   const readings = facetReadings(collected.input);
   const changes = past
-    ? changesSince({ from: previous, to: past, sex: collected.input.sex })
+    ? changesSince({ from: previous, to: past, sex: collected.input.sex, weightKg: collected.input.weightKg })
     : changesSince({
         from: previous,
         to: {
@@ -147,7 +147,11 @@ export default async function BriljantPage({
           consistency: live.consistency?.value ?? null,
         },
         sex: collected.input.sex,
-        values: Object.fromEntries(FACETS.flatMap((facet) => (readings[facet] ? [[facet, readings[facet]!.value]] : []))),
+        weightKg: collected.input.weightKg,
+        // Het verval uit de durability-test is geen W/kg: dan zonder meting.
+        values: Object.fromEntries(
+          FACETS.flatMap((facet) => (readings[facet] && readings[facet]!.source !== "test" ? [[facet, readings[facet]!.value]] : [])),
+        ),
       });
 
   // Je mooiste steen: de week met de hoogste score, uit alles wat er bewaard is.

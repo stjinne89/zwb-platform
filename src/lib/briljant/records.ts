@@ -42,6 +42,8 @@ export function recordView(sex: Sex | null): { view: BriljantView; holders: Part
     sex,
     // Met 1 kg zijn watts W/kg en 10 kJ precies 10 kJ/kg.
     weightKg: 1,
+    // De records gelden op het ijkgewicht: gewone W/kg, geen compound score.
+    compoundKg: null,
     power: { ...power },
     fatigue: [],
     durabilityTest: { day: "", afterKj: 10, freshWatts: power.m20, fatiguedWatts: power.m20 * (1 - DURABILITY_RECORD_LOSS) },

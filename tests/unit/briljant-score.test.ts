@@ -231,8 +231,8 @@ describe("facetten en score", () => {
   it("laat een betere verse waarde durability niet omlaag halen", () => {
     const owner = { ...rider, weightKg: 83 };
     const now = facetReadings({ ...owner, fatigue: stand(1000, ownerFresh, owner1000) }).durability!;
-    // 3,58 en 2,72 W/kg na 12,05 kJ/kg: niveau 3,67 en 2,86, gemiddeld 3,27, voor de helft 163 punten.
-    expect(points(now.level)).toBe(163);
+    // 3,58 en 2,72 W/kg na 12,05 kJ/kg, als compound score maal (83/75)^0,25: voor de helft 170 punten.
+    expect(points(now.level)).toBe(170);
     expect(now).toMatchObject({ source: "ritten", share: 0.5, fatigued: { m5: 297 / 83, m20: 226 / 83 } });
     // Vers 10% beter, vermoeid gelijk: durability blijft gelijk.
     const fresher = facetReadings({ ...owner, fatigue: stand(1000, [353, 310], owner1000) }).durability!;

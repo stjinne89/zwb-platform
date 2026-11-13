@@ -8,6 +8,7 @@ import {
   FACET_WEIGHTS,
   LEVELS,
   ZRS_ANCHORS,
+  compoundFactor,
   levelOf,
   powerAnchors,
   type Anchors,
@@ -178,7 +179,8 @@ export function pointsMeter(level: number): FacetMeter {
 }
 
 export function meterFor(facet: Facet, reading: FacetReading): FacetMeter {
-  if (facet === "durability") return pointsMeter(reading.level);
+  // Durability, en vermogen als compound score: je echte W/kg is niet de grens, dus in punten.
+  if (facet === "durability" || reading.compound != null) return pointsMeter(reading.level);
   if (facet === "racen") {
     // De balk over de hele schaal, de zin naar de volgende klasse (eigenaar,
     // 2026-10-21): de grens is de ZRS waarbij die klasse begint.
@@ -394,8 +396,9 @@ function winsFromReadings(readings: Record<Facet, FacetReading | null>, consiste
             },
             sex,
             reading.share ?? 1,
+            reading.compound ?? 1,
           )
-        : levelAt(anchorsFor(facet, sex), better);
+        : levelAt(anchorsFor(facet, sex), better * (reading.compound ?? 1));
     const improved = scoreFor({ ...levels, [facet]: level }, consistency);
     const gain = improved == null ? 0 : points(improved) - points(base);
     if (gain <= 0) return [];
@@ -411,10 +414,16 @@ function winsFromReadings(readings: Record<Facet, FacetReading | null>, consiste
 
 /**
  * De meting bij een bewaard niveau, als lezing zoals `facetReadings` die geeft.
- * Null bij durability: dat niveau hangt aan je kJ/kg, twee duren en de bron.
+ * Null bij durability: dat niveau hangt aan je kJ/kg, twee duren en de bron. Bij
+ * vermogen is het niveau een compound score: met `weightKg` komt je echte W/kg
+ * terug (met het gewicht van nu, niet dat van die week), zonder de W/kg op het
+ * ijkgewicht, en dan alleen om mee te rekenen.
  */
-export function readingFromLevel(facet: Facet, level: number, sex: Sex | null): FacetReading | null {
+export function readingFromLevel(facet: Facet, level: number, sex: Sex | null, weightKg?: number | null): FacetReading | null {
   if (facet === "durability") return null;
   const anchors = anchorsFor(facet, sex);
-  return scaleStep(anchors, valueAt(anchors, level));
+  const step = scaleStep(anchors, valueAt(anchors, level));
+  if (!POWER_DURATION[facet] || weightKg == null || !(weightKg > 0)) return step;
+  const compound = compoundFactor(weightKg, sex);
+  return { ...step, value: step.value / compound, compound };
 }

@@ -45,14 +45,15 @@ export function snapshotAt(snapshots: StoredSnapshot[], day: string): StoredSnap
 
 /**
  * Een steen uit een snapshot, voor een week uit het verleden of een ander lid. Met
- * `sex` (alleen voor je eigen steen) komen de metingen terug, met de balk tussen de
- * grenzen van de klassen; zonder alleen punten.
+ * `own` (alleen voor je eigen steen) komen de metingen terug; vermogen in je echte
+ * W/kg met je gewicht van nu (readingFromLevel) en een balk in punten. Zonder alleen
+ * punten.
  */
 export function viewFromSnapshot(args: {
   seed: string;
   snapshot: StoredSnapshot;
   source: string;
-  own?: { sex: Sex | null };
+  own?: { sex: Sex | null; weightKg?: number | null };
 }): BriljantView {
   const levels = Object.fromEntries(FACETS.map((facet) => [facet, args.snapshot.facets[facet] ?? null])) as Record<Facet, number | null>;
   const present = FACETS.filter((facet) => levels[facet] != null);
@@ -63,7 +64,7 @@ export function viewFromSnapshot(args: {
   const facets: FacetView[] = present.map((facet) => {
     const level = levels[facet]!;
     const weight = FACET_WEIGHTS[facet];
-    const reading = args.own ? readingFromLevel(facet, level, args.own.sex) : null;
+    const reading = args.own ? readingFromLevel(facet, level, args.own.sex, args.own.weightKg) : null;
     return {
       key: facet,
       label: FACET_LABELS[facet],
@@ -191,12 +192,14 @@ export function changesSince(args: {
   from: StoredSnapshot | null;
   to: StoredSnapshot;
   sex: Sex | null;
+  /** Je gewicht van nu, voor je echte W/kg bij vermogen (readingFromLevel). */
+  weightKg?: number | null;
   values?: Partial<Record<Facet, number>>;
 }): BriljantChanges | null {
   const { from, to } = args;
   if (!from || from.score == null || to.score == null) return null;
   const measure = (facet: Facet, level: number | null, value?: number) =>
-    level == null ? null : (value ?? readingFromLevel(facet, level, args.sex)?.value ?? null);
+    level == null ? null : (value ?? readingFromLevel(facet, level, args.sex, args.weightKg)?.value ?? null);
 
   const facets = FACETS.flatMap((facet): FacetChange[] => {
     const before = from.facets[facet] ?? null;

@@ -14,7 +14,7 @@
 //
 // Puur: goal-forecast.ts levert de waarden aan. Alleen niveaus gaan de opslag in.
 
-import { CTL_ANCHORS, powerAnchors, type Sex } from "@/lib/briljant/norms";
+import { CTL_ANCHORS, compoundFactor, powerAnchors, type Sex } from "@/lib/briljant/norms";
 import { levelAt } from "@/lib/briljant/score";
 import type { PlanEvaluation } from "@/lib/pacing/plan";
 
@@ -45,6 +45,8 @@ export type SteenInputs = {
   sex: Sex | null;
   /** Beste 20 minuten in W/kg, zoals de steen hem leest. */
   wkg20: number | null;
+  /** Voor de compound score, zoals de steen; zonder gewicht gewone W/kg. */
+  weightKg?: number | null;
   ctl: number | null;
 };
 
@@ -93,7 +95,8 @@ export function goalRequirements(input: {
 }): GoalRequirements {
   const { cpFactor, steen } = input;
   const anchors = powerAnchors("m20", steen.sex);
-  const wkg = steen.wkg20 != null && steen.wkg20 > 0 ? steen.wkg20 : null;
+  const raw = steen.wkg20 != null && steen.wkg20 > 0 ? steen.wkg20 : null;
+  const wkg = raw == null ? null : raw * compoundFactor(steen.weightKg, steen.sex);
   return {
     drempel: {
       required: wkg != null && cpFactor != null ? round2(levelAt(anchors, wkg * cpFactor)) : null,

@@ -251,7 +251,7 @@ const CTL_DAYS = 42;
 
 /**
  * Wat de steen nodig heeft voor de eisen: geslacht, de beste 20 minuten in W/kg
- * zoals de steen ze leest, en de CTL van de laatste rit in intervals.icu,
+ * zoals de steen ze leest, het gewicht (voor de compound score) en de CTL van de laatste rit in intervals.icu,
  * teruggerekend naar vandaag. Ontbreekt iets, dan blijft dat leeg.
  */
 export async function loadSteenInputs(admin: Admin, profileId: string, now = new Date()): Promise<SteenInputs> {
@@ -291,7 +291,7 @@ export async function loadSteenInputs(admin: Admin, profileId: string, now = new
     ctl = Number(row.ctl) * Math.exp(-days / CTL_DAYS);
   }
 
-  return { sex: p.sex === "man" || p.sex === "vrouw" ? p.sex : null, wkg20, ctl };
+  return { sex: p.sex === "man" || p.sex === "vrouw" ? p.sex : null, wkg20, weightKg: weightKg > 0 ? weightKg : null, ctl };
 }
 
 export async function longestRideMinutes(admin: Admin, profileId: string): Promise<number | null> {

@@ -64,7 +64,7 @@ export function BriljantHelp() {
             </li>
             <li>
               <strong className="text-foreground">Je gewicht bijhouden in intervals.icu.</strong> Alle vermogens
-              tellen in W/kg; per maand gebruiken we het gewicht dat daar toen stond.
+              tellen met je gewicht; per maand gebruiken we het gewicht dat daar toen stond.
             </li>
             <li>
               <strong className="text-foreground">Je Zwift-ID op je profiel</strong>, voor racen (je Zwift Racing
@@ -126,6 +126,7 @@ export function BriljantHelp() {
             </tbody>
           </table>
           <p className="mt-2 text-xs text-muted-foreground">
+            De grenzen in W/kg gelden bij 75 kg (man) en 62 kg (vrouw); zie Vermogen bij De formules.
             Vermogen en fitheid volgen de spreiding onder renners: Goud is het gemiddelde, elke klasse een halve
             standaarddeviatie verder, tot Diamant op drie boven het gemiddelde (ongeveer de beste 1 op 1000).
             Inschattingen van <ClubShortName />; geen studie koppelt vermogen aan klassen.
@@ -164,7 +165,7 @@ export function BriljantHelp() {
             <dt className="font-medium">Datum</dt>
             <dd className="text-muted-foreground">
               Kies een datum en je ziet je steen van die maand of week, terug tot de eerste maand met CTL in
-              intervals.icu. We bewaren alleen punten; de W/kg, CTL en ZRS rekenen we daaruit terug. Je ZRS van toen zoekt
+              intervals.icu. We bewaren alleen punten; de W/kg (met je gewicht van nu), CTL en ZRS rekenen we daaruit terug. Je ZRS van toen zoekt
               de wekelijkse job op in je eerdere race-uitslagen bij Zwift; tot dat klaar is, en voor maanden zonder
               score, staat er je huidige ZRS. Durability rekent ook in het verleden met je huidige
               kJ-drempels uit intervals.icu, en alleen uit je ritten, zonder de test. Met Waarden en Punten wissel je wat de labels tonen.
@@ -225,6 +226,15 @@ export function BriljantHelp() {
               </code>
               . Voorbij Diamant loopt de laatste lijn door. Racen is één rechte
               lijn: elke ZRS is een punt.
+            </dd>
+            <dt className="font-medium">Vermogen</dt>
+            <dd className="text-muted-foreground">
+              Telt als compound score: watt ÷ kg<sup>0,75</sup>, dicht bij W/kg maar met een deel absolute watts. Op het vlakke en in de
+              sprint helpen absolute watts, bergop telt W/kg. Om op de grenzen te passen rekenen we dat om naar W/kg
+              bij 75 kg (man) of 62 kg (vrouw):{" "}
+              <code className="rounded bg-muted px-1">W/kg × (gewicht ÷ 75)^0,25</code>. Bij 90 kg telt 4,0 W/kg als
+              4,19, bij 60 kg als 3,78. Naast elk onderdeel staat je echte W/kg, de balk loopt in punten. Dit geldt
+              ook voor durability uit je ritten, niet voor de durability-test: verval is een verhouding.
             </dd>
             <dt className="font-medium">Durability</dt>
             <dd className="text-muted-foreground">
