@@ -12327,6 +12327,30 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Durability-test: altijd afvinken
+
+**2026-11-13, de commit "Durability-test: altijd afvinken", lokaal, niet
+gepusht.** Geen migratie.
+
+- **Waarom.** Bart reed vandaag de test ("Zwift - Durability protocol", 1432
+  kJ) en startte het protocol, maar vinkte nog niet af, dus de app telde hem
+  niet. Bij het nakijken bleek dat het protocol Durability-test geen `aiHint`
+  heeft: ZWBeter zet hem nooit in een schema. De popup en `/hulp` zeiden
+  "met een schema plant ZWBeter hem in"; iedereen moet afvinken.
+- **Wat er is.** Popup en `/hulp`: start het protocol vóór je rijdt en vink de
+  test af op de dag zelf of de dag erna, ook met een schema. De herkenning aan
+  een geplande training "Durability-test" blijft in de code, maar komt in de
+  praktijk niet voor.
+- **Bewust niet gebouwd (keuze eigenaar: "Only fix the text"):**
+  - de test herkennen aan de naam van de rit in Strava of intervals.icu
+    ("durability"), wat Bart vanzelf had gevonden;
+  - de test via een `aiHint` laten inplannen;
+  - de popup opnieuw tonen aan wie hem vandaag al zag (dezelfde sleutel).
+- **Niet meer waar.** "Met een schema plant ZWBeter hem in" in de popup-ronde
+  hieronder, in `/hulp` en in de uitleg aan de eigenaar.
+- **Niet geverifieerd:** of Barts 20 minuten na 1000 kJ (de 90-dagencurve
+  staat op 332 W) uit deze rit komen; zijn dagcurve is niet opgevraagd.
+
 ### Gebouwd — Sportvoedingslijst: bekende merken met de juiste waarden
 
 **2026-11-13, commit `7c6b4376`, lokaal, niet gepusht. Migratie
@@ -12896,9 +12920,10 @@ aannames tot stap 1 ze met bronnen onderbouwt.
   (`hasBriljantStone`, één vraag, pas als de popup op dit apparaat nog niet
   gezien is); zonder steen onthoudt het apparaat dat. Vier punten: wat telt,
   ritten voor de helft, de test voor het hele punt met de opzet, en hoe we
-  hem tellen (met een schema plant ZWBeter hem in; zonder schema het protocol
-  starten vóór je rijdt en afvinken op de dag zelf of de dag erna; dan staat
-  bij durability "durability-test van" met de datum). Knop "Naar de test"
+  hem tellen (het protocol starten vóór je rijdt en afvinken op de dag zelf of
+  de dag erna; dan staat bij durability "durability-test van" met de datum).
+  Eerst stond er "met een schema plant ZWBeter hem in"; dat klopte niet, zie
+  "Durability-test: altijd afvinken". Knop "Naar de test"
   naar het protocol, als de club die pagina heeft.
 - **Bewust niet gebouwd:**
   - stappen om de test in intervals.icu terug te zien: de periodekiezer daar

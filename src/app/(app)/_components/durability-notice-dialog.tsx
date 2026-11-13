@@ -56,7 +56,7 @@ const ITEMS = [
   },
   {
     title: "Zo tellen we hem.",
-    text: "Met een schema plant {beter} hem in. Zonder schema: start het protocol vóór je rijdt en vink de test af op de dag zelf of de dag erna. Van die dag halen we in intervals.icu je beste 20 minuten na 1000 kJ op. Gelukt? Dan staat bij durability “durability-test van” met de datum.",
+    text: "Start het protocol vóór je rijdt en vink de test af op de dag zelf of de dag erna, ook als je een schema hebt. Van die dag halen we in intervals.icu je beste 20 minuten na 1000 kJ op. Gelukt? Dan staat bij durability “durability-test van” met de datum.",
   },
 ];
 

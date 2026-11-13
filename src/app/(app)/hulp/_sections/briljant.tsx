@@ -59,8 +59,8 @@ export function BriljantHelp() {
               <Link href="/zwbeter-worden/protocollen/durability-test" className="underline underline-offset-2">
                 Protocollen
               </Link>
-              : 1000 kJ op duurtempo en daarna 20 minuten voluit. Met een schema plant <ClubText text="{beter}" /> hem in; zonder schema
-              vink je hem af op de dag dat je hem reed. De uitslag geldt 90 dagen.
+              : 1000 kJ op duurtempo en daarna 20 minuten voluit. Start het protocol vóór je rijdt en vink de test af op
+              de dag zelf of de dag erna, ook als je een schema hebt. De uitslag geldt 90 dagen.
             </li>
             <li>
               <strong className="text-foreground">Je gewicht bijhouden in intervals.icu.</strong> Alle vermogens
