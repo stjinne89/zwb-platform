@@ -341,9 +341,7 @@ export function KennisHelp() {
                   training van een uur of langer in je schema, en op de
                   eventpagina, in de racebriefing en in Boodschappen, met alle
                   bidons en porties. Bij een event komt de duur
-                  uit je pacingplan, anders uit je schema of een schatting. Bij
-                  een wedstrijd van anderhalf uur of langer staat er een link
-                  naar koolhydraten laden, met de dag waarop je begint. Hoeveel
+                  uit je pacingplan, anders uit je schema of een schatting. Hoeveel
                   per uur hangt af van de rit: een rustige rit de onderkant van
                   de band, tempo het midden, drempel en harder de bovenkant.
                   Volg je de darmtraining, dan rekent een rit van anderhalf uur
@@ -373,6 +371,30 @@ export function KennisHelp() {
                   Je drinkt dan zo dat je onder ongeveer 2% van je gewicht
                   verliest, maar niet meer dan je zweet. <ClubShortName /> rekent met je
                   laatste test.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Bij een event pas je het plan zelf aan. Met Duur, Tempo en
+                  Race kies je hoe zwaar je rijdt; vanaf 2,5 uur is het advies
+                  dan 60, 90 of 120 g per uur, korter minder, en onder een uur
+                  alleen drinken. Met de schuifjes zet je de intensiteit (als
+                  IF: je vermogen gedeeld door je FTP), de duur en hoeveel je per
+                  uur drinkt. Het advies volgt uit wat je bij dat tempo
+                  verbrandt en wat je voorraad aankan: 60% van ongeveer 6 g per
+                  kg lichaamsgewicht, de rest blijft over voor de finale. Het
+                  vermogen komt uit je pacingplan, anders uit je FTP. Het advies
+                  gaat nooit boven wat je darm kan opnemen: 90 g per uur, of
+                  meer na de darmtraining. Bij &quot;Reken met&quot; vul je
+                  zelf in waar het plan mee rekent, tot 150 g per uur; boven de
+                  grens kleurt het getal. Daaronder zie je hoeveel je verbruikt,
+                  eet en uit je voorraad haalt, en wanneer je de reserve
+                  aanspreekt. Helpt laden, dan staat er een link naar
+                  koolhydraten laden, met de dag waarop je begint. Zonder
+                  zweettest schat <ClubShortName /> het vocht uit de warmte die
+                  je kwijt moet: binnen meer dan buiten. Je keuzes gelden alleen
+                  voor wat je op dat moment bekijkt.
                 </span>
               </li>
               <li className="flex gap-2">

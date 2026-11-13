@@ -340,7 +340,13 @@ export default async function RaceBriefingPage({ params }: PageProps) {
       {view.canEdit && <SheetEditor eventId={view.event.id} defaults={view.sheetDefaults} current={view.sheet} />}
 
       {eventRidePlan && (
-        <EventRidePlan eventId={view.event.id} plan={eventRidePlan.plan} loadFrom={eventRidePlan.loadFrom} />
+        <EventRidePlan
+          eventId={view.event.id}
+          plan={eventRidePlan.plan}
+          loadFrom={eventRidePlan.loadFrom}
+          loadDay={eventRidePlan.loadDay}
+          planner={eventRidePlan.planner}
+        />
       )}
 
       {view.format === "ttt" && (

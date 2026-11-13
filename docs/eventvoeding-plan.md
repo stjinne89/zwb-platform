@@ -279,6 +279,11 @@ Elke stap een eigen ronde met commit, `PLAN.md`-blok en waar nodig `/hulp`.
    drinken). `ridePlan` krijgt het getal en het vochtdoel van buiten. De
    keuzes gelden nog alleen in het scherm. Grens zonder producttype: darm. Geen
    migratie.
+
+   *Gebouwd op 2026-11-13, zie `PLAN.md`: `src/lib/nutrition/event-planner.ts`
+   en `event-fuel-planner.tsx`. Zonder pacingplan rekent het van NP naar
+   gemiddeld vermogen met een vast deel per knopstand (`AVG_SHARE_OF_NP`, keuze
+   van ZWB). Niet in de browser bekeken.*
 3. **Soort koolhydraten op recepten** (besluit 5 en 6). Kolom op
    `nutrition_recipes`, gevuld voor de clubrecepten, een keuze bij een eigen
    recept of gescand product; de opnamegrens van §4e telt mee. Migratie.

@@ -207,6 +207,8 @@ export type FuelAdviceInput = {
   weightKg: number;
   /** Zwaarte als WorkoutIntensity, voor de ondergrens (rideTargetPerHour). */
   intensity?: string | null;
+  /** Een eigen ondergrens in plaats van rideTargetPerHour, zoals die van de knop (presetFloor). */
+  floorG?: number | null;
   gut?: GutTraining | null;
   /** De grens van wat je meeneemt (bagCap); null of weggelaten: alleen de darm. */
   bag?: number | null;
@@ -244,7 +246,7 @@ function advicePerHour(input: FuelAdviceInput, floorG: number, cap: IntakeCap, l
  */
 export function fuelAdvice(input: FuelAdviceInput): FuelAdvice {
   const loaded = Boolean(input.loaded);
-  const floorG = rideTargetPerHour(input.minutes, input.intensity ?? null, input.gut ?? null) ?? 0;
+  const floorG = input.floorG ?? rideTargetPerHour(input.minutes, input.intensity ?? null, input.gut ?? null) ?? 0;
   const cap = intakeCap(input.minutes, input.gut, input.bag);
   const perHourG = advicePerHour(input, floorG, cap, loaded);
   const balance = fuelBalance({ ...input, loaded, intakePerHourG: perHourG });
@@ -263,6 +265,49 @@ export function fuelAdvice(input: FuelAdviceInput): FuelAdvice {
     loadingHelps: !loaded && ((!closes && loadedCloses) || loadedPerHourG < perHourG),
   };
 }
+
+/**
+ * De knop Duur, Tempo, Race (stap 2 van docs/eventvoeding-plan.md, besluit 1).
+ * Hij zet de zwaarte en daarmee de ondergrens van het advies: bij een rit van
+ * 2,5 uur of langer 60, 90 en 120 g per uur, binnen de opnamegrens; van 1 tot
+ * 2,5 uur 30, 45 en 60 (onderkant, midden en bovenkant van de band); korter
+ * niets.
+ */
+export const FUEL_PRESETS = ["duur", "tempo", "race"] as const;
+export type FuelPreset = (typeof FUEL_PRESETS)[number];
+
+export const FUEL_PRESET_LABELS: Record<FuelPreset, string> = { duur: "Duur", tempo: "Tempo", race: "Race" };
+
+const PRESET_FLOORS: Record<FuelPreset, { short: number; long: number }> = {
+  duur: { short: 30, long: 60 },
+  tempo: { short: 45, long: 90 },
+  race: { short: 60, long: GUT_HIGH_G_PER_HOUR },
+};
+
+export function presetFloor(preset: FuelPreset, minutes: number): number {
+  if (!Number.isFinite(minutes) || minutes < 60) return 0;
+  return minutes < GUT_HIGH_MIN_MINUTES ? PRESET_FLOORS[preset].short : PRESET_FLOORS[preset].long;
+}
+
+/** De knop bij de zwaarte van een training of event (WorkoutIntensity). */
+export function presetFor(intensity: string | null | undefined): FuelPreset {
+  if (intensity === "tempo") return "tempo";
+  if (intensity && ["threshold", "vo2max", "anaerobic", "race"].includes(intensity)) return "race";
+  return "duur";
+}
+
+/**
+ * IF bij Duur en Tempo: midden van zone 2 en van de tempozone, keuze van ZWB.
+ * Race volgt het racemodel van het event (events.ts) of het pacingplan.
+ */
+export const PRESET_IF: Record<Exclude<FuelPreset, "race">, number> = { duur: 0.65, tempo: 0.78 };
+
+/**
+ * Gemiddeld vermogen als deel van het genormaliseerde (IF × FTP is NP). Hoe
+ * wisselender de rit, hoe groter het verschil. Keuze van ZWB tot het
+ * toetsscript (scripts/event-fuel-check.mjs) de echte verhouding geeft.
+ */
+export const AVG_SHARE_OF_NP: Record<FuelPreset, number> = { duur: 0.95, tempo: 0.93, race: 0.9 };
 
 /** Rond 15 °C buiten als er geen verwachting is: een gewone rit in voor- of najaar. */
 export const DEFAULT_OUTDOOR_C = 15;

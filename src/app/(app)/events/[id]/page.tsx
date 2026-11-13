@@ -1494,7 +1494,13 @@ export default async function EventDetailPage({
       />
 
       {eventRidePlan && (
-        <EventRidePlan eventId={event.id} plan={eventRidePlan.plan} loadFrom={eventRidePlan.loadFrom} />
+        <EventRidePlan
+          eventId={event.id}
+          plan={eventRidePlan.plan}
+          loadFrom={eventRidePlan.loadFrom}
+          loadDay={eventRidePlan.loadDay}
+          planner={eventRidePlan.planner}
+        />
       )}
 
       {isSrc && !isParentEvent && (

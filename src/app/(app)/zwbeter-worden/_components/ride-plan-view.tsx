@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useId, useState, type ComponentProps } from "react";
+import { Fragment, useEffect, useId, useState, type ComponentProps, type ReactNode } from "react";
 import Link from "next/link";
 import { Bike, Check } from "lucide-react";
 import {
@@ -18,6 +18,8 @@ import {
 import { scoopsLabel } from "@/lib/nutrition/scoops";
 import { LogActionButton } from "../voeding/_components/log-controls";
 import { BidonChoice, BidonIcon } from "./bidon-icon";
+import { EventFuelControls, useEventFuelPlan } from "./event-fuel-planner";
+import type { EventFuelPlanner } from "@/lib/nutrition/event-planner";
 import { bidonGroupClass, bidonLabel, bidonOptionClass } from "./bidon-options";
 
 // Het ritplan bij een training: wat je klaarzet en wanneer je het neemt
@@ -87,19 +89,68 @@ function ItemRow({ item }: { item: RidePlanItem & { ml?: BidonMl } }) {
 
 const loadDay = new Intl.DateTimeFormat("nl-NL", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
-/** Op de eventpagina en in de briefing: het plan, en bij een lange wedstrijd het laden ervoor. */
-export function EventRidePlan({ eventId, plan, loadFrom }: { eventId: string; plan: RidePlan; loadFrom: string | null }) {
+function LoadingLink({ eventId, day }: { eventId: string; day: string }) {
+  return (
+    <Link
+      href={`/zwbeter-worden/voeding/protocollen/koolhydraten-laden?event=${eventId}`}
+      className="inline-flex min-h-[44px] items-center text-sm text-primary hover:underline"
+    >
+      Koolhydraten laden vanaf {loadDay.format(new Date(`${day}T12:00:00Z`))}
+    </Link>
+  );
+}
+
+/**
+ * Op de eventpagina en in de briefing: het plan met de knop en de schuifjes
+ * (docs/eventvoeding-plan.md stap 2), en het laden ervoor als de balans daarom
+ * vraagt. Zonder vermogen of planner de oude regel: een lange wedstrijd.
+ */
+export function EventRidePlan({
+  eventId,
+  plan,
+  loadFrom,
+  loadDay: loadDayKey,
+  planner,
+}: {
+  eventId: string;
+  plan: RidePlan;
+  loadFrom: string | null;
+  loadDay?: string;
+  planner?: EventFuelPlanner | null;
+}) {
+  if (!planner) {
+    return (
+      <div className="space-y-2">
+        <RidePlanView plan={plan} />
+        {loadFrom ? <LoadingLink eventId={eventId} day={loadFrom} /> : null}
+      </div>
+    );
+  }
+  return <PlannedEventRide eventId={eventId} initial={plan} loadFrom={loadFrom} loadDay={loadDayKey ?? loadFrom} planner={planner} />;
+}
+
+function PlannedEventRide({
+  eventId,
+  initial,
+  loadFrom,
+  loadDay: loadDayKey,
+  planner,
+}: {
+  eventId: string;
+  initial: RidePlan;
+  loadFrom: string | null;
+  loadDay: string | null;
+  planner: EventFuelPlanner;
+}) {
+  const { choice, setChoice, result, plan } = useEventFuelPlan(planner);
+  const loading = result.advice ? result.advice.loadingHelps : loadFrom != null;
   return (
     <div className="space-y-2">
-      <RidePlanView plan={plan} />
-      {loadFrom ? (
-        <Link
-          href={`/zwbeter-worden/voeding/protocollen/koolhydraten-laden?event=${eventId}`}
-          className="inline-flex min-h-[44px] items-center text-sm text-primary hover:underline"
-        >
-          Koolhydraten laden vanaf {loadDay.format(new Date(`${loadFrom}T12:00:00Z`))}
-        </Link>
-      ) : null}
+      <RidePlanView
+        plan={plan ?? initial}
+        controls={<EventFuelControls planner={planner} choice={choice} setChoice={setChoice} result={result} />}
+      />
+      {loading && loadDayKey ? <LoadingLink eventId={eventId} day={loadDayKey} /> : null}
     </div>
   );
 }
@@ -159,8 +210,11 @@ export function WorkoutRidePlan({
 export function RidePlanView({
   plan: initial,
   log,
+  controls,
 }: {
   plan: RidePlan;
+  /** Boven de bidonkeuze, zoals de knop en de schuifjes bij een event. */
+  controls?: ReactNode;
   /** "Gegeten" onder het plan: legt de gekozen bidons en porties vast. */
   log?: { action: ComponentProps<typeof LogActionButton>["action"]; day: string };
 }) {
@@ -181,6 +235,7 @@ export function RidePlanView({
           {hours(plan.minutes)} · {plan.totalG} g koolhydraten
         </p>
       </div>
+      {controls}
       {options.length > 1 ? (
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5">
           {([0, 1] as const).map((holder) => (
@@ -209,7 +264,7 @@ export function RidePlanView({
         <p className="text-sm">
           Drinken:{" "}
           <span className="tabular-nums">
-            {plan.fluid.minMl == null ? "tot " : `${liters(plan.fluid.minMl)}–`}
+            {plan.fluid.minMl === plan.fluid.maxMl ? "" : plan.fluid.minMl == null ? "tot " : `${liters(plan.fluid.minMl)}–`}
             {liters(plan.fluid.maxMl)} l per uur
           </span>
         </p>
@@ -234,7 +289,7 @@ export function RidePlanView({
                 Bidon {feed.bidon}
                 {feed.solid > 0 && plan.solid ? ` + ${feed.solid === 1 ? "1 portie" : `${feed.solid} porties`}` : ""}
               </span>
-              <span className="shrink-0 tabular-nums text-muted-foreground">{feed.carbsG} g</span>
+              <span className="shrink-0 tabular-nums text-muted-foreground">{feed.carbsG > 0 ? `${feed.carbsG} g` : ""}</span>
             </li>
           ))}
         </ol>

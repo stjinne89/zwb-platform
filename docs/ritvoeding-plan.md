@@ -130,7 +130,10 @@ geen zware dag is, is niet gebouwd: dat is een nieuwe soort in
 het eigen pacingplan, dan uit de eigen training voor het event, dan uit de
 schatting van het schema (`eventRide`). De link naar koolhydraten laden staat
 bij een wedstrijd of gran fondo van 90 minuten of langer en zet het event in het
-protocol voorgeselecteerd (`?event=`).*
+protocol voorgeselecteerd (`?event=`). Sinds 2026-11-13 volgt die link op de
+eventpagina de balans van [eventvoeding-plan.md](eventvoeding-plan.md) zodra er
+een vermogen is (pacingplan of FTP); de regel van 90 minuten geldt alleen
+nog zonder.*
 
 *2a gebouwd op 2026-10-25, zonder migratie, zie `PLAN.md`. Op verzoek van de
 eigenaar kwamen de dagkaarten (Dagmenu en de voedingstip op Vandaag) en

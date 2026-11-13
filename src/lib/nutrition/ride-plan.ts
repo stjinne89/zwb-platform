@@ -170,6 +170,14 @@ export type RidePlanInput = {
   leadChosen?: boolean;
   energyFactor: number;
   holders?: BidonHolders;
+  /**
+   * Het doel per uur van buiten, zoals "Reken met" bij een event
+   * (docs/eventvoeding-plan.md stap 2). Dan komt er ook onder een uur een plan;
+   * bij 0 alleen bidons met water.
+   */
+  perHourG?: number | null;
+  /** Vocht per uur van buiten (het schuifje bij een event); gaat voor de zweettest. */
+  fluidMlPerHour?: number | null;
 };
 
 function ingredientsOf(items: RecipeIngredient[]): RidePlanIngredient[] {
@@ -249,10 +257,13 @@ function planForHolders(
     lead = null,
     leadChosen = false,
     energyFactor,
+    perHourG: fixedPerHour = null,
+    fluidMlPerHour = null,
   }: RidePlanInput,
   holders: BidonHolders,
 ): RidePlan | null {
-  const perHourG = rideTargetPerHour(minutes, intensity, gut);
+  if (!Number.isFinite(minutes) || minutes <= 0) return null;
+  const perHourG = fixedPerHour != null ? Math.max(0, fixedPerHour) : rideTargetPerHour(minutes, intensity, gut);
   if (perHourG == null) return null;
   const target = Math.round((perHourG * minutes) / 60);
 
@@ -262,7 +273,12 @@ function planForHolders(
 
   // Met een zweettest volgt het aantal bidons uit het vochtdoel, anders uit
   // 750 ml per uur. De bidons komen om en om uit de twee houders.
-  const fluid = sweatMlPerHour ? fluidPerHour(sweatMlPerHour, weightKg, minutes) : null;
+  const fluid =
+    fluidMlPerHour != null
+      ? { minMl: Math.max(0, fluidMlPerHour), maxMl: Math.max(0, fluidMlPerHour) }
+      : sweatMlPerHour
+        ? fluidPerHour(sweatMlPerHour, weightKg, minutes)
+        : null;
   const neededMl = fluid ? fluidMl(fluid, minutes) : (minutes * DEFAULT_BIDON_ML) / 60;
   const sizes = Array.from({ length: bidonCountFor(neededMl, holders) }, (_, index) => bidonSize(holders, index));
   const volumeOf = (list: BidonMl[]) => list.reduce((sum, ml) => sum + ml, 0);
@@ -276,7 +292,7 @@ function planForHolders(
   // in minder bidons en gaan de overige met water mee. Die ene bidon mag daarna
   // wel kleiner dan een halve portie (scale.ts, drank).
   const smallest = drink ? portion(drink, 0, energyFactor, false).perPortion.carbsG : 0;
-  const drinkCount = drink
+  const drinkCount = drink && drinkTotal > 0
     ? Math.min(sizes.length, Math.max(1, Math.floor(drinkTotal / Math.max(smallest, 1))))
     : 0;
   const drinkVolume = volumeOf(sizes.slice(0, drinkCount));

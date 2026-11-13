@@ -9,11 +9,14 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Eventvoeding: een plan dat sluit op tempo en duur (2026-11-13).** De
    besluiten in §6 van [eventvoeding-plan.md](docs/eventvoeding-plan.md) zijn
-   akkoord (eigenaar, 2026-11-13). Stap 1 (het model, zonder scherm) is
-   gebouwd en lokaal getest, niet gecommit. Open: het toetsscript draaien op de
-   echte events zodra de Supabase-connector er weer is, daarna stap 2 (het
-   aanpasbare plan op de eventpagina). Zie de rondes "Gebouwd — Eventvoeding,
-   stap 1" en "Ontwerp — Eventvoeding".
+   akkoord (eigenaar, 2026-11-13). Stap 1 (het model) is lokaal gecommit
+   (`68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en het
+   racebriefje) is gebouwd en lokaal getest, niet gecommit; niets gepusht.
+   Open: de eventpagina in de browser bekijken (niet gedaan: geen `.env.local`
+   in de worktree), het toetsscript draaien op de echte events zodra de
+   Supabase-connector er weer is, daarna stap 3 (soort koolhydraten,
+   migratie). Zie de rondes "Gebouwd — Eventvoeding, stap 1 en 2" en
+   "Ontwerp — Eventvoeding".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
@@ -12309,9 +12312,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Eventvoeding, stap 2: het plan zelf aanpassen
+
+**2026-11-13, lokaal getest, nog niet gecommit; niet in de browser bekeken.** Op
+verzoek van de eigenaar ("Ga maar verder", na stap 1). Geen migratie. Stap 2 van
+[eventvoeding-plan.md](docs/eventvoeding-plan.md).
+
+**Wat er is.** Op de eventpagina en in de racebriefing staat boven de
+bidonkeuze van Klaarzetten een knop Duur, Tempo, Race, schuifjes voor
+intensiteit (IF), duur en vocht per uur, en het veld "Reken met" met daarnaast
+"Advies … · grens …". Daaronder verbruik, eten en uit de voorraad, en wanneer je
+de reserve aanspreekt. "Terug naar het advies" zet alles terug. Alles rekent in
+de browser opnieuw (`src/lib/nutrition/event-planner.ts`, puur);
+`loadEventRidePlan` levert de planner: de recepten die het plan kan kiezen, de
+darmtraining, de zweettest, het gewicht, de FTP (`profiles.ftp_watts`), het
+pacingplan (gemiddeld vermogen en IF) en de race-IF van het event. `ridePlan`
+neemt nu een doel en vocht van buiten aan (`perHourG`, `fluidMlPerHour`); dan
+maakt het ook onder een uur een plan, bij 0 g met alleen water. De link naar
+koolhydraten laden volgt bij een event met vermogen de balans
+(`loadingHelps`), anders de oude regel (wedstrijd van 90 minuten of langer).
+`/hulp#voeding` beschrijft het.
+
+**Keuzes van ZWB in deze stap.** IF bij Duur 0,65 en Tempo 0,78; Race neemt de
+race-IF van het event of het pacingplan. Zonder pacingplan is IF × FTP het
+genormaliseerde vermogen; het gemiddelde is dan 95% (Duur), 93% (Tempo) of 90%
+(Race) daarvan (`AVG_SHARE_OF_NP`), tot het toetsscript de echte verhouding
+geeft. Zonder gewicht rekent de balans met 70 kg (de referentierenner). Zonder
+vermogen: de ondergrens van de knop binnen de opnamegrens, geen balans, 750 ml.
+De standaard voor vocht is het midden tussen "onder 2% verlies" en "niet meer
+dan je zweet", net als met een zweettest; binnen op IF 0,82 is dat ongeveer
+650 ml per uur, minder dan de oude vaste 750.
+
+**Nu niet meer waar.** "Bij een wedstrijd van anderhalf uur of langer staat er
+een link naar koolhydraten laden" (`/hulp`, ritvoeding stap 2b) geldt op de
+eventpagina alleen nog zonder vermogen; met vermogen beslist de balans. Bijgewerkt
+op `/hulp`. Het schema, de dagkaart, de herinnering en Boodschappen rekenen
+nog zoals voorheen: het advies van het model staat alleen bij een event.
+
+**Bewust niet in deze stap.** Keuzes bewaren (stap 4, migratie): de herinnering
+en Boodschappen tonen dus het plan van het advies, niet je eigen keuze. Geen
+soort koolhydraten (stap 3), geen weer (stap 6): buiten rekent het vocht met
+15 °C.
+
+**Getest.** `tests/unit/nutrition-event-planner.test.ts`, 14 tests; alle 285
+voedingstests en de hele suite (4503 tests) groen, op `omnium-live.test.ts` na,
+dat `.env.local` zoekt en in de worktree niet vindt. `tsc` en eslint op de
+gewijzigde bestanden schoon.
+
+**Niet geverifieerd.** De eventpagina zelf: niet in de browser bekeken, ook niet
+op een telefoon (de schuifjes met de labels ernaast zijn op smalle schermen het
+risico). Het rekenen bij elk schuifje (negen bidoncombinaties per keer) is niet
+op een trage telefoon gemeten.
+
 ### Gebouwd — Eventvoeding, stap 1: het model achter het advies
 
-**2026-11-13, lokaal getest, nog niet gecommit.** Op verzoek van de eigenaar
+**2026-11-13, commit `68246829`, lokaal, niet gepusht.** Op verzoek van de eigenaar
 ("Ja, begin stap 1"). Geen migratie, niets in beeld. Stap 1 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md).
 

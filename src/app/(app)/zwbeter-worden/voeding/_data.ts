@@ -19,8 +19,15 @@ import type { LoggedMeal } from "@/lib/nutrition/log";
 import { PRODUCT_COLUMNS, productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import { RECIPE_PREFS, rankRecipes, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { classifyFuelDay } from "@/lib/nutrition/day-type";
-import { eventRide, ridePlan, type RidePlan } from "@/lib/nutrition/ride-plan";
-import { eventWorkoutDefaults, type ClubEventRow } from "@/lib/training/events";
+import { eventRide, isBidonRecipe, ridePlan, type RidePlan, type RidePlanInput } from "@/lib/nutrition/ride-plan";
+import {
+  eventWorkoutDefaults,
+  outdoorRaceIntensityFactor,
+  zwiftRaceIntensityFactor,
+  type ClubEventRow,
+} from "@/lib/training/events";
+import { eventSetting } from "@/lib/nutrition/event-fuel";
+import { eventFuelPlanner, plannerPlanInput, type EventFuelPlanner } from "@/lib/nutrition/event-planner";
 import { GUT_PROTOCOLS, gutTrainingOn, type GutRun, type GutSource } from "@/lib/nutrition/gut-training";
 import { currentSweatRate, type SweatSetting, type SweatTest } from "@/lib/nutrition/sweat";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
@@ -433,11 +440,36 @@ export async function loadRidePlans(
   workouts: PlannedRide[],
   today: string,
 ): Promise<Map<string, RidePlan>> {
-  const dayOf = (workout: PlannedRide) => String(workout.scheduled_at).slice(0, 10);
   const upcoming = workouts.filter((workout) => ridePlanApplies(workout, today));
+  const inputs = await loadRideInputs(
+    viewer,
+    upcoming.map((workout) => ({
+      id: workout.id,
+      day: String(workout.scheduled_at).slice(0, 10),
+      minutes: Number(workout.duration_minutes),
+      intensity: workout.intensity,
+    })),
+    today,
+  );
   const plans = new Map<string, RidePlan>();
-  if (upcoming.length === 0) return plans;
-  const days = upcoming.map(dayOf).sort();
+  for (const [id, input] of inputs) {
+    const plan = ridePlan(input);
+    if (plan) plans.set(id, plan);
+  }
+  return plans;
+}
+
+type RideSlot = { id: string; day: string; minutes: number; intensity: string | null };
+
+/**
+ * Alles waar het ritplan mee rekent, per rit: de recepten (alleen de bidon en
+ * het vaste eten die het plan kan kiezen, zodat dit ook naar de browser kan),
+ * de darmtraining van die dag, de zweettest en het gewicht.
+ */
+async function loadRideInputs(viewer: Viewer, rides: RideSlot[], today: string): Promise<Map<string, RidePlanInput>> {
+  const inputs = new Map<string, RidePlanInput>();
+  if (rides.length === 0) return inputs;
+  const days = rides.map((ride) => ride.day).sort();
   const [recipes, prefs, profile, choices, gutSource, sweatTests] = await Promise.all([
     loadRecipes(viewer, "tijdens_rit"),
     loadRecipePrefs(viewer),
@@ -449,13 +481,12 @@ export async function loadRidePlans(
   const sweatMlPerHour = currentSweatRate(sweatTests);
   const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
   const energyFactor = energyFactorFor(profile);
-  for (const workout of upcoming) {
-    const day = dayOf(workout);
-    const minutes = Number(workout.duration_minutes);
-    const dayType = classifyFuelDay([{ minutes, intensity: workout.intensity }]);
+  for (const ride of rides) {
+    const { day, minutes, intensity } = ride;
+    const dayType = classifyFuelDay([{ minutes, intensity }]);
     const gut = gutTrainingOn(gutSource, day);
     const ranked = rankRecipes(recipes, "tijdens_rit", {
-      rider: { weightKg: profile.weightKg, energyFactor, dayType, rideMinutes: minutes, rideIntensity: workout.intensity, rideGut: gut },
+      rider: { weightKg: profile.weightKg, energyFactor, dayType, rideMinutes: minutes, rideIntensity: intensity, rideGut: gut },
       dayType,
       tomorrowType: "rust",
       today: day,
@@ -464,20 +495,22 @@ export async function loadRidePlans(
     }).map((item) => item.recipe);
     const choice = choices.find((row) => row.day === day && row.moment === "tijdens_rit");
     const chosen = choice ? byId.get(choice.recipeId) : undefined;
-    const plan = ridePlan({
+    // ridePlan kiest alleen de eerste bidon en het eerste vaste eten uit de rangorde.
+    const firstDrink = ranked.find(isBidonRecipe);
+    const firstFood = ranked.find((recipe) => !isBidonRecipe(recipe));
+    inputs.set(ride.id, {
       minutes,
-      intensity: workout.intensity,
+      intensity,
       gut,
       sweatMlPerHour,
       weightKg: profile.weightKg,
-      ranked,
+      ranked: [firstDrink, firstFood].filter((recipe): recipe is Recipe => recipe != null),
       lead: chosen ?? ranked[0] ?? null,
       leadChosen: Boolean(chosen),
       energyFactor,
     });
-    if (plan) plans.set(workout.id, plan);
   }
-  return plans;
+  return inputs;
 }
 
 /**
@@ -537,6 +570,10 @@ export type EventRidePlan = {
   plan: RidePlan;
   /** Dag waarop koolhydraten laden begint; null als dat niet past (korter dan 90 minuten, geen wedstrijd). */
   loadFrom: string | null;
+  /** Twee dagen voor het event: daar begint laden als de balans erom vraagt. */
+  loadDay: string;
+  /** Wat de knop en de schuifjes nodig hebben om in de browser opnieuw te rekenen; null zonder plan om aan te passen. */
+  planner: EventFuelPlanner | null;
 };
 
 /** De laadfase van het protocol begint twee dagen voor de wedstrijd. */
@@ -546,8 +583,9 @@ const LOADING_DAYS_BEFORE = 2;
  * Het ritplan voor een event, voor wie het bekijkt (stap 2b van
  * docs/ritvoeding-plan.md). De duur komt uit het eigen pacingplan, dan uit de
  * eigen training voor dit event in het schema, en anders uit dezelfde schatting
- * als het schema (eventWorkoutDefaults). Null voor een event dat voorbij is of
- * korter dan een uur.
+ * als het schema (eventWorkoutDefaults). Het doel per uur en het vocht volgen
+ * het advies van docs/eventvoeding-plan.md; de knop en de schuifjes rekenen
+ * daarna in de browser verder. Null voor een event dat voorbij is.
  */
 export async function loadEventRidePlan(
   viewer: Viewer,
@@ -557,7 +595,7 @@ export async function loadEventRidePlan(
   const day = new Date(event.start_at).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
   if (day < today) return null;
   const defaults = eventWorkoutDefaults(event);
-  const [pacing, { data: workout }] = await Promise.all([
+  const [pacing, { data: workout }, { data: power }] = await Promise.all([
     import("@/lib/pacing/session")
       .then(({ readOwnPlan }) => readOwnPlan(event.id, viewer.user.id))
       .catch(() => null),
@@ -570,6 +608,7 @@ export async function loadEventRidePlan(
       .neq("status", "skipped")
       .limit(1)
       .maybeSingle(),
+    viewer.supabase.from("profiles").select("ftp_watts").eq("id", viewer.user.id).maybeSingle(),
   ]);
   const { minutes, intensity, longRace } = eventRide({
     pacedSeconds: pacing?.summary?.totalSeconds ?? null,
@@ -580,12 +619,26 @@ export async function loadEventRidePlan(
     eventType: event.type,
   });
 
-  const plans = await loadRidePlans(
-    viewer,
-    [{ id: event.id, scheduled_at: `${day}T12:00:00`, duration_minutes: minutes, intensity, status: "planned" }],
-    today,
-  );
-  const plan = plans.get(event.id);
+  const inputs = await loadRideInputs(viewer, [{ id: event.id, day, minutes, intensity }], today);
+  const input = inputs.get(event.id);
+  if (!input) return null;
+  const summary = pacing?.summary;
+  const ftp = Number((power as { ftp_watts?: number | null } | null)?.ftp_watts ?? 0);
+  const setting = eventSetting(event.type);
+  const planner = eventFuelPlanner({
+    input,
+    minutes,
+    intensity,
+    setting,
+    raceIf: setting === "binnen" ? zwiftRaceIntensityFactor(minutes) : outdoorRaceIntensityFactor(minutes),
+    pacing:
+      summary && summary.avgWatts > 0 && summary.intensityFactor > 0
+        ? { watts: summary.avgWatts, intensityFactor: summary.intensityFactor }
+        : null,
+    ftpWatts: ftp > 0 ? ftp : null,
+  });
+  const plan = ridePlan(plannerPlanInput(planner, planner.defaults));
   if (!plan) return null;
-  return { plan, loadFrom: longRace ? shiftDayKey(day, -LOADING_DAYS_BEFORE) : null };
+  const loadDay = shiftDayKey(day, -LOADING_DAYS_BEFORE);
+  return { plan, loadFrom: longRace ? loadDay : null, loadDay, planner };
 }
