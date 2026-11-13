@@ -18,8 +18,9 @@ gaat stabiliteit voor nieuwe features.
 
 0. **ZWBriljant: durability als vermoeid vermogen (2026-11-13): gepusht naar
    `main` (`30ca9d7b`).** Geen migratie. Nieuwe schaalversie
-   `2026-11-13-vermoeid`. Open: na de deploy de terugblik-job laten lopen en
-   een steen, de historie en het ZWB-gemiddelde bekijken. Zie de ronde
+   `2026-11-13-vermoeid`. De terugblik-job liep op 2026-11-13 na de deploy
+   voor alle 34 leden. Open: een steen, de historie en het ZWB-gemiddelde
+   bekijken. Zie de ronde
    "ZWBriljant: durability als vermoeid vermogen".
 
 0. **ZwiftRacing in de verwachtingen van events (2026-11-12): gepusht naar
@@ -12413,9 +12414,15 @@ link naar `/live/[eventId]`, zie de update hierboven).
   de test, geen plafond, de test voor de ritten, het scherm met alleen 5
   minuten), de hele suite op twee time-outs onder load na (los groen) en
   `omnium-live` (geen `.env.local` in deze worktree).
-- **Niet geverifieerd:** de terugblik-job op productie. Tot die gelopen heeft,
-  tonen historie, tegel en ZWB-gemiddelde geen stenen van de nieuwe schaal.
-  Geen `next build` en geen blik in de preview.
+- **Na de deploy (2026-11-13, `65f7cf1`, 09:32):** de job
+  `/api/briljant/weekly` elf keer met de hand gestart (testrun op
+  cron-job.org, 3 leden per run, 0 fouten). Alle 34 leden hebben een
+  terugblik en een weekopname op `2026-11-13-vermoeid`; 20 met durability.
+  Mediaan durability 230 punten (113 tot 476; was 247), score mediaan +2
+  (−111 tot +66) tegen de laatste opname op de oude schaal, in lijn met
+  de doorrekening.
+- **Niet geverifieerd:** geen `next build` en geen blik op een steen, de
+  historie of het ZWB-gemiddelde in de app.
 
 ### Gebouwd — Kopman: de Ronde van de Alpen
 
