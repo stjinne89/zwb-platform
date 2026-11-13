@@ -120,8 +120,8 @@ gaat stabiliteit voor nieuwe features.
    2026-11-11). Open: de knop na de deploy als captain proberen. Zie de ronde
    "Club Ladder: uitdaging klaarzetten voor Discord".
 
-0. **Schema neemt een nieuwe eventtitel over (2026-11-13): lokaal gecommit,
-   niet gepusht.** Geen migratie. Zeven ritten van ZRL R2 W1 zijn in productie
+0. **Schema neemt een nieuwe eventtitel over (2026-11-13): gepusht naar
+   `main` (`589aa536`).** Geen migratie. Zeven ritten van ZRL R2 W1 zijn in productie
    al rechtgezet en staan op `pending`. Open: na de volgende dagelijkse run
    nagaan of ze in intervals.icu "— Team Time Trial" heten
    (`publish_status = 'published'`). Zie de ronde "Schema neemt een nieuwe
@@ -12303,7 +12303,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Schema neemt een nieuwe eventtitel over
 
-**2026-11-13, lokaal gecommit, niet gepusht.** Op verzoek van de eigenaar ("In
+**2026-11-13, commit `589aa536`, gepusht naar `main`** (eigenaar: "Ja, push"). Op verzoek van de eigenaar ("In
 het schema lijkt nog wel race of truth te staan kun je dat checken en zo nodig
 corrigeren"). Geen migratie. Vervolg op "ZRL: het format komt uit Zwift".
 
