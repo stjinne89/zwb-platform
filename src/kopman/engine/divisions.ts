@@ -12,6 +12,12 @@ export type Division = {
   name: string;
   /** Target rating of the strongest and of the weakest rival team. */
   band: [number, number];
+  /**
+   * Since 2026-11-13: the pool ends at 94, below the band of this level, so
+   * the rival riders are lifted until each team rides at its place in the
+   * band (`rivalCards` in `transfers.ts`).
+   */
+  lifted?: boolean;
   /** Prize money and season coins, against the top level of the first version. */
   prize: number;
   /** The pack for a win, for the podium and for the top 10. */
@@ -100,7 +106,8 @@ export const DIVISIONS: Division[] = [
   {
     id: "wereldtour",
     name: "Wereldtour",
-    band: [86, 76],
+    band: [100, 76],
+    lifted: true,
     prize: 1,
     packs: { win: "goud", podium: "zilver", top10: "brons" },
     promotion: "diamant",

@@ -1,7 +1,7 @@
 import { cardById, pool } from "./cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "./course";
 import { BASE_BUDGET, FAME_JERSEY, FAME_SKIP, FAME_START, fameAfter, fameNextSeason, goalStep, goalTarget, kindsIn, salaryOf, sponsorOffers, type Sponsor } from "./sponsors";
-import { nemesisCard, nextNemesis, seasonRosters, withNemesis } from "./transfers";
+import { nemesisCard, nextNemesis, rivalCards, seasonRosters, withNemesis } from "./transfers";
 import { FIRST_CAREER, ruleEffects, type Career, type Rule, type Title } from "./career";
 import { crashHurts, drawEvent, EVENT_FORM, GROWTH_POINTS, GROWTH_STAT, PERS, tasksFor, type GameEvent, type Task } from "./events";
 import { ITEMS, itemById, teamBonus } from "./items";
@@ -400,7 +400,9 @@ export function raceSetup(save: Save): { raceId: string; seed: number; lineup: L
 export function rivalsOf(save: Save): { rosters: Record<string, string[]>; cards: Record<string, RiderCard> } {
   const mine = new Set(Object.keys(save.collection));
   const rosters = withNemesis(seasonRosters(save.division, save.seed, save.season), save.division, save.nemesis ?? null, mine);
-  const cards: Record<string, RiderCard> = save.nemesis && !mine.has(save.nemesis) ? { [save.nemesis]: nemesisCard(save.nemesis, save.division) } : {};
+  const nemesis = save.nemesis && !mine.has(save.nemesis) ? save.nemesis : null;
+  const skip = new Set(nemesis ? [...mine, nemesis] : mine);
+  const cards: Record<string, RiderCard> = { ...rivalCards(save.division, rosters, skip), ...(nemesis ? { [nemesis]: nemesisCard(nemesis, save.division) } : {}) };
   return { rosters, cards };
 }
 

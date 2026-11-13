@@ -612,11 +612,115 @@ Wat de meting zegt:
 - De oorzaak is de sterkte van de ploeg: bovenin 88 tot 94, terwijl de band
   van de Wereldtour tot 86 gaat. Een pakket minder of een sterkere kopman
   verandert daar weinig aan. Of het plafond strakker moet, of de band
-  bovenin hoger, ligt bij de eigenaar.
+  bovenin hoger, ligt bij de eigenaar. De eigenaar koos de band: zie
+  "Bijgesteld: de Wereldtour tot 100".
 
 **Niet geverifieerd:** een seizoen met een aartsrivaal tot het einde in de
 app; in de preview alleen de regel op het seizoensscherm en het begin van
 een nieuwe carrière.
+
+### Bijgesteld: de Wereldtour tot 100
+
+Gebouwd op 2026-11-13, na de meting van ronde D. De eigenaar wilde de band
+van de Wereldtour tot 100, zodat een ploeg met diamanten en plusjes er nog
+steeds een wedstrijd heeft.
+
+- **De band** is 76–100 (was 76–86).
+- **De pool houdt op bij 94**: goud gaat van 75 tot 88, diamant van 89 tot
+  94. Alleen het getal ophogen gaf dus dezelfde ploegen. Daarom worden de
+  rivalen in de Wereldtour opgetild (`rivalCards` in `transfers.ts`,
+  `Division.lifted`):
+  - elke ploeg krijgt een doel op zijn plek in de band, van 100 voor de
+    sterkste tot 76 voor de zwakste;
+  - al haar renners gaan evenveel omhoog, tot haar beste vijf op dat doel
+    rijden. Een waarde stopt bij 99, dus de sterkste ploeg rijdt rond 98;
+  - naam, land, soort en kaartsoort blijven; alleen in de koers rijden ze
+    sterker. Jouw renners en je aartsrivaal worden niet zo opgetild.
+- **De aartsrivaal** rijdt op 3 boven de top van de band, hooguit 99.
+- **Het peloton in vorm** (`pelotonForm`) springt pas aan boven de top van
+  de band min 2. In de Wereldtour doet het nu dus niets meer; het sterkere
+  peloton zelf doet het werk.
+
+**Gemeten** met hetzelfde script, drie carrières:
+
+```
+seed 11:
+  s1 Kermis        4e  zeges 2/8 podium 2/8  ploeg 61 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal -
+  s2 Kermis        4e  zeges 1/8 podium 3/8  ploeg 65 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal Lorenz
+  s3 Kermis        4e  zeges 1/8 podium 3/8  ploeg 70 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal Lorenz
+  s4 Kermis        1e  zeges 5/8 podium 6/8  ploeg 71 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal Leone
+  s5 Interclub     2e  zeges 3/8 podium 5/8  ploeg 72 (band 58–64)  doel niet  kampioen 1  aartsrivaal Ricci
+  s6 Continentaal  1e  zeges 4/8 podium 5/8  ploeg 75 (band 64–71)  doel gehaald  kampioen 0  aartsrivaal Vargas
+  s7 Proftour      3e  zeges 2/8 podium 3/8  ploeg 77 (band 68–75)  doel gehaald  kampioen 0  aartsrivaal Vargas
+  s8 Proftour      1e  zeges 5/8 podium 5/8  ploeg 80 (band 68–75)  doel gehaald  kampioen 0  aartsrivaal Testa
+  s9 Wereldtour    6e  zeges 1/8 podium 1/8  ploeg 82 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Potočnik
+  s10 Wereldtour    5e  zeges 0/8 podium 2/8  ploeg 86 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Leone
+  s11 Wereldtour    4e  zeges 3/8 podium 4/8  ploeg 87 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Ortega
+  s12 Wereldtour    3e  zeges 5/8 podium 5/8  ploeg 91 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Scholz
+  s13 Wereldtour    2e  zeges 6/8 podium 6/8  ploeg 93 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Goossens
+  s14 Wereldtour    2e  zeges 5/8 podium 8/8  ploeg 93 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Goossens
+  s15 Wereldtour    1e  zeges 6/8 podium 8/8  ploeg 93 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Salazar
+  --- carrière 2: alleen een pakket voor een zege, erfstuk Scholz
+  s1 Kermis        5e  zeges 1/8 podium 2/8  ploeg 64 (band 51–56)  doel niet  kampioen 0  aartsrivaal -
+  s2 Kermis        4e  zeges 2/8 podium 2/8  ploeg 66 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal Romano
+  s3 Kermis        6e  zeges 0/8 podium 0/8  ploeg 70 (band 51–56)  doel niet  kampioen 0  aartsrivaal Chevalier
+  s4 Kermis        5e  zeges 0/8 podium 1/8  ploeg 72 (band 51–56)  doel niet  kampioen 0  aartsrivaal Ricci
+  s5 Kermis        4e  zeges 0/8 podium 4/8  ploeg 75 (band 51–56)  doel niet  kampioen 0  aartsrivaal Chevalier
+  s6 Kermis        3e  zeges 1/8 podium 4/8  ploeg 75 (band 51–56)  doel niet  kampioen 0  aartsrivaal Chevalier
+  s7 Kermis        1e  zeges 7/8 podium 8/8  ploeg 76 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal Chevalier
+  s8 Interclub     1e  zeges 7/8 podium 8/8  ploeg 76 (band 58–64)  doel niet  kampioen 0  aartsrivaal Chevalier
+  s9 Continentaal  1e  zeges 8/8 podium 8/8  ploeg 83 (band 64–71)  doel gehaald  kampioen 0  aartsrivaal Chevalier
+  s10 Proftour      1e  zeges 5/8 podium 6/8  ploeg 85 (band 68–75)  doel gehaald  kampioen 0  aartsrivaal -
+  s11 Wereldtour    7e  zeges 1/8 podium 1/8  ploeg 86 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal -
+  s12 Wereldtour    3e  zeges 4/8 podium 5/8  ploeg 89 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Scholz
+  s13 Wereldtour    1e  zeges 7/8 podium 8/8  ploeg 92 (band 76–100)  doel gehaald  kampioen 1  aartsrivaal Barrett
+  --- carrière 3: alleen een pakket voor een zege, sterkere kopmannen, erfstuk Ortega
+  s1 Kermis        3e  zeges 5/8 podium 6/8  ploeg 69 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal -
+  s2 Kermis        4e  zeges 3/8 podium 5/8  ploeg 72 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal Romano
+seed 22:
+  s1 Kermis        4e  zeges 2/8 podium 3/8  ploeg 63 (band 51–56)  doel niet  kampioen 0  aartsrivaal -
+  s2 Kermis        2e  zeges 3/8 podium 6/8  ploeg 68 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal Romano
+  s3 Interclub     2e  zeges 3/8 podium 5/8  ploeg 73 (band 58–64)  doel gehaald  kampioen 0  aartsrivaal Chevalier
+  s4 Continentaal  3e  zeges 3/8 podium 5/8  ploeg 77 (band 64–71)  doel gehaald  kampioen 0  aartsrivaal Romano
+  s5 Continentaal  4e  zeges 2/8 podium 3/8  ploeg 79 (band 64–71)  doel niet  kampioen 0  aartsrivaal Lockyer
+  s6 Continentaal  1e  zeges 8/8 podium 8/8  ploeg 82 (band 64–71)  doel gehaald  kampioen 1  aartsrivaal Bech
+  s7 Proftour      1e  zeges 8/8 podium 8/8  ploeg 86 (band 68–75)  doel gehaald  kampioen 0  aartsrivaal Bech
+  s8 Wereldtour    3e  zeges 3/8 podium 5/8  ploeg 89 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Bech
+  s9 Wereldtour    2e  zeges 5/8 podium 6/8  ploeg 92 (band 76–100)  doel niet  kampioen 0  aartsrivaal Rojas
+  s10 Wereldtour    2e  zeges 6/8 podium 7/8  ploeg 93 (band 76–100)  doel niet  kampioen 0  aartsrivaal Bosman
+  s11 Wereldtour    1e  zeges 5/8 podium 7/8  ploeg 94 (band 76–100)  doel gehaald  kampioen 1  aartsrivaal Bosman
+  --- carrière 2: alleen een pakket voor een zege, erfstuk Barrett
+  s1 Kermis        7e  zeges 0/8 podium 2/8  ploeg 64 (band 51–56)  doel niet  kampioen 0  aartsrivaal -
+  s2 Kermis        4e  zeges 0/8 podium 1/8  ploeg 66 (band 51–56)  doel niet  kampioen 0  aartsrivaal Lorenz
+  s3 Kermis        5e  zeges 0/8 podium 3/8  ploeg 69 (band 51–56)  doel niet  kampioen 0  aartsrivaal Ricci
+  s4 Kermis        3e  zeges 3/8 podium 3/8  ploeg 70 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal Ricci
+  s5 Kermis        3e  zeges 1/8 podium 2/8  ploeg 71 (band 51–56)  doel niet  kampioen 0  aartsrivaal Leone
+  s6 Kermis        4e  zeges 1/8 podium 4/8  ploeg 72 (band 51–56)  doel niet  kampioen 0  aartsrivaal Lorenz
+  s7 Kermis        1e  zeges 8/8 podium 8/8  ploeg 74 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal Ricci
+  s8 Interclub     1e  zeges 8/8 podium 8/8  ploeg 77 (band 58–64)  doel gehaald  kampioen 1  aartsrivaal Ricci
+  s9 Continentaal  1e  zeges 7/8 podium 8/8  ploeg 80 (band 64–71)  doel gehaald  kampioen 0  aartsrivaal Ricci
+  s10 Proftour      1e  zeges 6/8 podium 6/8  ploeg 81 (band 68–75)  doel gehaald  kampioen 0  aartsrivaal Ricci
+  s11 Wereldtour    4e  zeges 2/8 podium 2/8  ploeg 86 (band 76–100)  doel niet  kampioen 0  aartsrivaal Carter
+  s12 Wereldtour    3e  zeges 2/8 podium 4/8  ploeg 87 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Van Hove
+  s13 Wereldtour    2e  zeges 3/8 podium 5/8  ploeg 90 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Lorenz
+  s14 Wereldtour    1e  zeges 5/8 podium 8/8  ploeg 92 (band 76–100)  doel gehaald  kampioen 0  aartsrivaal Ortega
+  --- carrière 3: alleen een pakket voor een zege, sterkere kopmannen, erfstuk Lefèvre
+  s1 Kermis        5e  zeges 1/8 podium 2/8  ploeg 66 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal -
+  s2 Kermis        4e  zeges 2/8 podium 4/8  ploeg 69 (band 51–56)  doel gehaald  kampioen 1  aartsrivaal Lorenz
+  s3 Kermis        1e  zeges 5/8 podium 7/8  ploeg 70 (band 51–56)  doel gehaald  kampioen 0  aartsrivaal Romano
+  s4 Interclub     2e  zeges 3/8 podium 5/8  ploeg 73 (band 58–64)  doel gehaald  kampioen 1  aartsrivaal Romano
+  s5 Continentaal  1e  zeges 4/8 podium 6/8  ploeg 76 (band 64–71)  doel gehaald  kampioen 0  aartsrivaal Verhulst
+```
+
+Wat de meting zegt:
+
+- De Wereldtour is een wedstrijd. Het eerste seizoen eindigt het script als
+  3e tot 7e met 1 tot 3 zeges. De eerste titel komt na 3 tot 7 seizoenen in
+  de Wereldtour, met een ploeg van 92 tot 94 en 5 tot 7 zeges.
+- Opvallend, en niet door deze wijziging: met de regel "alleen een pakket
+  voor een zege" blijft het script in carrière 2 in beide seeds zeven
+  seizoenen in de Kermis. Met weinig pakketten komen er weinig goedkope renners bij. Het
+  budget van de Kermis laat de dure renners dan niet rijden.
 
 **Niet in dit voorstel:** een zesde trede (gekozen is de ronde), een eigen
 kalender van 12 koersen waar je er 8 uit kiest (overslaan geeft die keuze
@@ -627,8 +731,9 @@ doet het werk zonder dat verzamelen pijn doet).
 
 - Bij de grote rondes koos de eigenaar de variant: "Ronde in Wereldtour". Een
   zesde trede is daarmee niet gebouwd.
-- Na de vier rondes: of het spel genoeg tegenwerkt, of het plafond strakker
-  moet. Zie de meting van ronde D.
+- Na de vier rondes koos de eigenaar een band tot 100 in de Wereldtour; zie
+  "Bijgesteld: de Wereldtour tot 100". Open: of de regel "alleen een pakket
+  voor een zege" de Kermis niet te lang maakt.
 
 ## Gebouwd: de Ronde van de Alpen
 

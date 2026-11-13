@@ -18,8 +18,11 @@ van die 8 sinds 2026-11-13 een ronde van 5 etappes (zie
 | Interclub | 67–58 | 22% | brons |
 | Continentaal | 72–64 | 40% | brons |
 | Proftour | 78–68 | 65% | zilver |
-| Wereldtour | 87–72 | 100% | goud |
+| Wereldtour | 98–76 (opgetild) | 100% | goud |
 
+Sinds 2026-11-13 is de band van de Wereldtour 76–100 en worden de rivalen
+daar opgetild tot hun plek in de band (zie "Bijgesteld: de Wereldtour tot
+100" in [kopman-breder.md](kopman-breder.md)); daarvoor was het 87–72 gemeten.
 Proftour en Wereldtour zijn op 2026-11-12 opgeschoven (zie "Rivalen die
 terugvechten"); daarvoor was dat 74–67 en 84–73. Interclub en Continentaal
 schoven op 2026-11-13 op (zie "Sterkere pelotons"); daarvoor 64–57 en 69–62.

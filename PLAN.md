@@ -54,8 +54,9 @@ gaat stabiliteit voor nieuwe features.
    samengevoegde voorstel om het spel te verbreden, te beginnen met
    "Kopman: renners leven" (`dcc2f78b`) en "Kopman: sponsors en een
    salarisplafond" (`a5b058a7`) en "Kopman: keuzes, opdrachten en een
-   kampioenschap" (`757749f8`) en "Kopman: een wereld die beweegt"
-   (`efa5500a`). Op een telefoon vult het bord het scherm. Open: na de
+   kampioenschap" (`757749f8`), "Kopman: een wereld die beweegt"
+   (`efa5500a`) en "Kopman: de Wereldtour tot 100" (de commit van die
+   ronde). Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12277,6 +12278,48 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: de Wereldtour tot 100
+
+**2026-11-13, de commit "Kopman: de Wereldtour tot 100", lokaal, niet
+gepusht.** Geen migratie, niets nieuws in de save.
+
+- **Wat er is.** Zie
+  [docs/kopman-breder.md](docs/kopman-breder.md#bijgesteld-de-wereldtour-tot-100).
+  - `divisions.ts`: de band van de Wereldtour is 76–100, en
+    `Division.lifted` staat aan voor de Wereldtour.
+  - `transfers.ts`:
+    - `rivalCards` tilt elke rivaliserende ploeg in een opgetild niveau op
+      tot haar plek in de band;
+    - `liftedCard` doet dat per renner, hooguit 99;
+    - `nemesisCard` gebruikt het ook.
+  - `economy.ts`: `rivalsOf` geeft die kaarten mee aan elke koers, etappe en
+    elk kampioenschap.
+- **Waarom.** Na ronde D won het script in de Wereldtour 7 of 8 van de 8
+  koersen, met een ploeg van 88 tot 94 tegen een band tot 86. De eigenaar
+  wilde de band tot 100, zodat diamanten en plusjes er nog een wedstrijd
+  vinden. De pool houdt op bij 94, dus alleen het getal ophogen gaf dezelfde
+  ploegen.
+- **Gemeten.** De eerste titel in de Wereldtour komt na 3 tot 7 seizoenen
+  daar, in plaats van in het eerste of tweede, met een ploeg van 92 tot 94
+  en 5 tot 7 zeges. Met de regel "alleen een pakket
+  voor een zege" bleef het script in een tweede carrière zeven seizoenen in
+  de Kermis. Dat komt niet door deze wijziging; het staat open voor de
+  eigenaar.
+- **Niet meer waar.**
+  - "Wereldtour 87–72" in de tabel van `docs/kopman-piramide.md`: dat is
+    bijgewerkt.
+  - Het peloton in vorm (`pelotonForm`) werkt niet meer in de Wereldtour:
+    daarvoor moet je vijf boven 98 rijden.
+- **Bewust niet gebouwd:**
+  - nieuwe kaarten boven 94 in de pool: dan worden ze ook uit pakketten
+    getrokken, en groeit jouw ploeg mee;
+  - het optillen buiten een save om: een bord dat los van een save wordt
+    gemaakt (tests, demo) rijdt de Wereldtour met de kaarten van de pool;
+  - het optillen in de lagere niveaus: daar heeft de pool renners genoeg.
+- **Geverifieerd:** tsc, eslint, de Kopman-tests (109, waarvan 1 nieuw in
+  `tests/unit/kopman-world.test.ts`), `next build`.
+- **Niet geverifieerd:** een koers in de Wereldtour in de app.
+
 ### Gebouwd — Kopman: een wereld die beweegt (ronde D)
 
 **2026-11-13, `efa5500a`, lokaal, niet gepusht.** Geen migratie. De save krijgt `nemesis`, `beaten`, `career` en
@@ -12312,8 +12355,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 - **Gemeten.** Zie het doc. De eerste klim is trager (de Wereldtour in
   seizoen 8 of 9 in plaats van 6 of 7), maar een zwaardere carrière is
   voor het script niet zwaarder: het wint bovenin weer 7 of 8 van de 8. De
-  ploeg groeit naar 88 tot 94, boven de band van de Wereldtour (tot 86).
-  Of het plafond strakker moet, ligt bij de eigenaar.
+  ploeg groeit naar 88 tot 94, boven de band van de Wereldtour (toen tot
+  86). Bijgesteld: de band gaat nu tot 100, zie "Kopman: de Wereldtour tot
+  100".
 - **Geverifieerd:**
   - tsc, eslint, `next build`, en de Kopman-tests (108, waarvan 5 nieuw in
     `tests/unit/kopman-world.test.ts`);

@@ -57,14 +57,54 @@ export function seasonRosters(division: number, seed: number, season: number): R
   return out;
 }
 
-/** The arch-rival's card at your level: his own stats, lifted to the top of the band if he is below it. */
-export function nemesisCard(id: string, division: number): RiderCard {
-  const card = cardById(id);
-  const target = DIVISIONS[division].band[0] + NEMESIS_ABOVE;
-  const lift = Math.max(0, target - card.overall);
-  if (!lift) return card;
-  const stats = Object.fromEntries(STAT_KEYS.map((k) => [k, clamp(card.stats[k] + lift, 30, 99)])) as Stats;
+/** The highest overall a card can reach: every stat ends at 99. */
+export const OVERALL_MAX = 99;
+
+/** A card with its stats raised evenly until its overall reaches `target` (or as close as 99 per stat allows). */
+export function liftedCard(card: RiderCard, target: number): RiderCard {
+  const goal = Math.min(OVERALL_MAX, Math.round(target));
+  if (goal <= card.overall) return card;
+  let shift = goal - card.overall;
+  let stats = card.stats;
+  for (let i = 0; i < 6; i++) {
+    stats = Object.fromEntries(STAT_KEYS.map((k) => [k, clamp(card.stats[k] + shift, 30, 99)])) as Stats;
+    const diff = goal - overallOf(card.type, stats);
+    if (diff <= 0) break;
+    shift += diff;
+  }
   return { ...card, stats, overall: overallOf(card.type, stats) };
+}
+
+/** The arch-rival's card at your level: his own stats, lifted above the top of the band (at most 99) if he is below it. */
+export function nemesisCard(id: string, division: number): RiderCard {
+  return liftedCard(cardById(id), DIVISIONS[division].band[0] + NEMESIS_ABOVE);
+}
+
+/** The target of the team at `rank` (0 is the strongest) in the band of a level. */
+export function teamTarget(division: number, rank: number) {
+  const { band: [strong, weak] } = DIVISIONS[division];
+  const teams = rivalTeams(division).length;
+  return strong - ((strong - weak) * rank) / Math.max(1, teams - 1);
+}
+
+/**
+ * In a lifted level (`Division.lifted`), the cards of the rival riders: every
+ * team gets one lift for all its riders, so that its best five ride at its
+ * place in the band, and the kopman stays above his knechten. `skip` holds
+ * riders that are not lifted here (yours, the arch-rival).
+ */
+export function rivalCards(division: number, rosters: Record<string, string[]>, skip: Set<string> = new Set()): Record<string, RiderCard> {
+  if (!DIVISIONS[division].lifted) return {};
+  const out: Record<string, RiderCard> = {};
+  rivalTeams(division).forEach((team, rank) => {
+    const riders = (rosters[team.id] ?? team.riders).filter((id) => !skip.has(id));
+    const best = riders.map((id) => cardById(id).overall).sort((a, b) => b - a).slice(0, 5);
+    if (!best.length) return;
+    const lift = Math.max(0, teamTarget(division, rank) - best.reduce((sum, n) => sum + n, 0) / best.length);
+    if (lift < 0.5) return;
+    for (const id of riders) out[id] = liftedCard(cardById(id), cardById(id).overall + lift);
+  });
+  return out;
 }
 
 /**

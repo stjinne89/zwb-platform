@@ -6,7 +6,7 @@ import { DIVISIONS, TOP_DIVISION } from "@/kopman/engine/divisions";
 import { createRace, type Placing } from "@/kopman/engine/race";
 import { parseSave } from "@/kopman/engine/save";
 import { rivalTeams } from "@/kopman/engine/teams";
-import { NEMESIS_ABOVE, NEMESIS_MIN, nemesisCard, seasonRosters, TRANSFERS } from "@/kopman/engine/transfers";
+import { liftedCard, NEMESIS_ABOVE, NEMESIS_MIN, nemesisCard, OVERALL_MAX, rivalCards, seasonRosters, teamTarget, TRANSFERS } from "@/kopman/engine/transfers";
 import { PLAYER_TEAM } from "@/kopman/engine/types";
 
 const ready = (seed: number) => chooseSponsor(newSave(seed), 2);
@@ -60,10 +60,39 @@ describe("Kopman: een wereld die beweegt", () => {
     expect(world.rosters[strongest]).toContain(rival);
     expect(Object.entries(world.rosters).filter(([, riders]) => riders.includes(rival)).map(([id]) => id)).toEqual([strongest]);
     expect(world.cards[rival].overall).toBeGreaterThanOrEqual(cardById(rival).overall);
-    expect(nemesisCard(rival, 4).overall).toBeGreaterThanOrEqual(DIVISIONS[4].band[0] + NEMESIS_ABOVE - 1);
+    expect(nemesisCard(rival, 1).overall).toBeGreaterThanOrEqual(DIVISIONS[1].band[0] + NEMESIS_ABOVE - 1);
+    expect(nemesisCard(rival, TOP_DIVISION).overall).toBeGreaterThanOrEqual(OVERALL_MAX - 2);
+    expect(nemesisCard(rival, TOP_DIVISION).overall).toBeLessThanOrEqual(OVERALL_MAX);
     // A rival you own is never your arch-rival.
     const owned: Save = { ...save, collection: { ...save.collection, [rival]: 1 } };
     expect(newSeason(owned).nemesis).toBeNull();
+  });
+
+  it("tilt de rivalen in de Wereldtour op tot hun plek in de band, tot 100", () => {
+    expect(DIVISIONS[TOP_DIVISION].band[0]).toBe(100);
+    expect(rivalCards(TOP_DIVISION - 1, seasonRosters(TOP_DIVISION - 1, 7, 1))).toEqual({});
+    const rosters = seasonRosters(TOP_DIVISION, 7, 3);
+    const cards = rivalCards(TOP_DIVISION, rosters);
+    const top5 = (id: string) => {
+      const best = rosters[id].map((r) => (cards[r] ?? cardById(r)).overall).sort((a, b) => b - a).slice(0, 5);
+      return best.reduce((sum, n) => sum + n, 0) / best.length;
+    };
+    const teams = rivalTeams(TOP_DIVISION);
+    expect(top5(teams[0].id)).toBeGreaterThan(95);
+    expect(top5(teams[0].id)).toBeLessThanOrEqual(OVERALL_MAX);
+    teams.slice(3).forEach((t, i) => expect(Math.abs(top5(t.id) - teamTarget(TOP_DIVISION, i + 3))).toBeLessThan(1.5));
+    for (const card of Object.values(cards)) {
+      expect(card.overall).toBeGreaterThanOrEqual(cardById(card.id).overall);
+      expect(Math.max(...Object.values(card.stats))).toBeLessThanOrEqual(99);
+    }
+    expect(liftedCard(cardById(teams[0].riders[0]), 200).overall).toBeLessThanOrEqual(OVERALL_MAX);
+    // In a race the rivals ride on their lifted cards, your riders on your own.
+    const save: Save = { ...ready(56), division: TOP_DIVISION };
+    const setup = raceSetup(save)!;
+    const race = createRace(setup.raceId, setup.seed, setup.lineup);
+    const rival = race.riders.find((r) => r.team !== PLAYER_TEAM && rivalsOf(save).cards[r.id])!;
+    expect(rival.card.overall).toBe(rivalsOf(save).cards[rival.id].overall);
+    for (const r of race.riders.filter((x) => x.team === PLAYER_TEAM)) expect(rivalsOf(save).cards[r.id]).toBeUndefined();
   });
 
   it("legt de regels van een zwaardere carrière op", () => {
