@@ -12346,7 +12346,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Merkproducten in het receptenboek
 
-**2026-11-13, lokaal gecommit, niet gepusht. Migratie
+**2026-11-13, commit `bca2db70`, lokaal, niet gepusht. Migratie
 `0331_nutrition_sports_recipes.sql`, niet toegepast op productie.** Op vraag van
 de eigenaar ("staat deze lijst dan nog niet in het receptenboek"), daarna "Yes,
 as proposed" op het voorstel.
