@@ -66,14 +66,13 @@ gaat stabiliteit voor nieuwe features.
    Interclub en Continentaal en een peloton dat meegroeit. Daarna, ook op
    2026-11-13 gepusht: het onderzoek naar een breder spel (`8c9fd150`) en
    "Kopman: de Ronde van de Alpen" (`a4772a41`), een ronde van 5 etappes
-   in de Wereldtour. Daarna lokaal, niet gepusht: de rondes van het
+   in de Wereldtour. Daarna, ook op 2026-11-13 gepusht: de rondes van het
    samengevoegde voorstel om het spel te verbreden, te beginnen met
    "Kopman: renners leven" (`dcc2f78b`) en "Kopman: sponsors en een
    salarisplafond" (`a5b058a7`) en "Kopman: keuzes, opdrachten en een
    kampioenschap" (`757749f8`), "Kopman: een wereld die beweegt"
    (`efa5500a`), "Kopman: de Wereldtour tot 100" (`f013b245`) en "Kopman:
-   de regel voor pakketten, en goud en diamant te koop" (de commit van die
-   ronde). Op een telefoon vult het bord het scherm. Open: na de
+   de regel voor pakketten, en goud en diamant te koop" (`fcd1731e`). Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12297,8 +12296,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: de regel voor pakketten, en goud en diamant te koop
 
-**2026-11-13, de commit "Kopman: de regel voor pakketten, en goud en diamant
-te koop".** Geen migratie, niets nieuws in de save.
+**2026-11-13, `fcd1731e`, gepusht op 2026-11-13.** Geen migratie, niets nieuws in de save.
 
 - **Wat er is.** Zie
   [docs/kopman-breder.md](docs/kopman-breder.md#bijgesteld-de-regel-voor-pakketten-en-goud-en-diamant-te-koop).
@@ -12341,7 +12339,7 @@ te koop".** Geen migratie, niets nieuws in de save.
 
 ### Gebouwd — Kopman: de Wereldtour tot 100
 
-**2026-11-13, `f013b245`, lokaal, niet gepusht.** Geen migratie, niets nieuws in de save.
+**2026-11-13, `f013b245`, gepusht op 2026-11-13.** Geen migratie, niets nieuws in de save.
 
 - **Wat er is.** Zie
   [docs/kopman-breder.md](docs/kopman-breder.md#bijgesteld-de-wereldtour-tot-100).
@@ -12382,7 +12380,7 @@ te koop".** Geen migratie, niets nieuws in de save.
 
 ### Gebouwd — Kopman: een wereld die beweegt (ronde D)
 
-**2026-11-13, `efa5500a`, lokaal, niet gepusht.** Geen migratie. De save krijgt `nemesis`, `beaten`, `career` en
+**2026-11-13, `efa5500a`, gepusht op 2026-11-13.** Geen migratie. De save krijgt `nemesis`, `beaten`, `career` en
 `titles`; een save zonder die velden is carrière 1 zonder regels.
 
 - **Wat er is.** Zie
@@ -12429,7 +12427,7 @@ te koop".** Geen migratie, niets nieuws in de save.
 
 ### Gebouwd — Kopman: keuzes, opdrachten en een kampioenschap (ronde C)
 
-**2026-11-13, `757749f8`, lokaal, niet gepusht.** Geen migratie. De save krijgt `event`, `pledge`,
+**2026-11-13, `757749f8`, gepusht op 2026-11-13.** Geen migratie. De save krijgt `event`, `pledge`,
 `tasks` en `champ`. Een save zonder die velden krijgt de opdrachten van het
 lopende seizoen bij het laden.
 
@@ -12469,7 +12467,7 @@ lopende seizoen bij het laden.
 
 ### Gebouwd — Kopman: sponsors en een salarisplafond (ronde B)
 
-**2026-11-13, `a5b058a7`, lokaal, niet gepusht.** Geen migratie. De save krijgt `fame`, `sponsor` en `loyal`;
+**2026-11-13, `a5b058a7`, gepusht op 2026-11-13.** Geen migratie. De save krijgt `fame`, `sponsor` en `loyal`;
 een save zonder krijgt populariteit 20 en geen sponsor.
 
 - **Wat er is.** Zie
@@ -12511,7 +12509,7 @@ een save zonder krijgt populariteit 20 en geen sponsor.
 
 ### Gebouwd — Kopman: renners leven (ronde A van het brede voorstel)
 
-**2026-11-13, `dcc2f78b`, lokaal, niet gepusht.**
+**2026-11-13, `dcc2f78b`, gepusht op 2026-11-13.**
 Geen migratie. De save krijgt `riders` (het leven per renner), `legends`,
 `camp` en `report`. Een save zonder die velden krijgt ze bij het laden.
 
