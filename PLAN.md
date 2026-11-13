@@ -12505,7 +12505,7 @@ op 2026-11-13 gepusht naar main (eigenaar: "Push maar").** Geen migratie. Schaal
 
 ### Gebouwd — Sportvoedingslijst: bekende merken met de juiste waarden
 
-**2026-11-13, commit `7c6b4376`, lokaal, niet gepusht. Migratie
+**2026-11-13, commit `7c6b4376`, gepusht naar `main` op 2026-11-13 (tot en met `0890ca2a`). Migratie
 `0330_nutrition_sports_products.sql`, op 2026-11-13 door de eigenaar op productie
 toegepast via de SQL-editor; de controlequeries onderaan heeft Claude niet zelf
 gezien.** Op vraag
