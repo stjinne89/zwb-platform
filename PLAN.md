@@ -39,7 +39,7 @@ gaat stabiliteit voor nieuwe features.
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
 0. **ZWBriljant: vermogen als compound score (2026-11-13): lokaal, niet
-   gepusht.** b = 0,75, ijkgewicht 75/62 kg, echte W/kg op het scherm. Nieuwe
+   gepusht (`0f5f8b93`).** b = 0,75, ijkgewicht 75/62 kg, echte W/kg op het scherm. Nieuwe
    schaalversie `2026-11-13-compound`: na de deploy de terugblik-job draaien.
    Zie de ronde "ZWBriljant: vermogen als compound score".
 
@@ -12344,8 +12344,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: vermogen als compound score
 
-**2026-11-13, de commit "ZWBriljant: vermogen als compound score", lokaal,
-niet gepusht.** Geen migratie. Schaalversie `2026-11-13-compound` (was
+**2026-11-13, commit `0f5f8b93` ("ZWBriljant: vermogen als compound score"),
+lokaal, niet gepusht.** Geen migratie. Schaalversie `2026-11-13-compound` (was
 `2026-11-13-vermoeid`).
 
 - **De vraag.** De eigenaar wilde de waarden "een beetje weg ... bij watts per
