@@ -25,7 +25,7 @@ gaat stabiliteit voor nieuwe features.
    `0330_nutrition_sports_products.sql`, op 2026-11-13 door de eigenaar op
    productie toegepast via de SQL-editor; ronde
    "Gebouwd — Sportvoedingslijst"), en de merkproducten in het receptenboek
-   (migratie `0331_nutrition_sports_recipes.sql`, nog niet op productie; ronde
+   (`21f22218`, gepusht; migratie `0331_nutrition_sports_recipes.sql`, nog niet op productie; ronde
    "Gebouwd — Merkproducten in het receptenboek"). Open: de eventpagina in de browser bekijken (niet gedaan:
    geen `.env.local` in de worktree), het toetsscript draaien op de echte
    events zodra de Supabase-connector er weer is. Zie de rondes
@@ -12346,8 +12346,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Merkproducten in het receptenboek
 
-**2026-11-13, commit `bca2db70`, lokaal, niet gepusht. Migratie
-`0331_nutrition_sports_recipes.sql`, niet toegepast op productie.** Op vraag van
+**2026-11-13, commit `21f22218`, gepusht naar `main` op 2026-11-13. Migratie
+`0331_nutrition_sports_recipes.sql`, niet toegepast op productie; zonder 0331
+werkt de app als voorheen, alleen zonder de merkrecepten.** Op vraag van
 de eigenaar ("staat deze lijst dan nog niet in het receptenboek"), daarna "Yes,
 as proposed" op het voorstel.
 
