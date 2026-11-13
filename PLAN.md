@@ -48,7 +48,7 @@ gaat stabiliteit voor nieuwe features.
    gepusht: "Kopman: diamant, en rivalen per niveau" (`a7983b35`) en
    "Kopman: sterkere pelotons" (`52b6dc94`): hogere banden voor
    Interclub en Continentaal en een peloton dat meegroeit. Daarna lokaal,
-   niet gepusht: "Kopman: de Ronde van de Alpen" (de commit van die ronde),
+   niet gepusht: "Kopman: de Ronde van de Alpen" (`a4772a41`),
    een ronde van 5 etappes in de Wereldtour. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
@@ -12273,8 +12273,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: de Ronde van de Alpen
 
-**2026-11-13, de commit "Kopman: de Ronde van de Alpen", lokaal, niet
-gepusht.** Geen migratie. De save krijgt `tour` erbij (de lopende ronde);
+**2026-11-13, `a4772a41`, lokaal, niet gepusht.** Geen migratie. De save krijgt `tour` erbij (de lopende ronde);
 een save zonder leest als `null`.
 
 - **De vraag.** Na het onderzoek hieronder koos de eigenaar bij de grote
