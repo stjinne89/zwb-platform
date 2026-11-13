@@ -12,7 +12,7 @@ gaat stabiliteit voor nieuwe features.
    akkoord (eigenaar, 2026-11-13). Lokaal gecommit, niets gepusht: stap 1 (het
    model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
    het racebriefje, `844876ce`), stap 3 (soort koolhydraten op recepten,
-   `ae72d7cf`) en stap 4 (keuzes per event bewaren).
+   `ae72d7cf`) en stap 4 (keuzes per event bewaren, `3b06249d`).
    Open: de privacyzin voor stap 4 (voorgelegd 2026-11-13, nog niet
    geplaatst); migratie `0329_nutrition_event_fuel.sql` pas toepassen als die
    zin op `/privacy` staat. Verder open: migratie `0328_nutrition_recipe_carb_mix.sql` toepassen op productie
@@ -12318,7 +12318,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Eventvoeding, stap 4: keuzes per event bewaren
 
-**2026-11-13, lokaal gecommit, niet gepusht. Migratie
+**2026-11-13, commit `3b06249d`, lokaal, niet gepusht. Migratie
 `0329_nutrition_event_fuel.sql`, niet toegepast op productie.** Op verzoek van de
 eigenaar ("ga verder", na stap 3). Stap 4 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md), besluit 7.
