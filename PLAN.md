@@ -12324,6 +12324,80 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Sportvoedingslijst: bekende merken met de juiste waarden
+
+**2026-11-13, lokaal gecommit, niet gepusht. Migratie
+`0330_nutrition_sports_products.sql`, niet toegepast op productie.** Op vraag
+van de eigenaar ("meest gebruikte voeding ... uit een database halen en op de
+juiste manier invoeren? Denk aan Nduranz, Amacx"), daarna "Yes, as proposed" op
+het voorstel.
+
+**Waarom.** Sportvoeding kwam alleen via een gescande barcode uit Open Food
+Facts. Die database vullen gebruikers zelf: van Amacx staan er 64 producten in,
+met gaten (een reep zonder koolhydraten, gels zonder natrium), Nduranz en
+Maurten gaven bij de controle een 503, en de verhouding glucose:fructose staat
+er bij geen enkel product in. Juist die bepaalt sinds stap 3 van eventvoeding de
+grens per uur (60, 90 of 120). Een database die dat wel levert, bestaat niet.
+
+**Wat er is.** Migratie 0330 geeft `nutrition_products` de kolommen
+`carb_mix`, `scoop_g`, `sodium_mg`, `source` ('off' of 'zwb'), `source_url` en
+`checked_on`, en zet er 57 producten van twaalf merken in (Nduranz, Etixx,
+Isostar en SiS 6; Maurten, High5, Enervit, PowerBar en 32Gi 5; Precision Fuel &
+Hydration 4; Amacx 3; Torq 1). Een rij van ZWB heeft altijd koolhydraten, eiwit,
+bron en datum (check), zodat het opzoeken hem nooit met Open Food Facts
+overschrijft. Een al eerder opgehaald product met dezelfde barcode wordt
+bijgewerkt naar de waarden van de fabrikant. Scan je zo'n product, of kies je
+het met "Zoek in sportvoeding" in het receptformulier (op merk en naam, elk
+woord), dan staan de soort koolhydraten en de schep al ingevuld; een soort die
+je zelf koos, blijft (`recipe-form.tsx`, `loadSportsProducts`,
+`productFromRow`). Natrium gaat mee in `productAsFood`.
+
+**Hoe de lijst tot stand kwam.** Drie onderzoekers lazen per merk de
+productpagina's van de fabrikant en voor de barcode Open Food Facts of de
+fabrikant; elke waarde met een bron-URL, geen barcode geraden. Een eigen
+steekproef op vijf producten (Maurten Gel 100, PowerGel Original, SiS Beta Fuel,
+Amacx Turbo Fruit Chew, Nduranz Nrgy Gel 45) klopte waar hij te lezen was;
+Nduranz gaf een 429, de waarden daarvan kwamen al overeen met Open Food Facts.
+Daarnaast de koolhydraten per portie nagerekend tegen wat de fabrikant per gel
+of bidon noemt.
+
+**Keuzes van ZWB in deze stap.** De soort alleen als de fabrikant hem noemt of
+de ingrediënten geen twijfel laten (alleen maltodextrine en glucose: glucose);
+anders leeg, dan rekent de app met 60. Elke reep als gewoon eten, ook als de
+fabrikant een verhouding noemt (Nduranz Juice Bar 1:0,8, Amacx Nougat 2:1):
+kauwen, en de IF-regel van stap 7 van eventvoeding geldt dan. Alles in gram:
+een product in ml wordt in de app een bidon, dus een gel die de fabrikant per
+100 ml opgeeft, staat met die waarden en de portie in ml als gram; de
+koolhydraten per gel kloppen, de dichtheid niet. Eiwit 0 bij twee Isostar-producten
+waarvan de fabrikant geen eiwit noemt (Open Food Facts zegt 0). Een schep
+alleen als de fabrikant hem noemt of uit "2 schepjes = 65 g" volgt.
+
+**Bewust niet.** Squeezy: de fabrikant blokkeert automatisch lezen, en waarden
+van een winkel zijn niet het etiket. Producten zonder barcode die te bevestigen
+was (Amacx Energy Drink, Turbo Drink, Drink Gel en Turbo Fruit Chew; Torq
+Energy Drink, Jellies en reep; PF Carb Only): de tabel heeft een barcode als
+sleutel. Geen clubrecepten per product (het receptenboek en het advies blijven
+gelijk), geen automatisch uitlezen van fabriekssites, en geen verhouding uit
+het etiket afleiden. Welke barcodes leden al scanden, is niet gebruikt: de
+Supabase-connector was er niet.
+
+**Let op.** Een aantal barcodes is die van de doos of het multipak, niet van
+één gel (Etixx-gels, High5 Aqua, Energy Bar en Gummies, Amacx Chew en Nougat):
+scan je de losse verpakking, dan komt die uit Open Food Facts. Zoeken op merk
+werkt wel. Etiketten veranderen: `checked_on` zegt wanneer een rij is nagekeken.
+
+**Getest.** De migratie tegen PGlite in `tests/unit/nutrition-migration.test.ts`
+(57 rijen, compleet en in gram, lezen alleen voor goedgekeurde leden, niet te
+schrijven, weigert een rij zonder eiwit of met een onbekende soort, twee keer te
+draaien en overschrijft een eerder opgehaald product), en
+`tests/unit/nutrition-sports-products.test.ts` (4 tests). De hele suite groen op
+`omnium-live.test.ts` na (`.env.local`); `club-theme`, `admin-areas` en
+`intervals-ride-sync` liepen onder volle belasting in een tijdslimiet en slagen
+los. `tsc` en eslint schoon.
+
+**Niet geverifieerd.** Het zoekveld en het vooraf invullen in de browser, en
+0330 op productie. Zonder 0330 is de lijst leeg en werkt scannen als voorheen.
+
 ### Gebouwd — Eventvoeding, stap 8: na het event
 
 **2026-11-13, commit `51f443ec`, gepusht naar `main` (eigenaar: "Main push"). Geen migratie.** Op verzoek van de

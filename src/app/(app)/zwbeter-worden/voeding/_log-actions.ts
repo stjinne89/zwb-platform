@@ -7,7 +7,15 @@
 
 import { revalidatePath } from "next/cache";
 import { LOG_CONSENT_VERSION, parseLogDay, type LogSource } from "@/lib/nutrition/log";
-import { logItemFor, normalizeBarcode, parseOffProduct, type NutritionProduct } from "@/lib/nutrition/products";
+import {
+  PRODUCT_COLUMNS,
+  SPORTS_PRODUCT_COLUMNS,
+  logItemFor,
+  normalizeBarcode,
+  parseOffProduct,
+  productFromRow,
+  type NutritionProduct,
+} from "@/lib/nutrition/products";
 import { portionForRider } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS, type MealMoment } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
@@ -400,25 +408,13 @@ export async function lookupRecipeBarcode(raw: string): Promise<BarcodeResult> {
 
 async function findProduct(viewer: Viewer, barcode: string): Promise<BarcodeResult> {
   const clubShort = (await getClub()).texts.shortName;
-  const { data: known } = await viewer.supabase
-    .from("nutrition_products")
-    .select("barcode, name, brand, quantity_unit, carbs_g, protein_g, serving_g")
-    .eq("barcode", barcode)
-    .maybeSingle();
-  if (known && known.carbs_g != null && known.protein_g != null) {
-    return {
-      ok: true,
-      product: {
-        barcode,
-        name: known.name as string,
-        brand: (known.brand as string | null) ?? null,
-        quantity_unit: known.quantity_unit as "g" | "ml",
-        carbs_g: Number(known.carbs_g),
-        protein_g: Number(known.protein_g),
-        serving_g: known.serving_g == null ? null : Number(known.serving_g),
-      },
-    };
-  }
+  // Met de velden van de sportvoedingslijst (0330); zonder die migratie zonder.
+  const read = (columns: string) =>
+    viewer.supabase.from("nutrition_products").select(columns).eq("barcode", barcode).maybeSingle();
+  const first = await read(SPORTS_PRODUCT_COLUMNS);
+  const known = first.error ? (await read(PRODUCT_COLUMNS)).data : first.data;
+  const stored = known ? productFromRow(known as unknown as Record<string, unknown>) : null;
+  if (stored) return { ok: true, product: stored };
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), OFF_TIMEOUT_MS);

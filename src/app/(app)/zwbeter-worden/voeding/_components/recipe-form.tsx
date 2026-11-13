@@ -16,7 +16,7 @@ import { CARB_MIX_LABELS, STORED_CARB_MIXES } from "@/lib/nutrition/event-fuel";
 import { INGREDIENT_ROLES, INGREDIENT_ROLE_LABELS, guessRole, type IngredientRole } from "@/lib/nutrition/scale";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import type { RecipeVisibility } from "@/lib/nutrition/recipes";
-import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
+import { matchesProduct, productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import type { IngredientLine } from "@/lib/nutrition/recipe-import";
 import type { FoodOption } from "../_actions";
 import type { BarcodeResult } from "../_log-actions";
@@ -81,6 +81,7 @@ export function RecipeForm({
   searchAction,
   barcodeAction,
   defaultMoment = "diner",
+  sportsProducts = [],
 }: {
   initial?: RecipeFormInitial;
   /** Regels van een link die niet aan NEVO te koppelen waren. */
@@ -90,9 +91,13 @@ export function RecipeForm({
   barcodeAction: (barcode: string) => Promise<BarcodeResult>;
   /** Het moment van een nieuw recept, zoals "Tijdens de rit" voor sportvoeding. */
   defaultMoment?: string;
+  /** De sportvoedingslijst van ZWB (0330), om op merk te zoeken in plaats van te scannen. */
+  sportsProducts?: NutritionProduct[];
 }) {
   const [rows, setRows] = useState<Row[]>(initial?.rows ?? []);
   const [moment, setMoment] = useState(initial?.meal_moment ?? defaultMoment);
+  const [carbMix, setCarbMix] = useState(initial?.carb_mix ?? "");
+  const [sportQuery, setSportQuery] = useState("");
   const titleRef = useRef<HTMLInputElement>(null);
   const [pendingLines, setPendingLines] = useState<IngredientLine[]>(initialPending);
   // De losse regel waarvoor nu gezocht wordt; die krijgt de gekozen NEVO-naam.
@@ -150,8 +155,11 @@ export function RecipeForm({
         food: { id: product.barcode, barcode: product.barcode, name_nl: name, quantity_unit: product.quantity_unit },
         grams: amount(product.serving_g ?? 100),
         role: guessRole(product),
+        ...(product.scoop_g ? { scoop: amount(product.scoop_g) } : {}),
       },
     ]);
+    // De soort van de fabrikant, als het lid er zelf nog geen koos.
+    if (product.carb_mix) setCarbMix((current) => current || product.carb_mix!);
     // Eén gel of sportdrank is meestal het hele recept: dan is de naam die van het product.
     if (titleRef.current && !titleRef.current.value.trim()) titleRef.current.value = name.slice(0, 120);
   }
@@ -216,7 +224,12 @@ export function RecipeForm({
         {moment === "tijdens_rit" ? (
           <label className="text-sm sm:col-span-2">
             <span className="mb-1 block font-medium">Koolhydraten</span>
-            <select name="carb_mix" defaultValue={initial?.carb_mix ?? ""} className={inputClass}>
+            <select
+              name="carb_mix"
+              value={carbMix}
+              onChange={(event) => setCarbMix(event.target.value)}
+              className={inputClass}
+            >
               <option value="">{CARB_MIX_LABELS.onbekend}</option>
               {STORED_CARB_MIXES.map((value) => (
                 <option key={value} value={value}>
@@ -406,6 +419,17 @@ export function RecipeForm({
             ))}
           </div>
         )}
+        {sportsProducts.length > 0 && (
+          <SportsProductSearch
+            products={sportsProducts}
+            query={sportQuery}
+            onQuery={setSportQuery}
+            onProduct={(product) => {
+              addProduct(product);
+              setSportQuery("");
+            }}
+          />
+        )}
         <BarcodeInput lookupAction={barcodeAction} onProduct={addProduct} />
       </div>
 
@@ -469,5 +493,49 @@ export function RecipeForm({
         {state && !state.ok && <span className="text-sm text-destructive">{state.error}</span>}
       </div>
     </form>
+  );
+}
+
+/** Hoeveel producten uit de lijst er tegelijk staan. */
+const SPORTS_RESULTS = 8;
+
+function SportsProductSearch({
+  products,
+  query,
+  onQuery,
+  onProduct,
+}: {
+  products: NutritionProduct[];
+  query: string;
+  onQuery: (value: string) => void;
+  onProduct: (product: NutritionProduct) => void;
+}) {
+  const found = query.trim() ? products.filter((product) => matchesProduct(product, query)).slice(0, SPORTS_RESULTS) : [];
+  return (
+    <div className="space-y-2">
+      <input
+        type="search"
+        value={query}
+        onChange={(event) => onQuery(event.target.value)}
+        placeholder="Zoek in sportvoeding"
+        aria-label="Sportvoeding zoeken"
+        className={inputClass}
+      />
+      {query.trim() && found.length === 0 && <p className="text-sm text-muted-foreground">Niets gevonden in sportvoeding.</p>}
+      {found.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {found.map((product) => (
+            <button
+              key={product.barcode}
+              type="button"
+              onClick={() => onProduct(product)}
+              className="min-h-[36px] rounded-full border px-3 text-left text-sm hover:border-primary"
+            >
+              {productLabel(product)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

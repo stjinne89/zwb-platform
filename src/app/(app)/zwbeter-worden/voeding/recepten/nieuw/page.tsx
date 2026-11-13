@@ -1,5 +1,5 @@
 import { Link2 } from "lucide-react";
-import { requireViewer } from "../../_data";
+import { loadSportsProducts, requireViewer } from "../../_data";
 import { saveOwnRecipe, searchFoods } from "../../_actions";
 import { lookupRecipeBarcode } from "../../_log-actions";
 import { prefillFromLink } from "../../_import";
@@ -19,6 +19,7 @@ export default async function NewRecipePage({ searchParams }: { searchParams: Pr
   const prefill = link ? await prefillFromLink(viewer, link) : null;
   // Vanaf "Sportvoeding" in het receptenboek: een gel of bidon, voor onderweg.
   const sport = (Array.isArray(params.soort) ? params.soort[0] : params.soort) === "sportvoeding";
+  const sportsProducts = await loadSportsProducts(viewer).catch(() => []);
 
   return (
     <div className="space-y-6">
@@ -56,6 +57,7 @@ export default async function NewRecipePage({ searchParams }: { searchParams: Pr
           saveAction={saveOwnRecipe}
           searchAction={searchFoods}
           barcodeAction={lookupRecipeBarcode}
+          sportsProducts={sportsProducts}
         />
       ) : (
         <RecipeForm
@@ -63,6 +65,7 @@ export default async function NewRecipePage({ searchParams }: { searchParams: Pr
           searchAction={searchFoods}
           barcodeAction={lookupRecipeBarcode}
           defaultMoment={sport ? "tijdens_rit" : undefined}
+          sportsProducts={sportsProducts}
         />
       )}
     </div>

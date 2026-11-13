@@ -17,7 +17,13 @@ import {
 import type { NutritionDayInput } from "@/lib/nutrition/tips";
 import { dayTotals, type LoggedMeal } from "@/lib/nutrition/log";
 import { eventFuelReview, pickRide, rideIntensity, type EventFuelReview, type ReviewRide } from "@/lib/nutrition/event-review";
-import { PRODUCT_COLUMNS, productLabel, type NutritionProduct } from "@/lib/nutrition/products";
+import {
+  PRODUCT_COLUMNS,
+  SPORTS_PRODUCT_COLUMNS,
+  productFromRow,
+  productLabel,
+  type NutritionProduct,
+} from "@/lib/nutrition/products";
 import { RECIPE_PREFS, rankRecipes, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { classifyFuelDay } from "@/lib/nutrition/day-type";
 import { eventRide, isBidonRecipe, pacedAccents, ridePlan, type RidePlan, type RidePlanInput } from "@/lib/nutrition/ride-plan";
@@ -846,4 +852,22 @@ export async function loadEventFuelReview(
     ride: actual,
     eaten: eaten ? { carbsG: eaten.carbsG, incomplete: eaten.incomplete } : null,
   });
+}
+
+/**
+ * De sportvoedingslijst van ZWB (0330): producten met waarden van het etiket
+ * van de fabrikant, de soort koolhydraten en de schep. Op merk en naam. Leeg
+ * zonder 0330.
+ */
+export async function loadSportsProducts(viewer: Viewer): Promise<NutritionProduct[]> {
+  const { data, error } = await viewer.supabase
+    .from("nutrition_products")
+    .select(SPORTS_PRODUCT_COLUMNS)
+    .eq("source", "zwb")
+    .order("brand")
+    .order("name");
+  if (error) return [];
+  return ((data ?? []) as unknown as Record<string, unknown>[])
+    .map(productFromRow)
+    .filter((product): product is NutritionProduct => product != null);
 }

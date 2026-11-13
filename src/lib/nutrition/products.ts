@@ -6,6 +6,7 @@
 // valt af; een onbekende waarde aanvullen met een schatting doen we niet.
 
 import type { NutritionFood } from "./scale";
+import { isStoredCarbMix, type StoredCarbMix } from "./event-fuel";
 
 export type NutritionProduct = {
   barcode: string;
@@ -17,6 +18,14 @@ export type NutritionProduct = {
   protein_g: number;
   /** Eén stuk of portie; null als de verpakking het niet vermeldt. */
   serving_g: number | null;
+  /**
+   * Alleen bij de sportvoedingslijst van ZWB (0330, bron "zwb"): de soort
+   * koolhydraten zoals de fabrikant die noemt, de schep bij poeder en natrium
+   * per 100 g of ml. Open Food Facts levert ze niet.
+   */
+  carb_mix?: StoredCarbMix | null;
+  scoop_g?: number | null;
+  sodium_mg?: number | null;
 };
 
 /** EAN-8, UPC-A, EAN-13 of ITF-14, zonder spaties of streepjes. Null als het geen barcode is. */
@@ -74,11 +83,49 @@ export function productLabel(product: Pick<NutritionProduct, "name" | "brand">):
 
 /** De kolommen van nutrition_products die de app gebruikt. */
 export const PRODUCT_COLUMNS = "barcode, name, brand, quantity_unit, carbs_g, protein_g, serving_g";
+/** Met de velden van de sportvoedingslijst (0330); zonder 0330 geeft deze selectie een fout. */
+export const SPORTS_PRODUCT_COLUMNS = `${PRODUCT_COLUMNS}, carb_mix, scoop_g, sodium_mg`;
+
+/** Een rij uit nutrition_products als product; null zonder koolhydraten of eiwit. */
+export function productFromRow(row: Record<string, unknown>): NutritionProduct | null {
+  const carbs = number(row.carbs_g);
+  const protein = number(row.protein_g);
+  const barcode = typeof row.barcode === "string" ? row.barcode : null;
+  const name = text(row.name, 160);
+  if (!barcode || !name || carbs == null || protein == null) return null;
+  const positive = (value: unknown) => {
+    const parsed = number(value);
+    return parsed != null && parsed > 0 ? parsed : null;
+  };
+  const sodium = number(row.sodium_mg);
+  return {
+    barcode,
+    name,
+    brand: text(row.brand, 120),
+    quantity_unit: row.quantity_unit === "ml" ? "ml" : "g",
+    carbs_g: carbs,
+    protein_g: protein,
+    serving_g: positive(row.serving_g),
+    ...("carb_mix" in row ? { carb_mix: isStoredCarbMix(row.carb_mix) ? row.carb_mix : null } : {}),
+    ...("scoop_g" in row ? { scoop_g: positive(row.scoop_g) } : {}),
+    ...("sodium_mg" in row ? { sodium_mg: sodium != null && sodium >= 0 ? sodium : null } : {}),
+  };
+}
+
+/** Zoeken in de sportvoedingslijst: elk woord moet in het merk of de naam staan. */
+export function matchesProduct(product: Pick<NutritionProduct, "name" | "brand">, query: string): boolean {
+  const haystack = `${product.brand ?? ""} ${product.name}`.toLowerCase();
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return words.length > 0 && words.every((word) => haystack.includes(word));
+}
 
 /** Dezelfde NEVO-groep als de dranken, zodat het ritplan er een bidon van maakt (ride-plan.ts). */
 export const DRINK_GROUP = "Niet-alcoholische dranken";
 
-export type ProductRow = Omit<NutritionProduct, "carbs_g" | "protein_g"> & { carbs_g: number | null; protein_g: number | null };
+export type ProductRow = Omit<NutritionProduct, "carbs_g" | "protein_g"> & {
+  carbs_g: number | null;
+  protein_g: number | null;
+};
 
 /**
  * Een barcodeproduct als ingrediënt van een recept. Open Food Facts levert hier
@@ -99,7 +146,7 @@ export function productAsFood(product: ProductRow): NutritionFood & { quantity_u
     protein_g: product.protein_g == null ? null : Number(product.protein_g),
     fat_g: null,
     fiber_g: null,
-    sodium_mg: null,
+    sodium_mg: product.sodium_mg == null ? null : Number(product.sodium_mg),
     food_group: unit === "ml" ? DRINK_GROUP : null,
     serving_g: product.serving_g == null ? null : Number(product.serving_g),
   };

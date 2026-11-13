@@ -303,7 +303,15 @@ export function KennisHelp() {
                   telt in hele stuks; een drank in ml wordt een bidon. Een
                   poeder scan je in een eigen recept, met water uit NEVO erbij.
                   Van Open Food Facts komen alleen koolhydraten en eiwit, dus
-                  vet en vezels staan er als ondergrens.
+                  vet en vezels staan er als ondergrens. Bekende merken
+                  (Nduranz, Amacx, Maurten, SiS, Etixx, Isostar, PowerBar,
+                  Enervit, High5, 32Gi, Precision Fuel &amp; Hydration en Torq)
+                  vind je ook met &quot;Zoek in sportvoeding&quot;, zonder
+                  scannen. Die waarden komen van het etiket van de fabrikant,
+                  en de soort koolhydraten en de schep staan dan al ingevuld,
+                  als de fabrikant ze noemt. Een reep telt als gewoon eten. Bij
+                  een gel die de fabrikant per ml opgeeft, staat de portie in
+                  gram; de koolhydraten per gel kloppen.
                 </span>
               </li>
               <li className="flex gap-2">
@@ -569,7 +577,8 @@ export function KennisHelp() {
                   Scan. Houd de barcode recht en scherp in beeld.
                   Vermeldt de verpakking een portie, dan telt de plusknop er
                   telkens één bij, handig voor gels en repen onderweg. De
-                  productgegevens komen van Open Food Facts (ODbL).
+                  productgegevens komen van Open Food Facts (ODbL); van de
+                  sportvoedingslijst van het etiket van de fabrikant.
                 </span>
               </li>
               <li className="flex gap-2">

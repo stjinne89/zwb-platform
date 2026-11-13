@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { loadRecipeBySlug, requireViewer } from "../../../_data";
+import { loadRecipeBySlug, loadSportsProducts, requireViewer } from "../../../_data";
 import { saveOwnRecipe, searchFoods } from "../../../_actions";
 import { lookupRecipeBarcode } from "../../../_log-actions";
 import { RecipeForm } from "../../../_components/recipe-form";
@@ -13,6 +13,7 @@ export default async function EditRecipePage({ params }: { params: Promise<{ slu
   const recipe = await loadRecipeBySlug(viewer, slug);
   // Clubrecepten en recepten van een ander zijn hier niet te bewerken.
   if (!recipe || recipe.is_standard || recipe.owner_id !== viewer.user.id) notFound();
+  const sportsProducts = await loadSportsProducts(viewer).catch(() => []);
 
   return (
     <div className="space-y-6">
@@ -24,6 +25,7 @@ export default async function EditRecipePage({ params }: { params: Promise<{ slu
         saveAction={saveOwnRecipe}
         searchAction={searchFoods}
         barcodeAction={lookupRecipeBarcode}
+        sportsProducts={sportsProducts}
         initial={{
           recipe_id: recipe.id,
           title: recipe.title,

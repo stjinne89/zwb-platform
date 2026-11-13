@@ -6,7 +6,7 @@ import { portionFit, rankRecipes } from "@/lib/nutrition/menu";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 
-// 0168, 0169, 0213, 0214, 0259, 0261, 0264, 0272, 0273, 0328 en 0329 tegen een geïsoleerde PostgreSQL. Zegt niets over de
+// 0168, 0169, 0213, 0214, 0259, 0261, 0264, 0272, 0273, 0328, 0329, 0231, 0233 en 0330 tegen een geïsoleerde PostgreSQL. Zegt niets over de
 // productiedatabase zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -43,6 +43,9 @@ beforeAll(async () => {
   await db.exec(await migration("0328_nutrition_recipe_carb_mix.sql"));
   await db.exec("create table events(id uuid primary key);");
   await db.exec(await migration("0329_nutrition_event_fuel.sql"));
+  await db.exec(await migration("0231_nutrition_log.sql"));
+  await db.exec(await migration("0233_nutrition_log_products.sql"));
+  await db.exec(await migration("0330_nutrition_sports_products.sql"));
   await db.exec(
     "grant usage on schema public to authenticated; grant all on all tables in schema public to authenticated;",
   );
@@ -610,5 +613,41 @@ describe("eigen keuzes per event (0329)", () => {
     await as(APPROVED, () => insert(APPROVED));
     await db.query("delete from events where id = $1", [EVENT]);
     expect(await count("select count(*) from nutrition_event_fuel")).toBe(0);
+  });
+});
+
+describe("sportvoedingslijst (0330)", () => {
+  it("zet de producten van ZWB erin, compleet en in gram", async () => {
+    expect(await count("select count(*) from nutrition_products where source = 'zwb'")).toBe(57);
+    expect(
+      await count(
+        "select count(*) from nutrition_products where source = 'zwb' and (carbs_g is null or protein_g is null or source_url is null or quantity_unit <> 'g')",
+      ),
+    ).toBe(0);
+    expect(await count("select count(*) from nutrition_products where barcode = '73160717' and carb_mix = '1:0.8'")).toBe(1);
+  });
+
+  it("leesbaar voor goedgekeurde leden, niet te schrijven", async () => {
+    expect(await as(APPROVED, () => count("select count(*) from nutrition_products where source = 'zwb'"))).toBe(57);
+    expect(await as(PENDING, () => count("select count(*) from nutrition_products"))).toBe(0);
+    await expect(
+      as(APPROVED, () =>
+        db.query("insert into nutrition_products(barcode, name, carbs_g, protein_g) values('12345678', 'x', 50, 0)"),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("weigert een rij van ZWB zonder eiwit en een onbekende soort", async () => {
+    await expect(
+      db.query("insert into nutrition_products(barcode, name, carbs_g, source, source_url, checked_on) values('12345679', 'x', 50, 'zwb', 'https://x', current_date)"),
+    ).rejects.toThrow();
+    await expect(db.query("update nutrition_products set carb_mix = '3:1' where barcode = '73160717'")).rejects.toThrow();
+  });
+
+  it("kan twee keer draaien en overschrijft een eerder opgehaald product", async () => {
+    await db.query("update nutrition_products set carbs_g = 1, source = 'off' where barcode = '73160717'");
+    await db.exec(await migration("0330_nutrition_sports_products.sql"));
+    expect(await count("select count(*) from nutrition_products where barcode = '73160717' and carbs_g = 62.5 and source = 'zwb'")).toBe(1);
+    expect(await count("select count(*) from nutrition_products where source = 'zwb'")).toBe(57);
   });
 });
