@@ -12271,7 +12271,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Ontwerp — Kopman: het spel breder maken (geen code)
 
-**2026-11-13, de commit "Kopman: onderzoek naar een breder spel", lokaal,
+**2026-11-13, de commit "Kopman: onderzoek naar een breder spel" (`8c9fd150`), lokaal,
 niet gepusht.** Alleen documentatie.
 
 - **De vraag.** De eigenaar na 6 seizoenen: "elk seizoen makkelijk gewonnen
