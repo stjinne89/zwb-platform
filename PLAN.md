@@ -12353,7 +12353,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Verse waarde van de durability-test weer 90 dagen
 
-**2026-11-14, commit volgt, lokaal, niet gepusht. Geen migratie.**
+**2026-11-14, commit `516cfc42` ("ZWBriljant: verse waarde van de durability-test weer 90 dagen"), lokaal, niet gepusht. Geen migratie.**
 
 - **Waarom.** Doorgerekend bij Bart (de enige met een test): zijn beste 20
   minuten van het jaar (±357 W, teruggerekend uit zijn score) lag vóór de
