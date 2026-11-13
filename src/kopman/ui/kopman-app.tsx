@@ -4,10 +4,12 @@ import { CalendarDays, ChevronDown, ChevronUp, Coins, Crown, Flag, Megaphone, Mo
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cardById, TIER_LABELS, TYPE_LABELS } from "../engine/cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "../engine/course";
-import { altitudeCamp, answerEvent, bestLineup, budgetOf, champCountries, champOpen, champSetup, finishChampionship, handIn, handInPicks, buyPack, calendarOf, campCost, campDone, canSkip, canStart, chooseSponsor, currentRace, lineupSalary, needsSponsor, offersFor, salaryFor, currentTour, liveCard, raceSetup, skipRace, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save, type TourReward } from "../engine/economy";
+import { altitudeCamp, answerEvent, bestLineup, budgetOf, canNewCareer, newCareer, champCountries, champOpen, champSetup, finishChampionship, handIn, handInPicks, buyPack, calendarOf, campCost, campDone, canSkip, canStart, chooseSponsor, currentRace, lineupSalary, needsSponsor, offersFor, salaryFor, currentTour, liveCard, raceSetup, skipRace, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save, type TourReward } from "../engine/economy";
 import { generalOf, jerseysOf, type GcRow, type Jerseys } from "../engine/tour";
 import { goalTarget, goalText, type Sponsor } from "../engine/sponsors";
 import { EVENT_ANSWERS, PERS, taskText, type GameEvent } from "../engine/events";
+import { RULE_LABELS, RULES, type Rule } from "../engine/career";
+import { rivalTeams } from "../engine/teams";
 import type { Carry } from "../engine/board";
 import type { Lineup } from "../engine/race";
 import { bestItems, GEAR_SLOTS, isItem, ITEMS, STAFF_ROLES, teamBonus, type ItemSlot } from "../engine/items";
@@ -183,6 +185,7 @@ export function KopmanApp() {
 }
 
 function RaceTab({ save, update, running, onStart, onChamp }: { save: Save; update: (s: Save) => void; running: boolean; onStart: () => void; onChamp: (country: string) => void }) {
+  const [restart, setRestart] = useState(false);
   if (seasonDone(save)) {
     const standings = seasonStandings(save);
     const rank = standings.findIndex((t) => t.id === PLAYER_TEAM) + 1;
@@ -193,8 +196,12 @@ function RaceTab({ save, update, running, onStart, onChamp }: { save: Save; upda
         <div className={styles.panel}>
           <div className={styles.h2}>{move > 0 ? `Promotie naar de ${next}` : move < 0 ? `Degradatie naar de ${next}` : `Seizoen ${save.season} klaar`}</div>
           <p className={styles.muted} style={{ margin: "6px 0 12px" }}>{save.teamName} werd {rank}e in de {DIVISIONS[save.division].name} met {standings[rank - 1].points} punten.</p>
-          <button type="button" className={styles.primary} onClick={() => update(newSeason(save))}><CalendarDays size={18} aria-hidden />{move ? `Naar de ${next}` : "Nieuw seizoen"}</button>
+          <div className={styles.row}>
+            <button type="button" className={styles.primary} onClick={() => update(newSeason(save))}><CalendarDays size={18} aria-hidden />{move ? `Naar de ${next}` : "Nieuw seizoen"}</button>
+            {canNewCareer(save) ? <button type="button" className={styles.secondary} onClick={() => setRestart(true)}>Nieuwe carrière</button> : null}
+          </div>
         </div>
+        {restart ? <CareerPicker save={save} update={update} onClose={() => setRestart(false)} /> : null}
         <Pyramid division={save.division} move={move} />
         <StandingsTable save={save} />
       </div>
@@ -526,8 +533,10 @@ function StandingsTable({ save }: { save: Save }) {
 function SeasonTab({ save, update, onHandIn }: { save: Save; update: (s: Save) => void; onHandIn: (index: number) => void }) {
   return (
     <div className={styles.stack}>
-      <div className={styles.h2}>Seizoen {save.season} · {DIVISIONS[save.division].name}</div>
+      <div className={styles.h2}>Seizoen {save.season} · {DIVISIONS[save.division].name}{save.career.level > 1 ? ` · carrière ${save.career.level}` : ""}</div>
+      {save.career.rules.length ? <div className={styles.muted}>{save.career.rules.map((r) => RULE_LABELS[r]).join(" · ")}</div> : null}
       <Pyramid division={save.division} />
+      {save.nemesis && !save.collection[save.nemesis] ? <div className={styles.panel}><span className={styles.h3}>Aartsrivaal</span> <span>{riderName(save.nemesis)} · {teamName(rivalTeams(save.division)[0].id, save.teamName)}</span></div> : null}
       {save.sponsor ? <SponsorPanel sponsor={save.sponsor} /> : null}
       {save.tasks?.length ? <TasksPanel save={save} onHandIn={onHandIn} /> : null}
       <StandingsTable save={save} />
@@ -544,6 +553,7 @@ function SeasonTab({ save, update, onHandIn }: { save: Save; update: (s: Save) =
           </table>
         </div>
       ) : null}
+      {save.titles.length ? <div className={styles.panel}><span className={styles.h3}>Wereldtourtitels</span> <span>{save.titles.map((t) => `carrière ${t.career}, seizoen ${t.season}`).join(" · ")}</span></div> : null}
       {save.legends.length ? (
         <div className={styles.panel}>
           <table className={styles.table}>
@@ -696,6 +706,45 @@ function SponsorPanel({ sponsor }: { sponsor: Sponsor }) {
         <span className={sponsor.met ? styles.badge : styles.muted}>{sponsor.met ? "Doel gehaald" : `${Math.min(sponsor.progress, goalTarget(sponsor.goal))}/${goalTarget(sponsor.goal)}`}</span>
       </div>
       <div className={styles.muted} style={{ marginTop: 4 }}>{goalText(sponsor.goal)} · bonus {sponsor.bonus.toLocaleString("nl-NL")} · {sponsor.pay.toLocaleString("nl-NL")} per koers · budget {sponsor.budget}</div>
+    </div>
+  );
+}
+
+/** A new career after a title: one rider as heirloom, one harder rule more. */
+function CareerPicker({ save, update, onClose }: { save: Save; update: (s: Save) => void; onClose: () => void }) {
+  const open = RULES.filter((r) => !save.career.rules.includes(r));
+  const [heirloom, setHeirloom] = useState<string | null>(null);
+  const [rule, setRule] = useState<Rule | null>(open[0] ?? null);
+  const riders = Object.keys(save.collection).map((id) => liveCard(save, id)).sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id));
+  const go = () => {
+    if (!heirloom || !window.confirm("Opnieuw beginnen in de Kermis? Je verzameling gaat, op het erfstuk na.")) return;
+    const next = newCareer(save, heirloom, rule, newSeed());
+    if (next) update(next);
+    onClose();
+  };
+  return (
+    <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Nieuwe carrière">
+      <div className={styles.reveal}>
+        <div className={styles.h2}>Nieuwe carrière</div>
+        {open.length ? (
+          <div className={styles.filters} role="radiogroup" aria-label="Regel">
+            {open.map((r) => <button key={r} type="button" role="radio" aria-checked={rule === r} onClick={() => setRule(r)}>{RULE_LABELS[r]}</button>)}
+          </div>
+        ) : null}
+        <div className={styles.pickBar}>
+          <button type="button" className={styles.primary} disabled={!heirloom} onClick={go}>Beginnen</button>
+          <button type="button" className={styles.secondary} onClick={onClose}>Terug</button>
+        </div>
+        <div className={`${styles.cardGrid} ${styles.pickGrid}`}>
+          {riders.map((card) => (
+            <RiderCardView key={card.id} card={card} life={lifeOf(save, card.id)}>
+              <div className={styles.cardActions}>
+                <button type="button" aria-pressed={heirloom === card.id} onClick={() => setHeirloom(card.id)}>{heirloom === card.id ? "Erfstuk" : "Kiezen"}</button>
+              </div>
+            </RiderCardView>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

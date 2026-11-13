@@ -7,7 +7,7 @@ import { buildCourse, courseWeights, fitFor } from "./course";
 import type { Placing } from "./race";
 import { rivalsIn } from "./teams";
 import { raceById, tourById } from "./world";
-import { PLAYER_TEAM, type TourDef } from "./types";
+import { PLAYER_TEAM, type RiderCard, type TourDef } from "./types";
 
 /** Seconds off the time of the first three of a stage. */
 export const BONUS_SECONDS = [10, 6, 4];
@@ -55,11 +55,11 @@ export function stageWeights(raceId: string) {
  * The five every rival team rides the tour with: its best over all stages,
  * without the riders you start with.
  */
-export function tourRivals(tour: TourDef, mine: string[]): Record<string, string[]> {
+export function tourRivals(tour: TourDef, mine: string[], rosters: Record<string, string[]> = {}, cards: Record<string, RiderCard> = {}): Record<string, string[]> {
   const weights = tour.stages.map((id) => courseWeights(buildCourse(raceById.get(id)!)));
   const taken = new Set(mine);
   return Object.fromEntries(rivalsIn(tour.stages[0]).map((t) => {
-    const ranked = t.riders.filter((id) => !taken.has(id)).map((id) => ({ id, fit: weights.reduce((sum, w) => sum + fitFor(cardById(id), w), 0) }));
+    const ranked = (rosters[t.id] ?? t.riders).filter((id) => !taken.has(id)).map((id) => ({ id, fit: weights.reduce((sum, w) => sum + fitFor(cards[id] ?? cardById(id), w), 0) }));
     ranked.sort((a, b) => b.fit - a.fit || a.id.localeCompare(b.id));
     return [t.id, ranked.slice(0, 5).map((x) => x.id)];
   }));

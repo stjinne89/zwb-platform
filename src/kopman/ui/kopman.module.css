@@ -229,7 +229,8 @@
 .emptySlot { border: 2px dashed rgb(27 23 18 / 0.4); border-radius: 12px; min-height: 120px; display: grid; place-items: center; background: var(--paper-2); color: var(--muted); font-family: var(--letter); font-size: 0.9rem; }
 .filters { display: flex; gap: 6px; flex-wrap: wrap; }
 .filters button { padding: 3px 11px 2px; border-radius: 999px; border: 2px solid var(--ink); border-bottom-width: 3px; background: var(--paper-2); font-size: 0.8rem; font-weight: 700; }
-.filters button[aria-pressed="true"] { background: var(--dots), var(--yellow); transform: rotate(-1.5deg); }
+.filters button[aria-pressed="true"],
+.filters button[aria-checked="true"] { background: var(--dots), var(--yellow); transform: rotate(-1.5deg); }
 .nameInput { background: #fffaf0; border: 2px solid var(--ink); border-radius: 8px; padding: 7px 10px; font: inherit; font-weight: 650; min-width: 0; flex: 1; max-width: 280px; }
 
 /* Equipment and staff slots on the team screen. */

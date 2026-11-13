@@ -90,6 +90,11 @@ const schema = z.object({
     z.object({ kind: z.literal("groei"), rider: cardId, soort: z.string().max(20), n: z.number().int().min(1).max(20), progress: count, done: z.boolean() }),
   ])).max(10).nullable().default(null),
   champ: z.number().int().min(1).nullable().default(null),
+  // Round D: the arch-rival and who beat you this season, the career and its rules, titles of the Wereldtour.
+  nemesis: cardId.nullable().default(null),
+  beaten: z.record(cardId, count).default({}),
+  career: z.object({ level: z.number().int().min(1).max(1000), rules: z.array(z.enum(["minder-pakketten", "sterkere-rivalen", "sneller-oud", "krap-budget"])).max(4) }).default({ level: 1, rules: [] }),
+  titles: z.array(z.object({ career: z.number().int().min(1), season: z.number().int().min(1) })).max(5000).default([]),
 });
 
 /** Before the pyramid: one calendar of 16 races and a daily limit on packs. */
@@ -101,7 +106,7 @@ const v1 = z.object({ ...base, v: z.literal(1), raceIndex: z.number().int().min(
  * collection, coins and packs stay.
  */
 function fromV1(old: z.infer<typeof v1>): Save {
-  return { ...old, v: SAVE_VERSION, division: divisionFor(old.collection), raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null, riders: {}, legends: [], camp: null, report: null, fame: 20, sponsor: null, loyal: null, event: null, pledge: null, tasks: null, champ: null };
+  return { ...old, v: SAVE_VERSION, division: divisionFor(old.collection), raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null, riders: {}, legends: [], camp: null, report: null, fame: 20, sponsor: null, loyal: null, event: null, pledge: null, tasks: null, champ: null, nemesis: null, beaten: {}, career: { level: 1, rules: [] }, titles: [] };
 }
 
 /** Reads a save; anything broken or tampered beyond repair gives null. */

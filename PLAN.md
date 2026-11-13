@@ -54,7 +54,8 @@ gaat stabiliteit voor nieuwe features.
    samengevoegde voorstel om het spel te verbreden, te beginnen met
    "Kopman: renners leven" (`dcc2f78b`) en "Kopman: sponsors en een
    salarisplafond" (`a5b058a7`) en "Kopman: keuzes, opdrachten en een
-   kampioenschap" (de commit van die ronde). Op een telefoon vult het bord het scherm. Open: na de
+   kampioenschap" (`757749f8`) en "Kopman: een wereld die beweegt" (de
+   commit van die ronde). Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12276,10 +12277,56 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: een wereld die beweegt (ronde D)
+
+**2026-11-13, de commit "Kopman: een wereld die beweegt", lokaal, niet
+gepusht.** Geen migratie. De save krijgt `nemesis`, `beaten`, `career` en
+`titles`; een save zonder die velden is carrière 1 zonder regels.
+
+- **Wat er is.** Zie
+  [docs/kopman-breder.md](docs/kopman-breder.md#gebouwd-ronde-d-een-wereld-die-beweegt).
+  - `src/kopman/engine/transfers.ts`: elk seizoen ruilen de rivaliserende
+    ploegen renners, en de sterkste kopen goud; de aartsrivaal.
+  - `src/kopman/engine/career.ts`: vier regels voor een zwaardere carrière.
+  - `economy.ts`:
+    - `rivalsOf` geeft de pelotons van het seizoen aan elke koers, etappe en
+      elk kampioenschap;
+    - `canNewCareer` en `newCareer`;
+    - een Wereldtourtitel in `titles` als het seizoen sluit.
+  - `tour.ts`: `tourRivals` kiest uit de pelotons van het seizoen.
+  - Schermen:
+    - de aartsrivaal, de carrière en haar regels, en de titels op het
+      seizoensscherm;
+    - "Nieuwe carrière" naast "Nieuw seizoen" na een titel.
+- **Waarom.** De rivalen waren elk seizoen dezelfde, en na de Wereldtour
+  was er niets meer te halen.
+- **Niet meer waar.** Een rivaliserende ploeg rijdt niet meer elk seizoen
+  met de renners van `rivalTeams`; dat geldt alleen in seizoen 1 van een
+  carrière. De pelotons van een koers volgen uit `rivalsOf(save)`.
+- **Bewust niet gebouwd:**
+  - transfers die zich opstapelen over seizoenen: een ploeg zou wegdrijven
+    van de band van zijn niveau;
+  - een aartsrivaal die je kunt kopen met een bod: hij komt alleen uit een
+    pakket;
+  - een nieuwe carrière zonder titel: dan is er geen reden om opnieuw te
+    beginnen.
+- **Gemeten.** Zie het doc. De eerste klim is trager (de Wereldtour in
+  seizoen 8 of 9 in plaats van 6 of 7), maar een zwaardere carrière is
+  voor het script niet zwaarder: het wint bovenin weer 7 of 8 van de 8. De
+  ploeg groeit naar 88 tot 94, boven de band van de Wereldtour (tot 86).
+  Of het plafond strakker moet, ligt bij de eigenaar.
+- **Geverifieerd:**
+  - tsc, eslint, `next build`, en de Kopman-tests (108, waarvan 5 nieuw in
+    `tests/unit/kopman-world.test.ts`);
+  - in de preview op een testsave op 127.0.0.1 de knop "Nieuwe carrière",
+    de keuze van erfstuk en regel, en het seizoensscherm erna met de
+    aartsrivaal, de carrière en de titels.
+- **Niet geverifieerd:** een seizoen met een aartsrivaal tot het einde in de
+  app.
+
 ### Gebouwd — Kopman: keuzes, opdrachten en een kampioenschap (ronde C)
 
-**2026-11-13, de commit "Kopman: keuzes, opdrachten en een kampioenschap",
-lokaal, niet gepusht.** Geen migratie. De save krijgt `event`, `pledge`,
+**2026-11-13, `757749f8`, lokaal, niet gepusht.** Geen migratie. De save krijgt `event`, `pledge`,
 `tasks` en `champ`. Een save zonder die velden krijgt de opdrachten van het
 lopende seizoen bij het laden.
 
@@ -12314,8 +12361,8 @@ lopende seizoen bij het laden.
     `tests/unit/kopman-season.test.ts`, met een bord van drie eigen renners);
   - in de preview op een testsave op 127.0.0.1 de keuze van de pers, de
     opdrachten, de landen van het kampioenschap en de start ervan.
-- **Niet geverifieerd:** een kampioenschap tot de finish in de app; `next
-  build`.
+- **Niet geverifieerd:** een kampioenschap tot de finish in de app. `next
+  build` slaagde na ronde D.
 
 ### Gebouwd — Kopman: sponsors en een salarisplafond (ronde B)
 
