@@ -54,8 +54,8 @@ gaat stabiliteit voor nieuwe features.
    samengevoegde voorstel om het spel te verbreden, te beginnen met
    "Kopman: renners leven" (`dcc2f78b`) en "Kopman: sponsors en een
    salarisplafond" (`a5b058a7`) en "Kopman: keuzes, opdrachten en een
-   kampioenschap" (`757749f8`) en "Kopman: een wereld die beweegt" (de
-   commit van die ronde). Op een telefoon vult het bord het scherm. Open: na de
+   kampioenschap" (`757749f8`) en "Kopman: een wereld die beweegt"
+   (`efa5500a`). Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12279,8 +12279,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: een wereld die beweegt (ronde D)
 
-**2026-11-13, de commit "Kopman: een wereld die beweegt", lokaal, niet
-gepusht.** Geen migratie. De save krijgt `nemesis`, `beaten`, `career` en
+**2026-11-13, `efa5500a`, lokaal, niet gepusht.** Geen migratie. De save krijgt `nemesis`, `beaten`, `career` en
 `titles`; een save zonder die velden is carrière 1 zonder regels.
 
 - **Wat er is.** Zie
