@@ -16,8 +16,8 @@ gaat stabiliteit voor nieuwe features.
    plakken. Zie de
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
-0. **ZWBriljant: popup over de nieuwe durability (2026-11-13): lokaal
-   gecommit, niet gepusht.** Geen migratie. In de preview bekeken. Zie de ronde "ZWBriljant: popup over de nieuwe
+0. **ZWBriljant: popup over de nieuwe durability (2026-11-13): gepusht naar
+   `main` (`8e767d3a`).** Geen migratie. In de preview bekeken. Zie de ronde "ZWBriljant: popup over de nieuwe
    durability".
 
 0. **ZWBriljant: durability als vermoeid vermogen (2026-11-13): gepusht naar
@@ -12307,8 +12307,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: popup over de nieuwe durability
 
-**2026-11-13, de commit "ZWBriljant: popup over de nieuwe durability", lokaal,
-niet gepusht.** Geen migratie.
+**2026-11-13, de commit "ZWBriljant: popup over de nieuwe durability"
+(`8e767d3a`), op 2026-11-13 gepusht naar main.** Geen migratie.
 
 - **De vraag.** De eigenaar wilde de nieuwe durability (ronde hieronder) aan de
   leden uitleggen in een popup, met hoe je de durability-test doet en hoe je
