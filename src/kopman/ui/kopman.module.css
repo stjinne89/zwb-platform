@@ -558,3 +558,11 @@
 .sprintKeys .sprintGo { width: 60px; background: var(--yellow); }
 .sprintKeys button:disabled { opacity: 0.45; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .sprintHud { transform: none; } }
+
+/* Stage races: who wears which jersey (since 2026-11-13). */
+.jerseys { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 0.8rem; font-weight: 700; }
+.jersey { display: inline-flex; align-items: center; gap: 5px; }
+.jerseyDot { width: 13px; height: 13px; border-radius: 3px; border: 2px solid var(--ink); }
+.jerseyGeel { background: #f5d000; }
+.jerseyGroen { background: #2fa84f; }
+.jerseyBerg { background: radial-gradient(circle, #e23b3b 0 28%, transparent 30%) 0 0 / 5px 5px, #fff; }

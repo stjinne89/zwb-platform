@@ -69,6 +69,9 @@ kilometer van een vlakke finish zelf (zie "De sprint zelf rijden").
   nog meerijden of afhaken.
   - Kracht staat los van W′ in de physics: W′ herstelt, kracht niet. Zo
     worden je keuzes over de hele koers verdeeld.
+  - In een ronde (sinds 2026-11-13) begint een renner met de kracht van de
+    vorige etappe plus de helft van wat hij mist; zie
+    [kopman-breder.md](kopman-breder.md#gebouwd-de-ronde-van-de-alpen).
   - De physics beslist nog wel of een aanval lukt.
 - **Dekking** is het aantal knechten in dezelfde groep als je kopman. Ze
   vangen gevaren op. Een knecht die een gevaar opvangt of "uit de wind zetten"

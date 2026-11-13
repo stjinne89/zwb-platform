@@ -1,4 +1,5 @@
 import type { PackType, TeamDef, Tier } from "./types";
+import { tourById } from "./world";
 
 /**
  * The cycling pyramid (docs/kopman-piramide.md): five levels, each with its own
@@ -106,7 +107,7 @@ export const DIVISIONS: Division[] = [
     shop: ["brons", "zilver"],
     gear: "goud",
     rivals: { xp: 2, attacks: 4, chase: true, trick: 0.08, diamonds: 3, form: 0.08 },
-    races: ["riviera", "kwaremont", "noorderkasseien", "ourthe", "lombardije-bergrit", "alpenrit", "asturie-bergrit", "herfstklassieker"],
+    races: ["riviera", "kwaremont", "noorderkasseien", "ourthe", "lombardije-bergrit", "ronde-alpen", "asturie-bergrit", "herfstklassieker"],
     teams: teams(null, [["Zeevalk Cycling", "ZVK"], ["Montagna Blu", "MBL"], ["Hagedoorn-Polderstaal", "HPS"], ["Kustwind Racing", "KWR"], ["Rotsvast Pro", "RVP"], ["Sierra Alta", "SAL"], ["Nordlys Cycling", "NLY"], ["Tulpenveld", "TPV"], ["Ardennes Forêt", "ADF"], ["Duinzicht", "DZT"], ["Velocità Verde", "VVD"]]),
   },
 ];
@@ -118,7 +119,8 @@ export const SEASON_RACES = 8;
 export const PROMOTED = 2;
 export const RELEGATED = 2;
 
-const raceDivision = new Map(DIVISIONS.flatMap((d, i) => d.races.map((id) => [id, i] as const)));
+// A stage race and each of its stages belong to the level of its calendar.
+const raceDivision = new Map(DIVISIONS.flatMap((d, i) => d.races.flatMap((id) => [id, ...(tourById.get(id)?.stages ?? [])].map((x) => [x, i] as const))));
 /** The level a race belongs to; every race belongs to exactly one. */
 export function divisionOfRace(raceId: string) {
   const i = raceDivision.get(raceId);

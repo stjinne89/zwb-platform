@@ -47,7 +47,9 @@ gaat stabiliteit voor nieuwe features.
    laatste kilometer stuur je de kopman met swipes. Op 2026-11-13
    gepusht: "Kopman: diamant, en rivalen per niveau" (`a7983b35`) en
    "Kopman: sterkere pelotons" (`52b6dc94`): hogere banden voor
-   Interclub en Continentaal en een peloton dat meegroeit. Op een telefoon vult het bord het scherm. Open: na de
+   Interclub en Continentaal en een peloton dat meegroeit. Daarna lokaal,
+   niet gepusht: "Kopman: de Ronde van de Alpen" (de commit van die ronde),
+   een ronde van 5 etappes in de Wereldtour. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12268,6 +12270,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kopman: de Ronde van de Alpen
+
+**2026-11-13, de commit "Kopman: de Ronde van de Alpen", lokaal, niet
+gepusht.** Geen migratie. De save krijgt `tour` erbij (de lopende ronde);
+een save zonder leest als `null`.
+
+- **De vraag.** Na het onderzoek hieronder koos de eigenaar bij de grote
+  rondes "Ronde in Wereldtour", en op het bouwplan "Ja, bouw dit".
+- **Wat er is.** Zie
+  [docs/kopman-breder.md](docs/kopman-breder.md#gebouwd-de-ronde-van-de-alpen).
+  - Plek 6 van de Wereldtour is de Ronde van de Alpen: 5 etappes (vlak,
+    heuvels, tijdrit, Mortirolo, Galibier en Alpe d'Huez). De koninginnenrit
+    is de vijfde etappe, met de id `alpenrit`.
+  - `src/kopman/engine/tour.ts`: klassement op tijd met bonificaties, punten
+    en berg, truien, vaste rivalen per ploeg, en `TOUR_RECOVERY`.
+  - `economy.ts`: `currentTour`, `currentRace` geeft de etappe, `raceSetup`
+    (vaste rivalen en de kracht van gisteren), `finishStage` (halve
+    beloning per etappe, zilver voor een etappezege; na de laatste de
+    punten van het eindklassement dubbel, goud voor geel, zilver voor groen
+    en berg). De opstelling zit vast tijdens de ronde.
+  - `board.ts`: `createBoard` neemt `Carry`; `start` blijft de volle kracht.
+    `race.ts`: `Lineup.rivals`.
+  - Schermen: de ronde, de etappe, de truien en de top 5 op het koersscherm,
+    het klassement na elke etappe, "Etappe 2/5" op het bord.
+- **Waarom zo.** De eigenaar wilde meer dan pakketten; een ronde vraagt
+  andere keuzes: sparen voor het klassement of alles geven voor een etappe,
+  en een ploeg die vijf dagen meegaat.
+- **Gemeten.** Drie ploegen van rond 80 eindigen 7e, 9e en 3e, met 4 tot
+  14 minuten achterstand; carrières van 10 seizoenen lopen door.
+- **Niet meer waar.**
+  - In [docs/kopman-piramide.md](docs/kopman-piramide.md) stond bij de
+    grandtours "nog niet gebouwd"; daar staat nu dat de ronde gebouwd is. De
+    ronde is geen zesde trede. Ook "Er is nog niets gebouwd" in
+    [docs/kopman-breder.md](docs/kopman-breder.md) is bijgewerkt.
+  - "Kracht herstelt niet" in
+    [docs/kopman-bordspel.md](docs/kopman-bordspel.md) geldt binnen een
+    koers; tussen etappes herstelt de helft.
+  - `calendarOf` geeft niet meer alleen `RaceDef`'s, en `currentRace` geeft
+    in een ronde de etappe in plaats van de plek in de kalender.
+- **Bewust niet gebouwd:** een zesde trede, een ploeg van 8, opgeven, een
+  jongerentrui, bergpunten op de top, een rustdag. Redenen in het doc.
+- **Geverifieerd:** tsc, eslint, 79 Kopman-tests (6 nieuw in
+  `tests/unit/kopman-tour.test.ts`), `next build`; in de preview op een
+  testsave op 127.0.0.1 de eerste etappe, het klassement erna, herladen
+  midden in de ronde, de vergrendelde opstelling.
+- **Niet geverifieerd:** een hele ronde in de app (de andere etappes alleen
+  met het script); hoe lang 5 etappes op een telefoon duren.
 
 ### Ontwerp — Kopman: het spel breder maken (geen code)
 

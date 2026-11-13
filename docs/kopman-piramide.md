@@ -8,7 +8,9 @@ pakketten. Op het voorstel hieronder zei de eigenaar: "Ja, bouw dit".
 ## Vijf niveaus
 
 Je begint onderaan, in de Kermis. Elk niveau heeft een eigen peloton van 11
-fictieve ploegen en een eigen kalender van 8 koersen.
+fictieve ploegen en een eigen kalender van 8 koersen. In de Wereldtour is één
+van die 8 sinds 2026-11-13 een ronde van 5 etappes (zie
+[kopman-breder.md](kopman-breder.md#gebouwd-de-ronde-van-de-alpen)).
 
 | Niveau | Rivalen (beste vijf, gemeten) | Prijzengeld | Materiaal rivalen |
 | --- | --- | --- | --- |
@@ -103,8 +105,9 @@ goed speelt, gaat sneller dan dit script.
 
 - **Grandtours** (meerdaagse rondes) bovenop de Wereldtour. Dat is een nieuwe
   spelvorm met klassementen over dagen; eerst moet blijken of de piramide
-  bevalt. Op 2026-11-13 vroeg de eigenaar er wel om; uitgewerkt in
-  [kopman-breder.md](kopman-breder.md), nog niet gebouwd.
+  bevalt. Op 2026-11-13 vroeg de eigenaar er wel om en koos een ronde in de
+  Wereldtour in plaats van een zesde trede; die ronde is gebouwd, zie
+  [kopman-breder.md](kopman-breder.md#gebouwd-de-ronde-van-de-alpen).
 - **De daglimiet.** Die is weg: een pakket hangt nu aan je uitslag, niet aan
   de klok.
 - **Een salarisplafond of budget per niveau.** Overwogen om de groei verder te

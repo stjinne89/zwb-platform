@@ -13,7 +13,7 @@ import { rng } from "@/kopman/engine/rng";
 import { parseSave } from "@/kopman/engine/save";
 import { lineupFor, rivalTeams } from "@/kopman/engine/teams";
 import { PLAYER_TEAM, RIDER_TYPES } from "@/kopman/engine/types";
-import { climbById, RACES, raceById, sectorById } from "@/kopman/engine/world";
+import { climbById, RACES, raceById, sectorById, tourById } from "@/kopman/engine/world";
 
 const starter = () => newSave(12345);
 const lineupOf = (save: Save) => ({ riders: save.lineup, kopman: save.kopman! });
@@ -283,7 +283,8 @@ describe("Kopman: economie", () => {
 
   it("heeft vijf niveaus van acht koersen, elke koers in precies één niveau", () => {
     expect(DIVISIONS).toHaveLength(5);
-    const all = DIVISIONS.flatMap((d) => d.races);
+    // A stage race takes one slot; its stages are the races.
+    const all = DIVISIONS.flatMap((d) => d.races.flatMap((id) => tourById.get(id)?.stages ?? [id]));
     expect(new Set(all).size).toBe(all.length);
     expect(new Set(all)).toEqual(new Set(RACES.map((r) => r.id)));
     DIVISIONS.forEach((d, i) => {

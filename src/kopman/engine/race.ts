@@ -129,7 +129,8 @@ export function laneOf(state: RaceState, r: Rider): number {
 
 export const homeLane = (id: string) => laneIndex(id);
 
-export type Lineup = { riders: string[]; kopman: string; bonus?: TeamBonus };
+/** `rivals`: in a stage race every team keeps the same riders, per team id (tour.ts). */
+export type Lineup = { riders: string[]; kopman: string; bonus?: TeamBonus; rivals?: Record<string, string[]> };
 
 function bodyOf(card: RiderCard, tt: boolean, bonus: TeamBonus = NO_BONUS) {
   const s = card.stats;
@@ -216,7 +217,7 @@ export function createRace(raceId: string, seed: number, player: Lineup): RaceSt
   const mine = new Set(player.riders);
   const entries: { card: RiderCard; team: string; kopman: boolean }[] = player.riders.map((id) => ({ card: cardById(id), team: PLAYER_TEAM, kopman: id === player.kopman }));
   for (const team of rivalsIn(raceId)) {
-    const lineup = lineupFor(team.riders.map(cardById), course, mine);
+    const lineup = lineupFor((player.rivals?.[team.id] ?? team.riders).map(cardById), course, mine);
     lineup.forEach((card, i) => entries.push({ card, team: team.id, kopman: i === 0 }));
   }
   const gear = rivalBonus(divisionOfRace(raceId));

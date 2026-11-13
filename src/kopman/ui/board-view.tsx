@@ -2,7 +2,7 @@
 
 import { ChevronLeft, CloudRain, Crown, Flag, Mountain, Play, RotateCcw, Shield, Sun, Undo2, Video, Wind, Wrench, X } from "lucide-react";
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { BOARD_CARDS, BOARD_SECTORS, WIND_LABELS, type Weather, blockedReason, rideSprint, sprinting, sprintRate, SPRINT_DT, choosesRider, costOf, createBoard, currentSector, HAZARD_LABELS, PHASE_LABELS, phaseOf, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, ridersFor, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type CardKind, type Hazard, type HandCard } from "../engine/board";
+import { BOARD_CARDS, BOARD_SECTORS, WIND_LABELS, type Weather, blockedReason, rideSprint, sprinting, sprintRate, SPRINT_DT, choosesRider, costOf, createBoard, currentSector, HAZARD_LABELS, PHASE_LABELS, phaseOf, matesOf, PLAYS_PER_TURN, standing, playCard, rideSector, ridersFor, startSector, TERRAIN_LABELS, unplayCard, type BoardSector, type BoardState, type Carry, type CardKind, type Hazard, type HandCard } from "../engine/board";
 import { cardById, TYPE_LABELS } from "../engine/cards";
 import { newSave, type Save } from "../engine/economy";
 import { STAFF, teamBonus } from "../engine/items";
@@ -109,9 +109,9 @@ function sectorTitle(sector: BoardSector, tt = false) {
  * away); in the preview `onAgain` starts a new one, and `title` stands in for
  * the race name.
  */
-export function BoardView({ raceId, seed, lineup, items, own, title, active = true, onBack, onAgain, onFinish }: { raceId: string; seed: number; lineup: Lineup; items: Record<string, number>; own: string; title?: ReactNode; active?: boolean; onBack?: () => void; onAgain?: () => void; onFinish?: (state: RaceState) => void }) {
+export function BoardView({ raceId, seed, lineup, items, carry, own, title, active = true, onBack, onAgain, onFinish }: { raceId: string; seed: number; lineup: Lineup; items: Record<string, number>; carry?: Carry; own: string; title?: ReactNode; active?: boolean; onBack?: () => void; onAgain?: () => void; onFinish?: (state: RaceState, kracht: Record<string, number>) => void }) {
   // The engine is mutable on purpose (race.ts steps in place); a counter redraws.
-  const [board] = useState(() => createBoard(raceId, seed, lineup, items));
+  const [board] = useState(() => createBoard(raceId, seed, lineup, items, carry));
   const [tick, redraw] = useReducer((n: number) => n + 1, 0);
   const [view, setView] = useState<View>(savedView);
   // The card waiting for a rider: tap a card, then the rider who plays it.
@@ -139,7 +139,7 @@ export function BoardView({ raceId, seed, lineup, items, own, title, active = tr
   useEffect(() => {
     if (!done || !onFinish || finished.current) return;
     finished.current = true;
-    onFinish(board.race);
+    onFinish(board.race, board.kracht);
   }, [done, onFinish, board]);
 
   useEffect(() => {

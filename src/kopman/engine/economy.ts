@@ -2,12 +2,14 @@ import { cardById, pool } from "./cards";
 import { buildCourse, courseWeights, fitFor } from "./course";
 import { ITEMS, itemById, teamBonus } from "./items";
 import { KIND_ODDS, openPack, PACK_PRICE } from "./packs";
-import type { Placing } from "./race";
+import type { Lineup, Placing } from "./race";
+import type { Carry } from "./board";
+import { bookStage, generalOf, jerseysOf, newTour, TOUR_RECOVERY, tourRivals, type GcRow, type Jerseys, type TourState } from "./tour";
 import { hashSeed, rng } from "./rng";
 import { DIVISIONS, PROMOTED, RELEGATED, TOP_DIVISION } from "./divisions";
 import { rivalTeams } from "./teams";
-import { PLAYER_TEAM, RIDER_TYPES, type PackType, type RaceDef, type Tier } from "./types";
-import { raceById } from "./world";
+import { PLAYER_TEAM, RIDER_TYPES, type PackType, type RaceDef, type Tier, type TourDef } from "./types";
+import { raceById, tourById } from "./world";
 
 /** 2: the pyramid. A save of version 1 is placed in a level on loading (save.ts). */
 export const SAVE_VERSION = 2;
@@ -29,6 +31,10 @@ export const NEXT_TIER: Partial<Record<Tier, Tier>> = { brons: "zilver", zilver:
  * End of season, by team rank: coins (times the level's share), and for the
  * teams that go up (or the top two of the top level) the level's promotion pack.
  */
+/** A stage pays this share of the prize money and season points of a race. */
+export const STAGE_SHARE = 0.5;
+/** The final general classification counts this many times the points of a race. */
+export const GC_FACTOR = 2;
 export const SEASON_COINS: { upTo: number; coins: number }[] = [
   { upTo: 1, coins: 8000 },
   { upTo: 3, coins: 5000 },
@@ -61,6 +67,8 @@ export type Save = {
   raceIndex: number;
   seasonPoints: Record<string, number>;
   seasonResults: RaceRecord[];
+  /** The stage race under way, or null. */
+  tour: TourState | null;
 };
 
 export const today = (now = new Date()) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -94,6 +102,7 @@ export function newSave(seed: number): Save {
     raceIndex: 0,
     seasonPoints: {},
     seasonResults: [],
+    tour: null,
   };
 }
 
@@ -216,7 +225,8 @@ export function buyPack(save: Save, type: PackType, price: number | undefined): 
 
 /** Adds or removes a rider from the lineup; the kopman follows the lineup. */
 export function toggleLineup(save: Save, id: string): Save {
-  if (!save.collection[id]) return save;
+  // In a stage race you ride with the five you started with.
+  if (!save.collection[id] || save.tour) return save;
   if (save.lineup.includes(id)) {
     const lineup = save.lineup.filter((x) => x !== id);
     return { ...save, lineup, kopman: save.kopman === id ? lineup[0] ?? null : save.kopman };
@@ -235,16 +245,41 @@ export function bestLineup(save: Save, raceId: string): Save {
   const def = raceById.get(raceId);
   if (!def) return save;
   const weights = courseWeights(buildCourse(def));
+  if (save.tour) {
+    const best = [...save.tour.riders].sort((a, b) => fitFor(cardById(b), weights) - fitFor(cardById(a), weights) || a.localeCompare(b))[0];
+    return best ? { ...save, kopman: best } : save;
+  }
   const ranked = Object.keys(save.collection).map((id) => ({ id, fit: fitFor(cardById(id), weights) })).sort((a, b) => b.fit - a.fit || a.id.localeCompare(b.id));
   const lineup = ranked.slice(0, LINEUP_SIZE).map((x) => x.id);
   return { ...save, lineup, kopman: lineup[0] ?? null };
 }
 
-/** The races of a level, in calendar order. */
-export const calendarOf = (division: number): RaceDef[] => DIVISIONS[division].races.map((id) => raceById.get(id)!);
-export const currentRace = (save: Save) => calendarOf(save.division)[save.raceIndex] ?? null;
+/** The races and stage races of a level, in calendar order. */
+export const calendarOf = (division: number): (RaceDef | TourDef)[] => DIVISIONS[division].races.map((id) => raceById.get(id) ?? tourById.get(id)!);
+export const isTour = (slot: RaceDef | TourDef): slot is TourDef => "stages" in slot;
+/** The stage race of this slot in the calendar, if it is one. */
+export const currentTour = (save: Save) => tourById.get(DIVISIONS[save.division].races[save.raceIndex] ?? "") ?? null;
+/** The race to ride next: in a stage race, the next stage. */
+export function currentRace(save: Save): RaceDef | null {
+  const tour = currentTour(save);
+  if (tour) return raceById.get(tour.stages[save.tour?.stage ?? 0]) ?? null;
+  const slot = calendarOf(save.division)[save.raceIndex];
+  return slot && !isTour(slot) ? slot : null;
+}
 export const seasonDone = (save: Save) => save.raceIndex >= calendarOf(save.division).length;
-export const raceSeed = (save: Save) => hashSeed(save.seed, save.season, save.division, save.raceIndex);
+export const raceSeed = (save: Save) => currentTour(save) ? hashSeed(save.seed, save.season, save.division, save.raceIndex, "etappe", save.tour?.stage ?? 0) : hashSeed(save.seed, save.season, save.division, save.raceIndex);
+
+/** Everything a board needs for the next race: in a stage race the same rivals every stage, and yesterday's kracht. */
+export function raceSetup(save: Save): { raceId: string; seed: number; lineup: Lineup; carry?: Carry } | null {
+  const race = currentRace(save);
+  if (!race || !save.kopman) return null;
+  const tour = currentTour(save);
+  const riders = save.tour?.riders.length ? save.tour.riders : save.lineup;
+  const kopman = riders.includes(save.kopman) ? save.kopman : riders[0];
+  const lineup: Lineup = { riders, kopman, bonus: teamBonus(save.items), rivals: tour ? tourRivals(tour, riders) : undefined };
+  const carry = tour && save.tour?.stage ? { tired: save.tour.kracht, player: Math.min(1, TOUR_RECOVERY + teamBonus(save.items).recovery), rival: TOUR_RECOVERY } : undefined;
+  return { raceId: race.id, seed: raceSeed(save), lineup, carry };
+}
 
 export function prizeFor(place: number) {
   if (place < 1) return 0;
@@ -256,7 +291,9 @@ export function pointsFor(place: number, monument: boolean) {
   return Math.round(POINTS[place - 1] * (monument ? MONUMENT_FACTOR : 1));
 }
 
-export type RaceReward = { coins: number; points: number; pack: PackType | null; best: number; season: SeasonReward | null };
+export type RaceReward = { coins: number; points: number; pack: PackType | null; best: number; season: SeasonReward | null; tour?: TourReward };
+/** After a stage: where the tour stands, and at the end the packs for the classifications. */
+export type TourReward = { id: string; stage: number; of: number; done: boolean; general: GcRow[]; jerseys: Jerseys; packs: PackType[] };
 export type SeasonReward = { rank: number; coins: number; pack: PackType | null; move: number };
 
 /**
@@ -283,7 +320,9 @@ export function moveFor(rank: number, teams: number, division: number) {
 }
 
 /** Books a finished race: prize money, season points for every team, a pack, and the next race. */
-export function finishRace(save: Save, placings: Placing[]): { save: Save; reward: RaceReward } {
+export function finishRace(save: Save, placings: Placing[], kracht: Record<string, number> = {}): { save: Save; reward: RaceReward } {
+  const tour = currentTour(save);
+  if (tour) return finishStage(save, tour, placings, kracht);
   const race = currentRace(save);
   if (!race) throw new Error("Het seizoen is al klaar");
   const level = DIVISIONS[save.division];
@@ -296,7 +335,7 @@ export function finishRace(save: Save, placings: Placing[]): { save: Save; rewar
   for (const p of placings) seasonPoints[p.team] = (seasonPoints[p.team] ?? 0) + pointsFor(p.place, monument);
   const points = mine.reduce((sum, p) => sum + pointsFor(p.place, monument), 0);
   const pack = packFor(best, save.division);
-  let next: Save = {
+  const next: Save = {
     ...save,
     coins: save.coins + coins,
     packs: pack ? [...save.packs, pack] : save.packs,
@@ -304,17 +343,72 @@ export function finishRace(save: Save, placings: Placing[]): { save: Save; rewar
     raceIndex: save.raceIndex + 1,
     seasonResults: [...save.seasonResults, { race: race.id, winner: placings[0]?.id ?? "", best, points, coins, pack }],
   };
-  let season: SeasonReward | null = null;
-  if (seasonDone(next)) {
-    const standings = seasonStandings(next);
-    const rank = standings.findIndex((t) => t.id === PLAYER_TEAM) + 1;
-    const move = moveFor(rank, standings.length, save.division);
-    const seasonCoins = Math.round(SEASON_COINS.find((x) => rank <= x.upTo)?.coins ?? 0) * level.prize;
-    const seasonPack = rank <= PROMOTED ? level.promotion : null;
-    season = { rank, coins: Math.round(seasonCoins), pack: seasonPack, move };
-    next = { ...next, coins: next.coins + season.coins, packs: seasonPack ? [...next.packs, seasonPack] : next.packs };
+  const closed = closeSeason(next);
+  return { save: closed.save, reward: { coins, points, pack, best, season: closed.season } };
+}
+
+/** At the end of the season: the coins and pack for the rank. */
+function closeSeason(save: Save): { save: Save; season: SeasonReward | null } {
+  if (!seasonDone(save)) return { save, season: null };
+  const level = DIVISIONS[save.division];
+  const standings = seasonStandings(save);
+  const rank = standings.findIndex((t) => t.id === PLAYER_TEAM) + 1;
+  const move = moveFor(rank, standings.length, save.division);
+  const seasonCoins = Math.round(SEASON_COINS.find((x) => rank <= x.upTo)?.coins ?? 0) * level.prize;
+  const seasonPack = rank <= PROMOTED ? level.promotion : null;
+  const season = { rank, coins: Math.round(seasonCoins), pack: seasonPack, move };
+  return { save: { ...save, coins: save.coins + season.coins, packs: seasonPack ? [...save.packs, seasonPack] : save.packs }, season };
+}
+
+/**
+ * Books a stage: half the prize money and season points of a race, a silver
+ * pack for a stage win. After the last stage the general classification
+ * counts double for the season, its winner gets a gold pack and every other
+ * jersey of yours a silver one.
+ */
+function finishStage(save: Save, tour: TourDef, placings: Placing[], kracht: Record<string, number>): { save: Save; reward: RaceReward } {
+  const race = currentRace(save)!;
+  const level = DIVISIONS[save.division];
+  const stage = bookStage(save.tour ?? newTour(), race.id, placings, kracht);
+  // The five keep the order of your lineup.
+  const order = (id: string) => (save.lineup.includes(id) ? save.lineup.indexOf(id) : 99);
+  const booked = { ...stage, riders: [...stage.riders].sort((a, b) => order(a) - order(b) || a.localeCompare(b)) };
+  const mine = placings.filter((p) => p.team === PLAYER_TEAM && p.place > 0);
+  const best = mine.length ? Math.min(...mine.map((p) => p.place)) : 0;
+  const prize = mine.reduce((sum, p) => sum + prizeFor(p.place), 0);
+  const coins = Math.round((START_FEE * (1 + teamBonus(save.items).startFee) + prize) * level.prize * STAGE_SHARE);
+  const stagePoints = (place: number) => Math.round(pointsFor(place, false) * STAGE_SHARE);
+  const seasonPoints = { ...save.seasonPoints };
+  for (const p of placings) seasonPoints[p.team] = (seasonPoints[p.team] ?? 0) + stagePoints(p.place);
+  let points = mine.reduce((sum, p) => sum + stagePoints(p.place), 0);
+  const pack: PackType | null = best === 1 ? "zilver" : null;
+  const state: TourState = { ...booked, coins: booked.coins + coins, seasonPoints: booked.seasonPoints + points };
+  const kopman = save.kopman && state.riders.includes(save.kopman) ? save.kopman : state.riders[0] ?? null;
+  const general = generalOf(state);
+  const jerseys = jerseysOf(state);
+  let next: Save = { ...save, coins: save.coins + coins, packs: pack ? [...save.packs, pack] : save.packs, seasonPoints, lineup: state.riders, kopman, tour: state };
+  const done = state.stage >= tour.stages.length;
+  const packs: PackType[] = [];
+  if (done) {
+    general.forEach((row, i) => { seasonPoints[row.team] = (seasonPoints[row.team] ?? 0) + Math.round(pointsFor(i + 1, false) * GC_FACTOR); });
+    const gcPoints = general.reduce((sum, row, i) => sum + (row.team === PLAYER_TEAM ? Math.round(pointsFor(i + 1, false) * GC_FACTOR) : 0), 0);
+    points += gcPoints;
+    const own = (id: string | null) => !!id && state.team[id] === PLAYER_TEAM;
+    if (own(jerseys.geel)) packs.push("goud");
+    if (own(jerseys.groen)) packs.push("zilver");
+    if (own(jerseys.berg)) packs.push("zilver");
+    const gcBest = general.findIndex((row) => row.team === PLAYER_TEAM) + 1;
+    next = {
+      ...next,
+      seasonPoints,
+      packs: [...next.packs, ...packs],
+      tour: null,
+      raceIndex: save.raceIndex + 1,
+      seasonResults: [...save.seasonResults, { race: tour.id, winner: jerseys.geel ?? "", best: gcBest, points: state.seasonPoints + gcPoints, coins: state.coins, pack: packs[0] ?? null }],
+    };
   }
-  return { save: next, reward: { coins, points, pack, best, season } };
+  const closed = closeSeason(next);
+  return { save: closed.save, reward: { coins, points, pack, best, season: closed.season, tour: { id: tour.id, stage: state.stage, of: tour.stages.length, done, general, jerseys, packs } } };
 }
 
 /** Where the season just finished sends you: up, down or staying. */
@@ -326,5 +420,5 @@ export function seasonMove(save: Save) {
 /** The next season, a level up or down after promotion or relegation. */
 export function newSeason(save: Save): Save {
   const division = Math.min(TOP_DIVISION, Math.max(0, save.division + (seasonDone(save) ? seasonMove(save) : 0)));
-  return { ...save, season: save.season + 1, division, raceIndex: 0, seasonPoints: {}, seasonResults: [] };
+  return { ...save, season: save.season + 1, division, raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null };
 }

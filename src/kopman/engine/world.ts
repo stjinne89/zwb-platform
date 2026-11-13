@@ -1,7 +1,7 @@
 // The real-world part of Kopman: climbs and sectors that exist, under races and
 // teams that do not. Lengths and gradients are rounded from common sources
 // (docs/kopman.md); a climb with several approaches uses the one named here.
-import type { Climb, RaceDef, Sector } from "./types";
+import type { Climb, RaceDef, Sector, TourDef } from "./types";
 
 export const CLIMBS: Climb[] = [
   { id: "oude-kwaremont", name: "Oude Kwaremont", country: "BEL", km: 2.2, pct: 4.0, surface: "kasseien" },
@@ -88,10 +88,21 @@ export const RACES: RaceDef[] = [
   { id: "polderchrono", name: "Polderchrono", country: "NED", kind: "tijdrit", items: [v(32)] },
   { id: "kustprijs", name: "Grote Prijs van de Kust", country: "BEL", kind: "klassieker", items: [v(90)] },
   { id: "provence-bergrit", name: "Bergrit van de Provence", country: "FRA", kind: "rit", items: [v(40), k("ventoux")] },
-  { id: "alpenrit", name: "Koninginnenrit van de Alpen", country: "FRA", kind: "rit", items: [v(20), k("galibier"), d(30, 4.2), v(15), k("alpe-dhuez")] },
+  // The stages of the Ronde van de Alpen (TOURS); the queen stage was a race of its own until 2026-11-13.
+  { id: "alpen-vlak", name: "Door het Rhônedal", country: "FRA", kind: "klassieker", items: [v(80)] },
+  { id: "alpen-heuvels", name: "Heuvels van Como", country: "ITA", kind: "klassieker", items: [v(35), k("san-fermo"), d(2.5, 6), v(20), k("san-fermo"), d(2.5, 6), v(12)] },
+  { id: "alpen-chrono", name: "Tijdrit langs het meer", country: "ITA", kind: "tijdrit", items: [v(28)] },
+  { id: "alpen-mortirolo", name: "Over de Mortirolo", country: "ITA", kind: "rit", items: [v(30), k("mortirolo"), d(12, 8), v(25)] },
+  { id: "alpenrit", name: "Koninginnenrit naar Alpe d'Huez", country: "FRA", kind: "rit", items: [v(20), k("galibier"), d(30, 4.2), v(15), k("alpe-dhuez")] },
   { id: "asturie-bergrit", name: "Bergrit van Asturië", country: "ESP", kind: "rit", items: [v(50), k("angliru")] },
   { id: "herfstklassieker", name: "Herfstklassieker van Como", country: "ITA", kind: "monument", items: [v(40), k("ghisallo"), d(8, 5.5), v(20), k("san-fermo"), d(2.5, 6), v(4)] },
 ];
+
+/** Stage races (docs/kopman-breder.md): one slot in a calendar, ridden stage by stage. */
+export const TOURS: TourDef[] = [
+  { id: "ronde-alpen", name: "Ronde van de Alpen", country: "FRA", stages: ["alpen-vlak", "alpen-heuvels", "alpen-chrono", "alpen-mortirolo", "alpenrit"] },
+];
+export const tourById = new Map(TOURS.map((t) => [t.id, t]));
 
 export const PLAYER_COLOR = "#ffc53d";
 

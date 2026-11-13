@@ -1,7 +1,8 @@
 # Kopman — het spel breder maken
 
-Onderzoek van 2026-11-13. Er is nog niets gebouwd. Dit document zet de
-mogelijkheden op een rij, zodat de eigenaar kan kiezen.
+Onderzoek van 2026-11-13. Dit document zet de mogelijkheden op een rij, zodat
+de eigenaar kan kiezen. Gebouwd sindsdien: de ronde in de Wereldtour (de
+variant onder 1); zie "Gebouwd: de Ronde van de Alpen" onderaan.
 
 ## Aanleiding
 
@@ -235,5 +236,77 @@ spel het meest.
 
 ## Open voor de eigenaar
 
-- Welke mogelijkheden, en in welke volgorde.
-- Bij de grote rondes: een zesde trede, of een ronde in de Wereldtour.
+- Welke mogelijkheden na de ronde, en in welke volgorde.
+- Bij de grote rondes koos de eigenaar de variant: "Ronde in Wereldtour". Een
+  zesde trede is daarmee niet gebouwd.
+
+## Gebouwd: de Ronde van de Alpen
+
+Gebouwd op 2026-11-13. Op het bouwplan zei de eigenaar: "Ja, bouw dit". De
+code staat in `src/kopman/engine/tour.ts`; de koppeling met het seizoen in
+`economy.ts` (`currentTour`, `raceSetup`, `finishStage`).
+
+- **In de kalender.** De Ronde van de Alpen staat op plek 6 van de 8 in de
+  Wereldtour (`TOURS` in `world.ts`), waar de Koninginnenrit van de Alpen
+  stond. Die rit is nu de vijfde etappe, met dezelfde id (`alpenrit`), zodat
+  oude uitslagen hun naam houden.
+- **Vijf etappes:** Door het Rhônedal (vlak), Heuvels van Como (tweemaal San
+  Fermo), Tijdrit langs het meer, Over de Mortirolo, en de koninginnenrit over
+  de Galibier naar Alpe d'Huez.
+- **Dezelfde renners.** Je rijdt met de vijf van de eerste etappe; Eruit en
+  Opstellen staan uit tot de ronde klaar is. Je kiest wel per etappe je
+  kopman. Elke rivaliserende ploeg rijdt met zijn beste vijf over alle etappes
+  (`tourRivals`); per etappe is de best passende van die vijf de kopman.
+- **Kracht loopt door.** Een renner begint met de kracht van gisteren plus de
+  helft van wat hij mist (`TOUR_RECOVERY`); jouw fysio telt zijn bonus erbij
+  op (+10 tot +40 procentpunt). Wie moe is, rijdt moe: het bord rekent de
+  vermoeidheid tegen de volle kracht (`Carry` in `board.ts`).
+- **Klassementen** (`bookStage`):
+  - tijd, met 10, 6 en 4 seconden bonificatie; wie niet finisht, krijgt de tijd
+    van de laatste plus 5 minuten;
+  - punten: 25 tot 2 voor de top 10, dubbel in een vlakke etappe;
+  - berg: 10 tot 1 voor de top 8, dubbel in een bergrit, enkel in een etappe
+    met heuvels, niets in de tijdrit en de vlakke etappe;
+  - de truien: geel, groen en berg (`jerseysOf`).
+- **Beloning.**
+  - Per etappe de helft van het prijzengeld en de seizoenspunten van een
+    koers (`STAGE_SHARE`), en een zilveren pakket voor een etappezege.
+  - Na de laatste etappe tellen de seizoenspunten van het eindklassement
+    dubbel (`GC_FACTOR`), voor de top 15 per ploeg. De gele trui geeft een
+    gouden pakket, groen en berg elk een zilveren.
+- **Scherm.** Op het koersscherm de naam van de ronde, de etappe, de
+  truidragers en de top 5 van het klassement (met je beste renner eronder als
+  hij lager staat). Na een etappe de daguitslag en het klassement, na de
+  laatste het eindklassement. Op het bord staat "Etappe 2/5" als titel.
+- **Save.** `tour` erbij (de etappe, je vijf, tijden, punten, berg, kracht en
+  wat de ronde je tot nu toe opleverde). Een save zonder `tour` leest als
+  `null`. Een ronde is te onderbreken tussen twee etappes.
+
+**Gemeten** met `.tmp/kopman-ronde.ts` (niet in git), drie ploegen van rond 80
+met een eenvoudige kaartkeuze: na vijf etappes 7e, 9e en 3e in het klassement,
+met 4 tot 14 minuten achterstand op de winnaar. De verschillen vallen in de
+tijdrit en de twee bergritten. Een kopman begint een etappe met 8 tot 11 van
+zijn 11 kracht; rivaliserende kopmannen eindigen een bergrit soms op 0.
+Carrières (`.tmp/kopman-groei.ts`, 2 seeds, 10 seizoenen) lopen door de
+Wereldtour zonder fouten.
+
+**Bewust niet gebouwd:**
+
+- **Een zesde trede** met alleen rondes: de eigenaar koos de variant.
+- **Een ploeg van 8.** Dat vraagt een nieuw opstellingsscherm en 33 renners
+  meer in de koers; op een telefoon is het bord dan te zwaar.
+- **Opgeven.** Een renner die niet finisht, krijgt een tijdstraf en rijdt de
+  volgende etappe weer mee.
+- **Een jongerentrui:** renners hebben geen leeftijd.
+- **Bergpunten op de top van een klim:** de berg telt de plaats in de etappe,
+  niet wie als eerste boven komt.
+- **Een rustdag:** de ronde is 5 etappes.
+
+**Niet geverifieerd:**
+
+- Een hele ronde in de app gespeeld: in de preview één etappe op een testsave,
+  het klassement erna, het herladen midden in de ronde en de vergrendelde
+  opstelling. De vier andere etappes alleen met het script.
+- Of 5 etappes op een telefoon niet te lang duren.
+- De titel op het bord is op een telefoon zo smal (16 px) dat er alleen "E…"
+  staat. Dat was al zo bij de naam van gewone koersen.

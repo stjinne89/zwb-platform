@@ -35,6 +35,18 @@ const schema = z.object({
   division: z.number().int().min(0).max(TOP_DIVISION),
   raceIndex: z.number().int().min(0).max(SEASON_RACES),
   seasonResults: z.array(z.object({ race: z.string(), winner: z.string(), best: z.number().int().min(0), points: count, coins: count, pack: pack.nullable() })).max(SEASON_RACES),
+  // Since 2026-11-13: the stage race under way. Older saves have none.
+  tour: z.object({
+    stage: z.number().int().min(1).max(30),
+    riders: z.array(cardId).max(LINEUP_SIZE),
+    team: z.record(cardId, z.string().max(20)),
+    time: z.record(cardId, z.number().min(0).max(1e7)),
+    points: z.record(cardId, count),
+    kom: z.record(cardId, count),
+    kracht: z.record(cardId, z.number().min(0).max(100)),
+    coins: count,
+    seasonPoints: count,
+  }).nullable().default(null),
 });
 
 /** Before the pyramid: one calendar of 16 races and a daily limit on packs. */
@@ -46,7 +58,7 @@ const v1 = z.object({ ...base, v: z.literal(1), raceIndex: z.number().int().min(
  * collection, coins and packs stay.
  */
 function fromV1(old: z.infer<typeof v1>): Save {
-  return { ...old, v: SAVE_VERSION, division: divisionFor(old.collection), raceIndex: 0, seasonPoints: {}, seasonResults: [] };
+  return { ...old, v: SAVE_VERSION, division: divisionFor(old.collection), raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null };
 }
 
 /** Reads a save; anything broken or tampered beyond repair gives null. */

@@ -55,6 +55,9 @@ export type RaceDef = {
   items: CourseItem[];
 };
 
+/** A stage race: its stages are races of their own, ridden one after the other. */
+export type TourDef = { id: string; name: string; country: string; stages: string[] };
+
 /** A course on a 100 m grid. */
 export type Course = {
   id: string;

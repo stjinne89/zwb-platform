@@ -4,13 +4,16 @@ import { CalendarDays, ChevronDown, ChevronUp, Coins, Crown, Flag, Package, Play
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cardById, TIER_LABELS, TYPE_LABELS } from "../engine/cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "../engine/course";
-import { bestLineup, buyPack, calendarOf, currentRace, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, raceSeed, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save } from "../engine/economy";
-import { bestItems, GEAR_SLOTS, isItem, ITEMS, STAFF_ROLES, teamBonus, type ItemSlot, type TeamBonus } from "../engine/items";
+import { bestLineup, buyPack, calendarOf, currentRace, currentTour, raceSetup, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save, type TourReward } from "../engine/economy";
+import { generalOf, jerseysOf, type GcRow, type Jerseys } from "../engine/tour";
+import type { Carry } from "../engine/board";
+import type { Lineup } from "../engine/race";
+import { bestItems, GEAR_SLOTS, isItem, ITEMS, STAFF_ROLES, teamBonus, type ItemSlot } from "../engine/items";
 import { KIND_ODDS, PACK_LABELS, PACK_ODDS, PITY_PACKS } from "../engine/packs";
 import { results, statBoost, type Placing, type RaceState } from "../engine/race";
 import { PLAYER_TEAM, RIDER_TYPES, TIERS, type PackType, type RiderType, type Tier } from "../engine/types";
 import { DIVISIONS, TOP_DIVISION } from "../engine/divisions";
-import { raceById } from "../engine/world";
+import { raceById, tourById } from "../engine/world";
 import { loadSave, SAVE_KEY, storeSave } from "../engine/save";
 import { ItemCardView, SlotTile } from "./item-card";
 import { Profile } from "./profile";
@@ -48,7 +51,7 @@ export function KopmanApp() {
   const saveRef = useRef<Save | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("koers");
-  const [racing, setRacing] = useState<{ raceId: string; seed: number; riders: string[]; kopman: string; bonus: TeamBonus } | null>(null);
+  const [racing, setRacing] = useState<{ raceId: string; seed: number; lineup: Lineup; carry?: Carry; title?: string } | null>(null);
   // Back from a race leaves it standing; Verder on the race tab picks it up again.
   const [away, setAway] = useState(false);
   const [result, setResult] = useState<{ raceId: string; placings: Placing[]; reward: RaceReward } | null>(null);
@@ -77,11 +80,11 @@ export function KopmanApp() {
     return () => cancelAnimationFrame(frame);
   }, [update]);
 
-  const onFinish = useCallback((state: RaceState) => {
+  const onFinish = useCallback((state: RaceState, kracht: Record<string, number>) => {
     const current = saveRef.current;
     if (!current) return;
     const placings = results(state);
-    const { save: next, reward } = finishRace(current, placings);
+    const { save: next, reward } = finishRace(current, placings, kracht);
     update(next);
     setRacing(null);
     setAway(false);
@@ -95,7 +98,10 @@ export function KopmanApp() {
   const start = () => {
     if (racing) { setAway(false); return; }
     if (!race || save.lineup.length !== LINEUP_SIZE || !save.kopman) return;
-    setRacing({ raceId: race.id, seed: raceSeed(save), riders: save.lineup, kopman: save.kopman, bonus: teamBonus(save.items) });
+    const setup = raceSetup(save);
+    const tour = currentTour(save);
+    // In a stage race the board says which stage it is.
+    if (setup) setRacing({ ...setup, title: tour ? `Etappe ${(save.tour?.stage ?? 0) + 1}/${tour.stages.length}` : undefined });
   };
   const open = (type: PackType) => {
     const opened = openPackOf(save, type);
@@ -142,7 +148,7 @@ export function KopmanApp() {
 
       {racing ? (
         <div className={styles.race} role="region" aria-label={raceById.get(racing.raceId)?.name} style={away ? { display: "none" } : undefined}>
-          <BoardView raceId={racing.raceId} seed={racing.seed} lineup={{ riders: racing.riders, kopman: racing.kopman, bonus: racing.bonus }} items={save.items} own={save.teamName} active={!away} onBack={() => setAway(true)} onFinish={onFinish} />
+          <BoardView raceId={racing.raceId} seed={racing.seed} lineup={racing.lineup} carry={racing.carry} title={racing.title} items={save.items} own={save.teamName} active={!away} onBack={() => setAway(true)} onFinish={onFinish} />
         </div>
       ) : null}
       {result ? <ResultView result={result} own={save.teamName} onClose={() => setResult(null)} onPacks={() => { setResult(null); setTab("pakketten"); }} /> : null}
@@ -171,19 +177,22 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
     );
   }
   const race = currentRace(save)!;
+  const tour = currentTour(save);
   const course = buildCourse(race);
   const weights = courseWeights(course);
   const climbs = course.features;
   const ready = save.lineup.length === LINEUP_SIZE && !!save.kopman;
+  const slot = `Koers ${save.raceIndex + 1} van ${calendarOf(save.division).length}`;
   return (
     <div className={styles.stack}>
       <div className={styles.panel}>
         <div className={styles.raceHead}>
           <div>
-            <div className={styles.h2}>{race.name}</div>
+            <div className={styles.h2}>{tour ? tour.name : race.name}</div>
+            {tour ? <div className={styles.h3} style={{ marginTop: 2 }}>{race.name}</div> : null}
             <div className={styles.row} style={{ marginTop: 4, gap: 8 }}>
-              <span className={`${styles.badge} ${race.kind === "monument" ? styles.badgeMonument : ""}`}>{KIND_LABELS[race.kind]}</span>
-              <span className={styles.muted}>{Math.round(course.length / 1000)} km · {courseKind(course)} · {race.country} · Koers {save.raceIndex + 1} van {calendarOf(save.division).length}</span>
+              <span className={`${styles.badge} ${race.kind === "monument" || tour ? styles.badgeMonument : ""}`}>{tour ? `Etappe ${(save.tour?.stage ?? 0) + 1} van ${tour.stages.length}` : KIND_LABELS[race.kind]}</span>
+              <span className={styles.muted}>{Math.round(course.length / 1000)} km · {courseKind(course)} · {race.country} · {slot}</span>
             </div>
           </div>
           <button type="button" className={styles.primary} disabled={!running && !ready} onClick={onStart}><Play size={18} aria-hidden />{running ? "Verder" : "Start"}</button>
@@ -191,6 +200,12 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
         <div style={{ margin: "12px 0" }}><Profile course={course} /></div>
         {climbs.length ? <div className={styles.features}>{[...new Map(climbs.map((f) => [f.name, f])).values()].map((f) => { const times = climbs.filter((x) => x.name === f.name).length; return <span key={f.name} className={`${styles.feature} ${f.kind === "kasseien" ? styles.featureKas : f.kind === "grind" ? styles.featureGrind : ""}`}>{f.name}{times > 1 ? ` ×${times}` : ""}</span>; })}</div> : null}
       </div>
+      {save.tour ? (
+        <div className={styles.panel}>
+          <JerseyLine jerseys={jerseysOf(save.tour)} />
+          <GeneralTable general={generalOf(save.tour)} own={save.teamName} />
+        </div>
+      ) : null}
       <div className={styles.panel}>
         <div className={styles.row} style={{ justifyContent: "space-between", marginBottom: 10 }}>
           <span className={styles.h3}>Opstelling</span>
@@ -252,7 +267,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
             <RiderCardView key={id} card={cardById(id)} small live kopman={id === save.kopman} fit={weights ? fitFor(cardById(id), weights) : undefined}>
               <div className={styles.cardActions}>
                 <button type="button" aria-pressed={id === save.kopman} aria-label="Kopman" onClick={() => update(setKopman(save, id))}><Crown size={14} aria-hidden /></button>
-                <button type="button" onClick={() => update(toggleLineup(save, id))}>Eruit</button>
+                <button type="button" disabled={!!save.tour} onClick={() => update(toggleLineup(save, id))}>Eruit</button>
               </div>
             </RiderCardView>
           ) : <div key={`leeg-${i}`} className={styles.emptySlot}>Leeg</div>)}
@@ -273,7 +288,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
             return (
               <RiderCardView key={card.id} card={card} kopman={card.id === save.kopman} fit={weights ? fitFor(card, weights) : undefined} boost={statBoost(card, bonus)}>
                 <div className={styles.cardActions}>
-                  <button type="button" aria-pressed={inLineup} disabled={!inLineup && save.lineup.length >= LINEUP_SIZE} onClick={() => update(toggleLineup(save, card.id))}>{inLineup ? "In ploeg" : "Opstellen"}</button>
+                  <button type="button" aria-pressed={inLineup} disabled={!!save.tour || (!inLineup && save.lineup.length >= LINEUP_SIZE)} onClick={() => update(toggleLineup(save, card.id))}>{inLineup ? "In ploeg" : "Opstellen"}</button>
                   {save.collection[card.id] > 1 ? <span className={styles.badge}>×{save.collection[card.id]}</span> : null}
                 </div>
               </RiderCardView>
@@ -480,7 +495,7 @@ function SeasonTab({ save, update }: { save: Save; update: (s: Save) => void }) 
             <thead><tr><th>Koers</th><th>Winnaar</th><th className={styles.num}>Beste</th><th className={styles.num}>Punten</th></tr></thead>
             <tbody>
               {save.seasonResults.map((r) => (
-                <tr key={r.race}><td>{raceById.get(r.race)?.name}</td><td>{r.winner ? riderName(r.winner) : "–"}</td><td className={styles.num}>{r.best || "–"}</td><td className={styles.num}>{r.points}</td></tr>
+                <tr key={r.race}><td>{raceById.get(r.race)?.name ?? tourById.get(r.race)?.name}</td><td>{r.winner ? riderName(r.winner) : "–"}</td><td className={styles.num}>{r.best || "–"}</td><td className={styles.num}>{r.points}</td></tr>
               ))}
             </tbody>
           </table>
@@ -495,6 +510,8 @@ function SeasonTab({ save, update }: { save: Save; update: (s: Save) => void }) 
 
 function ResultView({ result, own, onClose, onPacks }: { result: { raceId: string; placings: Placing[]; reward: RaceReward }; own: string; onClose: () => void; onPacks: () => void }) {
   const race = raceById.get(result.raceId)!;
+  const tour = result.reward.tour;
+  const tourName = tour ? tourById.get(tour.id)?.name : undefined;
   const top = result.placings.slice(0, 10);
   const mine = result.placings.filter((p) => p.team === PLAYER_TEAM && (p.place > 10 || p.place === 0));
   const ownPlacings = result.placings.filter((p) => p.team === PLAYER_TEAM).sort((a, b) => (a.place || 999) - (b.place || 999));
@@ -521,23 +538,72 @@ function ResultView({ result, own, onClose, onPacks }: { result: { raceId: strin
           ))}
         </div>
         <div className={styles.panel} style={{ width: "100%" }}>
-          <div className={styles.h2}>{race.name}</div>
+          <div className={styles.h2}>{tourName ?? race.name}</div>
+          {tour ? <div className={styles.h3} style={{ marginTop: 2 }}>{race.name}</div> : null}
           <table className={styles.table} style={{ marginTop: 8 }}>
             <thead><tr><th>#</th><th>Renner</th><th>Ploeg</th><th className={styles.num}>Tijd</th></tr></thead>
             <tbody>{top.map(row)}{mine.map(row)}</tbody>
           </table>
         </div>
+        {tour ? <TourStanding tour={tour} own={own} /> : null}
         <div className={styles.rewards}>
           <div className={styles.reward}><span className={styles.muted}>Munten</span><b>+{reward.coins.toLocaleString("nl-NL")}</b></div>
           <div className={styles.reward}><span className={styles.muted}>Punten</span><b>+{reward.points}</b></div>
-          <div className={styles.reward}><span className={styles.muted}>Pakket</span><b>{reward.pack ? PACK_LABELS[reward.pack] : "–"}</b></div>
+          <div className={styles.reward}><span className={styles.muted}>Pakket</span><b>{[reward.pack, ...(tour?.packs ?? [])].filter((p): p is PackType => !!p).map((p) => PACK_LABELS[p]).join(" · ") || "–"}</b></div>
           {reward.season ? <div className={styles.reward}><span className={styles.muted}>Seizoen: {reward.season.rank}e{reward.season.move > 0 ? " · promotie" : reward.season.move < 0 ? " · degradatie" : ""}</span><b>+{reward.season.coins.toLocaleString("nl-NL")}{reward.season.pack ? ` · ${PACK_LABELS[reward.season.pack]}` : ""}</b></div> : null}
         </div>
         <div className={styles.row}>
-          {reward.pack || reward.season?.pack ? <button type="button" className={styles.primary} onClick={onPacks}><Package size={18} aria-hidden />Pakket openen</button> : null}
+          {reward.pack || reward.season?.pack || tour?.packs.length ? <button type="button" className={styles.primary} onClick={onPacks}><Package size={18} aria-hidden />Pakket openen</button> : null}
           <button type="button" className={styles.secondary} onClick={onClose}>Verder</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+const JERSEYS: { key: keyof Jerseys; label: string; className: string }[] = [
+  { key: "geel", label: "Geel", className: styles.jerseyGeel },
+  { key: "groen", label: "Groen", className: styles.jerseyGroen },
+  { key: "berg", label: "Berg", className: styles.jerseyBerg },
+];
+
+/** Who wears the jerseys of a stage race. */
+function JerseyLine({ jerseys }: { jerseys: Jerseys }) {
+  return (
+    <div className={styles.jerseys}>
+      {JERSEYS.map((j) => jerseys[j.key] ? <span key={j.key} className={styles.jersey}><span className={`${styles.jerseyDot} ${j.className}`} aria-hidden />{j.label}: {riderName(jerseys[j.key]!)}</span> : null)}
+    </div>
+  );
+}
+
+/** The top five of the general classification, and your best rider below it if he is further down. */
+function GeneralTable({ general, own, caption = "Klassement" }: { general: GcRow[]; own: string; caption?: string }) {
+  const top = general.slice(0, 5);
+  const index = general.findIndex((r) => r.team === PLAYER_TEAM);
+  const rows = index >= 5 ? [...top, general[index]] : top;
+  return (
+    <table className={styles.table} style={{ marginTop: 8 }}>
+      <caption className={styles.h3} style={{ textAlign: "left", marginBottom: 4 }}>{caption}</caption>
+      <thead><tr><th>#</th><th>Renner</th><th>Ploeg</th><th className={styles.num}>Tijd</th></tr></thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.id} className={r.team === PLAYER_TEAM ? styles.mine : undefined}>
+            <td>{general.indexOf(r) + 1}</td>
+            <td><span className={styles.teamDot} style={{ background: teamColor(r.team) }} />{riderName(r.id)}</td>
+            <td className={styles.muted}>{teamName(r.team, own)}</td>
+            <td className={styles.num}>{r.gap === 0 ? clock(r.time) : `+${clock(r.gap)}`}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function TourStanding({ tour, own }: { tour: TourReward; own: string }) {
+  return (
+    <div className={styles.panel} style={{ width: "100%" }}>
+      <JerseyLine jerseys={tour.jerseys} />
+      <GeneralTable general={tour.general} own={own} caption={tour.done ? "Eindklassement" : `Klassement na etappe ${tour.stage} van ${tour.of}`} />
     </div>
   );
 }

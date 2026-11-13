@@ -363,7 +363,14 @@ export function pelotonForm(raceId: string, riders: string[]): number {
   return Math.round(clamp((avg - level.band[0] + FORM.offset) * FORM.perPoint, 0, level.rivals.form) * 1000) / 1000;
 }
 
-export function createBoard(raceId: string, seed: number, lineup: Lineup, items: Record<string, number> = {}): BoardState {
+/**
+ * `carry`: in a stage race a rider starts with the kracht he ended the last
+ * stage with, plus a share of what he lacks (tour.ts). `start` stays the full
+ * kracht, so a tired rider rides tired.
+ */
+export type Carry = { tired: Record<string, number>; player: number; rival: number };
+
+export function createBoard(raceId: string, seed: number, lineup: Lineup, items: Record<string, number> = {}, carry?: Carry): BoardState {
   const race = createRace(raceId, seed, lineup);
   const level = DIVISIONS[divisionOfRace(raceId)];
   const tt = race.course.tt;
@@ -374,9 +381,13 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
   const weather = weatherFor(raceId, sky);
   for (const sector of sectors) sector.odds = oddsFor(sector, weather, sky);
   const kracht: Record<string, number> = {};
+  const full: Record<string, number> = {};
   const form = pelotonForm(raceId, lineup.riders);
   for (const r of race.riders) {
-    kracht[r.id] = kracht0(r, level.rivals.xp);
+    full[r.id] = kracht0(r, level.rivals.xp);
+    const tired = carry?.tired[r.id];
+    const share = r.team === PLAYER_TEAM ? carry?.player ?? 1 : carry?.rival ?? 1;
+    kracht[r.id] = tired === undefined ? full[r.id] : clamp(Math.round(tired + (full[r.id] - tired) * share), 0, full[r.id]);
     if (form && r.team !== PLAYER_TEAM) {
       r.cpFlat *= 1 + form;
       r.cpClimb *= 1 + form;
@@ -390,7 +401,7 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
     sector: 0,
     phase: "plannen",
     kracht,
-    start: { ...kracht },
+    start: full,
     deck: shuffle(deckFor(lineup.riders, items, tt ? lineup.kopman : undefined), random),
     hand: [],
     discard: [],
