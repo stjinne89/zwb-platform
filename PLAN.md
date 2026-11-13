@@ -15,7 +15,7 @@ gaat stabiliteit voor nieuwe features.
    `ae72d7cf`), stap 4 (keuzes per event bewaren, `3b06249d`) en stap 5 (duur
    met marge, `e0f00852`), stap 6 (vocht naar het weer, zout, `ae188fd8`),
    stap 7 (eetmomenten uit het pacingplan, `22552a90`) en stap 8 (na het event:
-   plan naast rit en eten). Daarmee zijn alle acht stappen gebouwd.
+   plan naast rit en eten, `51f443ec`). Daarmee zijn alle acht stappen gebouwd.
    De privacyzin voor stap 4 staat op `/privacy` (akkoord eigenaar,
    2026-11-13). Open: migraties `0328_nutrition_recipe_carb_mix.sql` en
    `0329_nutrition_event_fuel.sql` toepassen op productie (alleen op verzoek).
@@ -12321,7 +12321,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Eventvoeding, stap 8: na het event
 
-**2026-11-13, lokaal gecommit, niet gepusht. Geen migratie.** Op verzoek van de
+**2026-11-13, commit `51f443ec`, lokaal, niet gepusht. Geen migratie.** Op verzoek van de
 eigenaar ("Kom maar door" na stap 7, daarna "Ja" op het voorstel en de
 privacyzin). Stap 8 van [eventvoeding-plan.md](docs/eventvoeding-plan.md),
 besluit 10.
