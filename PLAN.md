@@ -39,7 +39,7 @@ gaat stabiliteit voor nieuwe features.
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
 0. **ZWBriljant: eigen grenzen voor de durability-test (2026-11-13): lokaal,
-   niet gepusht.** Diamant 2,5% per 10 kJ/kg (WorldTour-p75), Platina 5. Zie
+   niet gepusht (`db040da6`).** Diamant 2,5% per 10 kJ/kg (WorldTour-p75), Platina 5. Zie
    de ronde "Eigen grenzen voor de durability-test".
 
 0. **ZWBriljant: durability-test weer op verval (2026-11-13): gepusht naar
@@ -12339,8 +12339,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Eigen grenzen voor de durability-test
 
-**2026-11-13, de commit "Durability-test: eigen grenzen", lokaal, niet
-gepusht.** Geen migratie, geen nieuwe schaalversie.
+**2026-11-13, commit `db040da6` ("Durability-test: eigen grenzen"), lokaal,
+niet gepusht.** Geen migratie, geen nieuwe schaalversie.
 
 - **De vraag.** Volgens Mateo-March 2022 (tabel 2) versnelt verval met het
   werk. Diamant (1,5) en Robijn (2,2) kwamen uit de rij na 45 kJ/kg, dus bij
@@ -12397,7 +12397,7 @@ gepusht.** Geen migratie, geen nieuwe schaalversie.
   - Scherm: bij de test "4,2% per 10 kJ/kg", "verval op 20 minuten"; "Hier
     win je het meest" rekent met 5% minder verval.
   - Record weer 1182 (man) en 1173 (vrouw): 0,7% verval, nu op de
-    vervalschaal.
+    vervalschaal. *Sinds de eigen testgrenzen 1240 en 1232.*
   - Teksten: `/hulp` (de test en de formule), de samenvatting van het
     protocol en de popup. De popup kreeg een nieuwe sleutel
     (`zwb-nieuw-durability-2026-11b`), zodat wie vandaag de eerste tekst zag
