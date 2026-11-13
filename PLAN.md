@@ -38,6 +38,10 @@ gaat stabiliteit voor nieuwe features.
    plakken. Zie de
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
+0. **ZWBriljant: eigen grenzen voor de durability-test (2026-11-13): lokaal,
+   niet gepusht.** Diamant 2,5% per 10 kJ/kg (WorldTour-p75), Platina 5. Zie
+   de ronde "Eigen grenzen voor de durability-test".
+
 0. **ZWBriljant: durability-test weer op verval (2026-11-13): gepusht naar
    `main` (`8b093630`).** Geen migratie, geen nieuwe schaalversie. De test telt het verval
    tegen je beste 20 minuten van het jaar en geldt een jaar. Open: na de
@@ -12333,6 +12337,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Eigen grenzen voor de durability-test
+
+**2026-11-13, de commit "Durability-test: eigen grenzen", lokaal, niet
+gepusht.** Geen migratie, geen nieuwe schaalversie.
+
+- **De vraag.** Volgens Mateo-March 2022 (tabel 2) versnelt verval met het
+  werk. Diamant (1,5) en Robijn (2,2) kwamen uit de rij na 45 kJ/kg, dus bij
+  een test van 1000 kJ was de top ruim. De eigenaar koos eerst "Zo laten",
+  daarna: "3 procent verval over 20 minuten waar 25 procent van het World Tour
+  peloton niet aankomt" is eerder Diamant dan Saffier. "Ja, bouw het" op het
+  voorstel.
+- **Wat er is.** `DURABILITY_TEST_ANCHORS` (`norms.ts`), alleen voor de test,
+  in % per 10 kJ/kg: Koper 18, Brons 12,5, Zilver 9,5, Goud 7, Platina 5,
+  Amethist 4,4, Saffier 3,8, Smaragd 3,3, Robijn 2,9, Diamant 2,5. Diamant is
+  p75 van de WorldTour na 15 kJ/kg; Platina en Zilver blijven de amateurs van
+  Barsumyan. Bart: van 618 naar ongeveer 750 punten (met 345 W vers).
+  Voorbij Diamant loopt de laatste stap door; het record (0,7%) is 1350
+  punten, de recordsteen 1240 (man) en 1232 (vrouw). `/hulp` noemt de nieuwe
+  grenzen.
+- **Ritten** houden `DURABILITY_DECLINE` voor hun normen; daar verandert
+  niets.
+- **Bewust niet gebouwd:** een vlakkere lijn voorbij Diamant (aangeboden, niet
+  gekozen).
+- **Niet meer waar.** In "Durability-test weer op verval": de test op de
+  grenzen van `DURABILITY_DECLINE`, `DURABILITY_DECLINE_ANCHORS`, Barts 618
+  punten en de records 1182 en 1173 (daar gemarkeerd).
+- **Geverifieerd:** de unittests van ZWBriljant (111) en tsc.
+- **Niet geverifieerd:** de steen in de browser; `next build`.
+
 ### Hersteld — Durability-test weer op verval
 
 **2026-11-13, commit `8b093630` ("Durability-test weer op verval"), op
@@ -12349,7 +12382,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 - **Wat er is.**
   - `durabilityTestDecline` (`score.ts`): het verval in % per 10 kJ/kg tussen
     je beste 20 minuten van het jaar tot en met de testdag en de 20 minuten na
-    het werk; een betere test is 0%. Gescoord op `DURABILITY_DECLINE_ANCHORS`
+    het werk; een betere test is 0%. *Sinds "Eigen grenzen voor de
+    durability-test" op `DURABILITY_TEST_ANCHORS` (Diamant 2,5); eerst:*
+    Gescoord op `DURABILITY_DECLINE_ANCHORS`
     (`norms.ts`, dezelfde grenzen als `DURABILITY_DECLINE`: Goud 7%, Platina
     5%, Diamant 1,5%), minder is beter, voor het hele punt, zonder plafond.
     `lowerIsBetter` is terug op `Anchors` en in `scaleStep`.
@@ -12381,11 +12416,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
     groter dat het geen echte beste 20 minuten is (keuze eigenaar: een jaar);
   - verval uit ritten: daar is geen eerlijk paar, zie "durability als
     vermoeid vermogen";
-  - eigen grenzen voor de test bij ongeveer evenveel werk (keuze eigenaar:
-    "Zo laten"). Volgens Mateo-March 2022 versnelt verval met het werk; onze
-    Diamant en Robijn komen uit de rij na 45 kJ/kg, dus bij een test van 1000
-    kJ is de top ruim (Diamant 1,8% verlies, de WorldTour-mediaan na 15 kJ/kg
-    0,6%). De volgorde klopt wel; details in het onderzoek.
+  - een vlakkere lijn voorbij Diamant (aangeboden, niet gekozen).
 - **Niet meer waar.** In de ronde "durability als vermoeid vermogen": de test
   telt het vermoeide vermogen, geldt 90 dagen, en de records 1224 en 1199 (daar
   gemarkeerd). In de popup-ronde: de eerste tekst ("met de durability-test

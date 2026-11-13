@@ -96,8 +96,8 @@ describe("briljantView", () => {
     const tested = briljantView({ seed: "lid", input: { ...rider, durabilityTest: test }, consistency: null }).facets.find(
       (facet) => facet.key === "durability",
     )!;
-    // 8,4% minder na 20 kJ/kg: 4,2% per 10 kJ/kg, niveau 4,8, niet gedeeld.
-    expect(tested).toMatchObject({ value: "4,2% per 10 kJ/kg", points: 480, what: "verval op 20 minuten" });
+    // 8,4% minder na 20 kJ/kg: 4,2% per 10 kJ/kg, niveau 5,33, niet gedeeld.
+    expect(tested).toMatchObject({ value: "4,2% per 10 kJ/kg", points: 533, what: "verval op 20 minuten" });
     expect(tested.source).toBe("durability-test van 20 oktober · intervals.icu");
   });
 

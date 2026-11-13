@@ -11,7 +11,7 @@
 
 import {
   CTL_ANCHORS,
-  DURABILITY_DECLINE_ANCHORS,
+  DURABILITY_TEST_ANCHORS,
   DURABILITY_FATIGUED_DURATIONS,
   DURABILITY_MIN_KJ_PER_KG,
   DURABILITY_RIDES_SHARE,
@@ -284,7 +284,7 @@ function readingFor(power: FatiguedPower, sex: Sex | null, share: number): Facet
 export function durabilityReading(input: BriljantInput): FacetReading | null {
   const decline = durabilityTestDecline(input.durabilityTest, input.weightKg);
   if (decline != null) {
-    return { ...scaleStep(DURABILITY_DECLINE_ANCHORS, decline), source: "test", testDay: input.durabilityTest!.day, share: 1 };
+    return { ...scaleStep(DURABILITY_TEST_ANCHORS, decline), source: "test", testDay: input.durabilityTest!.day, share: 1 };
   }
   const rides = fatiguedPower(input.fatigue, input.weightKg);
   return rides ? { ...readingFor(rides, input.sex, DURABILITY_RIDES_SHARE), source: "ritten" } : null;

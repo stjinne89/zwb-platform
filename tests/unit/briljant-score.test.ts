@@ -242,12 +242,12 @@ describe("facetten en score", () => {
   });
 
   it("telt uit de test het verval, voor het hele punt en zonder plafond", () => {
-    // 8,4% minder na 20 kJ/kg: 4,2% per 10 kJ/kg, tussen Platina (5) en Amethist (4).
+    // 8,4% minder na 20 kJ/kg: 4,2% per 10 kJ/kg, tussen Platina (5) en Amethist (4,4).
     const tested = facetReadings({ ...rider, fatigue: [], durabilityTest: { day: "2026-10-20", afterKj: 1500, freshWatts: 300, fatiguedWatts: 274.8 } })
       .durability!;
     expect(tested).toMatchObject({ source: "test", testDay: "2026-10-20", share: 1 });
     expect(tested.value).toBeCloseTo(4.2, 12);
-    expect(tested.level).toBeCloseTo(4.8, 12);
+    expect(tested.level).toBeCloseTo(4 + 0.8 / 0.6, 12);
     // Geen verval: voorbij Diamant loopt de schaal door; een betere test is ook geen verval.
     const none = facetReadings({ ...rider, fatigue: [], durabilityTest: { day: "2026-10-20", afterKj: 1500, freshWatts: 300, fatiguedWatts: 300 } })
       .durability!;

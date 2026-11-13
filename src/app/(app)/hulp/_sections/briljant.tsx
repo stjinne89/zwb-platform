@@ -234,8 +234,8 @@ export function BriljantHelp() {
               gemiddelde telt voor de helft, want lang niet elke rit rijd je na het werk voluit. Met de
               durability-test telt je verval: hoeveel je 20 minuten na het werk lager zijn dan je beste 20 minuten
               van het jaar tot en met de testdag, in procenten per 10 kJ per kg. Dat telt voor het hele punt, op
-              dezelfde verval-grenzen (Goud 7%, Diamant 1,5%; minder is beter). De test gaat een jaar voor op je
-              ritten. Er is geen plafond.
+              eigen grenzen (Platina 5%, Diamant 2,5%; minder is beter). De test gaat een jaar voor op je ritten.
+              Er is geen plafond.
             </dd>
             <dt className="font-medium">Profielscore</dt>
             <dd className="text-muted-foreground">

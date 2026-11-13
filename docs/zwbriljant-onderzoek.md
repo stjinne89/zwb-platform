@@ -364,9 +364,10 @@ durability zakte van 400 naar 65 punten.
 
 Sinds 2026-10-21 is Diamant het verval van de WorldTour en Robijn dat van ProTeam,
 zodat Diamant haalbaar is. Eerst: 12,5, 9,5, 7, 5, 3,6, 2,6, 1,8, 1,2 en 0,7. Sinds
-2026-11-13 is dit ook het verval per niveau waarmee de verse ijkwaarden van 5 en 20
-minuten naar vermoeide ijkwaarden gaan (`DURABILITY_DECLINE`); de schaal zelf telt
-alleen nog voor de durability-test (`DURABILITY_DECLINE_ANCHORS`).
+2026-11-13 is dit alleen nog het verval per niveau waarmee de verse ijkwaarden van 5
+en 20 minuten naar vermoeide ijkwaarden gaan (`DURABILITY_DECLINE`). De durability-test
+heeft eigen grenzen (`DURABILITY_TEST_ANCHORS`), zie "De durability-test weer op
+verval".
 
 Houvast: na 45 kJ/kg verliezen WorldTour-renners 4,7 tot 8,8% en ProTeam-renners
 7,6 tot 11,6% (Mateo-March 2022), ongeveer 1,5 en 2,2% per 10 kJ/kg. Succesvolle
@@ -396,8 +397,9 @@ geldt voor de test niet.
 
 **Gekozen (eigenaar).** De test telt het verval: de 20 minuten na het werk tegen je beste
 20 minuten van het jaar tot en met de testdag, in procenten per 10 kJ/kg, voor het hele
-punt, op de vervalgrenzen `DURABILITY_DECLINE_ANCHORS` (Goud 7%, Platina 5%, Diamant
-1,5%; minder is beter, voorbij Diamant door tot geen verval). Een jaar terug in plaats
+punt, eerst op de vervalgrenzen van `DURABILITY_DECLINE` (Goud 7%, Platina 5%, Diamant
+1,5%; minder is beter, voorbij Diamant door tot geen verval). Diezelfde avond eigen
+grenzen, zie hieronder. Een jaar terug in plaats
 van 90 dagen, zodat er vrijwel zeker een echte beste 20 minuten bij zit; de uitslag
 geldt ook een jaar. De verse waarde ligt vast op de testdag, dus vers beter worden na de
 test kost geen durability (het bezwaar tegen het oude verval). Een test die beter is dan
@@ -419,10 +421,22 @@ van ProTeam na 15 kJ/kg, en beter dan de succesvolle amateurs van Barsumyan (6,5
 ongeveer 13 kJ/kg, Platina). De seizoensbesten van profs vallen bovendien vaak zelf na
 werk, dus hun verval bij weinig werk is waarschijnlijk te gunstig.
 
+**Eigen grenzen voor de test (eigenaar, 2026-11-13).** Eerst "zo laten", daarna: "3
+procent verval over 20 minuten waar 25 procent van het World Tour peloton niet aankomt"
+is eerder Diamant dan Saffier. `DURABILITY_TEST_ANCHORS`, in % per 10 kJ/kg: Koper 18,
+Brons 12,5, Zilver 9,5, Goud 7, Platina 5, Amethist 4,4, Saffier 3,8, Smaragd 3,3,
+Robijn 2,9, Diamant 2,5. Diamant is p75 van de WorldTour na 15 kJ/kg (3,7% ÷ 1,5),
+zo'n 3% verlies bij 82 kg na 1000 kJ; Platina en Zilver blijven de amateurs van
+Barsumyan; daartussen gelijk verdeeld. De eerste test gaat van 618 naar ongeveer 750
+punten. Voorbij Diamant loopt de laatste stap door (100 punten per 0,4%): geen verval
+is 1525 punten, het record (0,7%) 1350, de recordsteen 1240 (man) en 1232 (vrouw).
+Bovenin zijn de klassen smal (0,4 tot 0,6% per klasse): de verschillen zelf zijn
+klein, dus een paar watt blijft veel uitmaken. De normen voor ritten houden
+`DURABILITY_DECLINE`.
+
 **Bewust niet.** De verse waarde beperken tot een kortere periode rond de test (dan is
-de kans groter dat het geen echte beste 20 minuten is). Eigen grenzen voor de test,
-gemeten bij ongeveer evenveel werk (Barsumyan onderaan, de rij na 15 kJ/kg bovenaan):
-de eigenaar liet de schaal zo ("Zo laten", 2026-11-13). Een nieuwe schaalversie: uit
+de kans groter dat het geen echte beste 20 minuten is). Een vlakkere lijn voorbij
+Diamant (aangeboden, niet gekozen). Een nieuwe schaalversie: uit
 ritten verandert niets, en een steen met een test wordt bij elk bezoek opnieuw berekend.
 
 ### Durability als vermoeid vermogen (2026-11-13)

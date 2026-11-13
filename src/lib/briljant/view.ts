@@ -4,7 +4,7 @@
 
 import {
   CTL_ANCHORS,
-  DURABILITY_DECLINE_ANCHORS,
+  DURABILITY_TEST_ANCHORS,
   FACET_WEIGHTS,
   LEVELS,
   ZRS_ANCHORS,
@@ -385,7 +385,7 @@ function winsFromReadings(readings: Record<Facet, FacetReading | null>, consiste
         ? Math.min(1000, reading.value * (1 + IMPROVEMENT))
         : reading.value * (1 + IMPROVEMENT);
     const level = tested
-      ? levelAt(DURABILITY_DECLINE_ANCHORS, better)
+      ? levelAt(DURABILITY_TEST_ANCHORS, better)
       : facet === "durability"
         ? fatiguedLevel(
             {

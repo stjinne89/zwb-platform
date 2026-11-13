@@ -151,8 +151,8 @@ export const CTL_ANCHORS: Anchors = {
 
 /**
  * Het verval dat bij elk niveau hoort, in procenten per 10 kJ/kg voorafgaand werk.
- * De schaal van de durability-test (DURABILITY_DECLINE_ANCHORS) en de basis voor de
- * normen van vermoeid vermogen uit ritten (fatiguedPowerAnchors). Afgeleid uit het
+ * De basis voor de normen van vermoeid vermogen uit ritten (fatiguedPowerAnchors);
+ * de durability-test heeft eigen grenzen (DURABILITY_TEST_ANCHORS). Afgeleid uit het
  * verval van het hele vermogensprofiel: WorldTour ongeveer 1,5 en ProTeam 2,2
  * (Mateo-March 2022, na 45 kJ/kg), succesvolle amateurs ongeveer 5 en minder
  * succesvolle ongeveer 9,6 (Barsumyan 2025, op 20 minuten na 1000 kJ). Diamant is
@@ -163,10 +163,19 @@ export const DURABILITY_DECLINE = {
   levels: [12.5, 9.5, 7, 5, 4, 3.2, 2.6, 2.2, 1.5],
 } as const;
 
-/** Het verval als schaal: minder is beter, voorbij Diamant loopt hij door tot geen verval. */
-export const DURABILITY_DECLINE_ANCHORS: Anchors = {
-  zero: DURABILITY_DECLINE.zero,
-  levels: DURABILITY_DECLINE.levels,
+/**
+ * De schaal van de durability-test, in procenten verval per 10 kJ/kg; minder is beter,
+ * voorbij Diamant loopt hij door tot geen verval (eigenaar, 2026-11-13). Gemeten bij
+ * ongeveer evenveel werk als de test (1000 kJ, zo'n 12 tot 15 kJ/kg): Diamant 2,5 is
+ * p75 van de WorldTour op 20 minuten na 15 kJ/kg (3,7%, Mateo-March 2022, tabel 2),
+ * zo'n 3% verlies bij 82 kg. Platina 5 en Zilver 9,5 zijn de succesvolle en minder
+ * succesvolle amateurs (6,5 en 12,5% na 1000 kJ, Barsumyan 2025). Daartussen gelijk
+ * verdeeld. Eerst de grenzen van DURABILITY_DECLINE, met Diamant 1,5 uit de rij na
+ * 45 kJ/kg: verval versnelt met het werk, dus bij de test was die top te ruim.
+ */
+export const DURABILITY_TEST_ANCHORS: Anchors = {
+  zero: 18,
+  levels: [12.5, 9.5, 7, 5, 4.4, 3.8, 3.3, 2.9, 2.5],
   lowerIsBetter: true,
   estimate: true,
 };
