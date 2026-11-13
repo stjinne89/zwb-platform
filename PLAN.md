@@ -22,7 +22,8 @@ gaat stabiliteit voor nieuwe features.
    productie toegepast, in die volgorde, via de SQL-editor (de connector was
    niet in de sessie); de controlequeries onderaan beide migraties heeft Claude
    niet zelf gezien. Daarnaast de sportvoedingslijst (`7c6b4376`, migratie
-   `0330_nutrition_sports_products.sql`, nog niet op productie; ronde
+   `0330_nutrition_sports_products.sql`, op 2026-11-13 door de eigenaar op
+   productie toegepast via de SQL-editor; ronde
    "Gebouwd — Sportvoedingslijst"). Open: de eventpagina in de browser bekijken (niet gedaan:
    geen `.env.local` in de worktree), het toetsscript draaien op de echte
    events zodra de Supabase-connector er weer is. Zie de rondes
@@ -12329,7 +12330,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Sportvoedingslijst: bekende merken met de juiste waarden
 
 **2026-11-13, commit `7c6b4376`, lokaal, niet gepusht. Migratie
-`0330_nutrition_sports_products.sql`, niet toegepast op productie.** Op vraag
+`0330_nutrition_sports_products.sql`, op 2026-11-13 door de eigenaar op productie
+toegepast via de SQL-editor; de controlequeries onderaan heeft Claude niet zelf
+gezien.** Op vraag
 van de eigenaar ("meest gebruikte voeding ... uit een database halen en op de
 juiste manier invoeren? Denk aan Nduranz, Amacx"), daarna "Yes, as proposed" op
 het voorstel.
@@ -12398,7 +12401,9 @@ draaien en overschrijft een eerder opgehaald product), en
 los. `tsc` en eslint schoon.
 
 **Niet geverifieerd.** Het zoekveld en het vooraf invullen in de browser, en
-0330 op productie. Zonder 0330 is de lijst leeg en werkt scannen als voorheen.
+de uitkomst van de controlequeries van 0330 (57 rijen, 12 merken, geen rij
+zonder koolhydraten of eiwit). Zonder 0330 is de lijst leeg en werkt scannen
+als voorheen.
 
 ### Gebouwd — Eventvoeding, stap 8: na het event
 
