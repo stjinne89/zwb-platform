@@ -426,6 +426,15 @@ export const NORTE_2026: NutritionSource = {
   kind: "studie",
 };
 
+// Doorgestuurd door de eigenaar, 2026-11-13; viel voor het venster van de scan.
+export const NORTE_2026_BICARB: NutritionSource = {
+  citation:
+    "Norte BR, Hickman A, Muñoz Megias A, et al. Bicarbonate and carbohydrate co-ingestion during exercise in a novel gel format improves time-trial performance after 3 h of moderate-intensity exercise in trained cyclists. Scand J Med Sci Sports 36(10):e70373.",
+  year: 2026,
+  url: "https://doi.org/10.1111/sms.70373",
+  kind: "studie",
+};
+
 // Literatuurscan 2026-11 (docs/kennisbank-scan/2026-11.md).
 export const MARTYN_2026: NutritionSource = {
   citation:

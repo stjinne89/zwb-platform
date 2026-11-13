@@ -275,6 +275,17 @@ plafond per inname. Supplementprotocollen zijn er vanaf 18 jaar (AIS).
 **Afgeleid of eigen keuze:**
 - Plafonds per inname (400 mg cafeïne, 30 g bicarbonaat, 750 g slush) zijn
   eigen grenzen, geen waarden uit de bronnen.
+- **Bicarbonaat tijdens de rit (2026-11-13).** Doorgestuurd aan de eigenaar.
+  [Norte e.a. 2026](https://doi.org/10.1111/sms.70373): 11 getrainde renners,
+  cross-over, niet geblindeerd (de gel smaakt anders). 3 uur op 95% van de
+  GET met 80 g/u koolhydraten (1:0,8), in de proefrit 20 g bicarbonaat
+  (0,27 g/kg) in vier gels op 0, 30, 90 en 150 minuten. Daarna een tijdrit
+  van 12 minuten +12 W (~6%, p = 0,01); sprints en 2 minuten geen verschil;
+  maagklachten gelijk. Niet vergeleken met innemen voor de start; 3 van de 11
+  gingen er niet op vooruit; de gels kwamen van de fabrikant. Bewijsniveau
+  voor deze vorm: eerste aanwijzingen (één kleine, open proef). Het staat als
+  beperking bij het protocol, niet als stap; de dosis en het moment vooraf
+  blijven. Ook bij het protocol: 20 g natriumbicarbonaat is ruim 5 g natrium.
 - 7,5 g/kg ijsslush is de hoeveelheid uit de meeste studies in de
   meta-analyses; die studies zelf zijn niet afzonderlijk nagelezen.
 - De stappen van 10 g per week bij darmtraining zijn een afleiding; er is geen

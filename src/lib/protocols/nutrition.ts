@@ -27,6 +27,7 @@ import {
   MIALL_2018,
   MORTON_2026_JNUTR,
   NORTE_2026,
+  NORTE_2026_BICARB,
   MARTYN_2026,
   MAZZA_2026,
   JONES_LOADING_2026,
@@ -280,14 +281,15 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     notFor: [
       "Onder de 18.",
-      "Bij hoge bloeddruk of nierproblemen zonder overleg met een arts: het is veel natrium.",
+      "Bij hoge bloeddruk of nierproblemen zonder overleg met een arts: het is veel natrium. 20 g natriumbicarbonaat bevat ruim 5 g natrium.",
     ],
     limits: [
       "Het werkt het best bij harde stukken van één tot tien minuten, maar ook tijdritten van 16 en 40 km gingen sneller.",
       "Je piekwaarde hoef je niet eerst te bepalen: tussen ongeveer 75 en 240 minuten na inname is de buffer bij de meeste mensen verhoogd.",
       "Een verdeelde inname over de drie dagen ervoor kan ook, maar staat hier niet als stap.",
+      "Verspreid over een rit van drie uur, in gels met koolhydraten, gaf het in één kleine proef zonder blindering een betere tijdrit van 12 minuten aan het eind; sprints en een tijdrit van 2 minuten niet. Het is niet vergeleken met innemen voor de start, dus dat staat hier niet als stap.",
     ],
-    sources: [GRGIC_2021, MAUGHAN_2018, LEACH_2023, SHANNON_2024, DE_OLIVEIRA_2020, GURTON_2021],
+    sources: [GRGIC_2021, MAUGHAN_2018, LEACH_2023, SHANNON_2024, DE_OLIVEIRA_2020, GURTON_2021, NORTE_2026_BICARB],
     article: { href: "/zwbeter-worden/voeding/kennis/supplementen", title: "Supplementen en sportvoeding" },
   },
   {

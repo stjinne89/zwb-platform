@@ -12315,6 +12315,34 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Kennisbank — bicarbonaat tijdens de rit (Norte 2026)
+
+**2026-11-13, lokaal gecommit, niet gepusht. Geen migratie.** De eigenaar kreeg
+[Norte e.a. 2026](https://doi.org/10.1111/sms.70373) doorgestuurd en vroeg of
+het in de kennisbank zat; dat was niet zo (wel een ander Norte-artikel uit 2026,
+over koolhydraten en CP). Het verscheen eind september, voor het venster van de
+kennisbank-scan. Op "Ja voeg maar toe" toegevoegd:
+
+- Bron `NORTE_2026_BICARB` in `src/lib/nutrition/library.ts`, bij het protocol
+  Bicarbonaat (`src/lib/protocols/nutrition.ts`).
+- Een beperking bij dat protocol: verspreid over drie uur in gels met
+  koolhydraten gaf het in één kleine, niet geblindeerde proef een betere
+  tijdrit van 12 minuten, niet bij sprints of 2 minuten, en het is niet
+  vergeleken met innemen voor de start.
+- Bij "niet voor": 20 g natriumbicarbonaat is ruim 5 g natrium (27% van het
+  gewicht; eigen omrekening).
+- De samenvatting van de proef in
+  [protocollen-onderzoek.md](docs/protocollen-onderzoek.md).
+
+**Bewust niet.** Geen stap "bicarbonaat tijdens de rit" en niets in de
+eventplanner of de bidons: één open proef met 11 renners is eerste aanwijzingen
+(beoordelingsbeleid), en de vergelijking met de inname vooraf ontbreekt. Het
+protocol, de dosis (0,2 tot 0,3 g/kg) en het moment (90 tot 180 minuten vooraf)
+blijven; het bewijsniveau van het protocol (sterk) verandert niet.
+
+**Getest.** De protocol- en kennisbanktests (118) en `tsc`. Het protocol niet in
+de browser bekeken.
+
 ### Gebouwd — Eventvoeding, stap 3: soort koolhydraten op recepten
 
 **2026-11-13, commit `ae72d7cf`, lokaal, niet gepusht. Migratie
