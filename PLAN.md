@@ -47,9 +47,10 @@ gaat stabiliteit voor nieuwe features.
    laatste kilometer stuur je de kopman met swipes. Op 2026-11-13
    gepusht: "Kopman: diamant, en rivalen per niveau" (`a7983b35`) en
    "Kopman: sterkere pelotons" (`52b6dc94`): hogere banden voor
-   Interclub en Continentaal en een peloton dat meegroeit. Daarna lokaal,
-   niet gepusht: "Kopman: de Ronde van de Alpen" (`a4772a41`),
-   een ronde van 5 etappes in de Wereldtour. Op een telefoon vult het bord het scherm. Open: na de
+   Interclub en Continentaal en een peloton dat meegroeit. Daarna, ook op
+   2026-11-13 gepusht: het onderzoek naar een breder spel (`8c9fd150`) en
+   "Kopman: de Ronde van de Alpen" (`a4772a41`), een ronde van 5 etappes
+   in de Wereldtour. Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12273,7 +12274,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kopman: de Ronde van de Alpen
 
-**2026-11-13, `a4772a41`, lokaal, niet gepusht.** Geen migratie. De save krijgt `tour` erbij (de lopende ronde);
+**2026-11-13, `a4772a41`, gepusht op 2026-11-13.** Geen migratie. De save krijgt `tour` erbij (de lopende ronde);
 een save zonder leest als `null`.
 
 - **De vraag.** Na het onderzoek hieronder koos de eigenaar bij de grote
@@ -12320,8 +12321,8 @@ een save zonder leest als `null`.
 
 ### Ontwerp — Kopman: het spel breder maken (geen code)
 
-**2026-11-13, de commit "Kopman: onderzoek naar een breder spel" (`8c9fd150`), lokaal,
-niet gepusht.** Alleen documentatie.
+**2026-11-13, de commit "Kopman: onderzoek naar een breder spel" (`8c9fd150`), gepusht
+op 2026-11-13.** Alleen documentatie.
 
 - **De vraag.** De eigenaar na 6 seizoenen: "elk seizoen makkelijk gewonnen
   en het hoogste seizoen met 2x de punten van de nummer 2 ... De weg naar
