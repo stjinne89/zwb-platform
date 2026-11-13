@@ -98,8 +98,8 @@ export function fatigueInputs(
 
 /**
  * De uitslag van een durability-test op `day`: de beste 20 minuten na de laagste
- * kJ-stand met genoeg werk, tegen de beste 20 minuten van het jaar tot en met die
- * dag (`fresh`); het verval daartussen telt. Null als er na het werk geen 20
+ * kJ-stand met genoeg werk, tegen de beste 20 minuten van de 90 dagen tot en met
+ * die dag (`fresh`); het verval daartussen telt. Null als er na het werk geen 20
  * minuten gereden is.
  */
 export function durabilityTestFrom(

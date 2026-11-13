@@ -40,6 +40,11 @@ gaat stabiliteit voor nieuwe features.
    plakken. Zie de
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
+0. **ZWBriljant: verse waarde van de durability-test weer 90 dagen
+   (2026-11-14): lokaal, niet gepusht.** Geen migratie, geen nieuwe schaalversie.
+   De uitslag blijft een jaar gelden. Zie de ronde "Verse waarde van de
+   durability-test weer 90 dagen".
+
 0. **ZWBriljant: vermogen als compound score (2026-11-13): gepusht naar
    `main` (`0f5f8b93`).** b = 0,75, ijkgewicht 75/62 kg, echte W/kg op het scherm. Nieuwe
    schaalversie `2026-11-13-compound`; de terugblik-job liep na de deploy
@@ -52,7 +57,8 @@ gaat stabiliteit voor nieuwe features.
 
 0. **ZWBriljant: durability-test weer op verval (2026-11-13): gepusht naar
    `main` (`8b093630`).** Geen migratie, geen nieuwe schaalversie. De test telt het verval
-   tegen je beste 20 minuten van het jaar en geldt een jaar. Open: na de
+   tegen je beste 20 minuten tot en met de testdag (*sinds 2026-11-14 van 90 dagen,
+   eerst van het jaar*) en geldt een jaar. Open: na de
    deploy Barts steen bekijken. Zie de ronde "Durability-test weer op
    verval".
 
@@ -12345,6 +12351,33 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Verse waarde van de durability-test weer 90 dagen
+
+**2026-11-14, commit volgt, lokaal, niet gepusht. Geen migratie.**
+
+- **Waarom.** Doorgerekend bij Bart (de enige met een test): zijn beste 20
+  minuten van het jaar (±357 W, teruggerekend uit zijn score) lag vóór de
+  laatste 90 dagen; daarin kwam hij vers tot 345 W. Met een jaar telde de test
+  ook verloren vorm als verval: 5,7% per 10 kJ/kg, 363 punten. Met 90 dagen
+  3,1%, ±753 punten (Smaragd), ongeveer +67 op zijn steen. De eigenaar: "het
+  waarschijnlijk dat iemand dan dezelfde vorm heeft en als iemand de test
+  aangaat ook een stevige verse 20 minuten heeft."
+- **Wat.** `DURABILITY_TEST_FRESH_DAYS` 90 (was 365). `DURABILITY_TEST_VALID_DAYS`
+  blijft 365: de uitslag geldt een jaar. Teksten in `/hulp`, de popup, de
+  samenvatting van het protocol en `docs/zwbriljant-onderzoek.md`. De popup
+  houdt zijn sleutel: wie hem zag, krijgt hem niet nog eens voor deze kleine
+  verbetering.
+- **Geen nieuwe schaalversie, bewust.** Alleen Bart heeft een test, en zijn
+  weeksteen wordt bij zijn volgende bezoek of de wekelijkse job opnieuw
+  berekend (upsert op de week).
+- **Niet meer waar.** In "Durability-test weer op verval": de verse waarde uit
+  het jaar, en het bewust niet bouwen van een kortere periode (daar gemarkeerd).
+  In `docs/zwbriljant-onderzoek.md` stond nog dat de test 90 dagen geldt;
+  dat is een jaar, rechtgezet.
+- **Geverifieerd:** de unittests van ZWBriljant en de doelen (146) en tsc.
+- **Niet geverifieerd:** Barts nieuwe steen op productie (de 345 W komt uit zijn
+  huidige 90-dagencurve, niet uit de 90 dagen tot de testdag; die liggen dicht
+  bij elkaar omdat de test op 13 november was); `next build`.
 ### Gebouwd — Merkproducten in het receptenboek
 
 **2026-11-13, commit `21f22218`, gepusht naar `main` op 2026-11-13. Migratie
@@ -12503,7 +12536,8 @@ op 2026-11-13 gepusht naar main (eigenaar: "Push maar").** Geen migratie. Schaal
     `lowerIsBetter` is terug op `Anchors` en in `scaleStep`.
   - `DURABILITY_TEST_VALID_DAYS` en `DURABILITY_TEST_FRESH_DAYS` 365 (waren
     90): de test geldt een jaar, de verse 20 minuten komen uit het jaar tot
-    en met de testdag (`loadDurabilityTest` in `server.ts`). Die verse waarde
+    en met de testdag (*sinds 2026-11-14 weer 90 dagen; de geldigheid blijft
+    een jaar*) (`loadDurabilityTest` in `server.ts`). Die verse waarde
     ligt vast op de testdag, dus vers beter worden na de test kost geen
     durability.
   - Uit ritten verandert niets: vermoeid vermogen, voor de helft.
@@ -12526,7 +12560,9 @@ op 2026-11-13 gepusht naar main (eigenaar: "Push maar").** Geen migratie. Schaal
   jaarcurve is niet opgevraagd.
 - **Bewust niet gebouwd:**
   - een kortere periode voor de verse waarde rond de test: dan is de kans
-    groter dat het geen echte beste 20 minuten is (keuze eigenaar: een jaar);
+    groter dat het geen echte beste 20 minuten is (keuze eigenaar: een jaar;
+    *op 2026-11-14 toch 90 dagen, zie "Verse waarde van de durability-test
+    weer 90 dagen"*);
   - verval uit ritten: daar is geen eerlijk paar, zie "durability als
     vermoeid vermogen";
   - een vlakkere lijn voorbij Diamant (aangeboden, niet gekozen).

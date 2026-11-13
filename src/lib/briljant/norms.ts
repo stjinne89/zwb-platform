@@ -252,17 +252,18 @@ export function fatiguedPowerAnchors(duration: FatiguedDuration, sex: Sex | null
 
 /**
  * De durability-test (Barsumyan 2025): na 1000 kJ 20 minuten voluit, tegen je beste
- * 20 minuten van het jaar tot en met de testdag. Telt het verval, voor het hele punt
- * (eigenaar, 2026-11-13): beide 20 minuten zijn bewust voluit gereden, dus het
+ * 20 minuten van de 90 dagen tot en met de testdag. Telt het verval, voor het hele
+ * punt (eigenaar, 2026-11-13): beide 20 minuten zijn bewust voluit gereden, dus het
  * verschil is durability en geen inzet. Uit ritten weet je dat niet; daar telt het
- * vermoeide vermogen (fatiguedPower). Een jaar terug en niet 90 dagen, zodat er
- * vrijwel zeker een echte beste 20 minuten bij zit. Die ligt vast op de testdag, dus
- * vers beter worden na de test kost geen durability. De uitslag geldt een jaar en
- * gaat dan voor op de ritten.
+ * vermoeide vermogen (fatiguedPower). 90 dagen en niet een jaar (eigenaar,
+ * 2026-11-14): dan heb je vrijwel dezelfde vorm als op de testdag, en wie de test
+ * aangaat heeft ook een stevige verse 20 minuten. Een jaar telde verloren vorm als
+ * verval. De verse waarde ligt vast op de testdag, dus vers beter worden na de test
+ * kost geen durability. De uitslag geldt een jaar en gaat dan voor op de ritten.
  */
 export const DURABILITY_TEST_SECONDS = 1200;
 export const DURABILITY_TEST_VALID_DAYS = 365;
-export const DURABILITY_TEST_FRESH_DAYS = 365;
+export const DURABILITY_TEST_FRESH_DAYS = 90;
 
 /**
  * Het gewicht van elke facet in de score (onderbouwing in

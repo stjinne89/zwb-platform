@@ -615,7 +615,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     title: DURABILITY_TEST_TITLE,
     shortLabel: DURABILITY_TEST_TITLE,
     summary:
-      "Eén lange rit: 1000 kJ op duurtempo en daarna 20 minuten voluit. Hoeveel je op die 20 minuten zakt tegen je beste 20 minuten van het jaar, is je durability in ZWBriljant, een jaar lang.",
+      "Eén lange rit: 1000 kJ op duurtempo en daarna 20 minuten voluit. Hoeveel je op die 20 minuten zakt tegen je beste 20 minuten van de 90 dagen ervoor, is je durability in ZWBriljant, een jaar lang.",
     goal: "Meten hoeveel vermogen je na lang werk overhoudt.",
     evidence: "matig",
     anchor: "start",

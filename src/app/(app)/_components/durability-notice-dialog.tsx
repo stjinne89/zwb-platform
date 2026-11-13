@@ -2,7 +2,8 @@
 
 // "Durability in ZWBriljant is veranderd": één keer, voor wie een steen heeft
 // (eigenaar, 2026-11-13). De sleutel kreeg een b toen de test weer op verval ging,
-// zodat wie de eerste tekst zag de juiste ziet. Gezien onthoudt de browser; wie op
+// zodat wie de eerste tekst zag de juiste ziet; de 90 dagen (2026-11-14) waren een
+// kleine verbetering en kregen geen nieuwe sleutel. Gezien onthoudt de browser; wie op
 // een tweede apparaat kijkt, ziet hem daar nog één keer. Na NOTICE_UNTIL
 // verschijnt hij niet meer, ook niet voor nieuwe leden.
 //
@@ -49,7 +50,7 @@ const ITEMS = [
   },
   {
     title: "Met de durability-test telt je verval, helemaal.",
-    text: "Hoeveel je 20 minuten na 1000 kJ lager zijn dan je beste 20 minuten van het jaar. 15 minuten inrijden, op 80% FTP door tot 1000 kJ, 5 minuten rustig, dan 20 minuten zo hard als je kunt (niet in ERG). Rij hem uitgerust. De uitslag geldt een jaar.",
+    text: "Hoeveel je 20 minuten na 1000 kJ lager zijn dan je beste 20 minuten van de 90 dagen ervoor. 15 minuten inrijden, op 80% FTP door tot 1000 kJ, 5 minuten rustig, dan 20 minuten zo hard als je kunt (niet in ERG). Rij hem uitgerust. De uitslag geldt een jaar.",
   },
   {
     title: "Zo tellen we hem.",

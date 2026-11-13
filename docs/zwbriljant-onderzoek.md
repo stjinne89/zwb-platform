@@ -434,20 +434,24 @@ zegt echt iets over durability. Het probleem van verval uit ritten (geen eerlijk
 geldt voor de test niet.
 
 **Gekozen (eigenaar).** De test telt het verval: de 20 minuten na het werk tegen je beste
-20 minuten van het jaar tot en met de testdag, in procenten per 10 kJ/kg, voor het hele
+20 minuten tot en met de testdag (eerst een jaar, sinds 2026-11-14 90 dagen, zie hieronder), in procenten per 10 kJ/kg, voor het hele
 punt, eerst op de vervalgrenzen van `DURABILITY_DECLINE` (Goud 7%, Platina 5%, Diamant
 1,5%; minder is beter, voorbij Diamant door tot geen verval). Diezelfde avond eigen
-grenzen, zie hieronder. Een jaar terug in plaats
-van 90 dagen, zodat er vrijwel zeker een echte beste 20 minuten bij zit; de uitslag
-geldt ook een jaar. De verse waarde ligt vast op de testdag, dus vers beter worden na de
+grenzen, zie hieronder. De uitslag geldt een jaar. De verse waarde ligt vast op de testdag, dus vers beter worden na de
 test kost geen durability (het bezwaar tegen het oude verval). Een test die beter is dan
 je verse beste is 0% verval. Uit ritten blijft het vermoeide vermogen, voor de helft.
 
 **Gevoelig voor de verse waarde.** Bij de eerste test (82 kg, 332 W na 1000 kJ, 12,2
 kJ/kg) en een beste 20 minuten van 345 W over 90 dagen is het verval 3,1% per 10 kJ/kg,
 618 punten; was zijn beste van het jaar 355 W, dan 385 punten, en bij 365 W 284. Een
-jaar terug kan een piek uit een ander deel van het seizoen zijn; dat is de prijs van een
-zekere beste waarde, en bewust zo gekozen.
+jaar terug kan een piek uit een ander deel van het seizoen zijn.
+
+**Terug naar 90 dagen (eigenaar, 2026-11-14).** Met een jaar telde de test ook verloren
+vorm als verval. Bij die eerste test: beste van het jaar ±357 W (vóór de laatste 90
+dagen), van de laatste 90 dagen 345 W. Een jaar gaf 5,7% per 10 kJ/kg, 363 punten; 90
+dagen 3,1%, op de eigen grenzen ±753 punten (+67 op de steen). Binnen 90 dagen heb je
+vrijwel dezelfde vorm als op de testdag, en wie de test aangaat heeft ook een stevige
+verse 20 minuten. De uitslag blijft een jaar gelden.
 
 **Niet recht met het werk.** Mateo-March 2022 (tabel 2, 20 minuten, mediaan WorldTour)
 laat zien dat verval versnelt: 0,6% na 15 kJ/kg, 1,9% na 25, 3,7% na 35, 5,4% na 45,
@@ -588,7 +592,7 @@ verloren 6,5%, minder succesvolle 12,5%; op 5 minuten was er geen verschil, dus
 alleen de 20 minuten. De ijkwaarden van de schaal komen al uit deze getallen. ZWB
 neemt als verse waarde je beste 20 minuten van de 90 dagen tot en met de testdag (in de
 studie een aparte test; vanaf 5 minuten klopt een beste waarde uit het veld redelijk,
-Pallarés 2022). De test geldt 90 dagen en gaat voor op de ritten, ook als hij lager
+Pallarés 2022). De test geldt een jaar en gaat voor op de ritten, ook als hij lager
 uitvalt. Kleine studies (14 en 20 renners); over hoe je zo'n test herhaalbaar houdt:
 Hunter 2025, Peeters 2025.
 

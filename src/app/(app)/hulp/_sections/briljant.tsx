@@ -243,7 +243,7 @@ export function BriljantHelp() {
               met het verval dat bij de klasse hoort (bij Goud 7% per 10 kJ per kg, bij Diamant 1,5%). Het
               gemiddelde telt voor de helft, want lang niet elke rit rijd je na het werk voluit. Met de
               durability-test telt je verval: hoeveel je 20 minuten na het werk lager zijn dan je beste 20 minuten
-              van het jaar tot en met de testdag, in procenten per 10 kJ per kg. Dat telt voor het hele punt, op
+              van de 90 dagen tot en met de testdag, in procenten per 10 kJ per kg. Dat telt voor het hele punt, op
               eigen grenzen (Platina 5%, Diamant 2,5%; minder is beter). De test gaat een jaar voor op je ritten.
               Er is geen plafond.
             </dd>

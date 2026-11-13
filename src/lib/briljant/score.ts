@@ -180,7 +180,7 @@ export type FatigueInput = {
   fatiguedWatts: number;
 };
 
-/** De uitslag van een durability-test: 20 minuten na het werk tegen je beste 20 minuten van het jaar. */
+/** De uitslag van een durability-test: 20 minuten na het werk tegen je beste 20 minuten van de 90 dagen ervoor. */
 export type DurabilityTestInput = {
   /** De testdag ("YYYY-MM-DD"); leeg bij de recordsteen. */
   day: string;
@@ -270,7 +270,7 @@ export function fatiguedLevel(power: FatiguedPower, sex: Sex | null, share: numb
 
 /**
  * Het verval uit een durability-test, in procenten per 10 kJ/kg: de test-20-minuten
- * tegen je beste 20 minuten van het jaar tot en met de testdag. Was de test beter,
+ * tegen je beste 20 minuten van de 90 dagen tot en met de testdag. Was de test beter,
  * dan is dat geen verval. Null zonder gewicht of bij te weinig werk voor je gewicht.
  */
 export function durabilityTestDecline(test: DurabilityTestInput | null | undefined, weightKg: number | null): number | null {
