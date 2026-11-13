@@ -12408,6 +12408,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
   vermoeid vermogen. In het onderzoek stond de schaalversie nog op
   `2026-10-21-sd`, en de Grand Tour-studie stond onder Mateo-March 2021 (de
   eerste auteur is Muriel).
+  Later op 2026-11-13 ook: het protocol Durability-test zei nog "het verschil
+  met je beste 20 minuten is je durability" en noemde je beste 20 minuten als
+  verse waarde; nu "je vermogen op die 20 minuten", de verse waarde is
+  weg uit de grenzen. Ook de toelichting in `protocols/training.ts` en
+  `durabilityTestFrom`, en de zoekwoorden "p25 plafond" op `/hulp`.
 - **Geverifieerd:** tsc, eslint (geen nieuwe waarschuwingen), 110
   ZWBriljant-tests (nieuw of herschreven: vermoeide ijkwaarden, de laagste
   stand, een betere verse waarde laat durability gelijk, ritten de helft van
