@@ -384,8 +384,10 @@ export function KennisHelp() {
                   uur drinkt. Het advies volgt uit wat je bij dat tempo
                   verbrandt en wat je voorraad aankan: 60% van ongeveer 6 g per
                   kg lichaamsgewicht, de rest blijft over voor de finale. Het
-                  vermogen komt uit je pacingplan, anders uit je FTP. Het advies
-                  gaat nooit boven wat je darm kan opnemen: 90 g per uur, of
+                  vermogen komt uit je pacingplan, anders uit je FTP. Zonder
+                  pacingplan begint de duur aan de lange kant: na vijf events van
+                  hetzelfde soort volgt die uit hoeveel langer jij reed dan
+                  gepland, daarvoor uit de club. Het advies gaat nooit boven wat je darm kan opnemen: 90 g per uur, of
                   meer na de darmtraining. Ook wat je meeneemt telt: met alleen
                   glucose (maltodextrine) of gewoon eten neem je ongeveer 60 g
                   per uur op, met glucose en fructose 2:1 ongeveer 90, met 1:0,8

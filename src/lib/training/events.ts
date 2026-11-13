@@ -73,8 +73,12 @@ const EVENT_COLUMNS =
  * 468 gereden ZRL-races van ZWB'ers is 53 minuten, van de TTT's 43.
  *
  * `gravel_race` viel tot 2026-11-02 terug op `outdoor`: een duurrit. Zie
- * OUTDOOR_RACE_IF voor de intensiteit. `toertocht` valt daar bewust nog op terug;
- * een toertocht is geen wedstrijd.
+ * OUTDOOR_RACE_IF voor de intensiteit.
+ *
+ * `toertocht` viel tot 2026-11-13 terug op `outdoor` (120 minuten). Twee gereden
+ * toertochten van ZWB'ers duurden 206 minuten tegen 105 gepland
+ * (docs/eventvoeding-plan.md §2); zonder afstand is 180 minuten een keuze van ZWB
+ * daartussen. Op duurtempo: een toertocht is geen wedstrijd.
  */
 const EVENT_DEFAULTS: Record<string, { minutes: number; intensity: WorkoutIntensity }> = {
   zrl: { minutes: 50, intensity: "race" },
@@ -85,6 +89,7 @@ const EVENT_DEFAULTS: Record<string, { minutes: number; intensity: WorkoutIntens
   gran_fondo: { minutes: 300, intensity: "endurance" },
   gravel_race: { minutes: 150, intensity: "race" },
   outdoor: { minutes: 120, intensity: "endurance" },
+  toertocht: { minutes: 180, intensity: "endurance" },
   social: { minutes: 90, intensity: "endurance" },
   training: { minutes: 75, intensity: "tempo" },
 };
@@ -312,6 +317,8 @@ export type EventWorkoutOptions = {
   clubShortName?: string;
 };
 
+export type EventDurationSource = "vast" | "route" | "type";
+
 export function eventWorkoutDefaults(
   event: ClubEventRow,
   options: EventWorkoutOptions = {},
@@ -320,6 +327,11 @@ export function eventWorkoutDefaults(
   intensity: WorkoutIntensity;
   /** Vermogensdoel van het blok; leeg laat de band van de intensiteit gelden. */
   target: string;
+  /**
+   * Waar de duur vandaan komt: een ingestelde koersduur of eindtijd (voor
+   * iedereen gelijk), een route of afstand, of de vaste waarde per eventtype.
+   */
+  durationSource: EventDurationSource;
 } {
   const fallback = EVENT_DEFAULTS[event.type] ?? EVENT_DEFAULTS.outdoor;
   const raceKind = zwiftRaceKind(event);
@@ -342,9 +354,12 @@ export function eventWorkoutDefaults(
         : gravelMinutes(event.type, estimateEventMinutes(size.distanceKm, size.elevationM));
   const minutes = size.durationMinutes ?? fromEnd ?? fromRoute ?? fallback.minutes;
   const durationMinutes = Math.min(MAX_EVENT_MINUTES, Math.max(20, minutes));
-  if (groupKind) return { durationMinutes, ...ZWIFT_GROUP_BLOCK[groupKind] };
+  const durationSource: EventDurationSource =
+    size.durationMinutes != null || fromEnd != null ? "vast" : fromRoute != null ? "route" : "type";
+  if (groupKind) return { durationMinutes, durationSource, ...ZWIFT_GROUP_BLOCK[groupKind] };
   return {
     durationMinutes,
+    durationSource,
     intensity: fallback.intensity,
     target: raceKind
       ? raceTarget(zwiftRaceIntensityFactor(durationMinutes))

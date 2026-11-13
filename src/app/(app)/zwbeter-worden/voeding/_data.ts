@@ -23,9 +23,11 @@ import { eventRide, isBidonRecipe, ridePlan, type RidePlan, type RidePlanInput }
 import {
   eventWorkoutDefaults,
   outdoorRaceIntensityFactor,
+  racePaceFor,
   zwiftRaceIntensityFactor,
   type ClubEventRow,
 } from "@/lib/training/events";
+import { durationMargin, durationRatios, withMargin } from "@/lib/nutrition/event-duration";
 import { eventSetting } from "@/lib/nutrition/event-fuel";
 import {
   choiceFromRow,
@@ -605,11 +607,54 @@ export type EventRidePlan = {
 /** De laadfase van het protocol begint twee dagen voor de wedstrijd. */
 const LOADING_DAYS_BEFORE = 2;
 
+/** Zo ver terug tellen je eigen events mee voor de marge op de duur. */
+const OWN_RATIO_DAYS = 365;
+
+/**
+ * Gereden / gepland voor je eigen events van dit type in het afgelopen jaar
+ * (stap 5 van docs/eventvoeding-plan.md): de geplande eventtraining naast de rit
+ * van die dag. Leeg bij een fout: dan geldt de clubwaarde.
+ */
+async function loadOwnDurationRatios(viewer: Viewer, eventType: string, today: string): Promise<number[]> {
+  const from = `${shiftDayKey(today, -OWN_RATIO_DAYS)}T00:00:00Z`;
+  const to = `${today}T00:00:00Z`;
+  const [planned, rides] = await Promise.all([
+    viewer.supabase
+      .from("training_workouts")
+      .select("scheduled_at, duration_minutes, events!inner(type)")
+      .eq("profile_id", viewer.user.id)
+      .eq("events.type", eventType)
+      .is("superseded_at", null)
+      .neq("status", "skipped")
+      .gte("scheduled_at", from)
+      .lt("scheduled_at", to),
+    viewer.supabase
+      .from("strava_activities")
+      .select("start_date, moving_time_seconds")
+      .eq("profile_id", viewer.user.id)
+      .is("training_excluded_at", null)
+      .gte("start_date", from)
+      .lt("start_date", to),
+  ]);
+  if (planned.error || rides.error) return [];
+  return durationRatios(
+    ((planned.data ?? []) as { scheduled_at: string; duration_minutes: number | null }[]).map((row) => ({
+      day: String(row.scheduled_at).slice(0, 10),
+      minutes: Number(row.duration_minutes ?? 0),
+    })),
+    ((rides.data ?? []) as { start_date: string; moving_time_seconds: number | null }[]).map((row) => ({
+      day: String(row.start_date).slice(0, 10),
+      minutes: Number(row.moving_time_seconds ?? 0) / 60,
+    })),
+  );
+}
+
 /**
  * Het ritplan voor een event, voor wie het bekijkt (stap 2b van
  * docs/ritvoeding-plan.md). De duur komt uit het eigen pacingplan, dan uit de
  * eigen training voor dit event in het schema, en anders uit dezelfde schatting
- * als het schema (eventWorkoutDefaults). Het doel per uur en het vocht volgen
+ * als het schema (eventWorkoutDefaults, met je eigen racefactor). Zonder
+ * pacingplan rekent het plan met een marge op die duur (event-duration.ts). Het doel per uur en het vocht volgen
  * het advies van docs/eventvoeding-plan.md; de knop en de schuifjes rekenen
  * daarna in de browser verder. Null voor een event dat voorbij is.
  */
@@ -620,8 +665,13 @@ export async function loadEventRidePlan(
 ): Promise<EventRidePlan | null> {
   const day = new Date(event.start_at).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
   if (day < today) return null;
-  const defaults = eventWorkoutDefaults(event);
-  const [pacing, { data: workout }, { data: power }, fuelRows] = await Promise.all([
+  const racePace = await racePaceFor(
+    viewer.supabase as unknown as Parameters<typeof racePaceFor>[0],
+    viewer.user.id,
+    [event],
+  ).catch(() => 1);
+  const defaults = eventWorkoutDefaults(event, { racePace });
+  const [pacing, { data: workout }, { data: power }, fuelRows, ownRatios] = await Promise.all([
     import("@/lib/pacing/session")
       .then(({ readOwnPlan }) => readOwnPlan(event.id, viewer.user.id))
       .catch(() => null),
@@ -636,6 +686,7 @@ export async function loadEventRidePlan(
       .maybeSingle(),
     viewer.supabase.from("profiles").select("ftp_watts").eq("id", viewer.user.id).maybeSingle(),
     loadEventFuelRows(viewer.supabase, [viewer.user.id], [event.id]),
+    loadOwnDurationRatios(viewer, event.type, today).catch(() => []),
   ]);
   const { minutes, intensity, longRace } = eventRide({
     pacedSeconds: pacing?.summary?.totalSeconds ?? null,
@@ -646,7 +697,16 @@ export async function loadEventRidePlan(
     eventType: event.type,
   });
 
-  const inputs = await loadRideInputs(viewer, [{ id: event.id, day, minutes, intensity }], today);
+  const pacedSeconds = pacing?.summary?.totalSeconds ?? 0;
+  const margin = durationMargin({
+    paced: pacedSeconds > 0,
+    source: defaults.durationSource,
+    eventType: event.type,
+    ownRatios,
+  });
+  const planMinutes = withMargin(minutes, margin);
+
+  const inputs = await loadRideInputs(viewer, [{ id: event.id, day, minutes: planMinutes, intensity }], today);
   const input = inputs.get(event.id);
   if (!input) return null;
   const summary = pacing?.summary;
@@ -655,6 +715,7 @@ export async function loadEventRidePlan(
   const planner = eventFuelPlanner({
     input,
     minutes,
+    planMinutes,
     intensity,
     setting,
     raceIf: setting === "binnen" ? zwiftRaceIntensityFactor(minutes) : outdoorRaceIntensityFactor(minutes),

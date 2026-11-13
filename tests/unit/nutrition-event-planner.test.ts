@@ -301,3 +301,10 @@ describe("eigen keuzes bewaren (0329)", () => {
     expect(saved.totalG).toBeGreaterThan(plain.totalG);
   });
 });
+
+it("begint het duurschuifje bij de duur met marge, en laat het tot twee keer de verwachte duur lopen", () => {
+  const p = planner({ planMinutes: 170 });
+  expect(p.expectedMinutes).toBe(122);
+  expect(p.defaults.minutes).toBe(170);
+  expect(planner({ planMinutes: 999 }).defaults.minutes).toBe(maxPlannerMinutes(122));
+});

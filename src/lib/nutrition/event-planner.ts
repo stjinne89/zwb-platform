@@ -215,7 +215,10 @@ export function plannerPlanInput(planner: EventFuelPlanner, choice: PlannerChoic
 /** De planner zoals de server hem opbouwt: de standaardkeuzes volgen het event. */
 export function eventFuelPlanner(input: {
   input: EventFuelPlanner["input"];
+  /** De verwachte duur. */
   minutes: number;
+  /** De duur waar het plan standaard mee rekent: de verwachte duur met marge (event-duration.ts). */
+  planMinutes?: number;
   intensity: string | null;
   setting: "binnen" | "buiten";
   raceIf: number;
@@ -237,7 +240,7 @@ export function eventFuelPlanner(input: {
     defaults: {
       preset: defaultPreset,
       intensityFactor: presetIntensity(base, defaultPreset),
-      minutes: input.minutes,
+      minutes: Math.min(maxPlannerMinutes(input.minutes), input.planMinutes ?? input.minutes),
       fluidMlPerHour: null,
       perHourG: null,
     },

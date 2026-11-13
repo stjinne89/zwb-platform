@@ -12,15 +12,17 @@ gaat stabiliteit voor nieuwe features.
    akkoord (eigenaar, 2026-11-13). Lokaal gecommit, niets gepusht: stap 1 (het
    model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
    het racebriefje, `844876ce`), stap 3 (soort koolhydraten op recepten,
-   `ae72d7cf`) en stap 4 (keuzes per event bewaren, `3b06249d`).
+   `ae72d7cf`), stap 4 (keuzes per event bewaren, `3b06249d`) en stap 5 (duur
+   met marge).
    De privacyzin voor stap 4 staat op `/privacy` (akkoord eigenaar,
    2026-11-13). Open: migraties `0328_nutrition_recipe_carb_mix.sql` en
    `0329_nutrition_event_fuel.sql` toepassen op productie (alleen op verzoek).
    Tot 0328 er is rekent de planner zonder tasgrens, tot 0329 er is lukt
    bewaren niet. Verder open: de eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
    worktree), het toetsscript draaien op de echte events zodra de
-   Supabase-connector er weer is, daarna stap 5 (duur met marge). Zie de rondes
-   "Gebouwd — Eventvoeding, stap 1 tot en met 4" en "Ontwerp — Eventvoeding".
+   Supabase-connector er weer is, daarna stap 6 (vocht naar weer). Zie de
+   rondes "Gebouwd — Eventvoeding, stap 1 tot en met 5" en "Ontwerp —
+   Eventvoeding".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
@@ -12315,6 +12317,57 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Eventvoeding, stap 5: duur met marge
+
+**2026-11-13, lokaal gecommit, niet gepusht. Geen migratie.** Op verzoek van de
+eigenaar ("Plaats zo en ga door", na stap 4). Stap 5 van
+[eventvoeding-plan.md](docs/eventvoeding-plan.md), §4a.
+
+**Wat er is.** Zonder pacingplan begint het duurschuifje bij de verwachte duur
+met een marge (`src/lib/nutrition/event-duration.ts`), op 5 minuten naar boven.
+De marge is de p90 van je eigen gereden / gepland voor events van dat type in
+het afgelopen jaar, vanaf vijf events (geplande eventtraining naast de rit van
+die dag in `strava_activities`, die het dichtst bij ligt). Daarvoor: met een
+route of afstand 1,12, zonder de clubwaarde per type uit §2 van het plan (ZRL
+1,37, Ladder 1,26, Flamme Rouge 1,18, SRC 1,23), anders geen marge. Geen marge
+met een pacingplan of een ingestelde koersduur of eindtijd
+(`eventWorkoutDefaults` geeft nu `durationSource`). De marge ligt tussen 1 en
+1,5. `loadEventRidePlan` rekent de verwachte duur nu ook met je eigen racefactor
+(`racePaceFor`), zoals het schema. `toertocht` staat in `EVENT_DEFAULTS`: 180
+minuten op duurtempo.
+
+**Keuzes van ZWB in deze stap.** Vijf events als ondergrens voor je eigen
+marge. 1,12 met een route: de p90 van de afwijking van het racemodel met de
+persoonlijke factor (11,6%, `race-pace.ts`), omdat de clubverhoudingen van §2
+grotendeels uit planningen zonder route komen en er met een route te ruim
+naast zouden zitten. Toertocht 180 minuten zonder afstand, tussen de twee
+gereden toertochten (105 gepland, 206 gereden); geen clubmarge voor toertocht.
+De grenzen 1 en 1,5. De verwachte duur blijft het midden voor het
+duurschuifje (tot twee keer) en voor de race-IF.
+
+**Nu niet meer waar.** "`toertocht` valt daar bewust nog op terug"
+(`events.ts`, `EVENT_DEFAULTS`): bijgewerkt. Een toertocht zonder afstand in het
+schema krijgt nu 180 in plaats van 120 minuten; bestaande blokken blijven tot
+ze opnieuw worden gemaakt. In het plan stond de clubverhouding ook met een
+route; dat is 1,12 geworden (bijgewerkt in §7).
+
+**Bewust niet in deze stap.** De verwachte duur zonder marge in beeld ("verwacht
+1:55" uit het ontwerp in §5): het schuifje heeft er geen ruimte voor op een
+telefoon, en `/hulp` legt uit dat de duur aan de lange kant begint. De
+herinnering en Boodschappen rekenen zonder bewaarde keuze nog met de duur uit
+het schema, zonder marge. Geen marge op het schemablok zelf: dat blijft de
+verwachte duur, voor de belasting.
+
+**Getest.** `tests/unit/nutrition-event-duration.test.ts` (8 tests) en een test
+in `nutrition-event-planner.test.ts`. De hele suite groen op `omnium-live.test.ts`
+na (`.env.local`); `modules.test.ts` en `admin-areas.test.ts` liepen onder volle
+belasting in een tijdslimiet en slagen los. `tsc` en eslint schoon.
+
+**Niet geverifieerd.** De query naar je eigen events (`training_workouts` met
+`events!inner(type)`) en de racefactor met de gewone client in plaats van de
+admin-client: niet tegen Supabase gedraaid. Bij een fout vallen beide terug op
+de clubwaarde en factor 1.
 
 ### Gebouwd — Eventvoeding, stap 4: keuzes per event bewaren
 

@@ -304,6 +304,13 @@ Elke stap een eigen ronde met commit, `PLAN.md`-blok en waar nodig `/hulp`.
 5. **Duur met marge.** De eigen verhouding per eventtype (p90) en de
    clubterugval als standaard op het duurschuifje; `toertocht` in
    `EVENT_DEFAULTS`; `racePace` ook doorgeven in `loadEventRidePlan`.
+
+   *Gebouwd op 2026-11-13, zie `PLAN.md`: `src/lib/nutrition/event-duration.ts`.
+   Anders dan hier stond, geldt met een route of afstand niet de clubverhouding
+   van §2 maar 1,12: die verhoudingen komen grotendeels uit planningen zonder
+   route, en met een route rekent het racemodel met je eigen factor al
+   nauwkeuriger (p90 van de afwijking 11,6%). Toertocht kreeg 180 minuten
+   zonder afstand, maar geen clubmarge (twee events). Geen migratie.*
 6. **Vocht naar binnen, buiten en weer.** De vochtschatting met de temperatuur
    uit `fetchRouteForecast` (binnen een week voor het event), anders de
    seizoenswaarde; zout in de bidon bij veel verlies.
