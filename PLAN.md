@@ -9,10 +9,10 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Eventvoeding: een plan dat sluit op tempo en duur (2026-11-13).** De
    besluiten in §6 van [eventvoeding-plan.md](docs/eventvoeding-plan.md) zijn
-   akkoord (eigenaar, 2026-11-13). Lokaal gecommit, niets gepusht: stap 1 (het
+   akkoord (eigenaar, 2026-11-13). Op 2026-11-13 gepusht naar `main` (eigenaar: "Main push"): stap 1 (het
    model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
    het racebriefje, `844876ce`), stap 3 (soort koolhydraten op recepten,
-   `ae72d7cf`), stap 4 (keuzes per event bewaren, `3b06249d`) en stap 5 (duur
+   `ae72d7cf`), stap 4 (keuzes per event bewaren, `3b06249d`), stap 5 (duur
    met marge, `e0f00852`), stap 6 (vocht naar het weer, zout, `ae188fd8`),
    stap 7 (eetmomenten uit het pacingplan, `22552a90`) en stap 8 (na het event:
    plan naast rit en eten, `51f443ec`). Daarmee zijn alle acht stappen gebouwd.
@@ -22,7 +22,7 @@ gaat stabiliteit voor nieuwe features.
    Tot 0328 er is rekent de planner zonder tasgrens, tot 0329 er is lukt
    bewaren niet. Verder open: de eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
    worktree), het toetsscript draaien op de echte events zodra de
-   Supabase-connector er weer is, en pushen (alleen op verzoek). Zie de rondes
+   Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
@@ -33,6 +33,10 @@ gaat stabiliteit voor nieuwe features.
    teampagina bekijken, en de Zwift-links van de races van ZRL A opnieuw
    plakken. Zie de
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
+
+0. **ZWBriljant: popup over de nieuwe durability (2026-11-13): gepusht naar
+   `main` (`8e767d3a`).** Geen migratie. In de preview bekeken. Zie de ronde "ZWBriljant: popup over de nieuwe
+   durability".
 
 0. **ZWBriljant: durability als vermoeid vermogen (2026-11-13): gepusht naar
    `main` (`30ca9d7b`).** Geen migratie. Nieuwe schaalversie
@@ -12321,7 +12325,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Eventvoeding, stap 8: na het event
 
-**2026-11-13, commit `51f443ec`, lokaal, niet gepusht. Geen migratie.** Op verzoek van de
+**2026-11-13, commit `51f443ec`, gepusht naar `main` (eigenaar: "Main push"). Geen migratie.** Op verzoek van de
 eigenaar ("Kom maar door" na stap 7, daarna "Ja" op het voorstel en de
 privacyzin). Stap 8 van [eventvoeding-plan.md](docs/eventvoeding-plan.md),
 besluit 10.
@@ -12377,7 +12381,7 @@ niet nagekeken; NP/FTP gaat voor, en beide vormen worden gelezen.
 
 ### Gebouwd — Eventvoeding, stap 7: eetmomenten uit het pacingplan
 
-**2026-11-13, commit `22552a90`, lokaal, niet gepusht. Geen migratie.** Op verzoek van de
+**2026-11-13, commit `22552a90`, gepusht naar `main` (eigenaar: "Main push"). Geen migratie.** Op verzoek van de
 eigenaar ("Ja ga maar door", na stap 6). Stap 7 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md), §4g.
 
@@ -12430,7 +12434,7 @@ gelegd.
 
 ### Gebouwd — Eventvoeding, stap 6: vocht naar het weer, en zout
 
-**2026-11-13, commit `ae188fd8`, lokaal, niet gepusht. Geen migratie.** Op verzoek van de
+**2026-11-13, commit `ae188fd8`, gepusht naar `main` (eigenaar: "Main push"). Geen migratie.** Op verzoek van de
 eigenaar ("Ja ga maar door", na stap 5). Stap 6 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md), besluit 8 en 9.
 
@@ -12470,7 +12474,7 @@ startpunt geldt de seizoenswaarde.
 
 ### Gebouwd — Eventvoeding, stap 5: duur met marge
 
-**2026-11-13, commit `e0f00852`, lokaal, niet gepusht. Geen migratie.** Op verzoek van de
+**2026-11-13, commit `e0f00852`, gepusht naar `main` (eigenaar: "Main push"). Geen migratie.** Op verzoek van de
 eigenaar ("Plaats zo en ga door", na stap 4). Stap 5 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md), §4a.
 
@@ -12521,7 +12525,7 @@ de clubwaarde en factor 1.
 
 ### Gebouwd — Eventvoeding, stap 4: keuzes per event bewaren
 
-**2026-11-13, commit `3b06249d`, lokaal, niet gepusht. Migratie
+**2026-11-13, commit `3b06249d`, gepusht naar `main` (eigenaar: "Main push"). Migratie
 `0329_nutrition_event_fuel.sql`, niet toegepast op productie.** Op verzoek van de
 eigenaar ("ga verder", na stap 3). Stap 4 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md), besluit 7.
@@ -12579,7 +12583,7 @@ bewaarde keuze (alleen getypt, niet gedraaid).
 
 ### Kennisbank — bicarbonaat tijdens de rit (Norte 2026)
 
-**2026-11-13, commit `36dc94e4`, lokaal, niet gepusht. Geen migratie.** De eigenaar kreeg
+**2026-11-13, commit `36dc94e4`, gepusht naar `main` (eigenaar: "Main push"). Geen migratie.** De eigenaar kreeg
 [Norte e.a. 2026](https://doi.org/10.1111/sms.70373) doorgestuurd en vroeg of
 het in de kennisbank zat; dat was niet zo (wel een ander Norte-artikel uit 2026,
 over koolhydraten en CP). Het verscheen eind september, voor het venster van de
@@ -12607,7 +12611,7 @@ de browser bekeken.
 
 ### Gebouwd — Eventvoeding, stap 3: soort koolhydraten op recepten
 
-**2026-11-13, commit `ae72d7cf`, lokaal, niet gepusht. Migratie
+**2026-11-13, commit `ae72d7cf`, gepusht naar `main` (eigenaar: "Main push"). Migratie
 `0328_nutrition_recipe_carb_mix.sql`, niet toegepast op productie.** Op verzoek
 van de eigenaar ("Ga door", na stap 2). Stap 3 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md), besluit 5 en 6; de vraag
@@ -12662,7 +12666,7 @@ verzoek; daarna de controlequery onderaan het bestand: eten 10, `1:0.8` 1,
 
 ### Gebouwd — Eventvoeding, stap 2: het plan zelf aanpassen
 
-**2026-11-13, commit `844876ce`, lokaal, niet gepusht; niet in de browser bekeken.** Op
+**2026-11-13, commit `844876ce`, gepusht naar `main` (eigenaar: "Main push"); niet in de browser bekeken.** Op
 verzoek van de eigenaar ("Ga maar verder", na stap 1). Geen migratie. Stap 2 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md).
 
@@ -12716,7 +12720,7 @@ op een trage telefoon gemeten.
 
 ### Gebouwd — Eventvoeding, stap 1: het model achter het advies
 
-**2026-11-13, commit `68246829`, lokaal, niet gepusht.** Op verzoek van de eigenaar
+**2026-11-13, commit `68246829`, gepusht naar `main` (eigenaar: "Main push").** Op verzoek van de eigenaar
 ("Ja, begin stap 1"). Geen migratie, niets in beeld. Stap 1 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md).
 
@@ -12794,6 +12798,40 @@ boven de grens, een mg-doel voor natrium; zie §8 van het voorstel.
 **Niet geverifieerd.** De rekenvoorbeelden zijn met de hand gemaakt. De
 bruto-efficiëntie, het aandeel koolhydraten per IF en de voorraad per kg zijn
 aannames tot stap 1 ze met bronnen onderbouwt.
+
+### Gebouwd — ZWBriljant: popup over de nieuwe durability
+
+**2026-11-13, de commit "ZWBriljant: popup over de nieuwe durability"
+(`8e767d3a`), op 2026-11-13 gepusht naar main.** Geen migratie.
+
+- **De vraag.** De eigenaar wilde de nieuwe durability (ronde hieronder) aan de
+  leden uitleggen in een popup, met hoe je de durability-test doet en hoe je
+  ziet dat de app hem vond. Tekst goedgekeurd door de eigenaar.
+- **Wat er is.** `DurabilityNoticeDialog` in `src/app/(app)/_components/`, in
+  de vorm van "Nieuw in ZWBeter trainen": één keer per apparaat
+  (`localStorage`), tot en met 15 december, nooit boven op een andere
+  dialoog. Alleen voor wie een steen op de huidige schaal heeft
+  (`hasBriljantStone`, één vraag, pas als de popup op dit apparaat nog niet
+  gezien is); zonder steen onthoudt het apparaat dat. Vier punten: wat telt,
+  ritten voor de helft, de test voor het hele punt met de opzet, en hoe we
+  hem tellen (met een schema plant ZWBeter hem in; zonder schema het protocol
+  starten vóór je rijdt en afvinken op de dag zelf of de dag erna; dan staat
+  bij durability "durability-test van" met de datum). Knop "Naar de test"
+  naar het protocol, als de club die pagina heeft.
+- **Bewust niet gebouwd:**
+  - stappen om de test in intervals.icu terug te zien: de periodekiezer daar
+    kent geen losse dag en de curves na 1000 kJ stelt elk lid zelf in, dus
+    die stappen zijn voor een standaardaccount niet te controleren. De
+    controle is de bronregel in ZWBriljant (keuze eigenaar);
+  - persoonlijke cijfers (oude tegen nieuwe durability): langer, en extra
+    vragen op elke pagina.
+- **Geverifieerd:** tsc en eslint; in de preview (dev-server in deze
+  worktree, ingelogd als de eigenaar) op desktop en telefoonbreedte: de
+  popup wacht tot "Nieuw in ZWBeter trainen" dicht is, opent bij de
+  volgende pagina, past op 375 px, "Naar de test" opent het protocol, en
+  daarna komt hij niet terug.
+- **Niet geverifieerd:** `next build`; een lid zonder steen (de popup hoort
+  dan weg te blijven).
 
 ### Hersteld — Schema neemt een nieuwe eventtitel over
 
