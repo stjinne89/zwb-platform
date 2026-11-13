@@ -38,13 +38,13 @@ gaat stabiliteit voor nieuwe features.
    plakken. Zie de
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
-0. **ZWBriljant: vermogen als compound score (2026-11-13): lokaal, niet
-   gepusht (`0f5f8b93`).** b = 0,75, ijkgewicht 75/62 kg, echte W/kg op het scherm. Nieuwe
+0. **ZWBriljant: vermogen als compound score (2026-11-13): gepusht naar
+   `main` (`0f5f8b93`).** b = 0,75, ijkgewicht 75/62 kg, echte W/kg op het scherm. Nieuwe
    schaalversie `2026-11-13-compound`: na de deploy de terugblik-job draaien.
    Zie de ronde "ZWBriljant: vermogen als compound score".
 
-0. **ZWBriljant: eigen grenzen voor de durability-test (2026-11-13): lokaal,
-   niet gepusht (`db040da6`).** Diamant 2,5% per 10 kJ/kg (WorldTour-p75), Platina 5. Zie
+0. **ZWBriljant: eigen grenzen voor de durability-test (2026-11-13): gepusht
+   naar `main` (`db040da6`).** Diamant 2,5% per 10 kJ/kg (WorldTour-p75), Platina 5. Zie
    de ronde "Eigen grenzen voor de durability-test".
 
 0. **ZWBriljant: durability-test weer op verval (2026-11-13): gepusht naar
@@ -12345,7 +12345,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — ZWBriljant: vermogen als compound score
 
 **2026-11-13, commit `0f5f8b93` ("ZWBriljant: vermogen als compound score"),
-lokaal, niet gepusht.** Geen migratie. Schaalversie `2026-11-13-compound` (was
+op 2026-11-13 gepusht naar main (eigenaar: "Push maar").** Geen migratie. Schaalversie `2026-11-13-compound` (was
 `2026-11-13-vermoeid`).
 
 - **De vraag.** De eigenaar wilde de waarden "een beetje weg ... bij watts per
@@ -12391,8 +12391,8 @@ lokaal, niet gepusht.** Geen migratie. Schaalversie `2026-11-13-compound` (was
 
 ### Hersteld — Eigen grenzen voor de durability-test
 
-**2026-11-13, commit `db040da6` ("Durability-test: eigen grenzen"), lokaal,
-niet gepusht.** Geen migratie, geen nieuwe schaalversie.
+**2026-11-13, commit `db040da6` ("Durability-test: eigen grenzen"), op
+2026-11-13 gepusht naar main (eigenaar: "Push maar").** Geen migratie, geen nieuwe schaalversie.
 
 - **De vraag.** Volgens Mateo-March 2022 (tabel 2) versnelt verval met het
   werk. Diamant (1,5) en Robijn (2,2) kwamen uit de rij na 45 kJ/kg, dus bij
