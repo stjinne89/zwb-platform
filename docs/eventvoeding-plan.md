@@ -314,6 +314,11 @@ Elke stap een eigen ronde met commit, `PLAN.md`-blok en waar nodig `/hulp`.
 6. **Vocht naar binnen, buiten en weer.** De vochtschatting met de temperatuur
    uit `fetchRouteForecast` (binnen een week voor het event), anders de
    seizoenswaarde; zout in de bidon bij veel verlies.
+
+   *Gebouwd op 2026-11-13, zie `PLAN.md`. Met `fetchWindForecast` op het
+   startpunt halverwege de rit in plaats van `fetchRouteForecast`: die heeft een
+   ingelezen GPX nodig, en het startpunt is er bij elk event buiten met
+   coördinaten. Seizoen: KNMI-normalen De Bilt 1991–2020 (`SEASON_OUTDOOR_C`).*
 7. **Momenten uit het pacingplan.** Accenten, start van een Zwift-race, vast
    eten of gel naar IF.
 8. **Na het event.** Plan, gereden en gegeten naast elkaar; de standaardwaarden

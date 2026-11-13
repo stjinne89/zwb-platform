@@ -330,8 +330,46 @@ export const PRESET_IF: Record<Exclude<FuelPreset, "race">, number> = { duur: 0.
  */
 export const AVG_SHARE_OF_NP: Record<FuelPreset, number> = { duur: 0.95, tempo: 0.93, race: 0.9 };
 
-/** Rond 15 °C buiten als er geen verwachting is: een gewone rit in voor- of najaar. */
+/** Rond 15 °C buiten als er geen verwachting en geen datum is: een gewone rit in voor- of najaar. */
 export const DEFAULT_OUTDOOR_C = 15;
+
+/**
+ * De temperatuur overdag per maand, januari eerst: het midden van de
+ * gemiddelde dagtemperatuur en het gemiddelde maximum in De Bilt, 1991–2020
+ * (KNMI-normalen). Het midden is een keuze van ZWB: je rijdt overdag, maar niet
+ * alleen op het warmste uur. Voor een event buiten zonder weersverwachting.
+ */
+export const SEASON_OUTDOOR_C: readonly number[] = [
+  4.9, 5.5, 8.5, 12.3, 15.9, 18.6, 20.7, 20.4, 17.1, 12.9, 8.5, 5.5,
+];
+
+/** Binnen zoveel dagen voor het event telt de weersverwachting, daarna het seizoen. */
+export const FORECAST_DAYS = 7;
+
+/** De seizoenstemperatuur voor een dag (YYYY-MM-DD). */
+export function seasonTemperature(day: string): number {
+  const month = Number(day.slice(5, 7));
+  return SEASON_OUTDOOR_C[month - 1] ?? DEFAULT_OUTDOOR_C;
+}
+
+/**
+ * Zout in elke bidon (besluit 9): bij een geschat zweetverlies van meer dan 2
+ * liter over de hele rit, of buiten vanaf 25 °C. Geen milligramdoel: zoutverlies
+ * is niet uit gewicht of vermogen af te leiden.
+ */
+export const SALT_SWEAT_TOTAL_ML = 2000;
+export const SALT_WARM_C = 25;
+
+export function needsSalt(input: {
+  sweatMlPerHour: number | null;
+  minutes: number;
+  setting: "binnen" | "buiten";
+  temperatureC?: number | null;
+}): boolean {
+  const total = input.sweatMlPerHour != null ? (input.sweatMlPerHour * input.minutes) / 60 : 0;
+  const warm = input.setting === "buiten" && input.temperatureC != null && input.temperatureC >= SALT_WARM_C;
+  return total > SALT_SWEAT_TOTAL_ML || warm;
+}
 
 /**
  * Het deel van de warmte dat via zweet weg moet. Binnen alles: weinig

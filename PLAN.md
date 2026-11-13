@@ -13,16 +13,16 @@ gaat stabiliteit voor nieuwe features.
    model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
    het racebriefje, `844876ce`), stap 3 (soort koolhydraten op recepten,
    `ae72d7cf`), stap 4 (keuzes per event bewaren, `3b06249d`) en stap 5 (duur
-   met marge, `e0f00852`).
+   met marge, `e0f00852`) en stap 6 (vocht naar het weer, zout).
    De privacyzin voor stap 4 staat op `/privacy` (akkoord eigenaar,
    2026-11-13). Open: migraties `0328_nutrition_recipe_carb_mix.sql` en
    `0329_nutrition_event_fuel.sql` toepassen op productie (alleen op verzoek).
    Tot 0328 er is rekent de planner zonder tasgrens, tot 0329 er is lukt
    bewaren niet. Verder open: de eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
    worktree), het toetsscript draaien op de echte events zodra de
-   Supabase-connector er weer is, daarna stap 6 (vocht naar weer). Zie de
-   rondes "Gebouwd — Eventvoeding, stap 1 tot en met 5" en "Ontwerp —
-   Eventvoeding".
+   Supabase-connector er weer is, daarna stap 7 (momenten uit het
+   pacingplan). Zie de rondes "Gebouwd — Eventvoeding, stap 1 tot en met 6" en
+   "Ontwerp — Eventvoeding".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
@@ -12318,6 +12318,46 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Eventvoeding, stap 6: vocht naar het weer, en zout
+
+**2026-11-13, lokaal gecommit, niet gepusht. Geen migratie.** Op verzoek van de
+eigenaar ("Ja ga maar door", na stap 5). Stap 6 van
+[eventvoeding-plan.md](docs/eventvoeding-plan.md), besluit 8 en 9.
+
+**Wat er is.** Bij een event buiten rekent de vochtschatting met de temperatuur
+halverwege de rit: binnen een week voor het event de verwachting van Open-Meteo
+op het startpunt (`fetchWindForecast`, al gebruikt op de eventpagina), anders
+de seizoenswaarde van die maand (`SEASON_OUTDOOR_C` in `event-fuel.ts`). Het
+schuifje Vocht per uur toont buiten de temperatuur ernaast ("0,6 l · 14 °C").
+"Zout in elke bidon" staat er bij een geschat zweetverlies van meer dan 2 liter
+over de rit, of buiten vanaf 25 °C (`needsSalt`). Met een zweettest rekent het
+zout met die test.
+
+**Keuzes van ZWB in deze stap.** De seizoenswaarde is het midden van de
+gemiddelde dagtemperatuur en het gemiddelde maximum in De Bilt, 1991–2020
+(KNMI-normalen; bron in [voeding-wielrennen.md](docs/voeding-wielrennen.md)
+§6): je rijdt overdag, niet alleen op het warmste uur. Eén station voor heel
+Nederland. De verwachting telt pas binnen 7 dagen, omdat hij verder vooruit
+weinig beter is dan het seizoen. De grenzen voor zout (2 liter, 25 °C) zonder
+milligramdoel, zoals besluit 9 zegt.
+
+**Nu niet meer waar.** "Buiten rekent het vocht met 15 °C" (ronde van stap 2):
+aangevuld. 15 °C geldt alleen nog zonder datum.
+
+**Bewust niet in deze stap.** Geen weer langs de route (`fetchRouteForecast`):
+dat vraagt een ingelezen GPX en meerdere punten, voor een vochtschatting die
+op een paar graden niet verandert. Geen luchtvochtigheid of zon: het model
+kent alleen temperatuur. Geen zout in de herinnering of Boodschappen.
+
+**Getest.** Drie tests in `tests/unit/nutrition-event-planner.test.ts`
+(seizoen, zoutgrens, warmer is meer vocht). Alle 309 voedingstests en de hele
+suite (4527) groen, op `omnium-live.test.ts` na (`.env.local`). `tsc` en
+eslint schoon.
+
+**Niet geverifieerd.** De verwachting van Open-Meteo in de planner: niet in de
+browser of tegen een echt event met startpunt gedraaid. Bij een fout of zonder
+startpunt geldt de seizoenswaarde.
+
 ### Gebouwd — Eventvoeding, stap 5: duur met marge
 
 **2026-11-13, commit `e0f00852`, lokaal, niet gepusht. Geen migratie.** Op verzoek van de
@@ -12552,7 +12592,7 @@ bewaarde keuzes voor een event; het schema en de dagkaart op Vandaag niet.)*
 **Bewust niet in deze stap.** Keuzes bewaren (stap 4, migratie): de herinnering
 en Boodschappen tonen dus het plan van het advies, niet je eigen keuze. Geen
 soort koolhydraten (kwam in stap 3), geen weer (stap 6): buiten rekent het
-vocht met 15 °C.
+vocht met 15 °C. *(Sinds stap 6: de verwachting of de seizoenswaarde.)*
 
 **Getest.** `tests/unit/nutrition-event-planner.test.ts`, 14 tests; alle 285
 voedingstests en de hele suite (4503 tests) groen, op `omnium-live.test.ts` na,

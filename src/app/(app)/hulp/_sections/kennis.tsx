@@ -400,7 +400,12 @@ export function KennisHelp() {
                   aanspreekt. Helpt laden, dan staat er een link naar
                   koolhydraten laden, met de dag waarop je begint. Zonder
                   zweettest schat <ClubShortName /> het vocht uit de warmte die
-                  je kwijt moet: binnen meer dan buiten. Je keuzes bewaart{" "}
+                  je kwijt moet: binnen meer dan buiten. Buiten rekent het binnen
+                  een week voor het event met de weersverwachting op het
+                  startpunt, daarvoor met de gemiddelde temperatuur van die
+                  maand; die staat naast het vocht. Bij meer dan 2 liter zweet
+                  over de rit, of buiten vanaf 25 °C, staat er: zout in elke
+                  bidon. Je keuzes bewaart{" "}
                   <ClubShortName /> per event, ook in de racebriefing; het
                   dagmenu, Boodschappen en de herinnering de dag ervoor rekenen
                   er dan mee. &quot;Terug naar het advies&quot; wist ze.

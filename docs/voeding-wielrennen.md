@@ -235,10 +235,19 @@ zoutgehalte van zweet is niet uit gewicht af te leiden. De grenzen (45 minuten,
 **Vocht zonder zweettest** (`event-fuel.ts`, sinds 2026-11-13, nog niet in
 beeld). Warmte = energie − werk; zweet dat nodig is = warmte / 2,43 kJ per gram
 (verdampingswarmte), maal het deel dat via zweet weg moet. Binnen is dat alles,
-buiten 40% bij 10 °C, 60% bij 20, 90% bij 30 en alles vanaf 35 °C, met 15 °C
-als er geen verwachting is. Die delen zijn een keuze van ZWB, te ijken zodra er
-zweettests zijn; een test gaat altijd voor. Daarna dezelfde regel als met een
-test.
+buiten 40% bij 10 °C, 60% bij 20, 90% bij 30 en alles vanaf 35 °C. De
+temperatuur is sinds stap 6 (2026-11-13) binnen een week voor het event de
+verwachting van Open-Meteo halverwege de rit op het startpunt, daarvoor het
+midden van de gemiddelde dagtemperatuur en het gemiddelde maximum van die maand
+in De Bilt, 1991–2020 (KNMI-normalen, via
+[Wikipedia](https://en.wikipedia.org/wiki/Geography_of_the_Netherlands);
+november klopt met de decadewaarden van de
+[KNMI-normalentabel](https://www.knmi.nl/nederland-nu/weer/waarschuwingen-en-verwachtingen/normalentabel)).
+Dat midden is een keuze van ZWB, net als de delen per temperatuur, te ijken
+zodra er zweettests zijn; een test gaat altijd voor. Daarna dezelfde regel als
+met een test. Zout in elke bidon (besluit 9 van eventvoeding-plan.md) bij een
+geschat verlies van meer dan 2 liter over de rit of buiten vanaf 25 °C; beide
+grenzen zijn een keuze van ZWB, zonder milligramdoel.
 
 - **Snel herstel.** Valt de volgende zware sessie binnen ongeveer 8 uur, dan
   1,0–1,2 g/kg/u koolhydraten in de eerste uren. ZWB geeft deze tip als je al

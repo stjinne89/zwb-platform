@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import { ridePlan } from "@/lib/nutrition/ride-plan";
 import type { NutritionFood } from "@/lib/nutrition/scale";
-import { presetFloor, presetFor } from "@/lib/nutrition/event-fuel";
+import { SEASON_OUTDOOR_C, needsSalt, presetFloor, presetFor, seasonTemperature } from "@/lib/nutrition/event-fuel";
 import { planDayMenu } from "@/lib/nutrition/plan";
 import {
   choiceFromRow,
@@ -307,4 +307,30 @@ it("begint het duurschuifje bij de duur met marge, en laat het tot twee keer de 
   expect(p.expectedMinutes).toBe(122);
   expect(p.defaults.minutes).toBe(170);
   expect(planner({ planMinutes: 999 }).defaults.minutes).toBe(maxPlannerMinutes(122));
+});
+
+describe("vocht naar het weer en zout (stap 6)", () => {
+  it("neemt zonder verwachting de temperatuur van het seizoen", () => {
+    expect(SEASON_OUTDOOR_C).toHaveLength(12);
+    expect(seasonTemperature("2026-01-15")).toBe(4.9);
+    expect(seasonTemperature("2026-07-15")).toBe(20.7);
+    expect(seasonTemperature("onzin")).toBe(15);
+  });
+
+  it("zout bij meer dan 2 liter zweet over de rit, of buiten vanaf 25 °C", () => {
+    expect(needsSalt({ sweatMlPerHour: 1000, minutes: 120, setting: "binnen" })).toBe(false);
+    expect(needsSalt({ sweatMlPerHour: 1000, minutes: 125, setting: "binnen" })).toBe(true);
+    expect(needsSalt({ sweatMlPerHour: 400, minutes: 60, setting: "buiten", temperatureC: 26 })).toBe(true);
+    expect(needsSalt({ sweatMlPerHour: 400, minutes: 60, setting: "binnen", temperatureC: 26 })).toBe(false);
+    expect(needsSalt({ sweatMlPerHour: null, minutes: 300, setting: "buiten", temperatureC: 15 })).toBe(false);
+  });
+
+  it("rekent buiten met de temperatuur van het event, en warmer is meer vocht", () => {
+    const cold = plannerResult(planner({ setting: "buiten", temperatureC: 5 }), planner().defaults);
+    const warm = plannerResult(planner({ setting: "buiten", temperatureC: 28 }), planner().defaults);
+    expect(cold.temperatureC).toBe(5);
+    expect(warm.adviceFluidMl).toBeGreaterThan(cold.adviceFluidMl);
+    expect(warm.salt).toBe(true);
+    expect(plannerResult(planner(), planner().defaults).temperatureC).toBeNull();
+  });
 });

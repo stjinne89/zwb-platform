@@ -25,6 +25,7 @@ import { bidonGroupClass, bidonOptionClass } from "./bidon-options";
 
 const decimal = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const liters = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+const degrees = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 0 });
 
 /** Zo lang na de laatste wijziging bewaart de app je keuzes. */
 const SAVE_DELAY_MS = 800;
@@ -160,7 +161,9 @@ export function EventFuelControls({
           max={PLANNER_LIMITS.fluidMlPerHour.max}
           step={PLANNER_LIMITS.fluidMlPerHour.step}
           onChange={(fluidMlPerHour) => setChoice((current) => ({ ...current, fluidMlPerHour }))}
-          shown={`${liters.format((choice.fluidMlPerHour ?? result.adviceFluidMl) / 1000)} l`}
+          shown={`${liters.format((choice.fluidMlPerHour ?? result.adviceFluidMl) / 1000)} l${
+            result.temperatureC != null ? ` · ${degrees.format(result.temperatureC)} °C` : ""
+          }`}
         />
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -208,6 +211,7 @@ export function EventFuelControls({
           ) : null}
         </p>
       ) : null}
+      {result.salt ? <p className="text-sm font-medium">Zout in elke bidon</p> : null}
       {saveFailed ? <p className="text-sm text-amber-700 dark:text-amber-400">Niet bewaard</p> : null}
       {!sameChoice(choice, planner.defaults) ? (
         <button

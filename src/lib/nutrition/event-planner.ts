@@ -5,12 +5,15 @@
 
 import {
   AVG_SHARE_OF_NP,
+  DEFAULT_OUTDOOR_C,
   FUEL_PRESETS,
   PRESET_IF,
   bagCap,
   carbMixOf,
   eventFluid,
+  estimatedSweatPerHour,
   gutCap,
+  needsSalt,
   fuelAdvice,
   fuelBalance,
   intakeCap,
@@ -105,6 +108,10 @@ export type PlannerResult = {
   aboveCap: boolean;
   adviceFluidMl: number;
   fluidMlPerHour: number;
+  /** Zout in elke bidon: veel zweetverlies of warm (besluit 9). */
+  salt: boolean;
+  /** De temperatuur waarmee het vocht buiten rekent; null binnen. */
+  temperatureC: number | null;
   /** De balans bij het getal waarmee het plan rekent; null zonder vermogen. */
   balance: FuelBalance | null;
 };
@@ -184,6 +191,8 @@ export function plannerResult(planner: EventFuelPlanner, choice: PlannerChoice):
   const adviceG = advice?.perHourG ?? (training ? input.gut!.weekGrams! : Math.min(cap.capG, floorG));
 
   const perHourG = choice.perHourG ?? adviceG;
+  const sweatMlPerHour =
+    input.sweatMlPerHour ?? (watts != null ? estimatedSweatPerHour(watts, planner.setting, planner.temperatureC) : null);
   return {
     watts: watts == null ? null : Math.round(watts),
     advice,
@@ -194,6 +203,8 @@ export function plannerResult(planner: EventFuelPlanner, choice: PlannerChoice):
     aboveCap: perHourG > cap.capG,
     adviceFluidMl,
     fluidMlPerHour,
+    salt: needsSalt({ sweatMlPerHour, minutes, setting: planner.setting, temperatureC: planner.temperatureC }),
+    temperatureC: planner.setting === "buiten" ? (planner.temperatureC ?? DEFAULT_OUTDOOR_C) : null,
     balance:
       watts != null
         ? fuelBalance({ minutes, watts, intensityFactor: choice.intensityFactor, weightKg, intakePerHourG: perHourG })

@@ -28,7 +28,8 @@ import {
   type ClubEventRow,
 } from "@/lib/training/events";
 import { durationMargin, durationRatios, withMargin } from "@/lib/nutrition/event-duration";
-import { eventSetting } from "@/lib/nutrition/event-fuel";
+import { FORECAST_DAYS, eventSetting, seasonTemperature } from "@/lib/nutrition/event-fuel";
+import { fetchWindForecast } from "@/lib/weather";
 import {
   choiceFromRow,
   eventFuelPlanner,
@@ -607,6 +608,30 @@ export type EventRidePlan = {
 /** De laadfase van het protocol begint twee dagen voor de wedstrijd. */
 const LOADING_DAYS_BEFORE = 2;
 
+/**
+ * De temperatuur halverwege een event buiten (stap 6 van
+ * docs/eventvoeding-plan.md): binnen een week de verwachting van Open-Meteo op
+ * het startpunt, anders de seizoenswaarde. Null binnen.
+ */
+async function eventTemperature(
+  viewer: Viewer,
+  event: ClubEventRow,
+  day: string,
+  today: string,
+  minutes: number,
+): Promise<number | null> {
+  if (eventSetting(event.type) === "binnen") return null;
+  const season = seasonTemperature(day);
+  if (day > shiftDayKey(today, FORECAST_DAYS)) return season;
+  const { data } = await viewer.supabase.from("events").select("start_lat, start_lon").eq("id", event.id).maybeSingle();
+  const lat = Number((data as { start_lat?: number | null } | null)?.start_lat);
+  const lon = Number((data as { start_lon?: number | null } | null)?.start_lon);
+  if (!data || !Number.isFinite(lat) || !Number.isFinite(lon) || (lat === 0 && lon === 0)) return season;
+  const midRide = new Date(new Date(event.start_at).getTime() + (minutes / 2) * 60_000);
+  const forecast = await fetchWindForecast(lat, lon, midRide).catch(() => null);
+  return forecast?.temperatureC != null && Number.isFinite(forecast.temperatureC) ? forecast.temperatureC : season;
+}
+
 /** Zo ver terug tellen je eigen events mee voor de marge op de duur. */
 const OWN_RATIO_DAYS = 365;
 
@@ -712,6 +737,7 @@ export async function loadEventRidePlan(
   const summary = pacing?.summary;
   const ftp = Number((power as { ftp_watts?: number | null } | null)?.ftp_watts ?? 0);
   const setting = eventSetting(event.type);
+  const temperatureC = await eventTemperature(viewer, event, day, today, planMinutes).catch(() => seasonTemperature(day));
   const planner = eventFuelPlanner({
     input,
     minutes,
@@ -724,6 +750,7 @@ export async function loadEventRidePlan(
         ? { watts: summary.avgWatts, intensityFactor: summary.intensityFactor }
         : null,
     ftpWatts: ftp > 0 ? ftp : null,
+    temperatureC,
   });
   const row = fuelRows.get(eventFuelKey(viewer.user.id, event.id));
   const saved = row ? choiceFromRow(planner, row) : null;
