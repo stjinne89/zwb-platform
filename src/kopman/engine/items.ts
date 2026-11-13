@@ -9,7 +9,8 @@ import type { Tier } from "./types";
  */
 export const GEAR_SLOTS = ["frame", "wielen", "banden", "aandrijving", "remmen", "kleding", "voeding"] as const;
 export type GearSlot = (typeof GEAR_SLOTS)[number];
-export const STAFF_ROLES = ["trainer", "mechanieker", "fysio", "ploegleider", "chauffeur"] as const;
+/** Scout since 2026-11-13: young riders grow faster, and you see their talent. */
+export const STAFF_ROLES = ["trainer", "mechanieker", "fysio", "ploegleider", "chauffeur", "scout"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 export type ItemSlot = GearSlot | StaffRole;
 export type ItemGroup = "materiaal" | "personeel";
@@ -44,6 +45,7 @@ export const STAFF: Record<StaffRole, Spec> = {
   fysio: { label: "Fysio", names: ["Masseur", "Fysiotherapeut", "Medische staf", "Medisch team"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} sneller herstel` },
   ploegleider: { label: "Ploegleider", names: ["Stagiair", "Assistent-ploegleider", "Ervaren ploegleider", "Sportief directeur"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} langere orders` },
   chauffeur: { label: "Buschauffeur", names: ["Busje", "Buschauffeur", "Teambus", "Luxe teambus"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} startgeld` },
+  scout: { label: "Scout", names: ["Talentspotter", "Scout", "Hoofdscout", "Scoutingnetwerk"], values: [0.1, 0.2, 0.3, 0.4], effect: (p) => `+${p} groei jonge renners` },
 };
 
 const TIER_ORDER: Tier[] = ["brons", "zilver", "goud", "diamant"];
@@ -102,9 +104,11 @@ export type TeamBonus = {
   orders: number;
   /** More start money. */
   startFee: number;
+  /** Young riders grow faster. */
+  growth: number;
 };
 
-export const NO_BONUS: TeamBonus = { bikeMass: 0, cda: 0, crr: 0, drivetrain: 0, descent: 0, wprime: 0, power: 0, recovery: 0, orders: 0, startFee: 0 };
+export const NO_BONUS: TeamBonus = { bikeMass: 0, cda: 0, crr: 0, drivetrain: 0, descent: 0, wprime: 0, power: 0, recovery: 0, orders: 0, startFee: 0, growth: 0 };
 
 export function teamBonus(items: Record<string, number> | undefined): TeamBonus {
   if (!items) return NO_BONUS;
@@ -123,5 +127,6 @@ export function teamBonus(items: Record<string, number> | undefined): TeamBonus 
     recovery: v("fysio"),
     orders: v("ploegleider"),
     startFee: v("chauffeur"),
+    growth: v("scout"),
   };
 }

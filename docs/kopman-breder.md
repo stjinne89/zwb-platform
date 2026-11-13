@@ -18,7 +18,8 @@ meerdere mogelijkheden".
 1. **Eén lus.** Uitslag → pakket of munten → sterkere kaart → betere uitslag.
    Elke stap maakt de volgende makkelijker. Niets kost iets terug: een renner
    wordt niet ouder, verdient geen salaris en raakt niet moe over een seizoen.
-   De verzameling kan alleen groeien.
+   De verzameling kan alleen groeien. (Zo was het bij het onderzoek; sinds
+   ronde A hieronder worden renners ouder en raken ze moe.)
 2. **Geen keuzes buiten de koers.** De kalender ligt vast: 8 koersen, je rijdt
    ze allemaal met je beste vijf. Tussen twee koersen is er niets af te wegen
    behalve welk pakket je opent.
@@ -234,11 +235,133 @@ Voor later: vorm en kalender (5), een bewegende wereld (8), kampioenschappen
 worden en sponsors samen het spel nog te makkelijk laten; het verandert het
 spel het meest.
 
+## Het samengevoegde voorstel
+
+Op 2026-11-13, na de ronde, vroeg de eigenaar: "alle voorstellen om het spel te
+verbreden nu in een voorstel giet en gaat uitvoeren". Hieronder de negen
+overige mogelijkheden als één spel, in vier rondes. Elke ronde staat op zich
+en krijgt een eigen commit.
+
+**Ronde A: renners leven** (2, en vorm uit 5)
+
+- Elke renner in je verzameling heeft een **leeftijd** (19 tot 33 bij
+  aankomst) en een **talent**: het hoogste totaal dat hij haalt. Tot 25 groeit
+  hij elk seizoen tot 3 punten naar zijn talent, van 26 tot 30 blijft hij
+  gelijk, vanaf 31 zakt hij 1 tot 3 punten per seizoen. Tussen 34 en 36 stopt
+  hij: al zijn kaarten gaan, je krijgt hun verkoopwaarde en hij komt in je
+  erelijst met zijn zeges.
+- Zakt je verzameling onder vijf renners, dan vult de ploeg aan met jonge
+  bronzen renners (neoprofs).
+- Een **scout** (nieuw personeel) toont het talent en laat jonge renners
+  sneller groeien. Zonder scout zie je een vraagteken.
+- **Vorm** per renner, van 0 tot 100. Een koers kost 15 vorm, een etappe 8;
+  wie niet rijdt, krijgt 20 terug. Elke 12 punten onder de 100 kost een punt
+  op elke waarde. Een nieuw seizoen begint fris.
+- **Overslaan**: een koers niet rijden. Iedereen krijgt 30 vorm terug, je
+  krijgt niets voor die koers.
+- **Hoogtestage**: tussen twee koersen voor munten +30 vorm voor je vijf.
+- Rivaliserende renners worden niet ouder; zij wisselen in ronde D.
+
+**Ronde B: sponsors, populariteit en een plafond** (4 en 3)
+
+- **Populariteit** van 0 tot 100, begint op 20: omhoog met zeges, podiums en
+  top 10's, een beetje omlaag zonder top 10. Een **persvoorlichter** (nieuw
+  personeel) laat hem sneller stijgen.
+- Elk seizoen kies je uit **drie sponsors**. Elk betaalt per koers, geeft een
+  **budget** voor salarissen, en heeft een **doel** met een bonus: zeges, een
+  zege in een soort koers, top 5's, een eindstand, een top 10 met een renner
+  onder de 25, een trui in de ronde, of een kampioenstitel. Hoe populairder,
+  hoe beter de aanbiedingen. Haal je het doel, dan biedt hij het volgende
+  seizoen opnieuw aan, beter.
+- **Salaris en plafond** (de lichte vorm van 3): elke renner heeft een
+  salaris naar zijn totaal. De vijf die starten mogen samen niet meer kosten
+  dan het budget. Je verzameling blijft heel; je kunt alleen niet al je goud
+  tegelijk opstellen. "Beste opstelling" blijft binnen het budget.
+
+**Ronde C: een seizoen met keuzes** (7, 6 en 9)
+
+- **Gebeurtenissen**: na sommige koersen een keuze met twee knoppen: een
+  knecht wil kopman zijn, een rivaal biedt op een renner, een val op
+  training, de pers daagt je uit.
+- **Opdrachten**, drie per seizoen: lever renners van één soort in voor een
+  sterkere van die soort; lever renners van één land in voor een pakket; of
+  rijd met één renner drie keer de top 10 in een soort koers, waarna hij
+  groeit op die waarde.
+- **Kampioenschap**: één keer per seizoen, na de vierde koers, met alleen
+  renners van één land. Geen seizoenspunten; wel een pakket, populariteit en
+  een kampioenstitel op de kaart van de winnaar.
+
+**Ronde D: een wereld die beweegt, en daarna** (8 en 10)
+
+- **Transfers**: elk seizoen wisselt elke rivaliserende ploeg een of twee
+  renners. Rivalen kopen ook goud.
+- **Aartsrivaal**: de rivaal die je het vaakst voor was, wordt je
+  aartsrivaal. Hij stijgt met je mee en rijdt in elk niveau bij de sterkste
+  ploeg, steeds op de top van dat niveau.
+- **Nieuwe carrière** na een titel in de Wereldtour: opnieuw in de Kermis met
+  één renner als erfstuk en een zwaardere regel erbij (minder pakketten,
+  sterkere rivalen, sneller oud, krapper budget). De regels stapelen; elke
+  carrière is een trede hoger. Je erelijst blijft.
+
+### Gebouwd: ronde A, renners leven
+
+Gebouwd op 2026-11-13. De code staat in `src/kopman/engine/riders.ts` en in
+`economy.ts` (`withLives`, `liveCard`, `skipRace`, `altitudeCamp`,
+`ageRiders`).
+
+- **Het leven van een renner** (`RiderLife` in de save, per renner die je
+  hebt): leeftijd, talent, vorm, zeges, titels, groei en een extra per waarde
+  (voor de groeiopdrachten van ronde C). De kaart zelf verandert niet;
+  `liveCard` rekent de renner van vandaag uit. Die gaat via `Lineup.cards`
+  naar de koers en het bord.
+- **Leeftijd en talent** komen uit je seed en de renner (`lifeFor`). Hoe
+  jonger, hoe meer ruimte: tot 21 jaar tot 12 punten, tot 23 tot 8, tot 25
+  tot 4.
+- **Een nieuw seizoen** (`ageRiders` in `newSeason`): tot 25 jaar +3 (tot 22)
+  of +2 per seizoen naar het talent; een scout maakt dat tot twee keer zoveel.
+  Van 31 jaar -1, van 33 -2, van 35 -3 (op elke waarde). Op 34 tot 36 jaar
+  (`retireAge`) stopt hij: al zijn kaarten gaan voor hun verkoopwaarde, hij
+  komt in de erelijst. Onder vijf renners vullen jonge bronzen renners aan
+  (19 tot 21 jaar, 6 tot 14 punten talent), en de opstelling vult zich met de
+  beste die over zijn. Een gestopte renner die je weer trekt, levert zijn
+  verkoopwaarde op.
+- **Vorm**: een koers kost 15, een etappe 8, rust geeft 20, overslaan 30,
+  een hoogtestage 30 voor je vijf (1500 munten maal het aandeel van het
+  niveau, één keer per koers). Elke 12 punten onder de 100 is -1 op elke
+  waarde. Een nieuw seizoen begint op 100.
+- **Scout**: nieuw personeel, vier kaarten van +10 tot +40 procent groei. Met
+  een scout staat het talent op de kaart, anders een vraagteken.
+- **Scherm**: op elke kaart van je ploeg de leeftijd achter de voornaam en een
+  vormbalk; op de grote kaarten talent en vorm. Op het koersscherm
+  Hoogtestage en Overslaan; na een nieuw seizoen een lijst wie stopte, groeide
+  of erbij kwam. Op het seizoensscherm de erelijst.
+
+**Gemeten** met `.tmp/kopman-groei.ts` (niet in git), 2 seeds, 10 seizoenen,
+met een script dat een hoogtestage neemt als de kopman onder 70 vorm zit:
+
+- Seed 11 haalt de Wereldtour in seizoen 9 en wordt daar 4e en 2e.
+- Seed 22 blijft drie seizoenen in de Interclub en vier in het Continentaal,
+  en haalt in seizoen 10 de Proftour.
+- Per seizoen stoppen 1 tot 12 renners. Wie veel pakketten opent, verliest er
+  meer.
+
+Voor deze ronde gingen beide seeds sneller door de piramide.
+
+**Niet geverifieerd:** de groei en het stoppen in de app over meer seizoenen
+(in de preview alleen de kaarten en de knoppen op een testsave), en of het
+nu te zwaar is voor een mens die beter speelt dan het script.
+
+**Niet in dit voorstel:** een zesde trede (gekozen is de ronde), een eigen
+kalender van 12 koersen waar je er 8 uit kiest (overslaan geeft die keuze
+goedkoper), en salaris dat elk seizoen van je munten afgaat (het plafond
+doet het werk zonder dat verzamelen pijn doet).
+
 ## Open voor de eigenaar
 
-- Welke mogelijkheden na de ronde, en in welke volgorde.
 - Bij de grote rondes koos de eigenaar de variant: "Ronde in Wereldtour". Een
   zesde trede is daarmee niet gebouwd.
+- Na de vier rondes: of het spel genoeg tegenwerkt, of het plafond strakker
+  moet.
 
 ## Gebouwd: de Ronde van de Alpen
 

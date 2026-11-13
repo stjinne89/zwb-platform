@@ -1,10 +1,10 @@
 "use client";
 
-import { CalendarDays, ChevronDown, ChevronUp, Coins, Crown, Flag, Package, Play, Trophy, Users, Wand2 } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronUp, Coins, Crown, Flag, Mountain, Package, Play, SkipForward, Trophy, Users, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cardById, TIER_LABELS, TYPE_LABELS } from "../engine/cards";
 import { buildCourse, courseKind, courseWeights, fitFor } from "../engine/course";
-import { bestLineup, buyPack, calendarOf, currentRace, currentTour, raceSetup, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save, type TourReward } from "../engine/economy";
+import { altitudeCamp, bestLineup, buyPack, calendarOf, campCost, campDone, canSkip, currentRace, currentTour, liveCard, raceSetup, skipRace, DUPLICATE_COINS, finishRace, LINEUP_SIZE, moveFor, newSave, newSeason, NEXT_TIER, openPackOf, priceAt, seasonDone, seasonMove, seasonStandings, sellSpares, setKopman, sparesByTier, toggleLineup, TRADE_COST, tradeable, tradeCards, tradeUp, type Pull, type RaceReward, type Save, type TourReward } from "../engine/economy";
 import { generalOf, jerseysOf, type GcRow, type Jerseys } from "../engine/tour";
 import type { Carry } from "../engine/board";
 import type { Lineup } from "../engine/race";
@@ -20,7 +20,7 @@ import { Profile } from "./profile";
 import { BoardView } from "./board-view";
 import { clock, riderName, teamColor, teamName } from "./race-view";
 import { Portrait, type Mood } from "./portrait";
-import { RiderCardView } from "./rider-card";
+import { RiderCardView, type CardLife } from "./rider-card";
 import styles from "./kopman.module.css";
 
 type Tab = "koers" | "ploeg" | "pakketten" | "seizoen";
@@ -32,6 +32,12 @@ const TABS: { id: Tab; label: string; icon: typeof Flag }[] = [
 ];
 const KIND_LABELS = { kermis: "Kermiskoers", klassieker: "Klassieker", monument: "Monument", rit: "Bergrit", tijdrit: "Tijdrit" } as const;
 const pct = (n: number) => `${Math.round(n * 100)}%`;
+
+/** Age and form of a rider you own; his talent only when you have a scout. */
+function lifeOf(save: Save, id: string): CardLife | undefined {
+  const life = save.riders[id];
+  return life ? { age: life.age, form: life.form, talent: bestItems(save.items).scout ? life.talent : null } : undefined;
+}
 
 function newSeed() {
   try { return crypto.getRandomValues(new Uint32Array(1))[0]; } catch { return Math.floor(Math.random() * 2 ** 32); }
@@ -183,8 +189,15 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
   const climbs = course.features;
   const ready = save.lineup.length === LINEUP_SIZE && !!save.kopman;
   const slot = `Koers ${save.raceIndex + 1} van ${calendarOf(save.division).length}`;
+  const cost = campCost(save);
+  const skip = () => {
+    if (!window.confirm(`${tour ? tour.name : race.name} overslaan? Je ploeg rust, maar je krijgt niets.`)) return;
+    const next = skipRace(save);
+    if (next) update(next);
+  };
   return (
     <div className={styles.stack}>
+      {save.report ? <SeasonReportPanel save={save} update={update} /> : null}
       <div className={styles.panel}>
         <div className={styles.raceHead}>
           <div>
@@ -213,8 +226,12 @@ function RaceTab({ save, update, running, onStart }: { save: Save; update: (s: S
         </div>
         <div className={`${styles.lineupGrid} ${styles.lineupRace}`}>
           {Array.from({ length: LINEUP_SIZE }, (_, i) => save.lineup[i]).map((id, i) => id
-            ? <RiderCardView key={id} card={cardById(id)} small live kopman={id === save.kopman} fit={fitFor(cardById(id), weights)} />
+            ? <RiderCardView key={id} card={liveCard(save, id)} small live kopman={id === save.kopman} fit={fitFor(liveCard(save, id), weights)} life={lifeOf(save, id)} />
             : <div key={`leeg-${i}`} className={styles.emptySlot}>Leeg</div>)}
+        </div>
+        <div className={styles.row} style={{ marginTop: 10 }}>
+          <button type="button" className={styles.ghost} disabled={running || campDone(save) || save.coins < cost} onClick={() => { const next = altitudeCamp(save); if (next) update(next); }}><Mountain size={15} aria-hidden />{campDone(save) ? "Op hoogtestage geweest" : `Hoogtestage · ${cost.toLocaleString("nl-NL")}`}</button>
+          {canSkip(save) ? <button type="button" className={styles.ghost} disabled={running} onClick={skip}><SkipForward size={15} aria-hidden />Overslaan</button> : null}
         </div>
       </div>
     </div>
@@ -251,7 +268,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
   const race = currentRace(save);
   const weights = race ? courseWeights(buildCourse(race)) : null;
   const bonus = teamBonus(save.items);
-  const owned = Object.keys(save.collection).map(cardById).filter((c) => filter === "alle" || c.type === filter).sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id));
+  const owned = Object.keys(save.collection).map((id) => liveCard(save, id)).filter((c) => filter === "alle" || c.type === filter).sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id));
   return (
     <div className={styles.stack}>
       <div className={styles.panel}>
@@ -264,7 +281,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
         <div className={styles.h3} style={{ marginBottom: 10 }}>Opstelling {save.lineup.length}/{LINEUP_SIZE}</div>
         <div className={styles.lineupGrid}>
           {Array.from({ length: LINEUP_SIZE }, (_, i) => save.lineup[i]).map((id, i) => id ? (
-            <RiderCardView key={id} card={cardById(id)} small live kopman={id === save.kopman} fit={weights ? fitFor(cardById(id), weights) : undefined}>
+            <RiderCardView key={id} card={liveCard(save, id)} small live kopman={id === save.kopman} fit={weights ? fitFor(liveCard(save, id), weights) : undefined} life={lifeOf(save, id)}>
               <div className={styles.cardActions}>
                 <button type="button" aria-pressed={id === save.kopman} aria-label="Kopman" onClick={() => update(setKopman(save, id))}><Crown size={14} aria-hidden /></button>
                 <button type="button" disabled={!!save.tour} onClick={() => update(toggleLineup(save, id))}>Eruit</button>
@@ -286,7 +303,7 @@ function TeamTab({ save, update }: { save: Save; update: (s: Save) => void }) {
           {owned.map((card) => {
             const inLineup = save.lineup.includes(card.id);
             return (
-              <RiderCardView key={card.id} card={card} kopman={card.id === save.kopman} fit={weights ? fitFor(card, weights) : undefined} boost={statBoost(card, bonus)}>
+              <RiderCardView key={card.id} card={card} kopman={card.id === save.kopman} fit={weights ? fitFor(card, weights) : undefined} boost={statBoost(card, bonus)} life={lifeOf(save, card.id)}>
                 <div className={styles.cardActions}>
                   <button type="button" aria-pressed={inLineup} disabled={!!save.tour || (!inLineup && save.lineup.length >= LINEUP_SIZE)} onClick={() => update(toggleLineup(save, card.id))}>{inLineup ? "In ploeg" : "Opstellen"}</button>
                   {save.collection[card.id] > 1 ? <span className={styles.badge}>×{save.collection[card.id]}</span> : null}
@@ -495,7 +512,20 @@ function SeasonTab({ save, update }: { save: Save; update: (s: Save) => void }) 
             <thead><tr><th>Koers</th><th>Winnaar</th><th className={styles.num}>Beste</th><th className={styles.num}>Punten</th></tr></thead>
             <tbody>
               {save.seasonResults.map((r) => (
-                <tr key={r.race}><td>{raceById.get(r.race)?.name ?? tourById.get(r.race)?.name}</td><td>{r.winner ? riderName(r.winner) : "–"}</td><td className={styles.num}>{r.best || "–"}</td><td className={styles.num}>{r.points}</td></tr>
+                <tr key={r.race}><td>{raceById.get(r.race)?.name ?? tourById.get(r.race)?.name}</td><td>{r.winner ? riderName(r.winner) : r.best ? "–" : "Overgeslagen"}</td><td className={styles.num}>{r.best || "–"}</td><td className={styles.num}>{r.points}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      {save.legends.length ? (
+        <div className={styles.panel}>
+          <table className={styles.table}>
+            <caption className={styles.h3} style={{ textAlign: "left", marginBottom: 4 }}>Erelijst</caption>
+            <thead><tr><th>Renner</th><th className={styles.num}>Leeftijd</th><th className={styles.num}>Zeges</th><th className={styles.num}>Titels</th></tr></thead>
+            <tbody>
+              {[...save.legends].sort((a, b) => b.wins - a.wins || b.titles - a.titles || a.id.localeCompare(b.id)).map((l) => (
+                <tr key={l.id}><td>{riderName(l.id)}</td><td className={styles.num}>{l.age}</td><td className={styles.num}>{l.wins}</td><td className={styles.num}>{l.titles}</td></tr>
               ))}
             </tbody>
           </table>
@@ -608,6 +638,24 @@ function TourStanding({ tour, own }: { tour: TourReward; own: string }) {
   );
 }
 
+/** What a new season did to your riders: who stopped, who grew or declined, who joined. */
+function SeasonReportPanel({ save, update }: { save: Save; update: (s: Save) => void }) {
+  const report = save.report!;
+  return (
+    <div className={styles.panel}>
+      <div className={styles.row} style={{ justifyContent: "space-between" }}>
+        <span className={styles.h3}>Seizoen {report.season}</span>
+        <button type="button" className={styles.ghost} onClick={() => update({ ...save, report: null })}>Sluiten</button>
+      </div>
+      <ul className={styles.reportList}>
+        {report.retired.map((r) => <li key={r.id}>{riderName(r.id)} stopt op zijn {r.age}e · <b>+{r.coins.toLocaleString("nl-NL")}</b></li>)}
+        {report.grown.map((g) => <li key={g.id}>{riderName(g.id)} <b>{g.delta > 0 ? `+${g.delta}` : g.delta}</b></li>)}
+        {report.neo.map((id) => <li key={id}>{riderName(id)} komt erbij</li>)}
+      </ul>
+    </div>
+  );
+}
+
 function PackReveal({ reveal, owned, onClose }: { reveal: { title: string; pulls: Pull[] }; owned: Record<string, number>; onClose: () => void }) {
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={reveal.title}>
@@ -617,7 +665,7 @@ function PackReveal({ reveal, owned, onClose }: { reveal: { title: string; pulls
           {reveal.pulls.map((p) => (
             <div key={p.id} className={styles.flip}>
               {isItem(p.id) ? <ItemCardView id={p.id} live /> : <RiderCardView card={cardById(p.id)} live mood={(cardById(p.id).tier === "goud" || cardById(p.id).tier === "diamant") && !p.duplicate ? "zege" : "rust"} />}
-              {p.duplicate ? <div className={styles.dupMark}>Dubbel · ×{owned[p.id]}</div> : <div className={styles.newMark}>Nieuw</div>}
+              {p.retired ? <div className={styles.dupMark}>Gestopt · +{p.retired.toLocaleString("nl-NL")}</div> : p.duplicate ? <div className={styles.dupMark}>Dubbel · ×{owned[p.id]}</div> : <div className={styles.newMark}>Nieuw</div>}
             </div>
           ))}
         </div>

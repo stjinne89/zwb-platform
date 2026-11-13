@@ -5,7 +5,7 @@ import { BIKE_LENGTH, createRace, groupsOf, homeLane, kopmanOf, LANES, laneOf, r
 import { clamp, hashSeed, rng } from "./rng";
 import { rivalsIn, teamById } from "./teams";
 import { DIVISIONS, divisionOfRace } from "./divisions";
-import { GRID, PLAYER_TEAM, type RiderType } from "./types";
+import { GRID, PLAYER_TEAM, type RiderCard, type RiderType } from "./types";
 import { raceById } from "./world";
 
 /**
@@ -356,10 +356,10 @@ function refillHand(board: BoardState, rotate: boolean) {
  */
 export const FORM = { perPoint: 0.01, offset: 2 };
 
-export function pelotonForm(raceId: string, riders: string[]): number {
+export function pelotonForm(raceId: string, riders: string[], cards: Record<string, RiderCard> = {}): number {
   if (!riders.length) return 0;
   const level = DIVISIONS[divisionOfRace(raceId)];
-  const avg = riders.reduce((sum, id) => sum + cardById(id).overall, 0) / riders.length;
+  const avg = riders.reduce((sum, id) => sum + (cards[id] ?? cardById(id)).overall, 0) / riders.length;
   return Math.round(clamp((avg - level.band[0] + FORM.offset) * FORM.perPoint, 0, level.rivals.form) * 1000) / 1000;
 }
 
@@ -382,9 +382,9 @@ export function createBoard(raceId: string, seed: number, lineup: Lineup, items:
   for (const sector of sectors) sector.odds = oddsFor(sector, weather, sky);
   const kracht: Record<string, number> = {};
   const full: Record<string, number> = {};
-  const form = pelotonForm(raceId, lineup.riders);
+  const form = pelotonForm(raceId, lineup.riders, lineup.cards);
   for (const r of race.riders) {
-    full[r.id] = kracht0(r, level.rivals.xp);
+    full[r.id] = kracht0(r, level.rivals.xp + (lineup.xp ?? 0));
     const tired = carry?.tired[r.id];
     const share = r.team === PLAYER_TEAM ? carry?.player ?? 1 : carry?.rival ?? 1;
     kracht[r.id] = tired === undefined ? full[r.id] : clamp(Math.round(tired + (full[r.id] - tired) * share), 0, full[r.id]);

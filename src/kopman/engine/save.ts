@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { pool } from "./cards";
 import { SEASON_RACES, TOP_DIVISION } from "./divisions";
-import { divisionFor, LINEUP_SIZE, SAVE_VERSION, type Save } from "./economy";
+import { divisionFor, LINEUP_SIZE, SAVE_VERSION, withLives, type Save } from "./economy";
 import { itemById } from "./items";
 
 /** The whole career lives on the device under one key. */
@@ -47,6 +47,24 @@ const schema = z.object({
     coins: count,
     seasonPoints: count,
   }).nullable().default(null),
+  // Since 2026-11-13: riders live (riders.ts). Older saves get their lives on loading.
+  riders: z.record(cardId, z.object({
+    age: z.number().int().min(15).max(60),
+    talent: z.number().int().min(30).max(99),
+    form: z.number().min(0).max(100),
+    wins: count,
+    titles: count,
+    growth: z.number().int().min(-60).max(60),
+    extra: z.partialRecord(z.enum(["vlak", "klim", "sprint", "tijdrit", "kasseien", "afdalen"]), z.number().int().min(-20).max(20)),
+  })).default({}),
+  legends: z.array(z.object({ id: cardId, season: z.number().int().min(1), age: z.number().int(), wins: count, titles: count })).max(2000).default([]),
+  camp: z.string().max(40).nullable().default(null),
+  report: z.object({
+    season: z.number().int().min(1),
+    retired: z.array(z.object({ id: cardId, age: z.number().int(), coins: count })).max(500),
+    grown: z.array(z.object({ id: cardId, delta: z.number().int() })).max(500),
+    neo: z.array(cardId).max(50),
+  }).nullable().default(null),
 });
 
 /** Before the pyramid: one calendar of 16 races and a daily limit on packs. */
@@ -58,7 +76,7 @@ const v1 = z.object({ ...base, v: z.literal(1), raceIndex: z.number().int().min(
  * collection, coins and packs stay.
  */
 function fromV1(old: z.infer<typeof v1>): Save {
-  return { ...old, v: SAVE_VERSION, division: divisionFor(old.collection), raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null };
+  return { ...old, v: SAVE_VERSION, division: divisionFor(old.collection), raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null, riders: {}, legends: [], camp: null, report: null };
 }
 
 /** Reads a save; anything broken or tampered beyond repair gives null. */
@@ -73,7 +91,7 @@ export function parseSave(raw: string | null): Save | null {
     // A lineup can only hold riders you own, once each.
     if (new Set(save.lineup).size !== save.lineup.length || save.lineup.some((id) => !save.collection[id])) return null;
     if (save.kopman && !save.lineup.includes(save.kopman)) return null;
-    return save;
+    return withLives(save);
   } catch {
     return null;
   }

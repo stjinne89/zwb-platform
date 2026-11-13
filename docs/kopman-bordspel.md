@@ -227,6 +227,8 @@ er niets in. Je kiest een koers; sinds fase 4 kan dat ook de tijdrit zijn.
 - **Je hand (sinds de tweede ronde op 2026-11-11).** Je hand bevat alleen
   kaarten die je in deze sector kunt spelen.
   - Je hebt 4 kaarten, of 5 met een buschauffeur.
+  - Sinds 2026-11-13 is er ook een scout bij het personeel. Hij doet niets op
+    het bord; zie [kopman-breder.md](kopman-breder.md#gebouwd-ronde-a-renners-leven).
   - Bij elke nieuwe sector gaan kaarten die niet passen terug onder de
     stapel. Ze komen terug als het terrein klopt. Denk aan een klimkaart op
     de vlakte, een renner zonder kracht of een reactie zonder aangekondigde

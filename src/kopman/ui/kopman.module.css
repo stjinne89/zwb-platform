@@ -566,3 +566,10 @@
 .jerseyGeel { background: #f5d000; }
 .jerseyGroen { background: #2fa84f; }
 .jerseyBerg { background: radial-gradient(circle, #e23b3b 0 28%, transparent 30%) 0 0 / 5px 5px, #fff; }
+
+/* Rider life (2026-11-13): form as a bar along the foot of the plate, age and talent in the caption. */
+.formBar { position: absolute; left: 6px; right: 6px; bottom: 19px; height: 7px; border-radius: 99px; background: var(--caption); border: 1.5px solid var(--line-ink); overflow: hidden; }
+.formBar span { display: block; height: 100%; border-right: 1.5px solid var(--line-ink); }
+.lifeLine { display: flex; justify-content: space-between; gap: 6px; padding: 0 2px; font-size: 0.7rem; font-weight: 750; font-variant-numeric: tabular-nums; color: #3d342b; }
+.reportList { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 0.88rem; }
+.reportList b { font-variant-numeric: tabular-nums; }

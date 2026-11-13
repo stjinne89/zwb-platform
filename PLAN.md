@@ -50,7 +50,9 @@ gaat stabiliteit voor nieuwe features.
    Interclub en Continentaal en een peloton dat meegroeit. Daarna, ook op
    2026-11-13 gepusht: het onderzoek naar een breder spel (`8c9fd150`) en
    "Kopman: de Ronde van de Alpen" (`a4772a41`), een ronde van 5 etappes
-   in de Wereldtour. Op een telefoon vult het bord het scherm. Open: na de
+   in de Wereldtour. Daarna lokaal, niet gepusht: de rondes van het
+   samengevoegde voorstel om het spel te verbreden, te beginnen met
+   "Kopman: renners leven" (de commit van die ronde). Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12271,6 +12273,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kopman: renners leven (ronde A van het brede voorstel)
+
+**2026-11-13, de commit "Kopman: renners leven", lokaal, niet gepusht.**
+Geen migratie. De save krijgt `riders` (het leven per renner), `legends`,
+`camp` en `report`. Een save zonder die velden krijgt ze bij het laden.
+
+- **De vraag.** De eigenaar: "alle voorstellen om het spel te verbreden nu in
+  een voorstel giet en gaat uitvoeren". Het samengevoegde voorstel staat in
+  [docs/kopman-breder.md](docs/kopman-breder.md#het-samengevoegde-voorstel):
+  vier rondes, A tot D. Dit is ronde A.
+- **Wat er is.** Zie
+  [docs/kopman-breder.md](docs/kopman-breder.md#gebouwd-ronde-a-renners-leven).
+  - `src/kopman/engine/riders.ts`: leeftijd, talent, vorm, groei en stoppen.
+  - `economy.ts`:
+    - `withLives` en `liveCard`;
+    - vorm na elke koers in `afterRide`;
+    - `skipRace` en `altitudeCamp`;
+    - `ageRiders` in `newSeason`, met neoprofs als er minder dan vijf over
+      zijn.
+  - `race.ts`: `Lineup.cards` (renners zoals ze vandaag rijden) en
+    `Lineup.xp`.
+  - `items.ts`: een scout bij het personeel (`TeamBonus.growth`).
+  - Schermen:
+    - leeftijd en vormbalk op de kaarten;
+    - Hoogtestage en Overslaan;
+    - het seizoensverslag en de erelijst.
+- **Waarom.** Volgens het onderzoek liep de weg naar boven als een rechte
+  lijn: niets kost iets terug. Nu wordt een ploeg zwakker als je hem niet
+  verjongt, en moet je met vorm rouleren.
+- **Gemeten.** Met het groei-script, 2 seeds over 10 seizoenen:
+  - seed 11 haalt de Wereldtour in seizoen 9;
+  - seed 22 komt na 10 seizoenen in de Proftour;
+  - voor deze ronde haalden beide de Wereldtour sneller.
+- **Niet meer waar.**
+  - "een renner wordt niet ouder" in de aanleiding van `kopman-breder.md`
+    beschrijft de stand van het onderzoek; dat staat er nu bij.
+  - Het personeel heeft zes rollen in plaats van vijf. Daardoor kunnen
+    pakketten die na deze ronde opengaan een scout bevatten, en is het
+    personeel uit een pakket met dezelfde seed anders dan voorheen.
+- **Bewust niet gebouwd:**
+  - Leeftijd voor rivaliserende renners: hun ploegen wisselen in ronde D.
+  - Een kalender van 12 koersen waaruit je 8 kiest: overslaan geeft die
+    keuze goedkoper.
+- **Geverifieerd:**
+  - tsc, eslint, en de Kopman-tests (88, waarvan 9 nieuw in
+    `tests/unit/kopman-life.test.ts`);
+  - in de preview op een testsave op 127.0.0.1 de kaarten in de opstelling
+    en de verzameling, en de knop Hoogtestage.
+- **Niet geverifieerd:**
+  - het seizoensverslag en een stoppende renner in de app;
+  - of de vormbalk na het verplaatsen goed staat;
+  - `next build`.
 
 ### Gebouwd — Kopman: de Ronde van de Alpen
 

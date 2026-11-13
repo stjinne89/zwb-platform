@@ -5,7 +5,8 @@ import { KIND_ODDS, openPack, PACK_PRICE } from "./packs";
 import type { Lineup, Placing } from "./race";
 import type { Carry } from "./board";
 import { bookStage, generalOf, jerseysOf, newTour, TOUR_RECOVERY, tourRivals, type GcRow, type Jerseys, type TourState } from "./tour";
-import { hashSeed, rng } from "./rng";
+import { clamp, hashSeed, rng } from "./rng";
+import { baseOverall, FORM_CAMP, FORM_COST, FORM_REST, FORM_SKIP, lifeFor, liveCardOf, restLives, retireAge, seasonChange, type RiderLife } from "./riders";
 import { DIVISIONS, PROMOTED, RELEGATED, TOP_DIVISION } from "./divisions";
 import { rivalTeams } from "./teams";
 import { PLAYER_TEAM, RIDER_TYPES, type PackType, type RaceDef, type Tier, type TourDef } from "./types";
@@ -69,7 +70,35 @@ export type Save = {
   seasonResults: RaceRecord[];
   /** The stage race under way, or null. */
   tour: TourState | null;
+  /** Since 2026-11-13: age, talent, form and growth of every rider you own (riders.ts). */
+  riders: Record<string, RiderLife>;
+  /** Riders who stopped, for the erelijst. */
+  legends: Legend[];
+  /** The race slot of the last altitude camp: one per race. */
+  camp: string | null;
+  /** What the last change of season did to your riders, until you close it. */
+  report: SeasonReport | null;
 };
+
+export type Legend = { id: string; season: number; age: number; wins: number; titles: number };
+export type SeasonReport = { season: number; retired: { id: string; age: number; coins: number }[]; grown: { id: string; delta: number }[]; neo: string[] };
+
+/** An altitude camp costs this times the prize share of the level. */
+export const CAMP_COINS = 1500;
+
+/** Every rider you own has a life; one you just got starts his. */
+export function withLives(save: Save): Save {
+  const riders = save.riders ?? {};
+  const missing = Object.keys(save.collection).filter((id) => !riders[id]);
+  if (!missing.length && save.riders) return save;
+  const next = { ...riders };
+  for (const id of missing) next[id] = lifeFor(save.seed, id);
+  return { ...save, riders: next, legends: save.legends ?? [], camp: save.camp ?? null, report: save.report ?? null };
+}
+
+/** A rider as he rides today: his card with growth, and minus what he lacks in form. */
+export const liveCard = (save: Save, id: string) => liveCardOf(id, save.riders?.[id]);
+export const liveCards = (save: Save, ids: string[]) => Object.fromEntries(ids.map((id) => [id, liveCard(save, id)]));
 
 export const today = (now = new Date()) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
@@ -84,7 +113,7 @@ export function newSave(seed: number): Save {
     const options = free.length ? free : low;
     return options[Math.floor(random() * options.length)].id;
   });
-  return {
+  return withLives({
     v: SAVE_VERSION,
     seed,
     teamName: "Mijn ploeg",
@@ -103,7 +132,11 @@ export function newSave(seed: number): Save {
     seasonPoints: {},
     seasonResults: [],
     tour: null,
-  };
+    riders: {},
+    legends: [],
+    camp: null,
+    report: null,
+  });
 }
 
 /** The level a collection belongs in: the highest whose weakest team it beats, by its best five. */
@@ -115,7 +148,8 @@ export function divisionFor(collection: Record<string, number>) {
   return division;
 }
 
-export type Pull = { id: string; duplicate: boolean };
+/** `retired`: a rider who stopped in your team comes back as his sale value. */
+export type Pull = { id: string; duplicate: boolean; retired?: number };
 
 /** Opens the first unopened pack of this type. A duplicate stays as a spare copy, to trade in or sell. */
 export function openPackOf(save: Save, type: PackType): { save: Save; type: PackType; pulls: Pull[]; guaranteed: boolean } | null {
@@ -124,14 +158,21 @@ export function openPackOf(save: Save, type: PackType): { save: Save; type: Pack
   const { cards, pity, guaranteed } = openPack(type, save.seed, save.packsOpened, save.pity);
   const collection = { ...save.collection };
   const items = { ...save.items };
-  const pulls = cards.map((id) => {
+  const gone = new Set((save.legends ?? []).map((l) => l.id));
+  let coins = save.coins;
+  const pulls = cards.map((id): Pull => {
+    if (gone.has(id)) {
+      const value = DUPLICATE_COINS[cardById(id).tier];
+      coins += value;
+      return { id, duplicate: false, retired: value };
+    }
     const owned = itemById.has(id) ? items : collection;
     const duplicate = !!owned[id];
     owned[id] = (owned[id] ?? 0) + 1;
     return { id, duplicate };
   });
   const packs = save.packs.filter((_, i) => i !== index);
-  return { save: { ...save, collection, items, packs, packsOpened: save.packsOpened + 1, pity }, type, pulls, guaranteed };
+  return { save: withLives({ ...save, coins, collection, items, packs, packsOpened: save.packsOpened + 1, pity }), type, pulls, guaranteed };
 }
 
 const tierOfId = (id: string) => itemById.get(id)?.tier ?? cardById(id).tier;
@@ -205,14 +246,15 @@ function drawUp(save: Save, taken: { collection: Record<string, number>; items: 
   const random = rng(hashSeed(save.seed, "ruil", save.trades));
   const r = random();
   const kind = r < KIND_ODDS.renner ? "renner" : r < KIND_ODDS.renner + KIND_ODDS.materiaal ? "materiaal" : "personeel";
-  const options = kind === "renner" ? pool().pool.filter((c) => c.tier === up).map((c) => c.id) : ITEMS.filter((x) => x.group === kind && x.tier === up).map((x) => x.id);
+  const gone = new Set((save.legends ?? []).map((l) => l.id));
+  const options = kind === "renner" ? pool().pool.filter((c) => c.tier === up && !gone.has(c.id)).map((c) => c.id) : ITEMS.filter((x) => x.group === kind && x.tier === up).map((x) => x.id);
   const owned = kind === "renner" ? taken.collection : taken.items;
   const fresh = options.filter((id) => !owned[id]);
   const from = fresh.length ? fresh : options;
   const choice = from[Math.floor(random() * from.length)];
   const duplicate = !!owned[choice];
   owned[choice] = (owned[choice] ?? 0) + 1;
-  return { save: { ...save, ...taken, trades: save.trades + 1 }, pull: { id: choice, duplicate } };
+  return { save: withLives({ ...save, ...taken, trades: save.trades + 1 }), pull: { id: choice, duplicate } };
 }
 
 /** What a pack costs at your level, or undefined when the shop there does not sell it. */
@@ -246,10 +288,10 @@ export function bestLineup(save: Save, raceId: string): Save {
   if (!def) return save;
   const weights = courseWeights(buildCourse(def));
   if (save.tour) {
-    const best = [...save.tour.riders].sort((a, b) => fitFor(cardById(b), weights) - fitFor(cardById(a), weights) || a.localeCompare(b))[0];
+    const best = [...save.tour.riders].sort((a, b) => fitFor(liveCard(save, b), weights) - fitFor(liveCard(save, a), weights) || a.localeCompare(b))[0];
     return best ? { ...save, kopman: best } : save;
   }
-  const ranked = Object.keys(save.collection).map((id) => ({ id, fit: fitFor(cardById(id), weights) })).sort((a, b) => b.fit - a.fit || a.id.localeCompare(b.id));
+  const ranked = Object.keys(save.collection).map((id) => ({ id, fit: fitFor(liveCard(save, id), weights) })).sort((a, b) => b.fit - a.fit || a.id.localeCompare(b.id));
   const lineup = ranked.slice(0, LINEUP_SIZE).map((x) => x.id);
   return { ...save, lineup, kopman: lineup[0] ?? null };
 }
@@ -276,7 +318,7 @@ export function raceSetup(save: Save): { raceId: string; seed: number; lineup: L
   const tour = currentTour(save);
   const riders = save.tour?.riders.length ? save.tour.riders : save.lineup;
   const kopman = riders.includes(save.kopman) ? save.kopman : riders[0];
-  const lineup: Lineup = { riders, kopman, bonus: teamBonus(save.items), rivals: tour ? tourRivals(tour, riders) : undefined };
+  const lineup: Lineup = { riders, kopman, bonus: teamBonus(save.items), rivals: tour ? tourRivals(tour, riders) : undefined, cards: liveCards(save, riders) };
   const carry = tour && save.tour?.stage ? { tired: save.tour.kracht, player: Math.min(1, TOUR_RECOVERY + teamBonus(save.items).recovery), rival: TOUR_RECOVERY } : undefined;
   return { raceId: race.id, seed: raceSeed(save), lineup, carry };
 }
@@ -337,6 +379,7 @@ export function finishRace(save: Save, placings: Placing[], kracht: Record<strin
   const pack = packFor(best, save.division);
   const next: Save = {
     ...save,
+    riders: afterRide(save, placings, FORM_COST.race),
     coins: save.coins + coins,
     packs: pack ? [...save.packs, pack] : save.packs,
     seasonPoints,
@@ -345,6 +388,60 @@ export function finishRace(save: Save, placings: Placing[], kracht: Record<strin
   };
   const closed = closeSeason(next);
   return { save: closed.save, reward: { coins, points, pack, best, season: closed.season } };
+}
+
+/** After a race: who rode loses form, who rested gets some back, a winner of yours counts his win. */
+function afterRide(save: Save, placings: Placing[], cost: number): Record<string, RiderLife> {
+  const lives = withLives(save).riders;
+  const rode = new Set(placings.filter((p) => p.team === PLAYER_TEAM).map((p) => p.id));
+  const winner = placings.find((p) => p.place === 1 && p.team === PLAYER_TEAM)?.id;
+  const out: Record<string, RiderLife> = {};
+  for (const id of Object.keys(save.collection)) {
+    const life = lives[id];
+    out[id] = { ...life, form: clamp(life.form + (rode.has(id) ? -cost : FORM_REST), 0, 100), wins: life.wins + (id === winner ? 1 : 0) };
+  }
+  return out;
+}
+
+/** Whether the next race can be left out: not in the middle of a stage race. */
+export const canSkip = (save: Save) => !seasonDone(save) && !save.tour;
+
+/**
+ * Leaves out the next race (or the whole stage race before its first stage):
+ * your riders rest, you get nothing. The others ride: their points follow from
+ * their strength, with a seeded spread.
+ */
+export function skipRace(save: Save): Save | null {
+  if (!canSkip(save)) return null;
+  const slot = calendarOf(save.division)[save.raceIndex];
+  const factor = isTour(slot) ? slot.stages.length * STAGE_SHARE + GC_FACTOR : slot.kind === "monument" ? MONUMENT_FACTOR : 1;
+  const random = rng(hashSeed(save.seed, save.season, save.division, save.raceIndex, "zonder"));
+  const field = rivalTeams(save.division).flatMap((t) => t.riders.map((id) => ({ team: t.id, key: cardById(id).overall + random() * 8 }))).sort((a, b) => b.key - a.key);
+  const seasonPoints = { ...save.seasonPoints };
+  field.slice(0, POINTS.length).forEach((r, i) => { seasonPoints[r.team] = (seasonPoints[r.team] ?? 0) + Math.round(POINTS[i] * factor); });
+  const rested = withLives(save);
+  const next: Save = {
+    ...rested,
+    riders: restLives(rested.riders, Object.keys(save.collection), FORM_SKIP),
+    seasonPoints,
+    raceIndex: save.raceIndex + 1,
+    seasonResults: [...save.seasonResults, { race: slot.id, winner: "", best: 0, points: 0, coins: 0, pack: null }],
+  };
+  return closeSeason(next).save;
+}
+
+const slotKey = (save: Save) => `${save.season}:${save.raceIndex}:${save.tour?.stage ?? 0}`;
+export const campCost = (save: Save) => Math.round(CAMP_COINS * DIVISIONS[save.division].prize);
+/** Whether there was an altitude camp before this race already. */
+export const campDone = (save: Save) => save.camp === slotKey(save);
+
+/** An altitude camp before the next race: form for the five that start it. */
+export function altitudeCamp(save: Save): Save | null {
+  const cost = campCost(save);
+  if (seasonDone(save) || campDone(save) || save.coins < cost) return null;
+  const five = save.tour?.riders.length ? save.tour.riders : save.lineup;
+  const rested = withLives(save);
+  return { ...rested, coins: save.coins - cost, camp: slotKey(save), riders: restLives(rested.riders, five, FORM_CAMP) };
 }
 
 /** At the end of the season: the coins and pack for the rank. */
@@ -386,7 +483,7 @@ function finishStage(save: Save, tour: TourDef, placings: Placing[], kracht: Rec
   const kopman = save.kopman && state.riders.includes(save.kopman) ? save.kopman : state.riders[0] ?? null;
   const general = generalOf(state);
   const jerseys = jerseysOf(state);
-  let next: Save = { ...save, coins: save.coins + coins, packs: pack ? [...save.packs, pack] : save.packs, seasonPoints, lineup: state.riders, kopman, tour: state };
+  let next: Save = { ...save, riders: afterRide(save, placings, FORM_COST.stage), coins: save.coins + coins, packs: pack ? [...save.packs, pack] : save.packs, seasonPoints, lineup: state.riders, kopman, tour: state };
   const done = state.stage >= tour.stages.length;
   const packs: PackType[] = [];
   if (done) {
@@ -417,8 +514,57 @@ export function seasonMove(save: Save) {
   return moveFor(standings.findIndex((t) => t.id === PLAYER_TEAM) + 1, standings.length, save.division);
 }
 
-/** The next season, a level up or down after promotion or relegation. */
+/** The next season, a level up or down after promotion or relegation. Your riders turn a year older. */
 export function newSeason(save: Save): Save {
   const division = Math.min(TOP_DIVISION, Math.max(0, save.division + (seasonDone(save) ? seasonMove(save) : 0)));
-  return { ...save, season: save.season + 1, division, raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null };
+  return { ...ageRiders(save), season: save.season + 1, division, raceIndex: 0, seasonPoints: {}, seasonResults: [], tour: null };
+}
+
+/** Riders a fresh team starts with after retirements, so there are always five. */
+const NEO = { min: 52, max: 58 };
+
+/**
+ * A year on: the young grow towards their talent, the old decline, and those
+ * at their age to stop leave with their sale value. Too few riders left, and
+ * young bronze riders join.
+ */
+export function ageRiders(save: Save): Save {
+  const s = withLives(save);
+  const boost = teamBonus(s.items).growth;
+  const collection = { ...s.collection };
+  const riders: Record<string, RiderLife> = {};
+  const legends = [...s.legends];
+  const report: SeasonReport = { season: s.season + 1, retired: [], grown: [], neo: [] };
+  let coins = s.coins;
+  for (const id of Object.keys(collection).sort()) {
+    const life = s.riders[id];
+    const delta = seasonChange(life, baseOverall(id, life), boost);
+    const age = life.age + 1;
+    if (age >= retireAge(s.seed, id)) {
+      const value = collection[id] * DUPLICATE_COINS[cardById(id).tier];
+      coins += value;
+      legends.push({ id, season: s.season, age, wins: life.wins, titles: life.titles });
+      report.retired.push({ id, age, coins: value });
+      delete collection[id];
+      continue;
+    }
+    riders[id] = { ...life, age, growth: life.growth + delta, form: 100 };
+    if (delta) report.grown.push({ id, delta });
+  }
+  const gone = new Set(legends.map((l) => l.id));
+  const random = rng(hashSeed(s.seed, "neoprof", s.season));
+  while (Object.keys(collection).length < LINEUP_SIZE) {
+    const options = pool().pool.filter((c) => c.tier === "brons" && c.overall >= NEO.min && c.overall <= NEO.max && !collection[c.id] && !gone.has(c.id));
+    const id = options[Math.floor(random() * options.length)].id;
+    collection[id] = 1;
+    riders[id] = lifeFor(s.seed, id, true);
+    report.neo.push(id);
+  }
+  const lineup = s.lineup.filter((id) => collection[id]);
+  // A place a rider left is filled by the best one not in the lineup.
+  const rest = Object.keys(collection).filter((id) => !lineup.includes(id)).sort((a, b) => liveCardOf(b, riders[b]).overall - liveCardOf(a, riders[a]).overall || a.localeCompare(b));
+  while (lineup.length < LINEUP_SIZE && rest.length) lineup.push(rest.shift()!);
+  const kopman = s.kopman && lineup.includes(s.kopman) ? s.kopman : lineup[0] ?? null;
+  const changed = report.retired.length || report.grown.length || report.neo.length;
+  return { ...s, coins, collection, riders, legends, lineup, kopman, report: changed ? report : null };
 }

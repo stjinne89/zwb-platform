@@ -130,7 +130,12 @@ export function laneOf(state: RaceState, r: Rider): number {
 export const homeLane = (id: string) => laneIndex(id);
 
 /** `rivals`: in a stage race every team keeps the same riders, per team id (tour.ts). */
-export type Lineup = { riders: string[]; kopman: string; bonus?: TeamBonus; rivals?: Record<string, string[]> };
+/**
+ * `rivals`: the riders per rival team, when not the level's roster (a stage race, transfers).
+ * `cards`: riders as they ride today (age, form, growth), for yours and any rival.
+ * `xp`: extra kracht for rival kopmen, from a harder career.
+ */
+export type Lineup = { riders: string[]; kopman: string; bonus?: TeamBonus; rivals?: Record<string, string[]>; cards?: Record<string, RiderCard>; xp?: number };
 
 function bodyOf(card: RiderCard, tt: boolean, bonus: TeamBonus = NO_BONUS) {
   const s = card.stats;
@@ -215,9 +220,10 @@ export function createRace(raceId: string, seed: number, player: Lineup): RaceSt
   if (!def) throw new Error(`Onbekende koers: ${raceId}`);
   const course = buildCourse(def);
   const mine = new Set(player.riders);
-  const entries: { card: RiderCard; team: string; kopman: boolean }[] = player.riders.map((id) => ({ card: cardById(id), team: PLAYER_TEAM, kopman: id === player.kopman }));
+  const card = (id: string) => player.cards?.[id] ?? cardById(id);
+  const entries: { card: RiderCard; team: string; kopman: boolean }[] = player.riders.map((id) => ({ card: card(id), team: PLAYER_TEAM, kopman: id === player.kopman }));
   for (const team of rivalsIn(raceId)) {
-    const lineup = lineupFor((player.rivals?.[team.id] ?? team.riders).map(cardById), course, mine);
+    const lineup = lineupFor((player.rivals?.[team.id] ?? team.riders).map(card), course, mine);
     lineup.forEach((card, i) => entries.push({ card, team: team.id, kopman: i === 0 }));
   }
   const gear = rivalBonus(divisionOfRace(raceId));
