@@ -14,7 +14,13 @@ import {
 } from "@/lib/pacing/ai";
 import { adoptGeneratedPlan } from "@/lib/pacing/adopt";
 import { buildBaselinePlan } from "@/lib/pacing/baseline";
-import { evaluatePlan, type PlanEvaluation, type PlanSegment } from "@/lib/pacing/plan";
+import {
+  accentTimings,
+  evaluatePlan,
+  type AccentTiming,
+  type PlanEvaluation,
+  type PlanSegment,
+} from "@/lib/pacing/plan";
 import type { RiderContext } from "@/lib/pacing/draft";
 import type { RideContext } from "@/lib/pacing/ride-context";
 import type { PacingRoute } from "@/lib/pacing/route-profile";
@@ -48,6 +54,8 @@ export type PlanSummary = {
   notes?: string[];
   /** Gewenste eindtijd, als het lid er een opgaf; sinds 14 september 2026. */
   targetTime?: TargetTime | null;
+  /** Wanneer je bij elk accent bent, voor de eetmomenten; sinds 13 november 2026. */
+  accents?: AccentTiming[];
 };
 
 export type StoredPlan = {
@@ -73,6 +81,8 @@ export function summarize(
     risks?: string[];
     notes?: string[];
     targetTime?: TargetTime | null;
+    /** De route van de doorrekening; voor de soort van elk accent. */
+    route?: Pick<PacingRoute, "accents">;
   } = {},
 ): PlanSummary {
   return {
@@ -89,6 +99,7 @@ export function summarize(
     risks: extra.risks ?? [],
     notes: extra.notes ?? [],
     targetTime: extra.targetTime ?? null,
+    ...(extra.route ? { accents: accentTimings(evaluation, extra.route) } : {}),
   };
 }
 
@@ -163,6 +174,7 @@ export async function savePlan(
           risks: input.risks,
           notes: input.notes,
           targetTime: input.targetTime,
+          route: input.route,
         },
       ),
       ai_generation_id: input.aiGenerationId ?? null,

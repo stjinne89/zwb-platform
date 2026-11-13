@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Recipe } from "@/lib/nutrition/recipes";
-import { ridePlan } from "@/lib/nutrition/ride-plan";
+import { feedMinutes, pacedAccents, ridePlan } from "@/lib/nutrition/ride-plan";
 import type { NutritionFood } from "@/lib/nutrition/scale";
 import { SEASON_OUTDOOR_C, needsSalt, presetFloor, presetFor, seasonTemperature } from "@/lib/nutrition/event-fuel";
 import { planDayMenu } from "@/lib/nutrition/plan";
@@ -332,5 +332,82 @@ describe("vocht naar het weer en zout (stap 6)", () => {
     expect(warm.adviceFluidMl).toBeGreaterThan(cold.adviceFluidMl);
     expect(warm.salt).toBe(true);
     expect(plannerResult(planner(), planner().defaults).temperatureC).toBeNull();
+  });
+});
+
+describe("eetmomenten uit het pacingplan (stap 7)", () => {
+  const GEL = { ...recipe("gel", 1, [[food("gelsuiker", 60, "Suiker, snoep, zoet beleg en zoete sauzen"), 40, "kh_bron"]]), carb_mix: "2:1" };
+  const FOOD = { ...CAKES, carb_mix: "eten" };
+
+  it("blijft zonder accenten om de 20 minuten", () => {
+    expect(feedMinutes(120, [])).toEqual(feedMinutes(120));
+  });
+
+  it("legt geen moment in een accent en een moment vlak voor een lange klim", () => {
+    const feeds = feedMinutes(120, [
+      { startMin: 50, endMin: 62, kind: "climb" },
+      { startMin: 94, endMin: 95, kind: "sprint" },
+    ]);
+    expect(feeds).toContain(47);
+    for (const minute of feeds) {
+      expect(minute < 49 || minute > 63).toBe(true);
+      expect(minute < 93 || minute > 96).toBe(true);
+    }
+    // Het moment op 55 viel in de klim en ligt te dicht bij 47: dat vervalt.
+    expect(feeds).not.toContain(55);
+    for (let i = 1; i < feeds.length; i += 1) expect(feeds[i] - feeds[i - 1]).toBeGreaterThanOrEqual(8);
+  });
+
+  it("niets in de eerste tien minuten, ook niet voor een vroege klim", () => {
+    const feeds = feedMinutes(90, [{ startMin: 8, endMin: 20, kind: "climb" }]);
+    expect(Math.min(...feeds)).toBeGreaterThanOrEqual(10);
+    expect(feeds.every((minute) => minute > 21)).toBe(true);
+  });
+
+  it("een klim van vijf minuten of korter krijgt geen eigen moment", () => {
+    const feeds = feedMinutes(120, [{ startMin: 64, endMin: 69, kind: "climb" }]);
+    expect(feeds).not.toContain(61);
+  });
+
+  it("boven IF 0,85 een gel in plaats van gewoon eten, tenzij je het zelf koos", () => {
+    const input = { ...INPUT, ranked: [DRINK, FOOD, GEL], lead: DRINK, minutes: 180, perHourG: 120, fluidMlPerHour: 400 };
+    expect(ridePlan({ ...input, intensityFactor: 0.8 })!.solid?.recipe?.slug).toBe("rijsttaartjes");
+    expect(ridePlan({ ...input, intensityFactor: 0.9 })!.solid?.recipe?.slug).toBe("gel");
+    expect(ridePlan({ ...input, lead: FOOD, leadChosen: true, intensityFactor: 0.9 })!.solid?.recipe?.slug).toBe("rijsttaartjes");
+    // Zonder gel draagt de bidon het.
+    expect(ridePlan({ ...input, ranked: [DRINK, FOOD], intensityFactor: 0.9 })!.solid).toBeNull();
+    // Zonder IF (het schema) blijft het zoals het was.
+    expect(ridePlan({ ...input })!.solid?.recipe?.slug).toBe("rijsttaartjes");
+  });
+
+  it("gewoon eten niet in het laatste halfuur", () => {
+    const plan = ridePlan({ ...INPUT, ranked: [DRINK, FOOD], lead: FOOD, leadChosen: true, perHourG: 120, intensityFactor: 0.7 })!;
+    expect(plan.solid).not.toBeNull();
+    const withFood = plan.feeds.filter((feed) => feed.solid > 0);
+    expect(withFood.length).toBeGreaterThan(0);
+    expect(withFood.every((feed) => feed.minute <= 120 - 30)).toBe(true);
+  });
+
+  it("leest de accenten uit een bewaard plan, ook uit een ouder plan", () => {
+    expect(pacedAccents(null)).toEqual([]);
+    expect(
+      pacedAccents({
+        summary: { totalSeconds: 3600, accents: [{ kind: "climb", startS: 600, durationS: 420 }] },
+        route_snapshot: null,
+      }),
+    ).toEqual([{ startMin: 10, endMin: 17, kind: "climb" }]);
+    expect(
+      pacedAccents({
+        summary: { totalSeconds: 3600 },
+        route_snapshot: { totalKm: 40, accents: [{ startKm: 10, endKm: 12 }] },
+      }),
+    ).toEqual([{ startMin: 15, endMin: 18, kind: null }]);
+  });
+
+  it("de planner schuift de accenten mee met de duur", () => {
+    const p = planner({ accents: [{ startMin: 61, endMin: 70, kind: "climb" }] });
+    const longer = plannerPlanInput(p, { ...p.defaults, minutes: 244 });
+    expect(longer.accents?.[0].startMin).toBeCloseTo(122);
+    expect(longer.intensityFactor).toBe(p.defaults.intensityFactor);
   });
 });

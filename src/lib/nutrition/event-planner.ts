@@ -23,7 +23,7 @@ import {
   type FuelBalance,
   type FuelPreset,
 } from "./event-fuel";
-import { ridePlanForHolders, type RidePlan, type RidePlanInput } from "./ride-plan";
+import { ridePlanForHolders, type RideAccent, type RidePlan, type RidePlanInput } from "./ride-plan";
 import type { Recipe } from "./recipes";
 import { DEFAULT_BIDON_ML, fluidMl, fluidPerHour } from "./sweat";
 import { REFERENCE_RIDER } from "./targets";
@@ -50,6 +50,8 @@ export type EventFuelPlanner = {
   raceIf: number;
   setting: "binnen" | "buiten";
   temperatureC: number | null;
+  /** Klimmen en sprints uit het pacingplan, op de verwachte duur; leeg zonder plan. */
+  accents: RideAccent[];
   defaults: PlannerChoice;
 };
 
@@ -215,11 +217,19 @@ export function plannerResult(planner: EventFuelPlanner, choice: PlannerChoice):
 /** De invoer voor ridePlan bij deze keuzes. */
 export function plannerPlanInput(planner: EventFuelPlanner, choice: PlannerChoice): RidePlanInput {
   const result = plannerResult(planner, choice);
+  // Rijd je langer of korter dan het pacingplan, dan schuiven de accenten mee.
+  const scale = planner.expectedMinutes > 0 ? choice.minutes / planner.expectedMinutes : 1;
   return {
     ...planner.input,
     minutes: choice.minutes,
     perHourG: result.perHourG,
     fluidMlPerHour: result.fluidMlPerHour,
+    intensityFactor: choice.intensityFactor,
+    accents: planner.accents.map((accent) => ({
+      ...accent,
+      startMin: accent.startMin * scale,
+      endMin: accent.endMin * scale,
+    })),
   };
 }
 
@@ -236,6 +246,7 @@ export function eventFuelPlanner(input: {
   pacing: EventFuelPlanner["pacing"];
   ftpWatts: number | null;
   temperatureC?: number | null;
+  accents?: RideAccent[];
 }): EventFuelPlanner {
   const defaultPreset = presetFor(input.intensity);
   const base = { pacing: input.pacing, raceIf: input.raceIf, defaultPreset };
@@ -248,6 +259,7 @@ export function eventFuelPlanner(input: {
     raceIf: input.raceIf,
     setting: input.setting,
     temperatureC: input.temperatureC ?? null,
+    accents: input.accents ?? [],
     defaults: {
       preset: defaultPreset,
       intensityFactor: presetIntensity(base, defaultPreset),

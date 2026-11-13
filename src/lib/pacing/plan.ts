@@ -233,6 +233,36 @@ export const RACE_RESERVE_FRACTION = 0.2;
  * Rekent een plan door: snelheid en tijd per segment via het fysische model,
  * daarna de W′-balans over het geheel.
  */
+/** Wanneer je bij een accent bent en hoe lang je erin zit; voor de eetmomenten. */
+export type AccentTiming = {
+  id: string;
+  kind: PacingRoute["accents"][number]["kind"];
+  startS: number;
+  durationS: number;
+};
+
+/**
+ * De accenten uit een doorrekening, op tijd vanaf de start (stap 7 van
+ * docs/eventvoeding-plan.md): het voedingsplan legt daar geen eetmoment in.
+ */
+export function accentTimings(
+  evaluation: Pick<PlanEvaluation, "accents">,
+  route: Pick<PacingRoute, "accents">,
+): AccentTiming[] {
+  return evaluation.accents.flatMap((item) => {
+    const accent = route.accents[item.accentIndex];
+    if (!accent || !(item.durationS > 0)) return [];
+    return [
+      {
+        id: accent.id,
+        kind: accent.kind,
+        startS: Math.round(item.arrivalSeconds),
+        durationS: Math.round(item.durationS),
+      },
+    ];
+  });
+}
+
 export function evaluatePlan(
   plan: PlanSegment[],
   route: PacingRoute,

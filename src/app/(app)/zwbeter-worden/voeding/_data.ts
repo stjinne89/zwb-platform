@@ -19,7 +19,7 @@ import type { LoggedMeal } from "@/lib/nutrition/log";
 import { PRODUCT_COLUMNS, productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import { RECIPE_PREFS, rankRecipes, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { classifyFuelDay } from "@/lib/nutrition/day-type";
-import { eventRide, isBidonRecipe, ridePlan, type RidePlan, type RidePlanInput } from "@/lib/nutrition/ride-plan";
+import { eventRide, isBidonRecipe, pacedAccents, ridePlan, type RidePlan, type RidePlanInput } from "@/lib/nutrition/ride-plan";
 import {
   eventWorkoutDefaults,
   outdoorRaceIntensityFactor,
@@ -522,16 +522,18 @@ async function loadRideInputs(viewer: Viewer, rides: RideSlot[], today: string):
     }).map((item) => item.recipe);
     const choice = choices.find((row) => row.day === day && row.moment === "tijdens_rit");
     const chosen = choice ? byId.get(choice.recipeId) : undefined;
-    // ridePlan kiest alleen de eerste bidon en het eerste vaste eten uit de rangorde.
+    // ridePlan kiest alleen de eerste bidon en het eerste vaste eten uit de
+    // rangorde, en bij een zware rit het eerste dat geen gewoon eten is (een gel).
     const firstDrink = ranked.find(isBidonRecipe);
     const firstFood = ranked.find((recipe) => !isBidonRecipe(recipe));
+    const firstGel = ranked.find((recipe) => !isBidonRecipe(recipe) && recipe.carb_mix !== "eten");
     inputs.set(ride.id, {
       minutes,
       intensity,
       gut,
       sweatMlPerHour,
       weightKg: profile.weightKg,
-      ranked: [firstDrink, firstFood].filter((recipe): recipe is Recipe => recipe != null),
+      ranked: [...new Set([firstDrink, firstFood, firstGel])].filter((recipe): recipe is Recipe => recipe != null),
       lead: chosen ?? ranked[0] ?? null,
       leadChosen: Boolean(chosen),
       energyFactor,
@@ -751,6 +753,7 @@ export async function loadEventRidePlan(
         : null,
     ftpWatts: ftp > 0 ? ftp : null,
     temperatureC,
+    accents: pacedAccents(pacing),
   });
   const row = fuelRows.get(eventFuelKey(viewer.user.id, event.id));
   const saved = row ? choiceFromRow(planner, row) : null;

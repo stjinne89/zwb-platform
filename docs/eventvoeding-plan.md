@@ -321,6 +321,11 @@ Elke stap een eigen ronde met commit, `PLAN.md`-blok en waar nodig `/hulp`.
    coördinaten. Seizoen: KNMI-normalen De Bilt 1991–2020 (`SEASON_OUTDOOR_C`).*
 7. **Momenten uit het pacingplan.** Accenten, start van een Zwift-race, vast
    eten of gel naar IF.
+
+   *Gebouwd op 2026-11-13, zie `PLAN.md`. Het pacingplan bewaart sinds deze
+   stap per accent de doorkomst en de duur (`summary.accents`); een ouder plan
+   schat ze uit de km's. De regel voor gewoon eten geldt bij elk event, ook
+   zonder pacingplan, want de IF staat altijd op het schuifje. Geen migratie.*
 8. **Na het event.** Plan, gereden en gegeten naast elkaar; de standaardwaarden
    van stap 5 komen hieruit. Eerst de privacyzin voorleggen (besluit 10).
 

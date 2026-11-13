@@ -6,6 +6,7 @@ import {
 import {
   ceilingWatts,
   clampPlan,
+  accentTimings,
   evaluatePlan,
   expandPlanToWatts,
   rebalancePlan,
@@ -140,6 +141,15 @@ describe("evaluatePlan", () => {
     expect(climb.arrivalSeconds).toBeGreaterThan(0);
     expect(climb.durationS).toBeGreaterThan(0);
     expect(climb.watts).toBe(Math.round(4.2 * 70));
+  });
+
+  it("zet de accenten op tijd, met hun soort, voor het voedingsplan", () => {
+    const evaluation = evaluatePlan(flatThenClimb, route(), MODEL);
+    const [timing] = accentTimings(evaluation, route());
+    expect(timing.kind).toBe("climb");
+    expect(timing.id).toBe(route().accents[0].id);
+    expect(timing.startS).toBe(Math.round(evaluation.accents[0].arrivalSeconds));
+    expect(timing.durationS).toBe(Math.round(evaluation.accents[0].durationS));
   });
 
   it("harder rijden kost tijd noch reserve gratis", () => {

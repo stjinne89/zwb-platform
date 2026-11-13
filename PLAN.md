@@ -13,16 +13,17 @@ gaat stabiliteit voor nieuwe features.
    model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
    het racebriefje, `844876ce`), stap 3 (soort koolhydraten op recepten,
    `ae72d7cf`), stap 4 (keuzes per event bewaren, `3b06249d`) en stap 5 (duur
-   met marge, `e0f00852`) en stap 6 (vocht naar het weer, zout, `ae188fd8`).
+   met marge, `e0f00852`), stap 6 (vocht naar het weer, zout, `ae188fd8`) en
+   stap 7 (eetmomenten uit het pacingplan).
    De privacyzin voor stap 4 staat op `/privacy` (akkoord eigenaar,
    2026-11-13). Open: migraties `0328_nutrition_recipe_carb_mix.sql` en
    `0329_nutrition_event_fuel.sql` toepassen op productie (alleen op verzoek).
    Tot 0328 er is rekent de planner zonder tasgrens, tot 0329 er is lukt
    bewaren niet. Verder open: de eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
    worktree), het toetsscript draaien op de echte events zodra de
-   Supabase-connector er weer is, daarna stap 7 (momenten uit het
-   pacingplan). Zie de rondes "Gebouwd — Eventvoeding, stap 1 tot en met 6" en
-   "Ontwerp — Eventvoeding".
+   Supabase-connector er weer is, daarna stap 8 (na het event; eerst de
+   privacyzin voorleggen, besluit 10). Zie de rondes "Gebouwd — Eventvoeding,
+   stap 1 tot en met 7" en "Ontwerp — Eventvoeding".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
@@ -12317,6 +12318,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Eventvoeding, stap 7: eetmomenten uit het pacingplan
+
+**2026-11-13, lokaal gecommit, niet gepusht. Geen migratie.** Op verzoek van de
+eigenaar ("Ja ga maar door", na stap 6). Stap 7 van
+[eventvoeding-plan.md](docs/eventvoeding-plan.md), §4g.
+
+**Wat er is.** Het pacingplan bewaart bij elke opslag per accent wanneer je er
+bent en hoe lang je erin zit (`accentTimings` in `pacing/plan.ts`, als
+`summary.accents`, met de soort klim of sprint). Een plan van daarvoor heeft
+alleen de km's in `route_snapshot`; dan schat `pacedAccents` de tijd naar
+verhouding van de duur, zonder soort. `feedMinutes` legt met accenten geen
+eetmoment in een klim of sprint (een minuut speling): het schuift naar het
+dichtstbijzijnde vrije moment, hoogstens 15 minuten, of vervalt. Een klim van
+meer dan vijf minuten krijgt een moment drie minuten ervoor. Nooit een moment
+in de eerste tien minuten, en twee momenten liggen minstens 8 minuten uit
+elkaar (het moment voor een klim gaat voor). Schuif je de duur, dan schuiven de
+accenten naar verhouding mee. Bij een event geldt daarnaast: vanaf IF 0,85
+geen gewoon eten (`carb_mix` "eten") maar het eerste recept dat geen gewoon
+eten is (een gel), of anders alles in de bidon; gewoon eten nooit in het laatste
+halfuur. Een recept dat het lid zelf koos, blijft, maar valt dan ook niet in het
+laatste halfuur. De lijst onder het plan heet nu "Eetmomenten" in plaats van
+"Per 20 minuten".
+
+**Keuzes van ZWB in deze stap.** Drie minuten voor een klim, een minuut speling
+rond een accent, 8 minuten tussen twee momenten en hoogstens 15 minuten
+schuiven: praktische grenzen, niet uit onderzoek. De IF-regel geldt bij elk
+event, ook zonder pacingplan, omdat de planner altijd een IF heeft; alleen de
+momenten zelf vragen een pacingplan, zoals §4g zegt. Vervalt een moment, dan
+verdeelt het plan de bidon over de overige momenten; het totaal blijft gelijk.
+
+**Nu niet meer waar.** "Een eenvoudig schema per 20 minuten"
+([ritvoeding-plan.md](docs/ritvoeding-plan.md) §4): aangevuld; voor gewone
+ritten in het schema blijft het zo.
+
+**Bewust niet in deze stap.** Geen label bij een moment ("voor de klim"): het
+scherm blijft kort, de minuut zegt genoeg naast het pacingplan. Geen momenten
+uit het pacingplan in de herinnering of Boodschappen: die rekenen alleen met
+hoeveel, niet wanneer. Het gewone schema (`loadRidePlans`) kent geen IF en
+blijft om de 20 minuten met het eerste vaste eten.
+
+**Getest.** Acht tests in `tests/unit/nutrition-event-planner.test.ts`
+(accenten ontwijken, moment voor een lange klim, eerste tien minuten, korte
+klim, gel boven IF 0,85, laatste halfuur, oude en nieuwe plannen, meeschuiven
+met de duur) en één in `tests/unit/pacing-plan.test.ts`. De hele suite groen op
+`omnium-live.test.ts` na (`.env.local`); `club-theme`, `gps-times-flag` en
+`rls-initplan-migration` liepen onder volle belasting in een tijdslimiet en
+slagen los. `tsc` en eslint schoon.
+
+**Niet geverifieerd.** Niet in de browser bekeken, en niet tegen een echt
+pacingplan: bestaande plannen hebben nog geen `summary.accents` tot het lid ze
+opnieuw opslaat, en de schatting uit de km's is niet naast een doorrekening
+gelegd.
 
 ### Gebouwd — Eventvoeding, stap 6: vocht naar het weer, en zout
 

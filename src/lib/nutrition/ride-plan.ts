@@ -103,6 +103,27 @@ export const FEED_INTERVAL_MINUTES = 20;
 /** Geen eetmoment meer in de laatste tien minuten. */
 const LAST_FEED_MARGIN_MINUTES = 10;
 
+// Eetmomenten rond de koers, met een pacingplan (stap 7 van
+// docs/eventvoeding-plan.md, §4g). Alle grenzen zijn keuzes van ZWB.
+/** Nooit eerder een eetmoment: de start van een Zwift-race. */
+const EARLIEST_FEED_MINUTE = 10;
+/** Een klim langer dan dit krijgt een eetmoment vlak ervoor. */
+const LONG_CLIMB_MINUTES = 5;
+/** Zoveel minuten voor zo'n klim. */
+const PRE_CLIMB_MINUTES = 3;
+/** Speling rond een accent, ervoor en erna. */
+const ACCENT_MARGIN_MINUTES = 1;
+/** Twee eetmomenten liggen minstens zo ver uit elkaar. */
+const MIN_FEED_GAP_MINUTES = 8;
+/** Zo ver schuift een eetmoment hoogstens om een accent te ontwijken. */
+const MAX_FEED_SHIFT_MINUTES = 15;
+/** Gewoon eten (geen gel) alleen onder deze IF, en niet in het laatste halfuur. */
+export const SOLID_FOOD_MAX_IF = 0.85;
+const SOLID_FOOD_LAST_MINUTES = 30;
+
+/** Een klim of sprint uit het pacingplan, in minuten vanaf de start; soort null als die onbekend is. */
+export type RideAccent = { startMin: number; endMin: number; kind: "climb" | "sprint" | null };
+
 export { isBidonRecipe };
 
 export type RidePlanIngredient = {
@@ -178,6 +199,14 @@ export type RidePlanInput = {
   perHourG?: number | null;
   /** Vocht per uur van buiten (het schuifje bij een event); gaat voor de zweettest. */
   fluidMlPerHour?: number | null;
+  /**
+   * De IF van de rit, bij een event. Gewoon eten (carb_mix "eten") dan alleen
+   * onder SOLID_FOOD_MAX_IF en niet in het laatste halfuur; daarboven een gel of
+   * de bidon. Een recept dat het lid zelf koos, blijft.
+   */
+  intensityFactor?: number | null;
+  /** Klimmen en sprints uit het pacingplan: de eetmomenten gaan eromheen. */
+  accents?: readonly RideAccent[] | null;
 };
 
 function ingredientsOf(items: RecipeIngredient[]): RidePlanIngredient[] {
@@ -212,13 +241,95 @@ function baseCarbs(recipe: Recipe): number {
   ).perPortion.carbsG;
 }
 
-/** Elke twintig minuten, vanaf een kwartier, tot tien minuten voor het einde. */
-export function feedMinutes(minutes: number): number[] {
-  const feeds: number[] = [];
-  for (let minute = FIRST_FEED_MINUTE; minute <= minutes - LAST_FEED_MARGIN_MINUTES; minute += FEED_INTERVAL_MINUTES) {
-    feeds.push(minute);
+/**
+ * Elke twintig minuten, vanaf een kwartier, tot tien minuten voor het einde.
+ * Met accenten uit het pacingplan: geen moment in een klim of sprint (het
+ * schuift naar vlak ervoor of erna, of vervalt), een moment vlak voor elke klim
+ * van meer dan vijf minuten, en nooit in de eerste tien minuten.
+ */
+export function feedMinutes(minutes: number, accents: readonly RideAccent[] = []): number[] {
+  const last = minutes - LAST_FEED_MARGIN_MINUTES;
+  const grid: number[] = [];
+  for (let minute = FIRST_FEED_MINUTE; minute <= last; minute += FEED_INTERVAL_MINUTES) grid.push(minute);
+  if (accents.length === 0) return grid.length > 0 ? grid : [FIRST_FEED_MINUTE];
+
+  const busy = (minute: number) =>
+    accents.some(
+      (accent) => minute >= accent.startMin - ACCENT_MARGIN_MINUTES && minute <= accent.endMin + ACCENT_MARGIN_MINUTES,
+    );
+  const usable = (minute: number) => minute >= EARLIEST_FEED_MINUTE && minute <= last && !busy(minute);
+  const search = (from: number, step: 1 | -1) => {
+    for (let shift = 0; shift <= MAX_FEED_SHIFT_MINUTES; shift += 1) {
+      const minute = from + step * shift;
+      if (usable(minute)) return minute;
+    }
+    return null;
+  };
+
+  const kept: number[] = [];
+  const add = (minute: number | null) => {
+    if (minute == null || kept.some((item) => Math.abs(item - minute) < MIN_FEED_GAP_MINUTES)) return;
+    kept.push(minute);
+  };
+  // Eerst de momenten voor een lange klim: die gaan voor.
+  for (const accent of [...accents].sort((a, b) => a.startMin - b.startMin)) {
+    if (accent.kind !== "climb" || accent.endMin - accent.startMin <= LONG_CLIMB_MINUTES) continue;
+    add(search(Math.floor(accent.startMin - PRE_CLIMB_MINUTES), -1));
   }
-  return feeds.length > 0 ? feeds : [FIRST_FEED_MINUTE];
+  // Dan het vaste ritme; een moment in een accent naar het dichtstbijzijnde vrije moment.
+  for (const minute of grid) {
+    if (usable(minute)) {
+      add(minute);
+      continue;
+    }
+    const before = search(minute, -1);
+    const after = search(minute, 1);
+    add(before == null ? after : after == null ? before : minute - before <= after - minute ? before : after);
+  }
+  if (kept.length === 0) {
+    // Geen vrij moment: dan toch het eerste, liever dan geen plan.
+    return [search(FIRST_FEED_MINUTE, 1) ?? FIRST_FEED_MINUTE];
+  }
+  return kept.sort((a, b) => a - b);
+}
+
+/**
+ * De accenten van een bewaard pacingplan in minuten. Sinds 13 november 2026 met
+ * de doorkomsttijd uit de doorrekening; een ouder plan alleen met de km's van de
+ * route, naar verhouding van de duur en zonder soort: dan wel om de accenten
+ * heen, maar geen moment voor een klim.
+ */
+export function pacedAccents(
+  plan: {
+    summary: {
+      totalSeconds: number;
+      accents?: readonly { kind: "climb" | "sprint"; startS: number; durationS: number }[];
+    } | null;
+    route_snapshot: { totalKm: number; accents?: readonly { startKm: number; endKm: number }[] } | null;
+  } | null,
+): RideAccent[] {
+  const summary = plan?.summary;
+  if (!summary || !(summary.totalSeconds > 0)) return [];
+  if (summary.accents) {
+    return summary.accents
+      .filter((accent) => accent.durationS > 0)
+      .map((accent) => ({
+        startMin: accent.startS / 60,
+        endMin: (accent.startS + accent.durationS) / 60,
+        kind: accent.kind,
+      }));
+  }
+  const snapshot = plan?.route_snapshot;
+  if (!snapshot?.accents || !(snapshot.totalKm > 0)) return [];
+  const minuteAt = (km: number) => (km / snapshot.totalKm) * (summary.totalSeconds / 60);
+  return snapshot.accents
+    .filter((accent) => accent.endKm > accent.startKm)
+    .map((accent) => ({ startMin: minuteAt(accent.startKm), endMin: minuteAt(accent.endKm), kind: null }));
+}
+
+/** Gewoon eten: een banaan, koek of broodje, geen gel of sportdrank (0328). */
+function isRealFood(recipe: Pick<Recipe, "carb_mix">): boolean {
+  return recipe.carb_mix === "eten";
 }
 
 /** Gelijke maten bij elkaar, in de volgorde waarin ze voor het eerst voorkomen. */
@@ -264,6 +375,8 @@ function planForHolders(
     energyFactor,
     perHourG: fixedPerHour = null,
     fluidMlPerHour = null,
+    intensityFactor = null,
+    accents = null,
   }: RidePlanInput,
   holders: BidonHolders,
 ): RidePlan | null {
@@ -274,7 +387,13 @@ function planForHolders(
 
   const leadIsBidon = lead ? isBidonRecipe(lead) : false;
   const drink = lead && leadIsBidon ? lead : (ranked.find(isBidonRecipe) ?? null);
-  const food = lead && !leadIsBidon ? lead : (ranked.find((recipe) => !isBidonRecipe(recipe)) ?? null);
+  // Boven SOLID_FOOD_MAX_IF geen gewoon eten, tenzij het lid het zelf koos.
+  const hard = intensityFactor != null && intensityFactor >= SOLID_FOOD_MAX_IF;
+  const allowed = (recipe: Recipe) => !hard || !isRealFood(recipe);
+  const food =
+    lead && !leadIsBidon && (leadChosen || allowed(lead))
+      ? lead
+      : (ranked.find((recipe) => !isBidonRecipe(recipe) && allowed(recipe)) ?? null);
 
   // Met een zweettest volgt het aantal bidons uit het vochtdoel, anders uit
   // 750 ml per uur. De bidons komen om en om uit de twee houders.
@@ -336,9 +455,14 @@ function planForHolders(
     };
   }
 
-  const minutesList = feedMinutes(minutes);
+  const minutesList = feedMinutes(minutes, accents ?? []);
   // Vast eten niet op het eerste moment, als het kan: verdeeld over de rest.
-  const slots = minutesList.length > 1 ? minutesList.slice(1) : minutesList;
+  // Gewoon eten bij een event ook niet in het laatste halfuur.
+  const lateFrom =
+    intensityFactor != null && food && isRealFood(food) ? minutes - SOLID_FOOD_LAST_MINUTES : Number.POSITIVE_INFINITY;
+  const early = minutesList.filter((minute) => minute <= lateFrom);
+  const open = early.length > 1 ? early.slice(1) : early;
+  const slots = open.length > 0 ? open : minutesList.slice(0, 1);
   const solidAt = new Map<number, number>();
   for (let i = 0; i < (solid?.count ?? 0); i += 1) {
     const minute = slots[Math.min(slots.length - 1, Math.floor(((i + 0.5) * slots.length) / solid!.count))];

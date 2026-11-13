@@ -405,7 +405,11 @@ export function KennisHelp() {
                   startpunt, daarvoor met de gemiddelde temperatuur van die
                   maand; die staat naast het vocht. Bij meer dan 2 liter zweet
                   over de rit, of buiten vanaf 25 °C, staat er: zout in elke
-                  bidon. Je keuzes bewaart{" "}
+                  bidon. Met een pacingplan vallen de eetmomenten niet in een
+                  klim of sprint, en eet je vlak voor een klim van meer dan vijf
+                  minuten. Vanaf IF 0,85 kiest <ClubShortName /> een gel of de
+                  bidon in plaats van gewoon eten, en gewoon eten nooit in het
+                  laatste halfuur; wat je zelf kiest, blijft. Je keuzes bewaart{" "}
                   <ClubShortName /> per event, ook in de racebriefing; het
                   dagmenu, Boodschappen en de herinnering de dag ervoor rekenen
                   er dan mee. &quot;Terug naar het advies&quot; wist ze.

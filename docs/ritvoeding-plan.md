@@ -106,7 +106,9 @@ racebriefing zeggen niets over eten.
   met `carbs_g` en `serving_g` uit `nutrition_products`). Bidons eerst, dan vast
   eten; kiezen op passende hoeveelheid, zoals het dagmenu doet.
 - **Wanneer.** Een eenvoudig schema per 20 minuten, beginnend in het eerste
-  kwartier, zoals de darmtraining het voorschrijft.
+  kwartier, zoals de darmtraining het voorschrijft. *(Sinds 2026-11-13, stap 7
+  van [eventvoeding-plan.md](eventvoeding-plan.md): bij een event met
+  pacingplan om de klimmen en sprints heen.)*
 - **Met één tik vastleggen.** Het plan als één maaltijd "Tijdens de rit" in het
   eetdagboek. Dat lost het open punt uit naleving-voeding-plan.md §4 op: een rit
   van drie uur met vier gels en twee bidons in een paar tikken.

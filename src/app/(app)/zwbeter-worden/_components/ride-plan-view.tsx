@@ -295,7 +295,7 @@ export function RidePlanView({
         {plan.solid ? <ItemRow item={plan.solid} /> : null}
       </ul>
       <details className="text-sm">
-        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Per 20 minuten</summary>
+        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Eetmomenten</summary>
         <ol className="mt-2 divide-y">
           {plan.feeds.map((feed) => (
             <li key={feed.minute} className="flex justify-between gap-3 py-1.5">
