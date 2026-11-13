@@ -265,7 +265,6 @@ function PanelBody({
           <dt>Meting</dt>
           <dd>
             {facet.what}
-            {facet.lowerIsBetter ? " (minder is beter)" : ""}
           </dd>
           <dt>Periode</dt>
           <dd>{facet.source}</dd>

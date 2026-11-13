@@ -24,23 +24,24 @@ describe("snapshot", () => {
     expect(mondayKey("2026-10-25")).toBe("2026-10-19");
   });
 
-  it("neemt per drempel de duren van 1 tot 20 minuten die vers en vermoeid bestaan", () => {
-    // De eigenaar (83 kg): 481 W en 282 W vers.
+  it("neemt per drempel de 5 en 20 minuten die vers en vermoeid bestaan", () => {
+    // De eigenaar (83 kg): 321 W en 282 W vers.
     const fresh = [
       { seconds: 60, watts: 481 },
+      { seconds: 300, watts: 321 },
       { seconds: 1200, watts: 282 },
     ];
     expect(
       fatigueInputs(fresh, [
-        { afterKj: 2000, points: [{ seconds: 60, watts: 399 }, { seconds: 1200, watts: 212 }] },
-        // Alleen een minuut na deze drempel: alleen die duur.
-        { afterKj: 3000, points: [{ seconds: 60, watts: 399 }] },
+        { afterKj: 2000, points: [{ seconds: 60, watts: 399 }, { seconds: 300, watts: 260 }, { seconds: 1200, watts: 212 }] },
+        // Alleen 5 minuten na deze drempel: alleen die duur.
+        { afterKj: 3000, points: [{ seconds: 300, watts: 240 }] },
         { afterKj: 4000, points: [{ seconds: 30, watts: 500 }] },
       ]),
     ).toEqual([
-      { afterKj: 2000, seconds: 60, freshWatts: 481, fatiguedWatts: 399 },
+      { afterKj: 2000, seconds: 300, freshWatts: 321, fatiguedWatts: 260 },
       { afterKj: 2000, seconds: 1200, freshWatts: 282, fatiguedWatts: 212 },
-      { afterKj: 3000, seconds: 60, freshWatts: 481, fatiguedWatts: 399 },
+      { afterKj: 3000, seconds: 300, freshWatts: 321, fatiguedWatts: 240 },
     ]);
   });
 

@@ -1,11 +1,17 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-12)
+## Actieve volgorde (bijgewerkt 2026-11-13)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **ZWBriljant: durability als vermoeid vermogen (2026-11-13): lokaal
+   gecommit, niet gepusht.** Geen migratie. Nieuwe schaalversie
+   `2026-11-13-vermoeid`. Open: na de deploy de terugblik-job laten lopen en
+   een steen, de historie en het ZWB-gemiddelde bekijken. Zie de ronde
+   "ZWBriljant: durability als vermoeid vermogen".
 
 0. **ZwiftRacing in de verwachtingen van events (2026-11-12): gepusht naar
    `main` (`d2fa65c2`, privacy `b05806b7`).** Migratie
@@ -12272,6 +12278,77 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: durability als vermoeid vermogen
+
+**2026-11-13, de commit "ZWBriljant: durability als vermoeid vermogen", lokaal,
+niet gepusht.** Geen migratie. Schaalversie `2026-11-13-vermoeid` (was
+`2026-10-22-ctl40`).
+
+- **De vraag.** Durability was verval: vers tegen vermoeid. Reed je vers beter
+  zonder ook na het werk opnieuw voluit te gaan, dan zakte durability vanzelf.
+  De eigenaar vroeg wat de wetenschap ondersteunt. Uitkomst: het vermogen na
+  het werk in W/kg onderscheidt niveaus het best (Mateo-March 2022; Muriel
+  2021; Leo 2024; Inoue 2026; Ørtenblad 2024) en is te trainen (Voet 2024;
+  Spragg 2022). Onderzoek en doorrekening in
+  [het onderzoek](docs/zwbriljant-onderzoek.md#durability-als-vermoeid-vermogen-2026-11-13).
+- **Doorgerekend op 18 leden (productie, alleen lezend).** Met het volle
+  gewicht: mediaan durability 192 naar 460, score mediaan +36, maar de
+  samenhang met vers vermogen van 0,59 naar 0,91. Verval per week als eerlijk
+  paar (19 leden, 13 weken uit intervals.icu, met hun eigen sleutels via een
+  tijdelijk lokaal script, daarna verwijderd): onbruikbaar, van bijna iedereen
+  Diamant tot sprongen van 0 naar 900. Voor de helft: score mediaan +5.
+- **Keuze eigenaar:** "de punten uit de vermoeide waarden gewoon delen door 2
+  en tellen voor 17,5 procent en wanneer dit uit een durability test komt dat
+  ze voor 100% tellen".
+- **Wat er is.**
+  - `fatiguedPowerAnchors` (`norms.ts`): de verse ijkwaarden van 5 en 20
+    minuten, per niveau verlaagd met het verval dat daarbij hoort
+    (`DURABILITY_DECLINE`, de oude schaal 18 tot 1,5% per 10 kJ/kg), voor je
+    kJ/kg. Vers Goud met Goud-verval is vermoeid Goud.
+  - `fatiguedPower` en `durabilityReading` (`score.ts`): je beste 5 en 20
+    minuten na de laagste kJ-stand met minstens 10 kJ/kg, het gemiddelde van
+    de twee niveaus maal `DURABILITY_RIDES_SHARE` (0,5). Uit de test
+    (`durabilityTestPower`) het niveau van de 20 minuten na het werk, maal 1.
+    De test gaat 90 dagen voor, zoals eerst.
+  - `fatigueInputs` haalt alleen nog 5 en 20 minuten op (`DURABILITY_DURATIONS`).
+  - Scherm: durability toont "3,66 en 3,66 W/kg", "vermoeid op 5 en 20
+    minuten, telt voor de helft" of "vermoeid op 20 minuten" bij de test, en
+    een balk in punten. "Hier win je het meest" rekent met 5% meer vermoeid
+    vermogen. Weg: "(minder is beter)", `lowerIsBetter` op schalen en
+    stenen.
+  - Record: het 20-minutenrecord na 10 kJ/kg met 0,7% verval, als test
+    (records nu 1224 man, 1199 vrouw; waren 1182 en 1173).
+  - `/hulp` (ZWBriljant): de durability-formule en de test opnieuw beschreven.
+- **Bewust niet gebouwd:**
+  - verval per week als eerlijk paar: uit gewone ritten onbruikbaar (zie
+    boven); alleen de test levert een eerlijk paar;
+  - een lager gewicht in plaats van de halve telling: de eigenaar koos de
+    helft, zodat de test meer oplevert;
+  - het plafond op Diamant uit ritten: mijn keuze, niet expliciet gevraagd.
+    Het plafond ving "geen verval" op; met vermoeid vermogen bestaat dat
+    artefact niet, en de halve telling houdt de ritten al laag;
+  - oude snapshots omrekenen: een snapshot bewaart alleen niveaus, geen
+    metingen. Ze blijven staan onder de oude schaalversie maar worden niet
+    getoond.
+- **Niet meer waar.** De ronde "durability uit ritten met P25 en een plafond"
+  (2026-10-23): P25 over tien duren, het verval in procenten en het plafond
+  gelden niet meer; de test telt nog, op zijn vermoeide vermogen. In de ronde
+  over eisen per doel: "De steen meet P25 over 1 tot 20 minuten"; de steen
+  meet nu vermoeid vermogen (durability blijft daar weggelaten). In de ronde
+  met "Hier win je het meest": "durability 5% minder verval" is nu 5% meer
+  vermoeid vermogen. In het onderzoek stond de schaalversie nog op
+  `2026-10-21-sd`, en de Grand Tour-studie stond onder Mateo-March 2021 (de
+  eerste auteur is Muriel).
+- **Geverifieerd:** tsc, eslint (geen nieuwe waarschuwingen), 110
+  ZWBriljant-tests (nieuw of herschreven: vermoeide ijkwaarden, de laagste
+  stand, een betere verse waarde laat durability gelijk, ritten de helft van
+  de test, geen plafond, de test voor de ritten, het scherm met alleen 5
+  minuten), de hele suite op twee time-outs onder load na (los groen) en
+  `omnium-live` (geen `.env.local` in deze worktree).
+- **Niet geverifieerd:** de terugblik-job op productie. Tot die gelopen heeft,
+  tonen historie, tegel en ZWB-gemiddelde geen stenen van de nieuwe schaal.
+  Geen `next build` en geen blik in de preview.
+
 ### Gebouwd — Kopman: de Ronde van de Alpen
 
 **2026-11-13, `a4772a41`, gepusht op 2026-11-13.** Geen migratie. De save krijgt `tour` erbij (de lopende ronde);
@@ -23483,7 +23560,9 @@ mediaan 7. P90 over alle ritten (5,7) viel af: dan konden drie leden met CTL ron
 - **Durability.** Bij 17 leden met vermoeidheidscurves vergeleken: zes hebben op de
   steen hooguit 1% verval per 10 kJ/kg (Diamant), terwijl de prognose voor hen 2
   tot 18% CP-verlies na 1000 kJ en tot 25% na 2000 kJ rekent. De steen meet P25
-  over 1 tot 20 minuten op de laagste kJ-stand, de prognose CP per kJ-stand. Een
+  over 1 tot 20 minuten op de laagste kJ-stand, de prognose CP per kJ-stand.
+  (Achterhaald sinds 2026-11-13: de steen meet vermoeid vermogen op 5 en 20
+  minuten; durability blijft weggelaten.) Een
   eis in steenklassen zou de prognose tegenspreken. Keuze eigenaar: weglaten. Het
   verval blijft in de prognose en als nadruk.
 - **VO2max, sprint, anaeroob, racen, consistentie.** Het pacingmodel schaalt het
@@ -26212,6 +26291,9 @@ en de nieuwe cron-job. Tot die job er is, loopt de historie alleen in de staart 
 
 **2026-10-23.** Commit `32a3b555`, op 2026-10-23 gepusht naar `main`. Geen migratie.
 
+*Achterhaald sinds 2026-11-13: durability is vermoeid vermogen, uit ritten voor de helft,
+zonder plafond; zie "ZWBriljant: durability als vermoeid vermogen".*
+
 **Waarom.** Met de nieuwe minuut van de eigenaar (547 W, eerst 481; na 1000 kJ bleef het
 452 W) zakte durability van 400 naar 65 punten, terwijl hij na het werk niet slechter
 reed. Eén verse inspanning bepaalde de hele score. Onderzoek en doorrekening op zeven leden
@@ -27056,7 +27138,8 @@ problemen op de telefoon, plus de steen van Pim Meulemeester met maar twee onder
   eenzijdig: een gedeelde steen is zichtbaar voor elk goedgekeurd lid, ook als die zelf
   niet deelt. De lijst met leden komt met de sessie van het lid, dus de RLS beslist.
 - **Hier win je het meest** (`bestWins`): onder de score per onderdeel wat 5% beter
-  oplevert (durability 5% minder verval, ZRS tot 1000), met gewicht en consistentie, de
+  oplevert (durability 5% minder verval, sinds 2026-11-13 5% meer vermoeid vermogen; ZRS
+  tot 1000), met gewicht en consistentie, de
   beste drie. Bij de eigenaar: VO2max +11, drempel +9 punten. Bewust 5% voor elk onderdeel
   en geen inschatting van hoe moeilijk die 5% is; dat verschilt per renner.
 - **Telefoon:** de tekst onderin schuift boven de tabbalk (`--nav-space`), de klassen staan
@@ -27243,7 +27326,7 @@ profs, waardoor CTL 100 (voor een amateur zeer hoog) maar Saffier was.
 **Nu.**
 - **Durability op de beste minuut** (`fatigueInputs`), vers tegen na elke drempel, nog
   steeds als verval per 10 kJ/kg. (Achterhaald sinds 2026-10-23: P25 over 1 tot 20
-  minuten.) Eigenaar: 481 naar 399 W na 2000 en 3000 kJ, 5,9% per
+  minuten; sinds 2026-11-13 vermoeid vermogen op 5 en 20 minuten.) Eigenaar: 481 naar 399 W na 2000 en 3000 kJ, 5,9% per
   10 kJ/kg, van 207 naar ongeveer 355. De ijkwaarden bleven (uit het verval van het hele
   profiel, voor de minuut een inschatting).
 - **Fitheid naar de spreiding onder amateurs** (`CTL_ANCHORS`): 30, 40, 50, 60, 70, 80,

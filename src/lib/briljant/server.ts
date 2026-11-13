@@ -67,7 +67,8 @@ const TERUGBLIK_FALLBACK_MONTHS = 12;
  * waar die bekend is en anders de huidige, durability per maand, en sinds 2026-10-22 het gewicht
  * uit intervals.icu of Zwift, consistentie in TSS en durability uit de laagste
  * kJ-stand in plaats van het gemiddelde, en sinds 2026-10-23 durability als P25 over
- * 1 tot 20 minuten met een plafond op Diamant (eigenaar), en sinds 2026-10-25 de
+ * 1 tot 20 minuten met een plafond op Diamant (eigenaar; sinds 2026-11-13 vervangen
+ * door vermoeid vermogen, een nieuwe SCALE_VERSION), en sinds 2026-10-25 de
  * consistentie met ritten op de trainingsdag in de naleving en een norm die niet
  * meer op 0 valt, en sinds 2026-10-26 het laatste gewicht tot het maandeinde in
  * plaats van alleen dat van de dag zelf, en ook sinds 2026-10-26 volhouden als reeks/12 en
@@ -570,8 +571,8 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
       sex: sexOf(p?.sex ?? null),
       weightKg,
       power: powerFromCurve(curves.get(curveRange(end)) ?? [], weightKg),
-      // Durability uit ritten, net als nu: P25 over 1 tot 20 minuten na de laagste
-      // drempel. De durability-test telt in de terugblik niet mee.
+      // Durability uit ritten, net als nu: vermoeid op 5 en 20 minuten na de laagste
+      // drempel, voor de helft. De durability-test telt in de terugblik niet mee.
       fatigue: fatigueInputs(
         curves.get(curveRange(end)) ?? [],
         thresholds.map((afterKj, index) => ({ afterKj, points: curves.get(`${curveRange(end)}-kj${index}`) ?? [] })),

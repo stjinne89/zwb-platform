@@ -8,10 +8,9 @@
 //   vermogensprofiel de doeltijd haalt (dezelfde factor als de benodigde CP).
 // - Fitheid: de geschatte belasting van het event gedeeld door hoe ver leden
 //   boven hun CTL lange ritten uitreden (EVENT_LOAD_PER_CTL).
-// Durability bewust niet: het verval van de steen (P25 over 1 tot 20 minuten op
-// de laagste kJ-stand) en het verval in de prognose (CP per kJ-stand) lopen bij
-// onze leden te ver uiteen om het een in het ander uit te drukken. Zie
-// docs/eisen-per-doel.md.
+// Durability bewust niet: de steen meet sinds 2026-11-13 vermoeid vermogen op 5 en
+// 20 minuten na de laagste kJ-stand, de prognose verval (CP per kJ-stand); die
+// twee zijn niet in elkaar uit te drukken. Zie docs/eisen-per-doel.md.
 //
 // Puur: goal-forecast.ts levert de waarden aan. Alleen niveaus gaan de opslag in.
 

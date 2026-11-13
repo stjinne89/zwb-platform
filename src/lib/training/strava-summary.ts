@@ -102,7 +102,7 @@ export function briljantSummaryFrom(
 
   const position = positionFor(latest.score);
   const before = scored.find((snapshot) => snapshot.week === shiftDay(latest.week, -28));
-  const grow = winsFromLevels(latest.facets, latest.consistency, sex, latest.durability)[0] ?? null;
+  const grow = winsFromLevels(latest.facets, latest.consistency, sex)[0] ?? null;
   return {
     points: points(latest.score),
     level: position.reached.name,

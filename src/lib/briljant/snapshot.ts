@@ -78,9 +78,9 @@ export function shiftDay(day: string, days: number): string {
 }
 
 /**
- * Per vermoeide drempel het beste vermogen op elke duur van 1 tot 20 minuten
- * (DURABILITY_DURATIONS), vers en na het werk; durabilityDecline kiest de laagste
- * stand en neemt daarover P25 (eigenaar, 2026-10-23). Een duur die in een van beide
+ * Per vermoeide drempel het beste vermogen op 5 en 20 minuten (DURABILITY_DURATIONS),
+ * vers en na het werk; fatiguedPower kiest de laagste stand met genoeg werk en telt
+ * alleen het vermoeide vermogen (sinds 2026-11-13). Een duur die in een van beide
  * curves ontbreekt, valt weg.
  */
 export function fatigueInputs(
