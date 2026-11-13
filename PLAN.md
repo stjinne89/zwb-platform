@@ -17,12 +17,13 @@ gaat stabiliteit voor nieuwe features.
    stap 7 (eetmomenten uit het pacingplan, `22552a90`) en stap 8 (na het event:
    plan naast rit en eten, `51f443ec`). Daarmee zijn alle acht stappen gebouwd.
    De privacyzin voor stap 4 staat op `/privacy` (akkoord eigenaar,
-   2026-11-13). Open: migraties `0328_nutrition_recipe_carb_mix.sql` en
-   `0329_nutrition_event_fuel.sql` toepassen op productie (alleen op verzoek).
-   Tot 0328 er is rekent de planner zonder tasgrens, tot 0329 er is lukt
-   bewaren niet. Verder open: de eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
-   worktree), het toetsscript draaien op de echte events zodra de
-   Supabase-connector er weer is. Zie de rondes
+   2026-11-13). Migraties `0328_nutrition_recipe_carb_mix.sql` en
+   `0329_nutrition_event_fuel.sql` zijn op 2026-11-13 door de eigenaar op
+   productie toegepast, in die volgorde, via de SQL-editor (de connector was
+   niet in de sessie); de controlequeries onderaan beide migraties heeft Claude
+   niet zelf gezien. Open: de eventpagina in de browser bekijken (niet gedaan:
+   geen `.env.local` in de worktree), het toetsscript draaien op de echte
+   events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
@@ -12526,7 +12527,7 @@ de clubwaarde en factor 1.
 ### Gebouwd — Eventvoeding, stap 4: keuzes per event bewaren
 
 **2026-11-13, commit `3b06249d`, gepusht naar `main` (eigenaar: "Main push"). Migratie
-`0329_nutrition_event_fuel.sql`, niet toegepast op productie.** Op verzoek van de
+`0329_nutrition_event_fuel.sql`, op 2026-11-13 door de eigenaar op productie toegepast (SQL-editor).** Op verzoek van de
 eigenaar ("ga verder", na stap 3). Stap 4 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md), besluit 7.
 
@@ -12612,7 +12613,7 @@ de browser bekeken.
 ### Gebouwd — Eventvoeding, stap 3: soort koolhydraten op recepten
 
 **2026-11-13, commit `ae72d7cf`, gepusht naar `main` (eigenaar: "Main push"). Migratie
-`0328_nutrition_recipe_carb_mix.sql`, niet toegepast op productie.** Op verzoek
+`0328_nutrition_recipe_carb_mix.sql`, op 2026-11-13 door de eigenaar op productie toegepast (SQL-editor).** Op verzoek
 van de eigenaar ("Ga door", na stap 2). Stap 3 van
 [eventvoeding-plan.md](docs/eventvoeding-plan.md), besluit 5 en 6; de vraag
 kwam van Bart de Groot: met 2:1-producten haal je geen 120 g per uur, met alleen

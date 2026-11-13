@@ -292,7 +292,7 @@ Elke stap een eigen ronde met commit, `PLAN.md`-blok en waar nodig `/hulp`.
    recept of gescand product; de opnamegrens van §4e telt mee. Migratie.
 
    *Gebouwd op 2026-11-13, zie `PLAN.md`: migratie
-   `0328_nutrition_recipe_carb_mix.sql` (nog niet op productie), de keuze in het
+   `0328_nutrition_recipe_carb_mix.sql` (op productie sinds 2026-11-13), de keuze in het
    receptformulier en `planBagCap` in `event-planner.ts`. Een gescand product
    is hier een recept met een barcode en krijgt dezelfde keuze. Zonder de kolom
    laat de planner de tasgrens weg.*
@@ -300,7 +300,7 @@ Elke stap een eigen ronde met commit, `PLAN.md`-blok en waar nodig `/hulp`.
    briefing lezen ze. Migratie, privacyzin en data-export.
 
    *Gebouwd op 2026-11-13, zie `PLAN.md`: migratie
-   `0329_nutrition_event_fuel.sql` (nog niet op productie), bewaren even na
+   `0329_nutrition_event_fuel.sql` (op productie sinds 2026-11-13), bewaren even na
    de laatste wijziging, en naast de keuzes het getal en het vocht waarmee het
    plan rekent, zodat de herinnering en Boodschappen de planner niet nodig
    hebben. De privacyzin staat op `/privacy` (akkoord 2026-11-13).*
