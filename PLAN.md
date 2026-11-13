@@ -8,9 +8,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): lokaal
-   gecommit, niet gepusht.** Migratie `0327_zrl_umbrella_restore.sql`. Open:
-   toepassen op productie, A1 en A2 verwijderen, nagaan dat ZRL A zijn races
-   terug heeft. Zie de ronde "Teams verwijderen, en ZRL A weer een gewoon team".
+   gecommit (`d4c05a11`), niet gepusht.** Migratie
+   `0327_zrl_umbrella_restore.sql` is op 2026-11-13 toegepast op productie
+   (eigenaar: "Ja, bouwen" op het voorstel); A1 en A2 zijn verwijderd en ZRL A
+   heeft zijn 12 races terug. Open: pushen (de knop staat pas live na de
+   deploy), en de Zwift-links van de races van ZRL A opnieuw plakken. Zie de
+   ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
 0. **ZWBriljant: durability als vermoeid vermogen (2026-11-13): gepusht naar
    `main` (`30ca9d7b`).** Geen migratie. Nieuwe schaalversie
@@ -12285,8 +12288,15 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Teams verwijderen, en ZRL A weer een gewoon team
 
-**2026-11-13, de commit "Teams verwijderen, hoofdteam rijdt weer zelf".**
-Migratie `0327_zrl_umbrella_restore.sql`.
+**2026-11-13, de commit "Teams verwijderen, hoofdteam rijdt weer zelf"
+(`d4c05a11`), niet gepusht.** Migratie `0327_zrl_umbrella_restore.sql`, op
+2026-11-13 toegepast op productie.
+
+- **Productie na het toepassen.** A1 en A2 verwijderd (via SQL, de knop is nog
+  niet gedeployed); de trigger zette de 12 races van ZRL A terug onder de
+  hoofdevents van R1 en R2, met de 44 opgaven, 30 opstellingen en 2
+  TTT-plannen. Bij de hoofdevents staat niets meer van A. De races hebben nog
+  geen Zwift-link, route of afstand.
 
 - **De vraag.** Bart maakte op 2026-11-10 de subteams ZRL A1 en A2 aan. Er komt
   toch maar één A-team. Hij archiveerde ze, maar ZRL A werkte niet meer zoals
@@ -12330,8 +12340,10 @@ Migratie `0327_zrl_umbrella_restore.sql`.
   - De paraplu-trigger zelf veranderen (pas omzetten na bevestiging, of
     gearchiveerde subteams niet meetellen). Met de herstelfunctie is een
     vergist subteam nu omkeerbaar; de regel uit 0179 blijft staan.
-- **Niet lokaal te verifiëren.** De migratie draait alleen in de PGlite-test,
-  niet tegen het echte schema (geen Docker of Supabase-config hier).
+- **Niet lokaal te verifiëren.** De migratie draait lokaal alleen in de
+  PGlite-test, niet tegen het echte schema (geen Docker of Supabase-config
+  hier); in productie is het resultaat met SQL nagekeken, niet in de app. De
+  verwijderknop zelf is nog niet in een browser geprobeerd.
 
 ### Gebouwd — ZWBriljant: durability als vermoeid vermogen
 
