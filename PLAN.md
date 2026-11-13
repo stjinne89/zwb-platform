@@ -16,6 +16,10 @@ gaat stabiliteit voor nieuwe features.
    plakken. Zie de
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
+0. **ZWBriljant: popup over de nieuwe durability (2026-11-13): lokaal
+   gecommit, niet gepusht.** Geen migratie. In de preview bekeken. Zie de ronde "ZWBriljant: popup over de nieuwe
+   durability".
+
 0. **ZWBriljant: durability als vermoeid vermogen (2026-11-13): gepusht naar
    `main` (`30ca9d7b`).** Geen migratie. Nieuwe schaalversie
    `2026-11-13-vermoeid`. De terugblik-job liep op 2026-11-13 na de deploy
@@ -12300,6 +12304,40 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBriljant: popup over de nieuwe durability
+
+**2026-11-13, de commit "ZWBriljant: popup over de nieuwe durability", lokaal,
+niet gepusht.** Geen migratie.
+
+- **De vraag.** De eigenaar wilde de nieuwe durability (ronde hieronder) aan de
+  leden uitleggen in een popup, met hoe je de durability-test doet en hoe je
+  ziet dat de app hem vond. Tekst goedgekeurd door de eigenaar.
+- **Wat er is.** `DurabilityNoticeDialog` in `src/app/(app)/_components/`, in
+  de vorm van "Nieuw in ZWBeter trainen": één keer per apparaat
+  (`localStorage`), tot en met 15 december, nooit boven op een andere
+  dialoog. Alleen voor wie een steen op de huidige schaal heeft
+  (`hasBriljantStone`, één vraag, pas als de popup op dit apparaat nog niet
+  gezien is); zonder steen onthoudt het apparaat dat. Vier punten: wat telt,
+  ritten voor de helft, de test voor het hele punt met de opzet, en hoe we
+  hem tellen (met een schema plant ZWBeter hem in; zonder schema het protocol
+  starten vóór je rijdt en afvinken op de dag zelf of de dag erna; dan staat
+  bij durability "durability-test van" met de datum). Knop "Naar de test"
+  naar het protocol, als de club die pagina heeft.
+- **Bewust niet gebouwd:**
+  - stappen om de test in intervals.icu terug te zien: de periodekiezer daar
+    kent geen losse dag en de curves na 1000 kJ stelt elk lid zelf in, dus
+    die stappen zijn voor een standaardaccount niet te controleren. De
+    controle is de bronregel in ZWBriljant (keuze eigenaar);
+  - persoonlijke cijfers (oude tegen nieuwe durability): langer, en extra
+    vragen op elke pagina.
+- **Geverifieerd:** tsc en eslint; in de preview (dev-server in deze
+  worktree, ingelogd als de eigenaar) op desktop en telefoonbreedte: de
+  popup wacht tot "Nieuw in ZWBeter trainen" dicht is, opent bij de
+  volgende pagina, past op 375 px, "Naar de test" opent het protocol, en
+  daarna komt hij niet terug.
+- **Niet geverifieerd:** `next build`; een lid zonder steen (de popup hoort
+  dan weg te blijven).
 
 ### Hersteld — Schema neemt een nieuwe eventtitel over
 
