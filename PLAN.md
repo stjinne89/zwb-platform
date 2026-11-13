@@ -25,7 +25,7 @@ gaat stabiliteit voor nieuwe features.
    `0330_nutrition_sports_products.sql`, op 2026-11-13 door de eigenaar op
    productie toegepast via de SQL-editor; ronde
    "Gebouwd — Sportvoedingslijst"), en de merkproducten in het receptenboek
-   (`21f22218`, gepusht; migratie `0331_nutrition_sports_recipes.sql`, nog niet op productie; ronde
+   (`21f22218`, gepusht; migratie `0331_nutrition_sports_recipes.sql`, op 2026-11-13 via de connector op productie toegepast; ronde
    "Gebouwd — Merkproducten in het receptenboek"). Open: de eventpagina in de browser bekijken (niet gedaan:
    geen `.env.local` in de worktree), het toetsscript draaien op de echte
    events zodra de Supabase-connector er weer is. Zie de rondes
@@ -12381,8 +12381,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Merkproducten in het receptenboek
 
 **2026-11-13, commit `21f22218`, gepusht naar `main` op 2026-11-13. Migratie
-`0331_nutrition_sports_recipes.sql`, niet toegepast op productie; zonder 0331
-werkt de app als voorheen, alleen zonder de merkrecepten.** Op vraag van
+`0331_nutrition_sports_recipes.sql`, op 2026-11-13 door Claude via de
+Supabase-connector op productie toegepast, op verzoek van de eigenaar.
+Controlequeries gezien: 57 merkrecepten, 17 poeders met `drink_mix`, geen
+recept met een ander aantal regels dan één; vooraf geen `merk-`-slug van een lid.** Op vraag van
 de eigenaar ("staat deze lijst dan nog niet in het receptenboek"), daarna "Yes,
 as proposed" op het voorstel.
 
@@ -12427,7 +12429,7 @@ met dezelfde slug blijft, alleen leesbaar voor goedgekeurde leden, twee keer te
 draaien met hetzelfde id). Alle 23 voedingstestbestanden groen (338 tests);
 `tsc` en eslint schoon.
 
-**Niet geverifieerd.** 0331 op productie, en het receptenboek, Kiezen en het
+**Niet geverifieerd.** Het receptenboek, Kiezen en het
 ritplan met een favoriet merkproduct in de browser.
 
 ### Gebouwd — ZWBriljant: vermogen als compound score
