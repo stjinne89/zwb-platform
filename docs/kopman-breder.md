@@ -522,7 +522,8 @@ Gebouwd op 2026-11-13. De code staat in `src/kopman/engine/transfers.ts`,
   het laatste seizoen:
   - je kiest één renner als erfstuk; hij houdt zijn leeftijd en groei;
   - je kiest één regel erbij. De regels stapelen:
-    - alleen een pakket voor een zege;
+    - alleen een pakket voor een zege (sinds de bijstelling hieronder: een
+      pakket van een soort lager, alleen voor een podium);
     - rivaliserende kopmannen +1 kracht;
     - renners worden twee jaar eerder oud;
     - 15 procent minder budget;
@@ -722,6 +723,121 @@ Wat de meting zegt:
   seizoenen in de Kermis. Met weinig pakketten komen er weinig goedkope renners bij. Het
   budget van de Kermis laat de dure renners dan niet rijden.
 
+### Bijgesteld: de regel voor pakketten, en goud en diamant te koop
+
+Gebouwd op 2026-11-13. Met de regel "alleen een pakket voor een zege" bleef
+het script in een tweede carrière zeven seizoenen in de Kermis. Nagemeten,
+door carrière 2 direct in de Kermis te starten:
+
+- met een erfstuk van 89 promoveer je na één seizoen, met of zonder regel;
+- met een oud gouden erfstuk kost de regel hooguit één seizoen;
+- zonder erfstuk duurt de Kermis 3 tot 5 seizoenen, en ook dan kost de regel
+  hooguit één seizoen;
+- de rest komt van de nieuwe start en het budget van de Kermis (147), dat de
+  opstelling rond 61 tot 64 houdt.
+
+De eigenaar koos:
+
+- **De regel**: een pakket alleen voor een podium, en dan een soort lager
+  (`LOWER_PACK`): goud wordt zilver, zilver wordt brons, brons blijft brons.
+  In de Kermis, Interclub en het Continentaal gaf een top 10 al geen
+  pakket. Daar kost de regel dus alleen het zilveren winpakket van het
+  Continentaal, dat brons wordt. Het id `minder-pakketten` bleef, voor
+  bestaande saves. Etappes, eindklassementen, kampioenschappen en promotie
+  vallen niet onder de regel.
+- **De winkel**: goud is te koop vanaf de Proftour (25.000 munten), diamant
+  in de Wereldtour (75.000). Dat is ongeveer één en drie seizoenen
+  prijzengeld van de Wereldtour; in de Kermis verdien je zo'n 2.000 per
+  seizoen. Het volgt de lijn van zilver, dat vanaf het Continentaal te koop
+  is.
+
+Ook onderzocht, en niet veranderd: **minder renners per pakket**. Met 45
+procent renners per kaart (in plaats van 60) klom het script niet trager,
+eerder iets sneller: de Wereldtour in seizoen 8 en 8 (was 9 en 8), de titel
+in seizoen 12 en 9 (was 15 en 11). Meer materiaal geeft ook kracht, en de
+groei komt vooral uit opdrachten, ruilen, promotie en renners die beter
+worden.
+
+**Gemeten** met het groei-script, twee carrières. Vanaf de Proftour spaart
+het script voor goud en in de Wereldtour ook voor diamant, en koopt het geen
+brons of zilver meer:
+
+```
+seed 11:
+  s1 Kermis        4e  zeges 2/8 podium 2/8  ploeg 61 (band 51–56)  verdiend 1936  kampioen 0
+  s2 Kermis        4e  zeges 1/8 podium 3/8  ploeg 65 (band 51–56)  verdiend 2050  kampioen 0
+  s3 Kermis        4e  zeges 1/8 podium 3/8  ploeg 70 (band 51–56)  verdiend 2165  kampioen 0
+  s4 Kermis        1e  zeges 5/8 podium 6/8  ploeg 71 (band 51–56)  verdiend 3512  kampioen 0
+  s5 Interclub     2e  zeges 3/8 podium 5/8  ploeg 72 (band 58–64)  verdiend 4596  kampioen 1
+  s6 Continentaal  1e  zeges 4/8 podium 5/8  ploeg 75 (band 64–71)  verdiend 11974  kampioen 0
+  s7 Proftour      2e  zeges 2/8 podium 4/8  ploeg 77 (band 68–75)  verdiend 15778  kampioen 0
+  s8 Wereldtour   11e  zeges 0/8 podium 0/8  ploeg 77 (band 76–100)  verdiend 11032  kampioen 0
+  s9 Proftour      2e  zeges 2/8 podium 4/8  ploeg 80 (band 68–75)  verdiend 15290  kampioen 1
+  s10 Wereldtour    5e  zeges 2/8 podium 4/8  ploeg 83 (band 76–100)  verdiend 24032  kampioen 0
+  s11 Wereldtour    4e  zeges 1/8 podium 2/8  ploeg 87 (band 76–100)  verdiend 21345  kampioen 0
+  s12 Wereldtour    1e  zeges 5/8 podium 7/8  ploeg 91 (band 76–100)  verdiend 40308  kampioen 0
+  --- carrière 2: een lager pakket, alleen voor een podium, erfstuk Scholz
+  s1 Kermis        4e  zeges 2/8 podium 4/8  ploeg 67 (band 51–56)  verdiend 2141  kampioen 1
+  s2 Kermis        5e  zeges 0/8 podium 2/8  ploeg 75 (band 51–56)  verdiend 1658  kampioen 0
+  s3 Kermis        2e  zeges 4/8 podium 6/8  ploeg 76 (band 51–56)  verdiend 2937  kampioen 1
+  s4 Interclub     1e  zeges 7/8 podium 8/8  ploeg 77 (band 58–64)  verdiend 7309  kampioen 0
+  s5 Continentaal  1e  zeges 7/8 podium 8/8  ploeg 81 (band 64–71)  verdiend 14646  kampioen 0
+  s6 Proftour      1e  zeges 6/8 podium 6/8  ploeg 82 (band 68–75)  verdiend 19405  kampioen 0
+  s7 Wereldtour    6e  zeges 1/8 podium 1/8  ploeg 85 (band 76–100)  verdiend 17917  kampioen 0
+  s8 Wereldtour    4e  zeges 4/8 podium 4/8  ploeg 85 (band 76–100)  verdiend 27508  kampioen 0
+  s9 Wereldtour    4e  zeges 3/8 podium 5/8  ploeg 88 (band 76–100)  verdiend 27450  kampioen 0
+  s10 Wereldtour    2e  zeges 3/8 podium 6/8  ploeg 90 (band 76–100)  verdiend 34431  kampioen 0
+  s11 Wereldtour    2e  zeges 6/8 podium 6/8  ploeg 91 (band 76–100)  verdiend 41261  kampioen 0
+  s12 Wereldtour    2e  zeges 4/8 podium 5/8  ploeg 94 (band 76–100)  verdiend 36851  kampioen 1
+  s13 Wereldtour    1e  zeges 7/8 podium 8/8  ploeg 94 (band 76–100)  verdiend 45101  kampioen 0
+seed 22:
+  s1 Kermis        4e  zeges 2/8 podium 3/8  ploeg 63 (band 51–56)  verdiend 1567  kampioen 0
+  s2 Kermis        2e  zeges 3/8 podium 6/8  ploeg 68 (band 51–56)  verdiend 3051  kampioen 0
+  s3 Interclub     2e  zeges 3/8 podium 5/8  ploeg 73 (band 58–64)  verdiend 5072  kampioen 0
+  s4 Continentaal  3e  zeges 3/8 podium 5/8  ploeg 77 (band 64–71)  verdiend 9369  kampioen 0
+  s5 Continentaal  4e  zeges 2/8 podium 3/8  ploeg 79 (band 64–71)  verdiend 6264  kampioen 0
+  s6 Continentaal  1e  zeges 8/8 podium 8/8  ploeg 82 (band 64–71)  verdiend 15606  kampioen 1
+  s7 Proftour      1e  zeges 8/8 podium 8/8  ploeg 85 (band 68–75)  verdiend 23003  kampioen 0
+  s8 Wereldtour    6e  zeges 2/8 podium 5/8  ploeg 87 (band 76–100)  verdiend 27436  kampioen 0
+  s9 Wereldtour    2e  zeges 3/8 podium 5/8  ploeg 92 (band 76–100)  verdiend 31173  kampioen 0
+  s10 Wereldtour    2e  zeges 6/8 podium 7/8  ploeg 94 (band 76–100)  verdiend 34688  kampioen 0
+  s11 Wereldtour    1e  zeges 6/8 podium 7/8  ploeg 94 (band 76–100)  verdiend 42721  kampioen 0
+  --- carrière 2: een lager pakket, alleen voor een podium, erfstuk Costa
+  s1 Kermis        4e  zeges 2/8 podium 3/8  ploeg 67 (band 51–56)  verdiend 2115  kampioen 1
+  s2 Kermis        4e  zeges 1/8 podium 3/8  ploeg 70 (band 51–56)  verdiend 2107  kampioen 1
+  s3 Kermis        1e  zeges 5/8 podium 7/8  ploeg 74 (band 51–56)  verdiend 3522  kampioen 1
+  s4 Interclub     2e  zeges 8/8 podium 8/8  ploeg 78 (band 58–64)  verdiend 6280  kampioen 0
+  s5 Continentaal  1e  zeges 6/8 podium 6/8  ploeg 80 (band 64–71)  verdiend 12926  kampioen 1
+  s6 Proftour      2e  zeges 3/8 podium 6/8  ploeg 82 (band 68–75)  verdiend 16601  kampioen 1
+  s7 Wereldtour    7e  zeges 2/8 podium 2/8  ploeg 84 (band 76–100)  verdiend 16678  kampioen 0
+  s8 Wereldtour    6e  zeges 1/8 podium 1/8  ploeg 85 (band 76–100)  verdiend 21741  kampioen 0
+  s9 Wereldtour    8e  zeges 0/8 podium 1/8  ploeg 85 (band 76–100)  verdiend 14819  kampioen 0
+  s10 Wereldtour    4e  zeges 0/8 podium 1/8  ploeg 85 (band 76–100)  verdiend 21672  kampioen 0
+  s11 Wereldtour    4e  zeges 2/8 podium 4/8  ploeg 85 (band 76–100)  verdiend 22231  kampioen 0
+  s12 Wereldtour    4e  zeges 3/8 podium 3/8  ploeg 84 (band 76–100)  verdiend 21182  kampioen 0
+  s13 Wereldtour    5e  zeges 1/8 podium 1/8  ploeg 85 (band 76–100)  verdiend 18852  kampioen 0
+  s14 Wereldtour    3e  zeges 3/8 podium 3/8  ploeg 85 (band 76–100)  verdiend 28658  kampioen 0
+  s15 Wereldtour    3e  zeges 2/8 podium 5/8  ploeg 87 (band 76–100)  verdiend 30676  kampioen 0
+  s16 Wereldtour    4e  zeges 3/8 podium 3/8  ploeg 89 (band 76–100)  verdiend 31891  kampioen 0
+  s17 Wereldtour    3e  zeges 2/8 podium 4/8  ploeg 91 (band 76–100)  verdiend 30491  kampioen 0
+```
+
+Wat de meting zegt:
+
+- **De Kermis in carrière 2** duurt nu 3 seizoenen in beide seeds (was 7).
+- **Carrière 1** met goud en diamant te koop: de titel in de Wereldtour in
+  seizoen 12 en 11 (was 15 en 11). In seed 11 zakte het script na een
+  eerste seizoen in de Wereldtour nog een keer terug naar de Proftour.
+- **Carrière 2 bovenin** is nu echt zwaarder. Onder de regel is een
+  winpakket in de Wereldtour zilver, en komt goud alleen uit de winkel:
+  ongeveer één pakket per seizoen.
+  - Seed 11 wint de titel na 7 seizoenen in de Wereldtour, met een ploeg
+    van 94.
+  - Seed 22 blijft na 11 seizoenen steken op 3e tot 8e, met een ploeg van
+    84 tot 91.
+  - Of dat te zwaar is voor een tweede carrière, beslist de eigenaar na
+    zelf spelen.
+
 **Niet in dit voorstel:** een zesde trede (gekozen is de ronde), een eigen
 kalender van 12 koersen waar je er 8 uit kiest (overslaan geeft die keuze
 goedkoper), en salaris dat elk seizoen van je munten afgaat (het plafond
@@ -731,9 +847,9 @@ doet het werk zonder dat verzamelen pijn doet).
 
 - Bij de grote rondes koos de eigenaar de variant: "Ronde in Wereldtour". Een
   zesde trede is daarmee niet gebouwd.
-- Na de vier rondes koos de eigenaar een band tot 100 in de Wereldtour; zie
-  "Bijgesteld: de Wereldtour tot 100". Open: of de regel "alleen een pakket
-  voor een zege" de Kermis niet te lang maakt.
+- Na de vier rondes koos de eigenaar een band tot 100 in de Wereldtour, een
+  mildere regel voor pakketten, en goud en diamant te koop; zie de twee
+  bijstellingen.
 
 ## Gebouwd: de Ronde van de Alpen
 

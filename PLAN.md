@@ -55,7 +55,9 @@ gaat stabiliteit voor nieuwe features.
    "Kopman: renners leven" (`dcc2f78b`) en "Kopman: sponsors en een
    salarisplafond" (`a5b058a7`) en "Kopman: keuzes, opdrachten en een
    kampioenschap" (`757749f8`), "Kopman: een wereld die beweegt"
-   (`efa5500a`) en "Kopman: de Wereldtour tot 100" (`f013b245`). Op een telefoon vult het bord het scherm. Open: na de
+   (`efa5500a`), "Kopman: de Wereldtour tot 100" (`f013b245`) en "Kopman:
+   de regel voor pakketten, en goud en diamant te koop" (de commit van die
+   ronde). Op een telefoon vult het bord het scherm. Open: na de
    deploy op de telefoon inloggen en een koers spelen; daarna beslist de
    eigenaar over ronde 2. Tegen mensen spelen is overgeslagen. Zie
    [docs/kopman-bordspel.md](docs/kopman-bordspel.md),
@@ -12277,6 +12279,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kopman: de regel voor pakketten, en goud en diamant te koop
+
+**2026-11-13, de commit "Kopman: de regel voor pakketten, en goud en diamant
+te koop".** Geen migratie, niets nieuws in de save.
+
+- **Wat er is.** Zie
+  [docs/kopman-breder.md](docs/kopman-breder.md#bijgesteld-de-regel-voor-pakketten-en-goud-en-diamant-te-koop).
+  - `career.ts`: de regel `minder-pakketten` heet nu "Een lager pakket,
+    alleen voor een podium" (`podiumPackOnly`, was `winPackOnly`).
+  - `economy.ts`: `LOWER_PACK`; `finishRace` geeft onder de regel alleen
+    voor een podium een pakket, een soort lager.
+  - `packs.ts` en `divisions.ts`: goud kost 25.000 en staat vanaf de
+    Proftour in de winkel, diamant kost 75.000 en staat in de Wereldtour.
+- **Waarom.** Met "alleen een pakket voor een zege" bleef het script in een
+  tweede carrière zeven seizoenen in de Kermis. Nagemeten kost de regel daar
+  hooguit één seizoen; de rest komt van de nieuwe start en het budget. De
+  eigenaar koos een mildere regel die bovenin het meest werkt, en goud en
+  diamant te koop voor veel munten, op de lijn van zilver.
+- **Gemeten.** Zie het doc.
+  - de Kermis in carrière 2 duurt 3 seizoenen in beide seeds (was 7);
+  - carrière 1 wint de Wereldtour in seizoen 12 en 11 (was 15 en 11);
+  - carrière 2 is bovenin zwaarder: seed 11 wint de titel na 7 seizoenen
+    in de Wereldtour, seed 22 haalt hem in 11 seizoenen niet (ploeg 84 tot
+    91). Of dat te zwaar is, beslist de eigenaar na zelf spelen.
+- **Niet meer waar.**
+  - "goud en diamant zijn alleen te winnen" (`docs/kopman-piramide.md`, de
+    tabel in `docs/kopman.md` en de vroege Kopman-ronde hierboven): dat is
+    bijgewerkt.
+  - De regel heette "Alleen een pakket voor een zege". In de meting van
+    ronde D en van de Wereldtour tot 100 gold nog die regel.
+- **Bewust niet gebouwd:**
+  - minder renners per pakket: gemeten, en het remde de groei niet;
+  - goud en diamant goedkoper of eerder te koop: dan haal je ze in de Kermis
+    al binnen;
+  - de regel voor etappes, eindklassementen, kampioenschappen en promotie:
+    die blijven zoals ze zijn.
+- **Geverifieerd:**
+  - tsc, eslint, `next build`, en de Kopman-tests (110, waarvan 1 nieuw en
+    1 uitgebreid in `tests/unit/kopman-world.test.ts`);
+  - in de preview op 127.0.0.1 de winkel met de prijzen van goud en
+    diamant.
+- **Niet geverifieerd:** een gekocht gouden of diamanten pakket openen in de
+  app.
+
 ### Gebouwd — Kopman: de Wereldtour tot 100
 
 **2026-11-13, `f013b245`, lokaal, niet gepusht.** Geen migratie, niets nieuws in de save.
@@ -12301,8 +12347,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   daar, in plaats van in het eerste of tweede, met een ploeg van 92 tot 94
   en 5 tot 7 zeges. Met de regel "alleen een pakket
   voor een zege" bleef het script in een tweede carrière zeven seizoenen in
-  de Kermis. Dat komt niet door deze wijziging; het staat open voor de
-  eigenaar.
+  de Kermis. Dat komt niet door deze wijziging; opgelost met een mildere
+  regel, zie "Kopman: de regel voor pakketten, en goud en diamant te koop".
 - **Niet meer waar.**
   - "Wereldtour 87–72" in de tabel van `docs/kopman-piramide.md`: dat is
     bijgewerkt.
@@ -14003,7 +14049,9 @@ ZWB-plannenboek.)
   eigenschappen. Ze zijn brons, zilver (totaal vanaf 65) of goud (vanaf 75).
 - **Pakketten.** 3 kaarten per pakket, met de kansen in de winkel. Na 8
   pakketten zonder goud volgt goud (vangnet). Een dubbele kaart wordt munten.
-  Brons kost 1.000 munten en zilver 3.000; goud is alleen te winnen.
+  Brons kost 1.000 munten en zilver 3.000; goud is alleen te winnen. (Sinds
+  2026-11-13 goud en diamant ook te koop; zie "Kopman: de regel voor
+  pakketten, en goud en diamant te koop".)
 - **Kalender.** 16 fictieve koersen over 22 echte beklimmingen en 5 echte
   kassei- en grindstroken. (Sinds 2026-11-12: 40 koersen over vijf niveaus.)
 - **Koers.** 60 renners in 12 ploegen van 5. De simulatie rekent met een

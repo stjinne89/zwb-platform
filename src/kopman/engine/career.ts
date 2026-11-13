@@ -6,7 +6,7 @@ export const RULES = ["minder-pakketten", "sterkere-rivalen", "sneller-oud", "kr
 export type Rule = (typeof RULES)[number];
 
 export const RULE_LABELS: Record<Rule, string> = {
-  "minder-pakketten": "Alleen een pakket voor een zege",
+  "minder-pakketten": "Een lager pakket, alleen voor een podium",
   "sterkere-rivalen": "Rivaliserende kopmannen +1 kracht",
   "sneller-oud": "Renners worden twee jaar eerder oud",
   "krap-budget": "Budget 15% lager",
@@ -19,7 +19,8 @@ export const FIRST_CAREER: Career = { level: 1, rules: [] };
 export function ruleEffects(career: Career | undefined) {
   const has = (rule: Rule) => !!career?.rules.includes(rule);
   return {
-    winPackOnly: has("minder-pakketten"),
+    // Since 2026-11-13: a pack only for a podium, one tier lower (was: only for a win). The id stays for saves.
+    podiumPackOnly: has("minder-pakketten"),
     rivalXp: has("sterkere-rivalen") ? 1 : 0,
     ageShift: has("sneller-oud") ? 2 : 0,
     budget: has("krap-budget") ? 0.85 : 1,

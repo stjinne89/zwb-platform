@@ -68,7 +68,9 @@ Er is geen daglimiet meer. Een pakket verdien je met een uitslag:
   promotie (in de Wereldtour: bij een plek in de top 2, sinds 2026-11-12 een
   diamanten pakket; daarvoor goud).
 - **Winkel.** Brons kost overal 1.000 munten. Zilver (3.000) staat pas vanaf
-  het Continentaal in de winkel; goud en diamant zijn alleen te winnen.
+  het Continentaal in de winkel. Sinds 2026-11-13 goud (25.000) vanaf de
+  Proftour en diamant (75.000) in de Wereldtour; daarvoor waren die alleen te
+  winnen.
 - **Bronzen pakket:** 94% brons, 6% zilver, geen goud. Eerst was dat 78%, 20%
   en 2%; zo trok je in de Kermis al zilveren renners die op Continentaal
   niveau rijden.

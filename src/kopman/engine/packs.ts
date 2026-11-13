@@ -14,7 +14,7 @@ export const PACK_ODDS: Record<PackType, Record<Tier, number>> = {
   brons: { brons: 0.94, zilver: 0.06, goud: 0, diamant: 0 },
   zilver: { brons: 0.25, zilver: 0.65, goud: 0.1, diamant: 0 },
   goud: { brons: 0, zilver: 0.58, goud: 0.38, diamant: 0.04 },
-  // Only for the top two of the Wereldtour: always at least one diamond.
+  // Won by the top two of the Wereldtour, or bought: always at least one diamond.
   diamant: { brons: 0, zilver: 0, goud: 0.7, diamant: 0.3 },
 };
 
@@ -32,8 +32,12 @@ function drawKind(r: number): CardKind {
 /** Silver and gold packs in a row without a gold (or diamond) card before the next one guarantees one. Bronze packs do not count. */
 export const PITY_PACKS = 8;
 
-/** Packs for sale, in coins. Gold packs are only won. */
-export const PACK_PRICE: Partial<Record<PackType, number>> = { brons: 1000, zilver: 3000 };
+/**
+ * Packs for sale, in coins. Since 2026-11-13 gold (from the Proftour) and
+ * diamond (in the Wereldtour) are for sale too, at about one and three seasons
+ * of Wereldtour income. Which level sells what: `Division.shop`.
+ */
+export const PACK_PRICE: Partial<Record<PackType, number>> = { brons: 1000, zilver: 3000, goud: 25000, diamant: 75000 };
 
 export const PACK_LABELS: Record<PackType, string> = { brons: "Bronzen pakket", zilver: "Zilveren pakket", goud: "Gouden pakket", diamant: "Diamanten pakket" };
 

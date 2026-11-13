@@ -435,6 +435,10 @@ export type SeasonReward = { rank: number; coins: number; pack: PackType | null;
  * The pack for a race, from the best own placing: what the level gives for a
  * win, for the podium and for the top 10. Outside the top 10 there is none.
  */
+/** One tier lower, for the rule "minder-pakketten"; bronze stays bronze. */
+export const LOWER_PACK: Record<PackType, PackType> = { brons: "brons", zilver: "brons", goud: "zilver", diamant: "goud" };
+const lowerPack = (pack: PackType | null) => (pack ? LOWER_PACK[pack] : null);
+
 export function packFor(best: number, division: number): PackType | null {
   const packs = DIVISIONS[division].packs;
   if (best === 1) return packs.win;
@@ -469,7 +473,7 @@ export function finishRace(save: Save, placings: Placing[], kracht: Record<strin
   const seasonPoints = { ...save.seasonPoints };
   for (const p of placings) seasonPoints[p.team] = (seasonPoints[p.team] ?? 0) + pointsFor(p.place, monument);
   const points = mine.reduce((sum, p) => sum + pointsFor(p.place, monument), 0);
-  const pack = ruleEffects(save.career).winPackOnly && best !== 1 ? null : packFor(best, save.division);
+  const pack = ruleEffects(save.career).podiumPackOnly ? (best >= 1 && best <= 3 ? lowerPack(packFor(best, save.division)) : null) : packFor(best, save.division);
   const pub = publicity(save, placings, best, race.id, 1);
   const earned = coins + pub.pay;
   const next: Save = {

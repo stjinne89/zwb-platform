@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cardById } from "@/kopman/engine/cards";
 import { ruleEffects } from "@/kopman/engine/career";
-import { budgetOf, calendarOf, canNewCareer, chooseSponsor, finishRace, newCareer, newSave, newSeason, raceSetup, rivalsOf, type Save } from "@/kopman/engine/economy";
+import { budgetOf, buyPack, calendarOf, canNewCareer, LOWER_PACK, priceAt, chooseSponsor, finishRace, newCareer, newSave, newSeason, raceSetup, rivalsOf, type Save } from "@/kopman/engine/economy";
 import { DIVISIONS, TOP_DIVISION } from "@/kopman/engine/divisions";
 import { createRace, type Placing } from "@/kopman/engine/race";
 import { parseSave } from "@/kopman/engine/save";
@@ -95,14 +95,36 @@ describe("Kopman: een wereld die beweegt", () => {
     for (const r of race.riders.filter((x) => x.team === PLAYER_TEAM)) expect(rivalsOf(save).cards[r.id]).toBeUndefined();
   });
 
+  it("verkoopt goud vanaf de Proftour en diamant in de Wereldtour, voor veel munten", () => {
+    const at = (division: number, type: "goud" | "diamant") => priceAt({ ...ready(57), division }, type);
+    expect([0, 1, 2, 3, 4].map((d) => at(d, "goud"))).toEqual([undefined, undefined, undefined, 25000, 25000]);
+    expect([0, 1, 2, 3, 4].map((d) => at(d, "diamant"))).toEqual([undefined, undefined, undefined, undefined, 75000]);
+    const save: Save = { ...ready(57), division: TOP_DIVISION, coins: 80000 };
+    const bought = buyPack(save, "diamant", priceAt(save, "diamant"))!;
+    expect(bought.coins).toBe(5000);
+    expect(bought.packs.at(-1)).toBe("diamant");
+    expect(buyPack(bought, "goud", priceAt(bought, "goud"))).toBeNull();
+  });
+
   it("legt de regels van een zwaardere carrière op", () => {
     const save = ready(52);
     const hard: Save = { ...save, career: { level: 2, rules: ["minder-pakketten", "sterkere-rivalen", "krap-budget"] } };
     const setup = raceSetup(hard)!;
-    const rival = createRace(setup.raceId, setup.seed, setup.lineup).riders.find((r) => r.team !== PLAYER_TEAM)!.id;
-    const second = finishRace(hard, placingsFor(hard, [rival])).save;
-    expect(finishRace(save, placingsFor(save, [rival])).save.packs).toHaveLength(save.packs.length + 1);
-    expect(second.packs).toEqual(hard.packs);
+    const rivals = createRace(setup.raceId, setup.seed, setup.lineup).riders.filter((r) => r.team !== PLAYER_TEAM).slice(0, 3).map((r) => r.id);
+    // Fourth in the Proftour: a top-10 pack in a normal career, none under the rule.
+    const pro: Save = { ...save, division: 3 };
+    const proHard: Save = { ...hard, division: 3 };
+    const proSetup = raceSetup(pro)!;
+    const ahead = createRace(proSetup.raceId, proSetup.seed, proSetup.lineup).riders.filter((r) => r.team !== PLAYER_TEAM).slice(0, 3).map((r) => r.id);
+    expect(finishRace(pro, placingsFor(pro, ahead)).save.packs).toHaveLength(pro.packs.length + 1);
+    expect(finishRace(proHard, placingsFor(proHard, ahead)).save.packs).toEqual(proHard.packs);
+    // Second: a podium still gives a pack, one tier lower.
+    expect(finishRace(hard, placingsFor(hard, rivals.slice(0, 1))).save.packs).toEqual([...hard.packs, LOWER_PACK[DIVISIONS[hard.division].packs.podium!]]);
+    const top: Save = { ...hard, division: TOP_DIVISION };
+    const topSetup = raceSetup(top)!;
+    const topWinner = createRace(topSetup.raceId, topSetup.seed, topSetup.lineup).riders.find((r) => r.team === PLAYER_TEAM)!.id;
+    expect(finishRace(top, placingsFor(top, [], topWinner)).save.packs.at(-1)).toBe("zilver");
+    expect(finishRace({ ...top, career: { level: 2, rules: [] } }, placingsFor(top, [], topWinner)).save.packs.at(-1)).toBe("goud");
     expect(raceSetup(hard)!.lineup.xp).toBe(1);
     expect(raceSetup(save)!.lineup.xp).toBe(0);
     expect(budgetOf(hard)).toBeLessThanOrEqual(budgetOf(save));

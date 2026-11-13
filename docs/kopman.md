@@ -151,8 +151,8 @@ Snap, Brawl Stars, Clash Royale) en naar de regels daarvoor.
   | --- | --- | --- | --- | --- | --- |
   | Brons | 94% | 6% | — | — | 1.000 munten |
   | Zilver | 25% | 65% | 10% | — | 3.000 munten |
-  | Goud | — | 58% | 38% | 4% | alleen te winnen |
-  | Diamant | — | — | 70% | 30% | alleen te winnen |
+  | Goud | — | 58% | 38% | 4% | 25.000 munten, vanaf de Proftour |
+  | Diamant | — | — | 70% | 30% | 75.000 munten, in de Wereldtour |
 
   Een gouden pakket bevat altijd minstens één gouden of diamanten kaart, een
   diamanten pakket minstens één diamant. Tot 2026-11-12 was goud 60% zilver en
