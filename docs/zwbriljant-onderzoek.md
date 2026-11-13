@@ -364,8 +364,9 @@ durability zakte van 400 naar 65 punten.
 
 Sinds 2026-10-21 is Diamant het verval van de WorldTour en Robijn dat van ProTeam,
 zodat Diamant haalbaar is. Eerst: 12,5, 9,5, 7, 5, 3,6, 2,6, 1,8, 1,2 en 0,7. Sinds
-2026-11-13 is dit geen schaal meer maar het verval per niveau waarmee de verse
-ijkwaarden van 5 en 20 minuten naar vermoeide ijkwaarden gaan (`DURABILITY_DECLINE`).
+2026-11-13 is dit ook het verval per niveau waarmee de verse ijkwaarden van 5 en 20
+minuten naar vermoeide ijkwaarden gaan (`DURABILITY_DECLINE`); de schaal zelf telt
+alleen nog voor de durability-test (`DURABILITY_DECLINE_ANCHORS`).
 
 Houvast: na 45 kJ/kg verliezen WorldTour-renners 4,7 tot 8,8% en ProTeam-renners
 7,6 tot 11,6% (Mateo-March 2022), ongeveer 1,5 en 2,2% per 10 kJ/kg. Succesvolle
@@ -408,8 +409,20 @@ kJ/kg) en een beste 20 minuten van 345 W over 90 dagen is het verval 3,1% per 10
 jaar terug kan een piek uit een ander deel van het seizoen zijn; dat is de prijs van een
 zekere beste waarde, en bewust zo gekozen.
 
+**Niet recht met het werk.** Mateo-March 2022 (tabel 2, 20 minuten, mediaan WorldTour)
+laat zien dat verval versnelt: 0,6% na 15 kJ/kg, 1,9% na 25, 3,7% na 35, 5,4% na 45,
+dus 0,4 tot 1,2% per 10 kJ/kg. Diamant (1,5) en Robijn (2,2) komen uit de rij na 45
+kJ/kg; bij een test van 1000 kJ (zo'n 12 kJ/kg) is Diamant daardoor ruim: 1,8%
+verlies, waar de mediaan van de WorldTour na 15 kJ/kg 0,6% verliest. De volgorde
+klopt wel: de eerste test (3,8% na 12,2 kJ/kg) valt rond p75 van de WorldTour en p90
+van ProTeam na 15 kJ/kg, en beter dan de succesvolle amateurs van Barsumyan (6,5% na
+ongeveer 13 kJ/kg, Platina). De seizoensbesten van profs vallen bovendien vaak zelf na
+werk, dus hun verval bij weinig werk is waarschijnlijk te gunstig.
+
 **Bewust niet.** De verse waarde beperken tot een kortere periode rond de test (dan is
-de kans groter dat het geen echte beste 20 minuten is). Een nieuwe schaalversie: uit
+de kans groter dat het geen echte beste 20 minuten is). Eigen grenzen voor de test,
+gemeten bij ongeveer evenveel werk (Barsumyan onderaan, de rij na 15 kJ/kg bovenaan):
+de eigenaar liet de schaal zo ("Zo laten", 2026-11-13). Een nieuwe schaalversie: uit
 ritten verandert niets, en een steen met een test wordt bij elk bezoek opnieuw berekend.
 
 ### Durability als vermoeid vermogen (2026-11-13)

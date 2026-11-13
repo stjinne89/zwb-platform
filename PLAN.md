@@ -12380,7 +12380,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
   - een kortere periode voor de verse waarde rond de test: dan is de kans
     groter dat het geen echte beste 20 minuten is (keuze eigenaar: een jaar);
   - verval uit ritten: daar is geen eerlijk paar, zie "durability als
-    vermoeid vermogen".
+    vermoeid vermogen";
+  - eigen grenzen voor de test bij ongeveer evenveel werk (keuze eigenaar:
+    "Zo laten"). Volgens Mateo-March 2022 versnelt verval met het werk; onze
+    Diamant en Robijn komen uit de rij na 45 kJ/kg, dus bij een test van 1000
+    kJ is de top ruim (Diamant 1,8% verlies, de WorldTour-mediaan na 15 kJ/kg
+    0,6%). De volgorde klopt wel; details in het onderzoek.
 - **Niet meer waar.** In de ronde "durability als vermoeid vermogen": de test
   telt het vermoeide vermogen, geldt 90 dagen, en de records 1224 en 1199 (daar
   gemarkeerd). In de popup-ronde: de eerste tekst ("met de durability-test
