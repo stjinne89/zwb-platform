@@ -13,11 +13,11 @@ gaat stabiliteit voor nieuwe features.
    model, `68246829`), stap 2 (knop, schuifjes en Reken met op de eventpagina en
    het racebriefje, `844876ce`), stap 3 (soort koolhydraten op recepten,
    `ae72d7cf`) en stap 4 (keuzes per event bewaren, `3b06249d`).
-   Open: de privacyzin voor stap 4 (voorgelegd 2026-11-13, nog niet
-   geplaatst); migratie `0329_nutrition_event_fuel.sql` pas toepassen als die
-   zin op `/privacy` staat. Verder open: migratie `0328_nutrition_recipe_carb_mix.sql` toepassen op productie
-   (alleen op verzoek; tot dan rekent de planner zonder tasgrens), de
-   eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
+   De privacyzin voor stap 4 staat op `/privacy` (akkoord eigenaar,
+   2026-11-13). Open: migraties `0328_nutrition_recipe_carb_mix.sql` en
+   `0329_nutrition_event_fuel.sql` toepassen op productie (alleen op verzoek).
+   Tot 0328 er is rekent de planner zonder tasgrens, tot 0329 er is lukt
+   bewaren niet. Verder open: de eventpagina in de browser bekijken (niet gedaan: geen `.env.local` in de
    worktree), het toetsscript draaien op de echte events zodra de
    Supabase-connector er weer is, daarna stap 5 (duur met marge). Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 4" en "Ontwerp — Eventvoeding".
@@ -12355,13 +12355,13 @@ Vandaag (`NutritionTodayCard`) lezen de bewaarde keuzes niet: ze bouwen hun
 invoer elders op, en het event zelf heeft het plan. Geen geschiedenis van
 keuzes: één rij per event, overschreven bij elke wijziging.
 
-**Privacy: nog niet geplaatst.** Voorgelegd aan de eigenaar (geen nieuwe versie,
-zoals afgesproken bij het verruimen van een bestaande alinea), voor de alinea
-over recepten en menukeuzes op `/privacy`: "Pas je bij een event je
+**Privacy.** Voorgelegd aan de eigenaar en op 2026-11-13 geplaatst ("Plaats zo"),
+zonder nieuwe versie, zoals afgesproken bij het verruimen van een bestaande
+alinea; in de alinea over recepten en menukeuzes op `/privacy`: "Pas je bij een event je
 voedingsplan aan, dan bewaren we je keuzes per event: de zwaarte, de
 intensiteit, de duur, het vocht en de koolhydraten per uur, en het plan dat
 daaruit volgt. Alleen jij ziet ze; met "Terug naar het advies" wis je
-ze." 0329 pas toepassen als die zin er staat.
+ze." In een eigen commit na `3b06249d`.
 
 **Getest.** De migratie tegen PGlite in `tests/unit/nutrition-migration.test.ts`
 (alleen het lid zelf, één rij per event, waarden buiten de schuifjes geweigerd,

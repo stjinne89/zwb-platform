@@ -276,7 +276,11 @@ export default function PrivacyPage() {
             goedkeuring ziet elk lid het, met jouw naam erbij. Een dieetfilter
             in het receptenboek wordt niet bewaard. Kies je zelf een recept voor
             een dag in je menu, dan bewaren we welk recept, op welke dag en bij
-            welk moment; alleen jij ziet dat.
+            welk moment; alleen jij ziet dat. Pas je bij een event je
+            voedingsplan aan, dan bewaren we je keuzes per event: de zwaarte, de
+            intensiteit, de duur, het vocht en de koolhydraten per uur, en het
+            plan dat daaruit volgt. Alleen jij ziet ze; met &quot;Terug naar het
+            advies&quot; wis je ze.
           </li>
           <li>
             <strong>Gezin:</strong> vul je op je profiel in wie er mee-eet

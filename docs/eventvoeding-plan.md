@@ -300,7 +300,7 @@ Elke stap een eigen ronde met commit, `PLAN.md`-blok en waar nodig `/hulp`.
    `0329_nutrition_event_fuel.sql` (nog niet op productie), bewaren even na
    de laatste wijziging, en naast de keuzes het getal en het vocht waarmee het
    plan rekent, zodat de herinnering en Boodschappen de planner niet nodig
-   hebben. De privacyzin is voorgelegd, nog niet geplaatst.*
+   hebben. De privacyzin staat op `/privacy` (akkoord 2026-11-13).*
 5. **Duur met marge.** De eigen verhouding per eventtype (p90) en de
    clubterugval als standaard op het duurschuifje; `toertocht` in
    `EVENT_DEFAULTS`; `racePace` ook doorgeven in `loadEventRidePlan`.
