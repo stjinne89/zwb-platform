@@ -41,7 +41,7 @@ gaat stabiliteit voor nieuwe features.
    ronde "Teams verwijderen, en ZRL A weer een gewoon team".
 
 0. **ZWBriljant: verse waarde van de durability-test weer 90 dagen
-   (2026-11-14): lokaal, niet gepusht.** Geen migratie, geen nieuwe schaalversie.
+   (2026-11-14): gepusht naar `main` (`ee427143`).** Geen migratie, geen nieuwe schaalversie.
    De uitslag blijft een jaar gelden. Zie de ronde "Verse waarde van de
    durability-test weer 90 dagen".
 
@@ -12353,7 +12353,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Verse waarde van de durability-test weer 90 dagen
 
-**2026-11-14, commit `516cfc42` ("ZWBriljant: verse waarde van de durability-test weer 90 dagen"), lokaal, niet gepusht. Geen migratie.**
+**2026-11-14, commit `ee427143` ("ZWBriljant: verse waarde van de durability-test weer 90 dagen"), gepusht naar `main` op 2026-11-14. Geen migratie.**
 
 - **Waarom.** Doorgerekend bij Bart (de enige met een test): zijn beste 20
   minuten van het jaar (±357 W, teruggerekend uit zijn score) lag vóór de
