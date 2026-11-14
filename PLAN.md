@@ -12353,7 +12353,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Eventvoeding: het vermogen naast de IF is IF × FTP
 
-**2026-11-14, commit volgt, lokaal, niet gepusht. Geen migratie.** Melding van
+**2026-11-14, commit `3dc3171f`, gepusht naar `main` op 2026-11-14. Geen migratie.** Melding van
 Bart via de eigenaar: bij IF 1,00 gaven Duur, Tempo en Race elk een ander
 vermogen, en geen daarvan was zijn FTP.
 
