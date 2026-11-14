@@ -97,8 +97,25 @@ export function plannerWatts(
   return null;
 }
 
+/**
+ * Het vermogen dat bij de IF hoort, zoals de renner het kent: IF × FTP, met een
+ * pacingplan IF × CP. Voor het scherm; het verbruik rekent met het gemiddelde
+ * (plannerWatts), dat bij een wisselende rit lager ligt.
+ */
+export function plannerTargetWatts(
+  planner: Pick<EventFuelPlanner, "pacing" | "ftpWatts">,
+  intensityFactor: number,
+): number | null {
+  if (planner.pacing) return (planner.pacing.watts / planner.pacing.intensityFactor) * intensityFactor;
+  if (planner.ftpWatts) return planner.ftpWatts * intensityFactor;
+  return null;
+}
+
 export type PlannerResult = {
+  /** Gemiddeld vermogen, waar het verbruik mee rekent. */
   watts: number | null;
+  /** IF × FTP of IF × CP: wat in beeld staat (plannerTargetWatts). */
+  targetWatts: number | null;
   /** Null zonder vermogen: dan geldt alleen de ondergrens van de knop, binnen de opnamegrens. */
   advice: FuelAdvice | null;
   adviceG: number;
@@ -157,6 +174,7 @@ export function plannerResult(planner: EventFuelPlanner, choice: PlannerChoice):
   const minutes = choice.minutes;
   const weightKg = input.weightKg ?? REFERENCE_RIDER.weightKg;
   const watts = plannerWatts(planner, choice.preset, choice.intensityFactor);
+  const targetWatts = plannerTargetWatts(planner, choice.intensityFactor);
   const floorG = presetFloor(choice.preset, minutes);
 
   const fluid =
@@ -197,6 +215,7 @@ export function plannerResult(planner: EventFuelPlanner, choice: PlannerChoice):
     input.sweatMlPerHour ?? (watts != null ? estimatedSweatPerHour(watts, planner.setting, planner.temperatureC) : null);
   return {
     watts: watts == null ? null : Math.round(watts),
+    targetWatts: targetWatts == null ? null : Math.round(targetWatts),
     advice,
     adviceG,
     capG: cap.capG,

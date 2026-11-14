@@ -395,7 +395,9 @@ export function KennisHelp() {
                   dan 60, 90 of 120 g per uur, korter minder, en onder een uur
                   alleen drinken. Met de schuifjes zet je de intensiteit (als
                   IF: je vermogen gedeeld door je FTP), de duur en hoeveel je per
-                  uur drinkt. Het advies volgt uit wat je bij dat tempo
+                  uur drinkt. Het vermogen naast de IF is IF × FTP, met een
+                  pacingplan IF × CP; het verbruik rekent met je gemiddelde, dat
+                  bij een wisselende rit lager ligt. Het advies volgt uit wat je bij dat tempo
                   verbrandt en wat je voorraad aankan: 60% van ongeveer 6 g per
                   kg lichaamsgewicht, de rest blijft over voor de finale. Het
                   vermogen komt uit je pacingplan, anders uit je FTP. Zonder

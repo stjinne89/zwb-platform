@@ -15,6 +15,7 @@ import {
   plannerPlanInput,
   plannerResult,
   planBagCap,
+  plannerTargetWatts,
   plannerWatts,
   presetIntensity,
   type EventFuelPlanner,
@@ -156,6 +157,18 @@ describe("plannerResult", () => {
     expect(plannerWatts(paced, "race", 0.88)).toBeCloseTo(230);
     expect(plannerWatts(planner(), "race", 0.8)).toBeCloseTo(260 * 0.8 * 0.9);
     expect(plannerWatts(planner({ ftpWatts: null }), "race", 0.8)).toBeNull();
+  });
+
+  it("toont IF × FTP of IF × CP, bij elke knop hetzelfde; het verbruik rekent met het gemiddelde", () => {
+    const p = planner();
+    expect(plannerTargetWatts(p, 1)).toBe(260);
+    expect(plannerTargetWatts(planner({ pacing: { watts: 230, intensityFactor: 0.88 } }), 1)).toBeCloseTo(230 / 0.88);
+    expect(plannerTargetWatts(planner({ ftpWatts: null }), 1)).toBeNull();
+    const watts = (["duur", "tempo", "race"] as const).map((preset) =>
+      plannerResult(p, { ...p.defaults, preset, intensityFactor: 1 }),
+    );
+    expect(watts.map((result) => result.targetWatts)).toEqual([260, 260, 260]);
+    expect(watts.map((result) => result.watts)).toEqual([247, 242, 234]);
   });
 
   it("volgt het advies tot je zelf iets invult, en kleurt boven de grens", () => {

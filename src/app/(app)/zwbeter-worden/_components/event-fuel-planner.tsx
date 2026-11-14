@@ -141,7 +141,7 @@ export function EventFuelControls({
           shown={
             <>
               IF {decimal.format(choice.intensityFactor)}
-              {result.watts != null ? ` · ${result.watts} W` : ""}
+              {result.targetWatts != null ? ` · ${result.targetWatts} W` : ""}
             </>
           }
         />

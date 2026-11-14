@@ -12351,6 +12351,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Eventvoeding: het vermogen naast de IF is IF × FTP
+
+**2026-11-14, commit volgt, lokaal, niet gepusht. Geen migratie.** Melding van
+Bart via de eigenaar: bij IF 1,00 gaven Duur, Tempo en Race elk een ander
+vermogen, en geen daarvan was zijn FTP.
+
+**Oorzaak.** Naast de IF stond het gemiddelde vermogen: zonder pacingplan
+IF × FTP × het deel van NP per knop (`AVG_SHARE_OF_NP`, 95/93/90%). Voor het
+verbruik klopt dat (kJ volgen uit het gemiddelde), maar een renner leest bij
+een IF het vermogen dat hij moet trappen. Met een pacingplan speelde het niet:
+diens gemiddelde en IF komen uit hetzelfde getal, dus gemiddelde ÷ IF is CP.
+
+**Wat er is.** `plannerTargetWatts` (IF × FTP, met pacingplan IF × CP) en
+`targetWatts` in `plannerResult`; het scherm toont dat. Het verbruik, het
+vocht en de balans rekenen ongewijzigd met het gemiddelde (`plannerWatts`).
+Eén zin erbij in `/hulp#voeding`. Test in
+`tests/unit/nutrition-event-planner.test.ts`: bij IF 1,00 drie keer 260 W in
+beeld, en het gemiddelde blijft 247/242/234.
+
+**Bewust niet.** Barts andere melding, Race onder Tempo bij een lang event
+buiten: Tempo staat vast op 0,78 en het racemodel zakt buiten vanaf ongeveer
+3u45 daaronder, tot de ondergrens 0,70 (10u30 Amstel Gold Race). Voorgesteld
+was Tempo en Duur onder Race te houden (Tempo ≤ Race − 0,05, Duur ≤ Tempo −
+0,07); de eigenaar koos "Only the watts". Het blijft dus zo.
+
+**Beantwoord, geen code.** "Reserve na 1:41": het plan mag 60% van ongeveer
+6 g glycogeen per kg opmaken, de rest is reserve voor de finale; de tijd is
+wanneer je bij deze IF en dit eten aan die reserve begint. Bij Barts IF 1,00
+over 7u30 is dat vroeg omdat dat tempo niet vol te houden is. Zijn "grens 60
+(wat je meeneemt)" komt van eigen recepten zonder soort koolhydraten; de
+Nduranz-producten uit de lijst zijn 1:0,8.
+
+**Niet geverifieerd.** Barts FTP (ongeveer 345 W, afgeleid uit zijn schermen,
+niet uit zijn profiel) en het scherm in de browser.
+
 ### Hersteld — Verse waarde van de durability-test weer 90 dagen
 
 **2026-11-14, commit `ee427143` ("ZWBriljant: verse waarde van de durability-test weer 90 dagen"), gepusht naar `main` op 2026-11-14. Geen migratie.**
@@ -13047,7 +13082,8 @@ koolhydraten laden volgt bij een event met vermogen de balans
 race-IF van het event of het pacingplan. Zonder pacingplan is IF × FTP het
 genormaliseerde vermogen; het gemiddelde is dan 95% (Duur), 93% (Tempo) of 90%
 (Race) daarvan (`AVG_SHARE_OF_NP`), tot het toetsscript de echte verhouding
-geeft. Zonder gewicht rekent de balans met 70 kg (de referentierenner). Zonder
+geeft. Dat gemiddelde stond eerst ook naast de IF; sinds 2026-11-14 staat daar
+IF × FTP (ronde "Hersteld — Eventvoeding: het vermogen naast de IF"). Zonder gewicht rekent de balans met 70 kg (de referentierenner). Zonder
 vermogen: de ondergrens van de knop binnen de opnamegrens, geen balans, 750 ml.
 De standaard voor vocht is het midden tussen "onder 2% verlies" en "niet meer
 dan je zweet", net als met een zweettest; binnen op IF 0,82 is dat ongeveer
