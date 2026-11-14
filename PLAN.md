@@ -12353,7 +12353,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — SRC-zondag: weer zien wie er kan
 
-**2026-11-14, commit volgt in de PLAN-commit hierna. Lokaal, niet gepusht. Geen migratie.**
+**2026-11-14, commit `23a29a01` ("SRC-zondag: weer zien wie er kan"), gepusht naar `main` op 2026-11-14 (eigenaar: "Ja, push"). Geen migratie.**
 
 - **Waarom.** Stijn zag op een SRC-zondag niet meer wie er beschikbaar is.
   Sinds "SRC-teamplanning per maand" (`0f7562c5`, 2026-09-30) staat het antwoord
