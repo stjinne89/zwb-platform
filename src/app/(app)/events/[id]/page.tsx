@@ -49,6 +49,8 @@ import { loadLadderSelectionOptions, loadLadderSelections } from "@/lib/club-lad
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FrrStagePanel } from "./_components/frr-stage-panel";
 import { SrcPanel } from "./_components/src-panel";
+import { SrcSundayAvailability, type SrcSundayRider } from "./_components/src-sunday-availability";
+import type { SrcGender } from "@/lib/src/feed";
 import { setSrcAvailability } from "../../src/_actions";
 import { srcMonthKey } from "@/lib/src/month";
 import { subEventLabel } from "@/lib/events/sub-events";
@@ -614,6 +616,8 @@ export default async function EventDetailPage({
   // Zonder inschrijving kan een klik je zelf inschrijven, tenzij er meer
   // SRC-teams zijn om uit te kiezen.
   let srcCanAutoJoin = false;
+  // Wie deze maand meedoet, met zijn antwoord op deze zondag.
+  let srcRiders: SrcSundayRider[] = [];
   if (isSrcSunday && user) {
     const { data: sundayRow } = await supabase
       .from("events")
@@ -621,25 +625,51 @@ export default async function EventDetailPage({
       .eq("id", id)
       .maybeSingle();
     const sunday = (sundayRow?.src_sunday as string | null | undefined) ?? null;
-    const { data: entry } = sunday
-      ? await supabase
-          .from("src_month_entries")
-          .select("team_id")
-          .eq("month", srcMonthKey(sunday))
-          .eq("profile_id", user.id)
-          .maybeSingle()
-      : { data: null };
+    const [{ data: entryRows }, { data: availabilityRows }] = sunday
+      ? await Promise.all([
+          supabase
+            .from("src_month_entries")
+            .select("profile_id, team_id, race, category, profiles(display_name)")
+            .eq("month", srcMonthKey(sunday)),
+          supabase
+            .from("team_event_availability")
+            .select("profile_id, team_id, status")
+            .eq("event_id", id),
+        ])
+      : [{ data: [] }, { data: [] }];
+    const entries = (entryRows ?? []) as unknown as Array<{
+      profile_id: string;
+      team_id: string;
+      race: SrcGender;
+      category: number | null;
+      profiles: { display_name: string } | { display_name: string }[] | null;
+    }>;
+    // Net als op /src telt alleen het antwoord voor het team van deze maand.
+    const statusOf = new Map<string, TeamAvailabilityStatus>();
+    for (const row of (availabilityRows ?? []) as Array<{
+      profile_id: string;
+      team_id: string;
+      status: TeamAvailabilityStatus;
+    }>) {
+      if (entries.some((e) => e.profile_id === row.profile_id && e.team_id === row.team_id)) {
+        statusOf.set(row.profile_id, row.status);
+      }
+    }
+    srcRiders = entries
+      .map((e) => ({
+        profileId: e.profile_id,
+        name: (Array.isArray(e.profiles) ? e.profiles[0] : e.profiles)?.display_name ?? "Onbekend",
+        race: e.race,
+        category: e.category,
+        status: statusOf.get(e.profile_id) ?? null,
+        isMe: e.profile_id === user.id,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, "nl"));
+    const entry = entries.find((e) => e.profile_id === user.id);
     if (entry) {
-      const { data: availability } = await supabase
-        .from("team_event_availability")
-        .select("status")
-        .eq("event_id", id)
-        .eq("team_id", entry.team_id)
-        .eq("profile_id", user.id)
-        .maybeSingle();
       srcSignup = {
-        teamId: entry.team_id as string,
-        current: (availability?.status as TeamAvailabilityStatus | undefined) ?? null,
+        teamId: entry.team_id,
+        current: statusOf.get(user.id) ?? null,
       };
     } else {
       const { data: srcTeams } = await supabase
@@ -1924,6 +1954,7 @@ export default async function EventDetailPage({
               Kies je team
             </Link>
           )}
+          {srcRiders.length > 0 && <SrcSundayAvailability riders={srcRiders} />}
         </section>
       )}
 

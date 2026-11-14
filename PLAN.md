@@ -12351,6 +12351,32 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — SRC-zondag: weer zien wie er kan
+
+**2026-11-14, commit volgt in de PLAN-commit hierna. Lokaal, niet gepusht. Geen migratie.**
+
+- **Waarom.** Stijn zag op een SRC-zondag niet meer wie er beschikbaar is.
+  Sinds "SRC-teamplanning per maand" (`0f7562c5`, 2026-09-30) staat het antwoord
+  in `team_event_availability` (per zondag, voor het team van de maand) en toonde
+  de zondag alleen je eigen knoppen. De oude Ja/Misschien/Nee-lijst kwam uit
+  `event_rsvps` en verdween daarmee. Het overzicht stond alleen nog op `/src`,
+  en op de race (heren/dames) zelf, die er pas een week vooruit is.
+- **Wat.** Onder "Ben jij erbij?" op de zondag staan nu de renners van deze
+  maand in kolommen Beschikbaar, Misschien, Niet en (als er iemand is)
+  Nog niet opgegeven, met H/D en categorie. Net als op `/src` telt alleen het
+  antwoord voor het team van deze maand. Nieuw component
+  `src/app/(app)/events/[id]/_components/src-sunday-availability.tsx`; de
+  eventpagina haalt de maandinschrijvingen en antwoorden in één keer op. De
+  knoppen verversen de pagina al (`revalidatePath("/events/[id]", "page")`).
+- **Bewust niet.** De categorie valt niet terug op de laatst gereden categorie
+  zoals op `/src` (dat vraagt de uitslagen van vorige maand); zonder opgegeven
+  categorie staat alleen H of D.
+- **Niet meer waar.** In "SRC-teamplanning per maand": dat de zondag alleen de
+  knoppen toont (daar gemarkeerd).
+- **Geverifieerd:** tsc, eslint op de twee bestanden, de SRC-unittests (54).
+- **Niet geverifieerd:** de pagina in de browser (geen ingelogde sessie lokaal);
+  `next build`.
+
 ### Hersteld — Eventvoeding: het vermogen naast de IF is IF × FTP
 
 **2026-11-14, commit `3dc3171f`, gepusht naar `main` op 2026-11-14. Geen migratie.** Melding van
@@ -36333,7 +36359,8 @@ renners zijn voor een teamuitslag.
 - Op een SRC-zondag staat "Ben jij erbij?" met die knoppen, of een knop naar
   `/src` als je deze maand nog niet meedoet. *(Sinds 2026-10-01 staan de knoppen
   er altijd en schrijft een klik je zelf in; zie "SRC: meedoen met één klik".)* Er is geen losse RSVP op de zondag
-  zelf.
+  zelf. *(Sinds 2026-11-14 staat eronder ook wie er deze zondag kan; zie
+  "SRC-zondag: weer zien wie er kan".)*
 - `TeamAvailabilityButtons` kreeg een optionele `save`, zodat dezelfde knoppen de
   SRC-actie gebruiken. `/hulp` (Teams en wedstrijden, Beheer) en de hulpzoeker
   beschrijven de SRC.
