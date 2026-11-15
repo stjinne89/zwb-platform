@@ -615,10 +615,12 @@ export function SchemaHelp() {
             <p className="mt-2 text-sm text-muted-foreground">
               Een test die niet in je schema stond, vul je in via{" "}
               <strong className="text-foreground">Test invullen</strong>. Voor je
-              FTP geldt deze volgorde: je laatste test, dan intervals.icu, dan wat
-              je zelf in je profiel invulde. Heb je een test gedaan, dan houdt je
-              profiel die uitslag vast, ook als het intervals.icu volgt; de
-              volgende test werkt hem weer bij.
+              FTP telt het nieuwste getal: je laatste test, of de FTP in
+              intervals.icu als je die na die test hebt bijgesteld. Zonder test
+              geldt intervals.icu, en anders wat je zelf in je profiel invulde.
+              Laat je je profiel met intervals.icu meelopen, dan neemt het een
+              bijgestelde FTP daar vanzelf over. De eFTP telt niet mee: die schat
+              intervals.icu na elke rit opnieuw.
             </p>
           </article>
           <article

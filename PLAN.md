@@ -12351,6 +12351,62 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — FTP: de nieuwste van test en intervals.icu wint
+
+**2026-11-15, commit volgt, lokaal, niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar vroeg of intervals.icu niet leidend hoort te zijn:
+  die zou een test toch opnemen en de FTP bijstellen als je beter wordt. Sinds
+  11 september ging de laatste test altijd voor. Productie (alleen lezend, 11
+  leden met een test): bij 2 leden is de Intervals-FTP na de test bijgesteld,
+  bij 2 stond hij al gelijk, bij 7 rekenden de ritten na de test nog met het
+  oude getal (bijvoorbeeld test 189 tegen 222 in intervals.icu). intervals.icu
+  neemt een test dus niet vanzelf over; Intervals altijd voorop had die 7 leden
+  op een oud getal gezet.
+- **Wat.** Nieuw `src/lib/training/ftp-source.ts`: `pickFtp()` kiest de test,
+  tenzij de FTP in intervals.icu ná de testdatum is bijgesteld; dan de
+  Intervals-FTP. Zonder test: intervals.icu, eFTP, profiel, zoals voorheen.
+  Wanneer de FTP veranderde, leest `intervalsFtpChangedSince()` af aan
+  `intervals_activities.ftp_watts` (de `icu_ftp` waarmee elke rit gerekend is):
+  vanaf de testdag eerst een rit met een ander getal en daarna een rit met de
+  huidige instelling. Alleen fietsritten van de instelling; met een aparte
+  binnen-FTP tellen Zwift-ritten (`VirtualRide`) niet mee voor de buiten-FTP.
+  De tegel op `/zwbeter-worden/vermogen` en de powerprofiel-sync
+  (`lib/teams/power-sync.ts`) gebruiken dezelfde keuze. Met
+  `auto_sync_physique` neemt het profiel een na de test bijgestelde
+  Intervals-FTP over; zonder die keuze blijft het profiel op de test staan. De
+  tegel zegt dan "intervals.icu, bijgesteld na je test van …". `/hulp` (schema,
+  FTP-test) is bijgewerkt.
+- **Eis van de overgang.** Eerst telde elke rit na de test met een ander getal
+  als bewijs. Bij 3 leden rekenen alle Zwift-ritten met een ander getal dan de
+  buiten-FTP die we uitlezen (één keer 222 tegen 125, met `auto_sync_physique`
+  aan): dan was dat profiel van 189 naar 125 gegaan. Nu moet er na de test ook
+  een rit met de huidige instelling zijn. Gevolg: een wijziging telt pas vanaf
+  de eerste rit erna, en een test zonder rit in intervals.icu wordt nooit
+  ingehaald.
+- **Doorgerekend op productie.** Met deze regel verandert er bij 1 van de 11
+  leden iets: test 342 op 9 oktober, daarna in intervals.icu 355 ingesteld.
+  Tegel en powerprofiel tonen 355; het profiel blijft 342 (geen
+  `auto_sync_physique`).
+- **Bewust niet.** De eFTP doet niet mee in "nieuwste wint": intervals.icu
+  rekent hem bij elke rit opnieuw uit, dus hij zou altijd winnen. Hij blijft
+  terugval en signaal (FTP-check bij 8 %, AI-melding bij 5 %). De bron blijft
+  de buiten-FTP (`ftp`, dan `indoor_ftp`, dan athlete-`ftp`), op verzoek van de
+  eigenaar, ook al rekenen bij 8 van de 26 leden met Zwift-ritten die ritten
+  met een ander getal. `overwrittenByIntervals` na het corrigeren of
+  verwijderen van een test meldt alleen het geval zonder test; dat een
+  bijgestelde Intervals-FTP bij de volgende sync terugkomt, meldt het niet.
+- **Niet meer waar.** In "FTP-test: uitslag blijft invulbaar, beste minuut uit
+  intervals.icu" (11 september): dat de
+  sync het profiel met rust laat zodra er een test is, en dat een oude uitslag
+  het profiel vasthoudt tot de volgende test (beide gemarkeerd). Ook de
+  commentaren in `ftp-test.ts` zijn bijgewerkt.
+- **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden, de
+  unittests `ftp-source` (15), `ftp-test` en `missing-weight`.
+- **Niet geverifieerd:** de tegel in de browser (geen ingelogde sessie lokaal),
+  een echte powerprofiel-sync, en of intervals.icu voor Zwift-ritten echt
+  `indoor_ftp` gebruikt (die waarde slaan we niet op).
+
 ### Hersteld — SRC-zondag: weer zien wie er kan
 
 **2026-11-14, commit `23a29a01` ("SRC-zondag: weer zien wie er kan"), gepusht naar `main` op 2026-11-14 (eigenaar: "Ja, push"). Geen migratie.**
@@ -38953,6 +39009,9 @@ een vaste volgorde voor de FTP: test, dan intervals.icu, dan het profiel.
   `profiles.ftp_watts` met rust zodra het lid een testuitslag heeft. De
   FTP-tegel op `/zwbeter-worden/vermogen` volgt dezelfde volgorde. Een
   handmatige profielwaarde blijft de terugval en loopt mee met elke nieuwe test.
+  *(Sinds 2026-11-15 niet meer onvoorwaardelijk: een Intervals-FTP die ná de
+  test is bijgesteld gaat voor. Zie "Hersteld — FTP: de nieuwste van test en
+  intervals.icu wint".)*
 
 **Bewust niet gebouwd.** Geen Strava-streams als bron voor de beste minuut:
 de gekoppelde rit komt uit `strava_activities` zonder vermogensdata, en nog een
@@ -38960,6 +39019,7 @@ Strava-call per test weegt niet op tegen de API-limiet. Zonder intervals.icu
 typt het lid zelf. De eFTP-tegel op het ZWBeter Worden-overzicht blijft een
 eFTP-trend en is niet omgezet naar de testwaarde. Een test verloopt niet: een
 oude uitslag houdt het profiel vast tot de volgende test, zoals afgesproken.
+*(Sinds 2026-11-15: of tot de FTP in intervals.icu na de test wordt bijgesteld.)*
 
 **Claims die niet meer kloppen.** "Alles wat nog op 'planned' staat wacht per
 definitie nog op een uitslag" (comment in `_data.ts`, en de ronde van 0131) is

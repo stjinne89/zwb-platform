@@ -289,8 +289,9 @@ export function pickFtpTestState(
  * Dat tweede is de hele reden dat een test in het schema staat — zonder die stap
  * blijft elk wattage in de weken erna op het oude getal gebaseerd.
  *
- * De test gaat voor op intervals.icu: de powerprofiel-sync schuift zijn eFTP
- * niet meer over een profiel dat een testuitslag heeft (zie teams/_actions.ts).
+ * De test gaat voor op intervals.icu, tot de FTP daar ná de test wordt
+ * bijgesteld: dan neemt de powerprofiel-sync die over bij leden die hun profiel
+ * met intervals.icu laten meelopen (zie lib/training/ftp-source.ts).
  */
 export async function recordFtpTest(
   admin: Admin,
@@ -399,7 +400,9 @@ export async function loadFtpTests(
  * Het profiel volgt de nieuwste test. Tot 11 september 2026 alleen als het die
  * waarde ook echt had, zodat een ingetypt getal of een eFTP uit intervals.icu
  * bleef staan; sinds de afgesproken voorrang (test, dan intervals.icu, dan het
- * profiel) wijkt zo'n getal voor de test. Blijft er na een verwijdering geen
+ * profiel) wijkt zo'n getal voor de test. Is de FTP in intervals.icu na de test
+ * bijgesteld, dan zet de eerstvolgende sync het profiel daar weer op (sinds
+ * november 2026, zie ftp-source.ts). Blijft er na een verwijdering geen
  * enkele test over, dan laten we het profiel staan — elk wattage in een schema
  * hangt eraan, dus het leeghalen is schadelijker dan een verouderd getal. Hing
  * het aan de verwijderde test, dan krijgt het lid dat te zien.
@@ -441,8 +444,9 @@ export type FtpTestChange = {
   profileWithoutTest: boolean;
   /**
    * Er is geen test meer en het profiel volgt intervals.icu: dan neemt de
-   * eerstvolgende sync de FTP weer over. Met een test erbij gebeurt dat niet
-   * meer (zie teams/_actions.ts).
+   * eerstvolgende sync de FTP weer over. Met een test erbij gebeurt dat alleen
+   * als de FTP in intervals.icu na die test is bijgesteld; dat geval meldt dit
+   * veld niet (zie lib/training/ftp-source.ts).
    */
   overwrittenByIntervals: boolean;
 };

@@ -22,6 +22,13 @@ import {
   downsample,
 } from "@/lib/teams/comparison-riders";
 import { asFtpTestType, ftpChange, ftpCheck } from "@/lib/training/ftp-test";
+import {
+  intervalsFtpSetting,
+  loadFtpRidesSince,
+  pickFtp,
+  type FtpRide,
+  type IntervalsFtpSetting,
+} from "@/lib/training/ftp-source";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { FtpCheckNotice } from "../_components/ftp-check-notice";
 import { ConnectIntervalsForm } from "../_components/connect-form";
@@ -139,7 +146,8 @@ export default async function PowerPage({
   let curve: Awaited<ReturnType<typeof fetchIntervalsPowerCurve>> | null = null;
   let curveError: string | null = null;
   let intervalsEftp: number | null = null;
-  let intervalsFtp: number | null = null;
+  let intervalsFtp: IntervalsFtpSetting | null = null;
+  let ftpRides: FtpRide[] = [];
   let intervalsWeightKg: number | null = null;
   // CP en W' komen uit dezelfde athlete-instellingen als de FTP hierboven. Ze
   // stonden eerder alleen in profile_sport_settings, en die tabel wordt pas
@@ -148,7 +156,8 @@ export default async function PowerPage({
   let intervalsCp: number | null = null;
   let intervalsWPrime: number | null = null;
   if (connection?.api_key && connection.athlete_id) {
-    const [curveResult, wellness, athlete] = await Promise.all([
+    const lastTestedOn = ftpTests[0] ? String(ftpTests[0].tested_on).slice(0, 10) : null;
+    const [curveResult, wellness, athlete, rides] = await Promise.all([
       fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, period, {
         includeFatigue: true,
       }).catch(
@@ -156,7 +165,9 @@ export default async function PowerPage({
       ),
       fetchIntervalsWellness(connection.api_key, connection.athlete_id, 90).catch(() => []),
       fetchIntervalsAthlete(connection.api_key).catch(() => null),
+      lastTestedOn ? loadFtpRidesSince(supabase, user.id, lastTestedOn) : Promise.resolve([]),
     ]);
+    ftpRides = rides;
     if (curveResult instanceof Error) {
       curveError = curveResult.message;
     } else {
@@ -164,7 +175,7 @@ export default async function PowerPage({
     }
     const athleteDefaults = athletePhysique(athlete);
     intervalsEftp = latestWellnessValue(wellness, "eftp") ?? athleteDefaults.eftpWatts;
-    intervalsFtp = athleteDefaults.ftpWatts;
+    intervalsFtp = intervalsFtpSetting(athlete);
     intervalsWeightKg = latestWellnessValue(wellness, "weight") ?? athleteDefaults.weightKg;
     const rideSettings = rideSportSettings(athlete);
     intervalsCp = numberOrNull(rideSettings?.cp);
@@ -179,22 +190,36 @@ export default async function PowerPage({
   });
   const comparisonRiders = comparisonRidersFromRows(comparisonRows, `${clubTexts.shortName}-lid`);
   const ownWeightKg = numberOrNull(profile?.weight_kg) ?? intervalsWeightKg;
-  // Voorrang: de laatste FTP-test, dan de ingestelde FTP in intervals.icu, dan de
-  // eFTP, dan het profiel. Dezelfde volgorde als de powerprofiel-sync in
-  // lib/teams/power-sync.ts.
-  const testFtp = ftpTests[0] ? numberOrNull(ftpTests[0].ftp_watts) : null;
+  // Voorrang: de nieuwste van de FTP-test en de ingestelde FTP in intervals.icu,
+  // dan de eFTP, dan het profiel. Zie lib/training/ftp-source.ts; de
+  // powerprofiel-sync in lib/teams/power-sync.ts kiest net zo.
   const eftpWatts = numberOrNull(curve?.ftpWatts) ?? intervalsEftp;
-  const ftpWatts = testFtp ?? intervalsFtp ?? eftpWatts ?? numberOrNull(profile?.ftp_watts);
-  const ftpSource = testFtp
-    ? // De datum is het antwoord op "hoe oud is dit getal" — de vraag die de tegel oproept.
-      `FTP-test van ${new Date(`${ftpTests[0].tested_on}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}`
-    : intervalsFtp
-      ? "FTP uit intervals.icu"
-      : eftpWatts
-        ? "eFTP uit intervals.icu"
-        : numberOrNull(profile?.ftp_watts)
-          ? "FTP uit je profiel"
-          : undefined;
+  const picked = pickFtp({
+    test: ftpTests[0]
+      ? { ftpWatts: Number(ftpTests[0].ftp_watts), testedOn: String(ftpTests[0].tested_on).slice(0, 10) }
+      : null,
+    intervals: intervalsFtp,
+    rides: ftpRides,
+    eftpWatts,
+    profileFtpWatts: numberOrNull(profile?.ftp_watts),
+  });
+  const ftpWatts = picked.ftpWatts;
+  // De datum is het antwoord op "hoe oud is dit getal" — de vraag die de tegel oproept.
+  const testDate = picked.testedOn
+    ? new Date(`${picked.testedOn}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })
+    : null;
+  const ftpSource =
+    picked.source === "test"
+      ? `FTP-test van ${testDate}`
+      : picked.source === "intervals"
+        ? testDate
+          ? `intervals.icu, bijgesteld na je test van ${testDate}`
+          : "FTP uit intervals.icu"
+        : picked.source === "eftp"
+          ? "eFTP uit intervals.icu"
+          : picked.source === "profile"
+            ? "FTP uit je profiel"
+            : undefined;
   const power5m = wattsAtDuration(curvePoints, 300);
   const power20m = wattsAtDuration(curvePoints, 1200);
   // Live waarde gaat voor; de opgeslagen sync-waarde vangt op als intervals nu

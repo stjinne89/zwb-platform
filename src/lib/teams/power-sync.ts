@@ -11,6 +11,7 @@ import {
   rideSportSettings,
 } from "@/lib/intervals/client";
 import { powerProfilePayload, wattsAtDuration } from "@/lib/teams/power-profile";
+import { intervalsFtpSetting, loadFtpRidesSince, pickFtp } from "@/lib/training/ftp-source";
 
 export type IntervalsConnectionRow = {
   profile_id: string;
@@ -98,11 +99,15 @@ export async function syncOnePowerProfile(
       fetchIntervalsWellness(connection.api_key, athleteId, 30).catch(() => []),
       supabase
         .from("training_ftp_tests")
-        .select("ftp_watts")
+        .select("ftp_watts, tested_on")
         .eq("profile_id", connection.profile_id)
         .order("tested_on", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(1)
-        .then(({ data }: { data: { ftp_watts: number | null }[] | null }) => data?.[0] ?? null),
+        .then(
+          ({ data }: { data: { ftp_watts: number | null; tested_on: string }[] | null }) =>
+            data?.[0] ?? null,
+        ),
     ]);
     const watts15s = wattsAtDuration(curve.points, 15);
     const watts30s = wattsAtDuration(curve.points, 30);
@@ -114,20 +119,27 @@ export async function syncOnePowerProfile(
     const profile = connectionProfile(connection);
     const athleteDefaults = athletePhysique(athlete);
     const testFtp = numberOrNull(latestTest?.ftp_watts);
+    const testedOn = latestTest ? String(latestTest.tested_on).slice(0, 10) : null;
     const eftpWatts =
       numberOrNull(curve.ftpWatts) ??
       latestWellnessValue(wellness, "eftp") ??
       athleteDefaults.eftpWatts;
-    // Voorrang: de laatste FTP-test, dan de ingestelde FTP in intervals.icu, dan
-    // de eFTP, dan het profiel. Dezelfde volgorde als /zwbeter-worden/vermogen.
+    const intervalsFtp = intervalsFtpSetting(athlete);
+    // Voorrang: de nieuwste van de FTP-test en de ingestelde FTP in intervals.icu,
+    // dan de eFTP, dan het profiel. Dezelfde keuze als /zwbeter-worden/vermogen;
+    // zie lib/training/ftp-source.ts.
+    const picked = pickFtp({
+      test: testFtp && testedOn ? { ftpWatts: testFtp, testedOn } : null,
+      intervals: intervalsFtp,
+      rides:
+        testFtp && testedOn && intervalsFtp
+          ? await loadFtpRidesSince(supabase, connection.profile_id, testedOn)
+          : [],
+      eftpWatts,
+      profileFtpWatts: numberOrNull(profile?.ftp_watts),
+    });
     const payload = powerProfilePayload({
-      ftpWatts:
-        testFtp ??
-        athleteDefaults.ftpWatts ??
-        eftpWatts ??
-        numberOrNull(profile?.ftp_watts) ??
-        watts20m ??
-        null,
+      ftpWatts: picked.ftpWatts ?? watts20m ?? null,
       weightKg:
         athleteDefaults.weightKg ??
         latestWellnessValue(wellness, "weight") ??
@@ -163,10 +175,11 @@ export async function syncOnePowerProfile(
     // Opt-in: het lid laat FTP en gewicht in het profiel meelopen met intervals.
     if (profile?.auto_sync_physique) {
       const physique: Record<string, number> = {};
-      // Heeft het lid een testuitslag, dan houdt het profiel die vast tot de
-      // volgende test. Anders neemt het profiel de ingestelde FTP over; de eFTP
-      // is een schatting en wordt nooit weggeschreven (sinds 2026-10-22).
-      const syncedFtp = latestTest ? null : athleteDefaults.ftpWatts;
+      // Het profiel neemt de ingestelde FTP over, behalve als er een testuitslag
+      // is die nieuwer is dan de laatste wijziging in intervals.icu: dan houdt
+      // het profiel de test vast. De eFTP is een schatting en wordt nooit
+      // weggeschreven (sinds 2026-10-22).
+      const syncedFtp = picked.source === "intervals" ? picked.ftpWatts : null;
       const syncedWeight = latestWellnessValue(wellness, "weight") ?? athleteDefaults.weightKg;
       if (syncedFtp) physique.ftp_watts = Math.round(syncedFtp);
       if (syncedWeight) physique.weight_kg = Math.round(syncedWeight * 10) / 10;
