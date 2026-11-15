@@ -31,7 +31,7 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
-0. **ZRL-teamindeling als ranglijst (2026-11-15): lokaal gecommit, niet
+0. **ZRL-teamindeling als ranglijst (2026-11-15): lokaal gecommit (`e8cd2fa8`), niet
    gepusht.** Geen migratie. Open: in de browser en op een telefoon bekijken,
    en de privacyzin (voorgelegd). Zie de ronde "ZRL-teamindeling als
    ranglijst".
@@ -12358,7 +12358,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL-teamindeling als ranglijst
 
-**2026-11-15, lokaal gecommit op `claude/zrl-team-indeling-tool-e97229`, niet gepusht. Geen migratie.**
+**2026-11-15, commit `e8cd2fa8` ("ZRL: teamindeling als ranglijst met een grens na elke vijf"), lokaal op `claude/zrl-team-indeling-tool-e97229`, niet gepusht. Geen migratie.**
 
 - **Waarom.** Voor de nieuwe ZRL-ronde zijn er bij B vier teams (B1, B2, B3,
   Bdev) en de eigenaar wil zien wie in welk team past. Het eerste voorstel was
