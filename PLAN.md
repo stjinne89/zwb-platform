@@ -31,18 +31,19 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
-0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): lokaal
-   gecommit (`7540c7b5`), niet gepusht.** Migratie `0332_captain_availability.sql`
-   is op 2026-11-15 via de connector op productie toegepast (eigenaar: "Ja,
-   toepassen"); de code mag dus naar `main`. Tikken lokaal in de browser
-   geprobeerd. Open: een captain-✓ bij een lid met account (teamlid worden,
-   reservering in het schema). Zie de ronde "Captain zet beschikbaarheid in de
-   ZRL-ranglijst".
+0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): gepusht
+   naar `main` (`7540c7b5`, eigenaar: "Ja, push").** Migratie
+   `0332_captain_availability.sql` is vóór de push via de connector op
+   productie toegepast (eigenaar: "Ja, toepassen"). Tikken lokaal in de browser
+   geprobeerd. Open: na de deploy op de live site proberen, en een captain-✓
+   bij een lid met account (teamlid worden, reservering in het schema). Zie de
+   ronde "Captain zet beschikbaarheid in de ZRL-ranglijst".
 
-0. **ZRL-teamindeling als ranglijst (2026-11-15): lokaal gecommit (`e8cd2fa8`), niet
-   gepusht.** Geen migratie. Lokaal in de browser bekeken, ook op
-   telefoonbreedte; de privacyzin staat op `/privacy` (akkoord eigenaar,
-   2026-11-15). Zie de ronde "ZRL-teamindeling als ranglijst".
+0. **ZRL-teamindeling als ranglijst (2026-11-15): gepusht naar `main`
+   (`e8cd2fa8`, eigenaar: "Ja, push").** Geen migratie. Lokaal in de browser
+   bekeken, ook op telefoonbreedte; de privacyzin staat op `/privacy` (akkoord
+   eigenaar, 2026-11-15). Open: na de deploy op de live site bekijken. Zie de
+   ronde "ZRL-teamindeling als ranglijst".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
@@ -12366,7 +12367,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Captain zet beschikbaarheid in de ZRL-ranglijst
 
-**2026-11-15, commit `7540c7b5` ("ZRL-ranglijst: captain zet beschikbaarheid, ook zonder account"), lokaal op `claude/zrl-team-indeling-tool-e97229`, niet gepusht. Migratie `0332_captain_availability.sql`, op 2026-11-15 via de connector op productie toegepast (eigenaar: "Ja, toepassen").**
+**2026-11-15, commit `7540c7b5` ("ZRL-ranglijst: captain zet beschikbaarheid, ook zonder account"), op 2026-11-15 gepusht naar `main` (eigenaar: "Ja, push"). Migratie `0332_captain_availability.sql`, op 2026-11-15 via de connector op productie toegepast (eigenaar: "Ja, toepassen").**
 
 - **Waarom.** Niet iedereen gebruikt de app (eigenaar); een captain hoort via
   WhatsApp wie kan. Alleen de renner zelf kon zijn beschikbaarheid zetten
@@ -12422,7 +12423,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL-teamindeling als ranglijst
 
-**2026-11-15, commit `e8cd2fa8` ("ZRL: teamindeling als ranglijst met een grens na elke vijf"), lokaal op `claude/zrl-team-indeling-tool-e97229`, niet gepusht. Geen migratie.**
+**2026-11-15, commit `e8cd2fa8` ("ZRL: teamindeling als ranglijst met een grens na elke vijf"), op 2026-11-15 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
 
 - **Waarom.** Voor de nieuwe ZRL-ronde zijn er bij B vier teams (B1, B2, B3,
   Bdev) en de eigenaar wil zien wie in welk team past. Het eerste voorstel was
