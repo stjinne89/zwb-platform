@@ -32,9 +32,9 @@ gaat stabiliteit voor nieuwe features.
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **ZRL-teamindeling als ranglijst (2026-11-15): lokaal gecommit (`e8cd2fa8`), niet
-   gepusht.** Geen migratie. Open: in de browser en op een telefoon bekijken,
-   en de privacyzin (voorgelegd). Zie de ronde "ZRL-teamindeling als
-   ranglijst".
+   gepusht.** Geen migratie. Lokaal in de browser bekeken, ook op
+   telefoonbreedte. Open: de privacyzin (voorgelegd). Zie de ronde
+   "ZRL-teamindeling als ranglijst".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
@@ -12395,10 +12395,14 @@ link naar `/live/[eventId]`, zie de update hierboven).
   kent alleen W/kg. Niets naar WTRL: scraping is daar verboden.
 - **Open.** De privacyzin over ZwiftRacing-vermogen en de schatting in de
   teamindeling is voorgelegd, nog niet op `/privacy` gezet.
-- **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden, unittests
-  `zrl-ranking` (nieuw) en `wtrl-roster`.
-- **Niet geverifieerd:** de tabel in de browser (de lokale server vroeg om in
-  te loggen), en op een telefoon.
+- **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden, de hele
+  unitsuite (met `zrl-ranking`, nieuw). Lokaal in de browser met de login van
+  de eigenaar op productiedata: blokken, kleuren, sorteren op 5m (Bdev wordt
+  Krap) en de beschikbaarheid bij R2 W1. Op 375 px passen de zeven kolommen;
+  "geen account" staat daar niet bij en de getallen staan krap op elkaar
+  (smallere kolommen in een tweede commit van deze ronde).
+- **Niet geverifieerd:** een raceweek met afmeldingen (bij R2 W1 meldde
+  niemand zich af), dus het blok Niet beschikbaar is niet in beeld geweest.
 
 ### Hersteld — FTP: de nieuwste van test en intervals.icu wint
 

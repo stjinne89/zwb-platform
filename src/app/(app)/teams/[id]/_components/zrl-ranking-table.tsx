@@ -131,7 +131,7 @@ export function ZrlRankingTable({
             {COLUMNS.map((column) => (
               <th
                 key={column.key}
-                className="px-1 py-1 text-right font-medium sm:px-2"
+                className="px-[3px] py-1 text-right font-medium sm:px-2"
                 aria-sort={sortKey === column.key ? "descending" : "none"}
               >
                 <button
@@ -218,7 +218,7 @@ function RiderRow({
   return (
     <tr className={cn("border-b last:border-0", ROW_TINT[level], muted && "text-muted-foreground")}>
       <td className="w-full max-w-0 truncate py-1 pr-2">
-        {position != null && <span className="mr-1.5 inline-block w-5 text-right text-muted-foreground">{position}</span>}
+        {position != null && <span className="mr-1 inline-block w-4 text-right text-muted-foreground sm:mr-1.5 sm:w-5">{position}</span>}
         {mark && (
           <span className={cn("mr-1 font-semibold", mark.className)} title={mark.label} aria-label={mark.label}>
             {mark.mark}
@@ -227,13 +227,13 @@ function RiderRow({
         <MemberLink id={rider.profileId} className="font-medium">
           {rider.name}
         </MemberLink>
-        {!rider.profileId && <span className="ml-1 text-muted-foreground">· geen account</span>}
+        {!rider.profileId && <span className="ml-1 hidden text-muted-foreground sm:inline">· geen account</span>}
       </td>
       <ZCell value={rider.zftp} status={rider.category} />
       <ZCell value={rider.zmap} status={rider.category} />
-      <td className="px-1 py-1 text-right sm:px-2">{wkg(rider.power?.m1)}</td>
-      <td className="px-1 py-1 text-right sm:px-2">{wkg(rider.power?.m5)}</td>
-      <td className="px-1 py-1 text-right sm:px-2">{wkg(rider.power?.m20)}</td>
+      <td className="px-[3px] py-1 text-right sm:px-2">{wkg(rider.power?.m1)}</td>
+      <td className="px-[3px] py-1 text-right sm:px-2">{wkg(rider.power?.m5)}</td>
+      <td className="px-[3px] py-1 text-right sm:px-2">{wkg(rider.power?.m20)}</td>
       <td className="py-1 pl-1 text-center sm:pl-2">
         <DevMark status={rider.dev} emphasize={inDevTeam} />
       </td>
@@ -243,7 +243,7 @@ function RiderRow({
 
 function ZCell({ value, status }: { value: ZValue | null; status: LimitStatus | null }) {
   return (
-    <td className={cn("px-1 py-1 text-right sm:px-2", status === "over" && VALUE_TEXT.over)}>
+    <td className={cn("px-[3px] py-1 text-right sm:px-2", status === "over" && VALUE_TEXT.over)}>
       {value ? (
         <span
           className={cn(value.source === "wtrl" && "italic text-muted-foreground")}
