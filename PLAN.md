@@ -32,7 +32,7 @@ gaat stabiliteit voor nieuwe features.
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): lokaal
-   gecommit, niet gepusht.** Migratie `0332_captain_availability.sql` eerst op
+   gecommit (`7540c7b5`), niet gepusht.** Migratie `0332_captain_availability.sql` eerst op
    productie toepassen, dan pas pushen (de teampagina vraagt de nieuwe kolommen
    op). Open: daarna het tikken in de browser proberen. Zie de ronde "Captain
    zet beschikbaarheid in de ZRL-ranglijst".
@@ -12364,7 +12364,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Captain zet beschikbaarheid in de ZRL-ranglijst
 
-**2026-11-15, lokaal gecommit op `claude/zrl-team-indeling-tool-e97229`, niet gepusht. Migratie `0332_captain_availability.sql`, nog niet op productie toegepast.**
+**2026-11-15, commit `7540c7b5` ("ZRL-ranglijst: captain zet beschikbaarheid, ook zonder account"), lokaal op `claude/zrl-team-indeling-tool-e97229`, niet gepusht. Migratie `0332_captain_availability.sql`, nog niet op productie toegepast.**
 
 - **Waarom.** Niet iedereen gebruikt de app (eigenaar); een captain hoort via
   WhatsApp wie kan. Alleen de renner zelf kon zijn beschikbaarheid zetten
