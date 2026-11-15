@@ -32,10 +32,12 @@ gaat stabiliteit voor nieuwe features.
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): lokaal
-   gecommit (`7540c7b5`), niet gepusht.** Migratie `0332_captain_availability.sql` eerst op
-   productie toepassen, dan pas pushen (de teampagina vraagt de nieuwe kolommen
-   op). Open: daarna het tikken in de browser proberen. Zie de ronde "Captain
-   zet beschikbaarheid in de ZRL-ranglijst".
+   gecommit (`7540c7b5`), niet gepusht.** Migratie `0332_captain_availability.sql`
+   is op 2026-11-15 via de connector op productie toegepast (eigenaar: "Ja,
+   toepassen"); de code mag dus naar `main`. Tikken lokaal in de browser
+   geprobeerd. Open: een captain-✓ bij een lid met account (teamlid worden,
+   reservering in het schema). Zie de ronde "Captain zet beschikbaarheid in de
+   ZRL-ranglijst".
 
 0. **ZRL-teamindeling als ranglijst (2026-11-15): lokaal gecommit (`e8cd2fa8`), niet
    gepusht.** Geen migratie. Lokaal in de browser bekeken, ook op
@@ -12364,7 +12366,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Captain zet beschikbaarheid in de ZRL-ranglijst
 
-**2026-11-15, commit `7540c7b5` ("ZRL-ranglijst: captain zet beschikbaarheid, ook zonder account"), lokaal op `claude/zrl-team-indeling-tool-e97229`, niet gepusht. Migratie `0332_captain_availability.sql`, nog niet op productie toegepast.**
+**2026-11-15, commit `7540c7b5` ("ZRL-ranglijst: captain zet beschikbaarheid, ook zonder account"), lokaal op `claude/zrl-team-indeling-tool-e97229`, niet gepusht. Migratie `0332_captain_availability.sql`, op 2026-11-15 via de connector op productie toegepast (eigenaar: "Ja, toepassen").**
 
 - **Waarom.** Niet iedereen gebruikt de app (eigenaar); een captain hoort via
   WhatsApp wie kan. Alleen de renner zelf kon zijn beschikbaarheid zetten
@@ -12407,8 +12409,16 @@ link naar `/live/[eventId]`, zie de update hierboven).
   één renner per regel, claim, opnieuw te draaien) en de hele unitsuite
   (onder volle belasting liepen drie tijdgevoelige tests en vijf PGlite-bestanden
   uit de tijd; los slagen ze alle acht).
-- **Niet geverifieerd:** de migratie op de echte database, en het tikken in de
-  browser (kan pas na de migratie; de lokale server wijst naar productie).
+- **Op productie.** Vóór het toepassen: `handle_team_availability_team_join`
+  op productie was gelijk aan de repo. Daarna: 125 regels, alle met profiel,
+  geen door een captain; de vier functies en drie triggers bestaan. Lokaal
+  (wijst naar productie) bij een rosternaam in R2 W6 de hele cirkel getikt:
+  ✓ gaf één regel met `roster_entry_id` en `set_by`, ✗ zette hem onder Niet
+  beschikbaar en schoof de grenzen op, leeg haalde de regel weg (weer 125).
+  Een eigen ✓ van een lid had geen tikvakje.
+- **Niet geverifieerd:** een captain-✓ bij een lid met account (team-join en
+  reservering in het schema; alleen in de PGlite-test), en de claim van een
+  rosternaam met beschikbaarheid op productie.
 
 ### Gebouwd — ZRL-teamindeling als ranglijst
 
