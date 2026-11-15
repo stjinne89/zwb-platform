@@ -139,7 +139,11 @@ export default function PrivacyPage() {
             daaruit volgen. Bij een volgende import worden de gegevens van dat team
             vervangen. Staat iemand bij WTRL in een team, dan zetten we hem ook in
             het bijbehorende <ClubShortName />-team; zonder <ClubShortName />-account komt zijn naam in het
-            rooster van dat team, tot hij zijn naam claimt.
+            rooster van dat team, tot hij zijn naam claimt. Op de pagina van een
+            ZRL-team met subteams zien captains en beheerders per renner het beste
+            W/kg over 1, 5 en 20 minuten van de laatste 90 dagen, zoals
+            ZwiftRacing.app dat openbaar toont, en een daaruit geschatte zFTP en
+            zMAP. Dat geldt ook voor renners zonder <ClubShortName />-account.
           </li>
           <li>
             <strong>TTT-plannen:</strong> een ploegleider kan een plan delen met

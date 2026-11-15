@@ -33,8 +33,8 @@ gaat stabiliteit voor nieuwe features.
 
 0. **ZRL-teamindeling als ranglijst (2026-11-15): lokaal gecommit (`e8cd2fa8`), niet
    gepusht.** Geen migratie. Lokaal in de browser bekeken, ook op
-   telefoonbreedte. Open: de privacyzin (voorgelegd). Zie de ronde
-   "ZRL-teamindeling als ranglijst".
+   telefoonbreedte; de privacyzin staat op `/privacy` (akkoord eigenaar,
+   2026-11-15). Zie de ronde "ZRL-teamindeling als ranglijst".
 
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
@@ -12393,8 +12393,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
   en geen knoppen "neem over als teamindeling/opstelling" of vastzetten: eerst
   de lijst zelf bekijken. Geen wattvloer van Open (250 W voor A): de schatting
   kent alleen W/kg. Niets naar WTRL: scraping is daar verboden.
-- **Open.** De privacyzin over ZwiftRacing-vermogen en de schatting in de
-  teamindeling is voorgelegd, nog niet op `/privacy` gezet.
+- **Privacy.** In het blok "ZRL-teamgegevens van WTRL" op `/privacy` staat
+  dat captains en beheerders op een ZRL-hoofdteam het beste W/kg over 1, 5 en
+  20 minuten van ZwiftRacing en de geschatte zFTP en zMAP zien, ook van
+  renners zonder account. Tekst aangepast, geen nieuwe privacyversie: het zijn
+  openbare gegevens die ZWB al ophaalt (akkoord eigenaar, 2026-11-15).
 - **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden, de hele
   unitsuite (met `zrl-ranking`, nieuw). Lokaal in de browser met de login van
   de eigenaar op productiedata: blokken, kleuren, sorteren op 5m (Bdev wordt
