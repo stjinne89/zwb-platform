@@ -12353,7 +12353,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — FTP: de nieuwste van test en intervals.icu wint
 
-**2026-11-15, commit `5da8ea00`, lokaal, niet gepusht. Geen migratie.**
+**2026-11-15, commit `5da8ea00` ("FTP: de nieuwste van test en intervals.icu wint"), gepusht naar `main` op 2026-11-15 (eigenaar: "Ja, push"). Geen migratie.**
 
 - **Waarom.** De eigenaar vroeg of intervals.icu niet leidend hoort te zijn:
   die zou een test toch opnemen en de FTP bijstellen als je beter wordt. Sinds
