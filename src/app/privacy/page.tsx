@@ -143,7 +143,10 @@ export default function PrivacyPage() {
             ZRL-team met subteams zien captains en beheerders per renner het beste
             W/kg over 1, 5 en 20 minuten van de laatste 90 dagen, zoals
             ZwiftRacing.app dat openbaar toont, en een daaruit geschatte zFTP en
-            zMAP. Dat geldt ook voor renners zonder <ClubShortName />-account.
+            zMAP. Dat geldt ook voor renners zonder <ClubShortName />-account. Een
+            captain van zo&apos;n team kan daar voor een raceweek ook je
+            beschikbaarheid invullen, ook als je geen account hebt; wat je zelf
+            invult, gaat voor.
           </li>
           <li>
             <strong>TTT-plannen:</strong> een ploegleider kan een plan delen met

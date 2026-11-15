@@ -379,6 +379,61 @@ export async function setTeamAvailability(
   return { ok: true as const };
 }
 
+/**
+ * Een captain zet de beschikbaarheid van een renner voor een ZRL-raceweek
+ * (migr. 0332), ook van een rosternaam zonder account. `status` null wist een
+ * waarde die een captain zette. Een eigen keuze van de renner blijft staan; de
+ * functie in de database controleert wie het mag.
+ */
+export async function setRiderAvailability(
+  teamId: string,
+  eventId: string,
+  rider: { kind: "profile" | "roster"; id: string },
+  status: "available" | "maybe" | "unavailable" | null,
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { data, error } = await supabase.rpc("set_team_availability_for", {
+    p_event_id: eventId,
+    p_team_id: teamId,
+    p_profile_id: rider.kind === "profile" ? rider.id : null,
+    p_roster_entry_id: rider.kind === "roster" ? rider.id : null,
+    p_status: status,
+  });
+  if (error) return { ok: false as const, error: error.message };
+  if (data === false) return { ok: false as const, error: "Die renner koos zelf." };
+
+  // Zoals bij een eigen opgave: de raceweek reserveren of vrijgeven in het
+  // schema van het lid. Een rosternaam heeft geen schema.
+  if (rider.kind === "profile") {
+    const admin = createAdminClient();
+    const reservation = await syncZrlReservation(admin, rider.id, eventId).catch(() => null);
+    if (reservation && (reservation.added > 0 || reservation.removed > 0)) {
+      const { data: event } = await admin.from("events").select("title").eq("id", eventId).maybeSingle();
+      const title = event?.title ?? "ZRL-race";
+      await requestReplan(
+        admin,
+        rider.id,
+        reservation.added > 0
+          ? `Captain zette je beschikbaar voor ${title}; race gereserveerd, schema eromheen.`
+          : `Captain zette je niet meer beschikbaar voor ${title}; die dag opnieuw ingevuld.`,
+      ).catch(() => null);
+    }
+    if (status === "available") {
+      revalidatePath("/teams");
+      revalidatePath("/kalender");
+    }
+  }
+
+  revalidateTeam(teamId);
+  revalidatePath(`/events/${eventId}`);
+  return { ok: true as const };
+}
+
 async function canManageTeamSelection(
   teamId: string,
   candidateTeamId?: string,

@@ -31,6 +31,12 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
+0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): lokaal
+   gecommit, niet gepusht.** Migratie `0332_captain_availability.sql` eerst op
+   productie toepassen, dan pas pushen (de teampagina vraagt de nieuwe kolommen
+   op). Open: daarna het tikken in de browser proberen. Zie de ronde "Captain
+   zet beschikbaarheid in de ZRL-ranglijst".
+
 0. **ZRL-teamindeling als ranglijst (2026-11-15): lokaal gecommit (`e8cd2fa8`), niet
    gepusht.** Geen migratie. Lokaal in de browser bekeken, ook op
    telefoonbreedte; de privacyzin staat op `/privacy` (akkoord eigenaar,
@@ -12355,6 +12361,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Captain zet beschikbaarheid in de ZRL-ranglijst
+
+**2026-11-15, lokaal gecommit op `claude/zrl-team-indeling-tool-e97229`, niet gepusht. Migratie `0332_captain_availability.sql`, nog niet op productie toegepast.**
+
+- **Waarom.** Niet iedereen gebruikt de app (eigenaar); een captain hoort via
+  WhatsApp wie kan. Alleen de renner zelf kon zijn beschikbaarheid zetten
+  (RLS `team_event_availability_self_write`), en een rosternaam zonder account
+  kon er geen hebben, omdat `profile_id` verplicht was.
+- **Wat.** In de ranglijst (ronde hieronder) staat bij een gekozen raceweek
+  voor elke naam een vakje dat de captain doortikt: leeg, ✓, ?, ✗. Stippellijn:
+  door een captain gezet of leeg; zonder stippellijn koos de renner zelf en is
+  het vakje niet te tikken. Server-action `setRiderAvailability` in
+  `teams/[id]/_actions.ts` roept `set_team_availability_for()` aan en doet voor
+  een lid daarna wat een eigen opgave ook doet: `syncZrlReservation` en een
+  herplanning met de melding dat de captain het zette.
+- **Migratie 0332.** `profile_id` mag leeg, nieuw `roster_entry_id` (precies één
+  van beide, unieke index per week/team/rosterregel) en `set_by`. Een trigger
+  maakt `set_by` leeg als de renner zelf schrijft. `can_set_team_availability()`
+  (captain of co-captain van het hoofdteam of een subteam, of
+  `teams.manage_roster`) en `set_team_availability_for()` (alleen op een
+  ZRL-raceweek van een hoofdteam met subteams; een eigen keuze geeft `false`).
+  De team-join-trigger van 0171 slaat regels zonder profiel over. Bij een
+  claim van een rosternaam verhuist zijn beschikbaarheid naar het profiel en
+  blijft `set_by` staan; een eigen regel voor dezelfde week wint.
+- **Ook aangepast.** De teampagina leest `roster_entry_id` en `set_by`, zodat ook
+  de captain-selectie de beschikbaarheid van rosternamen ziet; niet-leden met
+  een regel zonder profiel worden niet als profiel opgehaald.
+  `zrl-reservation.ts` slaat regels zonder profiel over. Privacyzin in het
+  ZRL-blok van `/privacy` (akkoord eigenaar op het voorstel, 2026-11-15),
+  `/hulp` bijgewerkt.
+- **Volgorde bij uitrollen.** Eerst 0332 toepassen, dan pushen: de teampagina
+  vraagt de nieuwe kolommen op, en zonder migratie ziet ZRL B geen enkele
+  beschikbaarheid meer (de query faalt, de pagina blijft wel werken).
+- **Bewust niet.** Alleen raceweken van een hoofdteam, geen losse ZRL-races of
+  andere events; geen melding aan de renner; een captain kan een eigen keuze
+  niet overschrijven.
+- **Niet meer waar.** "Een opstelling hoort bij een profiel" bij de
+  rosternamen in `teams/[id]/page.tsx` gold al niet meer; beschikbaarheid hoort
+  nu ook niet meer alleen bij een profiel.
+- **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden, nieuwe
+  PGlite-test `captain-availability.test.ts` (9: rosternaam, lid en 0171,
+  aanpassen en wissen, eigen keuze gaat voor, rechten, alleen een raceweek,
+  één renner per regel, claim, opnieuw te draaien) en de hele unitsuite
+  (onder volle belasting liepen drie tijdgevoelige tests en vijf PGlite-bestanden
+  uit de tijd; los slagen ze alle acht).
+- **Niet geverifieerd:** de migratie op de echte database, en het tikken in de
+  browser (kan pas na de migratie; de lokale server wijst naar productie).
 
 ### Gebouwd — ZRL-teamindeling als ranglijst
 

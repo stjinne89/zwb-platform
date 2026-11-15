@@ -37,10 +37,13 @@ import {
   isWomenTeamName,
   rankRider,
   type RankedRider,
-  type RankingAvailability,
 } from "@/lib/teams/zrl-ranking";
 import type { PowerWkg } from "@/lib/club-ladder/team-power";
-import { ZrlRankingTable, type RankingEvent } from "./_components/zrl-ranking-table";
+import {
+  ZrlRankingTable,
+  type RankingAvailabilityEntry,
+  type RankingEvent,
+} from "./_components/zrl-ranking-table";
 
 const TYPE_LABELS: Record<string, string> = {
   zrl: "ZRL",
@@ -117,7 +120,11 @@ type EventRow = {
 
 type AvailabilityRow = {
   event_id: string;
-  profile_id: string;
+  /** Leeg bij een rosternaam zonder account (migr. 0332). */
+  profile_id: string | null;
+  roster_entry_id: string | null;
+  /** Gezet door een captain; leeg = eigen keuze. */
+  set_by: string | null;
   status: "available" | "maybe" | "unavailable";
 };
 
@@ -326,7 +333,7 @@ export default async function TeamDetailPage({
     eventIds.length > 0
       ? supabase
           .from("team_event_availability")
-          .select("event_id, profile_id, status")
+          .select("event_id, profile_id, roster_entry_id, set_by, status")
           .eq("team_id", rootTeamId)
           .in("event_id", eventIds)
       : Promise.resolve({ data: [] }),
@@ -345,8 +352,8 @@ export default async function TeamDetailPage({
   const availabilityProfileIds = Array.from(
     new Set(
       ((availabilityRows ?? []) as AvailabilityRow[])
-        .filter((row) => row.status !== "unavailable")
-        .map((row) => row.profile_id),
+        .filter((row) => row.status !== "unavailable" && row.profile_id != null)
+        .map((row) => row.profile_id as string),
     ),
   );
   const missingAvailabilityProfileIds = availabilityProfileIds.filter(
@@ -479,9 +486,15 @@ export default async function TeamDetailPage({
   const candidates = (allProfiles ?? []).filter((profile) => !profileIds.includes(profile.id));
   const availabilityByEventProfile = new Map<string, AvailabilityRow["status"]>(
     ((availabilityRows ?? []) as AvailabilityRow[]).map((row) => [
-      `${row.event_id}:${row.profile_id}`,
+      `${row.event_id}:${row.profile_id ?? row.roster_entry_id}`,
       row.status,
     ]),
+  );
+  // Door een captain gezet (0332): die mag het ook weer aanpassen.
+  const availabilityByCaptain = new Set(
+    ((availabilityRows ?? []) as AvailabilityRow[])
+      .filter((row) => row.set_by != null)
+      .map((row) => `${row.event_id}:${row.profile_id ?? row.roster_entry_id}`),
   );
   // Een "ja" op de race van een subteam is beschikbaar voor die raceweek, ook als
   // bij de paraplu iets anders staat. Zo'n tegenspraak ontstond toen `0179` een
@@ -537,7 +550,7 @@ export default async function TeamDetailPage({
   let ranking: {
     riders: RankedRider[];
     events: RankingEvent[];
-    availability: Record<string, RankingAvailability>;
+    availability: Record<string, RankingAvailabilityEntry>;
   } | null = null;
   if (showRanking) {
     const registered = rosterRows.filter((row) => !row.unregistered).map((row) => row.id);
@@ -580,12 +593,14 @@ export default async function TeamDetailPage({
         women,
       );
     });
-    const weeks = calendarEvents.filter((event) => event.type === "zrl");
-    const availability: Record<string, RankingAvailability> = {};
+    // Alleen raceweken: daar meld je je bij een hoofdteam beschikbaar.
+    const weeks = calendarEvents.filter((event) => event.type === "zrl" && event.races !== undefined);
+    const availability: Record<string, RankingAvailabilityEntry> = {};
     for (const week of weeks) {
       for (const row of rosterRows) {
-        const status = availabilityByEventProfile.get(`${week.id}:${row.id}`);
-        if (status) availability[`${week.id}:${row.id}`] = status;
+        const key = `${week.id}:${row.id}`;
+        const status = availabilityByEventProfile.get(key);
+        if (status) availability[key] = { status, byCaptain: availabilityByCaptain.has(key) };
       }
     }
     ranking = {
@@ -712,6 +727,8 @@ export default async function TeamDetailPage({
           riders={ranking.riders}
           events={ranking.events}
           availability={ranking.availability}
+          teamId={rootTeamId}
+          canEditAvailability={canManageRoster || isCaptain}
         />
       )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { ArrowDown } from "lucide-react";
 import { MemberLink } from "@/components/member-link";
 import {
@@ -17,8 +17,23 @@ import {
   type ZValue,
 } from "@/lib/teams/zrl-ranking";
 import { cn } from "@/lib/utils";
+import { setRiderAvailability } from "../_actions";
 
 export type RankingEvent = { id: string; title: string; startAt: string };
+
+/** Beschikbaarheid in een raceweek; byCaptain: door een captain gezet (0332). */
+export type RankingAvailabilityEntry = {
+  status: NonNullable<RankingAvailability>;
+  byCaptain: boolean;
+};
+
+/** Tikken wisselt: leeg → ✓ → ? → ✗ → leeg. */
+const NEXT: Record<"none" | NonNullable<RankingAvailability>, RankingAvailability> = {
+  none: "available",
+  available: "maybe",
+  maybe: "unavailable",
+  unavailable: null,
+};
 
 const COLUMNS: Array<{ key: RankingSortKey; label: string }> = [
   { key: "zftp", label: "zFTP" },
@@ -74,23 +89,55 @@ export function ZrlRankingTable({
   riders,
   events,
   availability,
+  teamId,
+  canEditAvailability,
 }: {
   teams: RankingTeam[];
   riders: RankedRider[];
   events: RankingEvent[];
-  /** `${eventId}:${rider.key}` → status. */
-  availability: Record<string, RankingAvailability>;
+  /** `${eventId}:${rider.key}` → beschikbaarheid. */
+  availability: Record<string, RankingAvailabilityEntry>;
+  /** Het hoofdteam waar de beschikbaarheid bij hoort. */
+  teamId: string;
+  canEditAvailability: boolean;
 }) {
   const [sortKey, setSortKey] = useState<RankingSortKey>("zftp");
   const [eventId, setEventId] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
   const ordered = useMemo(() => orderRankingTeams(teams), [teams]);
+  const [shown, setShown] = useOptimistic(
+    availability,
+    (state, change: { key: string; entry: RankingAvailabilityEntry | null }) => {
+      const next = { ...state };
+      if (change.entry) next[change.key] = change.entry;
+      else delete next[change.key];
+      return next;
+    },
+  );
 
-  const statusOf = (rider: RankedRider) =>
-    eventId ? (availability[`${eventId}:${rider.key}`] ?? null) : null;
+  const entryOf = (rider: RankedRider) => (eventId ? (shown[`${eventId}:${rider.key}`] ?? null) : null);
+
+  function cycle(rider: RankedRider) {
+    if (!eventId) return;
+    const key = `${eventId}:${rider.key}`;
+    const status = NEXT[shown[key]?.status ?? "none"];
+    setError(null);
+    startTransition(async () => {
+      setShown({ key, entry: status ? { status, byCaptain: true } : null });
+      const res = await setRiderAvailability(
+        teamId,
+        eventId,
+        { kind: rider.profileId ? "profile" : "roster", id: rider.key },
+        status,
+      );
+      if (!res.ok) setError(res.error);
+    });
+  }
 
   const { blocks, absent } = useMemo(() => {
     const status = (rider: RankedRider) =>
-      eventId ? (availability[`${eventId}:${rider.key}`] ?? null) : null;
+      eventId ? (shown[`${eventId}:${rider.key}`]?.status ?? null) : null;
     const present = riders.filter((rider) => status(rider) !== "unavailable");
     const away = riders.filter((rider) => status(rider) === "unavailable");
     // Alleen het laatste blok kan korter zijn dan 5, dus elk blok begint op index × 5.
@@ -101,7 +148,7 @@ export function ZrlRankingTable({
       })),
       absent: sortRanking(away, sortKey),
     };
-  }, [riders, sortKey, eventId, availability, ordered]);
+  }, [riders, sortKey, eventId, shown, ordered]);
 
   return (
     <section className="space-y-3 rounded-lg border bg-card p-4">
@@ -123,6 +170,7 @@ export function ZrlRankingTable({
           </select>
         )}
       </header>
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <table className="w-full text-xs tabular-nums sm:text-sm">
         <thead className="text-muted-foreground">
@@ -169,7 +217,8 @@ export function ZrlRankingTable({
                 position={block.first + index + 1}
                 level={riderLevel(rider, block.team?.dev ?? false)}
                 inDevTeam={block.team?.dev ?? false}
-                availability={statusOf(rider)}
+                availability={entryOf(rider)}
+                onCycle={eventId && canEditAvailability ? () => cycle(rider) : undefined}
               />
             ))}
           </tbody>
@@ -188,7 +237,8 @@ export function ZrlRankingTable({
                 position={null}
                 level="ok"
                 inDevTeam={false}
-                availability="unavailable"
+                availability={entryOf(rider)}
+                onCycle={eventId && canEditAvailability ? () => cycle(rider) : undefined}
                 muted
               />
             ))}
@@ -205,24 +255,44 @@ function RiderRow({
   level,
   inDevTeam,
   availability,
+  onCycle,
   muted = false,
 }: {
   rider: RankedRider;
   position: number | null;
   level: LimitStatus;
   inDevTeam: boolean;
-  availability: RankingAvailability;
+  availability: RankingAvailabilityEntry | null;
+  /** Gezet: de captain mag tikken; alleen als de renner het niet zelf koos. */
+  onCycle?: () => void;
   muted?: boolean;
 }) {
-  const mark = availability ? AVAILABILITY[availability] : null;
+  const mark = availability ? AVAILABILITY[availability.status] : null;
+  const ownChoice = availability != null && !availability.byCaptain;
+  const editable = onCycle != null && !ownChoice;
   return (
     <tr className={cn("border-b last:border-0", ROW_TINT[level], muted && "text-muted-foreground")}>
       <td className="w-full max-w-0 truncate py-1 pr-2">
         {position != null && <span className="mr-1 inline-block w-4 text-right text-muted-foreground sm:mr-1.5 sm:w-5">{position}</span>}
-        {mark && (
-          <span className={cn("mr-1 font-semibold", mark.className)} title={mark.label} aria-label={mark.label}>
-            {mark.mark}
-          </span>
+        {editable ? (
+          <button
+            type="button"
+            onClick={onCycle}
+            className={cn(
+              "mr-1 inline-flex size-6 items-center justify-center rounded border border-dashed align-middle font-semibold",
+              mark ? mark.className : "text-muted-foreground",
+            )}
+            title={mark ? `${mark.label} (captain)` : "Niet opgegeven"}
+            aria-label={`Beschikbaarheid van ${rider.name}: ${mark ? mark.label : "niet opgegeven"}`}
+          >
+            {mark?.mark ?? "·"}
+          </button>
+        ) : (
+          mark && (
+            <span className={cn("mr-1 font-semibold", mark.className)} title={mark.label} aria-label={mark.label}>
+              {mark.mark}
+            </span>
+          )
         )}
         <MemberLink id={rider.profileId} className="font-medium">
           {rider.name}

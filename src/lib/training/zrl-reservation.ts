@@ -152,9 +152,11 @@ async function loadReservationState(admin: Admin, events: EventRow[], profileId?
   const byId = new Map(events.map((event) => [event.id, event]));
   if (ids.length === 0) return { availability: [], rsvps: [], blocks: [] };
 
+  // Een rosternaam zonder account (0332) heeft geen schema.
   let availabilityQuery = admin
     .from("team_event_availability")
     .select("profile_id, event_id, status")
+    .not("profile_id", "is", null)
     .in("event_id", ids);
   let rsvpQuery = admin.from("event_rsvps").select("profile_id, event_id, status").in("event_id", ids);
   let blockQuery = admin
