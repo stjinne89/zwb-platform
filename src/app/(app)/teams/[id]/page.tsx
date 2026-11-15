@@ -32,6 +32,15 @@ import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadWeightMissing } from "@/lib/teams/missing-weight";
 import { MissingWeightNotice } from "@/components/missing-weight-notice";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
+import {
+  categoryFromTeamName,
+  isWomenTeamName,
+  rankRider,
+  type RankedRider,
+  type RankingAvailability,
+} from "@/lib/teams/zrl-ranking";
+import type { PowerWkg } from "@/lib/club-ladder/team-power";
+import { ZrlRankingTable, type RankingEvent } from "./_components/zrl-ranking-table";
 
 const TYPE_LABELS: Record<string, string> = {
   zrl: "ZRL",
@@ -521,6 +530,71 @@ export default async function TeamDetailPage({
       rosterNameById.set(row.id, row.name);
     }
   }
+  // Teamindeling als ranglijst (ZRL-hoofdteam met subteams, voor wie indeelt):
+  // geschatte zFTP en zMAP uit het vermogen van 90 dagen in Zwift (ZwiftRacing).
+  const showRanking =
+    canManage && team.type === "zrl" && team.parent_team_id == null && (childTeams ?? []).length > 0;
+  let ranking: {
+    riders: RankedRider[];
+    events: RankingEvent[];
+    availability: Record<string, RankingAvailability>;
+  } | null = null;
+  if (showRanking) {
+    const registered = rosterRows.filter((row) => !row.unregistered).map((row) => row.id);
+    const { data: zwiftRows } =
+      registered.length > 0
+        ? await admin.from("profiles").select("id, zwift_id").in("id", registered)
+        : { data: [] };
+    const zwiftIdOf = new Map<string, string>();
+    for (const row of (zwiftRows ?? []) as Array<{ id: string; zwift_id: string | number | null }>) {
+      if (row.zwift_id != null && String(row.zwift_id).trim()) zwiftIdOf.set(row.id, String(row.zwift_id).trim());
+    }
+    for (const entry of (rosterPending ?? []) as Array<{ id: string; zwift_id: string | null }>) {
+      if (entry.zwift_id?.trim()) zwiftIdOf.set(entry.id, entry.zwift_id.trim());
+    }
+    const zwiftIds = [...new Set(zwiftIdOf.values())].filter((value) => /^\d+$/.test(value));
+    const { data: metricRows } =
+      zwiftIds.length > 0
+        ? await admin.from("zwift_rider_metrics").select("zwift_id, power_wkg").in("zwift_id", zwiftIds.map(Number))
+        : { data: [] };
+    const powerOf = new Map(
+      ((metricRows ?? []) as Array<{ zwift_id: number | string; power_wkg: PowerWkg | null }>).map((row) => [
+        String(row.zwift_id),
+        row.power_wkg,
+      ]),
+    );
+    const category = categoryFromTeamName(team.name);
+    const women = isWomenTeamName(team.name);
+    const rankingRiders = rosterRows.map((row) => {
+      const zwiftId = zwiftIdOf.get(row.id);
+      const power = zwiftId ? powerOf.get(zwiftId) : null;
+      return rankRider(
+        {
+          key: row.id,
+          name: row.name,
+          profileId: row.unregistered ? null : row.id,
+          power: power ? { m1: power.m1 ?? null, m5: power.m5 ?? null, m20: power.m20 ?? null } : null,
+          wtrl: row.wtrl ? { zftpWkg: row.wtrl.zftpWkg, zmapWkg: row.wtrl.zmapWkg } : null,
+        },
+        category,
+        women,
+      );
+    });
+    const weeks = calendarEvents.filter((event) => event.type === "zrl");
+    const availability: Record<string, RankingAvailability> = {};
+    for (const week of weeks) {
+      for (const row of rosterRows) {
+        const status = availabilityByEventProfile.get(`${week.id}:${row.id}`);
+        if (status) availability[`${week.id}:${row.id}`] = status;
+      }
+    }
+    ranking = {
+      riders: rankingRiders,
+      events: weeks.map((event) => ({ id: event.id, title: event.title, startAt: event.start_at })),
+      availability,
+    };
+  }
+
   // Wie zelf in de tabel staat zonder gewicht, ziet waar het in te vullen.
   const needsWeight =
     user != null && profileIds.includes(user.id) && (await loadWeightMissing(supabase, user.id));
@@ -631,6 +705,15 @@ export default async function TeamDetailPage({
           parentTeamId: row.parent_team_id,
         }))}
       />
+
+      {ranking && (
+        <ZrlRankingTable
+          teams={((childTeams ?? []) as TeamRow[]).map((row) => ({ id: row.id, name: row.name }))}
+          riders={ranking.riders}
+          events={ranking.events}
+          availability={ranking.availability}
+        />
+      )}
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="font-semibold">Teamkalender en selectie</h2>

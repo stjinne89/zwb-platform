@@ -31,6 +31,11 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
+0. **ZRL-teamindeling als ranglijst (2026-11-15): lokaal gecommit, niet
+   gepusht.** Geen migratie. Open: in de browser en op een telefoon bekijken,
+   en de privacyzin (voorgelegd). Zie de ronde "ZRL-teamindeling als
+   ranglijst".
+
 0. **Teams verwijderen, en ZRL A weer een gewoon team (2026-11-13): gepusht
    naar `main` (`d4c05a11`).** Migratie
    `0327_zrl_umbrella_restore.sql` is op 2026-11-13 toegepast op productie
@@ -12350,6 +12355,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZRL-teamindeling als ranglijst
+
+**2026-11-15, lokaal gecommit op `claude/zrl-team-indeling-tool-e97229`, niet gepusht. Geen migratie.**
+
+- **Waarom.** Voor de nieuwe ZRL-ronde zijn er bij B vier teams (B1, B2, B3,
+  Bdev) en de eigenaar wil zien wie in welk team past. Het eerste voorstel was
+  een puzzel zoals de Ladderpuzzel; de eigenaar wilde liever één ranglijst met
+  een grens na elke vijf renners, te sorteren op zFTP, zMAP en 1, 5 en 20
+  minuten. Divisies zijn in een nieuwe ronde voor niemand bekend, dus de lijst
+  toetst niet aan B1 of B4.
+- **Wat.** Nieuw `src/lib/teams/zrl-ranking.ts` (puur) en
+  `teams/[id]/_components/zrl-ranking-table.tsx`, op de pagina van een
+  ZRL-hoofdteam met subteams, alleen voor wie mag indelen (`canManage`). Blokken
+  van 5, altijd (eigenaar); de subteams op naam, het Dev-team als laatste blok
+  (eigenaar), daarna Reserve. Wie bij een gekozen raceweek "niet beschikbaar"
+  zei, staat onderaan en telt niet mee.
+- **Schatting.** zFTP = 0,937 × beste 20 min, zMAP = 0,971 × beste 5 min, beide
+  W/kg over 90 dagen van ZwiftRacing (`zwift_rider_metrics.power_wkg`). Gefit op
+  13 november op de 51 renners met een WTRL-plak én ZwiftRacing-waarden, op
+  2026-11-15 met dezelfde uitkomst nagerekend: gemiddeld 0,10 W/kg ernaast voor
+  zFTP en 0,11 voor zMAP, bij 9 op de 10 minder dan 0,22. Zonder
+  ZwiftRacing-waarden de WTRL-plak (schuin). De 1/5/20 minuten zijn ook
+  ZwiftRacing, niet intervals.icu: de factoren zijn daarop gefit, en die waarden
+  zijn er voor 22 van de 24 renners van ZRL B (intervals.icu voor 9).
+- **Kleuren.** Rood: zFTP of zMAP op of boven de grens van de categorie erboven
+  (voor B de A-grens 4,2 / 5,1), of in het Dev-blok boven het Dev-plafond
+  (3,74 / 4,53, beide eronder). Oranje: binnen 0,22 W/kg onder zo'n grens, of
+  in het Dev-blok zonder beide waarden. De drempels komen uit `wtrl-roster.ts`
+  (`upperLimit` is daarvoor geëxporteerd). De categorie leest de lijst uit de
+  naam van het hoofdteam ("ZRL B"); zonder letter (ZRL Zwiftladies) geen toets.
+- **Doorgerekend op productie (alleen lezend).** ZRL B: 24 renners; B1–B3 vol,
+  de vijf in Bdev passen alle onder het Dev-plafond; de sterkste renner komt op
+  een geschatte zFTP van 4,38 en staat dus rood in B1.
+- **Bewust niet.** Geen advies per wedstrijd (welke sortering bij welk format)
+  en geen knoppen "neem over als teamindeling/opstelling" of vastzetten: eerst
+  de lijst zelf bekijken. Geen wattvloer van Open (250 W voor A): de schatting
+  kent alleen W/kg. Niets naar WTRL: scraping is daar verboden.
+- **Open.** De privacyzin over ZwiftRacing-vermogen en de schatting in de
+  teamindeling is voorgelegd, nog niet op `/privacy` gezet.
+- **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden, unittests
+  `zrl-ranking` (nieuw) en `wtrl-roster`.
+- **Niet geverifieerd:** de tabel in de browser (de lokale server vroeg om in
+  te loggen), en op een telefoon.
 
 ### Hersteld — FTP: de nieuwste van test en intervals.icu wint
 

@@ -218,7 +218,7 @@ const STATUS_RANK: Record<DivisionStatus, number> = { ok: 0, danger: 1, over: 2 
  * De bovengrens van een divisie in W/kg. Standard: de ondergrens van de categorie
  * erboven (A heeft er geen). Development: het Dev-plafond van die categorie.
  */
-function upperLimit(division: WtrlDivision): { ftp: number; map: number } | null {
+export function upperLimit(division: WtrlDivision): { ftp: number; map: number } | null {
   if (division.development) {
     return (division.women ? DEV_WOMEN : DEV_OPEN)[division.category];
   }
