@@ -96,7 +96,7 @@ export function TrainingHelp() {
               vandaag reageert.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Staat er een schema, dan lopen CTL, ATL en Form op Belasting als
+              Staat er een schema, dan lopen CTL, ATL en Form op Vandaag en Belasting als
               stippellijn zes weken door: waar ze uitkomen als je de geplande
               trainingen rijdt, met de geschatte TSS per training en rustdagen
               als nul. Rij je meer of minder, dan schuift de lijn mee.

@@ -85,3 +85,28 @@ export function projectLoad({
   }
   return points;
 }
+
+/**
+ * De stippellijn voor de grafiek op Vandaag en Belasting: zes weken vanaf de
+ * gemeten stand van vandaag. Null zonder geplande training of zonder stand van
+ * vandaag; alleen afbouw is geen verwachting.
+ */
+export function scheduleProjection({
+  today,
+  points,
+  planned,
+}: {
+  today: string;
+  points: Array<{ date: string; ctl: number | null; atl: number | null }>;
+  planned: PlannedLoad[];
+}): ProjectedLoadPoint[] | null {
+  const todayPoint = points.find((point) => point.date === today);
+  if (!todayPoint || planned.length === 0) return null;
+  return projectLoad({
+    today,
+    ctl: todayPoint.ctl,
+    atl: todayPoint.atl,
+    planned,
+    until: shiftDays(today, PROJECTION_DAYS),
+  });
+}

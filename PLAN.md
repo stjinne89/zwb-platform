@@ -38,7 +38,9 @@ gaat stabiliteit voor nieuwe features.
    browser bekeken op de data van de eigenaar, ook op telefoonbreedte. Open: na
    de deploy op de live site bekijken, en de trainerkaart "CTL doel" bij een
    lid met een lopend schema. Zie de ronde "Weekregel in de schemakalender en
-   verwachte CTL op Belasting".
+   verwachte CTL op Belasting". Vervolg (2026-11-16, gepusht naar `main`,
+   eigenaar: "Ja, push"): dezelfde stippellijn en "Over 6 wk" nu ook op Vandaag (eigenaar:
+   "kan de verwachting dan ook op vandaag in zwbeter").
 
 0. **ZRL-koppeling in de TTT-week, zonder divisienummer (2026-11-16): gepusht
    naar `main` (eigenaar: "Ja, push").** Geen migratie. Alle teamraces van ronde 2 bleven
@@ -12594,6 +12596,19 @@ de weektabel op Belasting; op 375 px breed past de korte vorm zonder afkappen
 en schuift de pagina niet zijwaarts; de stippellijn loopt tot eind december,
 "Over 6 wk 78,7" bij CTL 62,7. **Niet geverifieerd:** de trainerkaart "CTL
 doel" met de nieuwe berekening (geen lid met trainer bekeken).
+
+**Vervolg: ook op Vandaag (2026-11-16).** Commit "ZWBeter worden: verwachte CTL
+ook op Vandaag", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie. De eigenaar vroeg de
+verwachting ook op Vandaag; die pagina gebruikt dezelfde `TrainingLoadMetrics`.
+`scheduleProjection` (in `load-projection.ts`) bundelt wat Belasting zelf deed:
+de gemeten stand van vandaag zoeken, null zonder open training, 42 dagen
+vooruit. Belasting en Vandaag gebruiken die nu allebei. Op Vandaag start
+`loadPlannedLoads` in de eerste ronde, parallel met de intervals-snapshot, zodat
+de pagina niet langer wacht. De uitleg op `/hulp/training` noemt nu Vandaag en
+Belasting. Gecontroleerd: `tsc`, ESLint op de gewijzigde bestanden, twee extra
+tests in `load-projection.test.ts`; lokaal op de data van de eigenaar toont
+Vandaag "Over 6 wk 78,7", gelijk aan Belasting, met de stippellijn tot eind
+december. Niet gemeten: de laadtijd van Vandaag op productie.
 
 ### Hersteld — ZRL-koppeling in de TTT-week, zonder divisienummer
 

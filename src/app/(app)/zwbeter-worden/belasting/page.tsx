@@ -10,7 +10,7 @@ import {
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
 import { loadFtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis } from "@/lib/training/hr-load";
-import { PROJECTION_DAYS, projectLoad } from "@/lib/training/load-projection";
+import { PROJECTION_DAYS, scheduleProjection } from "@/lib/training/load-projection";
 import { shiftDays } from "@/lib/training/season";
 import { ActivityLoadPanel } from "../_components/activity-load-panel";
 import { DataFreshness } from "../_components/data-freshness";
@@ -71,18 +71,7 @@ export default async function ZwbeterWordenLoadPage() {
   const loadPoints = toTrainingLoadPoints(snapshot.wellness);
   const zwbStatus = zwbStatusFor(snapshot.wellness, conn, profile, subjective);
   const lastWellnessDay = lastWellnessDayOf(snapshot.wellness);
-  // Zonder geplande training geen stippellijn: alleen afbouw is geen verwachting.
-  const todayPoint = loadPoints.find((point) => point.date === today);
-  const projection =
-    plannedLoads.length > 0 && todayPoint
-      ? projectLoad({
-          today,
-          ctl: todayPoint.ctl,
-          atl: todayPoint.atl,
-          planned: plannedLoads,
-          until: projectionEnd,
-        })
-      : null;
+  const projection = scheduleProjection({ today, points: loadPoints, planned: plannedLoads });
 
   return (
     <div className="space-y-4">

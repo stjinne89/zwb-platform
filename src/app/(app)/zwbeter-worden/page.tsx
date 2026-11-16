@@ -16,6 +16,8 @@ import {
 } from "@/lib/training/workouts";
 import { amsterdamDayKey, eftpTrend } from "@/lib/training/zwbeterworden";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
+import { PROJECTION_DAYS, scheduleProjection } from "@/lib/training/load-projection";
+import { shiftDays } from "@/lib/training/season";
 import {
   suggestSegmentsForBlock,
   type SegmentCandidate,
@@ -59,6 +61,7 @@ import {
   loadMemberWorkouts,
   loadOutdoorSuggestionViews,
   loadPendingReview,
+  loadPlannedLoads,
   loadZwiftSuggestionViews,
   loadPlanSummaries,
   planCautionsFromSummary,
@@ -95,8 +98,9 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   ]);
   const since7 = new Date();
   since7.setDate(since7.getDate() - 7);
+  const todayKey = todayKeyAmsterdam();
 
-  const [snapshot, { data: stravaRows }, { data: segmentRows }] = await Promise.all([
+  const [snapshot, { data: stravaRows }, { data: segmentRows }, plannedLoads] = await Promise.all([
     loadIntervalsSnapshot(viewer, conn, {
       wellnessDays: 730,
       eventDays: 14,
@@ -120,6 +124,12 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
       .eq("profile_id", viewer.user.id)
       .not("best_time_seconds", "is", null)
       .limit(300),
+    loadPlannedLoads(
+      viewer,
+      todayKey,
+      shiftDays(todayKey, PROJECTION_DAYS),
+      profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+    ).catch(() => []),
   ]);
 
   // Na de intervals-sync hierboven, zodat een net gereden rit meteen als
@@ -139,11 +149,11 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
       () => null,
     ),
   ]);
-  const todayKey = todayKeyAmsterdam();
   const activities = (stravaRows ?? []) as StravaActivityRow[];
   const totals7 = loadSummary(activities);
 
   const zwbStatus = zwbStatusFor(snapshot.wellness, conn, profile, subjective);
+  const loadPoints = toTrainingLoadPoints(snapshot.wellness);
   const advice = zwbStatus.advice;
   const { latest: eftpLatest, delta: eftpDelta } = eftpTrend(snapshot.wellness, 90);
   const eftpValue = eftpLatest ?? snapshot.intervalsFtp ?? profile?.ftp_watts ?? null;
@@ -248,10 +258,11 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <TrainingLoadMetrics
-          points={toTrainingLoadPoints(snapshot.wellness)}
+          points={loadPoints}
           ctl={zwbStatus.ctl}
           tsb={zwbStatus.tsb}
           today={todayKey}
+          projection={scheduleProjection({ today: todayKey, points: loadPoints, planned: plannedLoads })}
         />
         <MetricCard
           icon={ShieldCheck}

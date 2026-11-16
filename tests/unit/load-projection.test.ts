@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { projectLoad } from "@/lib/training/load-projection";
+import { projectLoad, scheduleProjection } from "@/lib/training/load-projection";
 
 describe("projectLoad", () => {
   it("laat de CTL op rustdagen zakken", () => {
@@ -61,5 +61,29 @@ describe("projectLoad", () => {
       until: "2026-11-23",
     })!;
     expect(points.at(-1)!.ctl).toBeLessThan(60);
+  });
+});
+
+describe("scheduleProjection", () => {
+  const points = [
+    { date: "2026-11-15", ctl: 49, atl: 55 },
+    { date: "2026-11-16", ctl: 50, atl: 60 },
+  ];
+
+  it("loopt zes weken door vanaf de stand van vandaag", () => {
+    const projection = scheduleProjection({
+      today: "2026-11-16",
+      points,
+      planned: [{ date: "2026-11-18", load: 100 }],
+    })!;
+    expect(projection[0]).toMatchObject({ date: "2026-11-16", ctl: 50, atl: 60 });
+    expect(projection.at(-1)!.date).toBe("2026-12-28");
+  });
+
+  it("geeft null zonder geplande training of zonder stand van vandaag", () => {
+    expect(scheduleProjection({ today: "2026-11-16", points, planned: [] })).toBeNull();
+    expect(
+      scheduleProjection({ today: "2026-11-17", points, planned: [{ date: "2026-11-18", load: 100 }] }),
+    ).toBeNull();
   });
 });
