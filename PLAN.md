@@ -59,10 +59,10 @@ gaat stabiliteit voor nieuwe features.
    (eigenaar). Na de deploy van `cbeaf8a` staan beide accounts: het
    demo-account `demo@zwbcycling.nl` en het testprofiel `stjinne.martens`
    voor de gmail-login. Migratie `0335_protect_account_flags.sql` (een lid
-   kan zijn eigen `is_test`/`is_demo` niet meer wijzigen) is lokaal gecommit,
-   nog niet toegepast en niet gepusht. Open: 0335 toepassen, en als demo in de
-   browser nagaan dat een schrijfactie een 403 geeft. Zie de ronde "Test- en
-   demo-account".
+   kan zijn eigen `is_test`/`is_demo` niet meer wijzigen) is op 2026-11-16 via
+   de connector op productie toegepast en gepusht (`59287c39`, eigenaar: "Ja,
+   toepassen en push"). Open: als demo in de browser nagaan dat een
+   schrijfactie een 403 geeft. Zie de ronde "Test- en demo-account".
 
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): gepusht
    naar `main` (`7540c7b5`, eigenaar: "Ja, push").** Migratie
@@ -12667,7 +12667,10 @@ na de eerste eigen inschrijving via de racepass, mogelijk pas op de racedag.
   verbergen, of zichzelf onherroepelijk op alleen-lezen zetten. Een eigen
   trigger `profiles_protect_account_flags` staat dat alleen nog toe aan een
   beheerder, de service-rol of de SQL-editor. Lokaal nagespeeld in PGlite
-  (`baseline.test.ts`), nog niet op productie toegepast.
+  (`baseline.test.ts`). Op 2026-11-16 via de connector op productie
+  toegepast (eigenaar: "Ja, toepassen en push"). Daarna als de testlogin
+  nagespeeld: de eigen `is_test` uitzetten geeft "Alleen een beheerder kan een
+  account test of demo maken.", en de waarde blijft staan.
 
 - **Waarom.** De eigenaar wil met een tweede login de app zien zoals een gewoon
   lid, zonder dat dat account tussen de leden staat. Daarnaast een demo-account
