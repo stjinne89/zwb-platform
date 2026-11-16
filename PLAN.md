@@ -31,6 +31,11 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
+0. **ZRL-teamindeling: kolom Racefit (2026-11-16): lokaal gecommit, niet
+   gepusht.** Geen migratie. Gewicht telt mee in de berekening; of dat in de
+   privacyzin van de ZRL-teamindeling moet, ligt bij de eigenaar (staat er
+   nog niet). Zie de ronde "ZRL-teamindeling: kolom Racefit".
+
 0. **ZRL-teamindeling: zelf indelen, op een eigen pagina (2026-11-16): lokaal
    gecommit (`d5751960`), niet gepusht.** Geen migratie. Lokaal in de browser
    bekeken en één renner in R2 W2 ingedeeld, verplaatst en teruggezet; de
@@ -12373,6 +12378,73 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZRL-teamindeling: kolom Racefit
+
+**2026-11-16, lokaal gecommit (hash in de volgende PLAN-commit), niet gepusht. Geen migratie.**
+
+- **Waarom.** Voorstel goedgekeurd door de eigenaar ("Ja, bouwen"): zien wie
+  er op het parcours van die week het best past, niet alleen op zFTP of zMAP.
+- **Wat.** Bij een raceweek met een bekende route een kolom Racefit, te
+  sorteren zoals de andere; "Neem sortering over" volgt hem ("Neem
+  Racefit-sortering over"). Tooltip op de kop: de route, of per team als de
+  teams anders rijden. Zonder route geen kolom, en een Racefit-sortering valt
+  terug op zFTP.
+  - Nieuw `src/lib/teams/zrl-racefit.ts` (puur). Het gewicht per duur komt uit
+    het parcoursmodel van de Club Ladder: nieuw `zwiftRouteDemand(routeId,
+    laps)` in `club-ladder/routes.ts`, dezelfde klimmen en bergop finish als
+    `ladderRouteOptions`, maar zonder de ladderregel van 15 km en 45 minuten
+    (ZRL-races zijn langer). De ladder zelf is ongewijzigd.
+  - Per renner `power_wkg` (s15, m1, m5, m20) van ZwiftRacing; met een geldig
+    gewicht (`profiles.weight_kg`, 30–200) eerst `routeWkg` (bergop en in de
+    sprint naar 75 kg, zoals de ladder), zonder gewicht gewoon W/kg.
+    Rosternamen hebben geen gewicht.
+  - Daarover een gewogen meetkundig gemiddelde. Ontbreekt een duur, dan telt
+    het gewicht over de duren die er wel zijn, tegenover het gemiddelde van de
+    lijst per duur (zoals `strengths` in `rank-pairs.ts`). Met alle vier de
+    duren is het precies het gewogen meetkundig gemiddelde van de eigen
+    waarden. Op 0,01 W/kg. Zonder vermogen "–".
+  - Tijdrit: staat "Time Trial", "TTT" of "Race of Truth" in de titel van de
+    race, dan valt 15 s weg, telt 1 minuut half en gaat dat gewicht gelijk naar
+    5 en 20 minuten (`timeTrialWeights`).
+  - De route komt van de race van het subteam (`events.zwift_route_id` en
+    `laps` van de child-events). In een teamblok geldt de route van dat team;
+    bij Niet ingedeeld, Niet beschikbaar, een team zonder race en "Neem
+    sortering over" de route die de meeste teams rijden.
+  - Op de telefoon (onder `sm`) vallen 1, 5 en 20 minuten weg als Racefit
+    erbij staat: met acht kolommen bleef er van de namen niets over.
+- **Bewust niet.**
+  - ZwiftRacing tijdens de race uitlezen: de eventRating bestaat alleen voor
+    wie al aangemeld is, en bij het indelen is nog niemand aangemeld.
+  - De vELO: dat is een uitslagenrating over alle races, niet wat dít parcours
+    vraagt, en de schatting hier moet ook voor renners zonder recente race
+    werken.
+  - Een verwachte plek: daarvoor zou het veld van de tegenstanders nodig zijn,
+    en dat is bij het indelen onbekend.
+  - Een captain die zelf een route kiest: de route komt van de race in de
+    kalender, zodat er geen tweede bron is die kan afwijken.
+  - Geen luchtweerstand zonder draft bij een tijdrit: `routeWkg` rekent met
+    slipstream en alleen bergop en in de sprint met gewicht, ook in een TTT.
+- **Privacy.** Geen nieuwe gegevens: hetzelfde vermogen als de rest van de
+  ranglijst, en het gewicht uit het profiel. Het gewicht wordt niet getoond,
+  maar telt mee in Racefit. De privacyzin over de ZRL-teamindeling noemt het
+  gewicht nog niet; dat is aan de eigenaar voorgelegd en niet zelf in de tekst
+  gezet.
+- **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden,
+  nieuw `zrl-racefit.test.ts` (10: tijdrit aan de titel, TT-verschuiving, Race
+  of Truth zonder sprint, zonder route of met een onbekende route, per team
+  zijn rondes en de meest gereden route, meetkundig gemiddelde, ontbrekende
+  duur, zonder vermogen, gewicht, sorteren), `zrl-ranking.test.ts` en de
+  ladder-tests (214 in 22 bestanden). Lokaal in de browser, met de cutoff van
+  de raceweken tijdelijk op 2026-09-01 (niet gecommit), omdat geen enkele race
+  van ronde 2 een route heeft: R1 W2 (tooltip per team, B1 drie en B2/Bdev
+  vier rondes Innsbruckring; sorteren op Racefit; knop "Neem
+  Racefit-sortering over"), R1 W1 Race of Truth (Montmartre Mixer, scores
+  zonder sprint rond 5 W/kg tegen 6–8 bij R1 W2), R2 W2 zonder route (geen
+  kolom, sortering terug op zFTP), en 375 px.
+- **Niet geverifieerd:** een week van ronde 2 met een echte route (die is er
+  nog niet), en of de scores kloppen met hoe de renners echt reden: een
+  vergelijking met de uitslagen van R1 is niet gedaan.
 
 ### Gebouwd — ZRL-teamindeling: zelf indelen, op een eigen pagina
 

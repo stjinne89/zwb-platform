@@ -25,6 +25,14 @@ import { moveZrlLineup, setRiderAvailability, setZrlWeekLineups, type LineupRide
 
 export type RankingEvent = { id: string; title: string; startAt: string };
 
+/** Racefit van een raceweek: per parcours de scores, en welk team welk parcours rijdt. */
+export type RankingRacefit = {
+  courses: Record<string, { name: string; laps: number; scores: Record<string, number | null> }>;
+  teamCourse: Record<string, string>;
+  /** Wat de meeste teams rijden: voor wie niet is ingedeeld, en voor Neem sortering over. */
+  defaultCourse: string | null;
+};
+
 /** Beschikbaarheid in een raceweek; byCaptain: door een captain gezet (0332). */
 export type RankingAvailabilityEntry = {
   status: NonNullable<RankingAvailability>;
@@ -46,6 +54,15 @@ const COLUMNS: Array<{ key: RankingSortKey; label: string }> = [
   { key: "m5", label: "5m" },
   { key: "m20", label: "20m" },
 ];
+
+/** Met Racefit erbij past de tabel op de telefoon niet meer: 1, 5 en 20 minuten gaan daar weg. */
+const PHONE_HIDDEN = new Set<RankingSortKey>(["m1", "m5", "m20"]);
+
+const RACEFIT_COLUMN: { key: RankingSortKey; label: string } = { key: "racefit", label: "Racefit" };
+
+function courseLabel(course: { name: string; laps: number }) {
+  return course.laps > 1 ? `${course.name} · ${course.laps} rondes` : course.name;
+}
 
 const LEVEL_TEXT: Record<LimitStatus, string> = { ok: "Past", near: "Krap", over: "Past niet" };
 
@@ -131,6 +148,7 @@ export function ZrlRankingTable({
   events,
   availability,
   lineups,
+  racefit,
   teamId,
   canEditAvailability,
   canAssign,
@@ -143,6 +161,8 @@ export function ZrlRankingTable({
   availability: Record<string, RankingAvailabilityEntry>;
   /** De opstelling van de raceweken (team_event_lineups). */
   lineups: RankingLineup[];
+  /** Per raceweek met een bekende route. */
+  racefit: Record<string, RankingRacefit>;
   /** Het hoofdteam waar beschikbaarheid en opstelling bij horen. */
   teamId: string;
   canEditAvailability: boolean;
@@ -208,20 +228,32 @@ export function ZrlRankingTable({
     });
   }
 
+  // Racefit alleen bij een raceweek met een bekende route; anders valt de sortering terug op zFTP.
+  const weekFit = eventId ? (racefit[eventId] ?? null) : null;
+  const defaultScores = weekFit?.defaultCourse ? weekFit.courses[weekFit.defaultCourse].scores : null;
+  const activeKey: RankingSortKey = sortKey === "racefit" && !defaultScores ? "zftp" : sortKey;
+  const scoresOfTeam = (team: string) => {
+    const key = weekFit?.teamCourse[team] ?? weekFit?.defaultCourse;
+    return key ? weekFit!.courses[key].scores : null;
+  };
+  const columns = defaultScores ? [...COLUMNS, RACEFIT_COLUMN] : COLUMNS;
+  const courseTitle = weekFit ? racefitTitle(weekFit, ordered) : "";
+
   const statusOf = (rider: RankedRider) => (eventId ? (shown[`${eventId}:${rider.key}`]?.status ?? null) : null);
   const present = riders.filter((rider) => statusOf(rider) !== "unavailable");
   // Blokken van 5 op de sortering; alleen het laatste blok kan korter zijn, dus
   // elk blok begint op index × 5.
-  const sortedBlocks = splitIntoTeams(sortRanking(present, sortKey), ordered).map((block, index) => ({
+  const sortedBlocks = splitIntoTeams(sortRanking(present, activeKey, defaultScores), ordered).map((block, index) => ({
     ...block,
     first: index * ZRL_BLOCK_SIZE,
   }));
   const weekLineups = eventId ? shownLineups.filter((row) => row.eventId === eventId) : [];
-  const week = eventId ? lineupBlocks(riders, weekLineups, ordered, sortKey) : null;
-  const unassigned = week ? sortRanking(present.filter((rider) => !week.assigned.has(rider.key)), sortKey) : [];
+  const week = eventId ? lineupBlocks(riders, weekLineups, ordered, activeKey, { racefitOf: scoresOfTeam }) : null;
+  const unassigned = week ? sortRanking(present.filter((rider) => !week.assigned.has(rider.key)), activeKey, defaultScores) : [];
   const absent = sortRanking(
     riders.filter((rider) => statusOf(rider) === "unavailable" && !week?.assigned.has(rider.key)),
-    sortKey,
+    activeKey,
+    defaultScores,
   );
   const laterWeeks = eventId ? laterWeeksInRound(events, eventId) : [];
 
@@ -258,7 +290,7 @@ export function ZrlRankingTable({
 
   const assignable = canAssign && eventId !== "";
   const editAvailability = eventId !== "" && canEditAvailability;
-  const colSpan = COLUMNS.length + 2;
+  const colSpan = columns.length + 2;
 
   return (
     <section className="space-y-3 rounded-lg border bg-card p-4">
@@ -283,7 +315,7 @@ export function ZrlRankingTable({
       {eventId && canAssignWeek && (
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={takeSorting} disabled={pending}>
-            Neem {COLUMNS.find((column) => column.key === sortKey)?.label}-sortering over
+            Neem {columns.find((column) => column.key === activeKey)?.label}-sortering over
           </Button>
           {laterWeeks.length > 0 && (
             <Button size="sm" variant="outline" onClick={copyToRound} disabled={pending || weekLineups.length === 0}>
@@ -303,22 +335,27 @@ export function ZrlRankingTable({
         <thead className="text-muted-foreground">
           <tr className="border-b">
             <th className="py-1 pr-2 text-left font-medium">Renner</th>
-            {COLUMNS.map((column) => (
+            {columns.map((column) => (
               <th
                 key={column.key}
-                className="px-[3px] py-1 text-right font-medium sm:px-2"
-                aria-sort={sortKey === column.key ? "descending" : "none"}
+                className={cn(
+                  "px-[3px] py-1 text-right font-medium sm:px-2",
+                  defaultScores && PHONE_HIDDEN.has(column.key) && "hidden sm:table-cell",
+                )}
+                aria-sort={activeKey === column.key ? "descending" : "none"}
               >
                 <button
                   type="button"
                   onClick={() => setSortKey(column.key)}
+                  title={column.key === "racefit" ? courseTitle : undefined}
+                  aria-label={column.label}
                   className={cn(
                     "inline-flex min-h-8 flex-row-reverse items-center gap-0.5 rounded hover:text-foreground",
-                    sortKey === column.key && "text-foreground",
+                    activeKey === column.key && "text-foreground",
                   )}
                 >
                   {column.label}
-                  {sortKey === column.key && <ArrowDown className="size-3" />}
+                  {activeKey === column.key && <ArrowDown className="size-3" />}
                 </button>
               </th>
             ))}
@@ -350,6 +387,7 @@ export function ZrlRankingTable({
                       teams={assignable ? ordered : undefined}
                       teamId={block.team.id}
                       onMove={(to) => move(rider, block.team.id, to)}
+                      racefit={defaultScores ? (scoresOfTeam(block.team.id)?.[rider.key] ?? null) : undefined}
                     />
                   ))}
                 </tbody>
@@ -392,6 +430,7 @@ export function ZrlRankingTable({
                 teams={assignable ? ordered : undefined}
                 teamId={null}
                 onMove={(to) => move(rider, null, to)}
+                racefit={defaultScores ? (defaultScores[rider.key] ?? null) : undefined}
               />
             ))}
           </tbody>
@@ -411,6 +450,7 @@ export function ZrlRankingTable({
                 teams={assignable ? ordered : undefined}
                 teamId={null}
                 onMove={(to) => move(rider, null, to)}
+                racefit={defaultScores ? (defaultScores[rider.key] ?? null) : undefined}
                 muted
               />
             ))}
@@ -419,6 +459,16 @@ export function ZrlRankingTable({
       </table>
     </section>
   );
+}
+
+/** Tooltip op Racefit: de route, of per team als de teams verschillend rijden. */
+function racefitTitle(week: RankingRacefit, teams: Array<RankingTeam & { dev: boolean }>) {
+  const used = new Set(Object.values(week.teamCourse));
+  if (used.size <= 1) return week.defaultCourse ? courseLabel(week.courses[week.defaultCourse]) : "";
+  return teams
+    .filter((team) => week.teamCourse[team.id])
+    .map((team) => `${team.name}: ${courseLabel(week.courses[week.teamCourse[team.id]])}`)
+    .join("\n");
 }
 
 function BlockHeader({
@@ -468,6 +518,7 @@ function RiderRow({
   teams,
   teamId = null,
   onMove,
+  racefit,
   muted = false,
 }: {
   rider: RankedRider;
@@ -481,6 +532,8 @@ function RiderRow({
   teams?: Array<RankingTeam & { dev: boolean }>;
   teamId?: string | null;
   onMove?: (teamId: string | null) => void;
+  /** Gezet (ook null): de kolom Racefit staat erbij. */
+  racefit?: number | null;
   muted?: boolean;
 }) {
   const mark = availability ? AVAILABILITY[availability.status] : null;
@@ -542,9 +595,15 @@ function RiderRow({
       </td>
       <ZCell value={rider.zftp} status={rider.category} />
       <ZCell value={rider.zmap} status={rider.category} />
-      <td className="px-[3px] py-1 text-right sm:px-2">{wkg(rider.power?.m1)}</td>
-      <td className="px-[3px] py-1 text-right sm:px-2">{wkg(rider.power?.m5)}</td>
-      <td className="px-[3px] py-1 text-right sm:px-2">{wkg(rider.power?.m20)}</td>
+      {(["m1", "m5", "m20"] as const).map((key) => (
+        <td
+          key={key}
+          className={cn("px-[3px] py-1 text-right sm:px-2", racefit !== undefined && "hidden sm:table-cell")}
+        >
+          {wkg(rider.power?.[key])}
+        </td>
+      ))}
+      {racefit !== undefined && <td className="px-[3px] py-1 text-right font-medium sm:px-2">{wkg(racefit)}</td>}
       <td className="py-1 pl-1 text-center sm:pl-2">
         <DevMark status={rider.dev} emphasize={inDevTeam} />
       </td>

@@ -11,9 +11,11 @@ import {
   rankRider,
   type RankingLineup,
 } from "@/lib/teams/zrl-ranking";
+import { racefitScores, weekCourses, type TeamRace } from "@/lib/teams/zrl-racefit";
 import {
   ZrlRankingTable,
   type RankingAvailabilityEntry,
+  type RankingRacefit,
 } from "../_components/zrl-ranking-table";
 
 // Teamindeling van een ZRL-hoofdteam met subteams (eigen pagina sinds
@@ -106,7 +108,10 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
           .in("event_id", weekIds)
       : Promise.resolve({ data: [] }),
     weekIds.length > 0
-      ? supabase.from("events").select("id, parent_event_id").in("parent_event_id", weekIds)
+      ? supabase
+          .from("events")
+          .select("id, parent_event_id, team_id, title, zwift_route_id, laps")
+          .in("parent_event_id", weekIds)
       : Promise.resolve({ data: [] }),
   ]);
   const availability = (availabilityRows ?? []) as Array<{
@@ -157,13 +162,19 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
   const profileIds = [...nameOf.keys()];
   const [{ data: zwiftRows }, wtrlByZwiftId] = await Promise.all([
     profileIds.length > 0
-      ? admin.from("profiles").select("id, zwift_id").in("id", profileIds)
+      ? admin.from("profiles").select("id, zwift_id, weight_kg").in("id", profileIds)
       : Promise.resolve({ data: [] }),
     loadWtrlSummaries(supabase, scopeIds),
   ]);
   const zwiftIdOf = new Map<string, string>();
-  for (const row of (zwiftRows ?? []) as Array<{ id: string; zwift_id: string | number | null }>) {
+  const weightOf = new Map<string, number>();
+  for (const row of (zwiftRows ?? []) as Array<{
+    id: string;
+    zwift_id: string | number | null;
+    weight_kg: number | string | null;
+  }>) {
     if (row.zwift_id != null && String(row.zwift_id).trim()) zwiftIdOf.set(row.id, String(row.zwift_id).trim());
+    if (row.weight_kg != null && Number.isFinite(Number(row.weight_kg))) weightOf.set(row.id, Number(row.weight_kg));
   }
   for (const entry of roster.values()) {
     if (entry.zwift_id?.trim()) zwiftIdOf.set(entry.id, entry.zwift_id.trim());
@@ -193,7 +204,9 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
     return rankRider(
       {
         ...rider,
-        power: power ? { m1: power.m1 ?? null, m5: power.m5 ?? null, m20: power.m20 ?? null } : null,
+        power: power
+          ? { s15: power.s15 ?? null, m1: power.m1 ?? null, m5: power.m5 ?? null, m20: power.m20 ?? null }
+          : null,
         wtrl: wtrl ? { zftpWkg: wtrl.zftpWkg, zmapWkg: wtrl.zmapWkg } : null,
       },
       category,
@@ -208,9 +221,15 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
     const key = `${row.event_id}:${row.profile_id ?? row.roster_entry_id}`;
     availabilityMap[key] = { status: row.status, byCaptain: row.set_by != null };
   }
-  const raceToWeek = new Map(
-    ((raceRows ?? []) as Array<{ id: string; parent_event_id: string }>).map((row) => [row.id, row.parent_event_id]),
-  );
+  const races = (raceRows ?? []) as Array<{
+    id: string;
+    parent_event_id: string;
+    team_id: string | null;
+    title: string;
+    zwift_route_id: number | string | null;
+    laps: number | null;
+  }>;
+  const raceToWeek = new Map(races.map((row) => [row.id, row.parent_event_id]));
   if (raceToWeek.size > 0) {
     const { data: raceYes } = await supabase
       .from("event_rsvps")
@@ -223,6 +242,39 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
       const key = `${weekId}:${row.profile_id}`;
       availabilityMap[key] = { status: "available", byCaptain: availabilityMap[key]?.byCaptain ?? false };
     }
+  }
+
+  // Racefit per raceweek: per parcours van de subteams de score van elke renner.
+  const childIds = new Set(childTeams.map((row) => row.id));
+  const racefitRiders = riders.map((rider) => ({
+    key: rider.key,
+    wkg: rider.power
+      ? { s15: rider.power.s15 ?? null, m1: rider.power.m1, m5: rider.power.m5, m20: rider.power.m20 }
+      : null,
+    weightKg: weightOf.get(rider.key) ?? null,
+  }));
+  const racefit: Record<string, RankingRacefit> = {};
+  for (const week of weeks) {
+    const teamRaces: TeamRace[] = races
+      .filter((race) => race.parent_event_id === week.id && race.team_id && childIds.has(race.team_id))
+      .map((race) => ({
+        teamId: race.team_id as string,
+        title: race.title,
+        zwiftRouteId: race.zwift_route_id == null ? null : Number(race.zwift_route_id),
+        laps: race.laps,
+      }));
+    const { courses, teamCourse, defaultCourse } = weekCourses(teamRaces);
+    if (Object.keys(courses).length === 0) continue;
+    racefit[week.id] = {
+      courses: Object.fromEntries(
+        Object.values(courses).map((course) => [
+          course.key,
+          { name: course.name, laps: course.laps, scores: racefitScores(racefitRiders, course) },
+        ]),
+      ),
+      teamCourse,
+      defaultCourse,
+    };
   }
 
   const rankingLineups: RankingLineup[] = lineups.map((row) => ({
@@ -241,6 +293,7 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
         events={weeks.map((week) => ({ id: week.id, title: week.title, startAt: week.start_at }))}
         availability={availabilityMap}
         lineups={rankingLineups}
+        racefit={racefit}
         teamId={team.id}
         canEditAvailability={canManageRoster || captainOf.size > 0}
         canAssign={canManageRoster || captainOf.size > 0}

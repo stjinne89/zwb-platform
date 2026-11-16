@@ -198,6 +198,31 @@ export function lapsWithinRule(leadInKm: number, lapKm: number, isLap: boolean, 
   return result;
 }
 
+/**
+ * Wat een Zwift-route met zoveel rondes vraagt, ook buiten de ladderregel: voor
+ * de ZRL-teamindeling (`zrl-racefit.ts`), waar een race langer is dan 45
+ * minuten. Dezelfde klimmen en bergop finish als `ladderRouteOptions`.
+ */
+export function zwiftRouteDemand(zwiftRouteId: number, laps: number) {
+  const route = zwiftRoutes.find((item) => item.id === zwiftRouteId && item.sports.includes("cycling"));
+  if (!route || !(route.distance > 0)) return null;
+  const rounds = route.lap ? Math.max(1, Math.round(laps)) : 1;
+  const km = (route.leadInDistance ?? 0) + rounds * route.distance;
+  const elevationM = (route.leadInElevation ?? 0) + rounds * route.elevation;
+  const climbs = accentsForRoute(route.slug).filter((accent) => accent.kind === "climb");
+  const finish = climbs.find((climb) => climb.endKm >= route.distance - 0.3) ?? null;
+  const effort = (climb: (typeof climbs)[number]): LadderClimb => ({
+    km: climb.endKm - climb.startKm,
+    pct: climb.avgInclinePct ?? DEFAULT_CLIMB_PCT,
+  });
+  return {
+    name: route.name,
+    laps: rounds,
+    km: round1(km),
+    ...durationDemand(round1(elevationM / km), climbs.map(effort), finish ? effort(finish) : null, rounds),
+  };
+}
+
 let cached: LadderRouteOption[] | null = null;
 
 /** Alle fietsroutes van Zwift die met één of meer rondes een ladderparcours zijn. */

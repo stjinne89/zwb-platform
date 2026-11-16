@@ -1,0 +1,119 @@
+import { describe, expect, it } from "vitest";
+import {
+  courseForRace,
+  isTimeTrialTitle,
+  racefitScores,
+  timeTrialWeights,
+  weekCourses,
+  type RaceCourse,
+} from "@/lib/teams/zrl-racefit";
+import { sortRanking, rankRider } from "@/lib/teams/zrl-ranking";
+
+// Routes van R1 (2026/27): W1 Race of Truth en W2, waar B1 drie en B2 vier rondes reed.
+const ROUTE_W1 = 1247427185;
+const ROUTE_W2 = 2592027600;
+
+const sum = (w: Record<string, number>) => Object.values(w).reduce((a, b) => a + b, 0);
+
+const flat: RaceCourse = {
+  key: "test",
+  name: "Test",
+  laps: 1,
+  timeTrial: false,
+  weights: { s15: 0.4, m1: 0.2, m5: 0.2, m20: 0.2 },
+  terrain: { s15: [{ pct: 0, share: 1 }], m1: [{ pct: 0, share: 1 }], m5: [{ pct: 0, share: 1 }], m20: [{ pct: 0, share: 1 }] },
+};
+
+describe("soort race", () => {
+  it("herkent tijdritten aan de titel", () => {
+    expect(isTimeTrialTitle("ZRL 2026/27 · R2 · W1 · B1 — Team Time Trial")).toBe(true);
+    expect(isTimeTrialTitle("ZRL 2026/27 · R1 · W1 — Race of Truth")).toBe(true);
+    expect(isTimeTrialTitle("ZRL TTT")).toBe(true);
+    expect(isTimeTrialTitle("ZRL 2026/27 · R1 · W2 · B1")).toBe(false);
+  });
+
+  it("een tijdrit schuift naar 5 en 20 minuten, zonder sprint", () => {
+    const tt = timeTrialWeights(flat.weights);
+    expect(tt.s15).toBe(0);
+    expect(tt.m1).toBeCloseTo(0.1);
+    expect(tt.m5).toBeCloseTo(0.45);
+    expect(tt.m20).toBeCloseTo(0.45);
+    expect(sum(tt)).toBeCloseTo(1);
+  });
+
+  it("de Race of Truth krijgt geen sprint, een gewone race wel", () => {
+    const roTruth = courseForRace({ title: "ZRL 2026/27 · R1 · W1 · B1 — Race of Truth", zwiftRouteId: ROUTE_W1, laps: 1 });
+    const race = courseForRace({ title: "Gewone race", zwiftRouteId: ROUTE_W1, laps: 1 });
+    expect(roTruth?.timeTrial).toBe(true);
+    expect(roTruth?.weights.s15).toBe(0);
+    expect(race?.weights.s15).toBeGreaterThan(0);
+    expect(sum(race!.weights)).toBeCloseTo(1);
+    expect(roTruth!.weights.m20).toBeGreaterThan(race!.weights.m20);
+  });
+});
+
+describe("route van de week", () => {
+  it("zonder route of met een onbekende route geen parcours", () => {
+    expect(courseForRace({ title: "W1", zwiftRouteId: null, laps: null })).toBeNull();
+    expect(courseForRace({ title: "W1", zwiftRouteId: 1, laps: 1 })).toBeNull();
+    expect(weekCourses([{ teamId: "b1", title: "W1", zwiftRouteId: null, laps: null }])).toEqual({
+      courses: {},
+      teamCourse: {},
+      defaultCourse: null,
+    });
+  });
+
+  it("per team zijn eigen rondes; voor wie niet ingedeeld is wat de meeste teams rijden", () => {
+    const week = weekCourses([
+      { teamId: "b1", title: "R1 W2 B1", zwiftRouteId: ROUTE_W2, laps: 3 },
+      { teamId: "b2", title: "R1 W2 B2", zwiftRouteId: ROUTE_W2, laps: 4 },
+      { teamId: "dev", title: "R1 W2 Bdev", zwiftRouteId: ROUTE_W2, laps: 4 },
+    ]);
+    expect(Object.keys(week.courses)).toHaveLength(2);
+    expect(week.teamCourse.b1).not.toBe(week.teamCourse.b2);
+    expect(week.teamCourse.b2).toBe(week.teamCourse.dev);
+    expect(week.defaultCourse).toBe(week.teamCourse.b2);
+    expect(week.courses[week.teamCourse.b2].laps).toBe(4);
+  });
+});
+
+describe("racefitScores", () => {
+  const a = { key: "a", wkg: { s15: 12, m1: 7, m5: 5, m20: 4 }, weightKg: null };
+  const b = { key: "b", wkg: { s15: 8, m1: 7, m5: 5, m20: 4 }, weightKg: null };
+  const c = { key: "c", wkg: { s15: null, m1: 7, m5: 5, m20: 4 }, weightKg: null };
+  const none = { key: "x", wkg: null, weightKg: null };
+
+  it("met alle duren het gewogen meetkundig gemiddelde van de eigen waarden", () => {
+    const scores = racefitScores([a, b], flat);
+    const expected = Math.exp(0.4 * Math.log(12) + 0.2 * Math.log(7) + 0.2 * Math.log(5) + 0.2 * Math.log(4));
+    expect(scores.a).toBeCloseTo(expected, 2);
+  });
+
+  it("een ontbrekende duur telt als het gemiddelde van de lijst, niet als zwak", () => {
+    const scores = racefitScores([a, b, c], flat);
+    const middle = Math.exp(0.4 * Math.log(Math.sqrt(96)) + 0.2 * Math.log(7) + 0.2 * Math.log(5) + 0.2 * Math.log(4));
+    expect(scores.c).toBeCloseTo(middle, 2);
+    expect(scores.c!).toBeLessThan(scores.a!);
+    expect(scores.c!).toBeGreaterThan(scores.b!);
+  });
+
+  it("zonder vermogen niets", () => {
+    expect(racefitScores([a, none], flat).x).toBeNull();
+  });
+
+  it("gewicht telt alleen met een geldig gewicht; 75 kg is gewoon W/kg", () => {
+    const course = courseForRace({ title: "Gewone race", zwiftRouteId: ROUTE_W2, laps: 3 })!;
+    const plain = racefitScores([a], course).a!;
+    expect(racefitScores([{ ...a, weightKg: 75 }], course).a!).toBeCloseTo(plain, 2);
+    expect(racefitScores([{ ...a, weightKg: 5 }], course).a!).toBeCloseTo(plain, 2);
+    expect(racefitScores([{ ...a, weightKg: 90 }], course).a!).not.toBeCloseTo(plain, 2);
+  });
+
+  it("sorteert de ranglijst op Racefit, zonder score onderaan", () => {
+    const riders = ["a", "b", "c"].map((key) =>
+      rankRider({ key, name: key, profileId: key, power: null, wtrl: null }, "B", false),
+    );
+    const sorted = sortRanking(riders, "racefit", { a: 4.1, b: null, c: 4.5 });
+    expect(sorted.map((rider) => rider.key)).toEqual(["c", "a", "b"]);
+  });
+});

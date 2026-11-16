@@ -21,7 +21,10 @@ export const ZMAP_FROM_5M = 0.971;
 /** Zo ver kan de schatting ernaast zitten (90e percentiel); binnen deze marge is het krap. */
 export const ESTIMATE_MARGIN = 0.22;
 
-export type RankingSortKey = "zftp" | "zmap" | "m1" | "m5" | "m20";
+export type RankingSortKey = "zftp" | "zmap" | "m1" | "m5" | "m20" | "racefit";
+
+/** Racefit per renner op één parcours (`zrl-racefit.ts`). */
+export type RacefitByRider = Record<string, number | null>;
 
 export type RankingAvailability = "available" | "maybe" | "unavailable" | null;
 
@@ -31,8 +34,8 @@ export type RankingRider = {
   name: string;
   /** Leeg bij een rosternaam zonder account. */
   profileId: string | null;
-  /** Beste W/kg van de laatste 90 dagen in Zwift (ZwiftRacing). */
-  power: { m1: number | null; m5: number | null; m20: number | null } | null;
+  /** Beste W/kg van de laatste 90 dagen in Zwift (ZwiftRacing); 15 s alleen voor Racefit. */
+  power: { s15?: number | null; m1: number | null; m5: number | null; m20: number | null } | null;
   /** zFTP en zMAP uit de laatste WTRL-plak. */
   wtrl: { zftpWkg: number | null; zmapWkg: number | null } | null;
 };
@@ -118,22 +121,24 @@ export function rankRider(rider: RankingRider, category: Category | null, women:
   return { ...rider, zftp, zmap, category: categoryStatus, dev };
 }
 
-export function sortValue(rider: RankedRider, key: RankingSortKey): number | null {
+export function sortValue(rider: RankedRider, key: RankingSortKey, racefit?: RacefitByRider | null): number | null {
   switch (key) {
     case "zftp":
       return rider.zftp?.value ?? null;
     case "zmap":
       return rider.zmap?.value ?? null;
+    case "racefit":
+      return racefit?.[rider.key] ?? null;
     default:
       return rider.power?.[key] ?? null;
   }
 }
 
-/** Sterkste boven; zonder waarde onderaan, daarbinnen op naam. */
-export function sortRanking(riders: RankedRider[], key: RankingSortKey): RankedRider[] {
+/** Sterkste boven; zonder waarde onderaan, daarbinnen op naam. Racefit vraagt de scores op dat parcours. */
+export function sortRanking(riders: RankedRider[], key: RankingSortKey, racefit?: RacefitByRider | null): RankedRider[] {
   return [...riders].sort((a, b) => {
-    const x = sortValue(a, key);
-    const y = sortValue(b, key);
+    const x = sortValue(a, key, racefit);
+    const y = sortValue(b, key, racefit);
     if (x == null && y == null) return a.name.localeCompare(b.name, "nl");
     if (x == null) return 1;
     if (y == null) return -1;
@@ -208,8 +213,13 @@ export function lineupBlocks(
   lineups: RankingLineup[],
   teams: Array<RankingTeam & { dev: boolean }>,
   key: RankingSortKey,
-  size = ZRL_BLOCK_SIZE,
+  options: {
+    size?: number;
+    /** Racefit op het parcours van dat team, voor sorteren op Racefit. */
+    racefitOf?: (teamId: string) => RacefitByRider | null;
+  } = {},
 ): { blocks: LineupBlock[]; assigned: Set<string> } {
+  const size = options.size ?? ZRL_BLOCK_SIZE;
   const riderByKey = new Map(riders.map((rider) => [rider.key, rider]));
   const assigned = new Set<string>();
   const blocks = teams.map((team) => {
@@ -220,6 +230,7 @@ export function lineupBlocks(
     const sorted = sortRanking(
       [...lineupOf.keys()].map((riderKey) => riderByKey.get(riderKey)!),
       key,
+      options.racefitOf?.(team.id),
     );
     for (const rider of sorted) assigned.add(rider.key);
     return {
