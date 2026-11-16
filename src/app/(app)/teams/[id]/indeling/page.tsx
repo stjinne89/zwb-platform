@@ -6,6 +6,7 @@ import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadWtrlSummaries } from "@/lib/teams/wtrl-summary";
 import type { PowerWkg } from "@/lib/club-ladder/team-power";
 import {
+  bestPower,
   categoryFromTeamName,
   isWomenTeamName,
   rankRider,
@@ -159,14 +160,44 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
     roster.set(row.id, row);
   }
 
-  // Vermogen (ZwiftRacing) en de laatste WTRL-plak, beide per Zwift-ID.
+  // Vermogen: ZwiftRacing (races, per Zwift-ID) en intervals.icu (alle ritten,
+  // per profiel), per duur de hoogste. De laatste WTRL-plak per Zwift-ID.
   const profileIds = [...nameOf.keys()];
-  const [{ data: zwiftRows }, wtrlByZwiftId] = await Promise.all([
+  const [{ data: zwiftRows }, { data: intervalsRows }, wtrlByZwiftId] = await Promise.all([
     profileIds.length > 0
       ? admin.from("profiles").select("id, zwift_id, weight_kg").in("id", profileIds)
       : Promise.resolve({ data: [] }),
+    profileIds.length > 0
+      ? admin
+          .from("rider_power_profiles")
+          .select("profile_id, wkg_15s, wkg_1m, wkg_5m, wkg_20m")
+          .in("profile_id", profileIds)
+      : Promise.resolve({ data: [] }),
     loadWtrlSummaries(supabase, scopeIds),
   ]);
+  const numberOrNull = (value: number | string | null | undefined) => {
+    const n = Number(value ?? NaN);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  const intervalsOf = new Map(
+    (
+      (intervalsRows ?? []) as Array<{
+        profile_id: string;
+        wkg_15s: number | string | null;
+        wkg_1m: number | string | null;
+        wkg_5m: number | string | null;
+        wkg_20m: number | string | null;
+      }>
+    ).map((row) => [
+      row.profile_id,
+      {
+        s15: numberOrNull(row.wkg_15s),
+        m1: numberOrNull(row.wkg_1m),
+        m5: numberOrNull(row.wkg_5m),
+        m20: numberOrNull(row.wkg_20m),
+      },
+    ]),
+  );
   const zwiftIdOf = new Map<string, string>();
   const weightOf = new Map<string, number>();
   for (const row of (zwiftRows ?? []) as Array<{
@@ -200,14 +231,13 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
   ];
   const riders = riderBase.map((rider) => {
     const zwiftId = zwiftIdOf.get(rider.key);
-    const power = zwiftId ? powerOf.get(zwiftId) : null;
+    const best = bestPower(zwiftId ? powerOf.get(zwiftId) : null, intervalsOf.get(rider.key));
     const wtrl = zwiftId ? wtrlByZwiftId.get(zwiftId) : null;
     return rankRider(
       {
         ...rider,
-        power: power
-          ? { s15: power.s15 ?? null, m1: power.m1 ?? null, m5: power.m5 ?? null, m20: power.m20 ?? null }
-          : null,
+        power: best?.power ?? null,
+        powerSource: best?.source,
         wtrl: wtrl ? { zftpWkg: wtrl.zftpWkg, zmapWkg: wtrl.zmapWkg } : null,
       },
       category,

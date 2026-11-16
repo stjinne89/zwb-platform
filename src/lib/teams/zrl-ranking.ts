@@ -11,7 +11,11 @@
 // (ZwiftRacing). De factoren zijn gefit op de 51 renners met zowel een WTRL-plak
 // als ZwiftRacing-waarden (2026-11-13, opnieuw nagerekend 2026-11-15): gemiddeld
 // 0,10 W/kg ernaast voor zFTP en 0,11 voor zMAP, bij 9 op de 10 minder dan 0,22.
-// Zonder ZwiftRacing-waarden geldt de WTRL-plak van de vorige ronde.
+// Sinds 2026-11-16 telt per duur de hoogste van ZwiftRacing en intervals.icu
+// (`bestPower`). Op de 25 renners met beide en een WTRL-plak zat de schatting
+// daarmee 0,082 W/kg naast WTRL voor zFTP (alleen ZwiftRacing: 0,066) en 0,104
+// voor zMAP (0,099); de factoren zijn gebleven.
+// Zonder vermogen geldt de WTRL-plak van de vorige ronde.
 
 import { upperLimit, type Category } from "@/lib/teams/wtrl-roster";
 
@@ -34,13 +38,53 @@ export type RankingRider = {
   name: string;
   /** Leeg bij een rosternaam zonder account. */
   profileId: string | null;
-  /** Beste W/kg van de laatste 90 dagen in Zwift (ZwiftRacing); 15 s alleen voor Racefit. */
-  power: { s15?: number | null; m1: number | null; m5: number | null; m20: number | null } | null;
+  /**
+   * Beste W/kg van de laatste 90 dagen; 15 s alleen voor Racefit. Per duur de
+   * hoogste van ZwiftRacing (races) en intervals.icu (alle ritten), zie `bestPower`.
+   */
+  power: RankingPower | null;
+  /** Waar elke duur vandaan komt. */
+  powerSource?: Partial<Record<PowerKey, PowerSource>>;
   /** zFTP en zMAP uit de laatste WTRL-plak. */
   wtrl: { zftpWkg: number | null; zmapWkg: number | null } | null;
 };
 
-export type ZValue = { value: number; source: "estimate" | "wtrl" };
+export type PowerKey = "s15" | "m1" | "m5" | "m20";
+export type RankingPower = { s15?: number | null; m1: number | null; m5: number | null; m20: number | null };
+export type PowerSource = "zwiftracing" | "intervals";
+
+/** Bij een schatting: uit welke bron de 20 of 5 minuten kwam. */
+export type ZValue = { value: number; source: "estimate" | "wtrl"; from?: PowerSource };
+
+const POWER_KEYS: PowerKey[] = ["s15", "m1", "m5", "m20"];
+const usable = (value: number | null | undefined): value is number =>
+  value != null && Number.isFinite(value) && value > 0;
+
+/**
+ * Per duur de hoogste van ZwiftRacing (alleen races) en intervals.icu (alle
+ * ritten, ook training en buiten), allebei over 90 dagen (eigenaar, 2026-11-16:
+ * "de meest actuele waarde, niet alleen uit races"). Bij gelijke waarde
+ * ZwiftRacing. Null als geen van beide iets heeft.
+ */
+export function bestPower(
+  zwiftracing: Partial<Record<PowerKey, number | null>> | null | undefined,
+  intervals: Partial<Record<PowerKey, number | null>> | null | undefined,
+): { power: RankingPower; source: Partial<Record<PowerKey, PowerSource>> } | null {
+  const power: RankingPower = { s15: null, m1: null, m5: null, m20: null };
+  const source: Partial<Record<PowerKey, PowerSource>> = {};
+  for (const key of POWER_KEYS) {
+    const zr = zwiftracing?.[key];
+    const iv = intervals?.[key];
+    if (usable(iv) && !(usable(zr) && zr >= iv)) {
+      power[key] = iv;
+      source[key] = "intervals";
+    } else if (usable(zr)) {
+      power[key] = zr;
+      source[key] = "zwiftracing";
+    }
+  }
+  return Object.keys(source).length > 0 ? { power, source } : null;
+}
 
 export type LimitStatus = "ok" | "near" | "over";
 
@@ -65,15 +109,27 @@ export type RankingBlock = {
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
 export function estimateZ(rider: RankingRider): { zftp: ZValue | null; zmap: ZValue | null } {
-  const pick = (estimate: number | null | undefined, wtrl: number | null | undefined): ZValue | null =>
+  const pick = (
+    estimate: number | null | undefined,
+    wtrl: number | null | undefined,
+    from?: PowerSource,
+  ): ZValue | null =>
     estimate != null
-      ? { value: round2(estimate), source: "estimate" }
+      ? { value: round2(estimate), source: "estimate", ...(from ? { from } : {}) }
       : wtrl != null
         ? { value: wtrl, source: "wtrl" }
         : null;
   return {
-    zftp: pick(rider.power?.m20 != null ? rider.power.m20 * ZFTP_FROM_20M : null, rider.wtrl?.zftpWkg),
-    zmap: pick(rider.power?.m5 != null ? rider.power.m5 * ZMAP_FROM_5M : null, rider.wtrl?.zmapWkg),
+    zftp: pick(
+      rider.power?.m20 != null ? rider.power.m20 * ZFTP_FROM_20M : null,
+      rider.wtrl?.zftpWkg,
+      rider.powerSource?.m20,
+    ),
+    zmap: pick(
+      rider.power?.m5 != null ? rider.power.m5 * ZMAP_FROM_5M : null,
+      rider.wtrl?.zmapWkg,
+      rider.powerSource?.m5,
+    ),
   };
 }
 

@@ -13,6 +13,7 @@ import {
   splitIntoTeams,
   ZRL_BLOCK_SIZE,
   type LimitStatus,
+  type PowerSource,
   type RankedRider,
   type RankingAvailability,
   type RankingLineup,
@@ -62,6 +63,8 @@ const COLUMNS: Array<{ key: RankingSortKey; label: string }> = [
 const PHONE_HIDDEN = new Set<RankingSortKey>(["m1", "m5", "m20"]);
 
 const RACEFIT_COLUMN: { key: RankingSortKey; label: string } = { key: "racefit", label: "Racefit" };
+
+const SOURCE_LABEL: Record<PowerSource, string> = { zwiftracing: "ZwiftRacing", intervals: "intervals.icu" };
 
 function courseLabel(course: { name: string; laps: number; borrowedFrom?: string | null }) {
   const label = course.laps > 1 ? `${course.name} · ${course.laps} rondes` : course.name;
@@ -606,6 +609,7 @@ function RiderRow({
         <td
           key={key}
           className={cn("px-[3px] py-1 text-right sm:px-2", racefit !== undefined && "hidden sm:table-cell")}
+          title={rider.powerSource?.[key] ? SOURCE_LABEL[rider.powerSource[key]!] : undefined}
         >
           {wkg(rider.power?.[key])}
         </td>
@@ -624,7 +628,7 @@ function ZCell({ value, status }: { value: ZValue | null; status: LimitStatus | 
       {value ? (
         <span
           className={cn(value.source === "wtrl" && "italic text-muted-foreground")}
-          title={value.source === "wtrl" ? "WTRL" : undefined}
+          title={value.source === "wtrl" ? "WTRL" : value.from ? `Geschat, ${SOURCE_LABEL[value.from]}` : undefined}
         >
           {wkg(value.value)}
         </span>

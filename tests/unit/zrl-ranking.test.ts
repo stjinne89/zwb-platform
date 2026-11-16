@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bestPower,
   categoryFromTeamName,
   estimateZ,
   laterWeeksInRound,
@@ -171,5 +172,32 @@ describe("indeling per raceweek", () => {
     expect(laterWeeksInRound(weeks, "r2w1").map((week) => week.id)).toEqual(["r2w2", "r2w3"]);
     expect(laterWeeksInRound(weeks, "r2w3")).toEqual([]);
     expect(laterWeeksInRound(weeks, "onbekend")).toEqual([]);
+  });
+});
+
+describe("bestPower", () => {
+  it("per duur de hoogste van ZwiftRacing en intervals.icu, met de bron", () => {
+    const best = bestPower({ s15: 9.06, m1: 5.54, m5: 4.34, m20: 3.44 }, { s15: 8.95, m1: 6.59, m5: 4.29, m20: 3.4 });
+    expect(best?.power).toEqual({ s15: 9.06, m1: 6.59, m5: 4.34, m20: 3.44 });
+    expect(best?.source).toEqual({ s15: "zwiftracing", m1: "intervals", m5: "zwiftracing", m20: "zwiftracing" });
+  });
+
+  it("vult aan uit de andere bron; nul en onzin tellen niet", () => {
+    const best = bestPower({ m1: null, m5: 0, m20: 3.5 }, { m1: 6, m5: Number.NaN, m20: null });
+    expect(best?.power).toEqual({ s15: null, m1: 6, m5: null, m20: 3.5 });
+    expect(best?.source).toEqual({ m1: "intervals", m20: "zwiftracing" });
+  });
+
+  it("null zonder vermogen; bij gelijke waarde ZwiftRacing", () => {
+    expect(bestPower(null, undefined)).toBeNull();
+    expect(bestPower({ m20: 0 }, { m20: null })).toBeNull();
+    expect(bestPower({ m20: 4 }, { m20: 4 })?.source.m20).toBe("zwiftracing");
+  });
+
+  it("de schatting zegt uit welke bron hij komt", () => {
+    const best = bestPower({ m5: 4.34, m20: 3.2 }, { m5: 4.29, m20: 3.4 })!;
+    const z = estimateZ({ key: "s", name: "S", profileId: "s", power: best.power, powerSource: best.source, wtrl: null });
+    expect(z.zftp).toEqual({ value: 3.19, source: "estimate", from: "intervals" });
+    expect(z.zmap?.from).toBe("zwiftracing");
   });
 });

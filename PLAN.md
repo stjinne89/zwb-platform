@@ -12411,6 +12411,46 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Teamindeling: hoogste van ZwiftRacing en intervals.icu
+
+**2026-11-16, commit "Teamindeling: per duur de hoogste van ZwiftRacing en intervals.icu", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
+
+- **Waarom.** De eigenaar zag dat zijn 1 minuut in de teamindeling (5,54
+  W/kg, ZwiftRacing) afweek van intervals.icu (6,59). ZwiftRacing telt alleen
+  races, intervals.icu alle ritten. De eigenaar: "ik wil echt dat de app de
+  meest actuele waarde er bij pakt, niet alleen uit races". Voorstel
+  goedgekeurd ("Ja, bouwen").
+- **Wat.** Nieuw `bestPower` in `teams/zrl-ranking.ts`: per duur (15 s, 1, 5
+  en 20 min) de hoogste van `zwift_rider_metrics.power_wkg` (ZwiftRacing) en
+  `rider_power_profiles` (intervals.icu, 90 dagen, `type=Ride`); bij gelijke
+  waarde ZwiftRacing, nul en onzin tellen niet. De indelingspagina laadt
+  `rider_power_profiles` voor de profielen. Ranglijst, geschatte zFTP/zMAP en
+  Racefit rekenen er allemaal mee. Wijs je een 1/5/20-waarde aan, dan zie je de
+  bron; bij zFTP/zMAP "Geschat, intervals.icu" of "Geschat, ZwiftRacing".
+  Renners zonder account of zonder intervals.icu houden ZwiftRacing.
+- **Nagerekend vóór het bouwen** (SQL op productie, 2026-11-16): 45 renners met
+  een WTRL-plak en een profiel, 26 met intervals.icu, 43 met ZwiftRacing, 25
+  met beide. Gemiddeld verschil met WTRL op die 25: zFTP 0,066 W/kg met alleen
+  ZwiftRacing, 0,082 met de hoogste van beide; zMAP 0,099 tegen 0,104. De
+  factoren 0,937 en 0,971 zijn gebleven (op intervals.icu alleen kwam zFTP op
+  0,938 uit, zMAP op 0,986).
+- **Privacy.** Op `/privacy`, in het blok over ZRL-teamgegevens, na "zoals
+  ZwiftRacing.app dat openbaar toont, en een daaruit geschatte zFTP en zMAP":
+  "Heb je intervals.icu gekoppeld, dan telt per duur de hoogste van die twee,
+  ook uit trainingen en buitenritten." Voorgelegd in het voorstel en
+  goedgekeurd met "Ja, bouwen"; alleen een tekstaanpassing, geen nieuwe
+  versie. Captains zagen het vermogen uit intervals.icu al op de teampagina.
+  /hulp (Teamindeling en Racefit) zegt waar de waarden vandaan komen.
+- **Bewust niet.** intervals.icu vaker dan wekelijks ophalen (alleen de
+  wekelijkse job en de sync-knop). Het gewicht gelijktrekken: intervals.icu
+  rekent W/kg met het gewicht uit intervals.icu, ZwiftRacing met dat uit Zwift.
+  Buitenritten weglaten: de eigenaar wilde juist niet alleen races.
+- **Geverifieerd:** tsc, eslint, `zrl-ranking.test.ts` (4 nieuw voor
+  `bestPower` en de bron van de schatting) en `zrl-racefit.test.ts`. Lokaal in
+  de browser tegen productiedata: de 1 minuut van de eigenaar staat op 6,59
+  met als bron intervals.icu (was 5,54), 5 en 20 minuten blijven ZwiftRacing;
+  in de hele lijst komen 9 waarden uit intervals.icu.
+
 ### Gebouwd — Racefit uitgelegd op /hulp; blijft W/kg
 
 **2026-11-16, commit "Hulp: Racefit uitgelegd", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
@@ -13003,9 +13043,11 @@ op productie.
   13 november op de 51 renners met een WTRL-plak én ZwiftRacing-waarden, op
   2026-11-15 met dezelfde uitkomst nagerekend: gemiddeld 0,10 W/kg ernaast voor
   zFTP en 0,11 voor zMAP, bij 9 op de 10 minder dan 0,22. Zonder
-  ZwiftRacing-waarden de WTRL-plak (schuin). De 1/5/20 minuten zijn ook
-  ZwiftRacing, niet intervals.icu: de factoren zijn daarop gefit, en die waarden
-  zijn er voor 22 van de 24 renners van ZRL B (intervals.icu voor 9).
+  ZwiftRacing-waarden de WTRL-plak (schuin). De 1/5/20 minuten waren hier
+  alleen ZwiftRacing, niet intervals.icu: de factoren zijn daarop gefit, en die
+  waarden zijn er voor 22 van de 24 renners van ZRL B (intervals.icu voor 9).
+  Niet meer waar sinds de ronde "Teamindeling: hoogste van ZwiftRacing en
+  intervals.icu" (2026-11-16): per duur telt nu de hoogste van de twee.
 - **Kleuren.** Rood: zFTP of zMAP op of boven de grens van de categorie erboven
   (voor B de A-grens 4,2 / 5,1), of in het Dev-blok boven het Dev-plafond
   (3,74 / 4,53, beide eronder). Oranje: binnen 0,22 W/kg onder zo'n grens, of
