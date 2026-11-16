@@ -53,14 +53,16 @@ gaat stabiliteit voor nieuwe features.
    "ZRL-teamindeling: zelf indelen, op een eigen pagina".
 
 0. **Test- en demo-account (2026-11-16): lokaal gecommit op
-   `claude/stjinne-martens-test-account-954d51`, niet gepusht.** Migraties
-   `0333_profile_is_test.sql` en `0334_profile_is_demo.sql`, nog niet op
-   productie. Volgorde: eerst 0333 en 0334 toepassen, dan pushen (de
-   ledenlijst en andere lijsten filteren op `is_test`; zonder 0333 faalt die
-   query en blijft de lijst leeg). Daarna het profiel voor de testlogin
-   aanmaken, en het demo-account zelf (de eigenaar maakt de login aan, met een
-   eigen wachtwoord). Open: hoe leden het demo-account binnenkomen, en in de
-   browser nagaan dat een schrijfactie als demo faalt. Zie de ronde
+   `claude/stjinne-martens-test-account-954d51` (`52d0a03c`), niet gepusht.**
+   Migraties `0333_profile_is_test.sql` en `0334_profile_is_demo.sql` zijn op
+   2026-11-16 via de connector op productie toegepast (eigenaar: "pas
+   migraties toe"). De demo wordt een gedeelde login (eigenaar). Volgorde
+   vanaf hier: eerst pushen, dan pas het profiel voor de testlogin aanmaken en
+   een account op `is_demo` zetten. De draaiende site filtert nog niet op
+   `is_test` en weigert nog geen schrijfacties in de middleware; server
+   actions met de service-rol zouden een demo-account nu nog laten schrijven.
+   De eigenaar maakt de demologin zelf aan, met een eigen wachtwoord. Open:
+   als demo in de browser nagaan dat een schrijfactie faalt. Zie de ronde
    "Test- en demo-account".
 
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): gepusht
@@ -12629,7 +12631,18 @@ na de eerste eigen inschrijving via de racepass, mogelijk pas op de racedag.
 
 ### Gebouwd — Test- en demo-account
 
-**2026-11-16, lokaal gecommit op `claude/stjinne-martens-test-account-954d51`, niet gepusht. Migraties `0333_profile_is_test.sql` en `0334_profile_is_demo.sql`, nog niet op productie toegepast.**
+**2026-11-16, lokaal gecommit op `claude/stjinne-martens-test-account-954d51` (`52d0a03c`), niet gepusht. Migraties `0333_profile_is_test.sql` en `0334_profile_is_demo.sql` op 2026-11-16 via de connector op productie toegepast.**
+
+- **Na het toepassen nagegaan.** 0333: de nieuwe leesregel staat erop,
+  `bokaal_standings` slaat testprofielen over, nog 0 testprofielen (van 53).
+  0334: `pgrst.db_pre_request=public.demo_read_only` op `authenticator`, de
+  drie `demo_*`-regels op `storage.objects`, PostgREST heeft de config
+  herladen (09:08 UTC). Als ingelogde niet-demo nagespeeld: de transactie
+  blijft lezen én schrijven. Een anonieme GET en een RPC via POST gaven 200.
+  Het demopad zelf (alleen-lezen) is nog niet met een echt demo-account
+  getest. Er bestaat er nog geen.
+- **Demo-toegang.** Een gedeelde login (besluit eigenaar). Geen link met een
+  sleutel, en geen code voor het inloggen.
 
 - **Waarom.** De eigenaar wil met een tweede login de app zien zoals een gewoon
   lid, zonder dat dat account tussen de leden staat. Daarnaast een demo-account
