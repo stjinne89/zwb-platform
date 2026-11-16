@@ -12452,6 +12452,12 @@ geverifieerd:** de koppeling in de uurlijkse cron op productie; die is na de
 deploy te zien in `zrlLinks.linked`. Teams met meer kandidaten koppelen pas
 na de eerste eigen inschrijving via de racepass, mogelijk pas op de racedag.
 
+**Cronjob.** Op cron-job.org heet de eventspiegel **Zwift Events matcher**
+(nu ook zo in `docs/runbook.md`). De geschiedenis op 2026-11-16 nagekeken:
+elk uur 200, behalve op 15 november van 01:00 tot en met 09:00 (500, niet
+onderzocht). Het antwoord met `zrlLinks` bewaart cron-job.org niet; dat staat
+alleen in het detailvenster als responsen bewaren bij de job aanstaat.
+
 ### Hersteld — Lid verwijderen uit een hoofdteam haalt hem ook uit de subteams
 
 **2026-11-16, commit "Beheer: lid uit hoofdteam ook uit subteams verwijderen", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
