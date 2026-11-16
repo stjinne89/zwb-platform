@@ -12458,6 +12458,31 @@ elk uur 200, behalve op 15 november van 01:00 tot en met 09:00 (500, niet
 onderzocht). Het antwoord met `zrlLinks` bewaart cron-job.org niet; dat staat
 alleen in het detailvenster als responsen bewaren bij de job aanstaat.
 
+**Na de push, 2026-11-16, commit "ZRL-koppeling: gedeelde renners tellen niet
+op de startlijst", gepusht naar `main` (eigenaar: "Ja, fix en push").** De
+eigenaar draaide de job met de hand: alleen Zwiftladies B gekoppeld, zoals
+verwacht. Met het serviceaccount de startlijsten gelezen (alleen lezen): Bdev
+had één eigen renner in `5800595`, de andere teams nog niemand. Daarbij
+gevonden: renners staan in de WTRL-rosters van meer teams (4472180 en 1778335
+in B2, B3 en Bdev), en sinds deze ronde zitten B2 en het nieuwe B3 allebei in
+Open Aqua League B. Schrijft zo'n renner zich voor B3 in voordat iemand van B2
+dat doet, dan zou B2 aan het event van B3 koppelen.
+
+- `competingTeams` geeft de andere teams met dezelfde competitie, Development
+  of niet, league en categorie, en een divisienummer dat niet botst.
+- `exclusiveRiders` haalt hun renners uit de eigen lijst; alleen die tellen op
+  de startlijst. De divisies komen nu van alle teams in `wtrl_teams`, ook die
+  al gekoppeld zijn; de renners worden één keer per run geladen.
+- B3 houdt zo drie eigen renners, B2 tien.
+
+**Bewust niet.** Gedeelde renners naar hun "echte" team toewijzen: daar is geen
+bron voor. Ook geen uitsluiting tussen leagues (Bdev en B2 rijden andere
+events), want daar kan een gedeelde renner niet het verkeerde event aanwijzen.
+
+**Gecontroleerd.** `tsc`, ESLint, `tests/unit/zrl-event-link.test.ts` (nieuwe
+case met B2/B3 en een team met nummer). **Niet geverifieerd:** de keus in de cron
+op productie.
+
 ### Hersteld — Lid verwijderen uit een hoofdteam haalt hem ook uit de subteams
 
 **2026-11-16, commit "Beheer: lid uit hoofdteam ook uit subteams verwijderen", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**

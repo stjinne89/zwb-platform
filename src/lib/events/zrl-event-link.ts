@@ -20,6 +20,10 @@
 // Zonder nummer is elk event van die league kandidaat en beslist ook de
 // startlijst. Een geplakt nummer gaat altijd voor.
 //
+// Op de startlijst tellen alleen renners die in geen ander ZWB-team met dezelfde
+// league en categorie staan: wie in de rosters van B2 én B3 staat, wijst
+// anders bij B2 het event van B3 aan.
+//
 // Een team zonder divisie, of zonder precies één passend event met zijn eigen
 // subgroep, blijft ongemoeid; de beheerder plakt de link dan zelf.
 
@@ -202,30 +206,79 @@ async function fetchWtrlTaggedEvents(): Promise<ZwiftEventInfo[]> {
 }
 
 /**
- * Per subgroep het aantal eigen renners op de startlijst: de WTRL-renners en de
- * leden van het team. Een haperende startlijst telt als nul: dan valt dat event
- * af en koppelt er hoogstens niets, nooit het verkeerde.
+ * De andere ZWB-teams die om dezelfde Zwift-events kunnen gaan: zelfde
+ * competitie, Development of niet, league en categorie, en een divisienummer
+ * dat niet botst (2026-11-16: B2 en B3 allebei in Open Aqua League B). Puur.
  */
-async function countOwnSignups(
-  admin: SupabaseClient,
+export function competingTeams(teamId: string, divisionByTeam: Map<string, string | null>): string[] {
+  const own = parseWtrlTeamDivision(divisionByTeam.get(teamId));
+  if (!own) return [];
+  return [...divisionByTeam].flatMap(([otherId, label]) => {
+    if (otherId === teamId) return [];
+    const other = parseWtrlTeamDivision(label);
+    if (!other) return [];
+    const competes =
+      other.category === own.category &&
+      other.women === own.women &&
+      other.development === own.development &&
+      other.league === own.league &&
+      (own.number === null || other.number === null || own.number === other.number);
+    return competes ? [otherId] : [];
+  });
+}
+
+/**
+ * De renners van het team die in geen concurrerend team staan. Een renner in
+ * twee rosters kan zich voor het andere team inschrijven en zou dan het event
+ * van dat team aanwijzen. Puur.
+ */
+export function exclusiveRiders(
   teamId: string,
-  trcRefs: string[],
-  subgroupIds: string[],
-): Promise<Map<string, number>> {
-  const own = new Set<string>();
-  if (trcRefs.length) {
-    const { data } = await admin.from("wtrl_team_riders").select("zwift_id").in("trc_ref", trcRefs);
-    for (const rider of (data ?? []) as Array<{ zwift_id: string | number | null }>) {
-      if (rider.zwift_id) own.add(String(rider.zwift_id));
+  ridersByTeam: Map<string, Set<string>>,
+  competitors: string[],
+): Set<string> {
+  const shared = new Set(competitors.flatMap((id) => [...(ridersByTeam.get(id) ?? [])]));
+  return new Set([...(ridersByTeam.get(teamId) ?? [])].filter((zwiftId) => !shared.has(zwiftId)));
+}
+
+/** Per team de Zwift-ID's van de WTRL-renners en de teamleden. */
+async function loadTeamRiders(
+  admin: SupabaseClient,
+  teamIds: string[],
+  trcRefsByTeam: Map<string, string[]>,
+): Promise<Map<string, Set<string>>> {
+  const byTeam = new Map<string, Set<string>>(teamIds.map((id) => [id, new Set<string>()]));
+  const teamByTrc = new Map<string, string>();
+  for (const id of teamIds) for (const ref of trcRefsByTeam.get(id) ?? []) teamByTrc.set(ref, id);
+  if (teamByTrc.size) {
+    const { data } = await admin
+      .from("wtrl_team_riders")
+      .select("trc_ref, zwift_id")
+      .in("trc_ref", [...teamByTrc.keys()]);
+    for (const rider of (data ?? []) as Array<{ trc_ref: string; zwift_id: string | number | null }>) {
+      const teamId = teamByTrc.get(rider.trc_ref);
+      if (teamId && rider.zwift_id) byTeam.get(teamId)?.add(String(rider.zwift_id));
     }
   }
-  const { data: members } = await admin.from("team_members").select("profiles(zwift_id)").eq("team_id", teamId);
-  for (const member of (members ?? []) as Array<{ profiles: unknown }>) {
+  const { data: members } = await admin
+    .from("team_members")
+    .select("team_id, profiles(zwift_id)")
+    .in("team_id", teamIds);
+  for (const member of (members ?? []) as Array<{ team_id: string; profiles: unknown }>) {
     // Supabase typeert een to-one-join soms als lijst.
     for (const profile of [member.profiles].flat() as Array<{ zwift_id?: string | null } | null>) {
-      if (profile?.zwift_id) own.add(String(profile.zwift_id));
+      if (profile?.zwift_id) byTeam.get(member.team_id)?.add(String(profile.zwift_id));
     }
   }
+  return byTeam;
+}
+
+/**
+ * Per subgroep het aantal eigen renners op de startlijst. Een haperende
+ * startlijst telt als nul: dan valt dat event af en koppelt er hoogstens
+ * niets, nooit het verkeerde.
+ */
+async function countOwnSignups(own: Set<string>, subgroupIds: string[]): Promise<Map<string, number>> {
   const counts = new Map<string, number>();
   for (const subgroupId of subgroupIds) {
     const entrants = await fetchEntrants([subgroupId]);
@@ -275,11 +328,12 @@ export async function linkZrlEvents(
   result.open = rows.length;
   if (rows.length === 0) return result;
 
-  // Per ZWB-team de laatst geplakte divisie.
+  // Per ZWB-team de laatst geplakte divisie; van alle teams, ook die al
+  // gekoppeld zijn, om gedeelde renners te herkennen.
   const { data: wtrlTeams } = await admin
     .from("wtrl_teams")
     .select("team_id, trc_ref, division, imported_at")
-    .in("team_id", [...new Set(rows.map((row) => row.team_id))])
+    .not("team_id", "is", null)
     .order("imported_at", { ascending: true });
   const divisionByTeam = new Map<string, string | null>();
   const trcRefsByTeam = new Map<string, string[]>();
@@ -296,21 +350,27 @@ export async function linkZrlEvents(
 
   const candidates = await fetchWtrlTaggedEvents();
   const details: Parameters<typeof fillZrlEventDetails>[1] = [];
+  // Pas geladen als een race de startlijst nodig heeft; één keer per run.
+  let ridersByTeam: Promise<Map<string, Set<string>>> | null = null;
+  const teamRiders = () =>
+    (ridersByTeam ??= loadTeamRiders(admin, [...divisionByTeam.keys()], trcRefsByTeam));
   for (const row of withDivision) {
     const division = divisionByTeam.get(row.team_id);
     const dateKey = amsterdamDateKey(new Date(row.start_at));
     const matches = zrlEventMatches(division, dateKey, candidates);
     let ownSignups: Map<string, number> | undefined;
     if (matches.length > 1 && zwiftClubConfigured()) {
-      ownSignups = await countOwnSignups(
-        admin,
-        row.team_id,
-        trcRefsByTeam.get(row.team_id) ?? [],
-        matches.map(({ own }) => own.id),
-      ).catch((err) => {
-        result.notes.push(`${row.title}: startlijst niet gelezen (${err instanceof Error ? err.message : "mislukt"}).`);
-        return undefined;
-      });
+      ownSignups = await teamRiders()
+        .then((riders) =>
+          countOwnSignups(
+            exclusiveRiders(row.team_id, riders, competingTeams(row.team_id, divisionByTeam)),
+            matches.map(({ own }) => own.id),
+          ),
+        )
+        .catch((err) => {
+          result.notes.push(`${row.title}: startlijst niet gelezen (${err instanceof Error ? err.message : "mislukt"}).`);
+          return undefined;
+        });
     }
     const link = zrlEventLink(row, division, dateKey, candidates, ownSignups);
     if (!link) {

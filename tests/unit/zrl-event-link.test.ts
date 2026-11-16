@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  competingTeams,
+  exclusiveRiders,
   parseWtrlTeamDivision,
   parseZwiftZrlEventName,
   zrlEventLink,
@@ -157,6 +159,35 @@ describe("het Zwift-event van een teamrace", () => {
     ).toBe(5737462);
     // Development en Open blijven ook zonder nummer gescheiden.
     expect(zrlEventLink(empty, "Open Aqua League Dev A", RACE_DAY, candidates)).toBeNull();
+  });
+
+  it("telt geen renners die ook in een concurrerend team staan", () => {
+    // Zo stond het op 2026-11-16: B2 en B3 allebei in Open Aqua League B.
+    const divisions = new Map<string, string | null>([
+      ["b2", "Open Aqua League B"],
+      ["b3", "Open Aqua League B"],
+      ["bdev", "Open Aqua League Dev B"],
+      ["c", "Open Aqua League C"],
+      ["b1", "Open Cobalt League B"],
+      ["oud", "Open Aqua League Division B2"],
+      ["ander", "Open Aqua League Division B4"],
+      ["leeg", null],
+    ]);
+    expect(competingTeams("b2", divisions).sort()).toEqual(["ander", "b3", "oud"]);
+    // Met nummer: alleen een team zonder nummer of met hetzelfde nummer.
+    expect(competingTeams("oud", divisions).sort()).toEqual(["b2", "b3"]);
+    expect(competingTeams("bdev", divisions)).toEqual([]);
+    expect(competingTeams("leeg", divisions)).toEqual([]);
+
+    const riders = new Map([
+      ["b2", new Set(["1", "2", "gedeeld"])],
+      ["b3", new Set(["3", "gedeeld"])],
+      ["bdev", new Set(["2"])],
+    ]);
+    expect([...exclusiveRiders("b2", riders, ["b3"])].sort()).toEqual(["1", "2"]);
+    expect([...exclusiveRiders("b3", riders, ["b2"])]).toEqual(["3"]);
+    // Bdev concurreert niet met B2: renner 2 telt daar gewoon mee.
+    expect([...exclusiveRiders("bdev", riders, [])]).toEqual(["2"]);
   });
 
   it("laat een eigen link en de afstand van een GPX staan", () => {
