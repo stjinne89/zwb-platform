@@ -52,18 +52,16 @@ gaat stabiliteit voor nieuwe features.
    Zie de ronde
    "ZRL-teamindeling: zelf indelen, op een eigen pagina".
 
-0. **Test- en demo-account (2026-11-16): lokaal gecommit op
-   `claude/stjinne-martens-test-account-954d51` (`52d0a03c`), niet gepusht.**
-   Migraties `0333_profile_is_test.sql` en `0334_profile_is_demo.sql` zijn op
-   2026-11-16 via de connector op productie toegepast (eigenaar: "pas
-   migraties toe"). De demo wordt een gedeelde login (eigenaar). Volgorde
-   vanaf hier: eerst pushen, dan pas het profiel voor de testlogin aanmaken en
-   een account op `is_demo` zetten. De draaiende site filtert nog niet op
-   `is_test` en weigert nog geen schrijfacties in de middleware; server
-   actions met de service-rol zouden een demo-account nu nog laten schrijven.
-   De eigenaar maakt de demologin zelf aan, met een eigen wachtwoord. Open:
-   als demo in de browser nagaan dat een schrijfactie faalt. Zie de ronde
-   "Test- en demo-account".
+0. **Test- en demo-account (2026-11-16): gepusht naar `main` (`c95d4205`,
+   eigenaar: "Ja, push").** Migraties `0333_profile_is_test.sql` en
+   `0334_profile_is_demo.sql` zijn vóór de push via de connector op productie
+   toegepast (eigenaar: "pas migraties toe"). De demo wordt een gedeelde login
+   (eigenaar). Pas na de deploy een profiel op `is_test` of `is_demo` zetten:
+   de oude site filtert niet en weigert geen schrijfacties in de middleware.
+   De demologin maakt Claude op verzoek van de eigenaar aan in het
+   Supabase-dashboard, met een wachtwoord dat de eigenaar zelf invult. Open:
+   testprofiel en demo-account aanmaken, en als demo in de browser nagaan dat
+   een schrijfactie faalt. Zie de ronde "Test- en demo-account".
 
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): gepusht
    naar `main` (`7540c7b5`, eigenaar: "Ja, push").** Migratie
@@ -12631,7 +12629,7 @@ na de eerste eigen inschrijving via de racepass, mogelijk pas op de racedag.
 
 ### Gebouwd — Test- en demo-account
 
-**2026-11-16, lokaal gecommit op `claude/stjinne-martens-test-account-954d51` (`52d0a03c`), niet gepusht. Migraties `0333_profile_is_test.sql` en `0334_profile_is_demo.sql` op 2026-11-16 via de connector op productie toegepast.**
+**2026-11-16, gepusht naar `main` (`c95d4205`). Migraties `0333_profile_is_test.sql` en `0334_profile_is_demo.sql` op 2026-11-16 via de connector op productie toegepast.**
 
 - **Na het toepassen nagegaan.** 0333: de nieuwe leesregel staat erop,
   `bokaal_standings` slaat testprofielen over, nog 0 testprofielen (van 53).
