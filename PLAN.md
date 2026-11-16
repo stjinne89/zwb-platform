@@ -33,9 +33,11 @@ gaat stabiliteit voor nieuwe features.
 
 0. **ZRL-teamindeling: zelf indelen, op een eigen pagina (2026-11-16): lokaal
    gecommit (`d5751960`), niet gepusht.** Geen migratie. Lokaal in de browser
-   bekeken en één renner in R2 W2 ingedeeld, verplaatst en teruggezet. Open:
-   de knoppen "Neem sortering over" en "Ook voor de rest van de ronde" tegen
-   echte data, en pushen als de eigenaar dat vraagt. Zie de ronde
+   bekeken en één renner in R2 W2 ingedeeld, verplaatst en teruggezet; de
+   eigenaar nam de sortering over voor R2 W2 (staat op productie). Daarna een
+   knop "Wis opstelling" en een sorteerknop die de gekozen sortering noemt.
+   Open: "Ook voor de rest van de ronde" en "Wis opstelling" tegen echte data,
+   en pushen als de eigenaar dat vraagt. Zie de ronde
    "ZRL-teamindeling: zelf indelen, op een eigen pagina".
 
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): gepusht
@@ -12407,6 +12409,16 @@ link naar `/live/[eventId]`, zie de update hierboven).
   - Rechten in `canAssignZrl`: beheerder of captain van het hoofdteam altijd;
     een captain van een subteam alleen binnen zijn eigen subteams, zoals
     `setTeamLineup`. Alleen subteams van dit hoofdteam en alleen raceweken.
+- **Bijgesteld na het eerste gebruik (2026-11-16).** De eigenaar klikte op
+  "Neem sortering over" bij R2 W2 (20 regels op productie, 14 leden kregen een
+  ja op hun race; B3 heeft in die week nog geen race, dus de drie leden daar
+  niet; bij 2 leden staat een herplanning voor vannacht klaar) en had het idee
+  dat het daarna vaststond. In de weekweergave sorteert een andere kolom alleen
+  binnen de teams, dus het overnemen van een andere sortering was niet te zien.
+  De knop noemt nu de gekozen sortering ("Neem 5m-sortering over"), en
+  "Wis opstelling" maakt de week leeg (`setZrlWeekLineups` met een lege lijst,
+  met confirm; wie eruit gaat, verliest ook de ja op zijn race). Geen preview
+  van de nieuwe blokken naast de echte: "Alle renners" laat die al zien.
 - **Bewust niet.** Geen nieuw datamodel en geen migratie: de opstelling bestond
   al. Geen eigen "concept"-indeling naast de opstelling: wat je hier zet, is de
   selectie. Geen vastzetten per ronde als apart begrip; kopiëren naar de
@@ -12432,8 +12444,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
   zijn ene Bdev-regel. De teampagina heeft de knop en geen ranglijst meer. Op
   375 px is het keuzevakje smal (zonder pijltje) en staat er geen rangnummer
   naast; de namen zijn dan zo'n vijf letters breed.
-- **Niet geverifieerd:** de twee knoppen. Tegen productie zouden ze echte
-  leden een ja op de race en een herplanning van hun schema geven. Ook niet
+- **Niet geverifieerd:** "Ook voor de rest van de ronde" en "Wis opstelling"
+  (wel dat de knoppen er staan en dat de sorteerknop meeloopt). "Neem
+  sortering over" werkte bij de eigenaar zelf op R2 W2 (zie hierboven). Ook niet
   geprobeerd: een lid met account verplaatsen (RSVP via `syncLineupRsvp`,
   dezelfde functie als bij de captain-selectie), en de weigering voor een
   captain van alleen een subteam.

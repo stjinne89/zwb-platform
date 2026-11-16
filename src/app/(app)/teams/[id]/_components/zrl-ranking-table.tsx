@@ -235,6 +235,11 @@ export function ZrlRankingTable({
     );
   }
 
+  function clearWeek() {
+    if (!window.confirm("Opstelling van deze week wissen?")) return;
+    replace([eventId], []);
+  }
+
   function copyToRound() {
     const overwritten = laterWeeks.filter((later) => shownLineups.some((row) => row.eventId === later.id));
     const question =
@@ -278,11 +283,16 @@ export function ZrlRankingTable({
       {eventId && canAssignWeek && (
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={takeSorting} disabled={pending}>
-            Neem sortering over
+            Neem {COLUMNS.find((column) => column.key === sortKey)?.label}-sortering over
           </Button>
           {laterWeeks.length > 0 && (
             <Button size="sm" variant="outline" onClick={copyToRound} disabled={pending || weekLineups.length === 0}>
               Ook voor de rest van de ronde
+            </Button>
+          )}
+          {weekLineups.length > 0 && (
+            <Button size="sm" variant="outline" onClick={clearWeek} disabled={pending}>
+              Wis opstelling
             </Button>
           )}
         </div>
