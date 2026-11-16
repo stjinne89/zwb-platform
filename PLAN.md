@@ -31,7 +31,7 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
-0. **ZRL-teamindeling: kolom Racefit (2026-11-16): lokaal gecommit, niet
+0. **ZRL-teamindeling: kolom Racefit (2026-11-16): lokaal gecommit (`5d818516`), niet
    gepusht.** Geen migratie. Gewicht telt mee in de berekening; of dat in de
    privacyzin van de ZRL-teamindeling moet, ligt bij de eigenaar (staat er
    nog niet). Zie de ronde "ZRL-teamindeling: kolom Racefit".
@@ -12381,7 +12381,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL-teamindeling: kolom Racefit
 
-**2026-11-16, lokaal gecommit (hash in de volgende PLAN-commit), niet gepusht. Geen migratie.**
+**2026-11-16, commit `5d818516` ("ZRL-teamindeling: kolom Racefit op het parcours van de raceweek"), lokaal, niet gepusht. Geen migratie.**
 
 - **Waarom.** Voorstel goedgekeurd door de eigenaar ("Ja, bouwen"): zien wie
   er op het parcours van die week het best past, niet alleen op zFTP of zMAP.
