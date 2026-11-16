@@ -31,6 +31,30 @@ describe("divisie lezen", () => {
     expect(parseWtrlTeamDivision(null)).toBeNull();
   });
 
+  it("leest een divisie vóór de indeling, zonder nummer", () => {
+    // Zo stond het op 2026-11-15 op My Teams, in de TTT-week van ronde 2.
+    expect(parseWtrlTeamDivision("Open Aqua League Dev B")).toEqual({
+      women: false,
+      development: true,
+      league: "aqua",
+      number: null,
+      category: "B",
+    });
+    expect(parseWtrlTeamDivision("Open Cobalt League B")).toMatchObject({
+      development: false,
+      league: "cobalt",
+      number: null,
+      category: "B",
+    });
+    expect(parseWtrlTeamDivision("Womens Cobalt League C")).toMatchObject({
+      women: true,
+      league: "cobalt",
+      number: null,
+      category: "C",
+    });
+    expect(parseWtrlTeamDivision("Open Aqua League A")).toMatchObject({ category: "A", number: null });
+  });
+
   it("leest de naam van het Zwift-event, met Dev vóór de league", () => {
     expect(
       parseZwiftZrlEventName(
@@ -43,6 +67,17 @@ describe("divisie lezen", () => {
       ),
     ).toEqual({ women: true, development: false, league: "mint", number: 1 });
     expect(parseZwiftZrlEventName("Zwift Racing League Recon Ride (DIRT)")).toBeNull();
+  });
+
+  it("leest de naam van ronde 2", () => {
+    expect(
+      parseZwiftZrlEventName(
+        "Zwift Racing League 2026/27 Round 2: Team Tempo - Open Aqua Dev League Division 2",
+      ),
+    ).toEqual({ women: false, development: true, league: "aqua", number: 2 });
+    expect(
+      parseZwiftZrlEventName("Zwift Racing League 2026/27 Round 2: Team Tempo - Womens Cobalt League Division 1"),
+    ).toEqual({ women: true, development: false, league: "cobalt", number: 1 });
   });
 });
 
@@ -101,6 +136,27 @@ describe("het Zwift-event van een teamrace", () => {
     // Eigen renners in een andere subgroep tellen niet; in allebei is geen keus.
     expect(zrlEventLink(empty, division, RACE_DAY, both, signups({ "7397330": 5 }))).toBeNull();
     expect(zrlEventLink(empty, division, RACE_DAY, both, signups({ "7397329": 2, "spare-7397329": 2 }))).toBeNull();
+  });
+
+  it("zonder divisienummer: de hele league, en bij meer events de startlijst", () => {
+    const signups = (counts: Record<string, number>) => new Map(Object.entries(counts));
+    // Eén event van de league met de eigen subgroep: meteen koppelen.
+    expect(zrlEventLink(empty, "Womens Mint League B", RACE_DAY, candidates)?.zwift_event_id).toBe(5737430);
+    expect(zrlEventLink(empty, "Open Aqua League A", RACE_DAY, candidates)?.zwift_event_id).toBe(5737462);
+    expect(zrlEventLink(empty, "Open Aqua League Dev B", RACE_DAY, candidates)?.zwift_event_id).toBe(5737449);
+    // Aqua B staat in divisie 1 en 4: zonder startlijst geen keus.
+    expect(zrlEventLink(empty, "Open Aqua League B", RACE_DAY, candidates)).toBeNull();
+    expect(zrlEventLink(empty, "Open Aqua League B", RACE_DAY, candidates, signups({}))).toBeNull();
+    expect(
+      zrlEventLink(empty, "Open Aqua League B", RACE_DAY, candidates, signups({ "7397396": 4 }))?.zwift_event_id,
+    ).toBe(5737452);
+    // Een geplakt nummer gaat voor, wat de startlijst ook zegt.
+    expect(
+      zrlEventLink(empty, "Open Aqua League Division B1", RACE_DAY, candidates, signups({ "7397396": 4 }))
+        ?.zwift_event_id,
+    ).toBe(5737462);
+    // Development en Open blijven ook zonder nummer gescheiden.
+    expect(zrlEventLink(empty, "Open Aqua League Dev A", RACE_DAY, candidates)).toBeNull();
   });
 
   it("laat een eigen link en de afstand van een GPX staan", () => {

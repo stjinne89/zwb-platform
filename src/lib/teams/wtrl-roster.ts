@@ -183,10 +183,13 @@ export function recommendedDivision(power: Power, women: boolean): string | null
 
 export type WtrlDivision = { category: Category; development: boolean; women: boolean };
 
-/** "Open Aqua Dev League Division B3" → B, Development, Open. */
+/**
+ * "Open Aqua Dev League Division B3" → B, Development, Open. Vóór de indeling
+ * (de TTT-week) geeft WTRL geen divisie: "Open Aqua League Dev B".
+ */
 export function parseDivision(label: string | null | undefined): WtrlDivision | null {
   if (!label) return null;
-  const match = /Division\s+([A-D])\d*/i.exec(label);
+  const match = /\bLeague\b(?:\s+Dev(?:elopment)?)?\s+(?:Division\s+)?([A-D])\d*\s*$/i.exec(label);
   if (!match) return null;
   return {
     category: match[1].toUpperCase() as Category,

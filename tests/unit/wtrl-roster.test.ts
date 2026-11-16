@@ -119,6 +119,20 @@ describe("divisies", () => {
     expect(parseDivision("iets anders")).toBeNull();
   });
 
+  it("leest de divisie vóór de indeling, zonder nummer", () => {
+    expect(parseDivision("Open Aqua League Dev B")).toEqual({
+      category: "B",
+      development: true,
+      women: false,
+    });
+    expect(parseDivision("Womens Cobalt League C")).toEqual({
+      category: "C",
+      development: false,
+      women: true,
+    });
+    expect(parseDivision("Open Aqua League A")?.category).toBe("A");
+  });
+
   it("A via alleen zMAP, met Dev-advies onder de grens", () => {
     const power = { zftpW: 284, zftpWkg: 3.51, zmapWkg: 5.14 };
     expect(wtrlCategory(power, false)).toBe("A");

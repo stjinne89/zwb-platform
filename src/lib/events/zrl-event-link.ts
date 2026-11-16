@@ -14,6 +14,12 @@
 // tweede event zonder één inschrijving). Dan beslist de startlijst: het event
 // waarin eigen renners in de eigen subgroep staan.
 //
+// In de eerste week van een ronde (de TTT) deelt WTRL nog niet in divisies in;
+// My Teams toont dan alleen league en categorie ("Open Aqua League Dev B"),
+// terwijl Zwift de league over genummerde events verdeelt (2026-11-17: Aqua 1–5).
+// Zonder nummer is elk event van die league kandidaat en beslist ook de
+// startlijst. Een geplakt nummer gaat altijd voor.
+//
 // Een team zonder divisie, of zonder precies één passend event met zijn eigen
 // subgroep, blijft ongemoeid; de beheerder plakt de link dan zelf.
 
@@ -49,13 +55,14 @@ export type ZrlDivision = {
   development: boolean;
   /** Kleur van de league, in kleine letters: "aqua", "mint". */
   league: string;
-  number: number;
+  /** Null zolang WTRL nog niet heeft ingedeeld (de TTT-week). */
+  number: number | null;
 };
 
 function division(
   competition: string,
   middle: string,
-  number: string,
+  number: string | undefined,
 ): ZrlDivision | null {
   const words = middle.trim().split(/\s+/).filter(Boolean);
   const isDev = (word: string) => /^dev(elopment)?$/i.test(word);
@@ -65,20 +72,25 @@ function division(
     women: /^wom/i.test(competition),
     development: words.some(isDev),
     league,
-    number: Number(number),
+    number: number ? Number(number) : null,
   };
 }
 
-/** "Open Aqua Dev League Division B3" → Open, Development, aqua, 3, categorie B. */
+/**
+ * "Open Aqua Dev League Division B3" → Open, Development, aqua, 3, categorie B.
+ * "Open Aqua League Dev B" (vóór de indeling) → hetzelfde zonder nummer.
+ */
 export function parseWtrlTeamDivision(
   label: string | null | undefined,
 ): (ZrlDivision & { category: string }) | null {
-  const match = /^\s*(Open|Wom[ae]n'?s?)\s+(.+?)\s+League\s+Division\s+([A-E])(\d+)\s*$/i.exec(
-    label ?? "",
-  );
+  const match =
+    /^\s*(Open|Wom[ae]n'?s?)\s+(.+?)\s+League(?:\s+(Dev(?:elopment)?))?\s+(?:Division\s+)?([A-E])(\d+)?\s*$/i.exec(
+      label ?? "",
+    );
   if (!match) return null;
-  const parsed = division(match[1], match[2], match[4]);
-  return parsed ? { ...parsed, category: match[3].toUpperCase() } : null;
+  const middle = match[3] ? `${match[2]} ${match[3]}` : match[2];
+  const parsed = division(match[1], middle, match[5]);
+  return parsed ? { ...parsed, category: match[4].toUpperCase() } : null;
 }
 
 /** De divisie uit de naam van een ZRL-event op Zwift. */
@@ -87,12 +99,13 @@ export function parseZwiftZrlEventName(name: string | null | undefined): ZrlDivi
   return match ? division(match[1], match[2], match[3]) : null;
 }
 
-function sameDivision(a: ZrlDivision, b: ZrlDivision): boolean {
+/** Past het Zwift-event bij de divisie van het team? Zonder nummer telt de hele league. */
+function sameDivision(event: ZrlDivision, wanted: ZrlDivision): boolean {
   return (
-    a.women === b.women &&
-    a.development === b.development &&
-    a.league === b.league &&
-    a.number === b.number
+    event.women === wanted.women &&
+    event.development === wanted.development &&
+    event.league === wanted.league &&
+    (wanted.number === null || event.number === wanted.number)
   );
 }
 

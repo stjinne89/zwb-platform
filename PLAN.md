@@ -31,6 +31,13 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
+0. **ZRL-koppeling in de TTT-week, zonder divisienummer (2026-11-16): gepusht
+   naar `main` (eigenaar: "Ja, push").** Geen migratie. Alle teamraces van ronde 2 bleven
+   zonder Zwift-event omdat WTRL vóór de indeling geen divisienummer geeft.
+   Open: in het antwoord van de
+   eventspiegel `zrlLinks.linked` bekijken. Zie de ronde "ZRL-koppeling in de
+   TTT-week, zonder divisienummer".
+
 0. **ZRL-teamindeling: kolom Racefit (2026-11-16): commit `5d818516`,
    op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie. De privacyzin over het gewicht staat op
    `/privacy` (akkoord eigenaar, 2026-11-16). Zie de ronde
@@ -6059,6 +6066,9 @@ lid, ook buiten de kalender")*
 >   dezelfde competitie (Open/Women), Development of niet, league en
 >   divisienummer als `wtrl_teams.division` van het team, op de racedag
 >   (Amsterdam), mét de subgroep van de categorieletter uit die divisie.
+>   *(Sinds 2026-11-16 mag het nummer ontbreken, zoals in de TTT-week; dan
+>   beslist de startlijst. Zie de ronde "ZRL-koppeling in de TTT-week, zonder
+>   divisienummer" in het chronologische werkplan.)*
 > - Op de teamrace komen `zwift_event_id`, de starttijd van de eigen subgroep,
 >   route, ronden, afstand en hoogtemeters van die subgroep, en eventtype, regels
 >   en tags voor het pacingplan. `external_url` alleen als die leeg was; afstand
@@ -12378,6 +12388,57 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — ZRL-koppeling in de TTT-week, zonder divisienummer
+
+**2026-11-16.** Commit "ZRL-koppeling: divisie zonder nummer in de TTT-week", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push").
+Geen migratie.
+
+**Waarom.** Melding van de eigenaar: bij ronde 2 kwam er geen Zwift-link en geen
+racedata op de teamraces. Op productie nagekeken: alle 14 teamraces van 17 en
+24 november zonder `zwift_event_id`. De divisies die op 15 november op
+`/beheer/wtrl-teams` zijn geplakt, hebben geen nummer: `Open Cobalt League B`,
+`Open Aqua League Dev B`, `Womens Mint League B` (in ronde 1:
+`Open Aqua Dev League Division B3`). `parseWtrlTeamDivision` eiste
+`Division B3` en sloeg dus elk team over, met alleen een notitie in het
+cronantwoord. De eventspiegel zelf draaide, en Zwift had de 72 ZRL-events van
+17 november al (met `tags=wtrl`). Volgens de eigenaar deelt WTRL de divisies pas
+na de TTT in; tot dan rijdt een team in de hele league. Zwift verdeelt de league
+wel over genummerde events (Aqua Division 1 tot en met 5, Cobalt 1 en 2), maar
+welk team in welk event zit, staat niet bij WTRL.
+
+**Wat.**
+- `parseWtrlTeamDivision` leest ook de vorm zonder nummer, met Dev achter
+  League (`Open Aqua League Dev B`). Het nummer is dan `null`.
+- Zonder nummer is elk Zwift-event van die league (competitie, Development of
+  niet, kleur) met de eigen subgroep op de racedag kandidaat. Is dat er één, dan
+  koppelt het meteen; zijn het er meer, dan beslist de startlijst, zoals sinds
+  de ronde "ZRL-koppeling bij een dubbel WTRL-event": alleen het ene event met
+  eigen renners in de eigen subgroep.
+- Een geplakt nummer gaat altijd voor; met nummer verandert er niets. Na de TTT
+  dus gewoon de nieuwe divisies plakken. Wordt dat vergeten, dan koppelt het
+  nog steeds via de startlijst, omdat renners zich in hun echte divisie
+  inschrijven.
+- `parseDivision` (`wtrl-roster.ts`, de gevarenzone in de teamindeling) leest
+  de vorm zonder nummer ook; die gaf deze ronde ook niets.
+
+**Proef op de echte lijst van 16 november** (de matcher, zonder startlijst):
+Zwiftladies B heeft één kandidaat (`5800566`, groep B 19:18 Amsterdam) en
+koppelt meteen; B1 2, B2 5, Bdev 2, ZRL A 2, ZRL C 5 en Zwiftladies C 2
+kandidaten, die wachten op de eerste eigen inschrijving.
+
+**Bewust niet.** Geen keus op starttijd of volgorde van de events: niets zegt
+hoe WTRL de teams over de genummerde events verdeelt. Geen eigen bewaarde
+"vermoedelijke divisie" uit een vorige ronde: na de TTT deelt WTRL opnieuw in.
+
+**Gecontroleerd.** `tsc`, ESLint, `tests/unit/zrl-event-link.test.ts` (nieuwe
+cases voor de vorm zonder nummer, de startlijst als beslisser, een nummer dat
+voorgaat en de eventnaam van ronde 2) en `tests/unit/wtrl-roster.test.ts`. De
+volledige unit-run: alles groen behalve `omnium-live` (geen `.env.local` in de
+worktree) en één time-out in `admin-areas` die los wel slaagt. **Niet
+geverifieerd:** de koppeling in de uurlijkse cron op productie; die is na de
+deploy te zien in `zrlLinks.linked`. Teams met meer kandidaten koppelen pas
+na de eerste eigen inschrijving via de racepass, mogelijk pas op de racedag.
 
 ### Hersteld — Lid verwijderen uit een hoofdteam haalt hem ook uit de subteams
 
