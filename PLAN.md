@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-13)
+## Actieve volgorde (bijgewerkt 2026-11-16)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -30,6 +30,15 @@ gaat stabiliteit voor nieuwe features.
    geen `.env.local` in de worktree), het toetsscript draaien op de echte
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
+
+0. **Weekregel in de schemakalender en verwachte CTL op Belasting
+   (2026-11-16): op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push").**
+   Geen migratie. Uit de vergelijking met Xert "My Fitness" (eigenaar:
+   "Weekregel + verwachte CTL", voorstel akkoord: "Ja, bouwen"). Lokaal in de
+   browser bekeken op de data van de eigenaar, ook op telefoonbreedte. Open: na
+   de deploy op de live site bekijken, en de trainerkaart "CTL doel" bij een
+   lid met een lopend schema. Zie de ronde "Weekregel in de schemakalender en
+   verwachte CTL op Belasting".
 
 0. **ZRL-koppeling in de TTT-week, zonder divisienummer (2026-11-16): gepusht
    naar `main` (eigenaar: "Ja, push").** Geen migratie. Alle teamraces van ronde 2 bleven
@@ -3570,7 +3579,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - Fitheid: met intervals-koppeling de wellness van intervals (die telt ook ritten
 >   zonder meter op hartslag), anders zelf gerekend uit de eigen TSS (EWMA 42/7,
 >   `fitnessFromTss`). `projectCtl` is niet hergebruikt: die geeft alleen de
->   eindwaarde, hier is de reeks nodig.
+>   eindwaarde, hier is de reeks nodig. (`projectCtl` is op 2026-11-16 vervangen
+>   door `projectLoad`, die wel een reeks geeft.)
 > - Nieuwe gedeelde grafiek `src/components/charts/period-chart.tsx` (staven,
 >   gestapeld, lijnen, trappen, optionele rechteras), op `ResponsiveChart`. De
 >   marges volgen de langste aslabel.
@@ -12400,6 +12410,80 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Weekregel in de schemakalender en verwachte CTL op Belasting
+
+**2026-11-16.** Commit "ZWBeter worden: weekregel in de kalender en verwachte
+CTL", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.
+
+**Waarom.** De eigenaar vroeg om Xert "My Fitness" (xertonline.com, eigen
+account) te vergelijken met ZWBeter worden. Inhoudelijk heeft ZWB bijna alles
+(FTP-bron, CP/W′, CTL/ATL/Form, readiness, schema-engine, doelen), maar twee
+dingen die Xert wel toont ontbraken: per week gereden tegenover gepland, en
+waar de fitheid uitkomt als je het schema rijdt. De eigenaar koos die twee uit
+vier voorstellen; de andere twee (melding bij een nieuw vermogensrecord,
+belasting naar intensiteit uit `zone-times`) zijn niet gebouwd en horen als idee
+in het plannenboek.
+
+**Wat.**
+- `src/lib/training/week-stats.ts`: `weekStats` telt per week (op maandag)
+  rijtijd en TSS van de ritten, de duur en geschatte TSS van de geplande
+  trainingen, en de CTL-wijziging (`ctlChangeFor`, nu geëxporteerd uit
+  `ride-metrics.ts`, net als `mondayOf`). `weekStatLabel` maakt er een lange en
+  een korte tekst van: "4:10 / 5:30 u · TSS 260 / 340 · CTL +2,1" en op een
+  telefoon "4:10/5:30 u · 260/340". Een komende week toont "Gepland …", een
+  voorbije week zonder planning alleen het gereden deel.
+- Gereden telt zoals de weektabel op Belasting: `rideLoadRows` over alle ritten
+  uit het venster van 120 dagen, ook losgekoppelde ritten en stukken van een
+  hoofdrit (`loadScheduleRides` geeft die nu mee als `loads`). Gepland: elke
+  ZWB-training behalve `skipped`, met `estimateTrainingLoad`; een event dat het
+  lid zelf in intervals.icu zette telt alleen met zijn duur.
+- Weken vóór het rittenvenster krijgen geen regel: anders stond er een planning
+  tegenover nul gereden, alleen omdat de ritten niet zijn opgehaald.
+- De schemapagina haalt in de maandweergave 120 dagen wellness op voor de
+  CTL-wijziging, parallel met de events (geen extra wachttijd). De
+  trainerkalender (`calendar-editor.tsx`) krijgt de regel niet; die prop is
+  optioneel.
+- `src/lib/training/load-projection.ts`: `projectLoad` rekent vanaf de stand
+  van vandaag dag voor dag CTL (1/42), ATL (1/7) en Form door; een dag zonder
+  training telt als 0. Een open training van vandaag komt bovenop de stand van
+  vandaag; trainingen uit het verleden tellen niet.
+- Belasting: `loadPlannedLoads` (in `_data.ts`) haalt de open trainingen tot 42
+  dagen vooruit, zonder schema's die voor het lid verborgen zijn. De grafiek
+  "Load en Form" loopt dan als stippellijn zes weken door, met de geplande TSS
+  als lichtere staven; onder Fitness (CTL) staat "Over 6 wk …". Zonder open
+  training geen stippellijn.
+- Uitleg op `/hulp/schema#weekregel` en bij Form op `/hulp/training`.
+
+**Fout hersteld.** `projectCtl` (trainerpagina, kaart "CTL doel") sloeg
+rustdagen over en telde de trainingen uit het verleden van het lopende schema
+opnieuw op de CTL van vandaag. Daardoor lag de verwachting te hoog. De
+trainerpagina gebruikt nu `projectLoad` tot de laatste open training van het
+schema; `projectCtl` is verwijderd. Trainers zien dus een lager getal dan
+voorheen.
+
+**Bewust niet.**
+- Geen TSS-schatting uit de duur voor events die het lid zelf in intervals.icu
+  zette: zonder blokken zou dat de lijn vertekenen.
+- Geen Xert-model met drie soorten belasting (laag/hoog/piek, XSS): dat model
+  is niet openbaar en botst met de CTL van intervals.icu die het lid elders ziet.
+- Geen dagdoel uit de beschikbaarheid zoals Xert: beschikbaarheid is geen doel,
+  de belasting volgt uit de CTL.
+- Geen weekfocus ("Weekly Focus") in de regel: één regel per week moet op een
+  telefoon passen.
+
+**Gecontroleerd.** `tsc`, ESLint op alle gewijzigde bestanden, nieuwe tests
+`tests/unit/week-stats.test.ts` en `tests/unit/load-projection.test.ts`, plus
+`ride-metrics`, `calendar`, `help-categories` en `help-anchors`. De volledige
+unit-run: alles groen behalve tests die een database of `.env.local` nodig
+hebben (`omnium-live`, time-outs in `modules`, `zrl-umbrella-restore` en
+`admin-areas`); die raken deze wijziging niet. Lokaal in de browser bekeken
+(`.env.local` uit de hoofdmap gekopieerd) op de data van de eigenaar: de
+weekregel van 9 november (3:10 u, TSS 245) en 2 november (TSS 581) is gelijk aan
+de weektabel op Belasting; op 375 px breed past de korte vorm zonder afkappen
+en schuift de pagina niet zijwaarts; de stippellijn loopt tot eind december,
+"Over 6 wk 78,7" bij CTL 62,7. **Niet geverifieerd:** de trainerkaart "CTL
+doel" met de nieuwe berekening (geen lid met trainer bekeken).
 
 ### Hersteld — ZRL-koppeling in de TTT-week, zonder divisienummer
 
@@ -40269,7 +40353,7 @@ kwadratisch hetzelfde antwoord geven.
 
 De schade zat niet alleen in het label. `publish.ts` stuurt deze schatting als
 geplande belasting naar intervals.icu, `projectCtl` op de trainerpagina voedt er
-de CTL-projectie mee, en `avgLoadPct` gaat mee in de AI-prompt — waar de regel
+de CTL-projectie mee (sinds 2026-11-16 `projectLoad`), en `avgLoadPct` gaat mee in de AI-prompt — waar de regel
 "structureel te zwaar zónder hoge RPE betekent dat het schema te voorzichtig is,
 verhoog duur en volume" precies verkeerd om vuurde voor ieder lid dat zijn
 drempel- en VO2max-sessies netjes reed.
@@ -42051,7 +42135,7 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
   waardevol, maar het past niet in de fietspijplijn: geen wattages dus geen
   intervals.icu-publicatie en geen FIT-download, de duur telt via
   `estimateTrainingLoad` ten onrechte mee als fietsbelasting (en dus in
-  `projectCtl`), en compliance matcht alleen Strava-**ritten** — waardoor een
+  `projectCtl`, sinds 2026-11-16 `projectLoad`), en compliance matcht alleen Strava-**ritten** — waardoor een
   keurig uitgevoerde mobiliteitssessie altijd `niet_gereden` scoort en de
   AI-prompt die dag daarna juist lichter gaat plannen. Per direct is off-bike
   werk uit `defaultTrainingPrompt()` verbannen. Een echte inbouw vraagt om:

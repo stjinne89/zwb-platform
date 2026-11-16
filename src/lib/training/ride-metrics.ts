@@ -237,7 +237,7 @@ type WeeklyLoadInput = {
 /** Eén dag CTL, zoals toTrainingLoadPoints hem oplevert. */
 export type WeeklyCtlPoint = { date: string; ctl: number | null };
 
-function mondayOf(dateKey: string) {
+export function mondayOf(dateKey: string) {
   const date = new Date(`${dateKey}T12:00:00Z`);
   const offset = (date.getUTCDay() + 6) % 7;
   date.setUTCDate(date.getUTCDate() - offset);
@@ -254,7 +254,7 @@ function addDays(dateKey: string, days: number) {
  * CTL-groei over een week: de laatste waarde binnen de week min de laatste
  * waarde ervoor. Zonder waarde vóór de week valt er niets te vergelijken.
  */
-function ctlChangeFor(weekStart: string, points: WeeklyCtlPoint[]) {
+export function ctlChangeFor(weekStart: string, points: WeeklyCtlPoint[]) {
   const weekEnd = addDays(weekStart, 6);
   let before: number | null = null;
   let inside: number | null = null;

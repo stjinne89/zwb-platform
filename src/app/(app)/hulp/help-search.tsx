@@ -210,6 +210,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "kleur kleuren zone zones zwift grijs blauw groen geel oranje rood blok balk ftp vermogensmeter",
   },
   {
+    title: "De regel onder elke week",
+    text: "Gereden tegenover gepland, in rijtijd en TSS, per week in de maandkalender.",
+    href: "/hulp/schema#weekregel",
+    terms: "week weekregel weektotaal uren tss gepland gereden maand kalender ctl ramp",
+  },
+  {
     title: "Namen van trainingen",
     text: "Rustige en intensieve duur, tempo en sweet spot.",
     href: "/hulp/schema#trainingsvormen",

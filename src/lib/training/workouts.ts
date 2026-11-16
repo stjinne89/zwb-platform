@@ -1143,12 +1143,3 @@ function normalizedFactor(perSecond: number[]): number {
   }
   return (fourthSum / (perSecond.length - NP_WINDOW_SECONDS + 1)) ** 0.25;
 }
-
-export function projectCtl(initialCtl: number | null | undefined, dailyLoads: Array<{ date: string; load: number }>) {
-  if (initialCtl === null || initialCtl === undefined || !Number.isFinite(initialCtl)) return null;
-  let ctl = Number(initialCtl);
-  for (const day of dailyLoads.sort((a, b) => a.date.localeCompare(b.date))) {
-    ctl += (Number(day.load || 0) - ctl) / 42;
-  }
-  return Math.round(ctl * 10) / 10;
-}

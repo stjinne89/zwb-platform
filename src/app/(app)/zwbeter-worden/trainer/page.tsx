@@ -9,13 +9,13 @@ import { EmptyState } from "@/components/app-ui";
 import { PowerWeight } from "@/components/power-unit";
 import { StravaAttribution, ViewOnStrava } from "@/components/strava-brand";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
+import { projectLoad } from "@/lib/training/load-projection";
 import type { WellnessDevice } from "@/lib/training/wellness";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
 import {
   estimateTrainingLoad,
   normalizeWorkoutBlocks,
   plannedWorkoutIntensity,
-  projectCtl,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { MetricCard } from "../_components/ui";
@@ -126,21 +126,41 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
     .slice(0, 5);
   const upcomingEvents = upcomingIntervalsEvents(intervals.events, 5);
 
-  // CTL-projectie over het schema dat nu loopt.
+  // Verwachte CTL aan het eind van het schema dat nu loopt: vanaf de stand van
+  // vandaag, met alleen de trainingen die nog open staan, en rustdagen als 0.
   const activePlan = plans.find((plan) => plan.status !== "archived");
   const athleteFtp = athlete?.ftp_watts == null ? null : Number(athlete.ftp_watts);
-  const ctlProjection = projectCtl(
-    status.ctl ?? undefined,
-    workouts
-      .filter((workout) => workout.plan_id === activePlan?.id)
-      .map((workout) => ({
-        date: workout.scheduled_at.slice(0, 10),
-        load: estimateTrainingLoad(
-          normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity),
-          athleteFtp,
-        ),
-      })),
+  const todayKey = todayKeyAmsterdam();
+  const loadPoints = toTrainingLoadPoints(intervals.wellness);
+  const todayPoint = loadPoints.find((point) => point.date === todayKey);
+  const openPlanned = workouts
+    .filter(
+      (workout) =>
+        workout.plan_id === activePlan?.id &&
+        workout.status === "planned" &&
+        workout.scheduled_at.slice(0, 10) >= todayKey,
+    )
+    .map((workout) => ({
+      date: workout.scheduled_at.slice(0, 10),
+      load: estimateTrainingLoad(
+        normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity),
+        athleteFtp,
+      ),
+    }));
+  const planEnd = openPlanned.reduce<string | null>(
+    (last, item) => (last == null || item.date > last ? item.date : last),
+    null,
   );
+  const ctlProjection =
+    planEnd && todayPoint
+      ? (projectLoad({
+          today: todayKey,
+          ctl: todayPoint.ctl,
+          atl: todayPoint.atl,
+          planned: openPlanned,
+          until: planEnd,
+        })?.at(-1)?.ctl ?? null)
+      : null;
 
   return (
     <PowerWeight
@@ -149,7 +169,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
     >
       <div className="space-y-4">
         <AthleteLoadPanel
-          loadPoints={toTrainingLoadPoints(intervals.wellness)}
+          loadPoints={loadPoints}
           ctl={status.ctl}
           tsb={status.tsb}
           eftp={status.eftp}
@@ -160,7 +180,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
             summary: status.recoverySummary,
           }}
           sex={athlete?.sex}
-          todayKey={todayKeyAmsterdam()}
+          todayKey={todayKey}
           fetchError={intervals.fetchError}
         />
 

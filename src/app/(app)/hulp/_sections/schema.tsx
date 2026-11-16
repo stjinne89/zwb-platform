@@ -640,6 +640,23 @@ export function SchemaHelp() {
             </p>
           </article>
           <article
+            id="weekregel"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">De regel onder elke week</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Onder elke week in de maandkalender staat wat je reed tegenover
+              wat er gepland stond: eerst de rijtijd, dan de TSS, bijvoorbeeld
+              &quot;4:10 / 5:30 u · TSS 260 / 340&quot;. De gereden TSS telt
+              zoals de weektabel op Belasting; de geplande is een schatting uit
+              de blokken van je trainingen. Een overgeslagen training telt niet
+              als gepland, en van een training die je zelf in intervals.icu
+              zette telt alleen de duur. CTL +2,1 is hoeveel je fitheid die week
+              steeg, als je intervals.icu hebt gekoppeld. Een week die nog moet
+              komen toont alleen de planning.
+            </p>
+          </article>
+          <article
             id="trainingsvormen"
             className="scroll-mt-20 rounded-md border bg-background p-4"
           >

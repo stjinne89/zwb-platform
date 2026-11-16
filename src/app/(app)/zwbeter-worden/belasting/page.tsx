@@ -10,6 +10,8 @@ import {
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
 import { loadFtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis } from "@/lib/training/hr-load";
+import { PROJECTION_DAYS, projectLoad } from "@/lib/training/load-projection";
+import { shiftDays } from "@/lib/training/season";
 import { ActivityLoadPanel } from "../_components/activity-load-panel";
 import { DataFreshness } from "../_components/data-freshness";
 import { TrainingLoadMetrics } from "../_components/training-load-chart";
@@ -17,6 +19,7 @@ import {
   lastWellnessDayOf,
   loadConnection,
   loadIntervalsSnapshot,
+  loadPlannedLoads,
   loadProfile,
   requireViewer,
   todayKeyAmsterdam,
@@ -36,7 +39,9 @@ export default async function ZwbeterWordenLoadPage() {
   since.setDate(since.getDate() - 120);
 
   const currentFtp = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
-  const [snapshot, { data: rideRows }, { data: lastStravaSync }, ftpAt, hrBasis] = await Promise.all([
+  const today = todayKeyAmsterdam();
+  const projectionEnd = shiftDays(today, PROJECTION_DAYS);
+  const [snapshot, { data: rideRows }, { data: lastStravaSync }, ftpAt, hrBasis, plannedLoads] = await Promise.all([
     loadIntervalsSnapshot(viewer, conn, { wellnessDays: 730 }),
     viewer.supabase
       .from("strava_activities")
@@ -54,6 +59,7 @@ export default async function ZwbeterWordenLoadPage() {
       .maybeSingle(),
     loadFtpAt(viewer.supabase, viewer.user.id, currentFtp),
     loadHrBasis(viewer.supabase, viewer.user.id),
+    loadPlannedLoads(viewer, today, projectionEnd, currentFtp).catch(() => []),
   ]);
   const subjective = await loadSubjectiveRecovery(viewer.supabase, viewer.user.id, {
     includeSymptoms: true,
@@ -65,6 +71,18 @@ export default async function ZwbeterWordenLoadPage() {
   const loadPoints = toTrainingLoadPoints(snapshot.wellness);
   const zwbStatus = zwbStatusFor(snapshot.wellness, conn, profile, subjective);
   const lastWellnessDay = lastWellnessDayOf(snapshot.wellness);
+  // Zonder geplande training geen stippellijn: alleen afbouw is geen verwachting.
+  const todayPoint = loadPoints.find((point) => point.date === today);
+  const projection =
+    plannedLoads.length > 0 && todayPoint
+      ? projectLoad({
+          today,
+          ctl: todayPoint.ctl,
+          atl: todayPoint.atl,
+          planned: plannedLoads,
+          until: projectionEnd,
+        })
+      : null;
 
   return (
     <div className="space-y-4">
@@ -98,9 +116,10 @@ export default async function ZwbeterWordenLoadPage() {
         points={loadPoints}
         ctl={zwbStatus.ctl}
         tsb={zwbStatus.tsb}
-        today={todayKeyAmsterdam()}
+        today={today}
         panelClassName="rounded-lg border bg-card p-4"
         idSuffix="belasting"
+        projection={projection}
       />
 
       <section className="rounded-lg border bg-card">

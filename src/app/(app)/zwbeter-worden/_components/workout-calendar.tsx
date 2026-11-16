@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { monthGrid, monthLabel, shiftMonth, WEEKDAY_LABELS } from "@/lib/calendar/month";
 import { INTENSITY_COLORS, INTENSITY_LABELS, type WorkoutIntensity } from "@/lib/training/workouts";
 import { METHOD_LABEL_TEXT, methodLabelOf } from "@/lib/training/method-label";
+import { weekStatLabel, type WeekStat } from "@/lib/training/week-stats";
 import { cn } from "@/lib/utils";
 
 export type CalendarWorkout = {
@@ -73,10 +74,13 @@ export function WorkoutCalendar({
   onSelect,
   selectedId,
   markers = [],
+  weekStats,
 }: {
   workouts: CalendarWorkout[];
   todayKey: string;
   markers?: CalendarMarker[];
+  /** Zonder dit geen weekregel; zie weekStats(). */
+  weekStats?: Record<string, WeekStat>;
   /** Meegeven maakt de blokjes aanklikbaar; zonder dit is de maand alleen kijken. */
   onSelect?: (workoutId: string) => void;
   selectedId?: string | null;
@@ -128,79 +132,101 @@ export function WorkoutCalendar({
         ))}
       </div>
 
-      <div className="mt-1 grid grid-cols-7 gap-1">
-        {cells.map((cell) => {
-          const dayWorkouts = byDate.get(cell.dateKey) ?? [];
-          const dayNumber = Number(cell.dateKey.slice(8, 10));
+      <div className="mt-1 space-y-1">
+        {weeksOf(cells).map((week) => {
+          const label = weekStats ? weekStatLabel(weekStats[week[0].dateKey], todayKey) : null;
           return (
-            <div
-              key={cell.dateKey}
-              className={cn(
-                "min-h-16 rounded-md border p-1 text-left",
-                cell.inMonth ? "bg-background" : "bg-muted/30 text-muted-foreground",
-                cell.dateKey === todayKey && "border-primary",
-              )}
-            >
-              <span className="text-xs tabular-nums">{dayNumber}</span>
-              {markersByDate.has(cell.dateKey) ? (
-                <span
-                  title={markersByDate.get(cell.dateKey)!.join(", ")}
-                  className="ml-1 inline-block size-1.5 rounded-full bg-primary align-middle sm:ml-0 sm:block sm:size-auto sm:truncate sm:rounded-none sm:bg-transparent sm:text-[10px] sm:leading-tight sm:text-primary"
-                >
-                  <span className="sr-only sm:not-sr-only">{markersByDate.get(cell.dateKey)!.join(", ")}</span>
-                </span>
-              ) : null}
-              {/* Een maandcel is op een telefoon ~40px breed: daar past geen
-                  titel in, ook niet afgekapt. Dan tonen we een gekleurde balk
-                  per workout en pas vanaf sm de titel zelf. */}
-              <div className="mt-1 space-y-0.5">
-                {dayWorkouts.map((workout) => {
-                  // Een gereden rit stond niet in het schema, dus krijgt hij
-                  // niet het volle vlak van een geplande training: gestippeld
-                  // en doorzichtig, in de kleur van de zone waarin hij viel.
-                  // Een concepttraining krijgt dezelfde lichte vorm: hij staat er
-                  // nog niet echt.
-                  const ridden = workout.source === "rit" || Boolean(workout.concept);
-                  const className = cn(
-                    "block w-full rounded-full text-left sm:h-auto sm:truncate sm:rounded sm:px-1 sm:py-0.5 sm:text-xs sm:leading-tight",
-                    // Aanklikbaar wil op een telefoon een grotere raakvlek dan
-                    // het streepje van de leesweergave.
-                    onSelect ? "h-4 cursor-pointer transition hover:opacity-80" : "h-1.5",
-                    ridden && "border border-dashed",
-                    workout.skipped && "opacity-60 sm:line-through",
-                    workout.missed && "opacity-35",
-                    selectedId === workout.id && "ring-2 ring-foreground ring-offset-1",
-                  );
-                  const color = colorFor(workout);
-                  const style = !color
-                    ? { backgroundColor: "transparent", borderColor: "var(--muted-foreground)" }
-                    : ridden
-                      ? { backgroundColor: `${color}33`, borderColor: color }
-                      : { backgroundColor: color };
-                  return onSelect ? (
-                    <button
-                      key={workout.id}
-                      type="button"
-                      title={labelFor(workout)}
-                      aria-label={labelFor(workout)}
-                      aria-pressed={selectedId === workout.id}
-                      onClick={() => onSelect(workout.id)}
-                      className={className}
-                      style={style}
+            <div key={week[0].dateKey}>
+              <div className="grid grid-cols-7 gap-1">
+                {week.map((cell) => {
+                  const dayWorkouts = byDate.get(cell.dateKey) ?? [];
+                  const dayNumber = Number(cell.dateKey.slice(8, 10));
+                  return (
+                    <div
+                      key={cell.dateKey}
+                      className={cn(
+                        "min-h-16 rounded-md border p-1 text-left",
+                        cell.inMonth ? "bg-background" : "bg-muted/30 text-muted-foreground",
+                        cell.dateKey === todayKey && "border-primary",
+                      )}
                     >
-                      <span className="hidden sm:inline">{workout.title}</span>
-                    </button>
-                  ) : (
-                    <span key={workout.id} title={labelFor(workout)} className={className} style={style}>
-                      <span className="hidden sm:inline">{workout.title}</span>
-                    </span>
+                      <span className="text-xs tabular-nums">{dayNumber}</span>
+                      {markersByDate.has(cell.dateKey) ? (
+                        <span
+                          title={markersByDate.get(cell.dateKey)!.join(", ")}
+                          className="ml-1 inline-block size-1.5 rounded-full bg-primary align-middle sm:ml-0 sm:block sm:size-auto sm:truncate sm:rounded-none sm:bg-transparent sm:text-[10px] sm:leading-tight sm:text-primary"
+                        >
+                          <span className="sr-only sm:not-sr-only">{markersByDate.get(cell.dateKey)!.join(", ")}</span>
+                        </span>
+                      ) : null}
+                      {/* Een maandcel is op een telefoon ~40px breed: daar past geen
+                          titel in, ook niet afgekapt. Dan tonen we een gekleurde balk
+                          per workout en pas vanaf sm de titel zelf. */}
+                      <div className="mt-1 space-y-0.5">
+                        {dayWorkouts.map((workout) => {
+                          // Een gereden rit stond niet in het schema, dus krijgt hij
+                          // niet het volle vlak van een geplande training: gestippeld
+                          // en doorzichtig, in de kleur van de zone waarin hij viel.
+                          // Een concepttraining krijgt dezelfde lichte vorm: hij staat er
+                          // nog niet echt.
+                          const ridden = workout.source === "rit" || Boolean(workout.concept);
+                          const className = cn(
+                            "block w-full rounded-full text-left sm:h-auto sm:truncate sm:rounded sm:px-1 sm:py-0.5 sm:text-xs sm:leading-tight",
+                            // Aanklikbaar wil op een telefoon een grotere raakvlek dan
+                            // het streepje van de leesweergave.
+                            onSelect ? "h-4 cursor-pointer transition hover:opacity-80" : "h-1.5",
+                            ridden && "border border-dashed",
+                            workout.skipped && "opacity-60 sm:line-through",
+                            workout.missed && "opacity-35",
+                            selectedId === workout.id && "ring-2 ring-foreground ring-offset-1",
+                          );
+                          const color = colorFor(workout);
+                          const style = !color
+                            ? { backgroundColor: "transparent", borderColor: "var(--muted-foreground)" }
+                            : ridden
+                              ? { backgroundColor: `${color}33`, borderColor: color }
+                              : { backgroundColor: color };
+                          return onSelect ? (
+                            <button
+                              key={workout.id}
+                              type="button"
+                              title={labelFor(workout)}
+                              aria-label={labelFor(workout)}
+                              aria-pressed={selectedId === workout.id}
+                              onClick={() => onSelect(workout.id)}
+                              className={className}
+                              style={style}
+                            >
+                              <span className="hidden sm:inline">{workout.title}</span>
+                            </button>
+                          ) : (
+                            <span key={workout.id} title={labelFor(workout)} className={className} style={style}>
+                              <span className="hidden sm:inline">{workout.title}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
+              {label ? (
+                <p className="mt-0.5 truncate px-1 text-[11px] tabular-nums text-muted-foreground">
+                  <span className="sm:hidden">{label.short}</span>
+                  <span className="hidden sm:inline">{label.long}</span>
+                </p>
+              ) : null}
             </div>
           );
         })}
       </div>
     </div>
   );
+}
+
+/** De cellen van monthGrid in weken van maandag tot zondag. */
+function weeksOf<T>(cells: T[]): T[][] {
+  const weeks: T[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
 }

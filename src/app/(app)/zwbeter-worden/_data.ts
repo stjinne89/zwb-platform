@@ -56,10 +56,20 @@ import {
 } from "@/lib/training/wellness";
 import { loadFtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis } from "@/lib/training/hr-load";
-import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
+import {
+  estimateTrainingLoad,
+  normalizeWorkoutBlocks,
+  type WorkoutIntensity,
+} from "@/lib/training/workouts";
+import type { PlannedLoad } from "@/lib/training/load-projection";
 import { duplicateRideIds } from "@/lib/rides/same-ride";
 import { MANUAL_IMPORT_SOURCE } from "@/lib/strava/import";
-import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-metrics";
+import {
+  rideLoadRows,
+  STRAVA_RIDE_COLUMNS,
+  type RideLoad,
+  type StravaRideRow,
+} from "@/lib/training/ride-metrics";
 import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
 import { loadRideRpe } from "@/lib/training/ride-rpe";
 import { withRideParts } from "@/lib/training/ride-parts";
@@ -347,6 +357,43 @@ export async function loadMemberWorkouts(
   ).sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
 }
 
+/**
+ * Geschatte TSS van de trainingen die nog open staan, van vandaag tot en met
+ * `until`, voor de verwachte CTL. Een schema dat het lid niet ziet telt niet mee.
+ * Een fout geeft een lege lijst: dan valt alleen de stippellijn weg.
+ */
+export async function loadPlannedLoads(
+  viewer: Viewer,
+  today: string,
+  until: string,
+  ftpWatts: number | null,
+): Promise<PlannedLoad[]> {
+  const [{ data, error }, hiddenIds] = await Promise.all([
+    viewer.supabase
+      .from("training_workouts")
+      .select("plan_id, scheduled_at, intensity, structure_json")
+      .is("superseded_at", null)
+      .eq("profile_id", viewer.user.id)
+      .eq("status", "planned")
+      // Een dag ruimte aan beide kanten; de datumsleutel beslist hieronder.
+      .gte("scheduled_at", `${shiftDays(today, -1)}T00:00:00Z`)
+      .lte("scheduled_at", `${shiftDays(until, 1)}T23:59:59Z`)
+      .limit(200),
+    memberHiddenPlanIds(viewer.supabase, [viewer.user.id]),
+  ]);
+  if (error) return [];
+  return ((data ?? []) as Array<Pick<WorkoutRow, "plan_id" | "scheduled_at" | "intensity" | "structure_json">>)
+    .filter((row) => !hiddenIds.has(row.plan_id))
+    .map((row) => ({
+      date: String(row.scheduled_at).slice(0, 10),
+      load: estimateTrainingLoad(
+        normalizeWorkoutBlocks(row.structure_json, row.intensity as WorkoutIntensity),
+        ftpWatts,
+      ),
+    }))
+    .filter((item) => item.date >= today && item.date <= until);
+}
+
 export type ScheduleRide = {
   dateKey: string;
   name: string;
@@ -377,6 +424,11 @@ export type ScheduleRides = {
   deleted: Set<string>;
   /** RPE van de ongeplande ritten die er een hebben (0303), op Strava-id. */
   rpe: Map<string, number>;
+  /**
+   * Belasting van alle ritten uit het venster, geteld zoals op Belasting: ook
+   * een losgekoppelde rit of een stuk van een hoofdrit zat in de benen.
+   */
+  loads: RideLoad[];
 };
 
 /**
@@ -459,7 +511,7 @@ export async function loadScheduleRides(
     ]),
   );
   const deleted = await deletedPairedRides(db, profileId, reports, byId);
-  if (rides.length === 0) return { unplanned: [], byId, deleted, rpe: new Map() };
+  if (rides.length === 0) return { unplanned: [], byId, deleted, rpe: new Map(), loads: [] };
 
   const [ftpAt, hrBasis] = await Promise.all([
     loadFtpAt(db, profileId, ftpWatts),
@@ -488,7 +540,13 @@ export async function loadScheduleRides(
     profileId,
     unplanned.map((ride) => ride.id),
   );
-  return { unplanned, byId, deleted, rpe };
+  return {
+    unplanned,
+    byId,
+    deleted,
+    rpe,
+    loads: rideLoadRows((data ?? []) as StravaRideRow[], ftpAt, hrBasis),
+  };
 }
 
 /**

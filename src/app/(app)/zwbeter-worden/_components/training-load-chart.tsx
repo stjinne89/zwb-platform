@@ -11,6 +11,7 @@ import { defsId } from "@/lib/charts/ids";
 import { lineSegments } from "@/lib/charts/paths";
 import { zeroAlignedAxes } from "@/lib/charts/scale";
 import type { TrainingLoadPoint } from "@/lib/training/load-points";
+import type { ProjectedLoadPoint } from "@/lib/training/load-projection";
 
 export type { TrainingLoadPoint };
 
@@ -68,12 +69,15 @@ function MetricButton({
   icon: Icon,
   label,
   value,
+  sub,
   active,
   onClick,
 }: {
   icon: typeof Activity;
   label: string;
   value: string;
+  /** Kleine regel onder de waarde, zoals de verwachte CTL. */
+  sub?: string | null;
   active: boolean;
   onClick: () => void;
 }) {
@@ -91,6 +95,7 @@ function MetricButton({
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+          {sub ? <p className="text-xs text-muted-foreground tabular-nums">{sub}</p> : null}
         </div>
         <Icon className="size-5 text-primary" />
       </div>
@@ -105,11 +110,17 @@ export function TrainingLoadMetrics({
   today,
   panelClassName = "order-first col-span-2 rounded-lg border bg-card p-4 lg:col-span-5",
   idSuffix,
+  projection,
 }: {
   points: TrainingLoadPoint[];
   ctl: number | null | undefined;
   tsb: number | null | undefined;
   today: string;
+  /**
+   * Verwachte stand als het lid het schema rijdt (projectLoad), vanaf vandaag.
+   * Komt als stippellijn achter de gemeten lijnen.
+   */
+  projection?: ProjectedLoadPoint[] | null;
   /** Past het paneel in een ander raster, geef dan eigen span-klassen mee. */
   panelClassName?: string;
   /** Verplicht zodra dezelfde grafiek twee keer op één pagina staat. */
@@ -121,15 +132,43 @@ export function TrainingLoadMetrics({
   const series = useMemo(() => enrichPoints(points), [points]);
   const selectedRange = RANGES.find((item) => item.key === range) ?? RANGES[1];
   const todayMs = dateMs(today);
+  // Het eerste verwachte punt is vandaag zelf; daar staat de gemeten waarde al.
+  // De stippellijn vertrekt van die gemeten waarde.
+  const future = useMemo(
+    () =>
+      series.some((point) => point.date === today)
+        ? (projection ?? []).filter((point) => point.date > today)
+        : [],
+    [projection, series, today],
+  );
   const visible = useMemo(() => {
     const fallbackEnd = Math.max(...series.map((point) => dateMs(point.date)), 0);
     const end = todayMs || fallbackEnd;
     const start = end - (selectedRange.days - 1) * DAY_MS;
-    return series.filter((point) => {
-      const ms = dateMs(point.date);
-      return ms >= start && ms <= end;
-    });
-  }, [selectedRange.days, series, todayMs]);
+    const measured = series
+      .filter((point) => {
+        const ms = dateMs(point.date);
+        return ms >= start && ms <= end;
+      })
+      .map((point) => ({ ...point, projected: false }));
+    return [
+      ...measured,
+      ...future.map((point) => ({
+        date: point.date,
+        load: point.load,
+        ctl: point.ctl,
+        atl: point.atl,
+        tsb: point.tsb,
+        projected: true,
+      })),
+    ];
+  }, [future, selectedRange.days, series, todayMs]);
+  const projectedEnd = future.at(-1) ?? null;
+  // Gemeten tot en met vandaag; verwacht vanaf vandaag, zodat de lijnen aansluiten.
+  const measuredValue = (value: number | null, point: { projected: boolean }) =>
+    point.projected ? null : value;
+  const projectedValue = (value: number | null, point: { projected: boolean; date: string }) =>
+    point.projected || point.date === today ? value : null;
 
   const { index: hoverIndex, onPointerRatio } = useChartPointer(visible.length);
   const hasChart = visible.length >= 2;
@@ -312,45 +351,48 @@ export function TrainingLoadMetrics({
                             height={Math.max(0, zeroY - y)}
                             rx="1"
                             fill="var(--muted-foreground)"
-                            opacity="0.3"
+                            opacity={point.projected ? "0.15" : "0.3"}
                           />
                         );
                       })}
 
-                      {lineSegments(visible, (point) => point.ctl, xFor, yFor).map((path, index) => (
-                        <path
-                          key={`ctl-${index}`}
-                          d={path}
-                          fill="none"
-                          stroke="var(--chart-1)"
-                          strokeWidth={metrics.strokeWidth.primary}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      ))}
-                      {lineSegments(visible, (point) => point.atl, xFor, yFor).map((path, index) => (
-                        <path
-                          key={`atl-${index}`}
-                          d={path}
-                          fill="none"
-                          stroke="var(--chart-2)"
-                          strokeWidth={metrics.strokeWidth.secondary}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeOpacity="0.9"
-                        />
-                      ))}
-                      {lineSegments(visible, (point) => point.tsb, xFor, yFor).map((path, index) => (
-                        <path
-                          key={`tsb-${index}`}
-                          d={path}
-                          fill="none"
-                          stroke="var(--chart-3)"
-                          strokeWidth={metrics.strokeWidth.secondary}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      ))}
+                      {(
+                        [
+                          { key: "ctl", color: "var(--chart-1)", width: metrics.strokeWidth.primary, opacity: "1" },
+                          { key: "atl", color: "var(--chart-2)", width: metrics.strokeWidth.secondary, opacity: "0.9" },
+                          { key: "tsb", color: "var(--chart-3)", width: metrics.strokeWidth.secondary, opacity: "1" },
+                        ] as const
+                      ).flatMap((line) => [
+                        ...lineSegments(visible, (point) => measuredValue(point[line.key], point), xFor, yFor).map(
+                          (path, index) => (
+                            <path
+                              key={`${line.key}-${index}`}
+                              d={path}
+                              fill="none"
+                              stroke={line.color}
+                              strokeWidth={line.width}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeOpacity={line.opacity}
+                            />
+                          ),
+                        ),
+                        ...lineSegments(visible, (point) => projectedValue(point[line.key], point), xFor, yFor).map(
+                          (path, index) => (
+                            <path
+                              key={`${line.key}-verwacht-${index}`}
+                              d={path}
+                              fill="none"
+                              stroke={line.color}
+                              strokeWidth={line.width}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeOpacity={line.opacity}
+                              strokeDasharray="4 4"
+                            />
+                          ),
+                        ),
+                      ])}
 
                       {hoverPoint && hoverIndex != null && (
                         <g>
@@ -366,9 +408,17 @@ export function TrainingLoadMetrics({
                             x={xFor(hoverIndex)}
                             y={top + 4}
                             chartWidth={width}
-                            title={formatChartDate(hoverPoint.date)}
+                            title={
+                              hoverPoint.projected
+                                ? `${formatChartDate(hoverPoint.date)} · verwacht`
+                                : formatChartDate(hoverPoint.date)
+                            }
                             rows={[
-                              { label: "Load", value: formatMetric(hoverPoint.load, 0), color: "var(--muted-foreground)" },
+                              {
+                                label: hoverPoint.projected ? "Gepland" : "Load",
+                                value: formatMetric(hoverPoint.load, 0),
+                                color: "var(--muted-foreground)",
+                              },
                               { label: "CTL", value: formatMetric(hoverPoint.ctl), color: "var(--chart-1)" },
                               { label: "ATL", value: formatMetric(hoverPoint.atl), color: "var(--chart-2)" },
                               { label: "Form", value: formatMetric(hoverPoint.tsb), color: "var(--chart-3)" },
@@ -404,6 +454,12 @@ export function TrainingLoadMetrics({
               <span className="h-1 w-7 rounded bg-[var(--chart-3)]" />
               Form
             </span>
+            {future.length > 0 ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="w-7 border-t-2 border-dashed border-muted-foreground" />
+                Verwacht volgens schema
+              </span>
+            ) : null}
           </div>
         </div>
       )}
@@ -412,6 +468,7 @@ export function TrainingLoadMetrics({
         icon={TrendingUp}
         label="Fitness (CTL)"
         value={formatMetric(finite(ctl))}
+        sub={projectedEnd ? `Over ${Math.round(future.length / 7)} wk ${formatMetric(projectedEnd.ctl)}` : null}
         active={open}
         onClick={() => setOpen((value) => !value)}
       />

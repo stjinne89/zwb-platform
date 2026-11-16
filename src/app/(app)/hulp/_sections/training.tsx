@@ -95,6 +95,12 @@ export function TrainingHelp() {
               Het zegt niet rechtstreeks hoe je hebt geslapen of hoe je lichaam
               vandaag reageert.
             </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Staat er een schema, dan lopen CTL, ATL en Form op Belasting als
+              stippellijn zes weken door: waar ze uitkomen als je de geplande
+              trainingen rijdt, met de geschatte TSS per training en rustdagen
+              als nul. Rij je meer of minder, dan schuift de lijn mee.
+            </p>
           </article>
 
           <article className="rounded-md border bg-background p-4">

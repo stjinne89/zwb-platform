@@ -9,12 +9,16 @@ import { StravaAttribution } from "@/components/strava-brand";
 import { intervalsWeekUrl } from "@/lib/intervals/links";
 import {
   detectIntensityFromLoad,
+  estimateTrainingLoad,
   normalizeWorkoutBlocks,
   plannedWorkoutIntensity,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { currentPlanOf, groupByRoot } from "@/lib/training/plan-tree";
 import { zrlUpcomingSpecificityWarning } from "@/lib/training/specificity";
+import { toTrainingLoadPoints } from "@/lib/training/load-points";
+import { weekStats } from "@/lib/training/week-stats";
+import { mondayOf } from "@/lib/training/ride-metrics";
 import { settleOwnReplans } from "@/lib/training/replan";
 import { hiddenFromMember } from "@/lib/training/member-hidden-plans";
 import { AdaptationProposal } from "../_components/adaptation-proposal";
@@ -69,6 +73,7 @@ import {
   loadScheduleEventChoices,
   loadScheduleRides,
   loadZrlTeamMembership,
+  SCHEDULE_RIDE_DAYS,
   planUpdateDefaults,
   requireViewer,
   rideLinkFor,
@@ -112,7 +117,12 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     settleOwnReplans(createAdminClient(), user.id).catch(() => null),
   ]);
 
-  const snapshotPromise = loadIntervalsSnapshot(viewer, conn, { eventDays: 14 });
+  // De CTL-wijziging in de weekregel: alleen in de maandweergave, en even ver
+  // terug als de ritten. Loopt parallel met de events, dus geen extra wachttijd.
+  const snapshotPromise = loadIntervalsSnapshot(viewer, conn, {
+    eventDays: 14,
+    wellnessDays: workoutView === "maand" ? SCHEDULE_RIDE_DAYS : 0,
+  });
   const plansPromise = loadPlanFamilies(viewer);
   const protocolRunsPromise = loadActiveRuns(viewer.supabase, viewer.user.id);
   // Promise.resolve: een query van Supabase start bij elke `then`, en deze wordt
@@ -169,7 +179,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     warmupOptions,
     ownWorkoutOptions,
     memberWorkouts,
-    { unplanned: extraRides, byId: ridesById, deleted: deletedRides, rpe: rideRpe },
+    { unplanned: extraRides, byId: ridesById, deleted: deletedRides, rpe: rideRpe, loads: rideLoads },
     eventChoices,
     ridePlans,
   ] = await Promise.all([
@@ -361,6 +371,35 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     })),
   ];
 
+  // Gereden tegenover gepland per week, voor de regel onder elke week. Een
+  // overgeslagen training telt niet als gepland.
+  const ftpWatts = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
+  const calendarWeekStats =
+    workoutView === "maand"
+      ? weekStats({
+          rides: rideLoads,
+          planned: [
+            ...memberWorkouts
+              .filter((workout) => workout.status !== "skipped")
+              .map((workout) => ({
+                dateKey: String(workout.scheduled_at).slice(0, 10),
+                minutes: workout.duration_minutes,
+                load: estimateTrainingLoad(
+                  normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity),
+                  ftpWatts,
+                ),
+              })),
+            ...otherEvents.map((event) => ({
+              dateKey: String(event.start_date_local).slice(0, 10),
+              minutes: event.moving_time ? Math.round(event.moving_time / 60) : null,
+              load: null,
+            })),
+          ],
+          ctlPoints: toTrainingLoadPoints(snapshot.wellness),
+          from: shiftDays(mondayOf(shiftDays(todayKey, -SCHEDULE_RIDE_DAYS)), 7),
+        })
+      : undefined;
+
   return (
     <div className="space-y-4">
       {conn?.athlete_id ? (
@@ -411,6 +450,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             todayKey={todayKey}
             ftpWatts={profile?.ftp_watts}
             markers={protocolMarkers}
+            weekStats={calendarWeekStats}
           />
         ) : upcomingEvents.length === 0 && upcomingWorkouts.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Geen geplande workouts.</p>

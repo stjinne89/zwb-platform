@@ -25,6 +25,7 @@ import { formatDayMonth } from "./format";
 import type { WorkoutOutcome } from "./completed-workouts";
 import { WorkoutBlocks } from "./workout-blocks";
 import { MetricStat, WorkoutMetricsPanel } from "./workout-metrics-panel";
+import type { WeekStat } from "@/lib/training/week-stats";
 import { WorkoutCalendar, type CalendarMarker, type CalendarWorkout } from "./workout-calendar";
 import { WorkoutReportForm } from "./workout-report-form";
 import { TrainerFeedbackText } from "./trainer-feedback-text";
@@ -398,8 +399,11 @@ export function MemberWorkoutCalendar({
   todayKey,
   ftpWatts,
   markers = [],
+  weekStats,
 }: {
   items: MemberCalendarItem[];
+  /** Gereden tegenover gepland per week, op de maandag van de week. */
+  weekStats?: Record<string, WeekStat>;
   /** Protocoldagen, zoals een hitteblok of een wedstrijdsupplement. */
   markers?: CalendarMarker[];
   todayKey: string;
@@ -429,6 +433,7 @@ export function MemberWorkoutCalendar({
         onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
         selectedId={selectedId}
         markers={markers}
+        weekStats={weekStats}
       />
       <div className="border-t p-4">
         {selected ? (

@@ -117,6 +117,7 @@ export const HELP_CATEGORIES = [
       "jaarplan",
       "ftp-test",
       "zonekleuren",
+      "weekregel",
       "trainingsvormen",
       "warming-up",
       "rit-koppelen",
