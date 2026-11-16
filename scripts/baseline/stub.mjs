@@ -21,6 +21,8 @@ const SUPABASE_STUB = `
 create role anon nologin;
 create role authenticated nologin;
 create role service_role nologin bypassrls;
+-- PostgREST logt in als authenticator; 0334 zet daar db_pre_request op.
+create role authenticator noinherit;
 create schema auth;
 create schema storage;
 create schema extensions;

@@ -197,7 +197,7 @@ export default async function TeamDetailPage({
       .order("round_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
     getRequestAccess(),
-    supabase.from("profiles").select("id, display_name").order("display_name"),
+    supabase.from("profiles").select("id, display_name").eq("is_test", false).order("display_name"),
     supabase
       .from("roster_entries")
       .select("id, name, pace_category, zwift_id, team_id")

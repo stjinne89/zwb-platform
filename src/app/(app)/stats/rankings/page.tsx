@@ -30,6 +30,7 @@ import { StravaSyncButton } from "@/components/strava-sync-button";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { StatsTabs } from "../_components/stats-tabs";
 import { getClub } from "@/lib/club";
+import { onlyVisibleProfiles } from "@/lib/profiles/test-accounts";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -164,10 +165,15 @@ export default async function RankingsPage({
         .limit(12),
     ]);
 
+  // Testaccounts (0333): RLS verbergt hun profiel, dus ook hun aanmeldingen en live-ritten.
+  const [visibleRsvps, visibleLive] = await Promise.all([
+    onlyVisibleProfiles(supabase, rsvps),
+    onlyVisibleProfiles(supabase, (liveRows ?? []) as LiveRide[]),
+  ]);
   const rankings: Ranking[] = [
     ...weekRankings(rides, week),
     metronoom(rides),
-    clubmens(rsvps, (liveRows ?? []) as LiveRide[]),
+    clubmens(visibleRsvps, visibleLive),
     groeibriljant(briljantGrowth(snapshots, week)),
   ];
 

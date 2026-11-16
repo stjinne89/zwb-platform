@@ -28,7 +28,8 @@ export async function loadGame(): Promise<GameBootstrap> {
   const { member } = await requireGameMember();
   const admin = createAdminClient();
   const [members, entries, preferences, profiles, exclusions, curves] = await Promise.all([
-    admin.from("profiles").select("id, display_name, zwift_id, is_approved, ftp_watts, weight_kg"),
+    // Testaccounts (0333) alleen voor zichzelf.
+    admin.from("profiles").select("id, display_name, zwift_id, is_approved, ftp_watts, weight_kg").or(`is_test.eq.false,id.eq.${member.id}`),
     admin.from("roster_entries").select("id, name, zwift_id, claimed_by"),
     admin.from("zwbgame_preferences").select("profile_id, visible, data_consent_version, revision"),
     admin.from("zwbgame_riders").select("profile_id, consent_revision, attributes, expires_at"),

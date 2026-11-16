@@ -126,6 +126,7 @@ export const loadClubRaceResults = unstable_cache(
         .from("profiles")
         .select("id, display_name, zwift_id")
         .eq("is_approved", true)
+        .eq("is_test", false)
         .not("zwift_id", "is", null),
     ]);
     const members = new Map<string, Member>();

@@ -3,10 +3,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { mergeClubData, summarizeClubRides, type ClubData, type ClubRideRow } from "@/lib/stats/club";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { loadTestProfileIds, withoutTestProfiles } from "@/lib/profiles/test-accounts";
 
 // Data van /stats (Club). Alles via de service-rol en gedeeld tussen leden:
-// strava_activities en profiles zijn voor alle ingelogde leden leesbaar (RLS
-// `using (true)`), dus de cache toont niemand iets wat hij niet zelf mag zien.
+// strava_activities en profiles zijn voor alle ingelogde leden leesbaar (RLS),
+// dus de cache toont niemand iets wat hij niet zelf mag zien. Uitzondering:
+// testaccounts (0333); die vallen hier met de hand weg.
 // Functies draaien in Ohio en de database staat in Ierland; elke vraag is een
 // oversteek, en de database zit op het gratis plan. Daarom per jaar één
 // samenvatting (src/lib/stats/club.ts) in plaats van ritten per weergave.
@@ -16,6 +18,7 @@ const PAGE = 1000;
 /** Een kalenderjaar (UTC) aan ritten, samengevat. Elke rit valt in precies één jaar. */
 async function fetchClubYear(year: string): Promise<ClubData> {
   const admin = createAdminClient();
+  const testIds = await loadTestProfileIds(admin);
   const rows: ClubRideRow[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await admin
@@ -32,14 +35,14 @@ async function fetchClubYear(year: string): Promise<ClubData> {
     rows.push(...(data as ClubRideRow[]));
     if (data.length < PAGE) break;
   }
-  return summarizeClubRides(rows);
+  return summarizeClubRides(withoutTestProfiles(rows, testIds));
 }
 
 /** Een afgesloten jaar verandert nauwelijks: één keer per dag verversen. */
-const loadClosedYear = unstable_cache(fetchClubYear, ["club-stats-closed-year", "v2"], { revalidate: 24 * 60 * 60 });
+const loadClosedYear = unstable_cache(fetchClubYear, ["club-stats-closed-year", "v3"], { revalidate: 24 * 60 * 60 });
 
 /** Het lopende jaar elke tien minuten, zoals de clubpagina altijd deed. */
-const loadOpenYear = unstable_cache(fetchClubYear, ["club-stats-open-year", "v2"], { revalidate: 10 * 60 });
+const loadOpenYear = unstable_cache(fetchClubYear, ["club-stats-open-year", "v3"], { revalidate: 10 * 60 });
 
 export async function loadClubData(years: string[]): Promise<ClubData> {
   const current = amsterdamDayKey().slice(0, 4);
@@ -70,13 +73,13 @@ export type ClubProfile = { id: string; name: string; region: string | null };
 /** Namen en regio's voor de ranglijst en de regiotegel. */
 export const loadClubProfiles = unstable_cache(
   async (): Promise<ClubProfile[]> => {
-    const { data } = await createAdminClient().from("profiles").select("id, display_name, region");
+    const { data } = await createAdminClient().from("profiles").select("id, display_name, region").eq("is_test", false);
     return (data ?? []).map((row) => ({
       id: row.id as string,
       name: (row.display_name as string | null) ?? "Onbekend",
       region: (row.region as string | null) ?? null,
     }));
   },
-  ["club-stats-profiles", "v1"],
+  ["club-stats-profiles", "v2"],
   { revalidate: 10 * 60 },
 );

@@ -52,6 +52,17 @@ gaat stabiliteit voor nieuwe features.
    Zie de ronde
    "ZRL-teamindeling: zelf indelen, op een eigen pagina".
 
+0. **Test- en demo-account (2026-11-16): lokaal gecommit op
+   `claude/stjinne-martens-test-account-954d51`, niet gepusht.** Migraties
+   `0333_profile_is_test.sql` en `0334_profile_is_demo.sql`, nog niet op
+   productie. Volgorde: eerst 0333 en 0334 toepassen, dan pushen (de
+   ledenlijst en andere lijsten filteren op `is_test`; zonder 0333 faalt die
+   query en blijft de lijst leeg). Daarna het profiel voor de testlogin
+   aanmaken, en het demo-account zelf (de eigenaar maakt de login aan, met een
+   eigen wachtwoord). Open: hoe leden het demo-account binnenkomen, en in de
+   browser nagaan dat een schrijfactie als demo faalt. Zie de ronde
+   "Test- en demo-account".
+
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): gepusht
    naar `main` (`7540c7b5`, eigenaar: "Ja, push").** Migratie
    `0332_captain_availability.sql` is vóór de push via de connector op
@@ -12615,6 +12626,77 @@ na de eerste eigen inschrijving via de racepass, mogelijk pas op de racedag.
   geprobeerd: een lid met account verplaatsen (RSVP via `syncLineupRsvp`,
   dezelfde functie als bij de captain-selectie), en de weigering voor een
   captain van alleen een subteam.
+
+### Gebouwd — Test- en demo-account
+
+**2026-11-16, lokaal gecommit op `claude/stjinne-martens-test-account-954d51`, niet gepusht. Migraties `0333_profile_is_test.sql` en `0334_profile_is_demo.sql`, nog niet op productie toegepast.**
+
+- **Waarom.** De eigenaar wil met een tweede login de app zien zoals een gewoon
+  lid, zonder dat dat account tussen de leden staat. Daarnaast een demo-account
+  voor leden die inloggen en koppelen te moeilijk vinden, maar willen zien of
+  het de moeite waard is. Dat account ziet de echte clubdata en kan niets
+  veranderen. Geen verruiming van de privacyverklaring: het zijn leden
+  (besluit eigenaar, 2026-11-16).
+- **Uitgangspunt op productie.** De testlogin bestaat sinds 2026-05-20, maar
+  had geen profiel meer en er hing geen data aan (via de connector nagegaan).
+- **0333 — `profiles.is_test`.** De leesregel `profiles_select_authenticated`
+  wordt `not is_test or id = auth.uid()`: een testprofiel ziet alleen het
+  account zelf. Dat dekt elke lezing met het gewone client.
+  `bokaal_standings` (security definer) slaat testprofielen over.
+- **App, admin-client.** Het admin-client omzeilt RLS. Op de plekken die leden
+  aan anderen tonen staat daarom `.eq("is_test", false)`: ledenlijst, teams en
+  de teampagina, clubladder (laden en selectie), ZWBekers, ZWBgame (een
+  testaccount ziet zichzelf), clubresultaten. Clubtotalen en ranglijsten die
+  ritten tellen, filteren via `src/lib/profiles/test-accounts.ts`:
+  `/stats` (club), Rider of the month op het dashboard (ritten, aanmeldingen,
+  live), het ZWBriljant-gemiddelde, en `loadRides` in
+  `lib/achievements/awards.ts`, dus ook de weekbadges en ZWB Rankings. Met het
+  gewone client komen rijen van een verborgen profiel anders naamloos terug
+  ("Lid", "Onbekend"). Daarom houden de galerij van ZWBriljant, Groeibriljant
+  en de aanmeldingen en live-ritten in Rankings alleen rijen met een zichtbaar
+  profiel over (`onlyVisibleProfiles`). Cachesleutels zijn opgehoogd.
+- **0334 — `profiles.is_demo`, alleen kijken.** Een demo-account krijgt ook
+  `is_test`. Drie lagen:
+  1. PostgREST: `pgrst.db_pre_request = public.demo_read_only` op de rol
+     `authenticator`. Die zet de transactie van een demo-account op
+     alleen-lezen. Dat vangt tabellen én schrijvende RPC's, ook security
+     definer. Lezende RPC's blijven werken, ook via POST. Op productie
+     nagegaan met een update `where false`: `set_config('transaction_read_only',
+     'on', true)` blokkeert, maar binnen een exception-blok draait Postgres het
+     bij het verlaten terug. De functie zet het daarom buiten dat blok, en
+     heeft geen `set search_path`.
+  2. Storage: beperkende regels voor insert, update en delete op
+     `storage.objects`.
+  3. Middleware: voor een demo-account geeft elke methode behalve
+     GET/HEAD/OPTIONS een 403, net als `/api/strava/connect` en `callback`. Een
+     eigen vraag naar `is_demo`, zodat de goedkeuringscontrole niet meeleunt op
+     een kolom die zonder 0334 ontbreekt.
+- **Bewust niet.** Geen knop in beheer om een account test of demo te maken:
+  dat gaat met één SQL-regel, en het gaat om twee accounts. Geen uitzondering
+  voor beheerders: ook zij zien de accounts niet in de lijsten. Geen aparte
+  demo-omgeving met verzonnen data. Die was voorgesteld voor buitenstaanders,
+  maar de demo is voor leden.
+- **Niet afgedekt.** Wachtwoord of e-mail wijzigen rechtstreeks via de
+  Auth-API (alleen met de ontwikkeltools van de browser). Pagina's die tijdens
+  het laden met de service-rol iets voor de kijker zelf wegschrijven, werken
+  voor het demo-account nog. Een nieuwe admin-client-lijst moet het filter op
+  `is_test` zelf krijgen. Een nieuwe GET-route die koppelt, moet in
+  `DEMO_BLOCKED_PATHS`. Plekken op basis van een Zwift-ID (uitslagen, live)
+  zijn niet gefilterd: de accounts hebben er geen.
+- **Ook aangepast.** `scripts/baseline/stub.mjs` maakt de rol `authenticator`
+  aan, zoals Supabase. Tests: `achievement-week-awards.test.ts` (leden in de
+  nep-database, nieuwe test: een testaccount krijgt geen weekbadge en verliest
+  een eerdere), `zwbgame-server.test.ts` (`or` in de nep-client).
+- **Niet meer waar.** "profiles is voor alle ingelogde leden leesbaar (RLS
+  `using (true)`)" in `stats/_data.ts` en `dashboard/_components/club-stats.tsx`
+  is aangepast. Testprofielen vallen erbuiten.
+- **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden,
+  `npm run build` (met de `.env.local` uit de hoofdmap) en de unitsuite. Onder
+  volle belasting liepen enkele PGlite- en tijdgevoelige tests uit de tijd; los
+  slagen ze. `omnium-live.test.ts` mist `.env.local` als die er niet is. De
+  migraties zijn alleen in PGlite nagespeeld. *Niet geverifieerd:* geen
+  ingelogde schermen in de browser, en het alleen-lezen niet als echt
+  demo-account door PostgREST getest (kan pas na 0334 op productie).
 
 ### Gebouwd — Captain zet beschikbaarheid in de ZRL-ranglijst
 

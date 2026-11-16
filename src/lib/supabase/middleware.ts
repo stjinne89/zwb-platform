@@ -63,6 +63,14 @@ const PUBLIC_PATHS = [
 // Paden die ook toegankelijk zijn voor ingelogde-maar-nog-niet-goedgekeurde users.
 const PENDING_OK_PATHS = ["/wachten"];
 
+/**
+ * Demo-account (0334): alleen kijken. Server actions en API-routes schrijven vaak
+ * met de service-rol, buiten RLS om; daarom weigert de middleware elke methode
+ * behalve lezen, en de GET-routes die iets koppelen.
+ */
+const READ_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const DEMO_BLOCKED_PATHS = ["/api/strava/connect", "/api/strava/callback"];
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -105,6 +113,17 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
+  }
+
+  if (user && (!READ_METHODS.has(request.method) || DEMO_BLOCKED_PATHS.some((p) => pathname.startsWith(p)))) {
+    // Een eigen vraag: zonder 0334 faalt hij en geldt er geen demo, terwijl de
+    // goedkeuringscontrole hieronder blijft werken.
+    const { data: demo } = await supabase.from("profiles").select("is_demo").eq("id", user.id).maybeSingle();
+    if (demo?.is_demo) {
+      const blocked = new NextResponse("Demo-account: alleen kijken.", { status: 403 });
+      response.cookies.getAll().forEach((cookie) => blocked.cookies.set(cookie));
+      return blocked;
+    }
   }
 
   if (

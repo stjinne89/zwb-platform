@@ -17,6 +17,7 @@ import {
 } from "@/lib/rankings/rankings";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { uniqueRides } from "@/lib/rides/unique-rides";
+import { loadTestProfileIds, withoutTestProfiles } from "@/lib/profiles/test-accounts";
 import {
   RiderOfTheMonthCarousel,
   type RiderMetricSlide,
@@ -113,8 +114,8 @@ function Sparkline({ values }: { values: number[] }) {
  * leden. Elke vraag aan de database is een oversteek (functies in Ohio, database
  * in Ierland), en dit waren er twee achter elkaar per dashboardweergave. De
  * uitkomst is voor elk lid gelijk: strava_activities en profiles zijn voor alle
- * ingelogde leden leesbaar (RLS `using (true)`), dus de service-rol toont hier
- * niets wat een lid niet zelf mag zien. Een nieuwe rit telt hooguit tien minuten
+ * ingelogde leden leesbaar (RLS), dus de service-rol toont hier niets wat een
+ * lid niet zelf mag zien. Testaccounts (0333) vallen hier met de hand weg. Een nieuwe rit telt hooguit tien minuten
  * later mee.
  */
 const loadClubActivities = unstable_cache(
@@ -127,6 +128,7 @@ const loadClubActivities = unstable_cache(
     // Gepagineerd: Supabase geeft standaard hooguit 1000 rijen. Op 2026-09-30 vielen
     // er al 1.090 ritten in het venster, dus de totalen misten stilletjes ritten.
     const PAGE = 1000;
+    const testIds = await loadTestProfileIds(admin);
     const activities: ActivityRow[] = [];
     for (let from = 0; ; from += PAGE) {
       const { data: rows } = await admin
@@ -143,9 +145,9 @@ const loadClubActivities = unstable_cache(
       activities.push(...page);
       if (page.length < PAGE) break;
     }
-    return activities;
+    return withoutTestProfiles(activities, testIds);
   },
-  ["club-stats-activities", "v3"],
+  ["club-stats-activities", "v4"],
   { revalidate: 600 },
 );
 
@@ -158,6 +160,7 @@ const loadClubMoments = unstable_cache(
   async (monthStart: string): Promise<{ rsvps: ClubEventRsvp[]; live: LiveRide[] }> => {
     const admin = createAdminClient();
     const from = `${monthStart}T00:00:00.000Z`;
+    const testIds = await loadTestProfileIds(admin);
     const [{ data: events }, { data: live }] = await Promise.all([
       admin.from("events").select("id, start_at").gte("start_at", from),
       admin
@@ -177,14 +180,16 @@ const loadClubMoments = unstable_cache(
           .in("event_id", [...startById.keys()])
       : { data: [] };
     return {
-      rsvps: ((rsvps ?? []) as Array<{ event_id: string; profile_id: string }>).flatMap((rsvp) => {
-        const start = startById.get(rsvp.event_id);
-        return start ? [{ ...rsvp, start_at: start }] : [];
-      }),
-      live: (live ?? []) as LiveRide[],
+      rsvps: withoutTestProfiles((rsvps ?? []) as Array<{ event_id: string; profile_id: string }>, testIds).flatMap(
+        (rsvp) => {
+          const start = startById.get(rsvp.event_id);
+          return start ? [{ ...rsvp, start_at: start }] : [];
+        },
+      ),
+      live: withoutTestProfiles((live ?? []) as LiveRide[], testIds),
     };
   },
-  ["club-stats-moments", "v1"],
+  ["club-stats-moments", "v2"],
   { revalidate: 600 },
 );
 

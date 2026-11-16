@@ -281,7 +281,7 @@ export async function loadFormOptions(client: SupabaseClient, today: string) {
   yearAgo.setUTCFullYear(yearAgo.getUTCFullYear() - 1);
   const endOfToday = new Date(`${today}T23:59:59Z`).toISOString();
   const [members, teams, events, raceWeeks] = await Promise.all([
-    client.from("profiles").select("id, display_name").eq("is_approved", true).order("display_name"),
+    client.from("profiles").select("id, display_name").eq("is_approved", true).eq("is_test", false).order("display_name"),
     client.from("teams").select("id, name, type, team_members(profile_id)").order("name"),
     client
       .from("events")

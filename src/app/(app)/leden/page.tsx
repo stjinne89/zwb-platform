@@ -105,6 +105,7 @@ export default async function LedenPage() {
       .select(
         "id, display_name, region, zwift_id, zrl_category, zrl_division, sex, wellness_device, avatar_url, is_approved, is_admin, community_roles, created_at",
       )
+      .eq("is_test", false)
       .order("display_name"),
     supabase
       .from("roster_entries")

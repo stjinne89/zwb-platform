@@ -134,6 +134,7 @@ export default async function TeamsPage() {
       .from("profiles")
       .select("id, display_name, region, zrl_category, ftp_watts, weight_kg, zwift_id")
       .eq("is_approved", true)
+      .eq("is_test", false)
       .order("display_name"),
     supabase
       .from("teams")

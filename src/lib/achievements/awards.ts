@@ -2,6 +2,7 @@ import { currentAchievementWeek, previousAchievementWeek, weekStartDate } from "
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { uniqueRides } from "@/lib/rides/unique-rides";
 import { getClub } from "@/lib/club";
+import { loadTestProfileIds, onlyVisibleProfiles, withoutTestProfiles } from "@/lib/profiles/test-accounts";
 
 export type BadgeDefinition = {
   id: string;
@@ -211,8 +212,16 @@ export function formatBadgeValue(value: number | string, unit?: string | null) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = any;
 
-/** Alle ritten tussen twee weken, gepagineerd: PostgREST geeft per keer hooguit 1000 rijen. */
+/**
+ * Alle ritten tussen twee weken, gepagineerd: PostgREST geeft per keer hooguit 1000 rijen.
+ * Zonder testaccounts (0333), met de service-rol en met de sessie van een lid.
+ */
 export async function loadRides(supabase: Db, fromWeek: string | null, toWeek: string) {
+  const [rows, testIds] = await Promise.all([loadAllRides(supabase, fromWeek, toWeek), loadTestProfileIds(supabase)]);
+  return withoutTestProfiles(await onlyVisibleProfiles(supabase, rows), testIds);
+}
+
+async function loadAllRides(supabase: Db, fromWeek: string | null, toWeek: string) {
   const rows: ActivityRow[] = [];
   for (let from = 0; ; from += PAGE) {
     let query = supabase

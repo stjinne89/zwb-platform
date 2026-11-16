@@ -84,7 +84,7 @@ export async function loadLadderTeamRiders(
   ]);
   const memberIds = [...new Set(((memberRows ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id))];
   const { data: profileRows } = memberIds.length
-    ? await admin.from("profiles").select("id, display_name, zwift_id").eq("is_approved", true).in("id", memberIds)
+    ? await admin.from("profiles").select("id, display_name, zwift_id").eq("is_approved", true).eq("is_test", false).in("id", memberIds)
     : { data: [] };
   const profiles = (profileRows ?? []) as Array<{ id: string; display_name: string | null; zwift_id: string | number | null }>;
   const memberZwiftIds = new Set(profiles.map((row) => positiveId(row.zwift_id)).filter((id): id is number => id != null));

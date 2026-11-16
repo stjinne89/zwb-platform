@@ -20,6 +20,7 @@ import {
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
 import { isCyclingSportType } from "@/lib/strava/sports";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { loadTestProfileIds, onlyVisibleProfiles, withoutTestProfiles } from "@/lib/profiles/test-accounts";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 import {
   valueAt,
@@ -653,8 +654,11 @@ export async function loadClubAverages(admin: Admin, today = amsterdamDayKey()) 
     .gte("week", shiftDay(mondayKey(today), -7 * AVERAGE_WEEKS))
     .order("week", { ascending: false });
   if (error) return clubAverages([]);
+  const testIds = await loadTestProfileIds(admin);
   const latest = new Map<string, StoredSnapshot>();
-  for (const row of (data ?? []) as SnapshotRecord[]) if (!latest.has(row.profile_id)) latest.set(row.profile_id, toStored(row));
+  for (const row of withoutTestProfiles((data ?? []) as SnapshotRecord[], testIds)) {
+    if (!latest.has(row.profile_id)) latest.set(row.profile_id, toStored(row));
+  }
   const { data: profiles } = latest.size
     ? await admin.from("profiles").select("id, sex").in("id", [...latest.keys()])
     : { data: [] };
@@ -698,6 +702,8 @@ export async function loadHallStones(
   type Row = { id: string; display_name: string | null; region: string | null; profile_visibility: Record<string, boolean> | null };
   const byId = new Map(((profiles ?? []) as Row[]).map((row) => [row.id, row]));
   return [...latest.entries()]
+    // Geen profiel zichtbaar (testaccount, 0333): geen steen in de galerij.
+    .filter(([id]) => byId.has(id))
     .map(([id, row]) => {
       const profile = byId.get(id);
       // De regio alleen als het lid die op zijn profiel laat zien (zoals op /leden).
@@ -726,5 +732,6 @@ export async function loadGrowthSnapshots(supabase: UserClient, viewerId: string
   ]);
   if (error) return [];
   const ownShared = (preference as { visible: boolean } | null)?.visible === true;
-  return ((data ?? []) as SnapshotRecord[]).filter((row) => ownShared || row.profile_id !== viewerId);
+  const rows = ((data ?? []) as SnapshotRecord[]).filter((row) => ownShared || row.profile_id !== viewerId);
+  return onlyVisibleProfiles(supabase, rows);
 }

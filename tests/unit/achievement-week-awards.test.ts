@@ -31,6 +31,12 @@ function award(badge: string, profileId: string, week: string, id: string) {
   return { id, badge_id: badge, profile_id: profileId, period_start: week, period_end: week, value: 1, rank: 1 };
 }
 
+const T = "00000000-0000-0000-0000-00000000000f";
+
+function members() {
+  return [A, B].map((id) => ({ id, is_test: false }));
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
@@ -47,6 +53,7 @@ describe("awardCompletedAchievementWeeks", () => {
           ...rides(A, 1200, "2026-09-14", 100, 1),
           ...rides(B, 2, "2026-10-06", 80_000, 5000),
         ],
+        profiles: members(),
         achievement_awards: [],
       },
       { maxRows: 1000 },
@@ -68,6 +75,7 @@ describe("awardCompletedAchievementWeeks", () => {
   it("neemt een verouderde winnaar de badge af, maar alleen in de herrekende weken", async () => {
     const db = fakeDb({
       strava_activities: rides(B, 2, "2026-10-06", 80_000, 1),
+      profiles: members(),
       achievement_awards: [
         award("distance_week", A, "2026-10-05", "oud-recent"),
         award("distance_week", A, "2025-01-06", "oud-historie"),
@@ -87,6 +95,7 @@ describe("awardCompletedAchievementWeeks", () => {
   it("stuurt alleen een melding voor de week die net af is", async () => {
     const db = fakeDb({
       strava_activities: [...rides(A, 1, "2026-09-22", 50_000, 1), ...rides(B, 1, "2026-10-06", 50_000, 2)],
+      profiles: members(),
       achievement_awards: [],
     });
     await awardCompletedAchievementWeeks(db);
@@ -102,6 +111,7 @@ describe("awardCompletedAchievementWeeks", () => {
         { ...rides(A, 1, "2026-10-06", 20_000, 1)[0], moving_time_seconds: 3 * 3600, kudos_count: 40 },
         { ...rides(B, 1, "2026-10-07", 60_000, 2)[0], moving_time_seconds: 2 * 3600 },
       ],
+      profiles: members(),
       achievement_awards: [],
     });
     await awardCompletedAchievementWeeks(db);
@@ -114,6 +124,7 @@ describe("awardCompletedAchievementWeeks", () => {
   it("slaat een badge over die nog niet in achievement_badges staat", async () => {
     const db = fakeDb({
       strava_activities: rides(B, 1, "2026-10-06", 50_000, 1),
+      profiles: members(),
       achievement_awards: [],
     });
     // Zoals Postgres zonder migratie 0277: de foreign key weigert hours_week.
@@ -140,9 +151,22 @@ describe("awardCompletedAchievementWeeks", () => {
     expect(bodies.join(" ")).not.toContain("Zitvlees");
   });
 
+  it("geeft een testaccount (0333) geen badge en neemt een eerdere af", async () => {
+    const db = fakeDb({
+      strava_activities: [...rides(T, 1, "2026-10-06", 200_000, 1), ...rides(B, 1, "2026-10-06", 50_000, 2)],
+      profiles: [...members(), { id: T, is_test: true }],
+      achievement_awards: [award("distance_week", T, "2026-10-05", "test-oud")],
+    });
+    await awardCompletedAchievementWeeks(db);
+    const winners = db.tables.achievement_awards.map((row) => row.profile_id);
+    expect(winners).not.toContain(T);
+    expect(db.tables.achievement_awards.filter((row) => row.badge_id === "distance_week").map((row) => row.profile_id)).toEqual([B]);
+  });
+
   it("telt een rit in de week van zijn starttijd, ook als achievement_week een zondag zegt", async () => {
     const db = fakeDb({
       strava_activities: [{ ...rides(A, 1, "2026-10-06", 50_000, 1)[0], achievement_week: "2026-10-04" }],
+      profiles: members(),
       achievement_awards: [],
     });
     await awardCompletedAchievementWeeks(db);

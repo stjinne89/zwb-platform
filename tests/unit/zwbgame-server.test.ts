@@ -15,6 +15,8 @@ function fake() {
         select: () => builder,
         eq: (key: string, value: unknown) => { filters.push((r) => r[key] === value); return builder; },
         in: (key: string, values: unknown[]) => { filters.push((r) => values.includes(r[key])); return builder; },
+        // Alleen "kolom.eq.waarde,…"; een ontbrekende is_test telt als false (standaard sinds 0333).
+        or: (expr: string) => { const parts = expr.split(",").map((p) => p.split(".eq.")); filters.push((r) => parts.some(([k, v]) => String(r[k] ?? (k === "is_test" ? false : "")) === v)); return builder; },
         gte: (key: string, value: string) => { filters.push((r) => String(r[key]) >= value); return builder; },
         lte: (key: string, value: string) => { filters.push((r) => String(r[key]) <= value); return builder; },
         single: async () => ({ data: run()[0] ?? null, error: null }),

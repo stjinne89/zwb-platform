@@ -318,7 +318,7 @@ export async function loadLadderAddOptions(
   admin: ReturnType<typeof createAdminClient>,
 ): Promise<{ members: LadderAddOption[]; roster: LadderAddOption[] }> {
   const [{ data: profileRows }, { data: rosterRows }] = await Promise.all([
-    admin.from("profiles").select("id, display_name, zwift_id").eq("is_approved", true).order("display_name"),
+    admin.from("profiles").select("id, display_name, zwift_id").eq("is_approved", true).eq("is_test", false).order("display_name"),
     admin.from("roster_entries").select("id, name, zwift_id").is("claimed_by", null).order("name"),
   ]);
   const profiles = (profileRows ?? []) as Array<{ id: string; display_name: string | null; zwift_id: string | null }>;
@@ -352,6 +352,7 @@ export async function loadLadderCaptains(
       .from("profiles")
       .select("id, display_name")
       .eq("is_approved", true)
+      .eq("is_test", false)
       .order("display_name"),
   ]);
   const captains = (captainRows ?? []) as unknown as Array<{
@@ -424,6 +425,7 @@ export async function loadLadderRiders(
     .from("profiles")
     .select("id, display_name, sex, zwift_id, event_type_interests, zrl_category, ftp_watts, weight_kg")
     .eq("is_approved", true)
+    .eq("is_test", false)
     .or(ladderFilter.join(","));
   // Ook wie uit de ladder is gehaald, maar alleen als lid van een ladderteam.
   const teamMemberIds = new Set(memberships.map((row) => row.profile_id));
