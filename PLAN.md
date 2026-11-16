@@ -12411,6 +12411,34 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Racefit uitgelegd op /hulp; blijft W/kg
+
+**2026-11-16, commit "Hulp: Racefit uitgelegd", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
+
+- **Waarom.** De eigenaar vroeg of Racefit een score van 0 tot 100 kon worden.
+  Voorgesteld: 100 voor de best passende in de lijst van die week en 0 voor de
+  minst passende, op procentverschil, of anders een rangpercentiel. Na uitleg
+  over de weging per race koos de eigenaar: "Hou deze becijfering maar aan en
+  beschrijf dit dan ook goed in hulp".
+- **Wat.** De uitleg van Racefit staat niet meer in de alinea over de
+  teamindeling maar in twee eigen alinea's op /hulp (`hulp/_data.ts`).
+  - Wat het getal is, en hoe de weging per race volgt uit route, rondes en
+    soort race: welke klim bij welke duur telt, de grenzen van 1% en 5%,
+    glooiend bij 5 minuten, de sprint zonder bergop finish, rondes met
+    afnemend gewicht en de tijdrit. Met het voorbeeld van London Calling als
+    TTT: 5 minuten 49%, 20 minuten 39%, 1 minuut 12%, 15 seconden 0%.
+  - Waarom het geen zFTP is en alleen binnen de lijst van die week vergelijkt.
+  - Wat gewicht, een ontbrekende duur, een andere route per team en de
+    geleende route doen.
+- **Bewust niet.** Geen score van 0 tot 100: die hangt af van wie er in de lijst
+  staat, en de eigenaar houdt liever de W/kg. Een vaste schaal over weken heen,
+  zoals de vELO, kan niet zonder uitslagen, en veel renners in de lijst hebben
+  geen recente race.
+- **Geverifieerd:** eslint en tsc. De tekst is nagelezen tegen
+  `durationDemand` (`club-ladder/routes.ts`), `timeTrialWeights` en
+  `racefitScores` (`teams/zrl-racefit.ts`) en `routeWkg` (`rider-weight.ts`).
+  /hulp is niet in de browser bekeken.
+
 ### Gebouwd — Racefit leent een route van dezelfde categorie
 
 **2026-11-16, commit "Racefit: route lenen van een race in dezelfde categorie", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
