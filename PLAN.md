@@ -56,12 +56,13 @@ gaat stabiliteit voor nieuwe features.
    eigenaar: "Ja, push").** Migraties `0333_profile_is_test.sql` en
    `0334_profile_is_demo.sql` zijn vóór de push via de connector op productie
    toegepast (eigenaar: "pas migraties toe"). De demo wordt een gedeelde login
-   (eigenaar). Pas na de deploy een profiel op `is_test` of `is_demo` zetten:
-   de oude site filtert niet en weigert geen schrijfacties in de middleware.
-   De demologin maakt Claude op verzoek van de eigenaar aan in het
-   Supabase-dashboard, met een wachtwoord dat de eigenaar zelf invult. Open:
-   testprofiel en demo-account aanmaken, en als demo in de browser nagaan dat
-   een schrijfactie faalt. Zie de ronde "Test- en demo-account".
+   (eigenaar). Na de deploy van `cbeaf8a` staan beide accounts: het
+   demo-account `demo@zwbcycling.nl` en het testprofiel `stjinne.martens`
+   voor de gmail-login. Migratie `0335_protect_account_flags.sql` (een lid
+   kan zijn eigen `is_test`/`is_demo` niet meer wijzigen) is lokaal gecommit,
+   nog niet toegepast en niet gepusht. Open: 0335 toepassen, en als demo in de
+   browser nagaan dat een schrijfactie een 403 geeft. Zie de ronde "Test- en
+   demo-account".
 
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): gepusht
    naar `main` (`7540c7b5`, eigenaar: "Ja, push").** Migratie
@@ -12641,6 +12642,32 @@ na de eerste eigen inschrijving via de racepass, mogelijk pas op de racedag.
   getest. Er bestaat er nog geen.
 - **Demo-toegang.** Een gedeelde login (besluit eigenaar). Geen link met een
   sleutel, en geen code voor het inloggen.
+- **De accounts (2026-11-16, na de deploy van `cbeaf8a`).** De eigenaar maakte
+  `demo@zwbcycling.nl` aan in het Supabase-dashboard en vulde het wachtwoord
+  zelf in. Claude had het venster in Chrome geopend en het adres ingevuld,
+  met "Auto confirm" aan. Het profiel daarvan heet "Demo" en staat op
+  `is_demo`, `is_test` en goedgekeurd. Het heeft `zwift_opt_out` en de
+  privacyversie `2026-09-30`: anders vraagt de layout op elke pagina om een
+  handtekening of een Zwift-ID, die een demo-account niet kan opslaan. Die
+  akkoordregel is door de eigenaar gezet als houder van het account, niet door
+  een lid gegeven. Voor de gmail-login is het profiel `stjinne.martens`
+  aangemaakt (`is_test`, goedgekeurd, geen rollen); dat tekent de
+  privacyverklaring zelf, zoals een nieuw lid. Goedkeuren kon alleen namens
+  een beheerder (`protect_profile_admin_fields` kent geen uitzondering voor de
+  service-rol), dus beide staan in het auditlog op naam van de eigenaar.
+- **Demopad in de database nagegaan.** Als het demo-account nagespeeld: na
+  `demo_read_only()` staat `transaction_read_only` aan, een update geeft
+  `25006 cannot execute UPDATE in a read-only transaction`, en het account
+  ziet 54 profielen (alle profielen behalve het verborgen testprofiel). De 403
+  van de middleware is niet in de browser geprobeerd: daar is het wachtwoord
+  voor nodig, en dat heeft alleen de eigenaar.
+- **0335 — is_test en is_demo beschermd.** `profiles_update_own` liet een lid
+  zijn eigen `is_test` of `is_demo` wijzigen, want
+  `protect_profile_admin_fields` kende die kolommen niet. Een lid kon zich dus
+  verbergen, of zichzelf onherroepelijk op alleen-lezen zetten. Een eigen
+  trigger `profiles_protect_account_flags` staat dat alleen nog toe aan een
+  beheerder, de service-rol of de SQL-editor. Lokaal nagespeeld in PGlite
+  (`baseline.test.ts`), nog niet op productie toegepast.
 
 - **Waarom.** De eigenaar wil met een tweede login de app zien zoals een gewoon
   lid, zonder dat dat account tussen de leden staat. Daarnaast een demo-account
