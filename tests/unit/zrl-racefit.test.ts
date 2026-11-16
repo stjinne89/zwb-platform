@@ -22,6 +22,7 @@ const flat: RaceCourse = {
   timeTrial: false,
   weights: { s15: 0.4, m1: 0.2, m5: 0.2, m20: 0.2 },
   terrain: { s15: [{ pct: 0, share: 1 }], m1: [{ pct: 0, share: 1 }], m5: [{ pct: 0, share: 1 }], m20: [{ pct: 0, share: 1 }] },
+  borrowedFrom: null,
 };
 
 describe("soort race", () => {
@@ -74,6 +75,36 @@ describe("route van de week", () => {
     expect(week.teamCourse.b2).toBe(week.teamCourse.dev);
     expect(week.defaultCourse).toBe(week.teamCourse.b2);
     expect(week.courses[week.teamCourse.b2].laps).toBe(4);
+  });
+
+  it("zonder eigen route geleend van dezelfde categorie, met de eigen titel voor de tijdrit", () => {
+    const week = weekCourses(
+      [
+        { teamId: "b1", title: "R2 W1 B1 — Team Time Trial", zwiftRouteId: null, laps: null, category: "B" },
+        { teamId: "b3", title: "R2 W1 B3", zwiftRouteId: null, laps: null, category: "B" },
+        { teamId: "x", title: "R2 W1 zonder categorie", zwiftRouteId: null, laps: null, category: null },
+      ],
+      [
+        { source: "ZRL A", category: "A", zwiftRouteId: ROUTE_W1, laps: 1 },
+        { source: "Zonder route", category: "B", zwiftRouteId: null, laps: null },
+        { source: "ZRL Zwiftladies B", category: "B", zwiftRouteId: ROUTE_W2, laps: 3 },
+      ],
+    );
+    const b1 = week.courses[week.teamCourse.b1];
+    const b3 = week.courses[week.teamCourse.b3];
+    expect(b1.borrowedFrom).toBe("ZRL Zwiftladies B");
+    expect(b1.laps).toBe(3);
+    expect(b1.timeTrial).toBe(true);
+    expect(b3.timeTrial).toBe(false);
+    expect(week.teamCourse.x).toBeUndefined();
+  });
+
+  it("de eigen route gaat voor de geleende", () => {
+    const week = weekCourses(
+      [{ teamId: "b1", title: "R1 W2 B1", zwiftRouteId: ROUTE_W2, laps: 3, category: "B" }],
+      [{ source: "ZRL Zwiftladies B", category: "B", zwiftRouteId: ROUTE_W1, laps: 1 }],
+    );
+    expect(week.courses[week.teamCourse.b1].borrowedFrom).toBeNull();
   });
 });
 

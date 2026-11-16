@@ -27,7 +27,10 @@ export type RankingEvent = { id: string; title: string; startAt: string };
 
 /** Racefit van een raceweek: per parcours de scores, en welk team welk parcours rijdt. */
 export type RankingRacefit = {
-  courses: Record<string, { name: string; laps: number; scores: Record<string, number | null> }>;
+  courses: Record<
+    string,
+    { name: string; laps: number; borrowedFrom: string | null; scores: Record<string, number | null> }
+  >;
   teamCourse: Record<string, string>;
   /** Wat de meeste teams rijden: voor wie niet is ingedeeld, en voor Neem sortering over. */
   defaultCourse: string | null;
@@ -60,8 +63,9 @@ const PHONE_HIDDEN = new Set<RankingSortKey>(["m1", "m5", "m20"]);
 
 const RACEFIT_COLUMN: { key: RankingSortKey; label: string } = { key: "racefit", label: "Racefit" };
 
-function courseLabel(course: { name: string; laps: number }) {
-  return course.laps > 1 ? `${course.name} · ${course.laps} rondes` : course.name;
+function courseLabel(course: { name: string; laps: number; borrowedFrom?: string | null }) {
+  const label = course.laps > 1 ? `${course.name} · ${course.laps} rondes` : course.name;
+  return course.borrowedFrom ? `${label} (geleend van ${course.borrowedFrom})` : label;
 }
 
 const LEVEL_TEXT: Record<LimitStatus, string> = { ok: "Past", near: "Krap", over: "Past niet" };
@@ -238,6 +242,8 @@ export function ZrlRankingTable({
   };
   const columns = defaultScores ? [...COLUMNS, RACEFIT_COLUMN] : COLUMNS;
   const courseTitle = weekFit ? racefitTitle(weekFit, ordered) : "";
+  // Schuin, zoals een WTRL-waarde: de route is van een ander team geleend.
+  const courseBorrowed = weekFit ? Object.values(weekFit.courses).some((course) => course.borrowedFrom) : false;
 
   const statusOf = (rider: RankedRider) => (eventId ? (shown[`${eventId}:${rider.key}`]?.status ?? null) : null);
   const present = riders.filter((rider) => statusOf(rider) !== "unavailable");
@@ -352,6 +358,7 @@ export function ZrlRankingTable({
                   className={cn(
                     "inline-flex min-h-8 flex-row-reverse items-center gap-0.5 rounded hover:text-foreground",
                     activeKey === column.key && "text-foreground",
+                    column.key === "racefit" && courseBorrowed && "italic",
                   )}
                 >
                   {column.label}

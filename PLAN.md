@@ -12411,6 +12411,48 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Racefit leent een route van dezelfde categorie
+
+**2026-11-16, commit "Racefit: route lenen van een race in dezelfde categorie", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
+
+- **Waarom.** De eigenaar zag Racefit niet. Geen enkele race van ZRL B in
+  ronde 2 heeft een route, omdat ze niet aan hun Zwift-event hangen.
+  `linkZrlEvents` (`events/zrl-event-link.ts`) eiste toen nog de volledige
+  divisie; sinds de ronde "ZRL-koppeling in de TTT-week" hieronder (zelfde dag,
+  andere sessie) koppelt hij zonder nummer via de startlijst, dus pas als
+  eigen renners zich in het event inschrijven. In
+  `wtrl_teams.division` staat voor B1 t/m Bdev nog alleen "Open Aqua League
+  B", "Open Cobalt League B" of "Open Aqua League Dev B", zonder
+  divisienummer: in een nieuwe ronde zijn de divisies nog niet bekend. Op
+  2026-11-16 had in heel ronde 2 alleen Zwiftladies B in W1 een route. Voorstel
+  goedgekeurd door de eigenaar ("Ja, bouwen").
+- **Wat.** Heeft de race van een subteam geen route, dan neemt `weekCourses`
+  (`teams/zrl-racefit.ts`) de route en het aantal rondes over van een race van
+  een ander team in dezelfde raceweek en dezelfde categorie
+  (`zrlCategoryFromTeamName`: B1, B2, B3 en Bdev zijn B, net als ZRL
+  Zwiftladies B). Of het een tijdrit is, volgt de eigen titel, samen met die
+  van de raceweek: de met de hand aangemaakte race van B3 in R2 W1 heet
+  alleen "· B3", zonder "Team Time Trial", en telde anders als gewone race. De eigen route
+  gaat altijd voor. In de tabel staat de kop Racefit dan schuin, zoals een
+  WTRL-waarde, en de tooltip noemt het team ("geleend van ZRL Zwiftladies B").
+  /hulp beschrijft het onder Teamindeling.
+- **Bewust niet.** Lenen uit een andere categorie: WTRL laat A/B soms een
+  andere route rijden dan C/D (2026-10-06, zie `zrl-route-sync.ts`). Ook de
+  divisies niet zelf raden om de koppeling te forceren: een fout gekoppeld
+  event verplaatst ook de racetijd. Zodra een race gekoppeld is (via de
+  startlijst of een geplakte divisie met nummer), geldt weer de eigen route.
+- **Geverifieerd:** tsc, eslint, `zrl-racefit.test.ts` (12, waarvan 2 nieuw:
+  lenen met eigen tijdritvlag, geen lenen uit een andere categorie of zonder
+  categorie, eigen route gaat voor) en `zrl-ranking.test.ts`. Met de route van
+  Zwiftladies B in R2 W1 (2836167073, 1 ronde) geeft het voor B1 London Calling
+  als tijdrit (los gecontroleerd, niet als test bewaard).
+  Lokaal in de browser tegen productiedata: R2 W1 toont Racefit voor alle
+  vier de teams met "London Calling (geleend van ZRL Zwiftladies B)", de kop
+  schuin; R2 W2 (nergens een route) toont geen kolom. De updatemelding op de
+  pagina is niet weggeklikt.
+- **Niet geverifieerd:** of Zwiftladies B in W1 echt dezelfde route rijdt als
+  de Open B-divisies.
+
 ### Gebouwd — Weekregel in de schemakalender en verwachte CTL op Belasting
 
 **2026-11-16.** Commit "ZWBeter worden: weekregel in de kalender en verwachte
@@ -12605,7 +12647,8 @@ op productie.
   sorteren zoals de andere; "Neem sortering over" volgt hem ("Neem
   Racefit-sortering over"). Tooltip op de kop: de route, of per team als de
   teams anders rijden. Zonder route geen kolom, en een Racefit-sortering valt
-  terug op zFTP.
+  terug op zFTP. (Sinds de ronde "Racefit leent een route" hierboven leent een
+  subteam zonder eigen route die van een race in dezelfde week en categorie.)
   - Nieuw `src/lib/teams/zrl-racefit.ts` (puur). Het gewicht per duur komt uit
     het parcoursmodel van de Club Ladder: nieuw `zwiftRouteDemand(routeId,
     laps)` in `club-ladder/routes.ts`, dezelfde klimmen en bergop finish als
@@ -12637,8 +12680,9 @@ op productie.
     werken.
   - Een verwachte plek: daarvoor zou het veld van de tegenstanders nodig zijn,
     en dat is bij het indelen onbekend.
-  - Een captain die zelf een route kiest: de route komt van de race in de
-    kalender, zodat er geen tweede bron is die kan afwijken.
+  - Een captain die zelf een route kiest: de route komt van de races in de
+    kalender (eigen race, of sinds de ronde hierboven een race in dezelfde
+    week en categorie), niet van een hand die kan afwijken.
   - Geen luchtweerstand zonder draft bij een tijdrit: `routeWkg` rekent met
     slipstream en alleen bergop en in de sprint met gewicht, ook in een TTT.
 - **Privacy.** Geen nieuwe gegevens: hetzelfde vermogen als de rest van de

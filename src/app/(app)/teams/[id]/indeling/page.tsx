@@ -11,7 +11,8 @@ import {
   rankRider,
   type RankingLineup,
 } from "@/lib/teams/zrl-ranking";
-import { racefitScores, weekCourses, type TeamRace } from "@/lib/teams/zrl-racefit";
+import { racefitScores, weekCourses, type BorrowRace, type TeamRace } from "@/lib/teams/zrl-racefit";
+import { zrlCategoryFromTeamName } from "@/lib/events/zwift-route";
 import {
   ZrlRankingTable,
   type RankingAvailabilityEntry,
@@ -245,7 +246,20 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
   }
 
   // Racefit per raceweek: per parcours van de subteams de score van elke renner.
+  // Zonder eigen route leent een subteam die van een race van een ander team in
+  // dezelfde week en categorie (nog niet aan Zwift gekoppeld, 2026-11-16).
   const childIds = new Set(childTeams.map((row) => row.id));
+  const childName = new Map(childTeams.map((row) => [row.id, row.name]));
+  const otherTeamIds = [
+    ...new Set(races.filter((race) => race.team_id && !childIds.has(race.team_id) && race.zwift_route_id != null).map((race) => race.team_id as string)),
+  ];
+  const { data: otherTeamRows } =
+    otherTeamIds.length > 0
+      ? await supabase.from("teams").select("id, name").in("id", otherTeamIds)
+      : { data: [] };
+  const otherTeamName = new Map(
+    ((otherTeamRows ?? []) as Array<{ id: string; name: string }>).map((row) => [row.id, row.name]),
+  );
   const racefitRiders = riders.map((rider) => ({
     key: rider.key,
     wkg: rider.power
@@ -259,17 +273,36 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
       .filter((race) => race.parent_event_id === week.id && race.team_id && childIds.has(race.team_id))
       .map((race) => ({
         teamId: race.team_id as string,
-        title: race.title,
+        // De titel telt alleen voor de tijdrit; ook die van de raceweek, want
+        // een met de hand aangemaakte race (B3 in R2 W1) mist "Team Time Trial".
+        title: `${race.title} ${week.title}`,
         zwiftRouteId: race.zwift_route_id == null ? null : Number(race.zwift_route_id),
         laps: race.laps,
+        category: zrlCategoryFromTeamName(childName.get(race.team_id as string)),
       }));
-    const { courses, teamCourse, defaultCourse } = weekCourses(teamRaces);
+    const borrow: BorrowRace[] = races
+      .filter((race) => race.parent_event_id === week.id && race.team_id && otherTeamName.has(race.team_id))
+      .map((race) => {
+        const source = otherTeamName.get(race.team_id as string) as string;
+        return {
+          source,
+          category: zrlCategoryFromTeamName(source),
+          zwiftRouteId: race.zwift_route_id == null ? null : Number(race.zwift_route_id),
+          laps: race.laps,
+        };
+      });
+    const { courses, teamCourse, defaultCourse } = weekCourses(teamRaces, borrow);
     if (Object.keys(courses).length === 0) continue;
     racefit[week.id] = {
       courses: Object.fromEntries(
         Object.values(courses).map((course) => [
           course.key,
-          { name: course.name, laps: course.laps, scores: racefitScores(racefitRiders, course) },
+          {
+            name: course.name,
+            laps: course.laps,
+            borrowedFrom: course.borrowedFrom,
+            scores: racefitScores(racefitRiders, course),
+          },
         ]),
       ),
       teamCourse,

@@ -12,6 +12,11 @@
 //   gemiddelde van de lijst per duur (zoals `strengths` in rank-pairs.ts), zodat
 //   een ontbrekende 15 s niet als zwak of sterk telt. Met alle vier de duren is
 //   het precies het gewogen meetkundig gemiddelde van de eigen waarden.
+// - Geleend (2026-11-16): heeft de race van een subteam nog geen route, omdat
+//   hij nog niet aan zijn Zwift-event hangt, dan geldt de route van een race in
+//   dezelfde week en dezelfde categorie (bijvoorbeeld Zwiftladies B voor B1).
+//   Nooit uit een andere categorie: WTRL laat A/B soms een andere route rijden
+//   dan C/D. Of het een tijdrit is, volgt de eigen titel.
 
 import { zwiftRouteDemand, type DurationTerrain, type DurationWeights } from "@/lib/club-ladder/routes";
 import { routeWkg } from "@/lib/club-ladder/rider-weight";
@@ -24,10 +29,22 @@ export type RaceCourse = {
   timeTrial: boolean;
   weights: DurationWeights;
   terrain: DurationTerrain;
+  /** Het team waarvan de route geleend is; null bij de eigen route. */
+  borrowedFrom: string | null;
 };
 
 /** Een race van een subteam in een raceweek. */
-export type TeamRace = { teamId: string; title: string; zwiftRouteId: number | null; laps: number | null };
+export type TeamRace = {
+  teamId: string;
+  title: string;
+  zwiftRouteId: number | null;
+  laps: number | null;
+  /** Categorieletter van het team (B voor B1 en Bdev); zonder categorie leent hij niets. */
+  category?: string | null;
+};
+
+/** Een race van een ander team in dezelfde week, om de route van te lenen als de categorie klopt. */
+export type BorrowRace = { source: string; category: string | null; zwiftRouteId: number | null; laps: number | null };
 
 export type WeekCourses = {
   courses: Record<string, RaceCourse>;
@@ -62,16 +79,31 @@ export function courseForRace(race: Omit<TeamRace, "teamId">): RaceCourse | null
     timeTrial,
     weights: timeTrial ? timeTrialWeights(demand.weights) : demand.weights,
     terrain: demand.terrain,
+    borrowedFrom: null,
   };
 }
 
-/** De routes van een raceweek per subteam; bij gelijke stand de eerste in de lijst. */
-export function weekCourses(races: TeamRace[]): WeekCourses {
+/** De route van de eerste race met een bruikbare route, met de eigen titel voor de tijdrit. */
+function borrowedCourse(race: TeamRace, borrow: BorrowRace[]): RaceCourse | null {
+  if (!race.category) return null;
+  for (const source of borrow) {
+    if (source.category !== race.category) continue;
+    const course = courseForRace({ title: race.title, zwiftRouteId: source.zwiftRouteId, laps: source.laps });
+    if (course) return { ...course, key: `${course.key}:${source.source}`, borrowedFrom: source.source };
+  }
+  return null;
+}
+
+/**
+ * De routes van een raceweek per subteam; bij gelijke stand de eerste in de lijst.
+ * Zonder eigen route leent een race die uit `borrow` (zelfde week en categorie).
+ */
+export function weekCourses(races: TeamRace[], borrow: BorrowRace[] = []): WeekCourses {
   const courses: Record<string, RaceCourse> = {};
   const teamCourse: Record<string, string> = {};
   const count = new Map<string, number>();
   for (const race of races) {
-    const course = courseForRace(race);
+    const course = courseForRace(race) ?? borrowedCourse(race, borrow);
     if (!course) continue;
     courses[course.key] ??= course;
     if (teamCourse[race.teamId]) continue;
