@@ -817,7 +817,8 @@ export default async function TeamDetailPage({
           candidates={candidates}
           whatsappUrl={(waGroups ?? [])[0]?.invite_url ?? null}
           discordUrl={team.discord_url}
-          members={rows.map((row) => ({
+          // Alleen echte leden; wie zich alleen beschikbaar meldde, valt niet te verwijderen.
+          members={rows.filter((row) => row.teams.length > 0).map((row) => ({
             profile_id: row.id,
             role: row.teams.find((membership) => membership.id === team.id)?.role ?? "member",
             display_name: row.name,

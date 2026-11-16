@@ -60,10 +60,11 @@ export async function addMember(
   if (!guard.ok) return guard;
 
   const admin = createAdminClient();
+  // Terug in een hoofdteam: ook de subteams mogen hem weer automatisch opnemen.
   await admin
     .from("team_member_seed_overrides")
     .delete()
-    .eq("team_id", teamId)
+    .in("team_id", await withSubteams(admin, teamId))
     .eq("profile_id", profileId);
   const { error } = await admin
     .from("team_members")
@@ -79,29 +80,43 @@ export async function addMember(
   return { ok: true as const };
 }
 
+/** Het team plus, bij een hoofdteam, zijn subteams. */
+async function withSubteams(admin: ReturnType<typeof createAdminClient>, teamId: string) {
+  const { data } = await admin.from("teams").select("id").eq("parent_team_id", teamId);
+  return [teamId, ...((data ?? []) as Array<{ id: string }>).map((row) => row.id)];
+}
+
+/**
+ * Haal een lid uit het team. Bij een hoofdteam ook uit zijn subteams: de
+ * Beheer-lijst van een hoofdteam toont de leden van de subteams, dus wie alleen
+ * uit het hoofdteam ging bleef erin staan (2026-11-16). De uitsluiting geldt per
+ * team, zodat een import of een beschikbaarheid hem niet terugzet.
+ */
 export async function removeMember(teamId: string, profileId: string) {
   const guard = await canManageTeamRoster(teamId);
   if (!guard.ok) return guard;
 
   const admin = createAdminClient();
+  const teamIds = await withSubteams(admin, teamId);
+  const now = new Date().toISOString();
   await admin.from("team_member_seed_overrides").upsert(
-    {
-      team_id: teamId,
+    teamIds.map((id) => ({
+      team_id: id,
       profile_id: profileId,
       excluded: true,
       reason: "manual_remove",
       created_by: guard.userId,
-      updated_at: new Date().toISOString(),
-    },
+      updated_at: now,
+    })),
     { onConflict: "team_id,profile_id" },
   );
   const { error } = await admin
     .from("team_members")
     .delete()
-    .eq("team_id", teamId)
+    .in("team_id", teamIds)
     .eq("profile_id", profileId);
   if (error) return { ok: false as const, error: error.message };
-  revalidateTeam(teamId);
+  for (const id of teamIds) revalidateTeam(id);
   revalidatePath("/teams");
   return { ok: true as const };
 }

@@ -31,18 +31,18 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
-0. **ZRL-teamindeling: kolom Racefit (2026-11-16): lokaal gecommit (`5d818516`), niet
-   gepusht.** Geen migratie. De privacyzin over het gewicht staat op
+0. **ZRL-teamindeling: kolom Racefit (2026-11-16): commit `5d818516`,
+   op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie. De privacyzin over het gewicht staat op
    `/privacy` (akkoord eigenaar, 2026-11-16). Zie de ronde
    "ZRL-teamindeling: kolom Racefit".
 
-0. **ZRL-teamindeling: zelf indelen, op een eigen pagina (2026-11-16): lokaal
-   gecommit (`d5751960`), niet gepusht.** Geen migratie. Lokaal in de browser
+0. **ZRL-teamindeling: zelf indelen, op een eigen pagina (2026-11-16): commit
+   `d5751960`, op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie. Lokaal in de browser
    bekeken en één renner in R2 W2 ingedeeld, verplaatst en teruggezet; de
    eigenaar nam de sortering over voor R2 W2 (staat op productie). Daarna een
    knop "Wis opstelling" en een sorteerknop die de gekozen sortering noemt.
-   Open: "Ook voor de rest van de ronde" en "Wis opstelling" tegen echte data,
-   en pushen als de eigenaar dat vraagt. Zie de ronde
+   Open: "Ook voor de rest van de ronde" en "Wis opstelling" tegen echte data.
+   Zie de ronde
    "ZRL-teamindeling: zelf indelen, op een eigen pagina".
 
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): gepusht
@@ -12379,9 +12379,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Lid verwijderen uit een hoofdteam haalt hem ook uit de subteams
+
+**2026-11-16, commit "Beheer: lid uit hoofdteam ook uit subteams verwijderen", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
+
+- **Waarom.** De eigenaar kreeg een renner in Beheer op de pagina van ZRL B
+  niet weg. De Beheer-lijst van een hoofdteam toont de leden van het
+  hoofdteam én van de subteams, maar `removeMember` haalde iemand alleen uit
+  het hoofdteam. Wie ook in B1 zat, bleef dus in de lijst staan. Het
+  verwijderen leek te mislukken, maar lukte half.
+- **Wat.** `removeMember` op een hoofdteam haalt het lid nu ook uit alle
+  subteams. Voor elk van die teams schrijft hij de uitsluiting in
+  `team_member_seed_overrides`, zodat de categorie-seed (0070), een
+  beschikbaarheid (0171) of een WTRL-koppeling (0183/0184) hem niet terugzet.
+  `addMember` op een hoofdteam wist die uitsluitingen ook voor de subteams, zodat
+  terugzetten weer volledig werkt. Op de pagina van een subteam verandert er
+  niets.
+- **Ook.** De lijst "Lid verwijderen" toont alleen nog echte leden. Wie zich
+  alleen beschikbaar meldde, kon je daar niet verwijderen.
+- **Niet gebouwd.** Geen verwijderknop voor rosternamen zonder account
+  (`roster_entries`). Daar was niet om gevraagd, en het loopt via de
+  WTRL-import in Beheer → ZRL. Opstellingen en beschikbaarheid van komende weken
+  blijven staan: een captain haalt die zelf weg als het nodig is.
+- **Niet geverifieerd.** Typecheck en lint zijn groen. Er is geen unittest
+  voor `removeMember`. In de browser niet bekeken: de lokale server stuurde door
+  naar inloggen, en op productie is niemand verwijderd. Op ZRL B staan nu 20
+  echte leden en niemand die er alleen via beschikbaarheid bij staat (SQL,
+  2026-11-16).
+
 ### Gebouwd — ZRL-teamindeling: kolom Racefit
 
-**2026-11-16, commit `5d818516` ("ZRL-teamindeling: kolom Racefit op het parcours van de raceweek"), lokaal, niet gepusht. Geen migratie.**
+**2026-11-16, commit `5d818516` ("ZRL-teamindeling: kolom Racefit op het parcours van de raceweek"), op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
 
 - **Waarom.** Voorstel goedgekeurd door de eigenaar ("Ja, bouwen"): zien wie
   er op het parcours van die week het best past, niet alleen op zFTP of zMAP.
@@ -12452,7 +12480,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL-teamindeling: zelf indelen, op een eigen pagina
 
-**2026-11-16, commit `d5751960` ("ZRL-teamindeling: zelf indelen per raceweek, op een eigen pagina"), lokaal, niet gepusht. Geen migratie.**
+**2026-11-16, commit `d5751960` ("ZRL-teamindeling: zelf indelen per raceweek, op een eigen pagina"), op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
 
 - **Waarom.** De eigenaar wil dat captains, naast sorteren, renners los van
   hun waarden in een team zetten, en dat dat doorwerkt naar de selectie. Op
