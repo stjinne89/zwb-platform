@@ -182,3 +182,71 @@ export function riderLevel(rider: RankedRider, inDevTeam: boolean): LimitStatus 
 function blockLevel(riders: RankedRider[], dev: boolean): LimitStatus {
   return riders.reduce<LimitStatus>((level, rider) => worse(level, riderLevel(rider, dev)), "ok");
 }
+
+// Indeling per raceweek (2026-11-16): de captain deelt in, los van de sortering.
+// De blokken komen dan uit de echte opstelling (team_event_lineups), dezelfde
+// regels die de captain-selectie en het racebriefje lezen.
+
+/** Eén regel van de opstelling van een raceweek. */
+export type RankingLineup = { id: string; eventId: string; teamId: string; riderKey: string };
+
+export type LineupBlock = {
+  team: RankingTeam & { dev: boolean };
+  rows: Array<{ rider: RankedRider; lineupId: string }>;
+  level: LimitStatus;
+  /** Meer renners dan een blok telt. */
+  crowded: boolean;
+};
+
+/**
+ * De opstelling van één raceweek per team, binnen elk team gesorteerd. Een renner
+ * die voor twee teams rijdt, staat in beide. Regels van een renner die niet in de
+ * lijst staat, of van een team buiten de subteams, vallen weg.
+ */
+export function lineupBlocks(
+  riders: RankedRider[],
+  lineups: RankingLineup[],
+  teams: Array<RankingTeam & { dev: boolean }>,
+  key: RankingSortKey,
+  size = ZRL_BLOCK_SIZE,
+): { blocks: LineupBlock[]; assigned: Set<string> } {
+  const riderByKey = new Map(riders.map((rider) => [rider.key, rider]));
+  const assigned = new Set<string>();
+  const blocks = teams.map((team) => {
+    const lineupOf = new Map<string, string>();
+    for (const lineup of lineups) {
+      if (lineup.teamId === team.id && riderByKey.has(lineup.riderKey)) lineupOf.set(lineup.riderKey, lineup.id);
+    }
+    const sorted = sortRanking(
+      [...lineupOf.keys()].map((riderKey) => riderByKey.get(riderKey)!),
+      key,
+    );
+    for (const rider of sorted) assigned.add(rider.key);
+    return {
+      team,
+      rows: sorted.map((rider) => ({ rider, lineupId: lineupOf.get(rider.key)! })),
+      level: blockLevel(sorted, team.dev),
+      crowded: sorted.length > size,
+    };
+  });
+  return { blocks, assigned };
+}
+
+/** "ZRL 2026/27 · R2 · W1" → "ZRL 2026/27 · R2", dus met het seizoen; null zonder ronde. */
+export function roundOfTitle(title: string): string | null {
+  const match = /^(.*?\bR\d+)\b/.exec(title);
+  return match ? match[1] : null;
+}
+
+/** De raceweken na deze in dezelfde ronde, op datum. */
+export function laterWeeksInRound<T extends { id: string; title: string; startAt: string }>(
+  weeks: T[],
+  eventId: string,
+): T[] {
+  const current = weeks.find((week) => week.id === eventId);
+  const round = current ? roundOfTitle(current.title) : null;
+  if (!current || round == null) return [];
+  return weeks
+    .filter((week) => week.id !== eventId && week.startAt > current.startAt && roundOfTitle(week.title) === round)
+    .sort((a, b) => a.startAt.localeCompare(b.startAt));
+}

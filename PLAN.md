@@ -31,6 +31,12 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
+0. **ZRL-teamindeling: zelf indelen, op een eigen pagina (2026-11-16): lokaal
+   gecommit, niet gepusht.** Geen migratie. Open: in de browser bekijken en
+   één renner in R2 W2 indelen en weer terugzetten (de lokale server vroeg om
+   een login), daarna pushen als de eigenaar dat vraagt. Zie de ronde
+   "ZRL-teamindeling: zelf indelen, op een eigen pagina".
+
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): gepusht
    naar `main` (`7540c7b5`, eigenaar: "Ja, push").** Migratie
    `0332_captain_availability.sql` is vóór de push via de connector op
@@ -12365,6 +12371,57 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZRL-teamindeling: zelf indelen, op een eigen pagina
+
+**2026-11-16, lokaal gecommit (hash in de volgende PLAN-commit), niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar wil dat captains, naast sorteren, renners los van
+  hun waarden in een team zetten, en dat dat doorwerkt naar de selectie. Op
+  de vraag "moet de teamindeling niet een aparte pagina zijn zodat dit wat
+  compacter kan blijven?" kreeg de ranglijst een eigen pagina.
+- **Wat.** Nieuwe pagina `/teams/[id]/indeling` (`indeling/page.tsx`): alleen
+  voor een ZRL-hoofdteam met subteams en voor wie mag indelen
+  (`teams.manage_roster`, `teams.manage_results`, of captain/co-captain van
+  het hoofdteam of een subteam); de rest gaat terug naar de teampagina, een
+  subteam naar de pagina van zijn hoofdteam. De teampagina heeft bij Subteams
+  alleen nog de knop "Teamindeling".
+  - Bij "Alle renners" blijft het een ranglijst met blokken van 5 op de
+    sortering; daar wordt niets opgeslagen.
+  - Kies je een raceweek, dan komen de blokken uit `team_event_lineups` van
+    die week: dezelfde regels als de captain-selectie op de teampagina en het
+    racebriefje. Per team: aantal (meer dan 5 oranje), niveau-pill, nummering
+    binnen het team. Daaronder Niet ingedeeld (gesorteerd) en Niet beschikbaar.
+  - Per rij een keuzevakje (– / B1 / B2 / B3 / Bdev) via de nieuwe
+    server-action `moveZrlLineup`. Een renner in twee teams staat in beide
+    blokken; het vakje verplaatst alleen die ene regel. Een profiel krijgt via
+    `syncLineupRsvp` een ja op de race van het team, net als bij de
+    captain-selectie.
+  - "Neem sortering over" zet de week gelijk aan de blokken van 5 van wie niet
+    "niet beschikbaar" is; "Ook voor de rest van de ronde" kopieert de echte
+    opstelling naar de latere weken van dezelfde ronde. Beide via
+    `setZrlWeekLineups`, met eerst een `confirm()` als er iets overschreven
+    wordt. Alleen voor `teams.manage_roster` of de captain van het hoofdteam.
+  - De ronde komt uit de titel ("ZRL 2026/27 · R2 · W1" → seizoen plus ronde,
+    `roundOfTitle`), dus geen nieuw veld.
+  - Rechten in `canAssignZrl`: beheerder of captain van het hoofdteam altijd;
+    een captain van een subteam alleen binnen zijn eigen subteams, zoals
+    `setTeamLineup`. Alleen subteams van dit hoofdteam en alleen raceweken.
+- **Bewust niet.** Geen nieuw datamodel en geen migratie: de opstelling bestond
+  al. Geen eigen "concept"-indeling naast de opstelling: wat je hier zet, is de
+  selectie. Geen vastzetten per ronde als apart begrip; kopiëren naar de
+  volgende weken is genoeg. Geen limiet van 5 per team (alleen oranje), want
+  de echte grens hangt af van WTRL.
+- **Niet meer waar.** In de ronde "ZRL-teamindeling als ranglijst" staat de
+  lijst "op de pagina van een ZRL-hoofdteam"; die staat nu op
+  `/teams/[id]/indeling`. Daar staat ook "geen knoppen neem over als
+  teamindeling/opstelling": die zijn er nu (eigenaar: "Ja, bouwen").
+- **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden,
+  `zrl-ranking.test.ts` (14, waarvan 4 nieuw: blokken uit de opstelling met een
+  renner in twee teams, meer dan 5, ronde uit de titel, latere weken van de
+  ronde).
+- **Niet geverifieerd:** de pagina in de browser en de server-actions tegen
+  productie (de lokale server in deze worktree vroeg om een login).
+
 ### Gebouwd — Captain zet beschikbaarheid in de ZRL-ranglijst
 
 **2026-11-15, commit `7540c7b5` ("ZRL-ranglijst: captain zet beschikbaarheid, ook zonder account"), op 2026-11-15 gepusht naar `main` (eigenaar: "Ja, push"). Migratie `0332_captain_availability.sql`, op 2026-11-15 via de connector op productie toegepast (eigenaar: "Ja, toepassen").**
@@ -12433,7 +12490,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
   toetst niet aan B1 of B4.
 - **Wat.** Nieuw `src/lib/teams/zrl-ranking.ts` (puur) en
   `teams/[id]/_components/zrl-ranking-table.tsx`, op de pagina van een
-  ZRL-hoofdteam met subteams, alleen voor wie mag indelen (`canManage`). Blokken
+  ZRL-hoofdteam met subteams (sinds 2026-11-16 op `/teams/[id]/indeling`), alleen voor wie mag indelen (`canManage`). Blokken
   van 5, altijd (eigenaar); de subteams op naam, het Dev-team als laatste blok
   (eigenaar), daarna Reserve. Wie bij een gekozen raceweek "niet beschikbaar"
   zei, staat onderaan en telt niet mee.
@@ -12456,7 +12513,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   een geschatte zFTP van 4,38 en staat dus rood in B1.
 - **Bewust niet.** Geen advies per wedstrijd (welke sortering bij welk format)
   en geen knoppen "neem over als teamindeling/opstelling" of vastzetten: eerst
-  de lijst zelf bekijken. Geen wattvloer van Open (250 W voor A): de schatting
+  de lijst zelf bekijken. (Sinds 2026-11-16 zijn die knoppen er wel: ronde
+  "ZRL-teamindeling: zelf indelen, op een eigen pagina".) Geen wattvloer van Open (250 W voor A): de schatting
   kent alleen W/kg. Niets naar WTRL: scraping is daar verboden.
 - **Privacy.** In het blok "ZRL-teamgegevens van WTRL" op `/privacy` staat
   dat captains en beheerders op een ZRL-hoofdteam het beste W/kg over 1, 5 en

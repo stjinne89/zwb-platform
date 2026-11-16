@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   categoryFromTeamName,
   estimateZ,
+  laterWeeksInRound,
+  lineupBlocks,
   orderRankingTeams,
   rankRider,
   riderLevel,
+  roundOfTitle,
   sortRanking,
   splitIntoTeams,
   type RankingRider,
@@ -108,5 +111,65 @@ describe("teams en blokken", () => {
     expect(devBlock.level).toBe("over");
     expect(riderLevel(strong, true)).toBe("over");
     expect(riderLevel(strong, false)).toBe("ok");
+  });
+});
+
+describe("indeling per raceweek", () => {
+  const teams = orderRankingTeams([
+    { id: "b1", name: "B1" },
+    { id: "dev", name: "Bdev" },
+  ]);
+  const riders = ["a", "b", "c", "d", "e", "f", "g"].map((key, index) =>
+    rankRider(rider(key, { m1: 6, m5: 4.4 - index * 0.1, m20: 3.9 - index * 0.1 }), "B", false),
+  );
+  const line = (id: string, teamId: string, riderKey: string) => ({ id, eventId: "w1", teamId, riderKey });
+
+  it("blokken uit de opstelling, los van de sortering, met een renner in twee teams", () => {
+    const { blocks, assigned } = lineupBlocks(
+      riders,
+      [line("1", "dev", "a"), line("2", "b1", "g"), line("3", "b1", "c"), line("4", "dev", "c"), line("5", "b1", "onbekend")],
+      teams,
+      "zftp",
+    );
+    expect(blocks.map((block) => block.team.id)).toEqual(["b1", "dev"]);
+    expect(blocks[0].rows.map((row) => row.rider.key)).toEqual(["c", "g"]);
+    expect(blocks[1].rows.map((row) => [row.rider.key, row.lineupId])).toEqual([
+      ["a", "1"],
+      ["c", "4"],
+    ]);
+    expect([...assigned].sort()).toEqual(["a", "c", "g"]);
+    // a is de sterkste: zFTP 0,937 × 3,9 = 3,65, net onder het Dev-plafond van 3,74 → krap.
+    expect(blocks[1].level).toBe("near");
+    expect(blocks[0].level).toBe("ok");
+  });
+
+  it("meer dan 5 in een team is vol", () => {
+    const { blocks } = lineupBlocks(
+      riders,
+      riders.slice(0, 6).map((r, index) => line(String(index), "b1", r.key)),
+      teams,
+      "zftp",
+    );
+    expect(blocks[0].crowded).toBe(true);
+    expect(blocks[1].rows).toHaveLength(0);
+  });
+
+  it("de ronde komt uit de titel, met het seizoen", () => {
+    expect(roundOfTitle("ZRL 2026/27 · R2 · W1 — Team Time Trial")).toBe("ZRL 2026/27 · R2");
+    expect(roundOfTitle("Losse race")).toBeNull();
+  });
+
+  it("de latere weken van dezelfde ronde", () => {
+    const weeks = [
+      { id: "r1w6", title: "ZRL 2026/27 · R1 · W6", startAt: "2026-10-27T19:00:00+00:00" },
+      { id: "r2w2", title: "ZRL 2026/27 · R2 · W2", startAt: "2026-11-24T19:00:00+00:00" },
+      { id: "r2w1", title: "ZRL 2026/27 · R2 · W1", startAt: "2026-11-17T19:00:00+00:00" },
+      { id: "r2w3", title: "ZRL 2026/27 · R2 · W3", startAt: "2026-12-01T19:00:00+00:00" },
+      { id: "r3w1", title: "ZRL 2026/27 · R3 · W1", startAt: "2027-01-05T19:00:00+00:00" },
+      { id: "r2next", title: "ZRL 2027/28 · R2 · W1", startAt: "2027-11-16T19:00:00+00:00" },
+    ];
+    expect(laterWeeksInRound(weeks, "r2w1").map((week) => week.id)).toEqual(["r2w2", "r2w3"]);
+    expect(laterWeeksInRound(weeks, "r2w3")).toEqual([]);
+    expect(laterWeeksInRound(weeks, "onbekend")).toEqual([]);
   });
 });

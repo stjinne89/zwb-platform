@@ -3,7 +3,10 @@
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { ArrowDown } from "lucide-react";
 import { MemberLink } from "@/components/member-link";
+import { Button } from "@/components/ui/button";
 import {
+  laterWeeksInRound,
+  lineupBlocks,
   orderRankingTeams,
   riderLevel,
   sortRanking,
@@ -12,12 +15,13 @@ import {
   type LimitStatus,
   type RankedRider,
   type RankingAvailability,
+  type RankingLineup,
   type RankingSortKey,
   type RankingTeam,
   type ZValue,
 } from "@/lib/teams/zrl-ranking";
 import { cn } from "@/lib/utils";
-import { setRiderAvailability } from "../_actions";
+import { moveZrlLineup, setRiderAvailability, setZrlWeekLineups, type LineupRider } from "../_actions";
 
 export type RankingEvent = { id: string; title: string; startAt: string };
 
@@ -69,6 +73,10 @@ const AVAILABILITY: Record<NonNullable<RankingAvailability>, { mark: string; lab
   unavailable: { mark: "✗", label: "Niet beschikbaar", className: "text-destructive" },
 };
 
+type LineupChange =
+  | { type: "move"; eventId: string; riderKey: string; from: string | null; to: string | null }
+  | { type: "replace"; eventIds: string[]; rows: Array<{ riderKey: string; teamId: string }> };
+
 function wkg(value: number | null | undefined) {
   return value == null
     ? "-"
@@ -84,27 +92,69 @@ function eventLabel(event: RankingEvent) {
   return `${date} · ${event.title}`;
 }
 
+/** "ZRL 2026/27 · R2 · W3" → "W3". */
+function weekLabel(event: RankingEvent) {
+  return /\bW\d+\b/.exec(event.title)?.[0] ?? eventLabel(event);
+}
+
+const lineupRider = (rider: RankedRider): LineupRider => ({
+  kind: rider.profileId ? "profile" : "roster",
+  id: rider.key,
+});
+
+function applyLineupChange(state: RankingLineup[], change: LineupChange): RankingLineup[] {
+  if (change.type === "replace") {
+    return [
+      ...state.filter((row) => !change.eventIds.includes(row.eventId)),
+      ...change.eventIds.flatMap((eventId) =>
+        change.rows.map((row) => ({
+          id: `tmp:${eventId}:${row.teamId}:${row.riderKey}`,
+          eventId,
+          teamId: row.teamId,
+          riderKey: row.riderKey,
+        })),
+      ),
+    ];
+  }
+  const { eventId, riderKey, from, to } = change;
+  const mine = (row: RankingLineup) => row.eventId === eventId && row.riderKey === riderKey;
+  let next = state.filter((row) => !(mine(row) && row.teamId === from));
+  if (to && !next.some((row) => mine(row) && row.teamId === to)) {
+    next = [...next, { id: `tmp:${eventId}:${to}:${riderKey}`, eventId, teamId: to, riderKey }];
+  }
+  return next;
+}
+
 export function ZrlRankingTable({
   teams,
   riders,
   events,
   availability,
+  lineups,
   teamId,
   canEditAvailability,
+  canAssign,
+  canAssignWeek,
 }: {
   teams: RankingTeam[];
   riders: RankedRider[];
   events: RankingEvent[];
   /** `${eventId}:${rider.key}` → beschikbaarheid. */
   availability: Record<string, RankingAvailabilityEntry>;
-  /** Het hoofdteam waar de beschikbaarheid bij hoort. */
+  /** De opstelling van de raceweken (team_event_lineups). */
+  lineups: RankingLineup[];
+  /** Het hoofdteam waar beschikbaarheid en opstelling bij horen. */
   teamId: string;
   canEditAvailability: boolean;
+  /** Renners per stuk indelen. */
+  canAssign: boolean;
+  /** Een hele week in één keer zetten. */
+  canAssignWeek: boolean;
 }) {
   const [sortKey, setSortKey] = useState<RankingSortKey>("zftp");
   const [eventId, setEventId] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
   const ordered = useMemo(() => orderRankingTeams(teams), [teams]);
   const [shown, setShown] = useOptimistic(
     availability,
@@ -115,6 +165,7 @@ export function ZrlRankingTable({
       return next;
     },
   );
+  const [shownLineups, changeLineups] = useOptimistic(lineups, applyLineupChange);
 
   const entryOf = (rider: RankedRider) => (eventId ? (shown[`${eventId}:${rider.key}`] ?? null) : null);
 
@@ -125,35 +176,89 @@ export function ZrlRankingTable({
     setError(null);
     startTransition(async () => {
       setShown({ key, entry: status ? { status, byCaptain: true } : null });
-      const res = await setRiderAvailability(
+      const res = await setRiderAvailability(teamId, eventId, lineupRider(rider), status);
+      if (!res.ok) setError(res.error);
+    });
+  }
+
+  function move(rider: RankedRider, from: string | null, to: string | null) {
+    if (!eventId || from === to) return;
+    setError(null);
+    startTransition(async () => {
+      changeLineups({ type: "move", eventId, riderKey: rider.key, from, to });
+      const res = await moveZrlLineup(teamId, eventId, lineupRider(rider), from, to);
+      if (!res.ok) setError(res.error);
+    });
+  }
+
+  function replace(eventIds: string[], rows: Array<{ rider: RankedRider; teamId: string }>) {
+    setError(null);
+    startTransition(async () => {
+      changeLineups({
+        type: "replace",
+        eventIds,
+        rows: rows.map((row) => ({ riderKey: row.rider.key, teamId: row.teamId })),
+      });
+      const res = await setZrlWeekLineups(
         teamId,
-        eventId,
-        { kind: rider.profileId ? "profile" : "roster", id: rider.key },
-        status,
+        eventIds,
+        rows.map((row) => ({ rider: lineupRider(row.rider), teamId: row.teamId })),
       );
       if (!res.ok) setError(res.error);
     });
   }
 
-  const { blocks, absent } = useMemo(() => {
-    const status = (rider: RankedRider) =>
-      eventId ? (shown[`${eventId}:${rider.key}`]?.status ?? null) : null;
-    const present = riders.filter((rider) => status(rider) !== "unavailable");
-    const away = riders.filter((rider) => status(rider) === "unavailable");
-    // Alleen het laatste blok kan korter zijn dan 5, dus elk blok begint op index × 5.
-    return {
-      blocks: splitIntoTeams(sortRanking(present, sortKey), ordered).map((block, index) => ({
-        ...block,
-        first: index * ZRL_BLOCK_SIZE,
-      })),
-      absent: sortRanking(away, sortKey),
-    };
-  }, [riders, sortKey, eventId, shown, ordered]);
+  const statusOf = (rider: RankedRider) => (eventId ? (shown[`${eventId}:${rider.key}`]?.status ?? null) : null);
+  const present = riders.filter((rider) => statusOf(rider) !== "unavailable");
+  // Blokken van 5 op de sortering; alleen het laatste blok kan korter zijn, dus
+  // elk blok begint op index × 5.
+  const sortedBlocks = splitIntoTeams(sortRanking(present, sortKey), ordered).map((block, index) => ({
+    ...block,
+    first: index * ZRL_BLOCK_SIZE,
+  }));
+  const weekLineups = eventId ? shownLineups.filter((row) => row.eventId === eventId) : [];
+  const week = eventId ? lineupBlocks(riders, weekLineups, ordered, sortKey) : null;
+  const unassigned = week ? sortRanking(present.filter((rider) => !week.assigned.has(rider.key)), sortKey) : [];
+  const absent = sortRanking(
+    riders.filter((rider) => statusOf(rider) === "unavailable" && !week?.assigned.has(rider.key)),
+    sortKey,
+  );
+  const laterWeeks = eventId ? laterWeeksInRound(events, eventId) : [];
+
+  function takeSorting() {
+    if (weekLineups.length > 0 && !window.confirm("Opstelling van deze week vervangen?")) return;
+    replace(
+      [eventId],
+      sortedBlocks.flatMap((block) =>
+        block.team ? block.riders.map((rider) => ({ rider, teamId: block.team!.id })) : [],
+      ),
+    );
+  }
+
+  function copyToRound() {
+    const overwritten = laterWeeks.filter((later) => shownLineups.some((row) => row.eventId === later.id));
+    const question =
+      `Naar ${laterWeeks.map(weekLabel).join(", ")} kopiëren?` +
+      (overwritten.length > 0 ? `\n${overwritten.map(weekLabel).join(", ")} wordt overschreven.` : "");
+    if (!window.confirm(question)) return;
+    const riderByKey = new Map(riders.map((rider) => [rider.key, rider]));
+    replace(
+      laterWeeks.map((later) => later.id),
+      weekLineups.flatMap((row) => {
+        const rider = riderByKey.get(row.riderKey);
+        return rider ? [{ rider, teamId: row.teamId }] : [];
+      }),
+    );
+  }
+
+  const assignable = canAssign && eventId !== "";
+  const editAvailability = eventId !== "" && canEditAvailability;
+  const colSpan = COLUMNS.length + 2;
 
   return (
     <section className="space-y-3 rounded-lg border bg-card p-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Teamindeling</h2>
+        <h1 className="text-xl font-semibold">Teamindeling</h1>
         {events.length > 0 && (
           <select
             value={eventId}
@@ -170,6 +275,18 @@ export function ZrlRankingTable({
           </select>
         )}
       </header>
+      {eventId && canAssignWeek && (
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={takeSorting} disabled={pending}>
+            Neem sortering over
+          </Button>
+          {laterWeeks.length > 0 && (
+            <Button size="sm" variant="outline" onClick={copyToRound} disabled={pending || weekLineups.length === 0}>
+              Ook voor de rest van de ronde
+            </Button>
+          )}
+        </div>
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <table className="w-full text-xs tabular-nums sm:text-sm">
@@ -198,38 +315,80 @@ export function ZrlRankingTable({
             <th className="py-1 pl-1 text-center font-medium sm:pl-2">Dev</th>
           </tr>
         </thead>
-        {blocks.map((block) => (
-          <tbody key={block.team?.id ?? "reserve"}>
-            <tr className={cn("border-t-2", block.level === "over" ? "border-destructive" : "border-foreground/40")}>
-              <th colSpan={COLUMNS.length + 2} className="py-1.5 text-left">
-                <span className="font-semibold">{block.team?.name ?? "Reserve"}</span>
-                {block.team && (
-                  <span className={cn("ml-2 rounded-full px-1.5 py-0.5 text-xs font-medium", LEVEL_PILL[block.level])}>
-                    {LEVEL_TEXT[block.level]}
-                  </span>
-                )}
-              </th>
-            </tr>
-            {block.riders.map((rider, index) => (
+
+        {week
+          ? week.blocks.map((block) => {
+              const level: LimitStatus = block.crowded && block.level === "ok" ? "near" : block.level;
+              return (
+                <tbody key={block.team.id}>
+                  <BlockHeader
+                    name={block.team.name}
+                    count={block.rows.length}
+                    crowded={block.crowded}
+                    level={block.rows.length > 0 ? level : null}
+                    colSpan={colSpan}
+                  />
+                  {block.rows.map(({ rider, lineupId }, index) => (
+                    <RiderRow
+                      key={lineupId}
+                      rider={rider}
+                      position={index + 1}
+                      level={riderLevel(rider, block.team.dev)}
+                      inDevTeam={block.team.dev}
+                      availability={entryOf(rider)}
+                      onCycle={editAvailability ? () => cycle(rider) : undefined}
+                      teams={assignable ? ordered : undefined}
+                      teamId={block.team.id}
+                      onMove={(to) => move(rider, block.team.id, to)}
+                    />
+                  ))}
+                </tbody>
+              );
+            })
+          : sortedBlocks.map((block) => (
+              <tbody key={block.team?.id ?? "reserve"}>
+                <BlockHeader
+                  name={block.team?.name ?? "Reserve"}
+                  count={null}
+                  crowded={false}
+                  level={block.team ? block.level : null}
+                  colSpan={colSpan}
+                />
+                {block.riders.map((rider, index) => (
+                  <RiderRow
+                    key={rider.key}
+                    rider={rider}
+                    position={block.first + index + 1}
+                    level={riderLevel(rider, block.team?.dev ?? false)}
+                    inDevTeam={block.team?.dev ?? false}
+                    availability={null}
+                  />
+                ))}
+              </tbody>
+            ))}
+
+        {unassigned.length > 0 && (
+          <tbody>
+            <BlockHeader name="Niet ingedeeld" count={null} crowded={false} level={null} colSpan={colSpan} />
+            {unassigned.map((rider) => (
               <RiderRow
                 key={rider.key}
                 rider={rider}
-                position={block.first + index + 1}
-                level={riderLevel(rider, block.team?.dev ?? false)}
-                inDevTeam={block.team?.dev ?? false}
+                position={null}
+                level="ok"
+                inDevTeam={false}
                 availability={entryOf(rider)}
-                onCycle={eventId && canEditAvailability ? () => cycle(rider) : undefined}
+                onCycle={editAvailability ? () => cycle(rider) : undefined}
+                teams={assignable ? ordered : undefined}
+                teamId={null}
+                onMove={(to) => move(rider, null, to)}
               />
             ))}
           </tbody>
-        ))}
+        )}
         {absent.length > 0 && (
           <tbody>
-            <tr className="border-t-2 border-foreground/40">
-              <th colSpan={COLUMNS.length + 2} className="py-1.5 text-left font-semibold">
-                Niet beschikbaar
-              </th>
-            </tr>
+            <BlockHeader name="Niet beschikbaar" count={null} crowded={false} level={null} colSpan={colSpan} />
             {absent.map((rider) => (
               <RiderRow
                 key={rider.key}
@@ -238,7 +397,10 @@ export function ZrlRankingTable({
                 level="ok"
                 inDevTeam={false}
                 availability={entryOf(rider)}
-                onCycle={eventId && canEditAvailability ? () => cycle(rider) : undefined}
+                onCycle={editAvailability ? () => cycle(rider) : undefined}
+                teams={assignable ? ordered : undefined}
+                teamId={null}
+                onMove={(to) => move(rider, null, to)}
                 muted
               />
             ))}
@@ -249,6 +411,43 @@ export function ZrlRankingTable({
   );
 }
 
+function BlockHeader({
+  name,
+  count,
+  crowded,
+  level,
+  colSpan,
+}: {
+  name: string;
+  count: number | null;
+  crowded: boolean;
+  level: LimitStatus | null;
+  colSpan: number;
+}) {
+  return (
+    <tr className={cn("border-t-2", level === "over" ? "border-destructive" : "border-foreground/40")}>
+      <th colSpan={colSpan} className="py-1.5 text-left">
+        <span className="font-semibold">{name}</span>
+        {count != null && (
+          <span
+            className={cn(
+              "ml-1.5 font-normal tabular-nums text-muted-foreground",
+              crowded && "font-medium text-amber-700 dark:text-amber-400",
+            )}
+          >
+            {count}/{ZRL_BLOCK_SIZE}
+          </span>
+        )}
+        {level && (
+          <span className={cn("ml-2 rounded-full px-1.5 py-0.5 text-xs font-medium", LEVEL_PILL[level])}>
+            {LEVEL_TEXT[level]}
+          </span>
+        )}
+      </th>
+    </tr>
+  );
+}
+
 function RiderRow({
   rider,
   position,
@@ -256,6 +455,9 @@ function RiderRow({
   inDevTeam,
   availability,
   onCycle,
+  teams,
+  teamId = null,
+  onMove,
   muted = false,
 }: {
   rider: RankedRider;
@@ -265,6 +467,10 @@ function RiderRow({
   availability: RankingAvailabilityEntry | null;
   /** Gezet: de captain mag tikken; alleen als de renner het niet zelf koos. */
   onCycle?: () => void;
+  /** Gezet: de captain kan de renner in een team zetten. */
+  teams?: Array<RankingTeam & { dev: boolean }>;
+  teamId?: string | null;
+  onMove?: (teamId: string | null) => void;
   muted?: boolean;
 }) {
   const mark = availability ? AVAILABILITY[availability.status] : null;
@@ -274,6 +480,21 @@ function RiderRow({
     <tr className={cn("border-b last:border-0", ROW_TINT[level], muted && "text-muted-foreground")}>
       <td className="w-full max-w-0 truncate py-1 pr-2">
         {position != null && <span className="mr-1 inline-block w-4 text-right text-muted-foreground sm:mr-1.5 sm:w-5">{position}</span>}
+        {teams && onMove && (
+          <select
+            value={teamId ?? ""}
+            onChange={(event) => onMove(event.target.value || null)}
+            className="mr-1 h-6 rounded border bg-background px-0.5 align-middle text-xs"
+            aria-label={`Team van ${rider.name}`}
+          >
+            <option value="">–</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        )}
         {editable ? (
           <button
             type="button"

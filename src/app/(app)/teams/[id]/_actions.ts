@@ -623,6 +623,184 @@ export async function removeTeamLineup(parentTeamId: string, lineupId: string) {
 type Admin = ReturnType<typeof createAdminClient>;
 
 /**
+ * Teamindeling (2026-11-16): mag deze gebruiker renners over deze subteams van
+ * het hoofdteam verdelen in deze raceweken? Met teams.manage_roster of als
+ * captain van het hoofdteam altijd; als captain van een subteam alleen binnen
+ * de eigen subteams, net als setTeamLineup.
+ */
+async function canAssignZrl(parentTeamId: string, eventIds: string[], teamIds: string[]) {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  const admin = createAdminClient();
+  const [{ data: children }, { data: weeks }, { data: roles }] = await Promise.all([
+    admin.from("teams").select("id").eq("parent_team_id", parentTeamId),
+    admin.from("events").select("id").in("id", eventIds).eq("type", "zrl").is("parent_event_id", null),
+    admin
+      .from("team_members")
+      .select("team_id")
+      .eq("profile_id", access.user.id)
+      .in("role", ["captain", "co-captain"]),
+  ]);
+  const childIds = new Set(((children ?? []) as Array<{ id: string }>).map((row) => row.id));
+  if (teamIds.some((teamId) => !childIds.has(teamId))) {
+    return { ok: false as const, error: "Alleen subteams van dit team." };
+  }
+  if ((weeks ?? []).length !== new Set(eventIds).size) {
+    return { ok: false as const, error: "Alleen voor een raceweek." };
+  }
+  if (access.has("teams.manage_roster")) return { ok: true as const, userId: access.user.id, admin };
+  const captainOf = new Set(((roles ?? []) as Array<{ team_id: string }>).map((row) => row.team_id));
+  if (captainOf.has(parentTeamId) || (teamIds.length > 0 && teamIds.every((teamId) => captainOf.has(teamId)))) {
+    return { ok: true as const, userId: access.user.id, admin };
+  }
+  return { ok: false as const, error: "Geen recht om deze lineup te beheren." };
+}
+
+function revalidateIndeling(parentTeamId: string, teamIds: string[], eventIds: string[]) {
+  revalidatePath(`/teams/${parentTeamId}`);
+  revalidatePath(`/teams/${parentTeamId}/indeling`);
+  for (const teamId of teamIds) revalidatePath(`/teams/${teamId}`);
+  for (const eventId of eventIds) revalidatePath(`/events/${eventId}`);
+}
+
+type LineupKeyRow = { id: string; team_id: string; profile_id: string | null; roster_entry_id: string | null };
+
+const lineupRiderKey = (row: { profile_id: string | null; roster_entry_id: string | null }) =>
+  row.profile_id ? `p:${row.profile_id}` : `r:${row.roster_entry_id}`;
+
+/**
+ * Verplaats één renner in de opstelling van een raceweek: van `fromTeamId` (leeg:
+ * nog niet ingedeeld) naar `toTeamId` (leeg: eruit). Een tweede team van dezelfde
+ * renner blijft staan. Stond hij al in het doelteam, dan verdwijnt alleen de oude regel.
+ */
+export async function moveZrlLineup(
+  parentTeamId: string,
+  eventId: string,
+  rider: LineupRider,
+  fromTeamId: string | null,
+  toTeamId: string | null,
+) {
+  if (fromTeamId === toTeamId) return { ok: true as const };
+  const teamIds = [fromTeamId, toTeamId].filter((value): value is string => value != null);
+  const guard = await canAssignZrl(parentTeamId, [eventId], teamIds);
+  if (!guard.ok) return { ok: false as const, error: guard.error };
+  const { admin } = guard;
+
+  const column = rider.kind === "profile" ? "profile_id" : "roster_entry_id";
+  const { data: rows, error: readError } = await admin
+    .from("team_event_lineups")
+    .select("id, team_id, profile_id, roster_entry_id")
+    .eq("event_id", eventId)
+    .eq("parent_team_id", parentTeamId)
+    .eq(column, rider.id);
+  if (readError) return { ok: false as const, error: readError.message };
+  const existing = (rows ?? []) as LineupKeyRow[];
+
+  if (toTeamId && !existing.some((row) => row.team_id === toTeamId)) {
+    const { error } = await admin.from("team_event_lineups").insert({
+      parent_team_id: parentTeamId,
+      event_id: eventId,
+      team_id: toTeamId,
+      [column]: rider.id,
+      selected_by: guard.userId,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) return { ok: false as const, error: error.message };
+  }
+  const old = fromTeamId ? existing.find((row) => row.team_id === fromTeamId) : null;
+  if (old) {
+    const { error } = await admin.from("team_event_lineups").delete().eq("id", old.id);
+    if (error) return { ok: false as const, error: error.message };
+  }
+  if (rider.kind === "profile") {
+    await syncLineupRsvp(admin, rider.id, eventId, toTeamId, old ? fromTeamId : null);
+  }
+
+  revalidateIndeling(parentTeamId, teamIds, [eventId]);
+  return { ok: true as const };
+}
+
+/**
+ * Zet de opstelling van een of meer raceweken in één keer: voor "Neem sortering
+ * over" (deze week) en "Ook voor de rest van de ronde" (de volgende weken). Wat
+ * er al stond en blijft, blijft staan; de rest gaat eruit.
+ */
+export async function setZrlWeekLineups(
+  parentTeamId: string,
+  eventIds: string[],
+  assignments: Array<{ rider: LineupRider; teamId: string }>,
+) {
+  if (eventIds.length === 0) return { ok: true as const };
+  const teamIds = [...new Set(assignments.map((row) => row.teamId))];
+  const guard = await canAssignZrl(parentTeamId, eventIds, teamIds);
+  if (!guard.ok) return { ok: false as const, error: guard.error };
+  const { admin } = guard;
+
+  const { data: rows, error: readError } = await admin
+    .from("team_event_lineups")
+    .select("id, event_id, team_id, profile_id, roster_entry_id")
+    .eq("parent_team_id", parentTeamId)
+    .in("event_id", eventIds);
+  if (readError) return { ok: false as const, error: readError.message };
+  const all = (rows ?? []) as Array<LineupKeyRow & { event_id: string }>;
+
+  // Een captain van een subteam haalt geen renners uit andermans team.
+  if (teamIds.length > 0 && !(await canAssignZrl(parentTeamId, eventIds, [...new Set(all.map((row) => row.team_id))])).ok) {
+    return { ok: false as const, error: "Geen recht om deze lineup te beheren." };
+  }
+
+  const wanted = new Map(
+    assignments.map((row) => [
+      `${row.teamId}|${row.rider.kind === "profile" ? "p" : "r"}:${row.rider.id}`,
+      row,
+    ]),
+  );
+  const now = new Date().toISOString();
+  const touched = new Set<string>(teamIds);
+
+  for (const eventId of eventIds) {
+    const existing = all.filter((row) => row.event_id === eventId);
+    const have = new Set(existing.map((row) => `${row.team_id}|${lineupRiderKey(row)}`));
+    const removed = existing.filter((row) => !wanted.has(`${row.team_id}|${lineupRiderKey(row)}`));
+    const added = [...wanted.entries()].filter(([key]) => !have.has(key)).map(([, row]) => row);
+
+    if (removed.length > 0) {
+      const { error } = await admin.from("team_event_lineups").delete().in("id", removed.map((row) => row.id));
+      if (error) return { ok: false as const, error: error.message };
+    }
+    if (added.length > 0) {
+      const { error } = await admin.from("team_event_lineups").insert(
+        added.map((row) => ({
+          parent_team_id: parentTeamId,
+          event_id: eventId,
+          team_id: row.teamId,
+          profile_id: row.rider.kind === "profile" ? row.rider.id : null,
+          roster_entry_id: row.rider.kind === "roster" ? row.rider.id : null,
+          selected_by: guard.userId,
+          updated_at: now,
+        })),
+      );
+      if (error) return { ok: false as const, error: error.message };
+    }
+
+    // Geselecteerd is een ja op de race van dat team; eruit is die ja kwijt.
+    await Promise.all([
+      ...added
+        .filter((row) => row.rider.kind === "profile")
+        .map((row) => syncLineupRsvp(admin, row.rider.id, eventId, row.teamId, null)),
+      ...removed
+        .filter((row) => row.profile_id)
+        .map((row) => syncLineupRsvp(admin, row.profile_id as string, eventId, null, row.team_id)),
+    ]);
+    for (const row of removed) touched.add(row.team_id);
+  }
+
+  revalidateIndeling(parentTeamId, [...touched], eventIds);
+  return { ok: true as const };
+}
+
+/**
  * De race van dit team bij deze opstelling. De opstelling staat op de raceweek
  * (paraplu, migr. 0179) of op de race zelf (team zonder subteams).
  */

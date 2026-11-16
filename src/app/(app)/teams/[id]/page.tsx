@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowUpRight, CalendarDays, Plus, Users } from "lucide-react";
+import { ArrowUpRight, CalendarDays, ListOrdered, Plus, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -32,18 +32,6 @@ import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadWeightMissing } from "@/lib/teams/missing-weight";
 import { MissingWeightNotice } from "@/components/missing-weight-notice";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
-import {
-  categoryFromTeamName,
-  isWomenTeamName,
-  rankRider,
-  type RankedRider,
-} from "@/lib/teams/zrl-ranking";
-import type { PowerWkg } from "@/lib/club-ladder/team-power";
-import {
-  ZrlRankingTable,
-  type RankingAvailabilityEntry,
-  type RankingEvent,
-} from "./_components/zrl-ranking-table";
 
 const TYPE_LABELS: Record<string, string> = {
   zrl: "ZRL",
@@ -123,8 +111,6 @@ type AvailabilityRow = {
   /** Leeg bij een rosternaam zonder account (migr. 0332). */
   profile_id: string | null;
   roster_entry_id: string | null;
-  /** Gezet door een captain; leeg = eigen keuze. */
-  set_by: string | null;
   status: "available" | "maybe" | "unavailable";
 };
 
@@ -333,7 +319,7 @@ export default async function TeamDetailPage({
     eventIds.length > 0
       ? supabase
           .from("team_event_availability")
-          .select("event_id, profile_id, roster_entry_id, set_by, status")
+          .select("event_id, profile_id, roster_entry_id, status")
           .eq("team_id", rootTeamId)
           .in("event_id", eventIds)
       : Promise.resolve({ data: [] }),
@@ -490,12 +476,6 @@ export default async function TeamDetailPage({
       row.status,
     ]),
   );
-  // Door een captain gezet (0332): die mag het ook weer aanpassen.
-  const availabilityByCaptain = new Set(
-    ((availabilityRows ?? []) as AvailabilityRow[])
-      .filter((row) => row.set_by != null)
-      .map((row) => `${row.event_id}:${row.profile_id ?? row.roster_entry_id}`),
-  );
   // Een "ja" op de race van een subteam is beschikbaar voor die raceweek, ook als
   // bij de paraplu iets anders staat. Zo'n tegenspraak ontstond toen `0179` een
   // "nee" op de race van het hoofdteam omzette in "niet beschikbaar", terwijl het
@@ -543,72 +523,10 @@ export default async function TeamDetailPage({
       rosterNameById.set(row.id, row.name);
     }
   }
-  // Teamindeling als ranglijst (ZRL-hoofdteam met subteams, voor wie indeelt):
-  // geschatte zFTP en zMAP uit het vermogen van 90 dagen in Zwift (ZwiftRacing).
+  // Teamindeling (ZRL-hoofdteam met subteams, voor wie indeelt) staat sinds
+  // 2026-11-16 op een eigen pagina.
   const showRanking =
     canManage && team.type === "zrl" && team.parent_team_id == null && (childTeams ?? []).length > 0;
-  let ranking: {
-    riders: RankedRider[];
-    events: RankingEvent[];
-    availability: Record<string, RankingAvailabilityEntry>;
-  } | null = null;
-  if (showRanking) {
-    const registered = rosterRows.filter((row) => !row.unregistered).map((row) => row.id);
-    const { data: zwiftRows } =
-      registered.length > 0
-        ? await admin.from("profiles").select("id, zwift_id").in("id", registered)
-        : { data: [] };
-    const zwiftIdOf = new Map<string, string>();
-    for (const row of (zwiftRows ?? []) as Array<{ id: string; zwift_id: string | number | null }>) {
-      if (row.zwift_id != null && String(row.zwift_id).trim()) zwiftIdOf.set(row.id, String(row.zwift_id).trim());
-    }
-    for (const entry of (rosterPending ?? []) as Array<{ id: string; zwift_id: string | null }>) {
-      if (entry.zwift_id?.trim()) zwiftIdOf.set(entry.id, entry.zwift_id.trim());
-    }
-    const zwiftIds = [...new Set(zwiftIdOf.values())].filter((value) => /^\d+$/.test(value));
-    const { data: metricRows } =
-      zwiftIds.length > 0
-        ? await admin.from("zwift_rider_metrics").select("zwift_id, power_wkg").in("zwift_id", zwiftIds.map(Number))
-        : { data: [] };
-    const powerOf = new Map(
-      ((metricRows ?? []) as Array<{ zwift_id: number | string; power_wkg: PowerWkg | null }>).map((row) => [
-        String(row.zwift_id),
-        row.power_wkg,
-      ]),
-    );
-    const category = categoryFromTeamName(team.name);
-    const women = isWomenTeamName(team.name);
-    const rankingRiders = rosterRows.map((row) => {
-      const zwiftId = zwiftIdOf.get(row.id);
-      const power = zwiftId ? powerOf.get(zwiftId) : null;
-      return rankRider(
-        {
-          key: row.id,
-          name: row.name,
-          profileId: row.unregistered ? null : row.id,
-          power: power ? { m1: power.m1 ?? null, m5: power.m5 ?? null, m20: power.m20 ?? null } : null,
-          wtrl: row.wtrl ? { zftpWkg: row.wtrl.zftpWkg, zmapWkg: row.wtrl.zmapWkg } : null,
-        },
-        category,
-        women,
-      );
-    });
-    // Alleen raceweken: daar meld je je bij een hoofdteam beschikbaar.
-    const weeks = calendarEvents.filter((event) => event.type === "zrl" && event.races !== undefined);
-    const availability: Record<string, RankingAvailabilityEntry> = {};
-    for (const week of weeks) {
-      for (const row of rosterRows) {
-        const key = `${week.id}:${row.id}`;
-        const status = availabilityByEventProfile.get(key);
-        if (status) availability[key] = { status, byCaptain: availabilityByCaptain.has(key) };
-      }
-    }
-    ranking = {
-      riders: rankingRiders,
-      events: weeks.map((event) => ({ id: event.id, title: event.title, startAt: event.start_at })),
-      availability,
-    };
-  }
 
   // Wie zelf in de tabel staat zonder gewicht, ziet waar het in te vullen.
   const needsWeight =
@@ -670,14 +588,24 @@ export default async function TeamDetailPage({
         <section className="space-y-3 rounded-lg border bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold">Subteams</h2>
-            {canManageRoster && (
-              <Link href={`/teams/nieuw?parent_team_id=${team.id}`}>
-                <Button size="sm" variant="outline">
-                  <Plus data-icon="inline-start" />
-                  Nieuw subteam
-                </Button>
-              </Link>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {showRanking && (
+                <Link href={`/teams/${team.id}/indeling`}>
+                  <Button size="sm">
+                    <ListOrdered data-icon="inline-start" />
+                    Teamindeling
+                  </Button>
+                </Link>
+              )}
+              {canManageRoster && (
+                <Link href={`/teams/nieuw?parent_team_id=${team.id}`}>
+                  <Button size="sm" variant="outline">
+                    <Plus data-icon="inline-start" />
+                    Nieuw subteam
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
           {(childTeams ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -720,17 +648,6 @@ export default async function TeamDetailPage({
           parentTeamId: row.parent_team_id,
         }))}
       />
-
-      {ranking && (
-        <ZrlRankingTable
-          teams={((childTeams ?? []) as TeamRow[]).map((row) => ({ id: row.id, name: row.name }))}
-          riders={ranking.riders}
-          events={ranking.events}
-          availability={ranking.availability}
-          teamId={rootTeamId}
-          canEditAvailability={canManageRoster || isCaptain}
-        />
-      )}
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="font-semibold">Teamkalender en selectie</h2>
