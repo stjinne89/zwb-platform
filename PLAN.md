@@ -32,9 +32,10 @@ gaat stabiliteit voor nieuwe features.
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **ZRL-teamindeling: zelf indelen, op een eigen pagina (2026-11-16): lokaal
-   gecommit, niet gepusht.** Geen migratie. Open: in de browser bekijken en
-   één renner in R2 W2 indelen en weer terugzetten (de lokale server vroeg om
-   een login), daarna pushen als de eigenaar dat vraagt. Zie de ronde
+   gecommit (`d5751960`), niet gepusht.** Geen migratie. Lokaal in de browser
+   bekeken en één renner in R2 W2 ingedeeld, verplaatst en teruggezet. Open:
+   de knoppen "Neem sortering over" en "Ook voor de rest van de ronde" tegen
+   echte data, en pushen als de eigenaar dat vraagt. Zie de ronde
    "ZRL-teamindeling: zelf indelen, op een eigen pagina".
 
 0. **Captain zet beschikbaarheid in de ZRL-ranglijst (2026-11-15): gepusht
@@ -12373,7 +12374,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL-teamindeling: zelf indelen, op een eigen pagina
 
-**2026-11-16, lokaal gecommit (hash in de volgende PLAN-commit), niet gepusht. Geen migratie.**
+**2026-11-16, commit `d5751960` ("ZRL-teamindeling: zelf indelen per raceweek, op een eigen pagina"), lokaal, niet gepusht. Geen migratie.**
 
 - **Waarom.** De eigenaar wil dat captains, naast sorteren, renners los van
   hun waarden in een team zetten, en dat dat doorwerkt naar de selectie. Op
@@ -12419,8 +12420,23 @@ link naar `/live/[eventId]`, zie de update hierboven).
   `zrl-ranking.test.ts` (14, waarvan 4 nieuw: blokken uit de opstelling met een
   renner in twee teams, meer dan 5, ronde uit de titel, latere weken van de
   ronde).
-- **Niet geverifieerd:** de pagina in de browser en de server-actions tegen
-  productie (de lokale server in deze worktree vroeg om een login).
+- **Lokaal in de browser** (wijst naar productie, met de login van de
+  eigenaar): de pagina toont 23 renners. Remco Kuijpers, die op 2026-11-15
+  bovenaan stond, is geen lid van ZRL B en meldde zich inmiddels "niet
+  beschikbaar" voor R2 W1, dus hij valt eruit, ook op de teampagina. Bij R2 W2
+  (leeg) staan alle teams op 0/5 en iedereen bij Niet ingedeeld. Jos Leijten
+  (rosternaam, dus geen RSVP of schema) in B2 gezet: één regel in
+  `team_event_lineups` met `selected_by`. Daarna naar Bdev: dezelfde regel
+  verhuisd, Bdev "Past niet", en de captain-selectie op de teampagina toont
+  "Bdev: Jos Leijten". Met – weer weggehaald: R2 W2 heeft 0 regels, R2 W1 nog
+  zijn ene Bdev-regel. De teampagina heeft de knop en geen ranglijst meer. Op
+  375 px is het keuzevakje smal (zonder pijltje) en staat er geen rangnummer
+  naast; de namen zijn dan zo'n vijf letters breed.
+- **Niet geverifieerd:** de twee knoppen. Tegen productie zouden ze echte
+  leden een ja op de race en een herplanning van hun schema geven. Ook niet
+  geprobeerd: een lid met account verplaatsen (RSVP via `syncLineupRsvp`,
+  dezelfde functie als bij de captain-selectie), en de weigering voor een
+  captain van alleen een subteam.
 
 ### Gebouwd — Captain zet beschikbaarheid in de ZRL-ranglijst
 

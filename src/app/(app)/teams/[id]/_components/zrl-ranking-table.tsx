@@ -479,12 +479,22 @@ function RiderRow({
   return (
     <tr className={cn("border-b last:border-0", ROW_TINT[level], muted && "text-muted-foreground")}>
       <td className="w-full max-w-0 truncate py-1 pr-2">
-        {position != null && <span className="mr-1 inline-block w-4 text-right text-muted-foreground sm:mr-1.5 sm:w-5">{position}</span>}
+        {position != null && (
+          <span
+            className={cn(
+              "mr-1 inline-block w-4 text-right text-muted-foreground sm:mr-1.5 sm:w-5",
+              // Op de telefoon zegt het keuzevakje al in welk team iemand staat.
+              teams && "hidden sm:inline-block",
+            )}
+          >
+            {position}
+          </span>
+        )}
         {teams && onMove && (
           <select
             value={teamId ?? ""}
             onChange={(event) => onMove(event.target.value || null)}
-            className="mr-1 h-6 rounded border bg-background px-0.5 align-middle text-xs"
+            className="mr-1 h-6 w-9 appearance-none rounded border bg-background px-0 text-center align-middle text-xs sm:w-auto sm:appearance-auto sm:px-0.5 sm:text-left"
             aria-label={`Team van ${rider.name}`}
           >
             <option value="">–</option>
