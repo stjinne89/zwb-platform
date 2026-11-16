@@ -32,9 +32,9 @@ gaat stabiliteit voor nieuwe features.
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **ZRL-teamindeling: kolom Racefit (2026-11-16): lokaal gecommit (`5d818516`), niet
-   gepusht.** Geen migratie. Gewicht telt mee in de berekening; of dat in de
-   privacyzin van de ZRL-teamindeling moet, ligt bij de eigenaar (staat er
-   nog niet). Zie de ronde "ZRL-teamindeling: kolom Racefit".
+   gepusht.** Geen migratie. De privacyzin over het gewicht staat op
+   `/privacy` (akkoord eigenaar, 2026-11-16). Zie de ronde
+   "ZRL-teamindeling: kolom Racefit".
 
 0. **ZRL-teamindeling: zelf indelen, op een eigen pagina (2026-11-16): lokaal
    gecommit (`d5751960`), niet gepusht.** Geen migratie. Lokaal in de browser
@@ -12427,9 +12427,13 @@ link naar `/live/[eventId]`, zie de update hierboven).
     slipstream en alleen bergop en in de sprint met gewicht, ook in een TTT.
 - **Privacy.** Geen nieuwe gegevens: hetzelfde vermogen als de rest van de
   ranglijst, en het gewicht uit het profiel. Het gewicht wordt niet getoond,
-  maar telt mee in Racefit. De privacyzin over de ZRL-teamindeling noemt het
-  gewicht nog niet; dat is aan de eigenaar voorgelegd en niet zelf in de tekst
-  gezet.
+  maar telt mee in Racefit. In het blok "ZRL-teamgegevens van WTRL" op
+  `/privacy` staat sinds deze ronde dat captains en beheerders bij een
+  bekende route per renner zien hoe zijn vermogen bij het parcours past, dat
+  het gewicht uit het profiel daarin meetelt en dat het gewicht zelf er niet
+  bij staat. Tekst aangepast, geen nieuwe privacyversie: het gewicht staat al
+  in het profiel en wordt al gebruikt in de ladder (voorgelegd, akkoord
+  eigenaar: "Ja, toevoegen", 2026-11-16).
 - **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden,
   nieuw `zrl-racefit.test.ts` (10: tijdrit aan de titel, TT-verschuiving, Race
   of Truth zonder sprint, zonder route of met een onbekende route, per team

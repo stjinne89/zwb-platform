@@ -143,7 +143,10 @@ export default function PrivacyPage() {
             ZRL-team met subteams zien captains en beheerders per renner het beste
             W/kg over 1, 5 en 20 minuten van de laatste 90 dagen, zoals
             ZwiftRacing.app dat openbaar toont, en een daaruit geschatte zFTP en
-            zMAP. Dat geldt ook voor renners zonder <ClubShortName />-account. Een
+            zMAP. Dat geldt ook voor renners zonder <ClubShortName />-account.
+            Staat de route van een race vast, dan zien zij ook per renner hoe
+            dat vermogen bij het parcours past; daarin telt het gewicht uit je
+            profiel mee, maar het gewicht zelf staat er niet bij. Een
             captain van zo&apos;n team kan daar voor een raceweek ook je
             beschikbaarheid invullen, ook als je geen account hebt; wat je zelf
             invult, gaat voor.
