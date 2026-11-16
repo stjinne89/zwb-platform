@@ -424,6 +424,8 @@ export function RacenHelp() {
                 300 m, behalve als de finish op een klim ligt. Tot de sprint houdt het
                 plan minstens 20% van je reserve over voor een aanval. Bij een
                 ploegentijdrit rekent het plan met je kopbeurten naar ploeggrootte.
+                Een tijdritfiets krijgt in de groep minder slipstream, behalve in
+                een ploegentijdrit: daar profiteert hij net zoveel als een racefiets.
               </p>
               <p>
                 Per stuk kun je een powerup inzetten die het event uitdeelt. Het plan

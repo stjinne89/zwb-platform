@@ -31,6 +31,11 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
+0. **Snelste fiets: tijdritfiets in de ploegentijdrit (2026-11-16): op
+   2026-11-16 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie.
+   Open: na de deploy de briefing van een R2-TTT nalopen. Zie de ronde "Snelste fiets: tijdritfiets
+   in de ploegentijdrit".
+
 0. **Weekregel in de schemakalender en verwachte CTL op Belasting
    (2026-11-16): op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push").**
    Geen migratie. Uit de vergelijking met Xert "My Fitness" (eigenaar:
@@ -10300,7 +10305,8 @@ lid, ook buiten de kalender")*
 > AI en niet mee in een gedeeld plan.
 >
 > **Aannames, niet gemeten.** Slipstream −30 % luchtweerstand (tijdritfiets
-> −15 %, `doubledraft` twee keer zoveel), aambeeld +10 % lichaamsgewicht, en de Zwift-nummering van powerups buiten
+> −15 %, behalve in een ploegentijdrit of met `ttbikesdraft`: daar ook −30 %,
+> sinds 2026-11-16; `doubledraft` twee keer zoveel), aambeeld +10 % lichaamsgewicht, en de Zwift-nummering van powerups buiten
 > 0 en 8. Start 700 m, sprint 300 m en de W′-aandelen zijn keuzes bij de bouw.
 >
 > **Bewust niet gebouwd.** Geen wegdek bij een .gpx-route (daar staat het niet
@@ -12412,6 +12418,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Snelste fiets: tijdritfiets in de ploegentijdrit
+
+**2026-11-16, commit "Snelste fiets: tijdritfiets telt mee in de ploegentijdrit", op 2026-11-16 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
+
+- **Waarom.** De eigenaar zag dat de racebriefing bij een TTT geen
+  tijdritfiets als snelste fiets gaf. Tijdritfietsen waren niet verboden (de
+  ZRL-TTT's van R2 W1 hebben geen `NO_TT_BIKES`), maar het model gaf een
+  tijdritfiets in de groep altijd 15 % slipstream tegen 30 % voor een
+  racefiets. Met een kwart kopwerk (4 renners) won daardoor elke aero-racefiets.
+  Alle ZRL-TTT's in de database hebben de Zwift-tag `ttbikesdraft`: daar krijgt
+  een tijdritfiets de volle slipstream. Die tag lazen we niet.
+- **Wat.** `EventConstraints.ttBikesDraft` in `pacing/zwift-setup.ts`: waar bij
+  tag `ttbikesdraft` of eventtype `TEAM_TIME_TRIAL`. `resolveRidePhysics` geeft
+  een tijdritfiets dan de slipstream van een racefiets, en ook bij format `ttt`
+  zonder Zwift-regels (de ouder-events van ZRL hebben geen regels). Dat geldt
+  voor de briefing én het pacingplan. Op /hulp (Zwift-wedstrijden) één zin.
+- **Nagerekend** op de echte fietslijst (stage 0, 4 renners): beste
+  racefiets (PROJECT 74 + Reserve Infinity Disc) effectieve CdA 0,211; Factor
+  Hanzō + DT Swiss 85/Disc was 0,224, nu 0,196. Op vlak en golvend wint nu de
+  tijdritfiets; op een lange klim kan de racefiets nog winnen (ruim 2 kg
+  lichter). Dat is de bedoeling: het blijft een afweging.
+- **Bewust niet.** Geen ander slipstreampercentage voor de ploegentijdrit
+  zelf (blijft de aanname −30 %); de tag `ttbikes` (zonder `draft`) niet
+  uitgelezen, die zagen we op geen enkel event in de database.
+- **Geverifieerd:** `bike-advice.test.ts` (2 nieuw: TTT kiest op het vlak de
+  tijdritfiets; gelijke slipstream in de TTT, ook zonder Zwift-regels) en
+  `pacing-zwift.test.ts`. **Niet bekeken** in de browser (geen `.env.local` in
+  de worktree): de briefing van een R2-TTT na de deploy nalopen.
 
 ### Gebouwd — Teamindeling: hoogste van ZwiftRacing en intervals.icu
 

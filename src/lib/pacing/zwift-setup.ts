@@ -82,6 +82,11 @@ export type EventConstraints = {
   drafting: boolean;
   doubleDraft: boolean;
   ttBikesAllowed: boolean;
+  /**
+   * Een tijdritfiets krijgt de volle slipstream (`ttbikesdraft`). Staat op elke
+   * ZRL-ploegentijdrit; zonder deze tag zou de racefiets daar altijd winnen.
+   */
+  ttBikesDraft: boolean;
   /** Leeg = geen powerups in dit event. */
   powerups: PowerupId[];
   /** `disable_bike_upgrade_physics`: elk frame rijdt op stage 0. */
@@ -145,7 +150,10 @@ export function frontalArea(heightCm: number, weightKg: number): number {
  * AANNAME.
  */
 export const DRAFT_CDA_FACTOR = 0.7;
-/** Een tijdritfiets krijgt in Zwift minder slipstream in de groep. AANNAME. */
+/**
+ * Een tijdritfiets krijgt in Zwift minder slipstream in de groep, behalve in
+ * een ploegentijdrit of met `ttbikesdraft`. AANNAME.
+ */
 export const TT_BIKE_DRAFT_CDA_FACTOR = 0.85;
 /** Ploegentijdrit zonder opgegeven ploeggrootte. */
 export const DEFAULT_TEAM_SIZE = 4;
@@ -218,6 +226,7 @@ export function constraintsFromZwiftEvent(input: ZwiftEventRules | null): EventC
     drafting,
     doubleDraft: Boolean(tag("doubledraft")) || rules.has("TEST_BIT_10"),
     ttBikesAllowed: !rules.has("NO_TT_BIKES"),
+    ttBikesDraft: Boolean(tag("ttbikesdraft")) || type === "TEAM_TIME_TRIAL",
     powerups,
     upgradesDisabled: Boolean(tag("disable_bike_upgrade_physics")),
     forcedFrame: input?.forcedFrame ?? null,
@@ -324,7 +333,10 @@ export function resolveRidePhysics(input: {
   const bikeCda = ZWIFT_BASE_CDA + (frame?.cdaDelta ?? 0) + (wheels?.cdaDelta ?? 0);
 
   const format = setup.format;
-  const baseDraft = kind === "tt" ? TT_BIKE_DRAFT_CDA_FACTOR : DRAFT_CDA_FACTOR;
+  // In een ploegentijdrit drafting een tijdritfiets als een racefiets, ook
+  // als de Zwift-regels van het event ontbreken.
+  const ttFullDraft = constraints.ttBikesDraft || format === "ttt";
+  const baseDraft = kind === "tt" && !ttFullDraft ? TT_BIKE_DRAFT_CDA_FACTOR : DRAFT_CDA_FACTOR;
   const draftFactor = !constraints.drafting
     ? 1
     : constraints.doubleDraft

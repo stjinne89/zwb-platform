@@ -18,6 +18,12 @@ const MODEL: CpModel = { cpWatts: 280, wPrimeJoules: 20_000, source: "intervals"
 const RACE = constraintsFromZwiftEvent({ eventType: "RACE", rules: [], tags: [] });
 const NO_TT = constraintsFromZwiftEvent({ eventType: "RACE", rules: ["NO_TT_BIKES"], tags: [] });
 const TT = constraintsFromZwiftEvent({ eventType: "TIME_TRIAL", rules: ["NO_DRAFTING"], tags: [] });
+// Zoals een ZRL-ploegentijdrit in de Zwift-API staat (november 2026).
+const TTT = constraintsFromZwiftEvent({
+  eventType: "TEAM_TIME_TRIAL",
+  rules: ["SHOW_RACE_RESULTS"],
+  tags: ["wtrl", "zrl", "zrl_ttt", "ttt", "ttbikesdraft"],
+});
 
 const frame = (name: string, kind: BikeKind, cdaDelta: number, kgDelta: number, stage = 0): BikePart => ({
   part: "frame",
@@ -89,6 +95,28 @@ describe("adviseBikes", () => {
     const advice = advise({ route: route(0, 20), constraints: TT })!;
     expect(advice.best[0]).toMatchObject({ frame: "Zwift TT", wheels: "Schijf" });
     expect(advice.best[1]).toMatchObject({ frame: "Aerofiets", wheels: "Diep" });
+  });
+
+  it("kiest in een vlakke ploegentijdrit de tijdritfiets", () => {
+    expect(TTT).toMatchObject({ suggestedFormat: "ttt", ttBikesAllowed: true, ttBikesDraft: true });
+    const advice = advise({ route: route(0, 20), constraints: TTT })!;
+    expect(advice.best[0]).toMatchObject({ frame: "Zwift TT", wheels: "Schijf" });
+  });
+
+  it("geeft een tijdritfiets in de ploegentijdrit dezelfde slipstream als een racefiets", () => {
+    const physics = (frame: string, constraints: EventConstraints, format = defaultSetup(constraints).format) =>
+      resolveRidePhysics({
+        setup: { ...defaultSetup(constraints), format, frame },
+        constraints,
+        parts: PARTS,
+        weightKg: 70,
+        heightCm: 180,
+      });
+    expect(physics("Zwift TT", TTT).draftFactor).toBeCloseTo(physics("Zwift Carbon", TTT).draftFactor, 6);
+    expect(physics("Zwift TT", RACE).draftFactor).toBeGreaterThan(physics("Zwift Carbon", RACE).draftFactor);
+    // Zonder Zwift-regels telt het gekozen format.
+    const none = constraintsFromZwiftEvent(null);
+    expect(physics("Zwift TT", none, "ttt").draftFactor).toBeCloseTo(physics("Zwift Carbon", none, "ttt").draftFactor, 6);
   });
 
   it("kiest op een lange klim de lichte fiets met lichte wielen", () => {
