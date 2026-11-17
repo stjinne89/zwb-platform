@@ -12446,7 +12446,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — TTT-bot: besturen met spraak
 
-**2026-11-17, commits `cb7a9886` (bot) en de commit die de handleiding toevoegt, op 2026-11-17 gepusht naar `main` (eigenaar: "Neem je deze instructie ook mee in de /hulp van de tttbot in de app, zo ja push naar main"). Geen migratie.**
+**2026-11-17, commits `7f63cd9b` (bot) en `7ba187f1` (handleiding), op 2026-11-17 gepusht naar `main` (eigenaar: "Neem je deze instructie ook mee in de /hulp van de tttbot in de app, zo ja push naar main"). Geen migratie.**
 
 - **Waarom.** De eigenaar wil de bot tijdens het rijden met zijn stem bedienen.
   Na onderzoek en een meting: "Ik wil dit gewoon gaan bouwen en dan kunnen we
