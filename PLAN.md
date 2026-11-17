@@ -38,7 +38,7 @@ gaat stabiliteit voor nieuwe features.
    versie"). Installatie volgens [installatie.md](docs/installatie.md): §2
    (database) gedaan op een eigen Supabase-project in een aparte, gratis
    organisatie van de eigenaar. §3 (Netlify) gedaan: site
-   `rabobank-alpe-dhuzes.netlify.app`, eerste deploy van `main@bd06866` gelukt.
+   `rabobank-alpe-dhuzes` op Netlify, eerste deploy van `main@bd06866` gelukt.
    Auth-URL's in Supabase gezet; eerste beheerder (§4) gezet. Open:
    e-mailtemplates en eigen SMTP (§2), de
    inrichting met Uitdaging aan (§5), en de pagina in de browser bekijken.
@@ -12526,7 +12526,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
   database. Elke push naar `main` bouwt nu ook deze site.
 - **Auth-URL's (2026-11-17).** Op verzoek van de eigenaar in Chrome gezet,
   zoals bij ZWB ([supabase-auth-email-templates.md](docs/supabase-auth-email-templates.md)):
-  Site URL `https://rabobank-alpe-dhuzes.netlify.app`, redirect-URL's
+  Site URL het Netlify-adres van de site, redirect-URL's
   `/auth/confirm` op die site en `http://localhost:3000/auth/confirm` (voor
   §9). Na herladen nagekeken. Bij een eerste poging kwam getypte tekst buiten
   het venster terecht en sprong het dashboard naar Users; daarna was de
@@ -12546,6 +12546,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
   Afgewogen en niet gedaan: in de code "standaard uit" voor een module zonder
   rij. Robuuster voor latere modules, maar het raakt de poort, `getClub()` en
   het modulescherm; een volgende nieuwe module heeft hetzelfde risico.
+- **Geen adres of projectref in de repository.** Alle env-variabelen van de
+  Rabobank-site staan als secret, ook `NEXT_PUBLIC_SITE_URL`; de secrets-scan
+  van Netlify breekt de build af als zo'n waarde letterlijk in de repo staat.
+  Het site-adres en de Supabase-projectref staan daarom alleen in
+  `.env.rabobank` en `.env.rabobank-app`.
 - **Getest.** `tsc` en eslint schoon; `uitdaging`, `modules`, `module-access`,
   `baseline` (0337 loopt op PGlite in beide routes en geeft hetzelfde schema),
   `club-texts-tokens` en `dashboard-parts` groen. De volledige set: 4663
