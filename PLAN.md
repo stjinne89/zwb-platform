@@ -32,13 +32,15 @@ gaat stabiliteit voor nieuwe features.
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **Module Uitdaging voor de Rabobank-installatie (Alpe d'HuZes, 2026-11-17):
-   gebouwd, lokaal, niet gepusht.** Migratie `0337_challenge_entries.sql` is
-   nog nergens toegepast. De privacyzin staat op `/privacy#uitdaging` (akkoord
+   gebouwd, lokaal, niet gepusht.** Migratie `0337_challenge_entries.sql` staat
+   op de Rabobank-database (2026-11-17), niet op ZWB-productie. De privacyzin staat op `/privacy#uitdaging` (akkoord
    eigenaar, 2026-11-17), zonder nieuwe privacyversie (eigenaar: "Ja, zonder
-   versie"). Open: de pagina in de browser bekijken, en daarna de installatie zelf
-   volgens [installatie.md](docs/installatie.md) op de accounts van de
-   eigenaar (keuze eigenaar 2026-11-17; meer dan 10 deelnemers, dus Strava niet
-   voor iedereen). Zie de ronde "Module Uitdaging".
+   versie"). Installatie volgens [installatie.md](docs/installatie.md): §2
+   (database) gedaan op een eigen Supabase-project in een aparte, gratis
+   organisatie van de eigenaar. Open: Supabase-auth (§2, laatste stap), de
+   Netlify-site (§3), de eerste beheerder (§4), de inrichting met Uitdaging aan
+   (§5), en de pagina in de browser bekijken. Meer dan 10 deelnemers, dus
+   Strava niet voor iedereen. Zie de ronde "Module Uitdaging".
 
 0. **Onderdelen per ledengroep afsluiten en per lid verbergen (2026-11-17):
    op 2026-11-17 gepusht naar `main` (eigenaar: "push en d15f6891, 84a32368 en
@@ -12455,7 +12457,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Module Uitdaging: een goededoelenrit met de club
 
-**2026-11-17, commit `b3d305ac` (module) en de commit met de privacyzin, lokaal, niet gepusht. Migratie `0337_challenge_entries.sql`, nog nergens toegepast.**
+**2026-11-17, commits `b3d305ac` (module), `586a2658` en `54e7d295` (privacy), lokaal, niet gepusht. Migratie `0337_challenge_entries.sql` op 2026-11-17 op de Rabobank-database gezet, niet op ZWB-productie.**
 
 - **Waarom.** De eigenaar wil een eigen installatie van het platform voor een
   Rabobank-club die Alpe d'HuZes fietst. Gekozen (eigenaar, 2026-11-17):
@@ -12495,12 +12497,25 @@ link naar `/live/[eventId]`, zie de update hierboven).
   laten tekenen voor een module die bij ZWB uit staat. Vastgelegd als
   dertiende uitzondering in `src/lib/privacy.ts`; de eigenaar bevestigde de
   keuze zonder versie op 2026-11-17 ("Ja, zonder versie").
+- **Rabobank-database (2026-11-17).** Eigen Supabase-project in een aparte,
+  gratis organisatie (keuze eigenaar, na de kosten: Pro zou $10 per maand
+  extra zijn; gratis pauzeert na een week zonder gebruik). De connector ziet
+  die organisatie niet, dus de eigenaar maakte het project zelf aan
+  (`eu-west-1`) en zette de Session pooler-regel in `.env.rabobank` (valt
+  onder `.gitignore`; projectref en wachtwoord staan niet in de repository).
+  `migrate-installation.mjs --init` zette baseline, seed en `0321` tot en met
+  `0337` (19 bestanden, elk onder 2,2 s), met 0337 erbij op verzoek ("Ja, met
+  0337"). Gevolg: 0337 wordt niet meer gewijzigd; een correctie wordt een
+  nieuwe migratie. Nagekeken met een eigen query: 19 rijen in
+  `installation.applied_migrations`, `uitdaging` uit, de vier policies, de
+  club heet "Club" zonder inrichting, 0 profielen, teams, sponsors, roster en
+  events, 50 cols met Alpe d'Huez.
 - **Getest.** `tsc` en eslint schoon; `uitdaging`, `modules`, `module-access`,
   `baseline` (0337 loopt op PGlite in beide routes en geeft hetzelfde schema),
   `club-texts-tokens` en `dashboard-parts` groen. De volledige set: 4663
   geslaagd; de uitvallers waren time-outs onder belasting die los slagen, en
   `omnium-live`, dat een `.env.local` vraagt die in de worktree niet staat.
-  **Niet getest:** de migratie op Supabase zelf, en de pagina in de browser
+  **Niet getest:** de pagina in de browser
   (geen `.env.local` in de worktree, en ZWB-productie heeft de tabel niet).
 
 ### Gebouwd — TTT-bot: besturen met spraak
