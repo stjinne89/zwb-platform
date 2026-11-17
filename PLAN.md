@@ -12446,7 +12446,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Garmin live: nieuwe sessieroute en geen spook-live meer
 
-**2026-11-17, de commit die dit blok toevoegt, op `claude/garmin-connection-linda-henk-1a5e6c`; lokaal, niet gepusht. Geen migratie.**
+**2026-11-17, commit `b2da3261`, op 2026-11-17 gepusht naar `main` (eigenaar: "Push naar main"). Geen migratie.**
 
 - **Aanleiding.** De eigenaar zag Karen van de Rakt op Samen fietsen "doorlopen"
   zonder dat ze op de kaart stond. Oorzaak: Garmin heeft rond 2026-10-26 21:00
