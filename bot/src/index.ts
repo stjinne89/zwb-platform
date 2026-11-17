@@ -46,7 +46,7 @@ import {
 
 const DEFAULT_DELAY_S = 10;
 const PLUS_BUTTON_S = 10;
-/** Een rij telt vijf knoppen: +10 s, Volgende, Klim, Stop en één ander deel. */
+/** Een rij telt vijf knoppen: +10 s, Volgende (Start vóór de start), Pauze, Stop en één ander deel. */
 const MAX_PARTS = 2;
 /** Het statusbericht wordt hooguit zo vaak bijgewerkt, en minstens elke REFRESH_MS. */
 const RENDER_MS = 2_000;
@@ -235,9 +235,9 @@ function onVoice(state: GuildState, text: string, ms: number, db: number) {
       // De wissel naar de eerste renner spreekt de klok zelf uit.
       if (!session.startNow()) say(ALREADY_RUNNING);
       break;
-    case "klim":
+    case "pauze":
     case "hervat":
-      if (!session.setFree(command.kind === "klim")) say(ALREADY);
+      if (!session.setFree(command.kind === "pauze")) say(ALREADY);
       break;
     case "volgende":
       session.skip();
@@ -255,6 +255,9 @@ function onVoice(state: GuildState, text: string, ms: number, db: number) {
     case "terug":
       session.setOut(command.rider, command.kind === "gelost");
       break;
+    case "overslaan":
+      session.setSkipping(command.rider, true);
+      break;
   }
   const phrase = confirmation(command, names);
   if (phrase) say(phrase);
@@ -265,10 +268,14 @@ function controls(session: Session) {
   return [
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder().setCustomId("ttt:plus").setLabel(`+${PLUS_BUTTON_S} s`).setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId("ttt:skip").setLabel("Volgende").setStyle(ButtonStyle.Primary),
+      // Tijdens het aftellen start dezelfde knop de race, net als "Coach, start".
+      new ButtonBuilder()
+        .setCustomId("ttt:skip")
+        .setLabel(session.rotation.current === -1 ? "Start" : "Volgende")
+        .setStyle(ButtonStyle.Primary),
       session.free
         ? new ButtonBuilder().setCustomId("ttt:free").setLabel("Hervat rotatie").setStyle(ButtonStyle.Success)
-        : new ButtonBuilder().setCustomId("ttt:free").setLabel("Klim").setStyle(ButtonStyle.Secondary),
+        : new ButtonBuilder().setCustomId("ttt:free").setLabel("Pauze").setStyle(ButtonStyle.Secondary),
       ...session.partNumbers
         .filter((number) => number !== session.partNumber)
         .map((number) =>
@@ -282,14 +289,22 @@ function controls(session: Session) {
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
       new StringSelectMenuBuilder()
         .setCustomId("ttt:out")
-        .setPlaceholder("Gelost of terug")
+        .setPlaceholder("Gelost, terug of overslaan")
         .addOptions(
           // De keuze draagt wat er op staat: een menu dat nog niet bijgewerkt is
           // (de bot zette hem net met spraak op gelost), zet hem anders terug.
-          session.rotation.riders.map((rider, index) => ({
-            label: rider.out ? `${rider.name} is terug` : `${rider.name} lost`,
-            value: `${index}:${rider.out ? "terug" : "lost"}`,
-          })),
+          session.rotation.riders
+            .flatMap((rider, index) =>
+              rider.out
+                ? [{ label: `${rider.name} is terug`, value: `${index}:terug` }]
+                : [
+                    { label: `${rider.name} lost`, value: `${index}:lost` },
+                    rider.skipping
+                      ? { label: `${rider.name} doet weer mee`, value: `${index}:mee` }
+                      : { label: `${rider.name} slaat over`, value: `${index}:over` },
+                  ],
+            )
+            .slice(0, 25),
         ),
     ),
   ];
@@ -353,19 +368,43 @@ const command = new SlashCommandBuilder()
         option.setName("vertraging").setDescription("Seconden tot de start").setMinValue(0).setMaxValue(3600),
       )
       .addBooleanOption((option) =>
-        option.setName("spraak").setDescription('Luister naar mijn commando\'s, zoals "Coach, klim"'),
+        option.setName("spraak").setDescription('Luister naar mijn commando\'s, zoals "Coach, pauze"'),
       ),
   )
   .addSubcommand((sub) => sub.setName("stop").setDescription("Stop en verlaat het spraakkanaal"))
   .addSubcommand((sub) => sub.setName("skip").setDescription("Meteen naar de volgende renner"))
-  .addSubcommand((sub) => sub.setName("klim").setDescription("Vrij rijden: klok en coach zwijgen"))
-  .addSubcommand((sub) => sub.setName("hervat").setDescription("Na de klim: de rotatie weer oppakken"))
+  .addSubcommand((sub) => sub.setName("pauze").setDescription("Vrij rijden: klok en coach zwijgen"))
+  .addSubcommand((sub) => sub.setName("hervat").setDescription("Na de pauze: de rotatie weer oppakken"))
   .addSubcommand((sub) =>
     sub
       .setName("plus")
       .setDescription("Verleng de huidige kopbeurt")
       .addIntegerOption((option) =>
         option.setName("seconden").setDescription("Aantal seconden").setRequired(true).setMinValue(1).setMaxValue(600),
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName("beurt")
+      .setDescription("Vaste kopbeurtduur voor één renner, voor de rest van de race")
+      .addStringOption((option) =>
+        option.setName("renner").setDescription("Naam").setRequired(true).setAutocomplete(true),
+      )
+      .addIntegerOption((option) =>
+        option
+          .setName("seconden")
+          .setDescription("Seconden per kopbeurt; 0 = meerijden zonder kopbeurt")
+          .setRequired(true)
+          .setMinValue(0)
+          .setMaxValue(600),
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName("overslaan")
+      .setDescription("Renner slaat één kopbeurt over")
+      .addStringOption((option) =>
+        option.setName("renner").setDescription("Naam").setRequired(true).setAutocomplete(true),
       ),
   )
   .addSubcommand((sub) =>
@@ -444,8 +483,9 @@ async function handle(interaction: Interaction) {
     if (interaction.isStringSelectMenu() && interaction.customId === "ttt:out") {
       const [value, wanted] = interaction.values[0].split(":");
       const index = Number(value);
+      if (wanted === "over" || wanted === "mee") session.setSkipping(index, wanted === "over");
       // Een menu van vóór deze versie heeft alleen het nummer: dan omdraaien.
-      session.setOut(index, wanted ? wanted === "lost" : !session.rotation.riders[index]?.out);
+      else session.setOut(index, wanted ? wanted === "lost" : !session.rotation.riders[index]?.out);
     }
     await interaction.update({
       content: statusText(state),
@@ -549,7 +589,7 @@ async function handle(interaction: Interaction) {
     state.message = await channel.send({ content: statusText(state), components: controls(session) });
     await interaction.editReply(
       listen
-        ? 'Gestart. Ik luister alleen naar jou: begin met "Coach", bijvoorbeeld "Coach, klim".'
+        ? 'Gestart. Ik luister alleen naar jou: begin met "Coach", bijvoorbeeld "Coach, pauze".'
         : wantsVoice
           ? "Gestart, zonder spraak: whisper staat niet ingesteld op de bot-pc."
           : "Gestart.",
@@ -572,14 +612,36 @@ async function handle(interaction: Interaction) {
     await reply("Gestopt.");
     return;
   }
+  if (sub === "beurt") {
+    // Ook vóór de start: dan staat het al goed als de race begint.
+    const name = interaction.options.getString("renner", true);
+    const seconds = interaction.options.getInteger("seconden", true);
+    const index = session.riderIndex(name);
+    if (index === -1) {
+      await reply(`Geen renner "${name}" in het plan.`);
+      return;
+    }
+    if (!session.setPullSeconds(index, seconds)) {
+      await reply("Dan doet niemand nog een kopbeurt.");
+      return;
+    }
+    // De nieuwe duur zit in de wisselzin; die vooraf klaarzetten.
+    void tts?.prepare(clockPhrases(session.rotation));
+    await reply(
+      seconds === 0
+        ? `${name} rijdt mee zonder kopbeurt.`
+        : `${name} rijdt voortaan kopbeurten van ${seconds} seconden.`,
+    );
+    return;
+  }
   if (!session.running) {
     await reply("De timer loopt niet. Start met /ttt start.");
     return;
   }
-  if (sub === "klim" || sub === "hervat") {
-    const done = session.setFree(sub === "klim");
+  if (sub === "pauze" || sub === "hervat") {
+    const done = session.setFree(sub === "pauze");
     await reply(
-      !done ? "Dat staat al zo." : sub === "klim" ? "Vrij rijden. De klok staat stil." : "De rotatie loopt weer.",
+      !done ? "Dat staat al zo." : sub === "pauze" ? "Pauze. De klok staat stil." : "De rotatie loopt weer.",
     );
     return;
   }
@@ -603,6 +665,18 @@ async function handle(interaction: Interaction) {
     }
     session.setOut(index, sub === "gelost");
     await reply(sub === "gelost" ? `${name} doet geen kopbeurten meer.` : `${name} draait weer mee.`);
+    return;
+  }
+  if (sub === "overslaan") {
+    const name = interaction.options.getString("renner", true);
+    const index = session.riderIndex(name);
+    if (index === -1) {
+      await reply(`Geen renner "${name}" in het plan.`);
+      return;
+    }
+    await reply(
+      session.setSkipping(index, true) ? `${name} slaat één beurt over.` : `${name} is gelost en doet geen beurt.`,
+    );
   }
 }
 

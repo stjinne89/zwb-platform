@@ -182,8 +182,20 @@ export function TttBotGuide() {
               </li>
               <li>Laat Zwift meekijken met iemand uit je ploeg.</li>
               <li>
-                Bij een klim druk je op <strong>Klim</strong>. Dan rijdt iedereen zijn eigen tempo en
-                zwijgt de bot. Boven druk je op <strong>Hervat rotatie</strong>.
+                Vóór de start heet de blauwe knop <strong>Start</strong>: druk erop als jullie echt
+                wegrijden.
+              </li>
+              <li>
+                Bij een klim druk je op <strong>Pauze</strong>. Dan rijdt iedereen zijn eigen tempo en
+                zwijgt de bot. Daarna druk je op <strong>Hervat rotatie</strong>.
+              </li>
+              <li>
+                Slaat iemand één beurt over, kies dan in het menu bijvoorbeeld{" "}
+                <strong>Jeroen slaat over</strong>. Daarna draait hij vanzelf weer mee.
+              </li>
+              <li>
+                Vaste langere of kortere beurten voor één renner:{" "}
+                <Code>/ttt beurt renner:Jeroen seconden:60</Code>, ook vóór de start.
               </li>
               <li>Na de finish stopt de bot vanzelf. Je kunt ook op <strong>Stop</strong> drukken.</li>
             </ol>
@@ -196,7 +208,7 @@ export function TttBotGuide() {
             </p>
             <p>
               Begin elk commando met <strong>Coach</strong>. Zeg je dat niet, dan doet de bot niets.
-              Zo zet &ldquo;daar komt de klim&rdquo; hem niet stil.
+              Zo zet &ldquo;even pauze, mannen&rdquo; tegen je ploeg hem niet stil.
             </p>
             <ul className="list-disc space-y-1 pl-5">
               <li>
@@ -205,7 +217,7 @@ export function TttBotGuide() {
                 start&rdquo; als jullie echt vertrekken.
               </li>
               <li>
-                <strong>Coach, klim</strong> en boven <strong>Coach, hervat</strong>
+                <strong>Coach, pauze</strong> en daarna <strong>Coach, hervat</strong>
               </li>
               <li>
                 <strong>Coach, volgende</strong>: meteen de volgende renner
@@ -220,6 +232,9 @@ export function TttBotGuide() {
               <li>
                 <strong>Coach, Jeroen gelost</strong> of <strong>Coach, Jeroen terug</strong>, met de
                 naam van je ploeggenoot
+              </li>
+              <li>
+                <strong>Coach, Jeroen overslaan</strong>: Jeroen slaat één beurt over
               </li>
             </ul>
             <p>

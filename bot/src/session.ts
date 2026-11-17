@@ -12,6 +12,8 @@ import {
   resume,
   sameRider,
   setOut,
+  setPullSeconds,
+  setSkipping,
   skip,
   syncLeader,
   tick,
@@ -21,7 +23,7 @@ import {
 import type { Priority } from "./speech.ts";
 
 const TICK_MS = 250;
-/** Zo lang na de start of na een klim verlegt Sauce de rotatie niet: de ploeg zoekt elkaar nog. */
+/** Zo lang na de start of na een pauze verlegt Sauce de rotatie niet: de ploeg zoekt elkaar nog. */
 const SETTLE_MS = 30_000;
 /** In de laatste seconden van een kopbeurt heeft een wattmelding geen zin en zit hij het aftellen in de weg. */
 const QUIET_BEFORE_CHANGE_MS = 12_000;
@@ -63,7 +65,7 @@ export class Session {
   private lastSample: Sample | null = null;
   private settleUntil = 0;
   private idleSince: number | null = null;
-  /** Vrij rijden, bijvoorbeeld op een klim: klok en coach zwijgen. */
+  /** Pauze (vrij rijden, bijvoorbeeld op een klim): klok en coach zwijgen. */
   free = false;
   /** Het plan per deel van de race; deel 1 staat op plek 0. */
   private readonly parts: Plan[];
@@ -201,12 +203,45 @@ export class Session {
     this.io.changed();
   }
 
+  /**
+   * Vaste andere beurtduur voor een renner (`/ttt beurt`): in de rotatie en in
+   * elk klaargezet deel waar hij in staat, zodat het ook na een nieuwe start of
+   * een ander deel blijft. Een deel dat later geladen wordt, heeft het niet.
+   */
+  setPullSeconds(index: number, seconds: number) {
+    const rider = this.rotation.riders[index];
+    if (!rider) return false;
+    const rotation = setPullSeconds(this.rotation, index, seconds, this.now());
+    if (rotation === this.rotation) return false;
+    this.rotation = rotation;
+    this.parts.forEach((plan, part) => {
+      if (!plan) return;
+      this.parts[part] = {
+        ...plan,
+        riders: plan.riders.map((r) => (sameRider(r, rider) ? { ...r, pullSeconds: seconds } : r)),
+      };
+    });
+    this.io.log(`beurt ${rider.name}: ${seconds} s`);
+    this.io.changed();
+    return true;
+  }
+
   /** Renner met de hand gelost of terug zetten. */
   setOut(index: number, out: boolean) {
     if (out) this.manualOut.add(index);
     else this.manualOut.delete(index);
     this.apply(setOut(this.rotation, index, out, this.now()));
     this.io.changed();
+  }
+
+  /** Renner slaat zijn volgende kopbeurt over (of toch niet); daarna draait hij vanzelf weer mee. */
+  setSkipping(index: number, on: boolean) {
+    const rider = this.rotation.riders[index];
+    if (!rider || rider.out) return false;
+    this.apply(setSkipping(this.rotation, index, on, this.now()));
+    this.io.log(`${rider.name} ${on ? "slaat over" : "doet weer mee"}`);
+    this.io.changed();
+    return true;
   }
 
   riderIndex(name: string) {
@@ -287,6 +322,8 @@ export class Session {
 
     const out = riders.filter((rider) => rider.out).map((rider) => rider.name);
     if (out.length > 0) lines.push(`Gelost: ${out.join(", ")}`);
+    const skipping = riders.filter((rider) => rider.skipping).map((rider) => rider.name);
+    if (skipping.length > 0) lines.push(`Slaat over: ${skipping.join(", ")}`);
     if (this.sauce.at > 0) {
       const tracked = riders.filter((rider) => rider.zwiftId).length;
       lines.push(

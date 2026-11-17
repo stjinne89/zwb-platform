@@ -51,7 +51,7 @@ describe("ander plan voor het volgende deel", () => {
   });
 });
 
-describe("vrij rijden op een klim", () => {
+describe("pauze: vrij rijden, bijvoorbeeld op een klim", () => {
   function session() {
     const said: string[] = [];
     const clock = { now: 0 };
@@ -77,7 +77,7 @@ describe("vrij rijden op een klim", () => {
   it("zwijgt tijdens de klim en begint daarna met wie vooraan rijdt", () => {
     const { created, said, clock } = session();
     expect(created.setFree(true)).toBe(true);
-    expect(said.at(-1)).toBe("Klim. Eigen tempo.");
+    expect(said.at(-1)).toBe("Pauze. Eigen tempo.");
     expect(created.status()).toContain("Vrij rijden");
 
     const before = said.length;
@@ -147,6 +147,25 @@ describe("sessie in delen", () => {
     // Een nieuwe start begint weer bij deel 1.
     session.start(0);
     expect(session.partNumber).toBe(1);
+    session.stop();
+  });
+});
+
+describe("/ttt beurt", () => {
+  it("houdt de vaste duur bij een nieuwe start en in een ander deel", () => {
+    const clock = { now: 0 };
+    const session = new Session(
+      { name: "Deel 1", eventTitle: null, estimatedSpeedKmh: null, riders: PART_1 },
+      { say: () => undefined, changed: () => undefined, finished: () => undefined, log: () => undefined },
+      () => clock.now,
+    );
+    session.addPart(2, { name: "Deel 2", eventTitle: null, estimatedSpeedKmh: null, riders: PART_2 });
+    // Vóór de start: Marc structureel langer.
+    expect(session.setPullSeconds(2, 50)).toBe(true);
+    session.start(0);
+    expect(session.rotation.riders[2].pullSeconds).toBe(50);
+    session.usePart(2);
+    expect(session.rotation.riders.find((r) => r.name === "Marc")?.pullSeconds).toBe(50);
     session.stop();
   });
 });

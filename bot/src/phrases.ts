@@ -30,7 +30,7 @@ export function eventPhrase(event: RotationEvent, rotation: Rotation): string {
   return event.previous === -1 ? `Start. ${lead}` : `Wissel. ${lead}`;
 }
 
-export const FREE_PHRASE = "Klim. Eigen tempo.";
+export const FREE_PHRASE = "Pauze. Eigen tempo.";
 
 /** Na vrij rijden: wie de rotatie weer oppakt. */
 export function resumePhrase(rotation: Rotation): string {

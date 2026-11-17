@@ -48,7 +48,8 @@ const parse = (text: string) => parseVoiceCommand(text, NAMES);
 describe("spraakcommando's", () => {
   // Wat whisper base met de hint teruggaf in de meting van 2026-11-17.
   it("herkent de commando's uit de meting", () => {
-    expect(parse("Coach, klim.")).toEqual({ kind: "klim" });
+    expect(parse("Coach, pauze.")).toEqual({ kind: "pauze" });
+    expect(parse("Coach, klim.")).toEqual({ kind: "onbekend" });
     expect(parse("Coach, hervat.")).toEqual({ kind: "hervat" });
     expect(parse("Coach, volgende.")).toEqual({ kind: "volgende" });
     expect(parse("Coach, plus tien.")).toEqual({ kind: "plus", seconds: 10 });
@@ -98,7 +99,7 @@ describe("spraakcommando's", () => {
   it("zet de namen uit het plan in de hint", () => {
     const prompt = voicePrompt(NAMES);
     for (const name of NAMES) expect(prompt).toContain(name);
-    expect(prompt).toContain("Coach, klim.");
+    expect(prompt).toContain("Coach, pauze.");
   });
 });
 
@@ -147,6 +148,19 @@ describe("spraak uit de race", () => {
 
   it("ziet wat whisper tussen haken zet niet als commando", () => {
     expect(heard("Coach, [muziek]")).toEqual({ kind: "wake" });
+  });
+
+  it("herkent overslaan, ook los geschreven, en zegt het terug", () => {
+    const names = ["Bart", "Pim", "Casper", "Remco", "Mathijs"];
+    expect(parseVoiceCommand("Coach, Bart overslaan.", names)).toEqual({ kind: "overslaan", rider: 0 });
+    expect(parseVoiceCommand("Coach, Mathijs slaat over.", names)).toEqual({ kind: "overslaan", rider: 4 });
+    expect(parseVoiceCommand("Coach, over slaan.", names)).toEqual({ kind: "onbekend" });
+    expect(confirmation({ kind: "overslaan", rider: 0 }, names)).toBe("Bart slaat over.");
+  });
+
+  it("verstaat pauze, en klim niet meer", () => {
+    expect(heard("Coach, pauze.")).toEqual({ kind: "pauze" });
+    expect(heard("Coach, klim.")).toEqual({ kind: "onbekend" });
   });
 
   it("leest 'los' als gelost", () => {

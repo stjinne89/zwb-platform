@@ -9,9 +9,10 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Bijgesteld — TTT-bot op de race van 2026-11-17: lokaal gecommit, niet
    gepusht.** Geen migratie. Kopbeurt telt vanaf "Wissel", geen verzonnen
-   "deel twee" meer, één renner tegelijk lossen, keuzemenu en "los". Open: in
-   een race horen; Bart moet bijwerken; voorstel voor structureel langere
-   beurten per renner. Zie "Bijgesteld op de race van 2026-11-17" onder
+   "deel twee" meer, één renner tegelijk lossen, keuzemenu en "los" (`2e845954`);
+   daarna Klim heet Pauze, knop Start vóór de start, `/ttt beurt` en één beurt
+   overslaan (de commit daarna). Open: in een race horen; Bart moet bijwerken.
+   Zie "Bijgesteld op de race van 2026-11-17" onder
    "Gebouwd — TTT-bot: besturen met spraak".
 
 0. **Gebouwd — Sauce-venster ZWB TTT-plan (2026-11-17): op 2026-11-17 gepusht
@@ -12853,10 +12854,31 @@ link naar `/live/[eventId]`, zie de update hierboven).
     ruisdrempel is nog niet gebouwd: eerst een race met dB in het logboek.
     **Bewust niet:** "Coach, min tien" en namen van 3 letters op klank ("bat"
     voor Bart). **Open:** Bart draait een versie van vóór `d492f06e` en moet
-    bijwerken. Wens van de leden: één renner (Mathijs) structureel langere
-    beurten geven; voorstel volgt. Kevin (B1) zag beurten van 45 s; in zijn
-    stream duurden ze 28 tot 36 s, het plan van B1 is onbekend.
+    bijwerken. Kevin (B1) zag beurten van 45 s; in zijn stream duurden ze 28
+    tot 36 s, het plan van B1 is onbekend.
     Details: [ttt-discord-bot.md](docs/ttt-discord-bot.md#besturen-met-spraak).
+- **Pauze, Start, beurt en overslaan (2026-11-17, de commit die dit toevoegt,
+  lokaal, niet gepusht).** Wensen van de leden na dezelfde race; de eigenaar
+  koos per onderdeel.
+  - **Klim heet Pauze**, overal: knop, `/ttt pauze`, "Coach, pauze" en de zin
+    "Pauze. Eigen tempo.". "Coach, klim" verstaat de bot niet meer (eigenaar:
+    "Overal, klim weg"). **Niet meer waar:** `/ttt klim`, de knop Klim en
+    "Coach, klim" in de rondes hierboven en in de handleiding; README, het blok
+    TTT-bot installeren op de planner en `docs/ttt-discord-bot.md` aangepast.
+  - **Knop Start:** vóór de start heet de knop Volgende "Start"; hij deed al
+    hetzelfde als "Coach, start", maar heette niet zo (eigenaar koos dit boven
+    een regel in het keuzemenu).
+  - **`/ttt beurt renner seconden`:** vaste beurtduur voor één renner (bij A
+    kreeg Mathijs met de hand extra tijd), ook vóór de start, ook voor de beurt
+    die loopt, en in elk klaargezet deel; 0 is meerijden zonder kopbeurt.
+    **Bewust niet:** met spraak (eigenaar: "Alleen de /ttt beurt"). Een deel dat
+    later geladen wordt, krijgt de duur niet.
+  - **Eén beurt overslaan:** via het keuzemenu ("Bart slaat over", intrekken met
+    "Bart doet weer mee"), "Coach, Bart overslaan" of `/ttt overslaan`. Daarna
+    draait hij vanzelf weer mee. Bart gebruikte er gelost en terug voor.
+  - **Getoetst:** bot `tsc`, Vitest 98 tests (8 nieuw); eslint op
+    `ttt-bot-guide.tsx`. **Niet getest:** in Discord (de nieuwe commando's
+    verschijnen na een herstart van de bot) en de planner in de browser.
 
 ### Hersteld — Garmin live: nieuwe sessieroute en geen spook-live meer
 

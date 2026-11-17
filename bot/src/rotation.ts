@@ -8,7 +8,8 @@ export const COUNTDOWN = [30, 10, 5];
 /** Seconden voor de start waarop de bot aftelt. */
 export const START_COUNTDOWN = [60, 30, 10, 5];
 
-export type RotationRider = PlanRider & { out: boolean };
+/** `skipping`: slaat zijn volgende kopbeurt over en draait daarna vanzelf weer mee. */
+export type RotationRider = PlanRider & { out: boolean; skipping: boolean };
 
 export type Rotation = {
   riders: RotationRider[];
@@ -32,7 +33,7 @@ type Step = { rotation: Rotation; events: RotationEvent[] };
 
 export function createRotation(riders: PlanRider[], startAt: number): Rotation {
   return {
-    riders: riders.map((rider) => ({ ...rider, out: false })),
+    riders: riders.map((rider) => ({ ...rider, out: false, skipping: false })),
     current: -1,
     startedAt: startAt,
     endsAt: startAt,
@@ -46,7 +47,7 @@ export function nextIndex(rotation: Rotation, from = rotation.current): number {
   for (let step = 1; step <= count; step += 1) {
     const index = (((from + step) % count) + count) % count;
     const rider = rotation.riders[index];
-    if (index !== from && !rider.out && rider.pullSeconds > 0) return index;
+    if (index !== from && !rider.out && !rider.skipping && rider.pullSeconds > 0) return index;
   }
   return -1;
 }
@@ -60,6 +61,20 @@ function lead(rotation: Rotation, index: number, startMs: number): Rotation {
     endsAt: startMs + seconds * 1000,
     // Niet "nog 30 seconden" roepen aan het begin van een kopbeurt van 30.
     announced: COUNTDOWN.filter((mark) => mark >= seconds),
+  };
+}
+
+/** Wie de rotatie van de koprijder naar `to` overslaat, heeft zijn beurt overgeslagen: hij draait weer mee. */
+function passOver(rotation: Rotation, to: number): Rotation {
+  const count = rotation.riders.length;
+  const passed = new Set<number>();
+  for (let index = (rotation.current + 1 + count) % count; index !== to && passed.size < count; index = (index + 1) % count) {
+    passed.add(index);
+  }
+  if (![...passed].some((index) => rotation.riders[index].skipping)) return rotation;
+  return {
+    ...rotation,
+    riders: rotation.riders.map((rider, index) => (passed.has(index) ? { ...rider, skipping: false } : rider)),
   };
 }
 
@@ -86,7 +101,7 @@ export function tick(input: Rotation, now: number): Step {
         events: [{ type: "start-countdown", seconds: mark.seconds, first }],
       };
     }
-    rotation = lead(rotation, first, rotation.endsAt);
+    rotation = lead(passOver(rotation, first), first, rotation.endsAt);
     events.push({ type: "change", rider: first, previous: -1, synced: false });
   }
 
@@ -95,12 +110,17 @@ export function tick(input: Rotation, now: number): Step {
     const next = nextIndex(rotation);
     const previous = rotation.current;
     if (next === -1) {
-      // Niemand om af te lossen: dezelfde renner begint opnieuw.
+      // Niemand om af te lossen: dezelfde renner begint opnieuw, en wie zou overslaan, heeft dat gedaan.
       const seconds = Math.max(1, rotation.riders[previous].pullSeconds);
-      rotation = { ...rotation, startedAt: rotation.endsAt, endsAt: rotation.endsAt + seconds * 1000 };
+      rotation = {
+        ...rotation,
+        riders: rotation.riders.map((rider) => (rider.skipping ? { ...rider, skipping: false } : rider)),
+        startedAt: rotation.endsAt,
+        endsAt: rotation.endsAt + seconds * 1000,
+      };
       continue;
     }
-    rotation = lead(rotation, next, rotation.endsAt);
+    rotation = lead(passOver(rotation, next), next, rotation.endsAt);
     const start = events.find((event) => event.type === "change" && event.previous === -1);
     events.length = 0;
     events.push({ type: "change", rider: next, previous: start ? -1 : previous, synced: false });
@@ -123,7 +143,7 @@ export function skip(rotation: Rotation, now: number): Step {
   const next = nextIndex(rotation);
   if (next === -1) return { rotation, events: [] };
   return {
-    rotation: lead(rotation, next, now),
+    rotation: lead(passOver(rotation, next), next, now),
     events: [{ type: "change", rider: next, previous: rotation.current, synced: false }],
   };
 }
@@ -154,6 +174,42 @@ export function setOut(input: Rotation, index: number, out: boolean, now: number
   return out && index === rotation.current ? skip(rotation, now) : { rotation, events: [] };
 }
 
+/**
+ * Andere kopbeurtduur voor één renner (`/ttt beurt`), voor de rest van de race.
+ * Rijdt hij nu op kop, dan geldt de nieuwe duur ook voor deze beurt. 0 is
+ * meerijden zonder kopbeurt; dat kan niet als niemand anders er nog een doet.
+ */
+export function setPullSeconds(input: Rotation, index: number, seconds: number, now: number): Rotation {
+  if (!input.riders[index]) return input;
+  const riders = input.riders.map((rider, i) => (i === index ? { ...rider, pullSeconds: seconds } : rider));
+  if (!riders.some((rider) => rider.pullSeconds > 0)) return input;
+  if (index !== input.current) return { ...input, riders };
+  const endsAt = input.startedAt + Math.max(1, seconds) * 1000;
+  return {
+    ...input,
+    riders,
+    endsAt,
+    // Wat door een langere beurt weer vóór ons ligt, komt opnieuw; geen "nog 30" in een beurt van 30.
+    announced: COUNTDOWN.filter(
+      (mark) => mark >= seconds || (input.announced.includes(mark) && endsAt - now <= mark * 1000),
+    ),
+  };
+}
+
+/**
+ * Eén kopbeurt overslaan, of dat weer intrekken. Rijdt hij nu op kop, dan
+ * volgt meteen de volgende, net als bij Volgende.
+ */
+export function setSkipping(input: Rotation, index: number, on: boolean, now: number): Step {
+  const rider = input.riders[index];
+  if (!rider || rider.out || rider.skipping === on) return { rotation: input, events: [] };
+  if (on && index === input.current) return skip(input, now);
+  return {
+    rotation: { ...input, riders: input.riders.map((r, i) => (i === index ? { ...r, skipping: on } : r)) },
+    events: [],
+  };
+}
+
 export function sameRider(a: PlanRider, b: PlanRider) {
   return a.zwiftId && b.zwiftId ? a.zwiftId === b.zwiftId : a.name === b.name;
 }
@@ -170,6 +226,7 @@ export function replan(rotation: Rotation, riders: PlanRider[], now: number): St
     riders: riders.map((rider) => ({
       ...rider,
       out: rotation.riders.some((old) => old.out && sameRider(old, rider)),
+      skipping: rotation.riders.some((old) => old.skipping && sameRider(old, rider)),
     })),
   };
   if (rotation.current === -1) return { rotation: next, events: [] };
@@ -187,7 +244,7 @@ export function replan(rotation: Rotation, riders: PlanRider[], now: number): St
 }
 
 /**
- * Na een stuk vrij rijden (een klim) begint de rotatie opnieuw: met de renner
+ * Na een pauze (vrij rijden, bijvoorbeeld op een klim) begint de rotatie opnieuw: met de renner
  * die nu vooraan rijdt als die bekend is en een kopbeurt doet, anders met de
  * volgende in het plan. De kopbeurt begint op dit moment.
  */

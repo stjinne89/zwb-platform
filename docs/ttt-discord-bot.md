@@ -169,14 +169,15 @@ rit te storen; `/ttt deel 2` of de knop Deel 2 schakelt over (`replan` in
 daarna gelden volgorde, watt en duur van het nieuwe plan. Gelost blijft gelost en
 de coach houdt wat hij al zag, met de nieuwe doelen. Staat de koprijder niet in
 het nieuwe plan, dan begint de eerste renner daarvan meteen. Twee delen: meer
-knoppen passen niet naast Klim in één rij.
+knoppen passen niet naast Pauze (tot 2026-11-17 Klim) in één rij.
 
 ## Vrij rijden op een klim
 
 Op verzoek van de eigenaar (2026-10-13): op een flinke klim rijdt iedereen zijn
 eigen tempo. Zonder ingreep zou de coach daar onzin roepen: wissels bij elke
 inhaalactie, "watt eraf" voor wie boven zijn plan klimt, "lost" voor wie een gat
-laat. De knop Klim (`/ttt klim`, `setFree` in `session.ts`) zet klok en coach
+laat. De knop Pauze (`/ttt pauze`, `setFree` in `session.ts`; tot 2026-11-17 Klim en
+`/ttt klim`) zet klok en coach
 stil. Hervat rotatie (`/ttt hervat`, of Volgende) begint de rotatie opnieuw met
 de voorste renner uit de laatste Sauce-meting, als die hooguit 5 s oud is, en
 anders met de volgende in het plan (`resume` in `rotation.ts`).
@@ -195,8 +196,8 @@ dat is niet gebouwd en niet gemeten.
 Op verzoek van de eigenaar (2026-11-17): de captain moet tijdens het rijden de
 bot kunnen bedienen zonder muis. `/ttt start spraak:True` laat de bot luisteren
 naar wie dat commando gaf, en alleen naar die persoon. Commando's beginnen met
-"Coach": start (tijdens het aftellen), klim, hervat, volgende, plus (tien/twintig/dertig), deel twee, en
-"<naam> gelost" of "<naam> terug". Stoppen bewust niet: per ongeluk stoppen
+"Coach": start (tijdens het aftellen), pauze (tot 2026-11-17 klim), hervat, volgende, plus (tien/twintig/dertig), deel twee, en
+"<naam> gelost", "<naam> terug" of "<naam> overslaan". Stoppen bewust niet: per ongeluk stoppen
 midden in een race is lastig te herstellen.
 
 **Horen.** `@discordjs/voice` 0.19.2 ontvangt per gebruiker een opusstroom en
@@ -279,6 +280,15 @@ stream van B1 duurden de beurten 28 tot 36 s; het plan van B1 is daar niet uit
 af te lezen. "bat" voor Bart blijft onherkend: een naam van 3 letters moet exact
 kloppen. "Coach, min tien" en "Coach, stop" bestaan niet; stoppen blijft bewust
 zonder spraak.
+
+**Nog op 2026-11-17, op verzoek van de eigenaar.** Klim heet overal Pauze
+(knop, `/ttt pauze`, "Coach, pauze"); "klim" verstaat de bot niet meer. Vóór de
+start heet de knop Volgende **Start**. `/ttt beurt renner seconden` zet een vaste
+beurtduur voor één renner (bij A kreeg Mathijs in de race met de hand extra tijd),
+ook vóór de start en in elk klaargezet deel. Overslaan: één beurt, via het
+keuzemenu, "Coach, Bart overslaan" of `/ttt overslaan`; daarna draait hij
+vanzelf weer mee (Bart zette zichzelf gelost en terug). Bewust niet: langere
+beurten met spraak (eigenaar: alleen `/ttt beurt`).
 
 **Privacy.** Alleen de captain, alleen als die het zelf aanzet. De opname staat
 kort in `.cache/` en gaat na het verstaan weg. In het logboek komt alleen wat met

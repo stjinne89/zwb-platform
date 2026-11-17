@@ -5,6 +5,8 @@ import {
   nextIndex,
   plus,
   setOut,
+  setPullSeconds,
+  setSkipping,
   skip,
   syncLeader,
   tick,
@@ -124,6 +126,47 @@ describe("ingrijpen", () => {
 
     const back = setOut(without.rotation, 1, false, 20 * S);
     expect(nextIndex(back.rotation)).toBe(1);
+  });
+
+  // TTT A, 2026-11-17: Bart zette zichzelf "gelost" en daarna "terug" om één beurt over te slaan.
+  it("overslaan: één beurt, daarna draait hij vanzelf weer mee", () => {
+    const skipping = setSkipping(started, 1, true, 10 * S);
+    expect(skipping.events).toEqual([]);
+    expect(nextIndex(skipping.rotation)).toBe(3);
+    const { rotation, events } = run(skipping.rotation, 10 * S, 151 * S);
+    expect(events.filter((e) => e.type === "change").map((e) => [e.rider, e.at / S])).toEqual([
+      [3, 60],
+      [0, 90],
+      [1, 150],
+    ]);
+    expect(rotation.riders[1].skipping).toBe(false);
+  });
+
+  it("overslaan door wie op kop rijdt: meteen de volgende, zonder dat hij later nog overslaat", () => {
+    const step = setSkipping(started, 0, true, 10 * S);
+    expect(step.events).toEqual([{ type: "change", rider: 1, previous: 0, synced: false }]);
+    expect(step.rotation.riders[0].skipping).toBe(false);
+  });
+
+  it("overslaan kan weer ingetrokken worden", () => {
+    const on = setSkipping(started, 1, true, 10 * S).rotation;
+    expect(nextIndex(setSkipping(on, 1, false, 12 * S).rotation)).toBe(1);
+  });
+
+  it("beurt: een vaste andere duur, ook voor de beurt die nu loopt", () => {
+    const longer = setPullSeconds(started, 1, 90, 10 * S);
+    const changes = run(longer, 10 * S, 200 * S).events.filter((e) => e.type === "change");
+    expect(changes.map((e) => [e.rider, e.at / S])).toEqual([
+      [1, 60],
+      [3, 150],
+      [0, 180],
+    ]);
+    expect(setPullSeconds(started, 0, 30, 10 * S).endsAt).toBe(30 * S);
+  });
+
+  it("beurt 0 kan niet als niemand anders nog een kopbeurt doet", () => {
+    const alone = tick(createRotation([rider(1, "Stijn", 60)], 0), 0).rotation;
+    expect(setPullSeconds(alone, 0, 0, 5 * S)).toBe(alone);
   });
 });
 

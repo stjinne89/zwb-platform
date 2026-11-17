@@ -1,16 +1,18 @@
 // Spraakcommando's van de captain: van wat whisper verstond naar een actie.
 // Zonder I/O, los te testen. Een commando begint met het wekwoord "Coach", zodat
-// "daar komt de klim" de bot niet stilzet. Stoppen kan bewust niet met spraak.
+// "even pauze, jongens" tegen de ploeg de bot niet stilzet. Stoppen kan bewust niet met spraak.
 
 export type VoiceCommand =
   /** De echte start: de rest van de vertraging vervalt. */
   | { kind: "start" }
-  | { kind: "klim" }
+  | { kind: "pauze" }
   | { kind: "hervat" }
   | { kind: "volgende" }
   | { kind: "plus"; seconds: number }
   | { kind: "deel"; number: number }
   | { kind: "gelost" | "terug"; rider: number }
+  /** Eén kopbeurt overslaan: "Coach, Bart overslaan". */
+  | { kind: "overslaan"; rider: number }
   /** Alleen "Coach", met een pauze: het commando volgt in de volgende zin. */
   | { kind: "wake" }
   /**
@@ -106,7 +108,16 @@ function isTerug(word: string) {
 }
 
 /** Woorden die nooit een naam zijn, ook al lijken ze er een beetje op. */
-const NOT_A_NAME = new Set(["is", "ook", "weer", "er", "de", "het", "en", "nu", "die", "dat", "deel", "plus", "seconden"]);
+const NOT_A_NAME = new Set([
+  "is", "ook", "weer", "er", "de", "het", "en", "nu", "die", "dat", "deel", "plus", "seconden",
+  "over", "overslaan", "overslaat", "slaat", "sla", "slaan", "beurt",
+]);
+
+/** "overslaan", ook los geschreven ("slaat over", "over slaan"). */
+function isSkip(rest: string[]) {
+  if (rest.some((word) => word === "overslaan" || word === "overslaat")) return true;
+  return rest.includes("over") && rest.some((word) => word === "slaat" || word === "sla" || word === "slaan");
+}
 
 /** Hoe een renner te herkennen is: elk deel van de naam, en de naam aan elkaar ("E sli" is ook "esli"). */
 function nameKeys(name: string) {
@@ -170,8 +181,12 @@ export function parseVoiceCommand(text: string, names: string[]): VoiceCommand |
     if (rider !== -1) return { kind: back ? "terug" : "gelost", rider };
     return { kind: "onbekend" };
   }
+  if (isSkip(rest)) {
+    const rider = riderIn(rest, names);
+    return rider === -1 ? { kind: "onbekend" } : { kind: "overslaan", rider };
+  }
   if (has("start", "starten", "starts")) return { kind: "start" };
-  if (has("klim", "klimmen", "clim")) return { kind: "klim" };
+  if (has("pauze", "pauzeer", "pauzeren", "pauzes", "pause", "pauzen")) return { kind: "pauze" };
   if (has("hervat", "hervatten", "rotatie")) return { kind: "hervat" };
   if (has("volgende", "wissel", "skip")) return { kind: "volgende" };
   if (has("plus", "erbij", "langer")) {
@@ -210,18 +225,19 @@ export function voicePrompt(names: string[], parts: number[] = []) {
   const spokenNumber = (value: number) => Object.keys(NUMBERS).find((word) => NUMBERS[word] === value) ?? String(value);
   return [
     "Coach, start.",
-    "Coach, klim.",
+    "Coach, pauze.",
     "Coach, hervat.",
     "Coach, volgende.",
     "Coach, plus tien.",
     "Coach, plus dertig.",
     ...parts.map((part) => `Coach, deel ${spokenNumber(part)}.`),
     ...riders.map((name, index) => `Coach, ${spokenName(name)} ${index % 2 === 0 ? "gelost" : "terug"}.`),
+    `Coach, ${spokenName(riders[0])} overslaan.`,
   ].join(" ");
 }
 
 export const NOT_UNDERSTOOD = "Niet verstaan.";
-/** Klim terwijl het al klim is, of hervat terwijl de rotatie loopt. */
+/** Pauze terwijl het al pauze is, of hervat terwijl de rotatie loopt. */
 export const ALREADY = "Staat al zo.";
 /** "Coach, start" terwijl de rotatie al loopt. */
 export const ALREADY_RUNNING = "We rijden al.";
@@ -231,6 +247,7 @@ export function confirmation(command: VoiceCommand, names: string[]): string | n
   if (command.kind === "plus") return `${command.seconds} seconden erbij.`;
   if (command.kind === "gelost") return `${names[command.rider]} gelost.`;
   if (command.kind === "terug") return `${names[command.rider]} terug.`;
+  if (command.kind === "overslaan") return `${names[command.rider]} slaat over.`;
   if (command.kind === "onbekend") return NOT_UNDERSTOOD;
   return null;
 }
@@ -242,6 +259,6 @@ export function confirmationPhrases(names: string[]) {
     ALREADY,
     ALREADY_RUNNING,
     `${DEFAULT_PLUS_S} seconden erbij.`,
-    ...names.flatMap((name) => [`${name} gelost.`, `${name} terug.`]),
+    ...names.flatMap((name) => [`${name} gelost.`, `${name} terug.`, `${name} slaat over.`]),
   ];
 }

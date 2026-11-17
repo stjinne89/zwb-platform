@@ -89,20 +89,26 @@ Met de hand:
 |---|---|
 | `/ttt plan [link] [bestand]` | Plan laden; zonder opties van het klembord van de bot-pc |
 | `/ttt start [vertraging] [spraak]` | Starten in jouw spraakkanaal (standaard na 10 s); met `spraak:True` luistert de bot naar jouw commando's |
-| `/ttt klim` | Vrij rijden: klok en coach zwijgen; kan ook met de knop Klim |
+| `/ttt pauze` | Vrij rijden: klok en coach zwijgen; kan ook met de knop Pauze |
 | `/ttt hervat` | De rotatie weer oppakken; kan ook met de knop Hervat rotatie |
 | `/ttt plan deel:2` | Een plan klaarzetten voor het tweede deel van de race |
 | `/ttt deel <nummer>` | Overgaan op het plan van dat deel; kan ook met de knop Deel 2 |
 | `/ttt stop` | Stoppen en het kanaal verlaten |
 | `/ttt skip` | Meteen de volgende renner |
 | `/ttt plus <seconden>` | De huidige kopbeurt verlengen |
+| `/ttt beurt <renner> <seconden>` | Vaste kopbeurtduur voor die renner, ook vóór de start; 0 is meerijden zonder kopbeurt |
+| `/ttt overslaan <renner>` | Renner slaat één kopbeurt over; kan ook met het menu |
 | `/ttt gelost <renner>` | Renner doet geen kopbeurten meer |
 | `/ttt terug <renner>` | Renner draait weer mee |
 
 Eén bot bedient één spraakkanaal per server tegelijk, en Sauce volgt één ploeg.
 
-**Een klim.** Op een klim rijdt iedereen zijn eigen tempo en klopt de rotatie
-niet meer. Druk aan de voet op **Klim**: de bot zegt "Klim. Eigen tempo." en
+Vóór de start heet de knop Volgende **Start**: die laat de ploeg nu wegrijden.
+Het menu onder het statusbericht zet een renner gelost, terug, of laat hem één
+beurt overslaan; daarna draait hij vanzelf weer mee.
+
+**Pauze.** Op een klim rijdt iedereen zijn eigen tempo en klopt de rotatie
+niet meer. Druk aan de voet op **Pauze**: de bot zegt "Pauze. Eigen tempo." en
 zwijgt daarna, ook over watt en lossen. Druk boven op **Hervat rotatie**: de
 rotatie begint opnieuw met wie Sauce op dat moment vooraan ziet, of zonder Sauce
 met de volgende in het plan. De bot herkent een klim niet zelf.
@@ -123,14 +129,15 @@ alleen naar jou, niet naar de rest van de ploeg. Begin elk commando met
 | Zeg | Doet |
 |---|---|
 | Coach, start | Nu wegrijden: de rest van de vertraging vervalt (alleen tijdens het aftellen) |
-| Coach, klim | Klim |
+| Coach, pauze | Pauze |
 | Coach, hervat | Hervat rotatie |
 | Coach, volgende | Meteen de volgende renner |
 | Coach, plus tien (of twintig, dertig) | De kopbeurt verlengen; zonder getal 10 s |
 | Coach, deel twee | Overgaan op deel 2 |
 | Coach, Jeroen gelost / Coach, Jeroen terug | Renner gelost of terug |
+| Coach, Jeroen overslaan | Jeroen slaat één kopbeurt over |
 
-Zonder "Coach" doet de bot niets: "daar komt de klim" zet hem niet stil. Stoppen
+Zonder "Coach" doet de bot niets: "even pauze" tegen de ploeg zet hem niet stil. Stoppen
 kan niet met spraak. Kent hij het commando niet, dan zegt hij "Niet verstaan".
 Na een losse "Coach" wacht hij zes seconden op het commando. Een naam herkent hij
 ook als whisper hem net anders schrijft ("terrens" voor Terrence); lijkt een naam
