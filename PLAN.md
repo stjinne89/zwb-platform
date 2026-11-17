@@ -1092,7 +1092,8 @@ gaat stabiliteit voor nieuwe features.
    - **Strava-loginregel:** op `/beheer/strava` controleren dat "laatst gezien"
      bij je eigen account vandaag is.
    - **Live volgen via Garmin/Wahoo:** live getest en lijkt te werken (eigenaar,
-     2026-10-02). Spikepunten 2 en 4 (afzender/DKIM en de echte trackpointvelden)
+     2026-10-02). Van 2026-10-26 tot de fix van 2026-11-17 kwamen er
+     geen Garmin-posities binnen (Garmin verplaatste de sessieroute). Spikepunten 2 en 4 (afzender/DKIM en de echte trackpointvelden)
      zijn niet apart nagekeken.
    - **FRR-tours:** ingericht (eigenaar, 2026-10-02). De GC-code van Tour Ignite
      is `FIG.6` (staat sinds 4 oktober in de tabel van FRR).
@@ -9056,6 +9057,9 @@ lid, ook buiten de kalender")*
 >   sluit de cleanup Garmin/Wahoo na 2 uur zonder teken van leven of 24 uur na
 >   de start. De 15-minutenregel geldt voor die bronnen niet meer.
 > - Degradatie: lukt uitlezen niet, dan "live, met link" tot 8 uur na de start.
+>   *(2026-11-17: niet meer bij een mislukte ronde; dan blijft `last_seen_at`
+>   staan en sluit Garmin ook na 30 minuten zonder punt. Zie "Garmin live:
+>   nieuwe sessieroute".)*
 >   De eventticker toont die renners met een knop naar de kaart van Garmin of
 >   Wahoo; hij selecteerde `external_track_url` eerst niet.
 > - ~~Een geplakte Garmin- of Wahoo-link op `/live` wordt nu ook uitgelezen.~~
@@ -12439,6 +12443,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Garmin live: nieuwe sessieroute en geen spook-live meer
+
+**2026-11-17, de commit die dit blok toevoegt, op `claude/garmin-connection-linda-henk-1a5e6c`; lokaal, niet gepusht. Geen migratie.**
+
+- **Aanleiding.** De eigenaar zag Karen van de Rakt op Samen fietsen "doorlopen"
+  zonder dat ze op de kaart stond. Oorzaak: Garmin heeft rond 2026-10-26 21:00
+  de sessieroute verplaatst. `GET /api/sessions/<id>` geeft HTTP 405; de eigen
+  LiveTrack-pagina gebruikt nu `/api/v2/sessions/<id>`, met dezelfde velden
+  (`start`, `end`, `viewable`). `track-points/common` staat nog op de oude plek
+  en werkt. Sindsdien faalde elke ophaalronde: vanaf 2026-10-26 heeft geen
+  enkele Garmin-sessie nog een positie (productie bekeken via de connector).
+  De health-check `garmin_livetrack` meldt sinds 2026-10-26 20:00 UTC
+  onafgebroken "HTTP 405", maar dat viel niemand op.
+- **Waarom ze bleef doorlopen.** Bij een mislukte ronde viel de code terug op
+  "live, met link" en zette `last_seen_at` op nu. Een Garmin-rit stond dan
+  tot 8 uur na de start als live, zonder posities.
+- **Wat er veranderd is.**
+  - Sessie en health-probe via `/api/v2/sessions/<id>` (`garminSessionPath`).
+  - Mislukte ronde (`errorUpdate`): status `error`, `last_seen_at` blijft staan.
+    Een storing telt dus niet meer als rijden; na 15 minuten valt de renner uit
+    de lijst, de sessie sluit nog steeds 8 uur na de start.
+  - Garmin sluit een sessie nu ook na 30 minuten zonder nieuw punt
+    (`garminSessionUpdate`), net als Wahoo. Garmin zet `end` standaard op
+    start + 24 uur, dus "einde voorbij" alleen is te laat. Punten komen ook bij
+    stilstand binnen (`pointStatus: STATIONARY`), dus een koffiestop sluit de
+    rit niet zolang het toestel opneemt.
+  - Geen uitleesbare link blijft "live, met link" (ongewijzigd).
+- **Getest.** Unit-tests voor de route, de 30-minutenregel en de foutregel;
+  `tsc` en eslint schoon. De echte code (`probeGarminLiveTrack`,
+  `fetchGarminSession`) tegen Garmin gedraaid met een tijdelijke test: probe
+  404 (gezond), een open rit gaf `live` en nieuwe punten. Volledige suite:
+  alleen time-outs onder belasting (los groen) en `omnium-live` (geen
+  `.env.local` in de worktree). **Niet getest:** op Netlify, en een rit van
+  begin tot eind met de nieuwe regels.
+- **Bewust niet.** Een melding als de health-check faalt: buiten deze ronde,
+  maar drie weken stil falen laat zien dat de check alleen niet genoeg is.
+  Ook geen nieuwe sessie als een rit na het 30-minutensluiten met dezelfde
+  link doorgaat; dat blijft dicht tot de volgende LiveTrack-mail.
+- **Ook bekeken.** Linda Kuiper en Henk SA hebben geen enkele koppeling (nooit
+  een clubadres aangemaakt) en geen live-ritten; dat ligt niet aan deze fout.
 
 ### Gebouwd — TTT-bot zelf installeren, vanaf de TTT Planner
 

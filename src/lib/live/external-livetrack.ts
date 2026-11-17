@@ -5,6 +5,8 @@
 // in <meta name="csrf-token"> van de sessiepagina en hoort bij de cookie
 // livetrack_csrf. Met die twee lukt een gewone fetch, zonder browser
 // (vastgesteld op 2026-09-28, zie docs/garmin-wahoo-live-tracking-onderzoek.md).
+// Sinds 2026-10-26 geeft GET /api/sessions/<id> HTTP 405; de sessie staat nu op
+// /api/v2/sessions/<id>, met dezelfde velden. De trackpoints zijn niet verhuisd.
 // Wahoo's live-pagina bevat de status als data-attributen en het spoor als
 // FIT-data (zie fit-records.ts).
 
@@ -16,6 +18,11 @@ async function userAgent(): Promise<string> {
 }
 const FETCH_TIMEOUT_MS = 6000;
 const GARMIN_ORIGIN = "https://livetrack.garmin.com";
+
+/** Pad van de sessiegegevens; de trackpoints staan nog onder /api/sessions. */
+export function garminSessionPath(sessionId: string) {
+  return `/api/v2/sessions/${sessionId}`;
+}
 
 export type ExternalProvider = "garmin" | "wahoo";
 
@@ -266,7 +273,7 @@ export async function fetchGarminSession(
   link: GarminLink,
   after: string | null,
 ): Promise<GarminFetchResult> {
-  const session = await garminJson(auth, `/api/sessions/${link.sessionId}`, {
+  const session = await garminJson(auth, garminSessionPath(link.sessionId), {
     token: link.token,
   });
   if (session.status === 404) return { state: "gone" };
@@ -293,13 +300,15 @@ export async function fetchWahooPage(url: string): Promise<string | null> {
 
 /**
  * Health-check: werkt de route zonder browser nog? Een niet-bestaande sessie
- * hoort 404 te geven; 403 betekent dat Garmin de CSRF-aanpak weigert.
+ * hoort 404 te geven; 403 betekent dat Garmin de CSRF-aanpak weigert, 405 dat
+ * de route verhuisd is (zoals op 2026-10-26). De body van die 404 is kapotte
+ * gzip, dus alleen de status lezen.
  */
 export async function probeGarminLiveTrack(): Promise<number> {
   const link = { sessionId: "00000000-0000-0000-0000-000000000000", token: "ZWBHEALTH" };
   const auth = await garminAuth(link);
   const res = await fetchWithTimeout(
-    `${GARMIN_ORIGIN}/api/sessions/${link.sessionId}?token=${link.token}`,
+    `${GARMIN_ORIGIN}${garminSessionPath(link.sessionId)}?token=${link.token}`,
     {
       headers: {
         Accept: "application/json",

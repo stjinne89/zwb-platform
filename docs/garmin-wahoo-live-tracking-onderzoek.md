@@ -157,7 +157,8 @@ LiveTrack-webpagina.
   - Volgens die bron meet de Edge ongeveer elke 4 s een punt en worden de punten
     in batches doorgestuurd.
 - **Huidige generatie** (GarminLiveTrack-Server, commit van 13-09-2026):
-  - `/api/sessions/{id}?token=…` voor de sessie;
+  - `/api/sessions/{id}?token=…` voor de sessie (sinds 2026-10-26
+    `/api/v2/sessions/{id}?token=…`; de oude route geeft HTTP 405);
   - `/api/sessions/{id}/track-points/common?token=…&begin=…` voor de punten;
   - `/api/sessions/{id}/courses` voor de geplande route.
   - Elke call vereist de header `livetrack-csrf-token`. Het project vangt die

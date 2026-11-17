@@ -7,14 +7,19 @@
 // tien kijkers niet meer dan met één.
 //
 // - Garmin: nieuwe trackpoints naar live_positions; last_seen_at volgt het
-//   nieuwste punt. De sessie sluit als Garmin de rit beëindigd meldt.
+//   nieuwste punt. De sessie sluit als Garmin de rit beëindigd meldt of 30
+//   minuten geen punt kwam (Garmin zet het einde standaard op start + 24 uur).
 // - Wahoo: de punten komen uit de FIT-data op de live-pagina. De sessie sluit
 //   als de pagina "completed" meldt of 30 minuten niets kreeg.
 // - Vaste Wahoo-link: er komt geen mail bij de start, dus bij kijken wordt
 //   elke gekoppelde link hooguit elke 3 minuten bekeken (keuze eigenaar
 //   2026-09-28: alleen bij kijken). De cleanup-cron zoekt niet.
-// - Lukt uitlezen niet: "live, met link". De sessie blijft zichtbaar tot
+// - Geen uitleesbare link: "live, met link". De sessie blijft zichtbaar tot
 //   LINK_ONLY_MAX_MS na de start.
+// - Uitlezen mislukt: status "error" en last_seen_at blijft staan, zodat een
+//   storing niet als rijden telt (tot 2026-11-17 hield dat Garmin-ritten na de
+//   Garmin-wijziging van 2026-10-26 acht uur lang "live" zonder posities).
+//   De sessie sluit LINK_ONLY_MAX_MS na de start.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -38,6 +43,7 @@ const FETCH_EVERY_MS = 30 * 1000;
 const WAHOO_DETECT_EVERY_MS = 3 * 60 * 1000;
 export const LINK_ONLY_MAX_MS = 8 * 60 * 60 * 1000;
 const WAHOO_ENDED_AFTER_S = 30 * 60;
+export const GARMIN_ENDED_AFTER_MS = 30 * 60 * 1000;
 const ROUND_BUDGET_MS = 7000;
 const MAX_POINTS_PER_FETCH = 5000;
 const MIN_POINT_SPACING_MS = 10 * 1000;
@@ -55,7 +61,7 @@ type ExternalSessionRow = {
   shareHeartRate?: boolean;
 };
 
-type SessionUpdate = {
+export type SessionUpdate = {
   last_seen_at?: string;
   ended_at?: string;
   external_status?: "live" | "ended" | "error" | "link";
@@ -107,6 +113,38 @@ function linkOnlyUpdate(row: ExternalSessionRow, now: number): SessionUpdate {
   return expired
     ? { ended_at: nowIso, external_status: "link" }
     : { last_seen_at: nowIso, external_status: "link" };
+}
+
+/** Na een mislukte ophaalronde: niet als gezien tellen, wel op tijd sluiten. */
+export function errorUpdate(row: Pick<ExternalSessionRow, "started_at">, now: number): SessionUpdate {
+  const expired = now - Date.parse(row.started_at) > LINK_ONLY_MAX_MS;
+  return expired
+    ? { ended_at: new Date(now).toISOString(), external_status: "error" }
+    : { external_status: "error" };
+}
+
+/**
+ * Sessie-update na een geslaagde Garmin-ronde. last_seen_at volgt alleen echte
+ * punten; kwam er 30 minuten geen punt (of sinds de start nog geen), dan is de
+ * rit voorbij, ook als Garmin het einde nog op start + 24 uur heeft staan.
+ */
+export function garminSessionUpdate(
+  row: Pick<ExternalSessionRow, "started_at" | "external_last_point_at">,
+  state: "live" | "ended",
+  lastPoint: string | null,
+  now: number,
+): SessionUpdate {
+  const update: SessionUpdate = { external_status: state };
+  if (lastPoint) {
+    update.external_last_point_at = lastPoint;
+    update.last_seen_at = lastPoint;
+  }
+  const newest = lastPoint ?? row.external_last_point_at ?? row.started_at;
+  if (state === "ended" || now - Date.parse(newest) > GARMIN_ENDED_AFTER_MS) {
+    update.ended_at = new Date(now).toISOString();
+    update.external_status = "ended";
+  }
+  return update;
 }
 
 async function claim(admin: SupabaseClient, id: string, now: number) {
@@ -162,15 +200,7 @@ async function refreshGarmin(
   if (result.state === "gone") return { ended_at: nowIso, external_status: "ended" };
 
   const lastPoint = await storePoints(admin, row, result.points);
-  const update: SessionUpdate = {
-    external_status: result.state === "live" ? "live" : "ended",
-  };
-  if (lastPoint) {
-    update.external_last_point_at = lastPoint;
-    update.last_seen_at = lastPoint;
-  }
-  if (result.state === "ended") update.ended_at = nowIso;
-  return update;
+  return garminSessionUpdate(row, result.state, lastPoint, now);
 }
 
 async function refreshWahoo(
@@ -231,7 +261,7 @@ async function refreshOne(
       `[live] ${row.source}-sessie ${row.id} niet uit te lezen:`,
       err instanceof Error ? err.message : err,
     );
-    update = { ...linkOnlyUpdate(row, now), external_status: "error" };
+    update = errorUpdate(row, now);
   }
   await admin.from("live_sessions").update(update).eq("id", row.id);
 }

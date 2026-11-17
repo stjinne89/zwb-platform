@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   extractExternalLink,
   garminPointsAfter,
+  garminSessionPath,
   garminSessionState,
   normalizeGarminPoint,
   parseGarminLink,
@@ -10,7 +11,12 @@ import {
 } from "@/lib/live/external-livetrack";
 import { deflateSync, gzipSync } from "node:zlib";
 import { decodeWahooFitChunk, parseFitRecords, wahooPagePoints } from "@/lib/live/fit-records";
-import { thinPoints } from "@/lib/live/external-refresh";
+import {
+  errorUpdate,
+  garminSessionUpdate,
+  LINK_ONLY_MAX_MS,
+  thinPoints,
+} from "@/lib/live/external-refresh";
 import {
   inboundDomain,
   mailAddressForCode,
@@ -128,6 +134,42 @@ describe("rit-status", () => {
     expect(garminSessionState({ viewable: true, start: "2026-09-28T08:00:00Z" }, now).live).toBe(true);
     expect(garminSessionState({ viewable: true, end: "2026-09-28T09:00:00Z" }, now).live).toBe(false);
     expect(garminSessionState({ viewable: false }, now).live).toBe(false);
+  });
+
+  it("Garmin: sessiegegevens via de v2-route (oude route geeft sinds 2026-10-26 HTTP 405)", () => {
+    expect(garminSessionPath("abc")).toBe("/api/v2/sessions/abc");
+  });
+
+  it("Garmin: last_seen_at volgt alleen echte punten", () => {
+    const row = { started_at: "2026-09-28T09:00:00Z", external_last_point_at: "2026-09-28T09:55:00Z" };
+    expect(garminSessionUpdate(row, "live", "2026-09-28T09:59:50Z", now)).toEqual({
+      external_status: "live",
+      external_last_point_at: "2026-09-28T09:59:50Z",
+      last_seen_at: "2026-09-28T09:59:50Z",
+    });
+    expect(garminSessionUpdate(row, "live", null, now)).toEqual({ external_status: "live" });
+  });
+
+  it("Garmin: sluit na 30 minuten zonder punt, ook als Garmin nog live meldt", () => {
+    const stil = { started_at: "2026-09-28T08:00:00Z", external_last_point_at: "2026-09-28T09:29:00Z" };
+    expect(garminSessionUpdate(stil, "live", null, now)).toMatchObject({
+      ended_at: new Date(now).toISOString(),
+      external_status: "ended",
+    });
+    const nooitPunten = { started_at: "2026-09-28T09:20:00Z", external_last_point_at: null };
+    expect(garminSessionUpdate(nooitPunten, "live", null, now).ended_at).toBeDefined();
+    const net = { started_at: "2026-09-28T09:50:00Z", external_last_point_at: null };
+    expect(garminSessionUpdate(net, "live", null, now).ended_at).toBeUndefined();
+    expect(garminSessionUpdate(net, "ended", null, now).ended_at).toBeDefined();
+  });
+
+  it("mislukte ronde telt niet als gezien en sluit na de maximale duur", () => {
+    expect(errorUpdate({ started_at: "2026-09-28T09:00:00Z" }, now)).toEqual({ external_status: "error" });
+    const oud = new Date(now - LINK_ONLY_MAX_MS - 1000).toISOString();
+    expect(errorUpdate({ started_at: oud }, now)).toEqual({
+      ended_at: new Date(now).toISOString(),
+      external_status: "error",
+    });
   });
 
   it("Wahoo: status uit de data-attributen van de live-pagina", () => {
