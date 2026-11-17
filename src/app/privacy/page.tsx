@@ -96,6 +96,14 @@ export default function PrivacyPage() {
             Stoppen op je briefjes wis je je deelname van dat seizoen, met al je
             inzetten en antwoorden.
           </li>
+          <li id="uitdaging" className="scroll-mt-20">
+            <strong><ModuleName module="uitdaging" />:</strong> alleen als je zelf op Doe mee tikt.
+            Dan bewaren we per rit hoe vaak je omhoog wilt, hoe vaak het lukte, je
+            sponsordoel, het bedrag dat je zelf als opgehaald invult en de link naar
+            je actiepagina. Goedgekeurde leden zien dat met je naam. We halen niets
+            op bij het actieplatform. Met Afmelden wis je je deelname; verwijder je
+            je account of verdwijnt de rit, dan gaat hij mee.
+          </li>
           <li>
             <strong>Account- en profielgegevens:</strong> naam, e-mailadres,
             profielfoto, regio, ZRL-categorie, Zwift-/Strava-ID, FTP en gewicht

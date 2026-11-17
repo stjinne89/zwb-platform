@@ -33,8 +33,9 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Module Uitdaging voor de Rabobank-installatie (Alpe d'HuZes, 2026-11-17):
    gebouwd, lokaal, niet gepusht.** Migratie `0337_challenge_entries.sql` is
-   nog nergens toegepast. Open: de privacyzin (voorgelegd, nog niet op
-   `/privacy`), de pagina in de browser bekijken, en daarna de installatie zelf
+   nog nergens toegepast. De privacyzin staat op `/privacy#uitdaging` (akkoord
+   eigenaar, 2026-11-17), zonder nieuwe privacyversie; dat laatste is nog niet
+   apart bevestigd. Open: de pagina in de browser bekijken, en daarna de installatie zelf
    volgens [installatie.md](docs/installatie.md) op de accounts van de
    eigenaar (keuze eigenaar 2026-11-17; meer dan 10 deelnemers, dus Strava niet
    voor iedereen). Zie de ronde "Module Uitdaging".
@@ -12454,7 +12455,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Module Uitdaging: een goededoelenrit met de club
 
-**2026-11-17, de commit die dit blok toevoegt, lokaal, niet gepusht. Migratie `0337_challenge_entries.sql`, nog nergens toegepast.**
+**2026-11-17, commit `b3d305ac` (module) en de commit met de privacyzin, lokaal, niet gepusht. Migratie `0337_challenge_entries.sql`, nog nergens toegepast.**
 
 - **Waarom.** De eigenaar wil een eigen installatie van het platform voor een
   Rabobank-club die Alpe d'HuZes fietst. Gekozen (eigenaar, 2026-11-17):
@@ -12487,9 +12488,13 @@ link naar `/live/[eventId]`, zie de update hierboven).
   automatisch tellen: `profile_climbed_cols` telt over alle ritten, niet per
   dag; dat vraagt tellen per rit, eventueel een tweede ronde. Een dashboardblok
   en meldingen. Een beheerscherm om de regel van een ander lid te wissen.
-- **Privacy.** Nieuwe gegevens (doel, bedragen, link). De zin voor `/privacy`
-  is voorgelegd aan de eigenaar en staat er nog niet (afspraak: eerst
-  voorleggen).
+- **Privacy.** Nieuwe gegevens (doel, bedragen, link). De zin staat op
+  `/privacy#uitdaging`, door de eigenaar goedgekeurd ("Ja, zet erop",
+  2026-11-17). Geen nieuwe privacyversie: meedoen is de toestemming, naar het
+  voorbeeld van voorZpWelBokaal, en een versie erbij zou elk ZWB-lid opnieuw
+  laten tekenen voor een module die bij ZWB uit staat. Vastgelegd als
+  dertiende uitzondering in `src/lib/privacy.ts`, als *voorgesteld*: de
+  keuze zonder versie is nog niet apart door de eigenaar bevestigd.
 - **Getest.** `tsc` en eslint schoon; `uitdaging`, `modules`, `module-access`,
   `baseline` (0337 loopt op PGlite in beide routes en geeft hetzelfde schema),
   `club-texts-tokens` en `dashboard-parts` groen. De volledige set: 4663

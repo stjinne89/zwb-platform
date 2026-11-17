@@ -110,6 +110,15 @@
  * wanneer hij gezien is (0307, `integration_notices`). Geen nieuwe categorie of
  * verwerker: alleen de tekst (`/privacy#koppelingen`), door de eigenaar
  * goedgekeurd zonder nieuwe versie.
+ *
+ * **Dertiende uitzondering, voorgesteld: Uitdaging (2026-11-17).** Doel, aantal
+ * keer gehaald, sponsordoel, opgehaald bedrag en de link naar de actiepagina
+ * van wie zelf op Doe mee tikt bij een goededoelenrit; goedgekeurde leden zien
+ * het met naam (0337, `challenge_entries`). Meedoen is de toestemming, naar het
+ * voorbeeld van voorZpWelBokaal. De module staat standaard uit. De eigenaar
+ * keurde de tekst op `/privacy#uitdaging` goed op 2026-11-17 ("Ja, zet
+ * erop"); dat dit zonder nieuwe versie gaat, is nog niet apart bevestigd (zie
+ * PLAN.md, ronde "Module Uitdaging").
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring
