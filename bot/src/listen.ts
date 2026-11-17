@@ -18,8 +18,13 @@ const BYTES_PER_MS = (RATE * CHANNELS * 2) / 1000;
 const END_SILENCE_MS = 700;
 /** Korter is een kuch of een klik. */
 const MIN_MS = 400;
-/** Langer is geen commando maar praat met de ploeg: niet verstaan, scheelt rekenwerk naast Zwift. */
-const MAX_MS = 5_000;
+/**
+ * Langer is geen commando maar praat met de ploeg. Ruim genomen: in de race
+ * zei de captain soms "Coach" en dan na een adem het commando, en de stem van
+ * de bot liep mee in zijn microfoon. Whisper vult elke zin aan tot 30 seconden,
+ * dus een langere zin kost niet meer rekenwerk.
+ */
+const MAX_MS = 8_000;
 const WHISPER_TIMEOUT_MS = 15_000;
 
 export type Whisper = { path: string; model: string; threads: number };
@@ -84,6 +89,8 @@ export function wav(pcm: Buffer): Buffer {
 export class VoiceListener {
   private stream: AudioReceiveStream | null = null;
   private busy = false;
+  /** De zin die binnenkwam terwijl whisper nog bezig was; een nieuwere vervangt hem. */
+  private waiting: Buffer | null = null;
   private stopped = false;
 
   constructor(
@@ -104,6 +111,7 @@ export class VoiceListener {
     this.connection.receiver.speaking.off("start", this.onStart);
     this.stream?.destroy();
     this.stream = null;
+    this.waiting = null;
   }
 
   private onStart = (userId: string) => {
@@ -148,7 +156,8 @@ export class VoiceListener {
   private async understand(pcm: Buffer) {
     if (pcm.length / BYTES_PER_MS < MIN_MS) return;
     if (this.busy) {
-      this.log("spraak: overgeslagen, de vorige zin is nog niet verstaan");
+      if (this.waiting) this.log("spraak: overgeslagen, er kwam een nieuwere zin");
+      this.waiting = pcm;
       return;
     }
     this.busy = true;
@@ -161,8 +170,11 @@ export class VoiceListener {
     } catch (error) {
       this.log(`spraak: verstaan mislukte: ${error instanceof Error ? error.message : error}`);
     } finally {
+      await rm(file, { force: true }).catch(() => undefined);
       this.busy = false;
-      await rm(file, { force: true });
     }
+    const next = this.waiting;
+    this.waiting = null;
+    if (next && !this.stopped) await this.understand(next);
   }
 }

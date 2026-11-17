@@ -11,6 +11,8 @@ export type VoiceCommand =
   | { kind: "plus"; seconds: number }
   | { kind: "deel"; number: number }
   | { kind: "gelost" | "terug"; rider: number }
+  /** Alleen "Coach", met een pauze: het commando volgt in de volgende zin. */
+  | { kind: "wake" }
   /** Wel het wekwoord, geen commando dat de bot kent. */
   | { kind: "onbekend" };
 
@@ -65,18 +67,65 @@ function distance(a: string, b: string) {
   return row[b.length];
 }
 
+/**
+ * Hoe een woord klinkt, grof: whisper schrijft een naam die hij niet kent zoals
+ * hij hem hoort ("terrens" voor Terrence, "tein" voor Stijn).
+ */
+function sound(word: string) {
+  return word
+    .replace(/ph/g, "f")
+    .replace(/ch/g, "g")
+    .replace(/c(?=[eiy])/g, "s")
+    .replace(/c/g, "k")
+    .replace(/ij|y/g, "ei")
+    .replace(/z/g, "s")
+    .replace(/v/g, "f")
+    .replace(/d$/, "t")
+    .replace(/(.)\1+/g, "$1");
+}
+
+/** "gelost", ook zoals whisper het in de race schreef ("koelost", "lost"). */
+function isGelost(word: string) {
+  return word.endsWith("lost") || distance(sound(word), "gelost") <= 1;
+}
+
+function isTerug(word: string) {
+  return word === "terug" || (word.length >= 4 && distance(word, "terug") <= 1);
+}
+
+/** Woorden die nooit een naam zijn, ook al lijken ze er een beetje op. */
+const NOT_A_NAME = new Set(["is", "ook", "weer", "er", "de", "het", "en", "nu", "die", "dat", "deel", "plus", "seconden"]);
+
+/** Hoe een renner te herkennen is: elk deel van de naam, en de naam aan elkaar ("E sli" is ook "esli"). */
+function nameKeys(name: string) {
+  const parts = normalize(name).split(" ").filter(Boolean);
+  const keys = parts.filter((part) => part.length >= 3);
+  const joined = parts.join("");
+  if (parts.length > 1 || keys.length === 0) keys.push(joined);
+  return keys.map(sound);
+}
+
+/** De renner die het best past, of -1 als geen of twee even goed passen. */
 function riderIn(words: string[], names: string[]) {
-  const keys = names.map((name) => normalize(name).split(" "));
-  for (const word of words) {
-    const exact = keys.findIndex((parts) => parts.includes(word));
-    if (exact !== -1) return exact;
-  }
-  for (const word of words) {
-    if (word.length < 4) continue;
-    const close = keys.findIndex((parts) => parts.some((part) => part.length >= 4 && distance(part, word) <= 1));
-    if (close !== -1) return close;
-  }
-  return -1;
+  const keys = names.map(nameKeys);
+  const candidates = words
+    .filter((word) => !NOT_A_NAME.has(word) && !WAKE.has(word) && !isGelost(word) && !isTerug(word) && number(word) === null)
+    .map(sound);
+  let best = { rider: -1, cost: Infinity, tie: false };
+  keys.forEach((riderKeys, rider) => {
+    for (const word of candidates) {
+      for (const key of riderKeys) {
+        let cost = word === key ? 0 : Infinity;
+        if (cost !== 0 && word.length >= 4 && key.length >= 4) {
+          const d = distance(word, key);
+          if (d <= (key.length >= 6 ? 2 : 1)) cost = d;
+        }
+        if (cost < best.cost) best = { rider, cost, tie: false };
+        else if (cost === best.cost && cost !== Infinity && rider !== best.rider) best.tie = true;
+      }
+    }
+  });
+  return best.tie ? -1 : best.rider;
 }
 
 /**
@@ -88,11 +137,13 @@ export function parseVoiceCommand(text: string, names: string[]): VoiceCommand |
   const wake = words.findIndex((word) => WAKE.has(word));
   if (wake === -1) return null;
   const rest = words.slice(wake + 1);
+  if (rest.length === 0) return { kind: "wake" };
   const has = (...options: string[]) => rest.some((word) => options.includes(word));
 
-  if (has("gelost", "lost", "terug")) {
+  const back = rest.some(isTerug);
+  if (back || rest.some(isGelost)) {
     const rider = riderIn(rest, names);
-    if (rider !== -1) return { kind: has("terug") ? "terug" : "gelost", rider };
+    if (rider !== -1) return { kind: back ? "terug" : "gelost", rider };
     return { kind: "onbekend" };
   }
   if (has("start", "starten", "starts")) return { kind: "start" };
@@ -112,19 +163,31 @@ export function parseVoiceCommand(text: string, names: string[]): VoiceCommand |
   return { kind: "onbekend" };
 }
 
-/** Hint voor whisper: met deze zinnen verstond hij in de meting 7 van de 7 commando's goed. */
+/** Hoe de captain een renner noemt: de voornaam, of korte delen aan elkaar ("E sli" wordt "Esli"). */
+export function spokenName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return name;
+  if (parts[0].length <= 2) return parts.join("");
+  return parts[0];
+}
+
+/**
+ * Hint voor whisper: met deze zinnen verstond hij in de meting 7 van de 7
+ * commando's goed. Elke renner staat erin zoals de captain hem noemt, in een
+ * zin: een naam die whisper niet kent, schrijft hij anders op zoals hij hem
+ * hoort (in de race van 2026-11-17 "terrens" en "tein").
+ */
 export function voicePrompt(names: string[]) {
-  const [first = "Jeroen", second = first] = names;
+  const riders = names.length > 0 ? names : ["Jeroen"];
   return [
     "Coach, start.",
     "Coach, klim.",
     "Coach, hervat.",
     "Coach, volgende.",
     "Coach, plus tien.",
+    "Coach, plus dertig.",
     "Coach, deel twee.",
-    `Coach, ${first} gelost.`,
-    `Coach, ${second} terug.`,
-    ...names.slice(2).map((name) => `${name}.`),
+    ...riders.map((name, index) => `Coach, ${spokenName(name)} ${index % 2 === 0 ? "gelost" : "terug"}.`),
   ].join(" ");
 }
 

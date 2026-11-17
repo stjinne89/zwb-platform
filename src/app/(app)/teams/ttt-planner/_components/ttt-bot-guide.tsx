@@ -223,8 +223,12 @@ export function TttBotGuide() {
               </li>
             </ul>
             <p>
-              Zeg het kort en duidelijk. Snapt de bot je niet, dan zegt hij &ldquo;Niet
-              verstaan&rdquo;. Stoppen gaat alleen met de knop <strong>Stop</strong>.
+              Zeg het kort en duidelijk. Na &ldquo;Coach&rdquo; even ademhalen mag: de bot wacht dan
+              op het commando. Snapt de bot je niet, dan zegt hij &ldquo;Niet verstaan&rdquo;.
+              Stoppen gaat alleen met de knop <strong>Stop</strong>.
+            </p>
+            <p>
+              Draag een koptelefoon. Met speakers hoort je microfoon de bot ook.
             </p>
           </Step>
         </ol>
@@ -254,6 +258,10 @@ export function TttBotGuide() {
               <strong>De bot hoort je commando&apos;s niet.</strong> Startte je met{" "}
               <Code>spraak:True</Code> en begin je met &ldquo;Coach&rdquo;? Zegt de bot bij het starten
               dat spraak niet is ingesteld, dubbelklik dan nog een keer op het installatiebestand.
+            </li>
+            <li>
+              <strong>De bot verstaat een naam niet.</strong> Zet de naam in het plan zoals je hem
+              uitspreekt, bijvoorbeeld een voornaam of bijnaam.
             </li>
             <li>
               <strong>Een nieuwe versie?</strong> Dubbelklik nog een keer op het installatiebestand.

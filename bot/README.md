@@ -131,7 +131,12 @@ alleen naar jou, niet naar de rest van de ploeg. Begin elk commando met
 
 Zonder "Coach" doet de bot niets: "daar komt de klim" zet hem niet stil. Stoppen
 kan niet met spraak. Kent hij het commando niet, dan zegt hij "Niet verstaan".
-Een zin langer dan vijf seconden luistert hij niet uit; commando's zijn kort. Het
+Na een losse "Coach" wacht hij zes seconden op het commando. Een naam herkent hij
+ook als whisper hem net anders schrijft ("terrens" voor Terrence); lijkt een naam
+op niemand, dan zegt hij "Niet verstaan" in plaats van te gokken. Verstaat hij een
+naam steeds niet, zet hem dan in het plan zoals je hem uitspreekt. Draag een
+koptelefoon: met speakers komt de stem van de bot in je microfoon. Een zin langer
+dan acht seconden luistert hij niet uit; commando's zijn kort. Het
 verstaan gebeurt op deze pc met whisper.cpp (`WHISPER_PATH`, `WHISPER_MODEL`);
 de installatie zet dat klaar. Een opname gaat na het verstaan weg. In het logboek
 komt alleen wat met "Coach" begon.

@@ -230,11 +230,34 @@ jongens."
 
 Gekozen: `whisper-cli` per zin met de hint. De server scheelt 0,2 s maar vraagt
 een proces en een poort om te beheren. Een zin is af na 0,7 s stilte; korter dan
-0,4 s of langer dan 5 s wordt niet verstaan (geen commando, scheelt rekenwerk
-naast Zwift). Is de vorige zin nog niet verstaan, dan vervalt de nieuwe.
+0,4 s of langer dan 8 s wordt niet verstaan. Whisper vult elke zin aan tot 30 s,
+dus een langere zin kost niet meer rekenwerk. Komt er een zin binnen terwijl de
+vorige nog wordt verstaan, dan wacht hij; komt er nog een, dan vervangt die de
+wachtende.
 
-**Niet gemeten:** een echte, hijgende stem met ventilator via Discord; de
-belasting naast Zwift op de Zwift-pc; het ontvangen in Discord zelf.
+**Eerste test in Discord, 2026-11-17.** Ontvangen in Discord werkt, met DAVE.
+De captain gaf 28 zinnen met "Coach" (plan: Sven Hund, Harmen Reinders, Terrence,
+E sli, Stijn Martens), 1,3 tot 2,3 s per zin. De commandowoorden gingen allemaal
+goed; de namen niet. 14 van de 28 zinnen deden wat bedoeld was. Wat misging:
+
+| Wat | Voorbeeld uit het logboek | Nu |
+|---|---|---|
+| Naam zoals whisper hem hoort | "terrens", "terenst" (Terrence); "tein" (Stijn) | Herkend: namen worden vergeleken op klank (c/k, ij/ei, dubbele letters) en mogen 1 letter afwijken, bij 6 letters of meer 2 |
+| "gelost" verkeerd geschreven | "sli is koelost" | Herkend: een woord op "lost" telt als gelost |
+| Losse "Coach", pauze, dan het commando | "Coach." en daarna een zin zonder "Coach" | De bot wacht 6 s op het commando in plaats van "Niet verstaan" |
+| Een zin vervalt terwijl de vorige nog verstaan wordt | 2 keer "overgeslagen" | Hij wacht nu |
+| De stem van de bot in de microfoon | "Noch 30 seconden. Darna, Harmen Reinders. Coach, volgende." | Ging goed (het wekwoord zoekt verder), maar een koptelefoon voorkomt het |
+| Naam die op niemand lijkt | "eens die", "als diestroos", "als literum" (E sli); "Dennis"; "dein", "tijdens" (Stijn) | Blijft "Niet verstaan": gokken zet de verkeerde renner gelost |
+
+Met dezelfde teksten door de nieuwe herkenning: 18 van de 28 goed, en de twee
+losse "Coach." wachten op het commando. Daarnaast staat elke renner nu in de hint
+zoals de captain hem noemt, in een zin ("Coach, Esli gelost. Coach, Stijn
+terug."); korte delen van een naam gaan aan elkaar ("E sli" wordt "Esli"). Of dat
+whisper helpt, is niet gemeten: de opnames zijn na het verstaan weg.
+
+**Niet gemeten:** de belasting naast Zwift op de Zwift-pc, en hoe vaak een zin
+zonder herkend "Coach" toch een commando was (21 keer "geen Coach"; die tekst
+komt bewust niet in het logboek).
 
 **Privacy.** Alleen de captain, alleen als die het zelf aanzet. De opname staat
 kort in `.cache/` en gaat na het verstaan weg. In het logboek komt alleen wat met

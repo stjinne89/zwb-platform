@@ -12583,8 +12583,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
   herstellen); luisteren naar de hele ploeg; Vosk (Node-pakket uit 2022 op
   `ffi-napi`); een kleiner audiovenster (gemeten: slechter en trager);
   `whisper-server` (0,2 s sneller, maar een proces en poort om te beheren).
-- **Niet getest.** Ontvangen in Discord zelf (met DAVE-versleuteling), een echte
-  stem tijdens inspanning, de belasting naast Zwift. Dat is de test van vanavond.
+- **Getest op 2026-11-17** in Discord, met DAVE: ontvangen en verstaan werken
+  (zie de herkenning hieronder). **Niet getest:** een stem tijdens inspanning,
+  de belasting naast Zwift.
 - **Privacyverklaring.** Onder "TTT-plannen" staat nu dat de bot met spraak aan
   alleen naar de ploegleider luistert, de spraak op de bot-computer omzet en
   geen opname bewaart (eigenaar: "Ja, zet erin"). Geen nieuwe privacyversie en
@@ -12603,6 +12604,24 @@ link naar `/live/[eventId]`, zie de update hierboven).
   `session.ts`, via de bestaande `skip` vóór de start). Loopt de rotatie al, dan
   zegt de bot "We rijden al." en verandert er niets. 3 tests erbij; whisper
   verstond "Coach, start." van Piper goed met de nieuwe hint.
+- **Herkenning na de eerste test (2026-11-17, lokaal gecommit, nog niet
+  gepusht).** De eigenaar plakte het logboek van de test: commandowoorden
+  allemaal goed, namen vaak niet; 14 van de 28 zinnen met "Coach" deden wat
+  bedoeld was. Nu: namen op klank vergeleken en met meer speling bij lange
+  namen, de beste renner telt en bij twee even goede geen; "koelost" en andere
+  woorden op "lost" tellen als gelost; een losse "Coach" laat de bot 6 s wachten
+  op het commando; een zin die binnenkomt tijdens het verstaan wacht in plaats
+  van te vervallen; zinnen tot 8 s in plaats van 5 (whisper vult elke zin toch
+  aan tot 30 s, dus de oude reden "scheelt rekenwerk" klopte niet); de hint
+  noemt elke renner zoals de captain hem zegt. Dezelfde teksten opnieuw door de
+  herkenning: 18 van de 28, plus twee losse "Coach." die nu wachten. 7 tests uit
+  het logboek. Handleiding: koptelefoon dragen (de bot kwam in de microfoon) en
+  een naam in het plan zetten zoals je hem uitspreekt.
+  **Bewust niet:** gokken bij een naam die op niemand lijkt ("Dennis", "als
+  diestroos"): een verkeerde renner gelost zetten is erger dan "Niet verstaan";
+  de tekst van zinnen zonder "Coach" loggen (privacy). **Niet gemeten:** of de
+  nieuwe hint whisper helpt; de opnames zijn weg. Details:
+  [ttt-discord-bot.md](docs/ttt-discord-bot.md#besturen-met-spraak).
 
 ### Hersteld — Garmin live: nieuwe sessieroute en geen spook-live meer
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PlanRider } from "../src/plan.ts";
 import { Session } from "../src/session.ts";
-import { confirmation, parseVoiceCommand, voicePrompt } from "../src/voice-command.ts";
+import { confirmation, parseVoiceCommand, spokenName, voicePrompt } from "../src/voice-command.ts";
 
 describe("Coach, start", () => {
   const riders: PlanRider[] = [
@@ -99,5 +99,49 @@ describe("spraakcommando's", () => {
     const prompt = voicePrompt(NAMES);
     for (const name of NAMES) expect(prompt).toContain(name);
     expect(prompt).toContain("Coach, klim.");
+  });
+});
+
+// Wat whisper verstond in de race van 2026-11-17, uit het logboek van de captain.
+describe("spraak uit de race", () => {
+  const RIDERS = ["Sven Hund", "Harmen Reinders", "Terrence", "E sli", "Stijn Martens"];
+  const heard = (text: string) => parseVoiceCommand(text, RIDERS);
+
+  it("vindt namen die whisper schreef zoals hij ze hoorde", () => {
+    expect(heard("Coach, terrens gelost.")).toEqual({ kind: "gelost", rider: 2 });
+    expect(heard("Coach, terenst terug.")).toEqual({ kind: "terug", rider: 2 });
+    expect(heard("Coach, tein terug.")).toEqual({ kind: "terug", rider: 4 });
+    expect(heard("Coach, Harmen is gelost.")).toEqual({ kind: "gelost", rider: 1 });
+  });
+
+  it("leest 'koelost' als gelost en vindt een deel van de naam", () => {
+    expect(heard("Coach, sli is koelost.")).toEqual({ kind: "gelost", rider: 3 });
+    expect(heard("Coach, Esli gelost.")).toEqual({ kind: "gelost", rider: 3 });
+  });
+
+  it("ziet een getal of 'deel' niet aan voor een naam", () => {
+    expect(heard("Coach, tien Martens gelost.")).toEqual({ kind: "gelost", rider: 4 });
+    expect(heard("Niet verstaan. Coach, deel Martens terug.")).toEqual({ kind: "terug", rider: 4 });
+  });
+
+  it("negeert de eigen stem van de bot voor het wekwoord", () => {
+    expect(heard("Noch 30 seconden. Darna, Harmen Reinders. Coach, volgende.")).toEqual({ kind: "volgende" });
+  });
+
+  it("gokt niet bij een naam die op niemand lijkt", () => {
+    expect(heard("Coach, Dennis gelost.")).toEqual({ kind: "onbekend" });
+    expect(heard("Coach, als diestroos gelost.")).toEqual({ kind: "onbekend" });
+  });
+
+  it("wacht na een losse 'Coach' op het commando", () => {
+    expect(heard("Coach.")).toEqual({ kind: "wake" });
+    expect(confirmation({ kind: "wake" }, RIDERS)).toBeNull();
+  });
+
+  it("zet elke renner in de hint zoals de captain hem noemt", () => {
+    const prompt = voicePrompt(RIDERS);
+    for (const name of ["Sven", "Harmen", "Terrence", "Esli", "Stijn"]) expect(prompt).toContain(`Coach, ${name} `);
+    expect(spokenName("E sli")).toBe("Esli");
+    expect(spokenName("Stijn Martens")).toBe("Stijn");
   });
 });

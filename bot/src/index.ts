@@ -95,6 +95,8 @@ type GuildState = {
   connection: VoiceConnection | null;
   /** Luistert naar de captain, alleen als die bij /ttt start spraak aanzette. */
   listener: VoiceListener | null;
+  /** Tot wanneer een zin zonder "Coach" toch telt: de captain zei net alleen "Coach". */
+  wakeUntil: number;
   message: Message | null;
   /** Het plan dat door de laatste `/ttt plan` is vervangen, voor "Dit is deel 2". */
   replaced: Plan | null;
@@ -133,6 +135,7 @@ function stateOf(guildId: string): GuildState {
       }),
       connection: null,
       listener: null,
+      wakeUntil: 0,
       message: null,
       replaced: null,
       dirty: false,
@@ -199,12 +202,18 @@ function statusText(state: GuildState) {
   return state.listener && state.session?.running ? `${text}\nSpraak: aan · begin met "Coach"` : text;
 }
 
+/** Na een losse "Coach" zo lang wachten op het commando. */
+const WAKE_WINDOW_MS = 6_000;
+
 /** Een zin van de captain: alleen iets doen als hij met "Coach" begon. */
 function onVoice(state: GuildState, text: string, ms: number) {
   const session = state.session;
   if (!session?.running) return;
   const names = riderNames(session);
-  const command = parseVoiceCommand(text, names);
+  const now = Date.now();
+  const command =
+    parseVoiceCommand(text, names) ?? (now < state.wakeUntil ? parseVoiceCommand(`Coach ${text}`, names) : null);
+  state.wakeUntil = 0;
   // Wat de captain tegen de ploeg zei, komt niet in het logboek.
   if (!command) {
     log(`spraak ${ms} ms: geen "Coach"`);
@@ -213,6 +222,9 @@ function onVoice(state: GuildState, text: string, ms: number) {
   log(`spraak ${ms} ms: "${text}" → ${JSON.stringify(command)}`);
   const say = (phrase: string) => state.speech.say(phrase, "clock");
   switch (command.kind) {
+    case "wake":
+      state.wakeUntil = now + WAKE_WINDOW_MS;
+      return;
     case "start":
       // De wissel naar de eerste renner spreekt de klok zelf uit.
       if (!session.startNow()) say(ALREADY_RUNNING);
