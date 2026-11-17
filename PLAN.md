@@ -32,22 +32,23 @@ gaat stabiliteit voor nieuwe features.
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **Onderdelen per ledengroep afsluiten en per lid verbergen (2026-11-17):
-   lokaal gecommit, niet gepusht.** Migratie `0336_module_access.sql` op
-   2026-11-17 op productie toegepast. Open: pushen, en na de deploy het rechtenscherm, het profielblok en de poort met
+   op 2026-11-17 gepusht naar `main` (eigenaar: "push en d15f6891, 84a32368 en
+   8d40b45f ook"), samen met Club Ladder seizoen 8.** Migratie `0336_module_access.sql` op
+   2026-11-17 op productie toegepast. Open: na de deploy het rechtenscherm, het profielblok en de poort met
    een testlid nalopen. Zie de ronde "Onderdelen per ledengroep afsluiten en
    per lid verbergen".
 
 0. **Club Ladder seizoen 8: zMAP-regel in de Ladderpuzzel (2026-11-17):
-   lokaal gecommit, niet gepusht.** Geen migratie. Toggle Nu / Seizoen 8 voor
-   wie indeelt, met groen/geel/rood per stukje. In de browser bekeken. Open:
-   pushen. De privacyzin staat op `/privacy`
+   op 2026-11-17 gepusht naar `main` (eigenaar: "push").** Geen migratie.
+   Toggle Nu / Seizoen 8 voor wie indeelt, met groen/geel/rood per stukje. In
+   de browser bekeken. Open: na de deploy de puzzel live bekijken. De privacyzin staat op `/privacy`
    (akkoord eigenaar: "Ja, zet erin"). Na de wissel eind december: de stand Nu en de
    rankregel weghalen. Zie de ronde "Gebouwd — Club Ladder seizoen 8:
    zMAP-regel in de Ladderpuzzel".
 
-0. **Kapotte herziening wordt niet meer gepubliceerd (2026-11-17): lokaal
-   gecommit, niet gepusht.** Geen migratie. Karens schema is op productie al
-   met de hand hersteld. Open: pushen, en na de deploy één nachtelijke cron
+0. **Kapotte herziening wordt niet meer gepubliceerd (2026-11-17): staat op
+   `main` (`13f2a0d9`).** Geen migratie. Karens schema is op productie al
+   met de hand hersteld. Open: na de deploy één nachtelijke cron
    nalopen op `generation_failed` met de nieuwe melding. Zie de ronde
    "Hersteld — Kapotte herziening wist Karens schema".
 
