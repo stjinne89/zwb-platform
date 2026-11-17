@@ -2,10 +2,10 @@
   "manifest_version": 1,
   "id": "zwb-zrl-live",
   "name": "ZWB ZRL Live",
-  "description": "Live WTRL-puntenstand van de ZRL-race die je bekijkt, van het ZWB-platform",
+  "description": "Live WTRL-puntenstand van de ZRL-race die je bekijkt, en het TTT-plan uit ZwiftGopher, van het ZWB-platform",
   "author": "ZWB Cycling",
   "website_url": "https://zwb-platform.netlify.app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "web_root": "pages",
   "windows": [
     {
@@ -20,6 +20,21 @@
         "width": 320,
         "height": 440,
         "x": -340,
+        "y": 80
+      }
+    },
+    {
+      "file": "pages/ttt-plan.html",
+      "id": "zwb-ttt-plan",
+      "name": "ZWB TTT-plan",
+      "description": "Het plan uit ZwiftGopher, met het vermogen voor ieders plek in de rij",
+      "always_visible": true,
+      "overlay": true,
+      "frame": false,
+      "default_bounds": {
+        "width": 520,
+        "height": 240,
+        "x": 20,
         "y": 80
       }
     }

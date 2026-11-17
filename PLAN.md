@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Sauce-venster ZWB TTT-plan (2026-11-17): niet gepusht.** Geen
+   migratie. Open: in Sauce zelf bekijken tijdens een ploegentijdrit (alleen
+   getest met een nagebootste Sauce). Zie de ronde "Gebouwd — Sauce-venster ZWB
+   TTT-plan".
+
 0. **Hersteld — Pagina's scrolden niet meer na twee pop-ups (2026-11-17): op
    2026-11-17 gepusht naar `main` (`1e2f13ad`, eigenaar: "Ja, push").** Geen
    migratie. Open: na de deploy op een iPhone het weekoverzicht en een melding samen laten openen en sluiten. Zie de
@@ -12473,6 +12478,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Sauce-venster ZWB TTT-plan
+
+**2026-11-17, commit HASH ("Sauce-mod: venster ZWB TTT-plan met het vermogen per plek"), niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar wilde de export van ZwiftGopher als Sauce-overlay,
+  zoals de afbeelding uit ZwiftGopher, en dat die oplicht welk vermogen elke
+  renner op zijn plek in de rij moet rijden.
+- **Gebouwd.** Tweede venster `zwb-ttt-plan` in de bestaande mod
+  `sauce-mod/zwb-zrl-live` (versie 0.2.0), zodat het installatiebestand van de
+  TTT-bot het vanzelf meeneemt. Tabel per renner: kopbeurt (watt, W/kg,
+  seconden), het wiel op plek 2, 3 en 4, IF, en Nu. Kop: team, route, afstand,
+  hoogtemeters, geschatte tijd en gemiddelde. De plek volgt uit het
+  `nearby`-kanaal van Sauce: de renners uit het plan, op volgorde van `gap`. Een
+  nieuwe plek telt pas na 2 metingen, want renners naast elkaar wisselen anders
+  elke seconde. De cel voor de plek licht amber op; Nu toont plek en het
+  gemiddelde vermogen op die plek (hooguit 5 s, opnieuw na een wissel), groen
+  binnen 5% van het doel, oranje lager, rood hoger. Rekenkant zonder Sauce en
+  DOM in `pages/src/ttt-plan-core.mjs`, getest in
+  `tests/unit/sauce-ttt-plan.test.ts` (verzonnen namen en ID's).
+- **Export JSON 1.34.1.** De eigenaar stuurde een verse export (versie 1.34.1).
+  Nieuw ten opzichte van 1.14.0: `wheel_power` (plus `wheel_avg`, `wheel_np`,
+  `wheel_p90`) per plek 2, 3 en 4, `pull_power_wkg`, `pull_ftp_percent`,
+  `sIndex`, `color`, en een blok `plan` met route, afstand, hoogtemeters en
+  geschatte tijd. Het venster neemt `wheel_power` (gelijk aan de waarden op de
+  afbeelding). De `share_link` in deze export is `…/TTT/#t=…`, geen `?save=…`;
+  de import van de TTT Planner (`gopherJsonUrl`) en de bot herkennen alleen
+  `?save=`. Of de knop Export Link ook zo is veranderd, is niet nagekeken; niet
+  aangepast in deze ronde.
+- **Bewust niet.** Plek 5 en verder krijgen het doel van plek 4: ZwiftGopher
+  rekent niet verder. Geen tekstexport (geen Zwift-ID's) en geen afbeelding
+  (tekstherkenning in Sauce is zwaar en foutgevoelig). Geen link ophalen in het
+  venster: een `#t=`-link is niet zonder de site uit te lezen. SI, FTP-%
+  en de tussentijden/plaatsing van de afbeelding staan er niet in: het venster
+  moet klein boven Zwift passen, en tussentijden en plaatsing zitten niet in de
+  JSON. Geen los installatiebestand voor alleen de mod: wie het venster wil
+  zonder TTT-bot, kopieert de map zelf naar `Documenten\SauceMods`.
+- **/hulp.** Eén regel onder TTT Planner en exports.
+- **Niet gecontroleerd.** Unit-tests, lint en typecheck schoon. Het venster is
+  bekeken in de ingebouwde browser met een nagebootste `common.mjs` (vijf
+  renners die elke 8 s wisselen) en het plan van de eigenaar: oplichten en
+  kleuren klopten. Niet in Sauce zelf, niet in een echte ploegentijdrit; hoe
+  goed `gap` de volgorde in een strakke rij geeft, is niet gemeten (de bot zag
+  in oktober geregeld de verkeerde koprijder).
 
 ### Hersteld — Pagina's scrolden niet meer na twee pop-ups
 

@@ -605,6 +605,7 @@ export const ADMIN_GUIDES = [
       "Een plan is een concept tot de captain het publiceert. Daarna ziet het hele team het op de racepagina.",
       "Het Spiekbriefje in de planner (alleen voor captains en beheerders) zet vuistregels, het kopvermogen van het plan tegenover het doel van 105 tot 115% van de gemiddelde FTP, en de lessen uit eerdere ZRL-ploegentijdritten bij elkaar: per race waar de ploeg tijd won of verloor op de dichtstbijzijnde ploeg, en per renner, ook als die toen bij een ander {kort}-team reed.",
       "De knop Botlink kopieert een link waarmee de TTT-bot in Discord het plan ophaalt: plak hem achter /ttt plan. Wie de link heeft, ziet namen, Zwift-ID's en kopbeurten; met Link intrekken werkt hij niet meer. Hoe je de bot zelf installeert en met je stem bestuurt (\"Coach, klim\"), staat onderaan de TTT Planner bij TTT-bot installeren.",
+      "Met Sauce for Zwift toont het venster ZWB TTT-plan het plan uit ZwiftGopher boven Zwift; het zit in de Sauce-mod die de TTT-bot meeinstalleert. Sleep de Export JSON erin of plak hem. Per renner licht het vermogen op dat bij zijn plek in de rij hoort: op kop de kopbeurt, daarachter het wiel op plek 2, 3 of 4 en verder. Nu toont de plek en het vermogen van de laatste seconden: groen binnen 5% van het doel, oranje te laag, rood te hoog.",
     ],
   },
   {

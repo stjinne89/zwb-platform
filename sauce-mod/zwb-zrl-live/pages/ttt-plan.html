@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <title>ZWB TTT-plan</title>
+    <script src="src/ttt-plan.mjs" type="module"></script>
+    <style>
+      :root {
+        --bg: rgba(12, 18, 22, 0.8);
+        --line: rgba(255, 255, 255, 0.12);
+        --muted: rgba(255, 255, 255, 0.6);
+        --text: #fff;
+        --band: rgba(79, 195, 247, 0.08);
+        --on: #f5b301;
+        --on-text: #111;
+        --watch: #4fc3f7;
+        --ok: #66d17a;
+        --low: #ffb347;
+        --high: #ff6b6b;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        color: var(--text);
+        font: 13px/1.3 system-ui, sans-serif;
+        overflow: hidden;
+      }
+      main {
+        margin: 6px;
+        padding: 8px 10px 6px;
+        border-radius: 8px;
+        background: var(--bg);
+      }
+      header {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding-bottom: 6px;
+        -webkit-app-region: drag;
+      }
+      header > div:first-child { flex: 1; min-width: 0; }
+      h1 { margin: 0; font-size: 15px; font-weight: 700; }
+      .muted { color: var(--muted); font-size: 11px; }
+      .finish { text-align: right; }
+      .finish strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+      button {
+        -webkit-app-region: no-drag;
+        font: inherit;
+        font-size: 11px;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 2px 8px;
+        cursor: pointer;
+      }
+      button:hover { background: rgba(255, 255, 255, 0.2); }
+      .swap { opacity: 0; transition: opacity 0.15s; }
+      main:hover .swap { opacity: 1; }
+      .drop {
+        border: 1px dashed rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        padding: 14px 10px;
+        text-align: center;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .drop p { margin: 0 0 8px; }
+      .error { color: var(--high); margin: 6px 0 0; font-size: 12px; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+      th {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        padding: 1px 4px 3px;
+        text-align: right;
+      }
+      tr.group th { padding-bottom: 0; }
+      td {
+        padding: 3px 4px;
+        text-align: right;
+        border-top: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      th.order, td.order { width: 14px; color: var(--muted); text-align: left; }
+      th.name, td.name { text-align: left; width: 100%; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+      .pull { background: var(--band); }
+      .big { font-weight: 700; font-size: 15px; }
+      .sock {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-right: 5px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        vertical-align: 1px;
+      }
+      td.on {
+        background: var(--on);
+        color: var(--on-text);
+        font-weight: 800;
+        border-radius: 4px;
+      }
+      tr.watch td.name { color: var(--watch); font-weight: 700; }
+      tr.gone td { opacity: 0.45; }
+      td.now { min-width: 48px; font-weight: 700; }
+      td.now .pos { font-size: 10px; font-weight: 600; color: var(--muted); margin-right: 5px; }
+      td.now.ok { color: var(--ok); }
+      td.now.low { color: var(--low); }
+      td.now.high { color: var(--high); }
+    </style>
+  </head>
+  <body>
+    <main id="app"><p class="muted">ZWB TTT-plan</p></main>
+    <input type="file" id="file" accept=".json,application/json" hidden>
+  </body>
+</html>
