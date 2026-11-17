@@ -34,8 +34,8 @@ gaat stabiliteit voor nieuwe features.
 0. **Module Uitdaging voor de Rabobank-installatie (Alpe d'HuZes, 2026-11-17):
    gebouwd, lokaal, niet gepusht.** Migratie `0337_challenge_entries.sql` is
    nog nergens toegepast. De privacyzin staat op `/privacy#uitdaging` (akkoord
-   eigenaar, 2026-11-17), zonder nieuwe privacyversie; dat laatste is nog niet
-   apart bevestigd. Open: de pagina in de browser bekijken, en daarna de installatie zelf
+   eigenaar, 2026-11-17), zonder nieuwe privacyversie (eigenaar: "Ja, zonder
+   versie"). Open: de pagina in de browser bekijken, en daarna de installatie zelf
    volgens [installatie.md](docs/installatie.md) op de accounts van de
    eigenaar (keuze eigenaar 2026-11-17; meer dan 10 deelnemers, dus Strava niet
    voor iedereen). Zie de ronde "Module Uitdaging".
@@ -12493,8 +12493,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   2026-11-17). Geen nieuwe privacyversie: meedoen is de toestemming, naar het
   voorbeeld van voorZpWelBokaal, en een versie erbij zou elk ZWB-lid opnieuw
   laten tekenen voor een module die bij ZWB uit staat. Vastgelegd als
-  dertiende uitzondering in `src/lib/privacy.ts`, als *voorgesteld*: de
-  keuze zonder versie is nog niet apart door de eigenaar bevestigd.
+  dertiende uitzondering in `src/lib/privacy.ts`; de eigenaar bevestigde de
+  keuze zonder versie op 2026-11-17 ("Ja, zonder versie").
 - **Getest.** `tsc` en eslint schoon; `uitdaging`, `modules`, `module-access`,
   `baseline` (0337 loopt op PGlite in beide routes en geeft hetzelfde schema),
   `club-texts-tokens` en `dashboard-parts` groen. De volledige set: 4663
