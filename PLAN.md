@@ -103,7 +103,7 @@ gaat stabiliteit voor nieuwe features.
    Zie de ronde
    "ZRL-teamindeling: zelf indelen, op een eigen pagina".
 
-0. **ZRL-teamindeling: indeling delen via WhatsApp (2026-11-17): lokaal
+0. **ZRL-teamindeling: indeling delen via WhatsApp (2026-11-17): commit `e9b69327`, lokaal
    gecommit, niet gepusht.** Geen migratie. Open: in de browser met echte data
    bekijken (niet gedaan: geen `.env.local` in de worktree) en het bericht in
    WhatsApp plakken. Zie de ronde "ZRL-teamindeling: indeling delen via WhatsApp".
@@ -12465,7 +12465,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL-teamindeling: indeling delen via WhatsApp
 
-**2026-11-17, lokaal gecommit, niet gepusht. Geen migratie.**
+**2026-11-17, commit `e9b69327` ("ZRL-teamindeling: indeling van een raceweek delen via WhatsApp"), lokaal gecommit, niet gepusht. Geen migratie.**
 
 - **Waarom.** De eigenaar wil de indeling van een raceweek in de WhatsApp-groep
   zetten, met de namen per team en de racepass van elk team. Voorstel met twee
