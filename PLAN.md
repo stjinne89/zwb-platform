@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Hersteld — Pagina's scrolden niet meer na twee pop-ups (2026-11-17): lokaal
+   gecommit, niet gepusht.** Geen migratie. Open: pushen, en daarna op een
+   iPhone het weekoverzicht en een melding samen laten openen en sluiten. Zie de
+   ronde "Hersteld — Pagina's scrolden niet meer na twee pop-ups".
+
 0. **Eventvoeding: een plan dat sluit op tempo en duur (2026-11-13).** De
    besluiten in §6 van [eventvoeding-plan.md](docs/eventvoeding-plan.md) zijn
    akkoord (eigenaar, 2026-11-13). Op 2026-11-13 gepusht naar `main` (eigenaar: "Main push"): stap 1 (het
@@ -12468,6 +12473,44 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Pagina's scrolden niet meer na twee pop-ups
+
+**2026-11-17, lokaal gecommit, niet gepusht. Geen migratie.**
+
+- **Melding.** De eigenaar kon op zijn iPhone (Safari) niet scrollen, onder
+  meer op `/zwbeter-worden/protocollen/durability-test`, "op heel veel pagina's".
+- **Oorzaak.** Twee lagen zetten elk zelf de pagina op slot en onthielden de
+  oude waarde: het weekoverzicht (`document.body.style.overflow`) en de
+  dialogen van Base UI (`overflow-y/x` op de body). Opent het weekoverzicht
+  eerst en een melding daarna (de durability-melding opent na 2 s en zoekt
+  alleen naar `[data-slot="dialog-content"]`, dus ziet het weekoverzicht niet),
+  en sluit je het weekoverzicht eerst omdat het bovenop ligt (z-index 80 tegen
+  50), dan zet de dialoog bij het sluiten "hidden" terug: de waarde die hij zag.
+  De body blijft op slot, en omdat de body bij navigeren blijft staan, scrolt
+  daarna geen enkele pagina tot herladen. Op 2026-11-17 in Chrome op productie
+  nagebootst (body op slot, Base UI-dialoog op `/stats/rankings`, in die
+  volgorde sluiten): wiel scrolt niet, ook niet na doorklikken naar
+  `/zwbeter-worden`. Zondag tot en met dinsdag (het venster van het
+  weekoverzicht) en de durability-melding (sinds 2026-11-13) vielen samen.
+- **Herstel.** Nieuwe hook `usePageScrollLock` (`src/components/use-page-scroll-lock.ts`)
+  geeft de getelde lock van Base UI door (`@base-ui/utils/useScrollLock`, nu
+  een directe afhankelijkheid, exact 0.2.9 zoals `@base-ui/react` 1.5.0 die
+  meebrengt; een andere versie zou een tweede teller zijn). Het weekoverzicht,
+  het hoogteprofiel en de kaarten schermvullend op de eventpagina
+  (`elevation-profile`, `event-live-ticker` twee keer, `gpx-map`) en de
+  ZWBlokken-kaart schermvullend gebruiken die in plaats van zelf
+  `document.body.style.overflow` te zetten. Eén teller, dus de volgorde van
+  sluiten maakt niet meer uit.
+- **Bewust niet.** `kast-view`, `briljant-view` en Kopman (`board-view`) zetten
+  `overflow: hidden` op `<html>`, voor de hele pagina zolang ze open zijn. Base
+  UI slaat dan zijn eigen lock over en raakt de body niet, dus geen botsing;
+  niet aangepast. De meldingen openen nog steeds boven op het weekoverzicht
+  (ze kijken alleen naar Base UI-dialogen); dat is lelijk maar sinds dit herstel
+  niet meer blokkerend, en niet in deze ronde aangepakt.
+- **Niet gecontroleerd.** Typecheck en lint schoon. Het herstel zelf is niet in
+  de browser of op een iPhone bekeken: geen `.env.local` in de worktree, en de
+  getelde lock is uit de code van Base UI afgeleid, niet nagemeten.
 
 ### Gebouwd — Racebriefing: de ploegentijdrit als ploegentijdrit
 

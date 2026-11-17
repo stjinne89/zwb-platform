@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { usePageScrollLock } from "@/components/use-page-scroll-lock";
 import { emphasisParts } from "@/lib/weekly-review/coach-text";
 import { isoWeekNumber } from "@/lib/weekly-review/period";
 import type { WeekReview } from "@/lib/weekly-review/service";
@@ -519,13 +520,9 @@ export function WeekReviewStories({ review, onClose, preview = false }: { review
     };
     const fallback = setTimeout(ready, 2500);
     document.fonts?.load(`900 100px ${stencilFont.style.fontFamily}`).then(ready, ready);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      clearTimeout(fallback);
-      document.body.style.overflow = overflow;
-    };
+    return () => clearTimeout(fallback);
   }, []);
+  usePageScrollLock();
 
   // De coachtekst kan nog onderweg zijn: een paar keer navragen.
   useEffect(() => {

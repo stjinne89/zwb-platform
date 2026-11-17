@@ -7,6 +7,7 @@ import { Maximize2, X } from "lucide-react";
 import { blockBounds } from "@/lib/zwblokken/grid";
 import { BlocksLayer, type BlockSet } from "./blocks-layer";
 import { BlockRiders, type Rider } from "./block-riders";
+import { usePageScrollLock } from "@/components/use-page-scroll-lock";
 import "leaflet/dist/leaflet.css";
 
 // react-leaflet hits window during init — must be client-only.
@@ -157,17 +158,14 @@ export function BlocksMap({ club, own, maxRiders, zwift }: Props) {
     [ownBlocks, clubBlocks],
   );
 
+  usePageScrollLock(fullscreen);
   useEffect(() => {
     if (!fullscreen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setFullscreen(false);
     };
-    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKey);
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [fullscreen]);
 
   // Twee losse Leaflet-instanties (inline + fullscreen), zoals gpx-map.tsx:

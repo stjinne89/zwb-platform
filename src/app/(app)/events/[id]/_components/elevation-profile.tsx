@@ -14,6 +14,7 @@ import {
 } from "./climb-overlay";
 import { POI_TYPES, type ProfilePoi } from "./poi";
 import type { EventZone } from "./zone";
+import { usePageScrollLock } from "@/components/use-page-scroll-lock";
 
 const HEIGHT = 100;
 const PADDING = 4;
@@ -422,16 +423,14 @@ function FullscreenProfile({
   // mogen draaien — op desktop nooit, ook niet in een smal venster.
   const [coarse, setCoarse] = useState(false);
 
-  // Body-scroll vergrendelen + Escape sluit.
+  // Pagina op slot + Escape sluit.
+  usePageScrollLock();
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);

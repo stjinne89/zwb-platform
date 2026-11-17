@@ -14,6 +14,7 @@ import { climbLength } from "./climb-overlay";
 import { POI_TYPES, type EventPoi, type PoiType } from "./poi";
 import { ZONE_COLOR, ZONE_LABEL } from "./zone";
 import "leaflet/dist/leaflet.css";
+import { usePageScrollLock } from "@/components/use-page-scroll-lock";
 
 const MapClick = dynamic(() => import("@/components/map-click"), { ssr: false });
 
@@ -312,17 +313,15 @@ function FullscreenMap({
   data: MapData;
   onClose: () => void;
 }) {
-  // Body-scroll vergrendelen + Escape sluit. Geen rotatie — een kaart vult elk
+  // Pagina op slot + Escape sluit. Geen rotatie — een kaart vult elk
   // formaat prima, dus ook op desktop gewoon groot (niet liggend).
+  usePageScrollLock();
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);

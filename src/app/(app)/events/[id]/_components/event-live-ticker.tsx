@@ -41,6 +41,7 @@ import { haversineKm, pickRoutePoint, raceTotalKm } from "@/lib/live/route-progr
 import type { DivIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { ClubShortName } from "@/components/club-texts-provider";
+import { usePageScrollLock } from "@/components/use-page-scroll-lock";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((m) => m.MapContainer),
@@ -823,17 +824,15 @@ function MapFullscreen({
   onClose: () => void;
   children: ReactNode;
 }) {
-  // Body-scroll vergrendelen + Escape sluit. Geen rotatie — een kaart vult elk
+  // Pagina op slot + Escape sluit. Geen rotatie — een kaart vult elk
   // formaat prima.
+  usePageScrollLock();
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);
@@ -1301,15 +1300,13 @@ function LiveProfileFullscreen({
   // op desktop tonen we het profiel gewoon groot, niet gedraaid.
   const [coarse, setCoarse] = useState(false);
 
+  usePageScrollLock();
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);
