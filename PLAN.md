@@ -12481,7 +12481,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Sauce-venster ZWB TTT-plan
 
-**2026-11-17, commit HASH ("Sauce-mod: venster ZWB TTT-plan met het vermogen per plek"), niet gepusht. Geen migratie.**
+**2026-11-17, commit `d475feda` ("Sauce-mod: venster ZWB TTT-plan met het vermogen per plek"), niet gepusht. Geen migratie.**
 
 - **Waarom.** De eigenaar wilde de export van ZwiftGopher als Sauce-overlay,
   zoals de afbeelding uit ZwiftGopher, en dat die oplicht welk vermogen elke
