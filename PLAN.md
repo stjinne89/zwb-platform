@@ -103,6 +103,11 @@ gaat stabiliteit voor nieuwe features.
    Zie de ronde
    "ZRL-teamindeling: zelf indelen, op een eigen pagina".
 
+0. **ZRL-teamindeling: indeling delen via WhatsApp (2026-11-17): lokaal
+   gecommit, niet gepusht.** Geen migratie. Open: in de browser met echte data
+   bekijken (niet gedaan: geen `.env.local` in de worktree) en het bericht in
+   WhatsApp plakken. Zie de ronde "ZRL-teamindeling: indeling delen via WhatsApp".
+
 0. **Test- en demo-account (2026-11-16): gepusht naar `main` (`c95d4205`,
    eigenaar: "Ja, push").** Migraties `0333_profile_is_test.sql` en
    `0334_profile_is_demo.sql` zijn vóór de push via de connector op productie
@@ -12457,6 +12462,40 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZRL-teamindeling: indeling delen via WhatsApp
+
+**2026-11-17, lokaal gecommit, niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar wil de indeling van een raceweek in de WhatsApp-groep
+  zetten, met de namen per team en de racepass van elk team. Voorstel met twee
+  opties; gekozen: optie B ("Optie B bouwen").
+- **Namen zonder @ (optie B).** Een `wa.me`-link zet alleen tekst klaar. Een
+  echte tag (blauwe naam, melding) maakt WhatsApp alleen als je in de groep
+  iemand uit het @-lijstje kiest; die hangt aan het telefoonnummer, en ZWB
+  slaat geen telefoonnummers op (besluit 2026-10-15, migratie 0239). Getypt
+  "@Naam" (optie A) zou op een tag lijken zonder het te zijn. Dus staan de namen
+  er kaal in en tagt de captain na het plakken zelf wie een melding moet krijgen.
+- **Knop.** "Deel via WhatsApp" (het bestaande `WhatsAppShareLink`) in de
+  knoppenbalk van de gekozen raceweek op `/teams/[id]/indeling`, alleen als die
+  week een opstelling heeft. Iedereen die de pagina mag zien, ziet de knop.
+- **Bericht** (`lib/teams/lineup-share.ts`, unittest): "Teamindeling" met datum
+  en weektitel, dan per subteam met renners de teamnaam vet, de namen onder
+  elkaar in de volgorde van het scherm, en "Racepass: <url>". Teams zonder
+  renners vallen weg, net als de regel van een ontbrekende racepass.
+  Opmaaktekens (sterretje, liggend streepje, tilde, backtick) gaan uit namen zodat het vet niet breekt. Onderaan
+  de link naar de raceweek (`/events/<id>`), niet naar de indelingspagina: die
+  stuurt gewone leden door. `WhatsAppShareLink` kreeg daarvoor een `separator`
+  (standaard een spatie, zoals voorheen).
+- **Racepass.** De pagina leest `team_racepasses` van de subteams en kiest per
+  week de pass waarvan `valid_from` t/m `valid_until` de weekdatum dekt
+  (`racepassFor`, zoals op de racepagina; datum in Amsterdamse tijd).
+- **Bewust niet.** Geen telefoonnummers opslaan voor echte tags (botst met het
+  besluit van 2026-10-15). Geen automatisch posten: de WhatsApp-API kan niet in
+  bestaande groepen. Geen Niet ingedeeld of reserves in het bericht. Geen uitleg
+  op `/hulp`: de knop spreekt voor zich.
+- **Niet lokaal gecontroleerd.** Tests, lint en typecheck zijn groen; de pagina
+  en het geplakte bericht in WhatsApp zijn niet bekeken.
 
 ### Gebouwd — Module Uitdaging: een goededoelenrit met de club
 

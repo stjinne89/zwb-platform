@@ -15,13 +15,16 @@ export function WhatsAppShareLink({
   path,
   label = "Deel via WhatsApp",
   className,
+  separator = " ",
 }: {
   text: string;
   path: string;
   label?: string;
   className?: string;
+  /** Tussen tekst en link; een bericht van meerdere regels zet de link op een eigen regel. */
+  separator?: string;
 }) {
-  const href = `https://wa.me/?text=${encodeURIComponent(`${text} ${absoluteUrl(path)}`)}`;
+  const href = `https://wa.me/?text=${encodeURIComponent(`${text}${separator}${absoluteUrl(path)}`)}`;
   return (
     <a
       href={href}

@@ -14,6 +14,8 @@ import {
 } from "@/lib/teams/zrl-ranking";
 import { racefitScores, weekCourses, type BorrowRace, type TeamRace } from "@/lib/teams/zrl-racefit";
 import { zrlCategoryFromTeamName } from "@/lib/events/zwift-route";
+import { racepassFor, type RacepassRow } from "@/lib/events/race-links";
+import { amsterdamDateKey } from "@/lib/birthdays";
 import {
   ZrlRankingTable,
   type RankingAvailabilityEntry,
@@ -94,7 +96,7 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
 
   const weeks = (weekRows ?? []) as Array<{ id: string; title: string; start_at: string }>;
   const weekIds = weeks.map((week) => week.id);
-  const [{ data: availabilityRows }, { data: lineupRows }, { data: raceRows }] = await Promise.all([
+  const [{ data: availabilityRows }, { data: lineupRows }, { data: raceRows }, { data: racepassRows }] = await Promise.all([
     weekIds.length > 0
       ? supabase
           .from("team_event_availability")
@@ -114,6 +116,14 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
           .from("events")
           .select("id, parent_event_id, team_id, title, zwift_route_id, laps")
           .in("parent_event_id", weekIds)
+      : Promise.resolve({ data: [] }),
+    // WTRL-racepass per subteam (migr. 0186), voor het WhatsApp-deelbericht.
+    weekIds.length > 0
+      ? supabase
+          .from("team_racepasses")
+          .select("team_id, url, valid_from, valid_until")
+          .in("team_id", childTeams.map((row) => row.id))
+          .gte("valid_until", amsterdamDateKey(new Date(weeks[0].start_at)))
       : Promise.resolve({ data: [] }),
   ]);
   const availability = (availabilityRows ?? []) as Array<{
@@ -340,6 +350,16 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
     };
   }
 
+  const passes = (racepassRows ?? []) as RacepassRow[];
+  const racepasses: Record<string, Record<string, string>> = {};
+  for (const week of weeks) {
+    const dateKey = amsterdamDateKey(new Date(week.start_at));
+    for (const child of childTeams) {
+      const url = racepassFor(passes, child.id, dateKey);
+      if (url) (racepasses[week.id] ??= {})[child.id] = url;
+    }
+  }
+
   const rankingLineups: RankingLineup[] = lineups.map((row) => ({
     id: row.id,
     eventId: row.event_id,
@@ -357,6 +377,7 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
         availability={availabilityMap}
         lineups={rankingLineups}
         racefit={racefit}
+        racepasses={racepasses}
         teamId={team.id}
         canEditAvailability={canManageRoster || captainOf.size > 0}
         canAssign={canManageRoster || captainOf.size > 0}

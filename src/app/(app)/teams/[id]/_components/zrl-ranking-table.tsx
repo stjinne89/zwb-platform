@@ -4,6 +4,8 @@ import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { ArrowDown } from "lucide-react";
 import { MemberLink } from "@/components/member-link";
 import { Button } from "@/components/ui/button";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
+import { lineupShareText } from "@/lib/teams/lineup-share";
 import {
   laterWeeksInRound,
   lineupBlocks,
@@ -156,6 +158,7 @@ export function ZrlRankingTable({
   availability,
   lineups,
   racefit,
+  racepasses,
   teamId,
   canEditAvailability,
   canAssign,
@@ -170,6 +173,8 @@ export function ZrlRankingTable({
   lineups: RankingLineup[];
   /** Per raceweek met een bekende route. */
   racefit: Record<string, RankingRacefit>;
+  /** Per raceweek: subteam → URL van de WTRL-racepass. */
+  racepasses: Record<string, Record<string, string>>;
   /** Het hoofdteam waar beschikbaarheid en opstelling bij horen. */
   teamId: string;
   canEditAvailability: boolean;
@@ -297,6 +302,19 @@ export function ZrlRankingTable({
     );
   }
 
+  const selectedEvent = events.find((event) => event.id === eventId);
+  const shareText =
+    week && selectedEvent && weekLineups.length > 0
+      ? lineupShareText({
+          title: eventLabel(selectedEvent),
+          teams: week.blocks.map((block) => ({
+            name: block.team.name,
+            riders: block.rows.map(({ rider }) => rider.name),
+            racepass: racepasses[eventId]?.[block.team.id] ?? null,
+          })),
+        })
+      : null;
+
   const assignable = canAssign && eventId !== "";
   const editAvailability = eventId !== "" && canEditAvailability;
   const colSpan = columns.length + 2;
@@ -321,21 +339,26 @@ export function ZrlRankingTable({
           </select>
         )}
       </header>
-      {eventId && canAssignWeek && (
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={takeSorting} disabled={pending}>
-            Neem {columns.find((column) => column.key === activeKey)?.label}-sortering over
-          </Button>
-          {laterWeeks.length > 0 && (
-            <Button size="sm" variant="outline" onClick={copyToRound} disabled={pending || weekLineups.length === 0}>
-              Ook voor de rest van de ronde
-            </Button>
+      {eventId && (canAssignWeek || shareText) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {canAssignWeek && (
+            <>
+              <Button size="sm" variant="outline" onClick={takeSorting} disabled={pending}>
+                Neem {columns.find((column) => column.key === activeKey)?.label}-sortering over
+              </Button>
+              {laterWeeks.length > 0 && (
+                <Button size="sm" variant="outline" onClick={copyToRound} disabled={pending || weekLineups.length === 0}>
+                  Ook voor de rest van de ronde
+                </Button>
+              )}
+              {weekLineups.length > 0 && (
+                <Button size="sm" variant="outline" onClick={clearWeek} disabled={pending}>
+                  Wis opstelling
+                </Button>
+              )}
+            </>
           )}
-          {weekLineups.length > 0 && (
-            <Button size="sm" variant="outline" onClick={clearWeek} disabled={pending}>
-              Wis opstelling
-            </Button>
-          )}
+          {shareText && <WhatsAppShareLink text={shareText} path={`/events/${eventId}`} separator={"\n\n"} />}
         </div>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
