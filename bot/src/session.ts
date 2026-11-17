@@ -247,7 +247,7 @@ export class Session {
       if (item.kind === "leader") {
         const index = byZwiftId(item.zwiftId);
         if (index !== this.rotation.current && sample.at < this.settleUntil) continue;
-        this.apply(syncLeader(this.rotation, index, sample.at));
+        this.apply(syncLeader(this.rotation, index, sample.at, item.since));
         continue;
       }
       if (item.kind === "power" && this.rotation.endsAt - sample.at < QUIET_BEFORE_CHANGE_MS) continue;

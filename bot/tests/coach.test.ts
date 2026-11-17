@@ -52,7 +52,7 @@ function run(
 describe("koprijder", () => {
   it("meldt de voorste renner zodra hij daar drie seconden ligt", () => {
     const advice = run(new Coach(PLAN), [0, 10]);
-    expect(advice).toEqual([{ kind: "leader", zwiftId: "1", at: 3 }]);
+    expect(advice).toEqual([{ kind: "leader", zwiftId: "1", since: 0, at: 3 }]);
   });
 
   it("meldt een wissel, maar geen korte flits vooraan", () => {
@@ -63,8 +63,8 @@ describe("koprijder", () => {
       "2": second >= 20 ? { gap: -0.3 } : {},
     }));
     expect(advice.filter((a) => a.kind === "leader")).toEqual([
-      { kind: "leader", zwiftId: "1", at: 3 },
-      { kind: "leader", zwiftId: "2", at: 23 },
+      { kind: "leader", zwiftId: "1", since: 0, at: 3 },
+      { kind: "leader", zwiftId: "2", since: 20 * S, at: 23 },
     ]);
   });
 });
@@ -132,6 +132,57 @@ describe("lossen", () => {
     const advice = run(new Coach(PLAN), [0, 40], () => ({ "5": { gap: 30 } }), { out: ["5"] });
     expect(advice.filter((a) => a.kind === "dropped")).toEqual([]);
     expect(advice.filter((a) => a.kind === "four-left")).toHaveLength(1);
+  });
+
+  // B3, 2026-11-17: Koen was gelost en uit het event; de ploeg reed langs de
+  // plek waar hij stond. Hij lag vooraan, dus de andere vier waren "gelost".
+  it("laat de plek waar een geloste renner uit het event ging niets uitmaken", () => {
+    const advice = run(new Coach(PLAN), [0, 120], (second) => ({
+      "5": second < 10 ? {} : second < 60 ? null : { gap: -6 + (second - 60) * 0.2, speedKmh: 0, power: 0 },
+    }));
+    expect(advice.filter((a) => a.kind !== "leader")).toEqual([
+      { kind: "dropped", zwiftId: "5", at: 19 },
+      { kind: "four-left", at: 19 },
+    ]);
+  });
+
+  it("maakt een geloste renner die ver voor rijdt niet de maatstaf", () => {
+    const advice = run(new Coach(PLAN), [0, 80], (second) => ({
+      "5": second >= 10 && second < 40 ? { gap: 5 } : second >= 40 ? { gap: -8 } : {},
+    }));
+    expect(advice.filter((a) => a.kind === "dropped")).toEqual([{ kind: "dropped", zwiftId: "5", at: 20 }]);
+    expect(advice.filter((a) => a.kind === "back")).toEqual([]);
+  });
+
+  it("laat niet twee renners in dezelfde meting lossen", () => {
+    const advice = run(new Coach(PLAN), [0, 40], (second) => ({
+      "4": second >= 10 ? { gap: 5 } : {},
+      "5": second >= 10 ? { gap: 5 } : {},
+    }));
+    expect(advice.filter((a) => a.kind === "dropped")).toEqual([]);
+    expect(advice.find((a) => a.kind === "drops-ignored")).toEqual({
+      kind: "drops-ignored",
+      zwiftIds: ["4", "5"],
+      at: 20,
+    });
+  });
+
+  it("telt stilstaan terwijl de ploeg rijdt als lossen", () => {
+    const advice = run(new Coach(PLAN), [0, 40], (second) => ({
+      "5": second >= 10 ? { speedKmh: 0, power: 0 } : {},
+    }));
+    expect(advice.find((a) => a.kind === "dropped")).toEqual({ kind: "dropped", zwiftId: "5", at: 20 });
+  });
+
+  it("laat de ploeg in het startvak met rust", () => {
+    const advice = run(new Coach(PLAN), [0, 40], () => ({
+      "1": { speedKmh: 0, power: 0 },
+      "2": { speedKmh: 0, power: 0 },
+      "3": { speedKmh: 0, power: 0 },
+      "4": { speedKmh: 0, power: 0 },
+      "5": { speedKmh: 0, power: 0 },
+    }));
+    expect(advice.filter((a) => a.kind === "dropped" || a.kind === "drops-ignored")).toEqual([]);
   });
 
   it("zegt niets over renners die Sauce nooit zag", () => {

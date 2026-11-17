@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Bijgesteld — TTT-bot op de race van 2026-11-17: lokaal gecommit, niet
+   gepusht.** Geen migratie. Kopbeurt telt vanaf "Wissel", geen verzonnen
+   "deel twee" meer, één renner tegelijk lossen, keuzemenu en "los". Open: in
+   een race horen; Bart moet bijwerken; voorstel voor structureel langere
+   beurten per renner. Zie "Bijgesteld op de race van 2026-11-17" onder
+   "Gebouwd — TTT-bot: besturen met spraak".
+
 0. **Gebouwd — Sauce-venster ZWB TTT-plan (2026-11-17): op 2026-11-17 gepusht
    naar `main` (`d475feda`, eigenaar: "Ja, push").** Geen
    migratie. Open: in Sauce zelf bekijken tijdens een ploegentijdrit (alleen
@@ -12814,6 +12821,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
   link nagelopen: de route geeft 200 en het plan parseert (5 renners). 1 test.
   **Niet gecontroleerd:** of het klembord of de optie `link` de bron was; beide
   lopen nu goed. De bot op de bot-pc moet opnieuw gestart worden na een pull.
+- **Bijgesteld op de race van 2026-11-17 (2026-11-17, de commit die dit
+  toevoegt, lokaal, niet gepusht).** De eigenaar gaf de logboeken van B3 (met
+  Sauce) en ZWB Cycling A (Bart, zonder Sauce) en de stream van B1; voorstel
+  besproken, de eigenaar bevestigde de oorzaken. Gebouwd:
+  - **Kopbeurt telt vanaf "Wissel".** Sauce zag de nieuwe man 8 tot 16 s na de
+    wissel en begon dan de kopbeurt opnieuw: in B3 werd 30 s 41 s en 60 s 70 s
+    (eigenaar: "moeten we wel oplossen"). Nu verandert Sauce niets aan de beurt
+    van wie de klok riep; komt er een ander op kop, dan telt diens beurt vanaf
+    het moment dat hij vooraan kwam (`syncLeader`, `since` in de koprijdermelding).
+    **Niet meer waar:** "Late wissel … zijn kopbeurt begint pas dan" in
+    `docs/ttt-discord-bot.md` en "eerder of later dan de klok" in de README;
+    beide aangepast.
+  - **Whisper verzint de hint.** 11 keer "Coach, deel twee", soms vier keer in
+    één zin; de eigenaar zei het niet. Herhaling in één zin telt niet, "deel …"
+    staat alleen in de hint voor een klaargezet deel, "deel N" zonder plan zegt
+    niets meer, tekst tussen haken valt weg. Het geluidsniveau (dB) van elke
+    zin gaat in het logboek.
+  - **Lossen, één renner tegelijk.** In de laatste 3 km "losten" alle vier
+    tegelijk: ze passeerden de plek waar de geloste Koen uit het event ging, en
+    hij lag vooraan (eigenaar). Een geloste of stilstaande renner is nooit meer
+    de voorste; twee of meer tegelijk lossen telt niet (`drops-ignored` in het
+    logboek). Op verzoek van de eigenaar bewust klein gehouden ("dit was vrij
+    abnormaal"): **geen** groepsbepaling op de grootste groep.
+  - **Keuzemenu** "Gelost of terug" doet wat erop staat in plaats van om te
+    draaien (Bart werd na "Coach, Bart gelost" via een oud menu weer terug
+    gezet); **"los"** telt als gelost; **`/ttt start`** antwoordt eerst met
+    `deferReply` (Unknown interaction op Barts pc).
+  - **Getoetst:** bot `tsc`, Vitest 90 tests (10 nieuw, uit deze logboeken).
+    **Niet getest:** in een race, en in Discord. Het geluidsniveau als
+    ruisdrempel is nog niet gebouwd: eerst een race met dB in het logboek.
+    **Bewust niet:** "Coach, min tien" en namen van 3 letters op klank ("bat"
+    voor Bart). **Open:** Bart draait een versie van vóór `d492f06e` en moet
+    bijwerken. Wens van de leden: één renner (Mathijs) structureel langere
+    beurten geven; voorstel volgt. Kevin (B1) zag beurten van 45 s; in zijn
+    stream duurden ze 28 tot 36 s, het plan van B1 is onbekend.
+    Details: [ttt-discord-bot.md](docs/ttt-discord-bot.md#besturen-met-spraak).
 
 ### Hersteld — Garmin live: nieuwe sessieroute en geen spook-live meer
 

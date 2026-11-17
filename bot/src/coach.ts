@@ -33,6 +33,8 @@ export const LOST_MS = 10_000;
 /** Binnen dit gat, zo lang, is een geloste renner terug. */
 export const BACK_GAP_S = 1.5;
 export const BACK_HOLD_MS = 5_000;
+/** Langzamer dan dit staat een renner stil (of is hij uit het event). */
+export const STILL_KMH = 10;
 export const PACE_INTERVAL_MS = 5 * 60_000;
 /** Een ploegentijd is de tijd van de vierde renner. */
 const FINISHERS = 4;
@@ -48,10 +50,13 @@ export type RiderSample = {
 export type Sample = { at: number; riders: RiderSample[] };
 
 export type Advice =
-  | { kind: "leader"; zwiftId: string }
+  /** `since`: sinds wanneer hij vooraan ligt. */
+  | { kind: "leader"; zwiftId: string; since: number }
   /** `delta` is gereden min doel, afgerond op 5 watt. */
   | { kind: "power"; zwiftId: string; delta: number }
   | { kind: "dropped"; zwiftId: string }
+  /** Meer renners tegelijk zouden lossen: dat gelooft de coach niet. Alleen voor het logboek. */
+  | { kind: "drops-ignored"; zwiftIds: string[] }
   | { kind: "back"; zwiftId: string }
   | { kind: "four-left" }
   | { kind: "pace"; avgKmh: number; planKmh: number };
@@ -110,7 +115,6 @@ export class Coach {
     const team = sample.riders.filter((rider) => this.targets.has(rider.zwiftId));
     if (team.length === 0) return advice;
 
-    const front = team.reduce((a, b) => (b.gap < a.gap ? b : a));
     for (const rider of team) {
       const track = this.track(rider.zwiftId, at);
       track.seenAt = at;
@@ -118,23 +122,35 @@ export class Coach {
       while (track.power.length > 0 && track.power[0].at < at - POWER_WINDOW_MS) track.power.shift();
     }
 
+    // De voorkant van de ploeg: de voorste renner die nog meedraait en rijdt.
+    // Een geloste renner telt niet mee: in de race van 2026-11-17 reed de ploeg
+    // langs de plek waar Koen uit het event ging, en omdat hij daar vooraan lag
+    // waren de andere vier opeens "gelost".
+    const moving = (rider: RiderSample) => rider.speedKmh >= STILL_KMH;
+    const inField = (rider: RiderSample) =>
+      moving(rider) && !context.out.includes(rider.zwiftId) && !this.tracks.get(rider.zwiftId)?.dropped;
+    const field = team.filter(inField);
+    const reference = field.length > 0 ? field : team.filter(moving).length > 0 ? team.filter(moving) : team;
+    const front = reference.reduce((a, b) => (b.gap < a.gap ? b : a));
+    const anyMoving = team.some(moving);
+
     // Wie lost, wie is terug.
+    const dropping: string[] = [];
     for (const [zwiftId, track] of this.tracks) {
       if (context.out.includes(zwiftId)) continue;
       const seen = team.find((rider) => rider.zwiftId === zwiftId);
       const behind = seen ? seen.gap - front.gap : null;
-      const away = behind === null ? at - track.seenAt >= LOST_MS : behind > DROP_GAP_S;
+      // Stilstaan terwijl de rest rijdt, is ook lossen.
+      const still = seen !== undefined && anyMoving && !moving(seen);
+      const away = behind === null ? at - track.seenAt >= LOST_MS : behind > DROP_GAP_S || still;
       if (!track.dropped) {
         track.behindSince = away ? (track.behindSince ?? at) : null;
         // Uit beeld heeft zijn wachttijd al gehad in LOST_MS.
         const hold = behind === null ? 0 : DROP_HOLD_MS;
-        if (track.behindSince !== null && at - track.behindSince >= hold) {
-          track.dropped = true;
-          track.closeSince = null;
-          advice.push({ kind: "dropped", zwiftId });
-        }
+        if (track.behindSince !== null && at - track.behindSince >= hold) dropping.push(zwiftId);
       } else {
-        const close = behind !== null && behind <= BACK_GAP_S;
+        // Terug is bij de ploeg, rijdend: niet ver ervoor op een plek waar hij stilstaat.
+        const close = behind !== null && Math.abs(behind) <= BACK_GAP_S && !still;
         track.closeSince = close ? (track.closeSince ?? at) : null;
         if (track.closeSince !== null && at - track.closeSince >= BACK_HOLD_MS) {
           track.dropped = false;
@@ -142,6 +158,16 @@ export class Coach {
           advice.push({ kind: "back", zwiftId });
         }
       }
+    }
+    // Eén renner tegelijk. Lossen er meer in dezelfde meting, dan klopt de meting
+    // niet (of de voorste renner niet) en lost er niemand; de handmatige keuze blijft.
+    if (dropping.length === 1) {
+      const track = this.tracks.get(dropping[0])!;
+      track.dropped = true;
+      track.closeSince = null;
+      advice.push({ kind: "dropped", zwiftId: dropping[0] });
+    } else if (dropping.length > 1) {
+      advice.push({ kind: "drops-ignored", zwiftIds: dropping });
     }
 
     const gone = new Set(context.out);
@@ -171,7 +197,7 @@ export class Coach {
       if (held && pulling) {
         this.leader = id;
         this.leaderSince = at;
-        advice.push({ kind: "leader", zwiftId: id });
+        advice.push({ kind: "leader", zwiftId: id, since: this.candidate.since });
       }
     }
 

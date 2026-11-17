@@ -136,11 +136,21 @@ describe("volgen wat Sauce ziet", () => {
     expect(step.rotation.endsAt).toBe(95 * S);
   });
 
-  it("wisselt de ploeg later dan de klok, dan begint de kopbeurt pas dan", () => {
+  it("telt de kopbeurt vanaf 'Wissel', ook als Sauce hem later vooraan ziet", () => {
+    // B3, 2026-11-17: Sauce zag de nieuwe man 8-16 s na de wissel. Opnieuw
+    // beginnen maakte van 30 s 41 s en van 60 s 70 s.
     const changed = tick(started, 60 * S).rotation;
-    const step = syncLeader(changed, 1, 68 * S);
+    const step = syncLeader(changed, 1, 68 * S, 65 * S);
     expect(step.events).toEqual([]);
-    expect(step.rotation.endsAt).toBe(113 * S);
+    expect(step.rotation).toBe(changed);
+    expect(step.rotation.endsAt).toBe(105 * S);
+  });
+
+  it("laat de beurt van een renner die buiten de beurt op kop komt beginnen toen hij vooraan kwam", () => {
+    const step = syncLeader(started, 1, 50 * S, 42 * S);
+    expect(step.events).toEqual([{ type: "change", rider: 1, previous: 0, synced: true }]);
+    expect(step.rotation.startedAt).toBe(42 * S);
+    expect(step.rotation.endsAt).toBe(87 * S);
   });
 
   it("laat een kopbeurt die al lang loopt met rust", () => {

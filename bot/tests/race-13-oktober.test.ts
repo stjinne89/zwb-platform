@@ -59,14 +59,14 @@ describe("vooraan rijden is nog niet op kop rijden", () => {
     const coach = new Coach(PLAN);
     observe(coach, [0, 5], "2");
     const advice = observe(coach, [6, 20], "4");
-    expect(advice.filter((a) => a.kind === "leader")).toEqual([{ kind: "leader", zwiftId: "4", at: 14 }]);
+    expect(advice.filter((a) => a.kind === "leader")).toEqual([{ kind: "leader", zwiftId: "4", since: 6 * S, at: 14 }]);
   });
 
   it("volgt de renner die aan de beurt is al na drie seconden", () => {
     const coach = new Coach(PLAN);
     observe(coach, [0, 5], "2");
     const advice = observe(coach, [6, 20], "3");
-    expect(advice.filter((a) => a.kind === "leader")).toEqual([{ kind: "leader", zwiftId: "3", at: 9 }]);
+    expect(advice.filter((a) => a.kind === "leader")).toEqual([{ kind: "leader", zwiftId: "3", since: 6 * S, at: 9 }]);
   });
 
   it("zegt niet '280 watt erbij' tegen wie niet meer trapt", () => {

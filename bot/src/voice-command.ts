@@ -13,6 +13,12 @@ export type VoiceCommand =
   | { kind: "gelost" | "terug"; rider: number }
   /** Alleen "Coach", met een pauze: het commando volgt in de volgende zin. */
   | { kind: "wake" }
+  /**
+   * Hetzelfde commando twee keer of vaker in één zin. Zo spuugt whisper de hint
+   * uit bij ruis: in de race van 2026-11-17 elf keer "Coach, deel twee", soms
+   * vier keer achter elkaar, zonder dat de captain het zei.
+   */
+  | { kind: "echo" }
   /** Wel het wekwoord, geen commando dat de bot kent. */
   | { kind: "onbekend" };
 
@@ -22,6 +28,8 @@ const WAKE = new Set(["coach", "coatch", "koach", "koch", "kotje", "kootje", "ko
 const NUMBERS: Record<string, number> = {
   een: 1,
   twee: 2,
+  drie: 3,
+  vier: 4,
   vijf: 5,
   tien: 10,
   vijftien: 15,
@@ -35,9 +43,13 @@ const NUMBERS: Record<string, number> = {
 const DEFAULT_PLUS_S = 10;
 const MAX_PLUS_S = 120;
 
-/** Kleine letters, zonder accenten en leestekens; "+10" wordt "plus 10". */
+/**
+ * Kleine letters, zonder accenten en leestekens; "+10" wordt "plus 10". Wat
+ * whisper tussen haken zet ("[muziek]") is geen spraak en valt weg.
+ */
 export function normalize(text: string) {
   return text
+    .replace(/\[[^\]]*\]|\([^)]*\)/g, " ")
     .toLowerCase()
     .replace(/\+/g, " plus ")
     .normalize("NFD")
@@ -84,9 +96,9 @@ function sound(word: string) {
     .replace(/(.)\1+/g, "$1");
 }
 
-/** "gelost", ook zoals whisper het in de race schreef ("koelost", "lost"). */
+/** "gelost", ook zoals whisper het in de race schreef ("koelost", "lost"), en "los" ("Coach, Remco los"). */
 function isGelost(word: string) {
-  return word.endsWith("lost") || distance(sound(word), "gelost") <= 1;
+  return word === "los" || word === "lossen" || word.endsWith("lost") || distance(sound(word), "gelost") <= 1;
 }
 
 function isTerug(word: string) {
@@ -128,6 +140,17 @@ function riderIn(words: string[], names: string[]) {
   return best.tie ? -1 : best.rider;
 }
 
+/** Na het eerste wekwoord komt hetzelfde commando met wekwoord nog eens terug. */
+function isEcho(rest: string[]) {
+  const parts: string[][] = [[]];
+  for (const word of rest) {
+    if (WAKE.has(word)) parts.push([]);
+    else parts[parts.length - 1].push(word);
+  }
+  const said = parts.map((part) => part.join(" ")).filter(Boolean);
+  return said.length >= 2 && said.every((part) => part === said[0]);
+}
+
 /**
  * Het commando in wat whisper verstond, of null als de captain het wekwoord
  * niet zei (dan praatte hij tegen de ploeg, niet tegen de bot).
@@ -138,6 +161,7 @@ export function parseVoiceCommand(text: string, names: string[]): VoiceCommand |
   if (wake === -1) return null;
   const rest = words.slice(wake + 1);
   if (rest.length === 0) return { kind: "wake" };
+  if (isEcho(rest)) return { kind: "echo" };
   const has = (...options: string[]) => rest.some((word) => options.includes(word));
 
   const back = rest.some(isTerug);
@@ -176,9 +200,14 @@ export function spokenName(name: string) {
  * commando's goed. Elke renner staat erin zoals de captain hem noemt, in een
  * zin: een naam die whisper niet kent, schrijft hij anders op zoals hij hem
  * hoort (in de race van 2026-11-17 "terrens" en "tein").
+ *
+ * "Coach, deel …" staat er alleen in voor een deel dat klaarstaat: bij ruis
+ * schrijft whisper soms een zin uit de hint op, en "deel twee" kwam in die race
+ * elf keer binnen zonder dat iemand het zei.
  */
-export function voicePrompt(names: string[]) {
+export function voicePrompt(names: string[], parts: number[] = []) {
   const riders = names.length > 0 ? names : ["Jeroen"];
+  const spokenNumber = (value: number) => Object.keys(NUMBERS).find((word) => NUMBERS[word] === value) ?? String(value);
   return [
     "Coach, start.",
     "Coach, klim.",
@@ -186,7 +215,7 @@ export function voicePrompt(names: string[]) {
     "Coach, volgende.",
     "Coach, plus tien.",
     "Coach, plus dertig.",
-    "Coach, deel twee.",
+    ...parts.map((part) => `Coach, deel ${spokenNumber(part)}.`),
     ...riders.map((name, index) => `Coach, ${spokenName(name)} ${index % 2 === 0 ? "gelost" : "terug"}.`),
   ].join(" ");
 }

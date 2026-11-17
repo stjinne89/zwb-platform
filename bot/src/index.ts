@@ -206,7 +206,7 @@ function statusText(state: GuildState) {
 const WAKE_WINDOW_MS = 6_000;
 
 /** Een zin van de captain: alleen iets doen als hij met "Coach" begon. */
-function onVoice(state: GuildState, text: string, ms: number) {
+function onVoice(state: GuildState, text: string, ms: number, db: number) {
   const session = state.session;
   if (!session?.running) return;
   const names = riderNames(session);
@@ -214,16 +214,22 @@ function onVoice(state: GuildState, text: string, ms: number) {
   const command =
     parseVoiceCommand(text, names) ?? (now < state.wakeUntil ? parseVoiceCommand(`Coach ${text}`, names) : null);
   state.wakeUntil = 0;
+  // Het geluidsniveau gaat mee in het logboek: daarmee is later te bepalen
+  // onder welk niveau een opname ruis is, die whisper niet meer hoeft te horen.
+  const heard = `spraak ${ms} ms, ${db} dB`;
   // Wat de captain tegen de ploeg zei, komt niet in het logboek.
   if (!command) {
-    log(`spraak ${ms} ms: geen "Coach"`);
+    log(`${heard}: geen "Coach"`);
     return;
   }
-  log(`spraak ${ms} ms: "${text}" → ${JSON.stringify(command)}`);
+  log(`${heard}: "${text}" → ${JSON.stringify(command)}`);
   const say = (phrase: string) => state.speech.say(phrase, "clock");
   switch (command.kind) {
     case "wake":
       state.wakeUntil = now + WAKE_WINDOW_MS;
+      return;
+    case "echo":
+      // Whisper herhaalde de hint; niets doen en niets zeggen.
       return;
     case "start":
       // De wissel naar de eerste renner spreekt de klok zelf uit.
@@ -240,7 +246,10 @@ function onVoice(state: GuildState, text: string, ms: number) {
       session.plus(command.seconds);
       break;
     case "deel":
-      if (!session.usePart(command.number)) say(`Geen deel ${command.number}.`);
+      // Zonder klaargezet deel zwijgen: dit verzon whisper elf keer in één race,
+      // en elke keer zei de bot "Geen deel 2".
+      if (!session.partNumbers.includes(command.number)) return;
+      session.usePart(command.number);
       break;
     case "gelost":
     case "terug":
@@ -275,9 +284,11 @@ function controls(session: Session) {
         .setCustomId("ttt:out")
         .setPlaceholder("Gelost of terug")
         .addOptions(
+          // De keuze draagt wat er op staat: een menu dat nog niet bijgewerkt is
+          // (de bot zette hem net met spraak op gelost), zet hem anders terug.
           session.rotation.riders.map((rider, index) => ({
             label: rider.out ? `${rider.name} is terug` : `${rider.name} lost`,
-            value: String(index),
+            value: `${index}:${rider.out ? "terug" : "lost"}`,
           })),
         ),
     ),
@@ -431,8 +442,10 @@ async function handle(interaction: Interaction) {
     if (interaction.customId === "ttt:free") session.setFree(!session.free);
     if (interaction.customId.startsWith("ttt:part:")) session.usePart(Number(interaction.customId.slice(9)));
     if (interaction.isStringSelectMenu() && interaction.customId === "ttt:out") {
-      const index = Number(interaction.values[0]);
-      session.setOut(index, !session.rotation.riders[index]?.out);
+      const [value, wanted] = interaction.values[0].split(":");
+      const index = Number(value);
+      // Een menu van vóór deze versie heeft alleen het nummer: dan omdraaien.
+      session.setOut(index, wanted ? wanted === "lost" : !session.rotation.riders[index]?.out);
     }
     await interaction.update({
       content: statusText(state),
@@ -522,16 +535,19 @@ async function handle(interaction: Interaction) {
         state.connection,
         interaction.user.id,
         whisper,
-        () => voicePrompt(riderNames(session)),
-        (text, ms) => onVoice(state, text, ms),
+        () => voicePrompt(riderNames(session), session.partNumbers.filter((part) => part !== session.partNumber)),
+        (text, ms, db) => onVoice(state, text, ms, db),
         log,
       );
       log(`spraak aan: luistert naar ${interaction.member.displayName}`);
     }
     session.start(interaction.options.getInteger("vertraging") ?? DEFAULT_DELAY_S);
+    // Discord wacht maar 3 s op een antwoord; het statusbericht plaatsen duurde
+    // op een trage pc langer ("Unknown interaction", 2026-11-17).
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     // Een eigen bericht, geen antwoord: een antwoord is na een kwartier niet meer te wijzigen.
     state.message = await channel.send({ content: statusText(state), components: controls(session) });
-    await reply(
+    await interaction.editReply(
       listen
         ? 'Gestart. Ik luister alleen naar jou: begin met "Coach", bijvoorbeeld "Coach, klim".'
         : wantsVoice

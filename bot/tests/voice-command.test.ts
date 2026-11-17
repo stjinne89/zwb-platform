@@ -138,6 +138,31 @@ describe("spraak uit de race", () => {
     expect(confirmation({ kind: "wake" }, RIDERS)).toBeNull();
   });
 
+  // B3 en TTT A, ook 2026-11-17.
+  it("negeert een commando dat whisper herhaalt: dat is de hint, niet de captain", () => {
+    expect(heard("Coach, deel twee. Coach, deel twee. Coach, deel twee. Coach, deel twee.")).toEqual({ kind: "echo" });
+    expect(heard("Coach, deel twee. Coach, deel twee.")).toEqual({ kind: "echo" });
+    expect(heard("Coach, plus tien.")).toEqual({ kind: "plus", seconds: 10 });
+  });
+
+  it("ziet wat whisper tussen haken zet niet als commando", () => {
+    expect(heard("Coach, [muziek]")).toEqual({ kind: "wake" });
+  });
+
+  it("leest 'los' als gelost", () => {
+    expect(parseVoiceCommand("Coach, remco los.", ["Bart", "Pim", "Casper", "Remco", "Mathijs"])).toEqual({
+      kind: "gelost",
+      rider: 3,
+    });
+  });
+
+  it("zet 'deel' alleen in de hint voor een deel dat klaarstaat", () => {
+    expect(voicePrompt(RIDERS)).not.toContain("deel");
+    expect(voicePrompt(RIDERS, [2])).toContain("Coach, deel twee.");
+    expect(voicePrompt(RIDERS, [3])).toContain("Coach, deel drie.");
+    expect(heard("Coach, deel drie.")).toEqual({ kind: "deel", number: 3 });
+  });
+
   it("zet elke renner in de hint zoals de captain hem noemt", () => {
     const prompt = voicePrompt(RIDERS);
     for (const name of ["Sven", "Harmen", "Terrence", "Esli", "Stijn"]) expect(prompt).toContain(`Coach, ${name} `);

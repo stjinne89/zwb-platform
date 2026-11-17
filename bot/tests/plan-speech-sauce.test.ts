@@ -156,7 +156,7 @@ describe("zinnen", () => {
     expect(advicePhrase({ kind: "pace", avgKmh: 43.2, planKmh: 44 }, name)).toBe(
       "Gemiddeld 43 komma 2. Het plan is 44.",
     );
-    expect(advicePhrase({ kind: "leader", zwiftId: "111" }, name)).toBeNull();
+    expect(advicePhrase({ kind: "leader", zwiftId: "111", since: 0 }, name)).toBeNull();
   });
 });
 

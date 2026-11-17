@@ -16,7 +16,8 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 - **Klok**: wie op kop rijdt, hoe lang nog, wie volgt. Aftellen op 30, 10 en
   5 seconden; bij de wissel naam, watt en duur.
 - **Sauce** (optioneel):
-  - wisselt de ploeg eerder of later dan de klok, dan schuift de rotatie mee;
+  - komt er een ander op kop dan de klok riep, dan schuift de rotatie mee (een
+    kopbeurt zelf telt altijd vanaf "Wissel");
   - rijdt de koprijder te hard of te zacht, dan zegt de bot hoeveel watt;
   - lost een renner, dan krijgt die geen kopbeurt meer, tot hij terug is;
   - bij vier renners over: de melding dat niemand meer mag lossen;

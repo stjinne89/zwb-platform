@@ -73,12 +73,13 @@ niet afgeleid uit een meting.**
 |---|---|
 | Koprijder | de voorste renner van de ploeg. Wie aan de beurt is of als volgende komt: zodra hij daar 3 s ligt. Ieder ander: na 8 s en alleen als hij minstens 85% van zijn kopbeurtvermogen trapt |
 | Rust na start en klim | de eerste 30 s na de start en na Hervat rotatie verlegt Sauce de rotatie niet |
-| Vroege wissel | een andere koprijder dan de klok dacht: de rotatie gaat mee, de bot noemt alleen naam en watt |
-| Late wissel | de verwachte koprijder komt binnen 20 s na de klokwissel op kop: zijn kopbeurt begint pas dan |
+| Vroege wissel | een andere koprijder dan de klok dacht: de rotatie gaat mee, de bot noemt alleen naam en watt. Zijn kopbeurt telt vanaf het moment dat hij vooraan kwam, niet vanaf het moment dat Sauce het zeker wist |
+| Late wissel | geen bijsturing: de kopbeurt van de verwachte koprijder telt vanaf "Wissel". Tot 2026-11-17 begon die opnieuw als Sauce hem vooraan zag; dat maakte elke beurt de duur van de wissel langer (zie de race van 17 november) |
 | Vermogen op kop | gemiddelde over hooguit 10 s, de eerste 4 s niet meegeteld en minstens 4 s gemeten; melding vanaf 15 W of 6% afwijking, afgerond op 5 W, hooguit eens per 20 s per renner; alleen als klok en Sauce het over de koprijder eens zijn. Niet in de laatste 12 s van een kopbeurt, en niet als iemand meer dan 25% onder zijn doel zit (dan rijdt hij niet op kop) |
 | Finish | iedereen in beeld 15 s lang onder 50 W en onder 20 km/u: de bot stopt en verlaat het kanaal |
-| Lossen | meer dan 3 s achter de voorste, 10 s lang, of 10 s uit beeld. De renner krijgt geen kopbeurt meer |
-| Terug | binnen 1,5 s van de voorste, 5 s lang |
+| Voorste | de voorste renner die meedraait en rijdt (10 km/u of meer); een geloste of met de hand geloste renner telt niet mee |
+| Lossen | meer dan 3 s achter de voorste, 10 s lang, of 10 s uit beeld, of 10 s stilstaan terwijl de ploeg rijdt. De renner krijgt geen kopbeurt meer. Eén renner tegelijk: zouden er twee of meer in dezelfde meting lossen, dan lost er niemand (in het logboek `drops-ignored`) |
+| Terug | binnen 1,5 s van de voorste (ervoor of erachter), rijdend, 5 s lang |
 | Vier over | één keer, als er van een grotere ploeg vier renners over zijn (de ploegentijd is de vierde renner) |
 | Tempo | elke 5 minuten het gemiddelde van de voorste renner naast `estimatedSpeedKmh` |
 
@@ -258,6 +259,26 @@ whisper helpt, is niet gemeten: de opnames zijn na het verstaan weg.
 **Niet gemeten:** de belasting naast Zwift op de Zwift-pc, en hoe vaak een zin
 zonder herkend "Coach" toch een commando was (21 keer "geen Coach"; die tekst
 komt bewust niet in het logboek).
+
+**Race van 2026-11-17 (B3 met Sauce, ZWB Cycling A zonder Sauce).** Twee
+logboeken; daarnaast de stream van B1 (Kevin Plasmans) bekeken, zonder geluid.
+
+| Wat | Gezien | Nu |
+|---|---|---|
+| Whisper verzint de hint | B3: 11 keer "Coach, deel twee", soms vier keer in één zin; de captain zei het niet (bevestigd). Er was geen deel 2, dus elke keer "Geen deel 2." Ook "[muziek]" | Een commando dat zich in één zin herhaalt, telt niet (`echo`). "deel …" staat alleen in de hint voor een deel dat klaarstaat. "deel N" zonder plan: niets zeggen. Tekst tussen haken valt weg. Het geluidsniveau van elke zin staat in het logboek, om later een drempel voor ruis te kiezen |
+| Kopbeurten langer dan het plan | B3, koprijder tot koprijder volgens Sauce: Stijn 30 → 41 s, Sven 60 → 69 s, Marc 60 → 72 s. Sauce zag de nieuwe man 8 tot 16 s na "Wissel", en dan begon de kopbeurt opnieuw | De kopbeurt telt vanaf "Wissel" (zie Coachregels) |
+| Alle vier tegelijk "gelost" | B3, laatste 3 km: Koen was sinds 19:30 gelost en uit het event; de ploeg reed langs de plek waar hij stond (eigenaar). Hij lag vooraan, dus de andere vier "losten", met twee wissels in dezelfde milliseconde, drie keer heen en weer | Een geloste of stilstaande renner is nooit de voorste; nooit meer dan één renner tegelijk gelost |
+| Keuzemenu zette een renner terug | A: na "Coach, Bart gelost" riep de klok Bart 15 s later toch weer op. Het menu draaide de stand om, wat het label ook zei | Elke keuze draagt wat erop staat ("lost" of "terug") |
+| "los" niet herkend | A: "Coach, remco los." | Telt als gelost |
+| "Unknown interaction" | A: `/ttt start` antwoordde pas na het plaatsen van het statusbericht, op een trage pc na meer dan 3 s | Eerst `deferReply` |
+| Oude versie | A draaide een versie van vóór `d492f06e`: 103 zinnen vervielen terwijl whisper bezig was | Bijwerken op de bot-pc |
+
+Ook gezien, niet veranderd: Harmen reed bijna elke beurt onder zijn 310 W
+(gemiddeld 19 W te weinig), Sven begon vaak te hard (95, 75, 65 W eraf). In de
+stream van B1 duurden de beurten 28 tot 36 s; het plan van B1 is daar niet uit
+af te lezen. "bat" voor Bart blijft onherkend: een naam van 3 letters moet exact
+kloppen. "Coach, min tien" en "Coach, stop" bestaan niet; stoppen blijft bewust
+zonder spraak.
 
 **Privacy.** Alleen de captain, alleen als die het zelf aanzet. De opname staat
 kort in `.cache/` en gaat na het verstaan weg. In het logboek komt alleen wat met

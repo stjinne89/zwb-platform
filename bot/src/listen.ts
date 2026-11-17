@@ -67,6 +67,23 @@ export function toWhisperPcm(pcm: Buffer): Buffer {
   return out;
 }
 
+/**
+ * Hoe luid een opname is: het gemiddelde vermogen in dB onder vol bereik (16
+ * bit), afgerond. Stilte is -96 dB. Alleen voor het logboek, om later een
+ * drempel voor ruis te kunnen kiezen.
+ */
+export function levelDb(pcm: Buffer): number {
+  const samples = Math.floor(pcm.length / 2);
+  if (samples === 0) return -96;
+  let sum = 0;
+  for (let i = 0; i < samples; i++) {
+    const value = pcm.readInt16LE(i * 2) / 32_768;
+    sum += value * value;
+  }
+  const rms = Math.sqrt(sum / samples);
+  return rms > 0 ? Math.max(-96, Math.round(20 * Math.log10(rms))) : -96;
+}
+
 /** Een wav-bestand om 16 kHz mono 16-bit pcm heen. */
 export function wav(pcm: Buffer): Buffer {
   const header = Buffer.alloc(44);
@@ -99,7 +116,7 @@ export class VoiceListener {
     private readonly whisper: Whisper,
     /** De hint voor whisper, met de namen uit het plan dat nu geldt. */
     private readonly prompt: () => string,
-    private readonly heard: (text: string, ms: number) => void,
+    private readonly heard: (text: string, ms: number, db: number) => void,
     private readonly log: (line: string) => void,
   ) {
     mkdirSync(CACHE_DIR, { recursive: true });
@@ -163,10 +180,11 @@ export class VoiceListener {
     this.busy = true;
     const file = join(CACHE_DIR, `spraak-${Date.now()}.wav`);
     try {
-      await writeFile(file, wav(toWhisperPcm(pcm)));
+      const mono = toWhisperPcm(pcm);
+      await writeFile(file, wav(mono));
       const started = Date.now();
       const text = await transcribe(this.whisper, file, this.prompt());
-      if (!this.stopped) this.heard(text, Date.now() - started);
+      if (!this.stopped) this.heard(text, Date.now() - started, levelDb(mono));
     } catch (error) {
       this.log(`spraak: verstaan mislukte: ${error instanceof Error ? error.message : error}`);
     } finally {

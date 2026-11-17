@@ -7,8 +7,6 @@ import type { PlanRider } from "./plan.ts";
 export const COUNTDOWN = [30, 10, 5];
 /** Seconden voor de start waarop de bot aftelt. */
 export const START_COUNTDOWN = [60, 30, 10, 5];
-/** Zo lang na een wissel mag Sauce het begin van de kopbeurt nog verleggen. */
-const RESYNC_WINDOW_MS = 20_000;
 
 export type RotationRider = PlanRider & { out: boolean };
 
@@ -202,24 +200,25 @@ export function resume(rotation: Rotation, index: number, now: number): Rotation
 
 /**
  * Sauce ziet deze renner op kop komen. Is dat een ander dan de klok dacht, dan
- * volgt de rotatie de ploeg. Is het dezelfde en is de wissel net geweest, dan
- * begint de kopbeurt pas nu: de ploeg wisselde later dan de klok.
+ * volgt de rotatie de ploeg: zijn kopbeurt telt vanaf `since`, het moment dat
+ * hij vooraan kwam. Is het de renner die de klok riep, dan verandert er niets:
+ * de kopbeurt telt vanaf "Wissel". Opnieuw beginnen op het moment dat Sauce hem
+ * zag, maakte elke beurt de duur van de wissel langer (B3, 2026-11-17: 30 s
+ * werd 41 s, 60 s werd 70 s).
  */
-export function syncLeader(rotation: Rotation, index: number, now: number): Step {
+export function syncLeader(rotation: Rotation, index: number, now: number, since = now): Step {
   const rider = rotation.riders[index];
-  if (rotation.current === -1 || !rider || rider.out) return { rotation, events: [] };
-  if (index === rotation.current) {
-    return now - rotation.startedAt <= RESYNC_WINDOW_MS
-      ? { rotation: lead(rotation, index, now), events: [] }
-      : { rotation, events: [] };
+  if (rotation.current === -1 || !rider || rider.out || index === rotation.current) {
+    return { rotation, events: [] };
   }
   // Een renner zonder kopbeurt in het plan krijgt de kortste beurt van de ploeg.
   const seconds =
     rider.pullSeconds ||
     Math.min(...rotation.riders.filter((r) => r.pullSeconds > 0).map((r) => r.pullSeconds));
-  const next = lead(rotation, index, now);
+  const from = Math.min(now, Math.max(since, rotation.startedAt));
+  const next = lead(rotation, index, from);
   return {
-    rotation: { ...next, endsAt: now + seconds * 1000 },
+    rotation: { ...next, endsAt: from + seconds * 1000 },
     events: [{ type: "change", rider: index, previous: rotation.current, synced: true }],
   };
 }

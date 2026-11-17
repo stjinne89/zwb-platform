@@ -56,6 +56,7 @@ export function advicePhrase(advice: Advice, name: (zwiftId: string) => string):
     case "pace":
       return `Gemiddeld ${spoken(advice.avgKmh)}. Het plan is ${spoken(advice.planKmh)}.`;
     case "leader":
+    case "drops-ignored":
       return null;
   }
 }
