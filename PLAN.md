@@ -12595,7 +12595,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
   het blok TTT-bot installeren op de planner (stap 6, plus een regel bij "Werkt
   het niet?"), en verwijst de Botlink-regel op /hulp ernaar. Niet in de lokale
   app bekeken; wel `tsc` en eslint schoon.
-- **"Coach, start" (2026-11-17, de commit die deze regel toevoegt).** Vraag van
+- **"Coach, start" (2026-11-17, commit `aafced46`, gepusht naar `main`, eigenaar: "Push naar main").** Vraag van
   de eigenaar ("coach, start is geen command?"); voorstel akkoord. Bij een
   ZRL-ploegentijdrit start de ploeg in een rij en klopt de vertraging vooraf
   vaak niet. Nu: `/ttt start spraak:True vertraging:600`, en "Coach, start" als
@@ -12660,8 +12660,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   uitnodigingslink (OAuth2: `bot`, `applications.commands`; Send Messages,
   Connect, Speak) naar een Discord-beheerder, het installatiebestand, en de
   racedag. Daaronder "Werkt het niet?".
-- **Knopnamen in het Nederlands (2026-11-17, de commit die deze regel
-  toevoegt).** De eigenaar vond "Reset Token" niet: het Developer Portal toont
+- **Knopnamen in het Nederlands (2026-11-17, commit `323a9edb`, gepusht naar
+  `main`, eigenaar: "Push naar main").** De eigenaar vond "Reset Token" niet: het Developer Portal toont
   een Nederlandse Discord in het Nederlands. De handleiding noemt nu de
   Nederlandse namen met het Engels erachter (Nieuwe applicatie, Token
   resetten, OAuth2 URL-generator, Botmachtigingen: Berichten sturen, Verbinden,
