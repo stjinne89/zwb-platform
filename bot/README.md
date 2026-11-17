@@ -29,7 +29,8 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 Voor leden: download `ZWB-TTT-bot-installeren.bat` onderaan de TTT Planner en
 dubbelklik erop. Dat haalt `installeren.ps1` van GitHub (main) en doet de stappen
 hieronder: Node via winget, de bot naar `%LOCALAPPDATA%\ZWB-TTT-bot`,
-`npm install`, Piper met Nathalie, `.env` (vraagt het token en waar Sauce staat),
+`npm install`, Piper met Nathalie, whisper.cpp met het base-model (voor
+spraakcommando's), `.env` (vraagt het token en waar Sauce staat),
 de mod ZWB ZRL Live naar `Documenten\SauceMods` en een snelkoppeling TTT-bot op
 het bureaublad. Nog een keer draaien werkt de bot bij en laat `.env`, `.piper` en
 `.cache` staan. Elk lid maakt een eigen Discord-app; een token delen geeft twee
@@ -86,7 +87,7 @@ Met de hand:
 | Commando | |
 |---|---|
 | `/ttt plan [link] [bestand]` | Plan laden; zonder opties van het klembord van de bot-pc |
-| `/ttt start [vertraging]` | Starten in jouw spraakkanaal (standaard na 10 s) |
+| `/ttt start [vertraging] [spraak]` | Starten in jouw spraakkanaal (standaard na 10 s); met `spraak:True` luistert de bot naar jouw commando's |
 | `/ttt klim` | Vrij rijden: klok en coach zwijgen; kan ook met de knop Klim |
 | `/ttt hervat` | De rotatie weer oppakken; kan ook met de knop Hervat rotatie |
 | `/ttt plan deel:2` | Een plan klaarzetten voor het tweede deel van de race |
@@ -113,6 +114,26 @@ de bot "Deel 2", maakt de koprijder zijn kopbeurt af en geldt daarna het nieuwe
 plan. Wie gelost is, blijft gelost. Overschakelen gaat met de hand; de bot weet
 niet waar op de route jullie zijn. `/ttt plan` zonder `deel` begint opnieuw en
 wist de klaargezette delen.
+
+**Met spraak besturen.** Geef `/ttt start spraak:True`. De bot luistert dan
+alleen naar jou, niet naar de rest van de ploeg. Begin elk commando met
+"Coach":
+
+| Zeg | Doet |
+|---|---|
+| Coach, klim | Klim |
+| Coach, hervat | Hervat rotatie |
+| Coach, volgende | Meteen de volgende renner |
+| Coach, plus tien (of twintig, dertig) | De kopbeurt verlengen; zonder getal 10 s |
+| Coach, deel twee | Overgaan op deel 2 |
+| Coach, Jeroen gelost / Coach, Jeroen terug | Renner gelost of terug |
+
+Zonder "Coach" doet de bot niets: "daar komt de klim" zet hem niet stil. Stoppen
+kan niet met spraak. Kent hij het commando niet, dan zegt hij "Niet verstaan".
+Een zin langer dan vijf seconden luistert hij niet uit; commando's zijn kort. Het
+verstaan gebeurt op deze pc met whisper.cpp (`WHISPER_PATH`, `WHISPER_MODEL`);
+de installatie zet dat klaar. Een opname gaat na het verstaan weg. In het logboek
+komt alleen wat met "Coach" begon.
 
 Met `COACH=log` in `.env` spreekt alleen de klok; wat de coach zou zeggen of doen
 komt dan alleen in het logboek. Dat logboek staat per dag in `.cache/ttt-<datum>.log`:

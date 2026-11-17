@@ -12444,6 +12444,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — TTT-bot: besturen met spraak
+
+**2026-11-17, de commit die dit blok toevoegt, lokaal, niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar wil de bot tijdens het rijden met zijn stem bedienen.
+  Na onderzoek en een meting: "Ik wil dit gewoon gaan bouwen en dan kunnen we
+  vanavond testen of het daadwerkelijk werkt."
+- **Wat.** `/ttt start spraak:True` laat de bot luisteren naar wie dat commando
+  gaf, en alleen naar die persoon (`bot/src/listen.ts`). Commando's beginnen met
+  "Coach": klim, hervat, volgende, plus (tien/twintig/dertig), deel twee,
+  "<naam> gelost"/"<naam> terug" (`bot/src/voice-command.ts`, 7 tests). Zonder
+  "Coach" doet hij niets; onbekend geeft "Niet verstaan". Het statusbericht
+  toont "Spraak: aan". Zonder spraak blijft de bot doof in het kanaal, zoals
+  voorheen.
+- **Verstaan** met whisper.cpp `b5454` en `ggml-base.bin`, lokaal, met de
+  commando's en de namen uit het plan als hint. De installatie zet het klaar
+  (stap 4 van 7, ~150 MB) en schrijft `WHISPER_PATH` en `WHISPER_MODEL`.
+- **Meting en keuzes:** [ttt-discord-bot.md](docs/ttt-discord-bot.md#besturen-met-spraak).
+  Kort: 7 van 7 testzinnen van Piper goed, ook door opus heen en terug, 1,3 tot
+  2 s per zin op de laptop van de eigenaar.
+- **Bewust niet.** Stoppen met spraak (per ongeluk stoppen is lastig te
+  herstellen); luisteren naar de hele ploeg; Vosk (Node-pakket uit 2022 op
+  `ffi-napi`); een kleiner audiovenster (gemeten: slechter en trager);
+  `whisper-server` (0,2 s sneller, maar een proces en poort om te beheren).
+- **Niet getest.** Ontvangen in Discord zelf (met DAVE-versleuteling), een echte
+  stem tijdens inspanning, de belasting naast Zwift. Dat is de test van vanavond.
+  De privacyverklaring noemt het nog niet; tekst ligt bij de eigenaar. De
+  handleiding op de planner noemt spraak pas als de test slaagt.
+
 ### Hersteld — Garmin live: nieuwe sessieroute en geen spook-live meer
 
 **2026-11-17, commit `b2da3261`, op 2026-11-17 gepusht naar `main` (eigenaar: "Push naar main"). Geen migratie.**

@@ -29,10 +29,14 @@ $PiperZip = "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/pip
 # fonemenlijst die deze piper.exe weigert ("is not a single codepoint").
 $Voice = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/nl/nl_BE/nathalie/medium/nl_BE-nathalie-medium.onnx"
 $ModName = "zwb-zrl-live"
+# Spraakherkenning voor /ttt start spraak:true. Gemeten op 2026-11-17: met deze
+# versie en het base-model 7 van de 7 testcommando's goed, ongeveer 1,4 s per zin.
+$WhisperZip = "https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-x64.zip"
+$WhisperModel = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"
 
 function Step($nummer, $tekst) {
   Write-Host ""
-  Write-Host "Stap $nummer van 6: $tekst" -ForegroundColor Cyan
+  Write-Host "Stap $nummer van 7: $tekst" -ForegroundColor Cyan
 }
 
 function Ok($tekst) { Write-Host "  OK  $tekst" -ForegroundColor Green }
@@ -162,8 +166,28 @@ if (-not (Test-Path "$model.json")) {
 if (-not (Test-Path $piperExe)) { Stop-Met "piper.exe is niet gevonden na het uitpakken." }
 Ok "Stem staat klaar."
 
-# 4. Instellingen ------------------------------------------------------------
-Step 4 "Instellingen"
+# 4. Spraak verstaan -------------------------------------------------------------
+Step 4 "Spraak verstaan (whisper)"
+$whisperMap = Join-Path $Map ".whisper"
+$whisperExe = Join-Path $whisperMap "Release\whisper-cli.exe"
+$whisperBin = Join-Path $whisperMap "ggml-base.bin"
+New-Item -ItemType Directory -Force -Path $whisperMap | Out-Null
+if (-not (Test-Path $whisperExe)) {
+  $zip = Join-Path $env:TEMP "whisper-bin-x64.zip"
+  Invoke-WebRequest -UseBasicParsing $WhisperZip -OutFile $zip
+  Expand-Archive -Force -Path $zip -DestinationPath $whisperMap
+  Remove-Item -Force $zip
+}
+if (-not (Test-Path $whisperBin)) {
+  Write-Host "  Het spraakmodel downloaden (ongeveer 140 MB)."
+  Invoke-WebRequest -UseBasicParsing $WhisperModel -OutFile "$whisperBin.part"
+  Move-Item -Force "$whisperBin.part" $whisperBin
+}
+if (-not (Test-Path $whisperExe)) { Stop-Met "whisper-cli.exe is niet gevonden na het uitpakken." }
+Ok "Spraak verstaan staat klaar."
+
+# 5. Instellingen ------------------------------------------------------------
+Step 5 "Instellingen"
 $envPad = Join-Path $Map ".env"
 $oud = @{}
 if (Test-Path $envPad) {
@@ -213,13 +237,15 @@ Write-Utf8 $envPad (@(
   "COACH=$coach",
   "PIPER_PATH=$piperExe",
   "PIPER_MODEL=$model",
+  "WHISPER_PATH=$whisperExe",
+  "WHISPER_MODEL=$whisperBin",
   "PLAN_ORIGINS=$origins",
   ""
 ) -join "`r`n")
 Ok "Instellingen opgeslagen."
 
-# 5. Sauce-mod ---------------------------------------------------------------
-Step 5 "De Sauce-mod ZWB ZRL Live"
+# 6. Sauce-mod ---------------------------------------------------------------
+Step 6 "De Sauce-mod ZWB ZRL Live"
 $modBron = Join-Path $Map "sauce-mod\$ModName"
 $modDoel = Join-Path $ModMap $ModName
 New-Item -ItemType Directory -Force -Path $ModMap | Out-Null
@@ -227,8 +253,8 @@ if (Test-Path $modDoel) { Remove-Item -Recurse -Force $modDoel }
 Copy-Item -Recurse -Force $modBron $modDoel
 Ok "Mod staat in $modDoel."
 
-# 6. Snelkoppeling -----------------------------------------------------------
-Step 6 "Snelkoppeling op het bureaublad"
+# 7. Snelkoppeling -----------------------------------------------------------
+Step 7 "Snelkoppeling op het bureaublad"
 $start = Join-Path $Map "start.bat"
 Write-Utf8 $start (@(
   "@echo off",

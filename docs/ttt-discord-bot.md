@@ -61,6 +61,8 @@ overgenomen.
 | `tts.ts` | De stem, lokaal, met een cache per zin: op Windows de Nederlandse Windows-stem (`windows-voice.ps1`, één PowerShell-proces dat blijft draaien), anders Piper. De klokzinnen worden bij `/ttt plan` klaargezet. Gemeten: 38 zinnen in een seconde; een nieuwe zin in minder dan 10 ms. Piper is niet getest. |
 | `session.ts` | Eén ploegentijdrit: verbindt rotatie, coach en spraak. |
 | `index.ts` | Discord: commando's, knoppen, spraakkanaal, statusbericht. |
+| `listen.ts` | Luisteren naar de captain: opus uit Discord naar 16 kHz mono, wav, `whisper-cli`. |
+| `voice-command.ts` | Van wat whisper verstond naar een commando, zonder I/O; de hint voor whisper en de bevestigingen. |
 
 ## Coachregels en drempels
 
@@ -186,6 +188,57 @@ later, net als automatisch overschakelen op deel 2.
 Overschakelen gaat met de hand. Sauce geeft per renner wel de afstand in het
 event (`state.eventDistance`), dus automatisch op een kilometerpunt kan later;
 dat is niet gebouwd en niet gemeten.
+
+## Besturen met spraak
+
+Op verzoek van de eigenaar (2026-11-17): de captain moet tijdens het rijden de
+bot kunnen bedienen zonder muis. `/ttt start spraak:True` laat de bot luisteren
+naar wie dat commando gaf, en alleen naar die persoon. Commando's beginnen met
+"Coach": klim, hervat, volgende, plus (tien/twintig/dertig), deel twee, en
+"<naam> gelost" of "<naam> terug". Stoppen bewust niet: per ongeluk stoppen
+midden in een race is lastig te herstellen.
+
+**Horen.** `@discordjs/voice` 0.19.2 ontvangt per gebruiker een opusstroom en
+ontsleutelt ook Discords end-to-endversleuteling (DAVE, via `@snazzah/davey`);
+nagekeken in `dist/index.js`. Pakketjes van wie niet geabonneerd is, worden niet
+eens ontsleuteld. De bot moet daarvoor niet doof in het kanaal zitten
+(`selfDeaf: false`); zonder spraak blijft hij doof. Discord documenteert
+ontvangen door bots niet officieel: een wijziging bij Discord kan dit breken.
+
+**Verstaan.** Lokaal, om dezelfde reden als de stem: geen stemmen naar Google of
+een andere dienst. Vergeleken op 2026-11-17:
+
+- **whisper.cpp** (gekozen): een exe plus model, net als Piper. Versie `b5454`,
+  model `ggml-base.bin` (141 MB).
+- **Vosk** (kleiner, vaste woordenlijst mogelijk): het Node-pakket is van 2022 en
+  hangt aan `ffi-napi`; naar verwachting niet te installeren op Node 22+. Niet
+  geprobeerd.
+- **Spraakherkenning van Windows**: voor zover bekend geen Nederlands voor
+  desktopprogramma's. Niet geprobeerd.
+
+**Meting, 2026-11-17** (laptop, Ryzen AI 7 350, 4 threads). Zeven zinnen van
+Piper (Nathalie): zes commando's en "Ja hoor, daar komt de klim, rustig aan
+jongens."
+
+| Opzet | Resultaat | Tijd per zin |
+|---|---|---|
+| Zonder hint | commando's meestal goed, "Coach" als "Kootje"/"Koch", "plus tien" als "+ team" | ~1,3 s |
+| Met de commando's als `--prompt` | 7 van 7 goed, de gewone zin bleef gewone tekst | ~1,4 s (`whisper-cli`, model per keer geladen) |
+| Model geladen (`whisper-server`) | idem | ~1,2 s |
+| `--audio-ctx 256` (kleiner venster) | slechter ("Koutch klum", "een coach plastic") en trager | 3–4 s |
+| Hele keten zoals in de bot: 48 kHz stereo, opus heen en terug, naar 16 kHz, `whisper-cli` met hint, `parseVoiceCommand` | 7 van 7 goed, de gewone zin geeft geen commando | 1,3–2,0 s |
+
+Gekozen: `whisper-cli` per zin met de hint. De server scheelt 0,2 s maar vraagt
+een proces en een poort om te beheren. Een zin is af na 0,7 s stilte; korter dan
+0,4 s of langer dan 5 s wordt niet verstaan (geen commando, scheelt rekenwerk
+naast Zwift). Is de vorige zin nog niet verstaan, dan vervalt de nieuwe.
+
+**Niet gemeten:** een echte, hijgende stem met ventilator via Discord; de
+belasting naast Zwift op de Zwift-pc; het ontvangen in Discord zelf.
+
+**Privacy.** Alleen de captain, alleen als die het zelf aanzet. De opname staat
+kort in `.cache/` en gaat na het verstaan weg. In het logboek komt alleen wat met
+"Coach" begon; van andere zinnen alleen dat er geen "Coach" in zat.
 
 ## Logboek en meekijkstand
 

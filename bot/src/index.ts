@@ -34,6 +34,14 @@ import { appendFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { join } from "node:path";
 import { CACHE_DIR, piperEngine, Tts, windowsEngine } from "./tts.ts";
+import { VoiceListener, type Whisper } from "./listen.ts";
+import {
+  ALREADY,
+  confirmation,
+  confirmationPhrases,
+  parseVoiceCommand,
+  voicePrompt,
+} from "./voice-command.ts";
 
 const DEFAULT_DELAY_S = 10;
 const PLUS_BUTTON_S = 10;
@@ -60,6 +68,15 @@ const tts =
       : null;
 if (!tts) console.warn("Geen stem ingesteld: de bot spreekt niet, alleen het statusbericht werkt.");
 const coachMode = process.env.COACH === "log" ? "log" : "speak";
+/** Spraakherkenning voor `/ttt start spraak:true`; zonder whisper kan dat niet. */
+const whisper: Whisper | null =
+  process.env.WHISPER_PATH && process.env.WHISPER_MODEL
+    ? {
+        path: process.env.WHISPER_PATH,
+        model: process.env.WHISPER_MODEL,
+        threads: Number(process.env.WHISPER_THREADS) || 4,
+      }
+    : null;
 
 /** Logboek per dag in .cache/, om na een race na te lezen wat er gebeurde. */
 function log(line: string) {
@@ -75,6 +92,8 @@ type GuildState = {
   speech: SpeechQueue;
   player: AudioPlayer;
   connection: VoiceConnection | null;
+  /** Luistert naar de captain, alleen als die bij /ttt start spraak aanzette. */
+  listener: VoiceListener | null;
   message: Message | null;
   /** Het plan dat door de laatste `/ttt plan` is vervangen, voor "Dit is deel 2". */
   replaced: Plan | null;
@@ -112,6 +131,7 @@ function stateOf(guildId: string): GuildState {
         await entersState(player, AudioPlayerStatus.Idle, 30_000);
       }),
       connection: null,
+      listener: null,
       message: null,
       replaced: null,
       dirty: false,
@@ -148,14 +168,71 @@ function load(state: GuildState, plan: Plan) {
   );
   state.session = session;
   // De klok eerst: die is als eerste nodig.
-  void tts?.prepare(["Deel 1.", ...clockPhrases(session.rotation), ...coachPhrases(session.rotation)]);
+  void tts?.prepare([
+    "Deel 1.",
+    ...clockPhrases(session.rotation),
+    ...coachPhrases(session.rotation),
+    ...(whisper ? confirmationPhrases(riderNames(session)) : []),
+  ]);
   return session;
 }
 
 function addPart(session: Session, part: number, plan: Plan) {
   session.addPart(part, plan);
   const rotation = createRotation(plan.riders, 0);
-  void tts?.prepare([`Deel ${part}.`, ...clockPhrases(rotation), ...coachPhrases(rotation)]);
+  void tts?.prepare([
+    `Deel ${part}.`,
+    ...clockPhrases(rotation),
+    ...coachPhrases(rotation),
+    ...(whisper ? confirmationPhrases(plan.riders.map((rider) => rider.name)) : []),
+  ]);
+}
+
+function riderNames(session: Session) {
+  return session.rotation.riders.map((rider) => rider.name);
+}
+
+/** Tekst van het statusbericht, met of de bot luistert. */
+function statusText(state: GuildState) {
+  const text = state.session?.status() ?? "";
+  return state.listener && state.session?.running ? `${text}\nSpraak: aan · begin met "Coach"` : text;
+}
+
+/** Een zin van de captain: alleen iets doen als hij met "Coach" begon. */
+function onVoice(state: GuildState, text: string, ms: number) {
+  const session = state.session;
+  if (!session?.running) return;
+  const names = riderNames(session);
+  const command = parseVoiceCommand(text, names);
+  // Wat de captain tegen de ploeg zei, komt niet in het logboek.
+  if (!command) {
+    log(`spraak ${ms} ms: geen "Coach"`);
+    return;
+  }
+  log(`spraak ${ms} ms: "${text}" → ${JSON.stringify(command)}`);
+  const say = (phrase: string) => state.speech.say(phrase, "clock");
+  switch (command.kind) {
+    case "klim":
+    case "hervat":
+      if (!session.setFree(command.kind === "klim")) say(ALREADY);
+      break;
+    case "volgende":
+      session.skip();
+      break;
+    case "plus":
+      session.plus(command.seconds);
+      break;
+    case "deel":
+      if (!session.usePart(command.number)) say(`Geen deel ${command.number}.`);
+      break;
+    case "gelost":
+    case "terug":
+      session.setOut(command.rider, command.kind === "gelost");
+      break;
+  }
+  const phrase = confirmation(command, names);
+  if (phrase) say(phrase);
+  state.dirty = true;
 }
 
 function controls(session: Session) {
@@ -196,11 +273,13 @@ async function render(state: GuildState) {
   state.dirty = false;
   state.renderedAt = Date.now();
   await message
-    .edit({ content: session.status(), components: session.running ? controls(session) : [] })
+    .edit({ content: statusText(state), components: session.running ? controls(session) : [] })
     .catch((error) => console.warn("Statusbericht bijwerken mislukte:", error));
 }
 
 function stop(state: GuildState) {
+  state.listener?.stop();
+  state.listener = null;
   state.session?.stop();
   state.speech.clear();
   state.player.stop();
@@ -244,6 +323,9 @@ const command = new SlashCommandBuilder()
       .setDescription("Start in het spraakkanaal waar je nu zit")
       .addIntegerOption((option) =>
         option.setName("vertraging").setDescription("Seconden tot de start").setMinValue(0).setMaxValue(3600),
+      )
+      .addBooleanOption((option) =>
+        option.setName("spraak").setDescription('Luister naar mijn commando\'s, zoals "Coach, klim"'),
       ),
   )
   .addSubcommand((sub) => sub.setName("stop").setDescription("Stop en verlaat het spraakkanaal"))
@@ -336,7 +418,7 @@ async function handle(interaction: Interaction) {
       session.setOut(index, !session.rotation.riders[index]?.out);
     }
     await interaction.update({
-      content: session.status(),
+      content: statusText(state),
       components: session.running ? controls(session) : [],
     });
     return;
@@ -405,17 +487,40 @@ async function handle(interaction: Interaction) {
       await reply("In dit kanaal kan ik geen bericht plaatsen.");
       return;
     }
+    const wantsVoice = interaction.options.getBoolean("spraak") ?? false;
+    const listen = wantsVoice && whisper !== null;
+    state.listener?.stop();
+    state.listener = null;
     state.connection?.destroy();
     state.connection = joinVoiceChannel({
       channelId: voice.id,
       guildId: voice.guild.id,
       adapterCreator: voice.guild.voiceAdapterCreator,
+      // Doof, tenzij de captain spraak aanzette: dan moet de bot hem horen.
+      selfDeaf: !listen,
     });
     state.connection.subscribe(state.player);
+    if (listen && whisper) {
+      state.listener = new VoiceListener(
+        state.connection,
+        interaction.user.id,
+        whisper,
+        () => voicePrompt(riderNames(session)),
+        (text, ms) => onVoice(state, text, ms),
+        log,
+      );
+      log(`spraak aan: luistert naar ${interaction.member.displayName}`);
+    }
     session.start(interaction.options.getInteger("vertraging") ?? DEFAULT_DELAY_S);
     // Een eigen bericht, geen antwoord: een antwoord is na een kwartier niet meer te wijzigen.
-    state.message = await channel.send({ content: session.status(), components: controls(session) });
-    await reply("Gestart.");
+    state.message = await channel.send({ content: statusText(state), components: controls(session) });
+    await reply(
+      listen
+        ? 'Gestart. Ik luister alleen naar jou: begin met "Coach", bijvoorbeeld "Coach, klim".'
+        : wantsVoice
+          ? "Gestart, zonder spraak: whisper staat niet ingesteld op de bot-pc."
+          : "Gestart.",
+    );
     return;
   }
 
