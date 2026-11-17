@@ -39,7 +39,8 @@ gaat stabiliteit voor nieuwe features.
    (database) gedaan op een eigen Supabase-project in een aparte, gratis
    organisatie van de eigenaar. §3 (Netlify) gedaan: site
    `rabobank-alpe-dhuzes.netlify.app`, eerste deploy van `main@bd06866` gelukt.
-   Open: Supabase-auth (§2, laatste stap), de eerste beheerder (§4), de
+   Auth-URL's in Supabase gezet. Open: e-mailtemplates en eigen SMTP (§2),
+   de eerste beheerder (§4), de
    inrichting met Uitdaging aan (§5), het pushen van Uitdaging (de site bouwt
    van `main`, waar de module nog niet staat), en de pagina in de browser
    bekijken. Meer dan 10 deelnemers, dus
@@ -12524,6 +12525,14 @@ link naar `/live/[eventId]`, zie de update hierboven).
   zonder Netlify-login bereikbaar (`/login` geeft 200, ondanks "nieuwe
   projecten zijn privé") en toont "Club", dus de app praat met de nieuwe
   database. Elke push naar `main` bouwt nu ook deze site.
+- **Auth-URL's (2026-11-17).** Op verzoek van de eigenaar in Chrome gezet,
+  zoals bij ZWB ([supabase-auth-email-templates.md](docs/supabase-auth-email-templates.md)):
+  Site URL `https://rabobank-alpe-dhuzes.netlify.app`, redirect-URL's
+  `/auth/confirm` op die site en `http://localhost:3000/auth/confirm` (voor
+  §9). Na herladen nagekeken. Bij een eerste poging kwam getypte tekst buiten
+  het venster terecht en sprong het dashboard naar Users; daarna was de
+  instelling ongewijzigd, maar andere pagina's zijn niet nagelopen. Nog niet:
+  e-mailtemplates en een eigen SMTP-dienst (zonder SMTP twee auth-mails per uur).
 - **Getest.** `tsc` en eslint schoon; `uitdaging`, `modules`, `module-access`,
   `baseline` (0337 loopt op PGlite in beide routes en geeft hetzelfde schema),
   `club-texts-tokens` en `dashboard-parts` groen. De volledige set: 4663
