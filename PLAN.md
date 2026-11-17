@@ -37,6 +37,14 @@ gaat stabiliteit voor nieuwe features.
    een testlid nalopen. Zie de ronde "Onderdelen per ledengroep afsluiten en
    per lid verbergen".
 
+0. **Club Ladder seizoen 8: zMAP-regel in de Ladderpuzzel (2026-11-17):
+   lokaal gecommit, niet gepusht.** Geen migratie. Toggle Nu / Seizoen 8 voor
+   wie indeelt. Open: in de browser bekijken met een captain-login (de lokale
+   server vroeg om in te loggen), de privacyzin voor ladder-captains (voorgelegd,
+   nog niet akkoord), pushen. Na de wissel eind december: de stand Nu en de
+   rankregel weghalen. Zie de ronde "Gebouwd — Club Ladder seizoen 8:
+   zMAP-regel in de Ladderpuzzel".
+
 0. **Kapotte herziening wordt niet meer gepubliceerd (2026-11-17): lokaal
    gecommit, niet gepusht.** Geen migratie. Karens schema is op productie al
    met de hand hersteld. Open: pushen, en na de deploy één nachtelijke cron
@@ -12519,6 +12527,71 @@ time-outs onder belasting (los gedraaid groen) en `omnium-live` zonder
 `.env.local`. De migratie is niet lokaal gedraaid (geen Docker of
 Supabase-config), wel in PGlite en daarna op productie. **Niet bekeken:** het rechtenscherm, het profielblok, het menu en
 de poort in de ingelogde app (geen `.env.local` in de worktree).
+
+### Gebouwd — Club Ladder seizoen 8: zMAP-regel in de Ladderpuzzel
+
+> **2026-11-17 — gebouwd, lokaal getest, niet in de browser bekeken.** Commit:
+> de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De Club Ladder kondigde seizoen 8 aan (PDF "Ladder Season 8
+> Announcement", captains' briefing, gelezen 2026-11-17; niet in de repo). Vanaf
+> eind december deelt de ladder niet meer in op vELO-ranks maar op zMAP:
+> - hoogste min laagste zMAP op het roster hooguit **1,2 w/kg**; voor die
+>   spreiding telt 5,8 of hoger als 5,8 en 2,5 of lager als 2,5;
+> - een team dat niet past gaat van de ladder tot het roster klopt (geen 50%
+>   meer), geplande wedstrijden worden verloren;
+> - 2–3 dagen pauze rond de jaarwisseling om roosters aan te passen;
+> - daarna een reset: teams komen op de ladder op hun **mediaan-zMAP**.
+> Vraag eigenaar: alvast kijken of de teams moeten veranderen, als toggle "nu en
+> seizoen 8" in de Ladderpuzzel. Voorstel akkoord ("Ja, bouwen"), met de
+> geschatte zMAP van de ZRL-indeling in plaats van alleen de WTRL-plak
+> (eigenaar: "Kun je de geschatte zMap gebruiken die we bij de ZRL berekenen?").
+>
+> **Nu.**
+> - `lib/club-ladder/zmap-rule.ts` (puur): `checkLadderTeamZmap` geeft
+>   spreiding (na de grenzen), mediaan (zonder grenzen), de ruimte waarbinnen een
+>   renner erbij past, de uitersten als het team te breed is en renners zonder
+>   zMAP. Rood boven 1,2; oranje boven 0,98 (1,2 min de foutmarge 0,22 van de
+>   schatting, `ESTIMATE_MARGIN`) of bij een renner zonder zMAP.
+> - zMAP per puzzelrenner: `withPuzzleZmap` in `teams/club-ladder/_lib/load.ts`
+>   gebruikt `bestPower` en `estimateZ` uit `teams/zrl-ranking.ts`, dus precies
+>   de ZRL-schatting (0,971 × beste 5 min, per duur de hoogste van ZwiftRacing
+>   en intervals.icu, anders de laatste WTRL-plak).
+> - Ladderpuzzel: knoppen **Nu | Seizoen 8**, alleen voor wie indeelt
+>   (`canEditLadderPuzzle` of `canAssignLadderRiders`); voor anderen wordt de
+>   zMAP niet geladen. In Seizoen 8 staan de teams op mediaan (hoogste links),
+>   de stukjes op zMAP met de bron in de tooltip (WTRL schuin, "telt als 5,80"
+>   boven de grens), per team Spreiding / Mediaan / Erbij in plaats van de
+>   rankladder en de band. Slepen en team kiezen werken in beide standen; rank
+>   en band zetten alleen in Nu.
+> - Uitleg op /hulp bij de Ladderpuzzel.
+>
+> **Doorgerekend op productie (alleen lezend, 2026-11-17).** Met de schatting
+> passen alle vier puzzelteams, maar alle vier staan op Past bijna:
+> ZWBeasts 1,14 (mediaan 5,19), ZWBullets 1,04 (4,75), ZWBandits 1,14 (4,21),
+> ZWBeauties 1,09 (4,05). Met alleen de WTRL-plak waren het 0,95 / 1,17 / 0,85 /
+> 1,08, met vier renners zonder waarde. Grootste verschil: een renner bij wie
+> intervals.icu 0,44 hoger uitkomt dan WTRL (training of buiten telt mee, de
+> zMAP van Zwift waarschijnlijk niet).
+>
+> **Bewust niet.** Geen tabel voor met de hand ingevulde zMAP (eerste voorstel):
+> met de schatting heeft elke renner een waarde. Geen voorspelling van de plek
+> tegenover andere clubs (hun zMAP hebben we niet). Geen automatische indeler.
+> De rank-banden per team blijven staan, ze tellen alleen niet in Seizoen 8.
+> Na de wissel gaan de stand Nu, de rankregel en waarschijnlijk de banden eruit.
+>
+> **Open.** Over welke periode de ladder de zMAP neemt en of hij in het seizoen
+> wordt bijgewerkt, staat niet in de aankondiging (rulebook niet gelezen).
+> Zodra de ladder zMAP op renner- en rosterpagina's toont, de schatting daarmee
+> vergelijken. Privacy: de geschatte zMAP zagen alleen captains en beheerders
+> op een ZRL-hoofdteam; nu ook wie de ladder indeelt, ook van renners zonder
+> account. Zin voor `/privacy` voorgelegd, nog niet gezet.
+>
+> **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden, de
+> unitsuite (nieuw: `club-ladder-zmap-rule.test.ts`). Bij de volle suite liepen
+> enkele PGlite-migratietests op tijd vast onder de load; los gedraaid groen,
+> en `omnium-live` slaat over zonder live-omgeving. **Niet** in de browser
+> bekeken: de lokale server vroeg om in te loggen.
 
 ### Hersteld — Kapotte herziening wist Karens schema
 

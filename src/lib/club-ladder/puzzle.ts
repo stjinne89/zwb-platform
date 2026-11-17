@@ -6,6 +6,7 @@
 // team beslaat hooguit 3 ranks; hoeveel renners er per rank zijn, maakt niet uit.
 // Beslaat een team er meer, dan scoren de hoogst gerankte renners 50%.
 
+import type { ZValue } from "@/lib/teams/zrl-ranking";
 import { rankFromLegacyVelo } from "./legacy-velo";
 import type { LadderRider, LadderSex } from "./riders";
 
@@ -51,6 +52,8 @@ export type LadderPuzzleRider = {
   rank: number | null;
   /** Legacy vELO waar de ladder mee rekent (max 30 dagen, anders 90), 0301. */
   velo: number | null;
+  /** Geschatte zMAP voor seizoen 8 (`zmap-rule.ts`); alleen voor wie mag indelen. */
+  zmap?: ZValue | null;
   /** In welk puzzelteam hij ligt; null = losse stukjes. */
   teamId: string | null;
 };

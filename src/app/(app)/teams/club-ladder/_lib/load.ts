@@ -12,9 +12,13 @@ import {
 import {
   buildPuzzleRiders,
   parseLadderBand,
+  type LadderPuzzleRider,
   type LadderPuzzleTeam,
   type LadderRosterRow,
 } from "@/lib/club-ladder/puzzle";
+import type { PowerWkg } from "@/lib/club-ladder/team-power";
+import { bestPower, estimateZ } from "@/lib/teams/zrl-ranking";
+import { loadWtrlSummaries } from "@/lib/teams/wtrl-summary";
 import { ladderVeloByZwiftId, type LegacyVeloRow } from "@/lib/club-ladder/legacy-velo";
 import { normalizeTeamName } from "@/lib/ladder";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
@@ -255,6 +259,57 @@ export async function loadLadderPuzzle(
     roster,
     riders: buildPuzzleRiders(members, roster, ranks, new Set(teams.map((team) => team.id)), velos),
   };
+}
+
+/**
+ * Geschatte zMAP per puzzelrenner voor seizoen 8, zoals de ZRL-indeling hem
+ * rekent: per duur de hoogste van ZwiftRacing en intervals.icu, 0,971 × beste
+ * 5 minuten, anders de laatste WTRL-plak. Alleen voor wie mag indelen (zoals bij
+ * de ZRL-indeling).
+ */
+export async function withPuzzleZmap(
+  riders: LadderPuzzleRider[],
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<LadderPuzzleRider[]> {
+  const zwiftIds = [...new Set(riders.map((rider) => rider.zwiftId).filter((id): id is string => !!id && /^\d+$/.test(id)))];
+  const profileIds = riders.filter((rider) => rider.kind === "profile").map((rider) => rider.id);
+  const [{ data: metricRows }, { data: intervalsRows }, wtrl] = await Promise.all([
+    zwiftIds.length > 0
+      ? admin.from("zwift_rider_metrics").select("zwift_id, power_wkg").in("zwift_id", zwiftIds.map(Number))
+      : Promise.resolve({ data: [] }),
+    profileIds.length > 0
+      ? admin.from("rider_power_profiles").select("profile_id, wkg_5m").in("profile_id", profileIds)
+      : Promise.resolve({ data: [] }),
+    loadWtrlSummaries(admin, null),
+  ]);
+  const zwiftracing = new Map(
+    ((metricRows ?? []) as Array<{ zwift_id: number | string; power_wkg: PowerWkg | null }>).map((row) => [
+      String(row.zwift_id),
+      row.power_wkg,
+    ]),
+  );
+  const intervals = new Map(
+    ((intervalsRows ?? []) as Array<{ profile_id: string; wkg_5m: number | string | null }>).map((row) => [
+      row.profile_id,
+      { m5: row.wkg_5m == null ? null : Number(row.wkg_5m) },
+    ]),
+  );
+  return riders.map((rider) => {
+    const best = bestPower(
+      rider.zwiftId ? zwiftracing.get(rider.zwiftId) : null,
+      rider.kind === "profile" ? intervals.get(rider.id) : null,
+    );
+    const fromWtrl = rider.zwiftId ? wtrl.get(rider.zwiftId) : null;
+    const { zmap } = estimateZ({
+      key: rider.key,
+      name: rider.name,
+      profileId: rider.kind === "profile" ? rider.id : null,
+      power: best?.power ?? null,
+      powerSource: best?.source,
+      wtrl: fromWtrl ? { zftpWkg: fromWtrl.zftpWkg, zmapWkg: fromWtrl.zmapWkg } : null,
+    });
+    return { ...rider, zmap };
+  });
 }
 
 function zwiftIdOf(value: string | null) {

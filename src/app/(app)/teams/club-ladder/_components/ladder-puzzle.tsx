@@ -17,6 +17,14 @@ import {
   type LadderPuzzleTeam,
   type LadderTeamCheck,
 } from "@/lib/club-ladder/puzzle";
+import {
+  ZMAP_CAP_HIGH,
+  ZMAP_CAP_LOW,
+  checkLadderTeamZmap,
+  formatWkg,
+  sortByZmap,
+  type ZmapTeamCheck,
+} from "@/lib/club-ladder/zmap-rule";
 import { cn } from "@/lib/utils";
 import {
   addLadderRosterRider,
@@ -54,6 +62,23 @@ const FIELD =
   "min-h-11 w-full min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-sm sm:min-h-9";
 
 const BENCH = "";
+
+type Mode = "nu" | "s8";
+const MODES: Array<{ id: Mode; label: string }> = [
+  { id: "nu", label: "Nu" },
+  { id: "s8", label: "Seizoen 8" },
+];
+
+const ZMAP_SOURCE: Record<string, string> = { zwiftracing: "ZwiftRacing", intervals: "intervals.icu" };
+
+/** "4,60–5,80", "vanaf 4,60", "tot 3,70" of "alles". */
+function roomText(room: [number, number]) {
+  const [from, to] = room;
+  if (from <= ZMAP_CAP_LOW && to >= ZMAP_CAP_HIGH) return "alles";
+  if (to >= ZMAP_CAP_HIGH) return `vanaf ${formatWkg(from)}`;
+  if (from <= ZMAP_CAP_LOW) return `tot ${formatWkg(to)}`;
+  return `${formatWkg(from)}–${formatWkg(to)}`;
+}
 
 type State = { teams: LadderPuzzleTeam[]; riders: LadderPuzzleRider[] };
 type Change =
@@ -93,14 +118,19 @@ export function LadderPuzzle({
   riders,
   otherTeams,
   canEdit,
+  season8 = false,
 }: {
   teams: LadderPuzzleTeam[];
   riders: LadderPuzzleRider[];
   /** Ladderteams zonder band, die nog in de puzzel kunnen. */
   otherTeams: Array<{ id: string; name: string }>;
   canEdit: boolean;
+  /** Toggle naar de zMAP-regel van seizoen 8; de renners hebben dan een zMAP. */
+  season8?: boolean;
 }) {
   const [state, applyOptimistic] = useOptimistic<State, Change>({ teams, riders }, apply);
+  const [mode, setMode] = useState<Mode>("nu");
+  const s8 = season8 && mode === "s8";
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [placed, setPlaced] = useState<string | null>(null);
@@ -131,9 +161,24 @@ export function LadderPuzzle({
       checkLadderTeam(team, state.riders.filter((r) => r.teamId === team.id)),
     ]),
   );
+  const zChecks = new Map(
+    s8
+      ? state.teams.map((team) => [
+          team.id,
+          checkLadderTeamZmap(state.riders.filter((r) => r.teamId === team.id)),
+        ])
+      : [],
+  );
+  const levelOf = (teamId: string) => (s8 ? zChecks.get(teamId)?.level : checks.get(teamId)?.level);
+  // Seizoen 8: de ladder zet teams op hun mediaan-zMAP, dus ook hier.
+  const shownTeams = s8
+    ? [...state.teams].sort(
+        (a, b) => (zChecks.get(b.id)?.median ?? -1) - (zChecks.get(a.id)?.median ?? -1),
+      )
+    : state.teams;
   const teamIds = new Set(state.teams.map((t) => t.id));
   const loose = state.riders.filter((r) => !r.teamId || !teamIds.has(r.teamId));
-  const fits = state.teams.filter((t) => checks.get(t.id)?.level === "ok").length;
+  const fits = state.teams.filter((t) => levelOf(t.id) === "ok").length;
   const done = state.teams.length > 0 && fits === state.teams.length && loose.length === 0;
 
   const lanes = [
@@ -141,12 +186,14 @@ export function LadderPuzzle({
     { id: BENCH, team: null },
   ];
 
-  function piece(rider: LadderPuzzleRider, check: LadderTeamCheck | null) {
+  function piece(rider: LadderPuzzleRider, check: LadderTeamCheck | null, zCheck: ZmapTeamCheck | null = null) {
     return (
       <Piece
         key={rider.key}
         rider={rider}
         check={check}
+        s8={s8}
+        zCheck={zCheck}
         lanes={lanes}
         canEdit={canEdit}
         pending={pending}
@@ -198,7 +245,29 @@ export function LadderPuzzle({
   return (
     <section id="ladderpuzzel" className="scroll-mt-20 space-y-4 rounded-lg border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Ladderpuzzel</h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="font-semibold">Ladderpuzzel</h2>
+          {season8 && (
+            <div className="inline-flex gap-1" role="group" aria-label="Regels">
+              {MODES.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={mode === option.id}
+                  onClick={() => setMode(option.id)}
+                  className={cn(
+                    "inline-flex min-h-11 items-center rounded-full border px-3 text-xs font-medium transition sm:min-h-8",
+                    mode === option.id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {state.teams.length > 0 && (
           <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-3 py-1 text-xs font-semibold text-background">
             <span className="inline-flex gap-0.5" aria-hidden="true">
@@ -207,7 +276,7 @@ export function LadderPuzzle({
                   key={team.id}
                   className={cn(
                     "size-2.5 rounded-[3px]",
-                    checks.get(team.id)?.level === "ok" ? "bg-primary" : "bg-background/30",
+                    levelOf(team.id) === "ok" ? "bg-primary" : "bg-background/30",
                   )}
                 />
               ))}
@@ -222,9 +291,11 @@ export function LadderPuzzle({
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="grid items-start gap-3 sm:grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))]">
-        {state.teams.map((team) => {
-          const laneRiders = sortPuzzleRiders(state.riders.filter((r) => r.teamId === team.id));
+        {shownTeams.map((team) => {
+          const inLane = state.riders.filter((r) => r.teamId === team.id);
+          const laneRiders = s8 ? sortByZmap(inLane) : sortPuzzleRiders(inLane);
           const check = checks.get(team.id)!;
+          const zCheck = zChecks.get(team.id) ?? null;
           return (
             <section
               key={team.id}
@@ -238,13 +309,14 @@ export function LadderPuzzle({
               <LaneHead
                 team={team}
                 check={check}
+                zCheck={zCheck}
                 count={laneRiders.length}
                 riders={laneRiders}
                 canEdit={canEdit}
                 pending={pending}
                 onBand={(band) => run({ type: "band", teamId: team.id, band }, () => setLadderTeamBand(team.id, band))}
               />
-              <div className="ladder-stukken">{laneRiders.map((rider) => piece(rider, check))}</div>
+              <div className="ladder-stukken">{laneRiders.map((rider) => piece(rider, check, zCheck))}</div>
             </section>
           );
         })}
@@ -264,6 +336,7 @@ export function LadderPuzzle({
           <LaneHead
             team={null}
             check={null}
+            zCheck={null}
             count={loose.length}
             riders={loose}
             canEdit={canEdit}
@@ -271,7 +344,7 @@ export function LadderPuzzle({
             onBand={() => {}}
           />
           <div className="ladder-stukken sm:grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))] sm:gap-x-3">
-            {sortPuzzleRiders(loose).map((rider) => piece(rider, null))}
+            {(s8 ? sortByZmap(loose) : sortPuzzleRiders(loose)).map((rider) => piece(rider, null))}
           </div>
         </div>
         {canEdit && <AddRider pending={pending} run={run} />}
@@ -287,6 +360,7 @@ export function LadderPuzzle({
 function LaneHead({
   team,
   check,
+  zCheck,
   count,
   riders,
   canEdit,
@@ -295,6 +369,8 @@ function LaneHead({
 }: {
   team: LadderPuzzleTeam | null;
   check: LadderTeamCheck | null;
+  /** Gezet in de stand Seizoen 8. */
+  zCheck: ZmapTeamCheck | null;
   count: number;
   riders: LadderPuzzleRider[];
   canEdit: boolean;
@@ -313,26 +389,65 @@ function LaneHead({
   const counts = new Map<number, number>();
   for (const rider of riders) if (rider.rank != null) counts.set(rider.rank, (counts.get(rider.rank) ?? 0) + 1);
   const allowed = check.allowed;
+  const level = zCheck?.level ?? check.level;
+
+  const head = (
+    <div className="flex items-center gap-2">
+      <h3 className="min-w-0 truncate font-semibold">{team.name}</h3>
+      {team.archived && (
+        <span className="shrink-0 rounded border px-1 text-[0.7rem] text-muted-foreground">archief</span>
+      )}
+      <span className="ml-auto shrink-0 text-sm tabular-nums text-muted-foreground">
+        {count}/{LADDER_ROSTER_SIZE}
+      </span>
+      <span
+        className={cn(
+          "shrink-0 rounded-full px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide",
+          LEVEL_PILL[level],
+        )}
+      >
+        {LEVEL_LABEL[level]}
+      </span>
+    </div>
+  );
+
+  if (zCheck) {
+    return (
+      <div className="grid gap-2">
+        {head}
+        <dl className="grid grid-cols-3 gap-1 text-center">
+          {[
+            { label: "Spreiding", value: zCheck.spread },
+            { label: "Mediaan", value: zCheck.median },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded bg-muted px-1 py-1">
+              <dt className="text-[0.7rem] text-muted-foreground">{stat.label}</dt>
+              <dd className="text-sm font-semibold tabular-nums">
+                {stat.value == null ? "–" : formatWkg(stat.value)}
+              </dd>
+            </div>
+          ))}
+          <div className="rounded bg-muted px-1 py-1">
+            <dt className="text-[0.7rem] text-muted-foreground">Erbij</dt>
+            <dd className="text-sm font-semibold tabular-nums">{zCheck.room ? roomText(zCheck.room) : "–"}</dd>
+          </div>
+        </dl>
+        {zCheck.issues.length > 0 && (
+          <ul className="grid gap-1 text-xs">
+            {zCheck.issues.map((issue) => (
+              <li key={issue.text} className={cn("rounded px-2 py-1", LEVEL_PILL[issue.level])}>
+                {issue.text}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-2">
-      <div className="flex items-center gap-2">
-        <h3 className="min-w-0 truncate font-semibold">{team.name}</h3>
-        {team.archived && (
-          <span className="shrink-0 rounded border px-1 text-[0.7rem] text-muted-foreground">archief</span>
-        )}
-        <span className="ml-auto shrink-0 text-sm tabular-nums text-muted-foreground">
-          {count}/{LADDER_ROSTER_SIZE}
-        </span>
-        <span
-          className={cn(
-            "shrink-0 rounded-full px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide",
-            LEVEL_PILL[check.level],
-          )}
-        >
-          {LEVEL_LABEL[check.level]}
-        </span>
-      </div>
+      {head}
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {canEdit ? (
           <>
@@ -411,6 +526,8 @@ function LaneHead({
 function Piece({
   rider,
   check,
+  s8,
+  zCheck,
   lanes,
   canEdit,
   pending,
@@ -424,6 +541,8 @@ function Piece({
 }: {
   rider: LadderPuzzleRider;
   check: LadderTeamCheck | null;
+  s8: boolean;
+  zCheck: ZmapTeamCheck | null;
   lanes: Array<{ id: string; team: LadderPuzzleTeam | null }>;
   canEdit: boolean;
   pending: boolean;
@@ -435,9 +554,16 @@ function Piece({
   onRank: (rank: number | null) => void;
   onRemove: () => void;
 }) {
-  const out = check?.outKeys.includes(rider.key);
-  const offBand = check?.offBandKeys.includes(rider.key);
-  const color = rider.rank != null ? RANK_COLORS[rider.rank] : "var(--border)";
+  const out = s8 ? zCheck?.outKeys.includes(rider.key) : check?.outKeys.includes(rider.key);
+  const offBand = s8 ? zCheck?.unknownKeys.includes(rider.key) : check?.offBandKeys.includes(rider.key);
+  const color = s8
+    ? rider.zmap
+      ? "var(--primary)"
+      : "var(--border)"
+    : rider.rank != null
+      ? RANK_COLORS[rider.rank]
+      : "var(--border)";
+  const showRankSelect = canEdit && !!rider.zwiftId && !s8;
 
   return (
     <div
@@ -458,7 +584,7 @@ function Piece({
       </span>
       {canEdit && (
         <span className="flex min-w-0 gap-1">
-          {rider.zwiftId && (
+          {showRankSelect && (
             <RankSelect
               value={rider.rank}
               label={`Rank van ${rider.name}`}
@@ -484,12 +610,40 @@ function Piece({
         </span>
       )}
       <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-        {!(canEdit && rider.zwiftId) && (
-          <span className={cn("font-semibold", rider.rank == null ? "text-destructive" : "text-foreground")}>
-            {ladderRankName(rider.rank)}
-          </span>
+        {s8 ? (
+          rider.zmap ? (
+            <span
+              className={cn(
+                "font-semibold tabular-nums text-foreground",
+                rider.zmap.source === "wtrl" && "italic",
+              )}
+              title={
+                rider.zmap.source === "wtrl"
+                  ? "WTRL"
+                  : rider.zmap.from
+                    ? `Geschat, ${ZMAP_SOURCE[rider.zmap.from]}`
+                    : "Geschat"
+              }
+            >
+              zMAP {formatWkg(rider.zmap.value)}
+              {rider.zmap.value > ZMAP_CAP_HIGH && (
+                <span className="font-normal text-muted-foreground"> telt als {formatWkg(ZMAP_CAP_HIGH)}</span>
+              )}
+              {rider.zmap.value < ZMAP_CAP_LOW && (
+                <span className="font-normal text-muted-foreground"> telt als {formatWkg(ZMAP_CAP_LOW)}</span>
+              )}
+            </span>
+          ) : (
+            <span className="font-semibold text-amber-700 dark:text-amber-400">geen zMAP</span>
+          )
+        ) : (
+          !showRankSelect && (
+            <span className={cn("font-semibold", rider.rank == null ? "text-destructive" : "text-foreground")}>
+              {ladderRankName(rider.rank)}
+            </span>
+          )
         )}
-        {rider.velo != null && <span className="tabular-nums">vELO1 {Math.round(rider.velo)}</span>}
+        {!s8 && rider.velo != null && <span className="tabular-nums">vELO1 {Math.round(rider.velo)}</span>}
         {!rider.zwiftId && <span className="text-destructive">geen Zwift-ID</span>}
         {rider.sex && <span>{rider.sex}</span>}
         {rider.kind === "roster" && <span>geen account</span>}
