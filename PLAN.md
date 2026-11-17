@@ -12442,7 +12442,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — TTT-bot zelf installeren, vanaf de TTT Planner
 
-**2026-11-17, de commit die dit blok toevoegt, lokaal, niet gepusht. Geen migratie.**
+**2026-11-17, commit `017170e4`, op 2026-11-17 gepusht naar `main` (eigenaar: "Push naar main"). Geen migratie.**
 
 - **Waarom.** De eigenaar wilde dat leden de TTT-bot met de Sauce-mod zelf
   kunnen installeren, met uitleg op groep 8-niveau. Plek: op de TTT Planner,
