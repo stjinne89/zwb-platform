@@ -187,14 +187,23 @@ export function briefingMoments(input: {
         return s.kind === "lap" ? [start, { km: s.endKm, what: `eind ${segmentLabel(s)}`, todo: todo.lapEnd }] : [start];
       });
 
-  if (format === "ttt" || format === "rot") {
+  if (format === "ttt") {
+    // De tijd van de vierde telt: wie niet bij de vier hoort, geeft op het eind alles en laat los.
+    const finaleClimb = route.finale.kind === "climb" ? route.finale.climb : null;
+    const lastPulls = "laatste beurten voluit, de 4e blijft erbij";
     for (const climb of route.climbs) {
-      out.push(climbMoment(climb, format === "ttt" ? "W/kg-doel, bij elkaar blijven" : "niet harder dan je drempel"));
+      out.push(climb === finaleClimb ? climbMoment(climb, lastPulls, { key: true }) : climbMoment(climb, "W/kg-doel, bij elkaar blijven"));
     }
-    if (format === "rot") {
-      const both = "telt voor FAL en FTS";
-      out.push(...scoring(route.climbs, { sprint: both, kom: both, lap: "rondetijd telt voor FTS", lapEnd: "eerste over de streep: FAL" }));
+    if (!finaleClimb) out.push({ km: Math.max(0, route.totalKm - 1), what: "laatste km", todo: lastPulls, key: true });
+    if (route.lastArchKm !== null) out.push({ km: route.lastArchKm, what: "laatste boog", todo: "powerup vóór de boog op" });
+    return out.sort((a, b) => a.km - b.km);
+  }
+  if (format === "rot") {
+    for (const climb of route.climbs) {
+      out.push(climbMoment(climb, "niet harder dan je drempel"));
     }
+    const both = "telt voor FAL en FTS";
+    out.push(...scoring(route.climbs, { sprint: both, kom: both, lap: "rondetijd telt voor FTS", lapEnd: "eerste over de streep: FAL" }));
     return out.sort((a, b) => a.km - b.km);
   }
 

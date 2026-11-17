@@ -1,7 +1,8 @@
 // Het racebriefje: de briefing als handgeschreven spiekbriefje, zoals in de TTT
 // Planner. Eerst wat vóór de start telt (Let op, het profiel met powerups en de
 // fiets), dan de belangrijke punten per kilometer en de segmenten, en daarnaast
-// het plan, wat je onthoudt, de rollen en wie je volgt. Papier heeft geen links;
+// het plan, wat je onthoudt, de rollen en wie je volgt; bij een ploegentijdrit de
+// beurten uit de TTT Planner en de ploegen op hun kracht. Papier heeft geen links;
 // het werkmateriaal staat onder het briefje. De fiets uit je eigen garage staat
 // alleen in de app: het gedeelde plaatje is voor iedereen hetzelfde
 // (data-share-hide, zie share-sheet.tsx).
@@ -9,7 +10,7 @@
 import { Gauge, Mountain, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GREEN, HAND_TEXT, HIGHLIGHT, INK, PaperTitle as Title, PENCIL, RED, RULE, SpiekPaper, TEAL } from "@/components/spiekbriefje/paper";
-import type { BriefingView, OwnBriefingRider } from "@/lib/race-briefing/load";
+import type { BriefingTttPull, BriefingView, OwnBriefingRider } from "@/lib/race-briefing/load";
 import { FORMAT_LABELS } from "@/lib/race-briefing/rules";
 import { cleanRiderName, ROLE_LABELS, shortRiderName } from "@/lib/race-briefing/field";
 import { km } from "@/lib/race-briefing/tips";
@@ -457,12 +458,19 @@ function Rules({ view }: { view: BriefingView }) {
   );
 }
 
-function RoleLine({ rider, limitLabel }: { rider: OwnBriefingRider; limitLabel: string | null }) {
-  const role = rider.captainRole ?? ROLE_LABELS[rider.role].toLowerCase();
+/** `roleText` vervangt de rol (ploegentijdrit: de beurt); null laat alleen de naam staan. */
+function RoleLine({ rider, limitLabel, roleText }: { rider: OwnBriefingRider; limitLabel: string | null; roleText?: string | null }) {
+  const role = roleText === undefined ? (rider.captainRole ?? ROLE_LABELS[rider.role].toLowerCase()) : roleText;
   return (
     <li className={cn("space-y-0.5 border-b py-1.5 leading-snug", RULE)}>
       <p>
-        <span className="font-bold">{cleanRiderName(rider.name)}</span> <span style={{ color: PENCIL }}>→</span> {role}
+        <span className="font-bold">{cleanRiderName(rider.name)}</span>
+        {role && (
+          <>
+            {" "}
+            <span style={{ color: PENCIL }}>→</span> {role}
+          </>
+        )}
       </p>
       {rider.limitWatts && (rider.limitWatts.zftp !== null || rider.limitWatts.zmap !== null) && (
         <p className="tabular-nums" style={{ color: PENCIL }}>
@@ -531,19 +539,67 @@ function RoleLine({ rider, limitLabel }: { rider: OwnBriefingRider; limitLabel: 
   );
 }
 
+function limitLabel(rider: OwnBriefingRider): string | null {
+  if (rider.limits.status === "ok") return null;
+  const zftp = rider.limits.zftpShare ?? 0;
+  const zmap = rider.limits.zmapShare ?? 0;
+  return zftp >= zmap && rider.zftpWkg !== null
+    ? `zFTP ${nl2.format(rider.zftpWkg)} · ${Math.round(zftp * 100)}% van de grens`
+    : rider.zmapWkg !== null
+      ? `zMAP ${nl2.format(rider.zmapWkg)} · ${Math.round(zmap * 100)}% van de grens`
+      : "dicht bij de grens";
+}
+
+/** "380 W · 45 s"; een beurt van 0 s is meerijden zonder kopwerk. */
+function pullText(pull: BriefingTttPull): string {
+  if (pull.seconds === 0) return "geen beurten, in het wiel";
+  return [pull.watts != null ? `${pull.watts} W` : null, pull.seconds != null ? `${pull.seconds} s` : null].filter(Boolean).join(" · ");
+}
+
+/**
+ * Ploegentijdrit: de rotatie uit de TTT Planner, in volgorde, met de grens van de
+ * divisie bij wie in de groep staat. Zonder plan alleen de renners met hun grens.
+ */
+function Pulls({ view }: { view: BriefingView }) {
+  const plan = view.tttPlan;
+  const inPen = view.own.filter((r) => r.inPen);
+  const ownById = new Map(view.own.map((r) => [r.zwiftId, r]));
+  if (plan && plan.riders.length > 0) {
+    return (
+      <div className="mt-4">
+        <Title>Beurten{plan.published ? "" : " (concept)"}</Title>
+        <ol>
+          {plan.riders.map((pull) => {
+            const rider = pull.zwiftId !== null ? ownById.get(pull.zwiftId) : undefined;
+            const text = `${pull.order}e · ${pullText(pull)}`;
+            if (rider) return <RoleLine key={`${pull.order}-${rider.zwiftId}`} rider={rider} limitLabel={limitLabel(rider)} roleText={text} />;
+            return (
+              <li key={`${pull.order}-${pull.name}`} className={cn("border-b py-1.5 leading-snug", RULE)}>
+                <span className="font-bold">{cleanRiderName(pull.name)}</span> <span style={{ color: PENCIL }}>→</span> {text}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    );
+  }
+  if (inPen.length === 0) return null;
+  return (
+    <div className="mt-4">
+      <Title>Renners</Title>
+      <ul>
+        {inPen.map((rider) => (
+          <RoleLine key={rider.zwiftId} rider={rider} limitLabel={limitLabel(rider)} roleText={null} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function Roles({ view }: { view: BriefingView }) {
+  if (view.format === "ttt" && !view.ladder) return <Pulls view={view} />;
   const riders = view.own.filter((r) => r.inPen);
   if (riders.length === 0) return null;
-  const limitLabel = (rider: OwnBriefingRider) => {
-    if (rider.limits.status === "ok") return null;
-    const zftp = rider.limits.zftpShare ?? 0;
-    const zmap = rider.limits.zmapShare ?? 0;
-    return zftp >= zmap && rider.zftpWkg !== null
-      ? `zFTP ${nl2.format(rider.zftpWkg)} · ${Math.round(zftp * 100)}% van de grens`
-      : rider.zmapWkg !== null
-        ? `zMAP ${nl2.format(rider.zmapWkg)} · ${Math.round(zmap * 100)}% van de grens`
-        : "dicht bij de grens";
-  };
   return (
     <div className="mt-4">
       <Title>Rollen</Title>
@@ -561,7 +617,7 @@ function Watch({ view }: { view: BriefingView }) {
   if (lines.length === 0) return null;
   return (
     <div className="mt-4">
-      <Title>Volgen</Title>
+      <Title>{view.format === "ttt" && !view.ladder ? "Ploegen" : "Volgen"}</Title>
       <ul>
         {lines.map((line) => (
           <li key={`${line.name}-${line.note}`} className={cn("border-b py-1 leading-snug", RULE)}>

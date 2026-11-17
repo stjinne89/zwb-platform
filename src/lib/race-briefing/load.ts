@@ -53,6 +53,7 @@ import {
 import {
   projectField,
   ratingOf,
+  TTT_COUNTING_RIDERS,
   suggestRoles,
   watchList,
   cleanRiderName,
@@ -65,7 +66,7 @@ import {
 import { briefingTips, type BriefingTip } from "./tips";
 import { loadSegmentBests, refreshSegmentBests, segmentIdsForRoute } from "./segment-bests";
 import { segmentRecords, type SegmentRecord } from "./segment-records";
-import { defaultSheet, effectiveSheet, sanitizeOverride, type SheetContent, type SheetSection } from "./sheet";
+import { defaultSheet, effectiveSheet, sanitizeOverride, type SheetContent, type SheetSection, type WatchLine } from "./sheet";
 import type { LadderProjection } from "@/lib/club-ladder/briefing";
 import type { PowerDuration } from "@/lib/club-ladder/routes";
 import { getClub } from "@/lib/club";
@@ -160,7 +161,15 @@ export type OwnBriefingRider = {
   expectedPlace: number | null;
   /** Ladder: de tegenstander vlak voor en vlak achter je in de verwachting. */
   targets?: { ahead: string | null; behind: string | null };
+  /** Ploegentijdrit: de beurt uit het TTT-plan; null zonder plan of als de renner er niet in staat. */
+  pull?: BriefingTttPull | null;
 };
+
+/** Een beurt uit de TTT Planner (ttt_plan_riders). */
+export type BriefingTttPull = { order: number; name: string; zwiftId: number | null; watts: number | null; seconds: number | null };
+
+/** Het TTT-plan van de ploeg voor deze race: gepubliceerd, of het concept voor wie de briefing beheert. */
+export type BriefingTttPlan = { id: string; published: boolean; riders: BriefingTttPull[] };
 
 export type BriefingWarning = { kind: "lineup" | "limits" | "starters"; text: string };
 
@@ -211,10 +220,30 @@ export type BriefingView = {
   tips: BriefingTip[];
   plan: { text: string | null; updatedAt: string | null } | null;
   canEdit: boolean;
+  /** Alleen bij een ploegentijdrit met een plan in de TTT Planner. */
+  tttPlan: BriefingTttPlan | null;
   zwiftRacing: boolean;
   /** Waarom er geen groep is, als die ontbreekt. */
   fieldMissing: "no-zwift-event" | "no-entrants" | "error" | "started" | null;
 };
+
+const wkg2 = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** Ploegentijdrit: de ploegen op het briefje, sterkste eerst, met hun gecombineerde kracht. */
+function tttTeamLines(teams: Projection["teams"], labels: Record<string, string>, max = 6): WatchLine[] {
+  // De sterksten, en onze ploeg er altijd bij.
+  const shown = teams.filter((t, i) => i < max || t.own);
+  return shown.map((t) => ({
+    name: labels[t.team] ?? t.team,
+    note: [
+      t.strength ? `${wkg2.format(t.strength.wkg)} W/kg${t.strength.riders < TTT_COUNTING_RIDERS ? ` (${t.strength.riders})` : ""}` : null,
+      `${t.starters} renners`,
+      t.own ? "wij" : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  }));
+}
 
 export type BriefingOutcome = { status: "ok"; view: BriefingView } | { status: "not-found" };
 
@@ -389,6 +418,41 @@ async function wtrlPower(teamId: string | null): Promise<Map<number, WtrlPower>>
   return out;
 }
 
+/**
+ * Het TTT-plan van de ploeg voor deze race, zoals de eventpagina het vindt: aan
+ * dit event of het hoofdevent, van dit team of met dit team als hoofdteam. Een
+ * gepubliceerd plan gaat voor; een concept ziet alleen wie de briefing beheert.
+ */
+async function loadTttPlan(event: EventRow, canEdit: boolean): Promise<BriefingTttPlan | null> {
+  if (!event.team_id) return null;
+  const admin = createAdminClient();
+  const ids = [event.id, event.parent_event_id].filter((id): id is string => Boolean(id));
+  let query = admin
+    .from("ttt_plans")
+    .select("id, published_at")
+    .in("event_id", ids)
+    .or(`team_id.eq.${event.team_id},parent_team_id.eq.${event.team_id}`);
+  if (!canEdit) query = query.not("published_at", "is", null);
+  const { data: plan } = await query
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!plan) return null;
+  const { data: rows } = await admin
+    .from("ttt_plan_riders")
+    .select("name, zwift_id, pull_watts, pull_duration_seconds")
+    .eq("plan_id", plan.id)
+    .order("display_order");
+  const riders = ((rows ?? []) as Array<{ name: string; zwift_id: string | null; pull_watts: number | null; pull_duration_seconds: number | null }>).map(
+    (row, index) => {
+      const zwiftId = Number(row.zwift_id);
+      return { order: index + 1, name: row.name, zwiftId: zwiftId > 0 ? zwiftId : null, watts: row.pull_watts, seconds: row.pull_duration_seconds };
+    },
+  );
+  return { id: plan.id as string, published: Boolean(plan.published_at), riders };
+}
+
 export async function canEditBriefing(userId: string, access: Access, teamId: string | null): Promise<boolean> {
   if (access.has("teams.manage_roster") || access.has("teams.manage_results")) return true;
   if (!teamId) return false;
@@ -432,6 +496,9 @@ export async function loadRaceBriefing(
   const { data: sheetRow } = await admin.from("race_briefings").select("sheet").eq("event_id", event.id).maybeSingle();
   const history = { labels: historyRows.labels, places: new Map(historyRows.places) };
   const format = briefingFormatOf(zwiftEvent);
+  const ttt = format === "ttt";
+  // Na het format: alleen een ploegentijdrit heeft een TTT-plan. Een fout laat de rest van de briefing staan.
+  const tttPlan = ttt ? await loadTttPlan(event, canEdit).catch(() => null) : null;
   const division = view ? divisionOf(view.eventName, view.subgroupLabel) : null;
   const limits = division ? divisionLimits(division) : null;
 
@@ -477,7 +544,8 @@ export async function loadRaceBriefing(
   });
   const projection = view ? projectField(field, format) : null;
   const placeOf = new Map(projection?.order.map((r, i) => [r.zwiftId, i + 1]) ?? []);
-  const expectedPlace = (id: number) => (projection?.basis ? placeOf.get(id) ?? null : null);
+  // Een ploegentijdrit heeft geen plek per renner; de ploegen staan op hun gecombineerde kracht.
+  const expectedPlace = (id: number) => (!ttt && projection?.basis ? placeOf.get(id) ?? null : null);
 
   // Eigen renners: wie in de groep staat, plus wie in de opstelling staat maar niet ingeschreven is.
   const lineupIds = new Set(lineup.map((l) => l.zwiftId).filter((id): id is number => id !== null));
@@ -490,7 +558,9 @@ export async function loadRaceBriefing(
   ];
   const fieldPower = new Map(field.map((r) => [r.zwiftId, r.power]));
   const fiveMin = (id: number) => fieldPower.get(id)?.m5 ?? power.get(id)?.zmapWkg ?? null;
-  const suggested = suggestRoles(
+  // Bij een ploegentijdrit komen de beurten uit de TTT Planner, niet uit een rolvoorstel.
+  const pullOf = new Map((tttPlan?.riders ?? []).filter((p) => p.zwiftId !== null).map((p) => [p.zwiftId as number, p]));
+  const suggested = ttt ? new Map<number, OwnRole>() : suggestRoles(
     ownBase.filter((r) => r.inPen).map((r) => ({ zwiftId: r.zwiftId, rating: ratingOf(field.find((f) => f.zwiftId === r.zwiftId)!, projection?.basis ?? null), fiveMinWkg: fiveMin(r.zwiftId) })),
   );
   const own: OwnBriefingRider[] = ownBase.map((r) => {
@@ -511,6 +581,7 @@ export async function loadRaceBriefing(
       velo: field.find((f) => f.zwiftId === r.zwiftId)?.velo ?? null,
       history: history.places.get(r.zwiftId) ?? history.labels.map(() => null),
       expectedPlace: expectedPlace(r.zwiftId),
+      ...(ttt ? { pull: pullOf.get(r.zwiftId) ?? null } : {}),
     };
   });
 
@@ -520,7 +591,13 @@ export async function loadRaceBriefing(
     if (inPen.length > MAX_PER_RACE) {
       warnings.push({ kind: "lineup", text: `${inPen.length} ${clubTexts.memberNounPlural} staan in de groep; er mogen er ${MAX_PER_RACE} rijden.` });
     }
-    if (inPen.length < FULL_TEAM_STARTERS) {
+    if (ttt) {
+      if (inPen.length < TTT_COUNTING_RIDERS) {
+        warnings.push({ kind: "starters", text: `${inPen.length} van onze renners staan in de groep. Met minder dan ${TTT_COUNTING_RIDERS} finishers geen tijd en geen leaguepunten.` });
+      } else if (inPen.length === TTT_COUNTING_RIDERS) {
+        warnings.push({ kind: "starters", text: `Precies ${TTT_COUNTING_RIDERS} renners in de groep: valt er één weg, dan geen tijd.` });
+      }
+    } else if (inPen.length < FULL_TEAM_STARTERS) {
       warnings.push({ kind: "starters", text: `${inPen.length} van onze renners staan in de groep. Voor volle leaguepunten moeten er ${FULL_TEAM_STARTERS} starten.` });
     }
     for (const r of notSignedUp) warnings.push({ kind: "lineup", text: `${r.name} staat in de opstelling maar niet in de groep bij Zwift.` });
@@ -567,7 +644,8 @@ export async function loadRaceBriefing(
   const bikes =
     loadedRoute?.route.source === "zwift" ? await bikeAdviceFor(event.id, loadedRoute.route, format, ownZftp, user.id) : null;
 
-  const watch = projection ? watchList(projection) : [];
+  // In een ploegentijdrit rijd je niet in het wiel van een andere ploeg: geen renners om te volgen.
+  const watch = projection && !ttt ? watchList(projection) : [];
   const powerups = powerupsFromTags(zwiftEvent?.tags);
   const subgroupTags = zwiftEvent?.subgroups?.find((g) => g.label === view?.subgroupLabel)?.tags ?? null;
   const chances: PowerupOdds[] = powerupChances(subgroupTags) ?? powerupChances(zwiftEvent?.tags) ?? [];
@@ -593,7 +671,17 @@ export async function loadRaceBriefing(
   });
 
   const teamLabels = view?.teamLabels ?? {};
-  const briefingField: BriefingRider[] = (projection?.order ?? field).map((r) => ({
+  // Ploegentijdrit: het veld per ploeg, in de volgorde van de ploegen, binnen de ploeg op 20 minuten.
+  const teamRank = new Map((projection?.teams ?? []).map((t, i) => [t.team, i]));
+  const fieldOrder = ttt
+    ? [...field].sort(
+        (a, b) =>
+          (teamRank.get(a.team ?? "") ?? Infinity) - (teamRank.get(b.team ?? "") ?? Infinity) ||
+          (a.team ?? "").localeCompare(b.team ?? "") ||
+          (b.power?.m20 ?? -1) - (a.power?.m20 ?? -1),
+      )
+    : (projection?.order ?? field);
+  const briefingField: BriefingRider[] = fieldOrder.map((r) => ({
     ...r,
     teamLabel: r.team ? teamLabels[r.team] ?? r.team : null,
     metrics: metrics.get(r.zwiftId) ?? null,
@@ -621,6 +709,7 @@ export async function loadRaceBriefing(
     // Grenzen staan bij de rollen, niet onder Let op.
     warnings: warnings.filter((w) => w.kind !== "limits").map((w) => w.text),
   });
+  if (ttt) sheetDefaults.watch = tttTeamLines(projection?.teams ?? [], teamLabels);
   const sheet = effectiveSheet(sheetDefaults, sheetRow ? sanitizeOverride((sheetRow as { sheet?: unknown }).sheet) : null);
 
   return {
@@ -651,6 +740,7 @@ export async function loadRaceBriefing(
       tips,
       plan: planRow.data ? { text: (planRow.data.plan as string | null) ?? null, updatedAt: (planRow.data.updated_at as string | null) ?? null } : null,
       canEdit,
+      tttPlan,
       zwiftRacing: field.some((r) => r.velo != null),
       fieldMissing: !zwiftEventId ? "no-zwift-event" : started ? "started" : live?.status === "ok" ? null : live?.status === "error" ? "error" : "no-entrants",
     },

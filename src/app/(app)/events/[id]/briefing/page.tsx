@@ -12,7 +12,7 @@ import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadRaceBriefing, type BriefingRider, type BriefingView, type OwnBriefingRider } from "@/lib/race-briefing/load";
 import { loadLadderBriefing } from "@/lib/club-ladder/event-briefing";
 import { FORMAT_LABELS } from "@/lib/race-briefing/rules";
-import { cleanRiderName, ROLE_LABELS, type ProjectedTeam } from "@/lib/race-briefing/field";
+import { cleanRiderName, ROLE_LABELS, TTT_COUNTING_RIDERS, type ProjectedTeam } from "@/lib/race-briefing/field";
 import { climbSeconds } from "@/lib/race-briefing/route";
 import { climbLabel, durationLabel, km } from "@/lib/race-briefing/tips";
 import { cn } from "@/lib/utils";
@@ -74,10 +74,11 @@ function History({ labels, places }: { labels: string[]; places: Array<number | 
 /** Plan en rollen voor het racebriefje; alleen voor wie het team beheert. */
 function PlanForm({ view }: { view: BriefingView }) {
   if (!view.canEdit) return null;
-  const inPen = view.own.filter((r) => r.inPen);
+  // Bij een ploegentijdrit komen de beurten uit de TTT Planner.
+  const inPen = view.format === "ttt" ? [] : view.own.filter((r) => r.inPen);
   return (
     <section className="space-y-3">
-      <SectionHeader title="Plan en rollen" />
+      <SectionHeader title={view.format === "ttt" ? "Plan" : "Plan en rollen"} />
       <form action={saveRaceBriefing} className="space-y-3 rounded-lg border bg-card p-3">
         <input type="hidden" name="event_id" value={view.event.id} />
         <label htmlFor="briefing-plan" className="sr-only">
@@ -159,8 +160,17 @@ function Bikes({ view }: { view: BriefingView }) {
   );
 }
 
+/** "2e · 380 W · 45 s"; zonder plan of zonder beurt een streepje. */
+function pullLabel(rider: OwnBriefingRider): string {
+  const pull = rider.pull;
+  if (!pull) return "—";
+  if (pull.seconds === 0) return `${pull.order}e · geen beurten`;
+  return [`${pull.order}e`, pull.watts != null ? `${pull.watts} W` : null, pull.seconds != null ? `${pull.seconds} s` : null].filter(Boolean).join(" · ");
+}
+
 function OwnTable({ view }: { view: BriefingView }) {
   const velo = view.zwiftRacing;
+  const ttt = view.format === "ttt";
   const columns: Array<ResponsiveColumn<OwnBriefingRider>> = [
     {
       key: "name",
@@ -173,8 +183,12 @@ function OwnTable({ view }: { view: BriefingView }) {
         </span>
       ),
     },
-    { key: "role", header: "Rol", cell: (r) => r.captainRole ?? <span className="text-muted-foreground">{ROLE_LABELS[r.role]}</span> },
-    { key: "expected", header: "Verwacht", cell: (r) => r.expectedPlace ?? "—", align: "right" },
+    ttt
+      ? { key: "pull", header: "Beurt", cell: (r) => <span className="tabular-nums">{pullLabel(r)}</span> }
+      : { key: "role", header: "Rol", cell: (r) => r.captainRole ?? <span className="text-muted-foreground">{ROLE_LABELS[r.role]}</span> },
+    ...(ttt
+      ? [{ key: "m20", header: "20 min", cell: (r: OwnBriefingRider) => wkg(r.metrics?.power?.m20), align: "right" as const }]
+      : [{ key: "expected", header: "Verwacht", cell: (r: OwnBriefingRider) => r.expectedPlace ?? "—", align: "right" as const }]),
     { key: "zrs", header: "ZRS", cell: (r) => r.metrics?.racingScore ?? "—", align: "right" },
     ...(velo ? [{ key: "velo", header: "vELO", cell: (r: OwnBriefingRider) => (r.velo ? Math.round(r.velo) : "—"), align: "right" as const }] : []),
     {
@@ -196,10 +210,32 @@ function TeamsTable({ view }: { view: BriefingView }) {
   const teams = view.projection?.teams ?? [];
   if (teams.length === 0) return null;
   const label = (t: ProjectedTeam) => view.teamLabels[t.team] ?? t.team;
+  if (view.format === "ttt") {
+    // Gecombineerde kracht: gemiddeld 20 minuten van de sterkste vier (field.ts, tttStrength).
+    const tttColumns: Array<ResponsiveColumn<ProjectedTeam>> = [
+      { key: "team", header: "Ploeg", cell: (t) => <span className={cn(t.own && "font-semibold")}>{label(t)}</span>, primary: true },
+      { key: "starters", header: "Renners", cell: (t) => t.starters, align: "right" },
+      {
+        key: "strength",
+        header: "Kracht (W/kg)",
+        cell: (t) =>
+          t.strength ? (
+            <span className="tabular-nums">
+              {wkg(t.strength.wkg)}
+              {t.strength.riders < TTT_COUNTING_RIDERS && <span className="text-muted-foreground"> ({t.strength.riders})</span>}
+            </span>
+          ) : (
+            "—"
+          ),
+        align: "right",
+      },
+    ];
+    return <ResponsiveTable columns={tttColumns} rows={teams} rowKey={(t) => t.team} rowClassName={(t) => (t.own ? "bg-primary/5" : undefined)} />;
+  }
   const columns: Array<ResponsiveColumn<ProjectedTeam>> = [
     { key: "team", header: "Ploeg", cell: (t) => <span className={cn(t.own && "font-semibold")}>{label(t)}</span>, primary: true },
     { key: "starters", header: "Renners", cell: (t) => t.starters, align: "right" },
-    ...(view.projection?.basis && view.format !== "ttt"
+    ...(view.projection?.basis
       ? [{ key: "points", header: "Verwacht", cell: (t: ProjectedTeam) => t.points ?? "—", align: "right" as const }]
       : []),
     ...(view.projection?.basis
@@ -211,18 +247,21 @@ function TeamsTable({ view }: { view: BriefingView }) {
 
 function FieldTable({ view }: { view: BriefingView }) {
   const velo = view.zwiftRacing;
+  const ttt = view.format === "ttt";
   const columns: Array<ResponsiveColumn<BriefingRider>> = [
-    { key: "place", header: "#", cell: (r) => r.expectedPlace ?? "—", secondary: true },
+    ...(ttt ? [] : [{ key: "place", header: "#", cell: (r: BriefingRider) => r.expectedPlace ?? "—", secondary: true }]),
     { key: "name", header: "Renner", cell: (r) => <span className={cn(r.own && "font-semibold")}>{r.name}</span>, primary: true },
     { key: "team", header: "Ploeg", cell: (r) => r.teamLabel ?? "—" },
     { key: "zrs", header: "ZRS", cell: (r) => r.racingScore ?? "—", align: "right" },
-    ...(velo
-      ? [
-          { key: "velo", header: "vELO", cell: (r: BriefingRider) => (r.velo ? Math.round(r.velo) : "—"), align: "right" as const },
-          { key: "m1", header: "1 min", cell: (r: BriefingRider) => wkg(r.power?.m1), align: "right" as const },
-          { key: "m5", header: "5 min", cell: (r: BriefingRider) => wkg(r.power?.m5), align: "right" as const },
-        ]
-      : []),
+    ...(velo ? [{ key: "velo", header: "vELO", cell: (r: BriefingRider) => (r.velo ? Math.round(r.velo) : "—"), align: "right" as const }] : []),
+    ...(ttt
+      ? [{ key: "m20", header: "20 min", cell: (r: BriefingRider) => wkg(r.power?.m20), align: "right" as const }]
+      : velo
+        ? [
+            { key: "m1", header: "1 min", cell: (r: BriefingRider) => wkg(r.power?.m1), align: "right" as const },
+            { key: "m5", header: "5 min", cell: (r: BriefingRider) => wkg(r.power?.m5), align: "right" as const },
+          ]
+        : []),
     { key: "history", header: view.historyLabels.join(" · ") || "Eerder", cell: (r) => <History labels={view.historyLabels} places={r.history} />, align: "right" },
   ];
   return (
@@ -337,7 +376,14 @@ export default async function RaceBriefingPage({ params }: PageProps) {
         <RaceSheet view={view} />
       </ShareableSheet>
 
-      {view.canEdit && <SheetEditor eventId={view.event.id} defaults={view.sheetDefaults} current={view.sheet} />}
+      {view.canEdit && (
+        <SheetEditor
+          eventId={view.event.id}
+          defaults={view.sheetDefaults}
+          current={view.sheet}
+          watchTitle={view.format === "ttt" && !view.ladder ? "Ploegen" : undefined}
+        />
+      )}
 
       {eventRidePlan && (
         <EventRidePlan

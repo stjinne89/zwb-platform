@@ -210,6 +210,7 @@ export async function loadLadderBriefing(
       plan: planRow.data ? { text: (planRow.data.plan as string | null) ?? null, updatedAt: (planRow.data.updated_at as string | null) ?? null } : null,
       canEdit,
       zwiftRacing: zwiftRacingConfigured(),
+      tttPlan: null,
       fieldMissing: matchup && riders.length > 0 ? null : "no-entrants",
     },
   };

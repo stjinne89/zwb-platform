@@ -140,12 +140,16 @@ export function defaultSheet(input: {
   if (route) {
     const finale = route.finale.kind === "climb" ? route.finale.climb : null;
     const marked = new Set<BriefingClimb>();
-    for (const { descent, climb } of route.descentsIntoClimbs) {
-      sketch.push({ fromKm: descent.startKm, toKm: climb.endKm, text: `lint → ${shortClimb(climb)}`, style: "markeer" });
-      marked.add(climb);
+    // Een ploegentijdrit heeft geen veld dat op een lint gaat; daar telt het tempo van de ploeg.
+    const ttt = input.format === "ttt";
+    if (!ttt) {
+      for (const { descent, climb } of route.descentsIntoClimbs) {
+        sketch.push({ fromKm: descent.startKm, toKm: climb.endKm, text: `lint → ${shortClimb(climb)}`, style: "markeer" });
+        marked.add(climb);
+      }
     }
     if (finale) {
-      sketch.push({ fromKm: finale.startKm, toKm: finale.endKm, text: "voluit!", style: "cirkel" });
+      sketch.push({ fromKm: finale.startKm, toKm: finale.endKm, text: ttt ? "laatste beurten" : "voluit!", style: "cirkel" });
       marked.add(finale);
     }
     for (const climb of route.climbs) {

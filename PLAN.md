@@ -103,6 +103,12 @@ gaat stabiliteit voor nieuwe features.
    Zie de ronde
    "ZRL-teamindeling: zelf indelen, op een eigen pagina".
 
+0. **Racebriefing: de ploegentijdrit als ploegentijdrit (2026-11-17): lokaal,
+   niet gepusht.** Geen migratie. Beurten uit de TTT Planner op het briefje,
+   ploegen op gecombineerde kracht (20 min W/kg van de sterkste vier),
+   TTT-waarschuwingen. Open: pagina bekijken na de deploy. Zie de ronde
+   "Racebriefing: de ploegentijdrit als ploegentijdrit".
+
 0. **ZRL-teamindeling: indeling delen via WhatsApp (2026-11-17): commit `e9b69327`,
    op 2026-11-17 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie. Open: in de browser met echte data
    bekijken (niet gedaan: geen `.env.local` in de worktree) en het bericht in
@@ -12462,6 +12468,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Racebriefing: de ploegentijdrit als ploegentijdrit
+
+**2026-11-17, commit "Racebriefing: ploegentijdrit met beurten en ploegkracht", lokaal, niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar zag dat de racebriefing van een TTT geen rekening
+  hield met het format. De kop en Onthouden noemden het wel een ploegentijdrit,
+  maar de rest was massastart: rollen als kopman en positie op de klim, Volgen
+  met losse tegenstanders, een verwachte plek per renner, "lint → klim" in het
+  profiel en de waarschuwing dat er 4 moeten starten voor volle leaguepunten.
+  Voorstel gedaan; de eigenaar wilde in plaats van de rating van de vierde
+  renner een gecombineerde kracht per ploeg.
+- **Ploegkracht** (`tttStrength` in `race-briefing/field.ts`): het gemiddelde
+  20-minuten-W/kg (ZwiftRacing, beste van 90 dagen) van de sterkste vier van een
+  ploeg, want die vier rijden de tijd. W/kg en geen watt: van tegenstanders
+  kennen we het gewicht niet. Ploegen met vier of meer renners eerst, daarbinnen
+  op kracht. Heeft een ploeg van minder dan vier renners een vermogen, dan staat
+  dat aantal tussen haakjes. Dit is een verwachting van ZWB, geen regel van WTRL.
+- **Briefje.** Rollen wordt **Beurten**: het TTT-plan uit de TTT Planner in
+  volgorde ("2e · 380 W · 45 s"), met de zFTP/zMAP-grens bij wie in de groep
+  staat. Een gepubliceerd plan gaat voor; een concept ziet alleen wie de briefing
+  beheert, met "(concept)". Zonder plan heet het blok Renners: alleen de namen
+  met hun grens. Volgen wordt **Ploegen**: de zes sterkste ploegen met kracht en
+  aantal renners, en de onze altijd erbij ("wij"), in de editor ook als Ploegen aan te passen.
+- **Profiel en momenten.** Geen "lint →"-markering meer; de slotklim heet
+  "laatste beurten". Bij de momenten krijgt de slotklim, of bij een vlakke
+  finish de laatste kilometer, "laatste beurten voluit, de 4e blijft erbij". De
+  laatste boog blijft: de ZRL-TTT's van R2 hebben bogen met powerups
+  (`arch_powerup`, `starting_powerup`).
+- **Waarschuwingen.** Minder dan 4 in de groep: geen tijd en geen
+  leaguepunten. Precies 4: valt er één weg, dan geen tijd.
+- **Pagina.** Onze ploeg: kolom Beurt en 20 min in plaats van Rol en Verwacht.
+  Het veld: per ploeg in de volgorde van de ploegen, kolom 20 min in plaats van
+  1 en 5 min, geen verwachte plek. Ploegtabel: Kracht (W/kg) in plaats van
+  Plekken. Het planformulier heeft bij een TTT geen rolvelden en heet Plan.
+- **Bewust niet.** Geen watt per ploeg (geen gewicht van tegenstanders). Geen
+  eigen TTT-tactiek voor de powerups: wat een boog geeft staat er, wat je ermee
+  doet is aan de captain. De tip "Maak het plan in de TTT Planner" in
+  `briefingTips` niet aangepast: tips staan niet op de pagina.
+- **Niet lokaal gecontroleerd.** Tests (5 nieuw in `race-briefing.test.ts`),
+  lint, typecheck en `next build` zijn gedaan. De pagina zelf is niet bekeken:
+  `next dev` geeft op de briefing een bundelfout die er al was (`node:net` en
+  `node:crypto` via clientcomponenten, met Turbopack én webpack). Na de deploy de
+  briefing van een R2-TTT nalopen, met en zonder gepubliceerd plan.
 
 ### Gebouwd — ZRL-teamindeling: indeling delen via WhatsApp
 

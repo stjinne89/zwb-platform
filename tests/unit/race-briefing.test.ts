@@ -6,7 +6,7 @@ import { pacingRouteFromZwift } from "@/lib/pacing/route-profile";
 import { expandLapSegments } from "@/lib/pacing/route-loader";
 import spiral from "../fixtures/zwift/spiral-summit-100m.json";
 import { briefingFormatOf, checkLimits, cheatRules, divisionLimits, divisionOf, limitWatts, powerupsFromTags } from "@/lib/race-briefing/rules";
-import { cleanRiderName, projectField, shortRiderName, suggestRoles, watchList, type FieldRider } from "@/lib/race-briefing/field";
+import { cleanRiderName, projectField, shortRiderName, suggestRoles, tttStrength, watchList, type FieldRider } from "@/lib/race-briefing/field";
 import { briefingMoments, briefingTips } from "@/lib/race-briefing/tips";
 import { defaultSheet, diffOverride, effectiveSheet, sanitizeOverride } from "@/lib/race-briefing/sheet";
 
@@ -281,6 +281,75 @@ describe("momenten zonder dubbelingen", () => {
     const moments = briefingMoments({ format: "scratch", category: "B", route: { ...route, climbs: [early, middle, side, last] }, powerups: [], own: [] });
     expect(moments.filter((m) => m.km === 16)).toEqual([{ km: 16, what: "Fox Hill 18 m · 3,5 %, max 5 % · ±80 s", todo: "" }]);
     expect(moments.find((m) => m.km === 20.9)?.what).toMatch(/^slotklim 22 m · 3,5 %, max 5 % · /);
+  });
+});
+
+describe("ploegentijdrit", () => {
+  const withPower = (zwiftId: number, team: string, m20: number | null, own = false): FieldRider => ({
+    ...rider(zwiftId, team, 400, own),
+    power: m20 === null ? null : { s15: null, m1: null, m2: null, m5: null, m20 },
+  });
+
+  it("rekent de kracht als het gemiddelde 20 minuten van de sterkste vier", () => {
+    expect(tttStrength([withPower(1, "a", 4), withPower(2, "a", 3.6), withPower(3, "a", 3.4), withPower(4, "a", 3.2), withPower(5, "a", 2.4)])).toEqual({
+      wkg: (4 + 3.6 + 3.4 + 3.2) / 4,
+      riders: 4,
+    });
+    expect(tttStrength([withPower(1, "a", 4), withPower(2, "a", null), withPower(3, "a", 3)])).toEqual({ wkg: 3.5, riders: 2 });
+    expect(tttStrength([withPower(1, "a", null)])).toBeNull();
+  });
+
+  it("zet ploegen met vier renners eerst en daarbinnen op kracht, zonder punten", () => {
+    const riders = [
+      withPower(1, "zwb", 3.4, true),
+      withPower(2, "zwb", 3.4, true),
+      withPower(3, "zwb", 3.3, true),
+      withPower(4, "zwb", 3.2, true),
+      withPower(5, "rcc", 3.8),
+      withPower(6, "rcc", 3.7),
+      withPower(7, "rcc", 3.6),
+      withPower(8, "rcc", 3.5),
+      withPower(9, "otr", 4.5),
+      withPower(10, "otr", 4.4),
+      withPower(11, "otr", 4.3),
+    ];
+    const { teams } = projectField(riders, "ttt");
+    expect(teams.map((t) => t.team)).toEqual(["rcc", "zwb", "otr"]);
+    expect(teams.every((t) => t.points === null)).toBe(true);
+    expect(teams[0].strength?.wkg).toBeCloseTo(3.65);
+  });
+
+  const climb = (startKm: number, endKm: number, gainM: number): BriefingClimb => ({ startKm, endKm, gainM, avgGradient: 0.035, maxGradient: 0.05, name: null });
+  const early = climb(4.5, 4.9, 15);
+  const last = climb(20.9, 22, 22);
+  const route: RouteKeyPoints = {
+    totalKm: 23.6,
+    climbs: [early, last],
+    descentsIntoClimbs: [{ descent: { startKm: 3.2, endKm: 4.4, dropM: 30 }, climb: early }],
+    hardestClimb: last,
+    earlyClimb: early,
+    finale: { kind: "climb", climb: last, runInKm: 1.6 },
+    segments: [],
+    lastArchKm: 18,
+  };
+
+  it("geeft de slotklim de laatste beurten en houdt de laatste boog", () => {
+    const moments = briefingMoments({ format: "ttt", category: "B", route, powerups: [], own: [] });
+    expect(moments.find((m) => m.km === 20.9)).toMatchObject({ todo: "laatste beurten voluit, de 4e blijft erbij", key: true });
+    expect(moments.find((m) => m.km === 4.5)?.todo).toBe("W/kg-doel, bij elkaar blijven");
+    expect(moments.find((m) => m.km === 18)?.what).toBe("laatste boog");
+  });
+
+  it("zet de laatste beurten op de laatste kilometer bij een vlakke finish", () => {
+    const flat = { ...route, finale: { kind: "flat" as const, flatKm: 5 } };
+    const moments = briefingMoments({ format: "ttt", category: "B", route: flat, powerups: [], own: [] });
+    expect(moments.find((m) => m.what === "laatste km")).toMatchObject({ km: 22.6, key: true });
+  });
+
+  it("tekent geen lint in het profiel", () => {
+    const sheet = defaultSheet({ format: "ttt", category: "B", route, powerups: [], own: [], watch: [], warnings: [] });
+    expect(sheet.sketch.some((m) => m.text.startsWith("lint"))).toBe(false);
+    expect(sheet.sketch.find((m) => m.style === "cirkel")?.text).toBe("laatste beurten");
   });
 });
 

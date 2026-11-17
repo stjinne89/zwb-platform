@@ -85,7 +85,18 @@ function Check({ checked, onChange, label, push }: { checked: boolean; onChange:
   );
 }
 
-export function SheetEditor({ eventId, defaults, current }: { eventId: string; defaults: SheetContent; current: SheetContent }) {
+export function SheetEditor({
+  eventId,
+  defaults,
+  current,
+  watchTitle = SECTION_TITLES.watch,
+}: {
+  eventId: string;
+  defaults: SheetContent;
+  current: SheetContent;
+  /** Ploegentijdrit: "Ploegen" in plaats van "Volgen", zoals op het briefje. */
+  watchTitle?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(() => toDraft(current));
@@ -131,7 +142,7 @@ export function SheetEditor({ eventId, defaults, current }: { eventId: string; d
   const block = (section: SheetSection, children: React.ReactNode) => (
     <fieldset className="space-y-2">
       <legend className="flex w-full flex-wrap items-center justify-between gap-2 text-base font-medium">
-        {SECTION_TITLES[section]}
+        {section === "watch" ? watchTitle : SECTION_TITLES[section]}
         {differs(section) && (
           <Button type="button" variant="ghost" className="min-h-11" onClick={() => reset(section)}>
             Voorstel terugzetten

@@ -85,7 +85,32 @@ export type ProjectedTeam = {
   /** Verwachte punten uit de finish (FIN en podium); null bij een ploegentijdrit. */
   points: number | null;
   riders: Array<{ zwiftId: number; name: string; place: number }>;
+  /** Ploegentijdrit: gecombineerde kracht (zie tttStrength); anders null. */
+  strength: TttStrength | null;
 };
+
+/** Zoveel renners rijden de tijd van een ploegentijdrit: de tijd van de vierde telt. */
+export const TTT_COUNTING_RIDERS = FULL_TEAM_STARTERS;
+
+/**
+ * Gecombineerde kracht van een ploeg in een ploegentijdrit: het gemiddelde
+ * 20-minuten-W/kg (ZwiftRacing, beste van 90 dagen) van de sterkste vier, want
+ * die vier rijden de tijd. W/kg en niet watt: van tegenstanders kennen we het
+ * gewicht niet. Keuze van de eigenaar, 2026-11-17 (in plaats van de rating van
+ * de vierde renner). `riders` is over hoeveel renners het gemiddelde gaat; minder
+ * dan vier als er van de rest geen vermogen is.
+ */
+export type TttStrength = { wkg: number; riders: number };
+
+export function tttStrength(riders: Array<Pick<FieldRider, "power">>): TttStrength | null {
+  const values = riders
+    .map((r) => r.power?.m20 ?? null)
+    .filter((v): v is number => v !== null && v > 0)
+    .sort((a, b) => b - a)
+    .slice(0, TTT_COUNTING_RIDERS);
+  if (values.length === 0) return null;
+  return { wkg: values.reduce((sum, v) => sum + v, 0) / values.length, riders: values.length };
+}
 
 export type Projection = {
   basis: ProjectionBasis | null;
@@ -108,13 +133,27 @@ export function projectField(riders: FieldRider[], format: BriefingFormat): Proj
   const byTeam = new Map<string, ProjectedTeam>();
   order.forEach((rider, index) => {
     if (!rider.team) return;
-    const team = byTeam.get(rider.team) ?? { team: rider.team, own: false, starters: 0, points: format === "ttt" ? null : 0, riders: [] };
+    const team = byTeam.get(rider.team) ?? { team: rider.team, own: false, starters: 0, points: format === "ttt" ? null : 0, riders: [], strength: null };
     team.own ||= rider.own;
     team.starters += 1;
     team.riders.push({ zwiftId: rider.zwiftId, name: rider.name, place: index + 1 });
     if (team.points !== null && basis !== null) team.points += n - index + (PODIUM_POINTS[index] ?? 0);
     byTeam.set(rider.team, team);
   });
+  if (format === "ttt") {
+    // Ploegentijdrit: zonder vier finishers geen tijd; daarboven de gecombineerde kracht.
+    const powerOf = new Map(riders.map((r) => [r.zwiftId, r]));
+    for (const team of byTeam.values()) team.strength = tttStrength(team.riders.map((r) => powerOf.get(r.zwiftId)!));
+    const teams = [...byTeam.values()]
+      .filter((t) => t.starters >= 2 || t.own)
+      .sort(
+        (a, b) =>
+          Number(b.starters >= TTT_COUNTING_RIDERS) - Number(a.starters >= TTT_COUNTING_RIDERS) ||
+          (b.strength?.wkg ?? -1) - (a.strength?.wkg ?? -1) ||
+          a.team.localeCompare(b.team),
+      );
+    return { basis, order, teams };
+  }
   // WTRL: eerst ploegen met vier of meer starters, dan met drie; daarbinnen punten.
   const tier = (t: ProjectedTeam) => (t.starters >= FULL_TEAM_STARTERS ? 0 : t.starters === FULL_TEAM_STARTERS - 1 ? 1 : 2);
   const teams = [...byTeam.values()]
