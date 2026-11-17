@@ -12652,6 +12652,14 @@ link naar `/live/[eventId]`, zie de update hierboven).
   uitnodigingslink (OAuth2: `bot`, `applications.commands`; Send Messages,
   Connect, Speak) naar een Discord-beheerder, het installatiebestand, en de
   racedag. Daaronder "Werkt het niet?".
+- **Knopnamen in het Nederlands (2026-11-17, de commit die deze regel
+  toevoegt).** De eigenaar vond "Reset Token" niet: het Developer Portal toont
+  een Nederlandse Discord in het Nederlands. De handleiding noemt nu de
+  Nederlandse namen met het Engels erachter (Nieuwe applicatie, Token
+  resetten, OAuth2 URL-generator, Botmachtigingen: Berichten sturen, Verbinden,
+  Spreken; Gegenereerde URL → Kopiëren), afgelezen in het portaal van de
+  eigenaar. Erbij: Applicatie-ID en Openbare sleutel zijn niet het token. Het
+  installatiescript herkent nu ook een geplakte Openbare sleutel.
 - **Installatiebestand.** `public/downloads/ZWB-TTT-bot-installeren.bat` haalt
   `bot/installeren.ps1` van GitHub (`main`) en draait het: Node via winget als
   er geen Node 22+ is, de bestanden van `bot/` (zonder tests) en

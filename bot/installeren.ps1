@@ -206,9 +206,11 @@ if ($token) {
   while (-not $token) {
     $invoer = (Read-Host "  Token").Trim()
     if ($invoer -match "^\d+$") {
-      Write-Host "  Dat is het Application ID, niet het token. Kijk bij Bot > Reset Token." -ForegroundColor Yellow
+      Write-Host "  Dat is de Applicatie-ID, niet het token. Kijk links bij Bot > Token resetten." -ForegroundColor Yellow
+    } elseif ($invoer -match "^[0-9a-f]{64}$") {
+      Write-Host "  Dat is de Openbare sleutel, niet het token. Kijk links bij Bot > Token resetten." -ForegroundColor Yellow
     } elseif ($invoer.Split(".").Count -lt 3 -or $invoer.Length -lt 50) {
-      Write-Host "  Dit lijkt geen token. Kopieer het opnieuw bij Bot > Reset Token." -ForegroundColor Yellow
+      Write-Host "  Dit lijkt geen token. Kopieer het opnieuw bij Bot > Token resetten." -ForegroundColor Yellow
     } else {
       $token = $invoer
     }

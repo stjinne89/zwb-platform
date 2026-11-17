@@ -85,12 +85,17 @@ export function TttBotGuide() {
                 en log in met je Discord-account.
               </li>
               <li>
-                Klik op <strong>New Application</strong>. Geef je bot een naam, bijvoorbeeld{" "}
-                <em>TTT-bot</em> met de naam van je team erachter.
+                Klik op <strong>Nieuwe applicatie</strong> (in het Engels: New Application). Geef je
+                bot een naam, bijvoorbeeld <em>TTT-bot</em> met de naam van je team erachter.
               </li>
               <li>
-                Klik links op <strong>Bot</strong> en dan op <strong>Reset Token</strong>. Kopieer de
-                lange code die je ziet. Dat is je <strong>token</strong>.
+                Klik links op <strong>Bot</strong>. Klik onder Token op <strong>Token resetten</strong>{" "}
+                (Reset Token). Kopieer de lange code die je ziet. Dat is je <strong>token</strong>: letters
+                en cijfers met twee punten erin. Discord laat hem maar één keer zien.
+              </li>
+              <li>
+                Let op: de <strong>Applicatie-ID</strong> en de <strong>Openbare sleutel</strong> op de
+                pagina Algemene informatie zijn níet het token.
               </li>
               <li>
                 Bewaar het token goed, bijvoorbeeld in een kladblok. Het werkt als een wachtwoord:
@@ -102,14 +107,17 @@ export function TttBotGuide() {
           <Step number={3} title="Laat je bot toevoegen aan de Discord-server">
             <ol className="list-decimal space-y-1 pl-5">
               <li>
-                Klik links op <strong>OAuth2</strong>. Zet bij <strong>Scopes</strong> een vinkje bij{" "}
-                <Code>bot</Code> en <Code>applications.commands</Code>.
+                Klik links op <strong>OAuth2</strong>. Zet bij <strong>OAuth2 URL-generator</strong>{" "}
+                onder Scopes een vinkje bij <Code>bot</Code> en <Code>applications.commands</Code>.
               </li>
               <li>
-                Er komen nu rechten bij. Vink <strong>Send Messages</strong>, <strong>Connect</strong> en{" "}
-                <strong>Speak</strong> aan.
+                Eronder komen nu de <strong>Botmachtigingen</strong>. Vink <strong>Berichten sturen</strong>,{" "}
+                <strong>Verbinden</strong> en <strong>Spreken</strong> aan (Send Messages, Connect,
+                Speak).
               </li>
-              <li>Kopieer de link onderaan de pagina.</li>
+              <li>
+                Klik onderaan bij <strong>Gegenereerde URL</strong> op <strong>Kopiëren</strong>.
+              </li>
               <li>
                 Stuur die link naar een beheerder van de Discord-server. Die opent hem en kiest de
                 server. Dan staat je bot erin.
@@ -225,7 +233,7 @@ export function TttBotGuide() {
             </li>
             <li>
               <strong>Er staat dat Discord het token weigert.</strong> Maak bij <strong>Bot</strong>{" "}
-              een nieuw token met Reset Token. Open dan het bestand <Code>.env</Code> in de map{" "}
+              een nieuw token met Token resetten. Open dan het bestand <Code>.env</Code> in de map{" "}
               <Code>%LOCALAPPDATA%\ZWB-TTT-bot</Code> met Kladblok en zet het nieuwe token achter{" "}
               <Code>DISCORD_TOKEN=</Code>.
             </li>

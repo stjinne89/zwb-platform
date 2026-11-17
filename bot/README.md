@@ -42,7 +42,7 @@ Met de hand:
 2. `npm install` in deze map.
 3. Maak een Discord-app op <https://discord.com/developers/applications>, voeg een
    bot toe en kopieer het token. Nodig hem uit met de scopes `bot` en
-   `applications.commands` en de rechten Berichten verzenden, Verbinden en
+   `applications.commands` en de rechten Berichten sturen, Verbinden en
    Spreken.
 4. Kopieer `.env.example` naar `.env` en vul `DISCORD_TOKEN` in. Het token blijft
    op deze pc; het hoort niet in de repo of in Netlify.
