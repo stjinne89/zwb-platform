@@ -39,8 +39,8 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Club Ladder seizoen 8: zMAP-regel in de Ladderpuzzel (2026-11-17):
    lokaal gecommit, niet gepusht.** Geen migratie. Toggle Nu / Seizoen 8 voor
-   wie indeelt. Open: in de browser bekijken met een captain-login (de lokale
-   server vroeg om in te loggen), pushen. De privacyzin staat op `/privacy`
+   wie indeelt, met groen/geel/rood per stukje. In de browser bekeken. Open:
+   pushen. De privacyzin staat op `/privacy`
    (akkoord eigenaar: "Ja, zet erin"). Na de wissel eind december: de stand Nu en de
    rankregel weghalen. Zie de ronde "Gebouwd — Club Ladder seizoen 8:
    zMAP-regel in de Ladderpuzzel".
@@ -12530,7 +12530,7 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
 
 ### Gebouwd — Club Ladder seizoen 8: zMAP-regel in de Ladderpuzzel
 
-> **2026-11-17 — gebouwd, lokaal getest, niet in de browser bekeken.** Commit:
+> **2026-11-17 — gebouwd, lokaal getest, in de browser bekeken.** Commit:
 > de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** De Club Ladder kondigde seizoen 8 aan (PDF "Ladder Season 8
@@ -12566,10 +12566,26 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
 >   en band zetten alleen in Nu.
 > - Uitleg op /hulp bij de Ladderpuzzel.
 >
+> **Bijgewerkt 2026-11-17: kleur per stukje in plaats van "Past bijna".** De
+> eigenaar vond "Past bijna" (oranje boven 0,98) een rare tekst, en met de
+> marge van 0,22 stonden alle vier de teams erop. Nu krijgt in Seizoen 8 elk
+> stukje een kleur (`status` in `checkLadderTeamZmap`): **groen** past;
+> **geel** = risico, binnen `ZMAP_RISK_MARGIN` 0,11 (de gemiddelde fout van
+> de schatting) van de rand van de ruimte, niet tegen de grens van 5,8 of
+> 2,5; **rood** = valt buiten het venster van 1,2 dat de meeste renners bevat
+> (bij gelijkspel het venster met zijn midden het dichtst bij de mediaan), dus
+> wie eruit moet. Daarvoor kleurde een te breed team alleen de laagste en
+> hoogste rood. Het team toont alleen Past of Past niet; de melding "krap" is
+> weg. Renners zonder zMAP blijven grijs. Productie: geel zijn Mathijs de Groot
+> (ZWBeasts), Gonda Beltman, Harmen Reinders en George de Schutter
+> (ZWBandits); ZWBullets en ZWBeauties zijn helemaal groen. In de browser
+> bekeken (ook op 375 px breed); in de stand Nu verandert niets.
+>
 > **Doorgerekend op productie (alleen lezend, 2026-11-17).** Met de schatting
 > passen alle vier puzzelteams, maar alle vier staan op Past bijna:
 > ZWBeasts 1,14 (mediaan 5,19), ZWBullets 1,04 (4,75), ZWBandits 1,14 (4,21),
-> ZWBeauties 1,09 (4,05). Met alleen de WTRL-plak waren het 0,95 / 1,17 / 0,85 /
+> ZWBeauties 1,09 (4,05). (Niet meer waar sinds de kleur per stukje, zie
+> hierboven: "Past bijna" bestaat in Seizoen 8 niet meer.) Met alleen de WTRL-plak waren het 0,95 / 1,17 / 0,85 /
 > 1,08, met vier renners zonder waarde. Grootste verschil: een renner bij wie
 > intervals.icu 0,44 hoger uitkomt dan WTRL (training of buiten telt mee, de
 > zMAP van Zwift waarschijnlijk niet).
@@ -12596,7 +12612,8 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
 > unitsuite (nieuw: `club-ladder-zmap-rule.test.ts`). Bij de volle suite liepen
 > enkele PGlite-migratietests op tijd vast onder de load; los gedraaid groen,
 > en `omnium-live` slaat over zonder live-omgeving. **Niet** in de browser
-> bekeken: de lokale server vroeg om in te loggen.
+> bekeken: de lokale server vroeg om in te loggen. (Later wel, zie
+> "Bijgewerkt" hierboven.)
 
 ### Hersteld — Kapotte herziening wist Karens schema
 

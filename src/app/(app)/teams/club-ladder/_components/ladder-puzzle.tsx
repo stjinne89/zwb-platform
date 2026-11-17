@@ -23,6 +23,7 @@ import {
   checkLadderTeamZmap,
   formatWkg,
   sortByZmap,
+  type ZmapRiderStatus,
   type ZmapTeamCheck,
 } from "@/lib/club-ladder/zmap-rule";
 import { cn } from "@/lib/utils";
@@ -68,6 +69,25 @@ const MODES: Array<{ id: Mode; label: string }> = [
   { id: "nu", label: "Nu" },
   { id: "s8", label: "Seizoen 8" },
 ];
+
+const TONE_LABEL: Record<ZmapRiderStatus, string> = {
+  ok: "Past",
+  risk: "Risico",
+  out: "Valt buiten",
+  unknown: "Geen zMAP",
+};
+const TONE_TILE: Record<ZmapRiderStatus, string> = {
+  ok: "border-emerald-500/60 bg-emerald-500/10",
+  risk: "border-yellow-500/70 bg-yellow-400/15",
+  out: "border-destructive bg-destructive/10",
+  unknown: "",
+};
+const TONE_BAR: Record<ZmapRiderStatus, string> = {
+  ok: "bg-emerald-500",
+  risk: "bg-yellow-400",
+  out: "bg-destructive",
+  unknown: "bg-border",
+};
 
 const ZMAP_SOURCE: Record<string, string> = { zwiftracing: "ZwiftRacing", intervals: "intervals.icu" };
 
@@ -554,10 +574,12 @@ function Piece({
   onRank: (rank: number | null) => void;
   onRemove: () => void;
 }) {
-  const out = s8 ? zCheck?.outKeys.includes(rider.key) : check?.outKeys.includes(rider.key);
-  const offBand = s8 ? zCheck?.unknownKeys.includes(rider.key) : check?.offBandKeys.includes(rider.key);
+  // Seizoen 8: groen past, geel risico, rood valt buiten; losse stukjes neutraal.
+  const tone = s8 && zCheck ? (zCheck.status[rider.key] ?? null) : null;
+  const out = s8 ? false : check?.outKeys.includes(rider.key);
+  const offBand = s8 ? false : check?.offBandKeys.includes(rider.key);
   const color = s8
-    ? rider.zmap
+    ? rider.zmap && !tone
       ? "var(--primary)"
       : "var(--border)"
     : rider.rank != null
@@ -576,9 +598,15 @@ function Piece({
         canEdit && "cursor-grab",
         dragging && "opacity-40",
         out ? "border-destructive" : offBand && "border-amber-500",
+        tone && TONE_TILE[tone],
       )}
+      title={tone ? TONE_LABEL[tone] : undefined}
     >
-      <span className="row-span-3 self-stretch rounded-l-md" style={{ background: color }} />
+      <span
+        className={cn("row-span-3 self-stretch rounded-l-md", tone && TONE_BAR[tone])}
+        style={tone ? undefined : { background: color }}
+      />
+      {tone && <span className="sr-only">{TONE_LABEL[tone]}</span>}
       <span className="min-w-0 truncate text-sm font-medium" title={rider.name}>
         {rider.kind === "profile" ? <MemberLink id={rider.id}>{rider.name}</MemberLink> : rider.name}
       </span>
@@ -634,7 +662,7 @@ function Piece({
               )}
             </span>
           ) : (
-            <span className="font-semibold text-amber-700 dark:text-amber-400">geen zMAP</span>
+            <span className="font-semibold text-muted-foreground">geen zMAP</span>
           )
         ) : (
           !showRankSelect && (
