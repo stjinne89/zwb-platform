@@ -32,8 +32,8 @@ gaat stabiliteit voor nieuwe features.
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **Module Uitdaging voor de Rabobank-installatie (Alpe d'HuZes, 2026-11-17):
-   gebouwd, lokaal, niet gepusht.** Migratie `0337_challenge_entries.sql` staat
-   op de Rabobank-database (2026-11-17), niet op ZWB-productie. De privacyzin staat op `/privacy#uitdaging` (akkoord
+   op 2026-11-17 gepusht naar `main` (eigenaar: "Ja, push").** Migratie `0337_challenge_entries.sql` staat
+   op de Rabobank-database en op ZWB-productie (beide 2026-11-17). De privacyzin staat op `/privacy#uitdaging` (akkoord
    eigenaar, 2026-11-17), zonder nieuwe privacyversie (eigenaar: "Ja, zonder
    versie"). Installatie volgens [installatie.md](docs/installatie.md): §2
    (database) gedaan op een eigen Supabase-project in een aparte, gratis
@@ -41,9 +41,8 @@ gaat stabiliteit voor nieuwe features.
    `rabobank-alpe-dhuzes.netlify.app`, eerste deploy van `main@bd06866` gelukt.
    Auth-URL's in Supabase gezet; eerste beheerder (§4) gezet. Open:
    e-mailtemplates en eigen SMTP (§2), de
-   inrichting met Uitdaging aan (§5), het pushen van Uitdaging (de site bouwt
-   van `main`, waar de module nog niet staat), en de pagina in de browser
-   bekijken. Meer dan 10 deelnemers, dus
+   inrichting met Uitdaging aan (§5), en de pagina in de browser bekijken.
+   Bij ZWB staat de module uit. Meer dan 10 deelnemers, dus
    Strava niet voor iedereen. Zie de ronde "Module Uitdaging".
 
 0. **Onderdelen per ledengroep afsluiten en per lid verbergen (2026-11-17):
@@ -12461,7 +12460,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Module Uitdaging: een goededoelenrit met de club
 
-**2026-11-17, commits `b3d305ac` (module), `586a2658` en `54e7d295` (privacy), lokaal, niet gepusht. Migratie `0337_challenge_entries.sql` op 2026-11-17 op de Rabobank-database gezet, niet op ZWB-productie.**
+**2026-11-17, commits `563094a0` (module), `785040c1` en `5293d59e` (privacy), op 2026-11-17 gepusht naar `main` (eigenaar: "Ja, push"). Migratie `0337_challenge_entries.sql` op 2026-11-17 op de Rabobank-database gezet (script) en vóór de push met de Supabase-connector op ZWB-productie toegepast (versie `20261117113652`, eigenaar: "Ja, eerst 0337").**
 
 - **Waarom.** De eigenaar wil een eigen installatie van het platform voor een
   Rabobank-club die Alpe d'HuZes fietst. Gekozen (eigenaar, 2026-11-17):
@@ -12540,6 +12539,13 @@ link naar `/live/[eventId]`, zie de update hierboven).
   `approved_at` en rol `board` op dat ene profiel (op id, het enige account).
   Nagekeken: de vier waarden staan, en `profiles_protect_admin_fields` staat
   weer aan.
+- **0337 op ZWB vóór de push.** Een module zonder rij in `club_modules` staat
+  aan. Zonder 0337 had ZWB na de push een menu-item Uitdaging gehad met een
+  pagina op een tabel die er niet was. Daarom eerst toegepast, dan gepusht.
+  Nagekeken op productie: `uitdaging` uit, RLS aan, de vier policies, 0 rijen.
+  Afgewogen en niet gedaan: in de code "standaard uit" voor een module zonder
+  rij. Robuuster voor latere modules, maar het raakt de poort, `getClub()` en
+  het modulescherm; een volgende nieuwe module heeft hetzelfde risico.
 - **Getest.** `tsc` en eslint schoon; `uitdaging`, `modules`, `module-access`,
   `baseline` (0337 loopt op PGlite in beide routes en geeft hetzelfde schema),
   `club-texts-tokens` en `dashboard-parts` groen. De volledige set: 4663
