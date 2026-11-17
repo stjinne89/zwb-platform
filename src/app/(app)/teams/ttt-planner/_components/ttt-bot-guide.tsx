@@ -208,7 +208,7 @@ export function TttBotGuide() {
             </p>
             <p>
               Begin elk commando met <strong>Coach</strong>. Zeg je dat niet, dan doet de bot niets.
-              Zo zet &ldquo;even pauze, mannen&rdquo; tegen je ploeg hem niet stil.
+              Zo zet &ldquo;even pauze&rdquo; tegen je ploeg hem niet stil.
             </p>
             <ul className="list-disc space-y-1 pl-5">
               <li>
