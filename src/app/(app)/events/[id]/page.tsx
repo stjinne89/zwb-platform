@@ -257,7 +257,8 @@ export default async function EventDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const clubTexts = (await getClub()).texts;
+  const club = await getClub();
+  const clubTexts = club.texts;
   const { id } = await params;
   const supabase = await createClient();
 
@@ -1964,6 +1965,16 @@ export default async function EventDetailPage({
             Ben jij erbij?
           </h2>
           <RsvpPicker eventId={event.id} current={myRsvp ?? null} groups={grouped} />
+          {/* Goededoelenrit: doel en sponsorgeld staan in de module Uitdaging (0337). */}
+          {event.kind === "goed_doel" && club.isEnabled("uitdaging") && (
+            <Link
+              href="/uitdaging"
+              className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
+              {club.moduleLabel("uitdaging")}
+              <ArrowRight className="size-4" aria-hidden />
+            </Link>
+          )}
         </section>
       )}
 

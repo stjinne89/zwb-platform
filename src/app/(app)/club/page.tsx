@@ -18,6 +18,7 @@ const TILE_STYLE: Record<string, Pick<PlaceLink, "tone" | "size">> = {
   "/teams": { tone: "kalender", size: "big" },
   "/omnium": { tone: "kalender" },
   "/src": { tone: "kalender" },
+  "/uitdaging": { tone: "kalender", size: "wide" },
   // sage: de club en de mensen
   "/leden": { tone: "club", size: "wide" },
   "/samen-fietsen": { tone: "club", size: "wide" },

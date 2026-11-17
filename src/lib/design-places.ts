@@ -40,6 +40,7 @@ export const PLACES: Place[] = [
       "/omnium",
       "/src",
       "/polls",
+      "/uitdaging",
       "/programmas",
       // Samen fietsen: met clubgenoten rijden en je tracker koppelen. Geen
       // kalenderding, want het gaat om nu (besluit eigenaar, 2026-10-16).

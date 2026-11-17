@@ -146,6 +146,8 @@ export const NAV_GROUPS: NavNode[] = [
       { type: "link", href: "/omnium", label: "ZWB Omnium", module: "omnium" },
       { type: "link", href: "/src", label: "Sunday Race Club", module: "src" },
       { type: "link", href: "/voorzpwelbokaal", label: "voorZpWelBokaal", module: "voorspelspel" },
+      // Een goededoelenrit met de club (0337).
+      { type: "link", href: "/uitdaging", label: "Uitdaging", module: "uitdaging" },
     ],
   },
   {

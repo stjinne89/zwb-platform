@@ -31,6 +31,14 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
+0. **Module Uitdaging voor de Rabobank-installatie (Alpe d'HuZes, 2026-11-17):
+   gebouwd, lokaal, niet gepusht.** Migratie `0337_challenge_entries.sql` is
+   nog nergens toegepast. Open: de privacyzin (voorgelegd, nog niet op
+   `/privacy`), de pagina in de browser bekijken, en daarna de installatie zelf
+   volgens [installatie.md](docs/installatie.md) op de accounts van de
+   eigenaar (keuze eigenaar 2026-11-17; meer dan 10 deelnemers, dus Strava niet
+   voor iedereen). Zie de ronde "Module Uitdaging".
+
 0. **Onderdelen per ledengroep afsluiten en per lid verbergen (2026-11-17):
    op 2026-11-17 gepusht naar `main` (eigenaar: "push en d15f6891, 84a32368 en
    8d40b45f ook"), samen met Club Ladder seizoen 8.** Migratie `0336_module_access.sql` op
@@ -12443,6 +12451,52 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Module Uitdaging: een goededoelenrit met de club
+
+**2026-11-17, de commit die dit blok toevoegt, lokaal, niet gepusht. Migratie `0337_challenge_entries.sql`, nog nergens toegepast.**
+
+- **Waarom.** De eigenaar wil een eigen installatie van het platform voor een
+  Rabobank-club die Alpe d'HuZes fietst. Gekozen (eigenaar, 2026-11-17):
+  installatie volgens [installatie.md](docs/installatie.md) **plus** een eigen
+  module, op de accounts van de eigenaar; de club heeft meer dan 10
+  deelnemers. Voorstel akkoord ("Ja, bouwen").
+- **Neutrale module `uitdaging`** (groep algemeen, pad `/uitdaging`). De club
+  geeft hem bij Inrichting → Modules een eigen naam ("Alpe d'HuZes"). Staat
+  standaard **uit**, ook bij ZWB: `0337` zet een rij `('uitdaging', false)` in
+  `club_modules`. Zonder die rij zou hij aan staan (een ontbrekende rij is aan).
+- **De rit is een gewoon event** met soort Goed doel (`events.kind =
+  'goed_doel'`). `/uitdaging` toont elk goededoelenevent vanaf 30 dagen geleden:
+  aftellen in Amsterdamse kalenderdagen, deelnemers, keer omhoog (na de rit
+  gehaald / doel), opgehaald, sponsordoel met een balk, en de lijst wie
+  meefietst (naam via `MemberLink`, aantal, bedrag, link Sponsor). Op de
+  eventpagina staat onder "Ben jij erbij?" een link naar de module.
+- **Per lid** (`challenge_entries`, sleutel event + lid): keer omhoog (1–10),
+  gehaald (0–10, het veld verschijnt pas vanaf de dag van de rit),
+  sponsordoel en opgehaald in hele euro's, en een `https://`-link naar de eigen
+  actiepagina. De eerste aanmelding zet ook "ja" bij het event; afmelden laat
+  die RSVP staan.
+- **RLS.** Lezen alleen voor goedgekeurde leden; aanmaken alleen de eigen regel
+  door een goedgekeurd lid, bij een goededoelenevent; wijzigen en wissen alleen
+  de eigen regel. De acties controleren ook of de module aan staat.
+- **Rekenkern** in `src/lib/uitdaging.ts` (formulier, teamtotaal, aftellen,
+  volgorde), getest in `tests/unit/uitdaging.test.ts`. Ook in het menu (Club),
+  de clubtegels, de plek Club, het verbergen per lid en de wegwijzer op `/hulp`.
+- **Bewust niet.** Bedragen ophalen van het actieplatform (geen openbare API
+  gevonden of gezocht; het lid vult zelf in). Beklimmingen op de dag
+  automatisch tellen: `profile_climbed_cols` telt over alle ritten, niet per
+  dag; dat vraagt tellen per rit, eventueel een tweede ronde. Een dashboardblok
+  en meldingen. Een beheerscherm om de regel van een ander lid te wissen.
+- **Privacy.** Nieuwe gegevens (doel, bedragen, link). De zin voor `/privacy`
+  is voorgelegd aan de eigenaar en staat er nog niet (afspraak: eerst
+  voorleggen).
+- **Getest.** `tsc` en eslint schoon; `uitdaging`, `modules`, `module-access`,
+  `baseline` (0337 loopt op PGlite in beide routes en geeft hetzelfde schema),
+  `club-texts-tokens` en `dashboard-parts` groen. De volledige set: 4663
+  geslaagd; de uitvallers waren time-outs onder belasting die los slagen, en
+  `omnium-live`, dat een `.env.local` vraagt die in de worktree niet staat.
+  **Niet getest:** de migratie op Supabase zelf, en de pagina in de browser
+  (geen `.env.local` in de worktree, en ZWB-productie heeft de tabel niet).
 
 ### Gebouwd — TTT-bot: besturen met spraak
 

@@ -301,6 +301,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
   { href: "/community", name: "Community", text: "Mededelingen en clubnieuws." },
   { href: "/polls", name: "Polls", text: "Snelle stemmingen vanuit de club." },
+  { href: "/uitdaging", name: "{m:uitdaging}", text: "De goededoelenrit van de club: zet je doel, je sponsordoel en wat je al hebt opgehaald, en zie het totaal van de ploeg. Na de rit vul je in hoe vaak je boven kwam." },
   { href: "/qa", name: "Q&A", text: "Je vraag over de app, met het antwoord van het bestuur." },
   { href: "/updates", name: "App-updates", text: "Elke donderdag kort wat er nieuw is in de app en wat er opgelost is. Na 17:00 zie je de samenvatting één keer als pop-up." },
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },

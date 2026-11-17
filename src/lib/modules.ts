@@ -30,6 +30,7 @@ export type ModuleKey =
   | "bibliotheek"
   | "sponsors"
   | "voorspelspel"
+  | "uitdaging"
   | "blokkenjacht"
   | "teams"
   | "pacing"
@@ -109,6 +110,8 @@ export const MODULES: readonly ModuleDef[] = [
   { key: "bibliotheek", label: "Bibliotheek", group: "algemeen", paths: ["/zwbieb"] },
   { key: "sponsors", label: "Sponsors", group: "algemeen", paths: ["/sponsors"] },
   { key: "voorspelspel", label: "Voorspelspel", group: "algemeen", paths: ["/voorzpwelbokaal"] },
+  // Deelnemen aan een goededoelenrit (0337). Standaard uit.
+  { key: "uitdaging", label: "Uitdaging", group: "algemeen", paths: ["/uitdaging"] },
 
   // ── Zwift en online racen ──────────────────────────────────────────────
   {

@@ -38,6 +38,7 @@ export const HIDEABLE_MODULES: readonly ModuleKey[] = [
   "media",
   "ritverslagen",
   "garage",
+  "uitdaging",
 ];
 
 /**

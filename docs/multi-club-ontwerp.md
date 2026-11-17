@@ -222,6 +222,7 @@ kalender bestaat niet.
 | `bibliotheek` | Bibliotheek (ZWB: ZWBieb) | algemeen | – |
 | `sponsors` | Sponsors | algemeen | – |
 | `voorspelspel` | Voorspelspel (ZWB: voorZpWelBokaal) | algemeen | – |
+| `uitdaging` | Uitdaging: een goededoelenrit (sinds `0337`, standaard uit) | algemeen | – |
 | `blokkenjacht` | Blokkenjacht (ZWB: ZWBlokken) | zwift | – |
 | `teams` | Teams en competities (ZRL, FRR, ladder, TTT) | zwift | – |
 | `pacing` | Race-pacing en briefing | zwift | – |
