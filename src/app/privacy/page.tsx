@@ -159,7 +159,11 @@ export default function PrivacyPage() {
             <strong>TTT-plannen:</strong> een ploegleider kan een plan delen met
             de TTT-bot in Discord via een geheime link. Wie die link heeft, ziet de
             plannaam en per renner naam, Zwift-ID, kopbeurtvermogen en -duur. De
-            ploegleider kan de link intrekken.
+            ploegleider kan de link intrekken. Zet een ploegleider bij het starten
+            van de TTT-bot spraak aan, dan luistert de bot in het spraakkanaal
+            alleen naar die ploegleider. De spraak wordt op de computer waar de bot
+            draait omgezet in tekst; er gaat niets naar ons of naar een andere
+            dienst en er wordt geen opname bewaard.
           </li>
           <li id="racen" className="scroll-mt-20">
             <strong><ClubText text="Analyse van Zwift-races ({beter} racen):" /></strong> na een

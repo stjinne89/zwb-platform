@@ -12470,7 +12470,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
   `whisper-server` (0,2 s sneller, maar een proces en poort om te beheren).
 - **Niet getest.** Ontvangen in Discord zelf (met DAVE-versleuteling), een echte
   stem tijdens inspanning, de belasting naast Zwift. Dat is de test van vanavond.
-  De privacyverklaring noemt het nog niet; tekst ligt bij de eigenaar.
+- **Privacyverklaring.** Onder "TTT-plannen" staat nu dat de bot met spraak aan
+  alleen naar de ploegleider luistert, de spraak op de bot-computer omzet en
+  geen opname bewaart (eigenaar: "Ja, zet erin"). Geen nieuwe privacyversie en
+  geen hertekening: het gaat om data van de ploegleider zelf, op diens eigen pc,
+  op diens eigen verzoek. Commit: de commit die deze regel toevoegt, op
+  2026-11-17 gepusht naar `main` (eigenaar: "Push naar main").
 - **Handleiding.** Op verzoek van de eigenaar staat spraak al vóór de test in
   het blok TTT-bot installeren op de planner (stap 6, plus een regel bij "Werkt
   het niet?"), en verwijst de Botlink-regel op /hulp ernaar. Niet in de lokale
