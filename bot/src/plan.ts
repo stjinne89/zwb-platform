@@ -104,11 +104,24 @@ const NO_LINK =
   "Geen plan gevonden. Klik in ZwiftGopher op Export Link (of kopieer het adres van Export JSON) en geef dan /ttt plan.";
 
 /**
+ * De link of het token uit wat iemand plakt of op het klembord zet. Dat is vaak
+ * meer dan de link alleen: "/ttt plan https://…" uit een chat, of de link
+ * tussen <> zoals Discord die schrijft.
+ */
+function linkIn(input: string) {
+  const words = input
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.replace(/^[<(]+|[>).,;!?]+$/g, ""));
+  return words.find((word) => /^https?:\/\//i.test(word)) ?? words.find((word) => TOKEN.test(word)) ?? input.trim();
+}
+
+/**
  * Van link of los token naar het adres om op te halen. Alleen het platform en
  * ZwiftGopher: de bot haalt niet zomaar een adres op dat iemand in Discord typt.
  */
 export function planUrl(input: string, origins: string[]): string {
-  const text = input.trim();
+  const text = linkIn(input);
   if (TOKEN.test(text)) return `${origins[0]}${PLAN_PATH}${text}`;
   // Alleen het lange stuk achter `save=` uit een ZwiftGopher-link.
   if (/^[A-Za-z0-9+/=%]{100,}$/.test(text)) {

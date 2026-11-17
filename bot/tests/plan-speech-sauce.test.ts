@@ -47,6 +47,14 @@ describe("plan", () => {
     );
   });
 
+  it("vindt de link ook als er tekst omheen staat", () => {
+    const link = `https://zwb.example/api/ttt/plan/${TOKEN}`;
+    expect(planUrl(`/ttt plan ${link}`, ORIGINS)).toBe(link);
+    expect(planUrl(`Plan voor vanavond:\n<${link}>.`, ORIGINS)).toBe(link);
+    expect(planUrl(`/ttt plan ${TOKEN}`, ORIGINS)).toBe(link);
+    expect(() => planUrl(`/ttt plan https://elders.example/api/ttt/plan/${TOKEN}`, ORIGINS)).toThrow();
+  });
+
   it("haalt geen ander adres op dan het platform", () => {
     expect(() => planUrl(`https://elders.example/api/ttt/plan/${TOKEN}`, ORIGINS)).toThrow();
     expect(() => planUrl("https://zwb.example/api/live/zrl/1/2", ORIGINS)).toThrow();

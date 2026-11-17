@@ -12622,6 +12622,16 @@ link naar `/live/[eventId]`, zie de update hierboven).
   de tekst van zinnen zonder "Coach" loggen (privacy). **Niet gemeten:** of de
   nieuwe hint whisper helpt; de opnames zijn weg. Details:
   [ttt-discord-bot.md](docs/ttt-discord-bot.md#besturen-met-spraak).
+- **Botlink met tekst eromheen (2026-11-17, lokaal gecommit, nog niet
+  gepusht).** `/ttt plan` gaf "Geen plan gevonden" bij een geldige botlink
+  (ZWB Cycling A). De link stond in een chat als `/ttt plan https://…/api/ttt/plan/<token>`
+  en zo kwam hij ook bij de bot (op het klembord of in de optie `link`);
+  `planUrl` las alleen een kale link of token. Nu pakt `planUrl` het eerste
+  `http(s)`-adres of los token uit de tekst, ook tussen `<>` of met een punt
+  erachter. De herkomstcontrole (`PLAN_ORIGINS`) blijft gelijk. Met de echte
+  link nagelopen: de route geeft 200 en het plan parseert (5 renners). 1 test.
+  **Niet gecontroleerd:** of het klembord of de optie `link` de bron was; beide
+  lopen nu goed. De bot op de bot-pc moet opnieuw gestart worden na een pull.
 
 ### Hersteld — Garmin live: nieuwe sessieroute en geen spook-live meer
 
