@@ -25,8 +25,10 @@ import { householdFromRow } from "@/lib/nutrition/shopping";
 import { MemberProfile } from "../leden/[id]/_components/member-profile";
 import { PublicProfile } from "@/app/profielen/[id]/_components/public-profile";
 import { ModuleName } from "@/components/club-texts-provider";
-import { getClub } from "@/lib/club";
-import { offeredDashboardParts, parseDashboardHidden } from "@/lib/dashboard-parts";
+import { offeredDashboardParts } from "@/lib/dashboard-parts";
+import { getMemberModules } from "@/lib/member-modules";
+import { HIDEABLE_MODULES, HIDEABLE_ZWBETER_TABS } from "@/lib/member-view";
+import { ZWBETER_WORDEN_SECTIONS } from "../_components/nav-config";
 
 type AwardRow = {
   id: string;
@@ -131,8 +133,7 @@ export default async function ProfielPage({
     { data: heightRow },
     { data: calendarFeed },
     { data: briljantPref },
-    { data: dashboardPref },
-    club,
+    view,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -207,13 +208,8 @@ export default async function ProfielPage({
       .eq("profile_id", user.id)
       .maybeSingle<CalendarFeedStatus>(),
     supabase.from("zwbriljant_preferences").select("visible").eq("profile_id", user.id).maybeSingle(),
-    // Zonder migratie 0318 een fout en dus niets verborgen.
-    supabase
-      .from("profile_stats_tiles")
-      .select("dashboard_hidden")
-      .eq("profile_id", user.id)
-      .maybeSingle(),
-    getClub(),
+    // Club, groepen en wat het lid verborgen heeft (0318, 0336).
+    getMemberModules(),
   ]);
 
   // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
@@ -313,13 +309,20 @@ export default async function ProfielPage({
             ...((profileRow?.profile_visibility as Record<string, boolean> | null) ??
               {}),
           },
-          dashboard_hidden: [
-            ...parseDashboardHidden(
-              (dashboardPref as { dashboard_hidden?: unknown } | null)?.dashboard_hidden,
-            ),
-          ],
+          dashboard_hidden: [...view.dashboardHidden],
+          module_hidden: [...view.hidden.modules, ...view.hidden.tabs],
         }}
-        dashboardParts={offeredDashboardParts(club.isEnabled)}
+        dashboardParts={offeredDashboardParts(view.canUse)}
+        modules={HIDEABLE_MODULES.filter((key) => view.canUse(key))}
+        zwbeterTabs={
+          view.canUse("training")
+            ? ZWBETER_WORDEN_SECTIONS.filter(
+                (section) =>
+                  HIDEABLE_ZWBETER_TABS.includes(section.href) &&
+                  (!section.onlyForSex || section.onlyForSex === profileRow?.sex),
+              ).map(({ href, label }) => ({ href, label }))
+            : []
+        }
       />
 
       <AvatarUpload

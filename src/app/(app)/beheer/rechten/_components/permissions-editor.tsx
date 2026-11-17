@@ -13,12 +13,25 @@ import {
 } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { updateRolePermissions } from "../_actions";
-import { ClubText } from "@/components/club-texts-provider";
+import { ClubText, ModuleName } from "@/components/club-texts-provider";
+import type { ModuleKey } from "@/lib/modules";
 
 type Matrix = Record<CommunityRole, CommunityPermission[]>;
+type BlockedMatrix = Record<CommunityRole, ModuleKey[]>;
 
-export function PermissionsEditor({ initial }: { initial: Matrix }) {
+export function PermissionsEditor({
+  initial,
+  initialBlocked,
+  modules,
+}: {
+  initial: Matrix;
+  /** Per groep de onderdelen die dicht zijn (0336). */
+  initialBlocked: BlockedMatrix;
+  /** De modules die de club aan heeft. */
+  modules: ModuleKey[];
+}) {
   const [matrix, setMatrix] = useState<Matrix>(initial);
+  const [blocked, setBlocked] = useState<BlockedMatrix>(initialBlocked);
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<
     | { kind: "idle" }
@@ -43,18 +56,30 @@ export function PermissionsEditor({ initial }: { initial: Matrix }) {
     });
   }
 
+  function toggleModule(role: CommunityRole, key: ModuleKey, open: boolean) {
+    setStatus({ kind: "idle" });
+    setBlocked((current) => {
+      const own = current[role] ?? [];
+      return {
+        ...current,
+        [role]: open ? own.filter((item) => item !== key) : Array.from(new Set([...own, key])),
+      };
+    });
+  }
+
   function resetRole(role: CommunityRole) {
     setStatus({ kind: "idle" });
     setMatrix((current) => ({
       ...current,
       [role]: DEFAULT_ROLE_PERMISSIONS[role],
     }));
+    setBlocked((current) => ({ ...current, [role]: [] }));
   }
 
   function save() {
     setStatus({ kind: "idle" });
     startTransition(async () => {
-      const res = await updateRolePermissions(matrix);
+      const res = await updateRolePermissions(matrix, blocked);
       setStatus(
         res.ok
           ? { kind: "saved" }
@@ -88,6 +113,7 @@ export function PermissionsEditor({ initial }: { initial: Matrix }) {
         {COMMUNITY_ROLES.map((role) => {
           const meta = COMMUNITY_ROLE_META[role];
           const selected = new Set(matrix[role] ?? []);
+          const closed = new Set(blocked[role] ?? []);
           return (
             <section key={role} className="rounded-lg border bg-card p-4">
               <div className="flex items-start justify-between gap-3">
@@ -140,6 +166,34 @@ export function PermissionsEditor({ initial }: { initial: Matrix }) {
                     </div>
                   </div>
                 ))}
+
+                {modules.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Onderdelen
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {modules.map((key) => (
+                        <label
+                          key={key}
+                          className="flex items-center gap-2 rounded-md border bg-background/60 p-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!closed.has(key)}
+                            onChange={(event) =>
+                              toggleModule(role, key, event.currentTarget.checked)
+                            }
+                            className="size-4"
+                          />
+                          <span className="font-medium">
+                            <ModuleName module={key} />
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           );

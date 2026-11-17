@@ -13,13 +13,19 @@ import {
 import { PermissionsEditor } from "./_components/permissions-editor";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { ClubText } from "@/components/club-texts-provider";
+import { getClub } from "@/lib/club";
+import { parseModuleKeys } from "@/lib/module-access";
+import { MODULES, type ModuleKey } from "@/lib/modules";
 
 type PermissionRow = {
   role: string;
   permissions: string[] | null;
+  /** Sinds 0336. */
+  blocked_modules?: unknown;
 };
 
 type Matrix = Record<CommunityRole, CommunityPermission[]>;
+type BlockedMatrix = Record<CommunityRole, ModuleKey[]>;
 
 export default async function RechtenPage() {
   const supabase = await createClient();
@@ -39,10 +45,11 @@ export default async function RechtenPage() {
     );
   }
 
-  const { data, error } = await supabase
-    .from("community_role_permissions")
-    .select("role, permissions")
-    .order("role");
+  // Alle kolommen: blocked_modules bestaat pas met 0336.
+  const [{ data, error }, club] = await Promise.all([
+    supabase.from("community_role_permissions").select("*").order("role"),
+    getClub(),
+  ]);
 
   const rows = ((data ?? []) as PermissionRow[]).filter((row) =>
     (COMMUNITY_ROLES as readonly string[]).includes(row.role),
@@ -54,6 +61,12 @@ export default async function RechtenPage() {
     );
     return acc;
   }, {} as Matrix);
+  const blocked = COMMUNITY_ROLES.reduce((acc, role) => {
+    acc[role] = parseModuleKeys(rowByRole.get(role)?.blocked_modules);
+    return acc;
+  }, {} as BlockedMatrix);
+  // Alleen modules die de club aan heeft; een uitgezette module is al dicht.
+  const modules = MODULES.filter((m) => club.isEnabled(m.key)).map((m) => m.key);
 
   return (
     <div className="space-y-6">
@@ -88,7 +101,7 @@ export default async function RechtenPage() {
         ))}
       </section>
 
-      <PermissionsEditor initial={matrix} />
+      <PermissionsEditor initial={matrix} initialBlocked={blocked} modules={modules} />
     </div>
   );
 }

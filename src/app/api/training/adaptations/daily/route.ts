@@ -32,6 +32,7 @@ import { onePlanPerProfile } from "@/lib/training/active-plan";
 import { refreshEventWorkouts } from "@/lib/training/events";
 import { reconcileZrlReservations } from "@/lib/training/zrl-reservation";
 import { getClub } from "@/lib/club";
+import { profileIdsBlockedFrom } from "@/lib/auth/permissions";
 import { isKeyWorkout } from "@/lib/training/engine/daily";
 import type { WellnessSummary } from "@/lib/training/wellness";
 import {
@@ -156,7 +157,15 @@ async function latestPlanCandidates(admin: ReturnType<typeof createAdminClient>)
     .order("updated_at", { ascending: false })
     .limit(50);
   if (error) throw new Error(error.message);
-  return onePlanPerProfile((data ?? []) as PlanRow[]).slice(0, 25);
+  // Leden wier groepen ZWBeter dicht hebben (0336) krijgen geen voorstel; hun
+  // schema blijft staan voor als het weer opengaat.
+  const plans = (data ?? []) as PlanRow[];
+  const blocked = await profileIdsBlockedFrom(
+    admin,
+    "training",
+    plans.map((plan) => plan.profile_id),
+  );
+  return onePlanPerProfile(plans.filter((plan) => !blocked.has(plan.profile_id))).slice(0, 25);
 }
 
 /**

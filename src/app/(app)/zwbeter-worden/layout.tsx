@@ -11,6 +11,7 @@ import {
 import { ZwbeterNav } from "./_components/zwbeter-nav";
 import { ZWBETER_PILLARS } from "@/lib/zwbeter-pillars";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { getMemberModules } from "@/lib/member-modules";
 
 export default async function ZwbeterWordenLayout({
   children,
@@ -28,8 +29,9 @@ export default async function ZwbeterWordenLayout({
   // nav-config.
   // Het gewicht is de basis voor W/kg op alle trainingspagina's, de FTP voor het
   // omrekenen van bloksdoelen tussen watt en % FTP.
-  const [access, { data: profile }] = await Promise.all([
+  const [access, view, { data: profile }] = await Promise.all([
     getRequestAccess(),
+    getMemberModules(),
     supabase.from("profiles").select("sex, weight_kg, ftp_watts").eq("id", user.id).maybeSingle(),
   ]);
   const weightKg = profile?.weight_kg == null ? null : Number(profile.weight_kg);
@@ -39,6 +41,8 @@ export default async function ZwbeterWordenLayout({
     ZWBETER_WORDEN_SECTIONS,
     (permission) => access.has(permission),
     (profile?.sex as string | null) ?? null,
+    // Wat het lid op het profiel verborgen heeft (0336).
+    view.showsPath,
   ) as NavLeaf[];
 
   // ZWBeter, met zes pijlers (lib/zwbeter-pillars.ts) in plaats van één rij van

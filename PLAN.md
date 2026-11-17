@@ -31,6 +31,13 @@ gaat stabiliteit voor nieuwe features.
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
+0. **Onderdelen per ledengroep afsluiten en per lid verbergen (2026-11-17):
+   lokaal gecommit, niet gepusht.** Migratie `0336_module_access.sql`, nog
+   niet toegepast. Open: de privacyzin voorleggen, de migratie toepassen,
+   pushen, en na de deploy het rechtenscherm, het profielblok en de poort met
+   een testlid nalopen. Zie de ronde "Onderdelen per ledengroep afsluiten en
+   per lid verbergen".
+
 0. **Kapotte herziening wordt niet meer gepubliceerd (2026-11-17): lokaal
    gecommit, niet gepusht.** Geen migratie. Karens schema is op productie al
    met de hand hersteld. Open: pushen, en na de deploy één nachtelijke cron
@@ -12425,6 +12432,95 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Onderdelen per ledengroep afsluiten en per lid verbergen
+
+**2026-11-17, commit "Onderdelen: per ledengroep afsluiten, per lid verbergen", lokaal, niet gepusht. Migratie `0336_module_access.sql`, nog niet toegepast.**
+
+- **Waarom.** Leden lieten de eigenaar weten dat ze een beetje overweldigd raken
+  door alle mogelijkheden en functies. Voorstel akkoord (eigenaar: "Ja, bouw
+  het"), met twee lagen: de ledengroep bepaalt wat iemand **mag**, het lid
+  kiest daarbinnen wat het **ziet**. Op de vraag of een groep alleen een
+  standaard zet of echt afsluit: "Nee, echt afsluiten".
+- **Afsluiten per ledengroep.** Op Beheer → Rechten staat per rol een rij
+  Onderdelen: een vinkje per module die de club aan heeft (aangevinkt = open).
+  Opslag in `community_role_permissions.blocked_modules` (text[], standaard
+  leeg = alles open). Regels in `lib/module-access.ts` (`roleBlockedModules`):
+  een module is dicht als **elke** rol van het lid hem dicht heeft (open wint,
+  anders zou de basisrol Communitylid alles bepalen); `is_admin` komt overal
+  in; een module die een dichte module vereist (managerspel en live race bij
+  teams) gaat mee dicht. Een dichte module werkt als een club-uit module: de
+  middleware geeft een pagina de 404 (`/_module-uit`) en een API-route een
+  404 in JSON. De groepen komen uit de goedkeuringsvraag die de middleware al
+  deed (`is_approved, is_admin, community_roles`), de rolrijen een minuut
+  onthouden, net als `club_modules`; geen extra oversteek per request, en
+  kernpaden kosten niets. Cronjobs (zonder lid) draaien gewoon door.
+- **Verbergen per lid.** Op het profiel (potlood) een blok Onderdelen boven
+  Dashboard: een vinkje per module die het lid mag gebruiken
+  (`HIDEABLE_MODULES` in `lib/member-view.ts`), en bij ZWBeter Worden per
+  onderdeel (Jaarplan, Belasting, Vermogen, Doelen, Uitgangspunten, Logboek,
+  Protocollen, Kennisbank, Coach, Racen, Voeding, Core, Materiaal). Opslag in
+  `profile_stats_tiles.module_hidden` (jsonb-lijst van modulesleutels en
+  ZWBeter-paden, naast `dashboard_hidden` van 0318). Standaard alles aan;
+  onbekende sleutels vallen weg. Wat het formulier niet aanbood (een onderdeel
+  dat de groep nu dicht heeft) houdt zijn oude stand. Verbergen is geen slot:
+  een directe link blijft werken.
+- **Eén plek voor de drie lagen.** `getMemberModules()` (`lib/member-modules.ts`,
+  React `cache`) combineert club (0313), groepen en eigen keuze: `canUse` en
+  `allowsPath` (mag het) en `shows` en `showsPath` (mag het en is het niet
+  verborgen). De layout (menu, plekken, persoonlijk menu, meldingsdialogen,
+  weekoverzicht), de Club-tegels, de ZWBeter-tabbalk, het dashboard en de
+  hulpcategorieën lezen hieruit in plaats van uit `getClub()`. Het dashboard
+  haalt `dashboard_hidden` nu ook hieruit, vooraf in plaats van in de grote
+  ronde; de layout vraagt hetzelfde al op, dus dat kost meestal niets.
+- **Meldingen en achtergrond.** `sendNotificationToMembers` slaat leden over
+  die de module van de melding niet mogen gebruiken (`TRIGGER_MODULE` in
+  `lib/push/trigger-modules.ts`: live, ZWBekers, training, voeding, ZWBieb,
+  onderhoud, clubverhaal). Badges en ritberichten bewust niet: hun link wijst
+  niet naar een dichte module. De dagelijkse trainingsaanpassing
+  (`/api/training/adaptations/daily`) slaat leden over wier groepen ZWBeter
+  dicht hebben. Beide via `profileIdsBlockedFrom` (`lib/auth/permissions.ts`):
+  één kleine vraag als geen enkele rol de module dicht heeft. Gegevens blijven
+  bewaard; weer open = alles terug.
+- **Uitleg** op `/hulp` (Profiel en ledenlijst; Rollen, rechten en
+  notificaties). De privacyzin over verborgen onderdelen is nog **niet**
+  aangepast: eerst voorleggen (zie hieronder).
+
+**Bewust niet gebouwd.**
+- **ZWBeter-onderdelen per groep afsluiten** (bijvoorbeeld alleen Voeding):
+  afsluiten werkt per module en ZWBeter is één module. Daarvoor zouden die
+  onderdelen eigen modules in `lib/modules.ts` moeten worden. Verbergen per lid
+  kan wel per onderdeel.
+- **Waterdicht met RLS en server-actions.** De poort sluit pagina's en
+  API-routes af, maar is inrichting, geen databeveiliging: een server-action
+  is nog direct aan te roepen, en lukt het lezen van de instellingen niet, dan
+  staat de poort open (zoals bij 0313). Moet iets echt alleen voor een groep
+  zijn (bijvoorbeeld betalende leden), dan is dat een eigen ronde.
+- **Inhoud van een dichte module op andere pagina's** (zoals de
+  ZWBriljant-steen of bekers op een ledenprofiel, de ZWBriljant-tab bij Stats)
+  verdwijnt niet: ook bij een club-uit module (0313) gebeurt dat niet. De link
+  geeft wel de 404.
+- **Trainers** van een lid dat ZWBeter niet mag, houden hun inzage.
+- **Geen keuze bij `/welkom`** en geen eigen volgorde: eerst kijken of leden het
+  profielblok vinden. Sponsors, race-pacing en live race zijn niet per lid te
+  verbergen (sponsors houdt de club zichtbaar; de andere twee hangen aan een
+  event).
+- **Geen andere melding dan de 404** voor een lid dat op een dichte module
+  komt, net als bij een club-uit module.
+
+**Privacyzin (voorstel, nog niet op `/privacy`).** Bij de profielgegevens nu:
+"welke onderdelen je op je dashboard verborgen hebt". Voorstel: "welke
+onderdelen je in de app en op je dashboard verborgen hebt". Een voorkeur van
+jezelf, alleen voor jou zichtbaar; geen nieuwe toestemming.
+
+**Getest.** `tsc` en ESLint schoon. Nieuw: `tests/unit/module-access.test.ts`
+(open wint, beheerder, vereiste modules, zonder rij of kolom, verbergen per lid,
+de poort per groep, migratie 0336 in PGlite), samen met `modules`,
+`dashboard-parts` en `admin-areas` groen. In de volledige run alleen
+time-outs onder belasting (los gedraaid groen) en `omnium-live` zonder
+`.env.local`. **Niet lokaal te controleren:** de migratie op productie (geen
+Docker of Supabase-config), en het rechtenscherm, het profielblok, het menu en
+de poort in de ingelogde app (geen `.env.local` in de worktree).
+
 ### Hersteld — Kapotte herziening wist Karens schema
 
 **2026-11-17, commit "Herziening: kapot AI-antwoord niet publiceren", lokaal, niet gepusht. Geen migratie.**
@@ -18509,8 +18605,10 @@ kunnen samen in een tegel.
   slaat op: wat het formulier aanbood en niet aangevinkt is. Zolang 0318 er niet
   is, blokkeert alleen iets verbergen het opslaan (zoals het gezin bij 0259);
   het profiel en het dashboard lezen dan niets verborgen.
-- **Dashboard:** `show(onderdeel)` naast `on(module)`. De keuze komt mee in de
-  grote `Promise.all`-ronde, dus geen extra oversteek naar de database. Wat
+- **Dashboard:** `show(onderdeel)` naast `on(module)`. De keuze kwam mee in de
+  grote `Promise.all`-ronde (*sinds 2026-11-17 komt hij vooraf uit
+  `getMemberModules`, samen met de onderdelen; die deelt de layout al, zie de
+  ronde "Onderdelen per ledengroep afsluiten en per lid verbergen"*). Wat
   verborgen is, rendert niet, en de trage delen achter een Suspense (advies en
   fitheid bij intervals.icu, core, races, teams, bekers, FRR, SRC, onderhoud,
   clubstats) vragen dan niets op. Ook de ZWBriljant-snapshot, de teamstand en,
@@ -18531,7 +18629,9 @@ kunnen samen in een tegel.
 
 **Bewust niet gebouwd.** Geen eigen volgorde per lid: iedereen hetzelfde
 dashboard houdt hulp geven eenvoudig. Geen schakelaar "Ik train niet met
-ZWBeter": de losse vinkjes doen hetzelfde en zijn duidelijker. Geen instelling
+ZWBeter": de losse vinkjes doen hetzelfde en zijn duidelijker. *Sinds
+2026-11-17 is die er wel, als vinkje bij Onderdelen op het profiel: dat
+verbergt heel ZWBeter, ook uit het menu, niet alleen de dashboardtegels.* Geen instelling
 op het dashboard zelf (zoals "Tegels aanpassen" bij Stats): een plek is genoeg.
 
 **Getest.** `tsc` en ESLint schoon; `tests/unit/dashboard-parts.test.ts`

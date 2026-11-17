@@ -13,6 +13,7 @@ import { EVENT_INTEREST_OPTIONS } from "@/lib/event-types";
 import { HOUSEHOLD_MAX, HOUSEHOLD_MOMENTS } from "@/lib/nutrition/shopping";
 import { syncPowerProfileFor } from "@/lib/teams/power-sync";
 import { isDashboardPartKey } from "@/lib/dashboard-parts";
+import { isHideableKey } from "@/lib/member-view";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
@@ -260,6 +261,36 @@ export async function updateProfile(formData: FormData) {
     return { ok: false as const, error: dashboardError.message };
   }
 
+  // Onderdelen (0336): wat het formulier aanbood en niet aangevinkt is, is
+  // verborgen. Wat het niet aanbood (een onderdeel dat de groep nu dicht heeft)
+  // houdt zijn oude stand. Zolang 0336 er niet is, blokkeert alleen iets
+  // verbergen het opslaan.
+  const moduleOffered = new Set(formData.getAll("module_offered").map(String).filter(isHideableKey));
+  const moduleShown = new Set(formData.getAll("module_show").map(String));
+  if (moduleOffered.size > 0) {
+    const { data: tilesRow } = await supabase
+      .from("profile_stats_tiles")
+      .select("*")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    const previous = (tilesRow as { module_hidden?: unknown } | null)?.module_hidden;
+    const kept = (Array.isArray(previous) ? previous : []).filter(
+      (key): key is string => isHideableKey(key) && !moduleOffered.has(key),
+    );
+    const moduleHidden = [
+      ...new Set([...kept, ...[...moduleOffered].filter((key) => !moduleShown.has(key))]),
+    ];
+    const { error: moduleError } = await supabase
+      .from("profile_stats_tiles")
+      .upsert(
+        { profile_id: user.id, module_hidden: moduleHidden, updated_at: new Date().toISOString() },
+        { onConflict: "profile_id" },
+      );
+    if (moduleError && moduleHidden.length > 0) {
+      return { ok: false as const, error: moduleError.message };
+    }
+  }
+
   // Ander geslacht: de SRC-inschrijving van deze en komende maanden gaat mee
   // naar de heren- of damesrace. Mislukt dat, dan blijft het profiel opgeslagen.
   if ((before?.sex ?? null) !== sex) {
@@ -290,6 +321,8 @@ export async function updateProfile(formData: FormData) {
   }
 
   revalidatePath("/profiel");
+  // Menu, tegels en tabbalk volgen de onderdelen (0336).
+  revalidatePath("/", "layout");
   revalidatePath("/dashboard");
   revalidatePath("/stats/zwbriljant");
   revalidatePath("/zwbeter-worden/voeding", "layout");

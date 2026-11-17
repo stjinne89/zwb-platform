@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isModuleCron, moduleForPath, resolveDisabled, type ModuleKey } from "@/lib/modules";
+import { roleBlockedModules, type RoleModuleRow } from "@/lib/module-access";
 
 // De poort in de middleware voor modules die bij deze club uit staan (0313,
 // docs/multi-club-ontwerp.md). Een pagina van zo'n module geeft de gewone 404,
@@ -35,10 +36,32 @@ async function loadDisabled(supabase: SupabaseClient): Promise<Set<ModuleKey>> {
   }
 }
 
+// Wat elke ledengroep dicht heeft (0336), op dezelfde manier onthouden.
+let cachedRoles: { at: number; rows: RoleModuleRow[] } | null = null;
+
+async function loadRoleRows(supabase: SupabaseClient): Promise<RoleModuleRow[]> {
+  const now = Date.now();
+  if (cachedRoles && now - cachedRoles.at < TTL_MS) return cachedRoles.rows;
+  try {
+    // Alle kolommen: zonder 0336 is er geen blocked_modules en is alles open.
+    const { data, error } = await supabase.from("community_role_permissions").select("*");
+    if (error) throw error;
+    const rows = (data ?? []) as RoleModuleRow[];
+    cachedRoles = { at: now, rows };
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
 /** Voor de tests: de onthouden stand vergeten. */
 export function resetModuleGateCache() {
   cached = null;
+  cachedRoles = null;
 }
+
+/** De groepen van het ingelogde lid, voor de poort per ledengroep. */
+export type GateMember = { isAdmin: boolean; roles: string[] | null };
 
 /**
  * Een antwoord als het pad bij een uitgeschakelde module hoort, anders null.
@@ -47,15 +70,24 @@ export function resetModuleGateCache() {
 export async function moduleGateResponse(
   request: NextRequest,
   supabase: SupabaseClient,
+  /** Het ingelogde lid; zonder (publieke paden, cronjobs) geldt alleen de club. */
+  member: GateMember | null = null,
 ): Promise<NextResponse | null> {
   const pathname = request.nextUrl.pathname;
   const key = moduleForPath(pathname);
   if (key === null) return null;
 
-  const disabled = await loadDisabled(supabase);
-  if (!disabled.has(key)) return null;
+  const [disabled, roleRows] = await Promise.all([
+    loadDisabled(supabase),
+    member && !member.isAdmin ? loadRoleRows(supabase) : Promise.resolve([]),
+  ]);
+  const clubOff = disabled.has(key);
+  const groupOff =
+    !clubOff && member !== null && roleBlockedModules(roleRows, member.roles, member.isAdmin).has(key);
+  if (!clubOff && !groupOff) return null;
 
-  if (isModuleCron(key, pathname)) {
+  // Een cronjob draait voor de hele club; alleen een club-uit slaat hem over.
+  if (clubOff && isModuleCron(key, pathname)) {
     return NextResponse.json({ ok: true, skipped: "module staat uit", module: key });
   }
   if (pathname.startsWith("/api/")) {

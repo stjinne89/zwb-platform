@@ -8,6 +8,7 @@ import { HOUSEHOLD_MAX, HOUSEHOLD_MOMENTS, type Household } from "@/lib/nutritio
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import { ModuleName } from "@/components/club-texts-provider";
 import type { DashboardPart } from "@/lib/dashboard-parts";
+import type { ModuleKey } from "@/lib/modules";
 
 type Initial = {
   id: string;
@@ -36,6 +37,8 @@ type Initial = {
   share_briljant: boolean;
   profile_visibility: Record<string, boolean>;
   dashboard_hidden: string[];
+  /** Modulesleutels en ZWBeter-paden die het lid verborgen heeft (0336). */
+  module_hidden: string[];
 };
 
 const FIELD =
@@ -76,11 +79,17 @@ export function ProfileForm({
   email,
   initial,
   dashboardParts,
+  modules,
+  zwbeterTabs,
 }: {
   email: string;
   initial: Initial;
   /** De dashboardonderdelen die deze club aanbiedt, in de volgorde van het dashboard. */
   dashboardParts: DashboardPart[];
+  /** De modules die het lid mag gebruiken en kan verbergen (0336). */
+  modules: ModuleKey[];
+  /** De onderdelen van ZWBeter die het lid kan verbergen. */
+  zwbeterTabs: { href: string; label: string }[];
 }) {
   const [pending, startTransition] = useTransition();
   const [autoSyncPhysique, setAutoSyncPhysique] = useState(initial.auto_sync_physique);
@@ -418,6 +427,59 @@ export function ProfileForm({
           </div>
         </fieldset>
       </section>
+
+      {modules.length > 0 && (
+        <section id="onderdelen" className="scroll-mt-20 space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Onderdelen
+          </h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {modules.map((key) => (
+              <label
+                key={key}
+                className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+              >
+                <input type="hidden" name="module_offered" value={key} />
+                <input
+                  type="checkbox"
+                  name="module_show"
+                  value={key}
+                  defaultChecked={!initial.module_hidden.includes(key)}
+                  className="size-4 accent-primary"
+                />
+                <span>
+                  <ModuleName module={key} />
+                </span>
+              </label>
+            ))}
+          </div>
+          {zwbeterTabs.length > 0 && (
+            <fieldset className="space-y-2">
+              <legend className={LABEL}>
+                <ModuleName module="training" />
+              </legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {zwbeterTabs.map((tab) => (
+                  <label
+                    key={tab.href}
+                    className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+                  >
+                    <input type="hidden" name="module_offered" value={tab.href} />
+                    <input
+                      type="checkbox"
+                      name="module_show"
+                      value={tab.href}
+                      defaultChecked={!initial.module_hidden.includes(tab.href)}
+                      className="size-4 accent-primary"
+                    />
+                    <span>{tab.label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+        </section>
+      )}
 
       {dashboardParts.length > 0 && (
         <section id="dashboard" className="scroll-mt-20 space-y-4">

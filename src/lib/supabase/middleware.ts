@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth/session-user";
-import { moduleGateResponse } from "@/lib/modules-gate";
+import { moduleGateResponse, type GateMember } from "@/lib/modules-gate";
 
 const PASSWORD_RECOVERY_COOKIE = "zwb-password-recovery";
 
@@ -145,13 +145,21 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Approval-gate: ingelogde gebruikers die nog niet goedgekeurd zijn
-  // mogen alleen op /wachten (en publieke paden).
+  // mogen alleen op /wachten (en publieke paden). Dezelfde vraag levert de
+  // groepen voor de modulepoort per ledengroep (0336).
+  let gateMember: GateMember | null = null;
   if (user && !isPublic && !isPendingOk) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_approved")
+      .select("is_approved, is_admin, community_roles")
       .eq("id", user.id)
       .maybeSingle();
+    if (profile) {
+      gateMember = {
+        isAdmin: profile.is_admin === true,
+        roles: (profile.community_roles as string[] | null) ?? null,
+      };
+    }
 
     if (profile && !profile.is_approved) {
       const url = request.nextUrl.clone();
@@ -174,9 +182,10 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Modules die deze club heeft uitgezet (0313): 404, of een lege 200 voor een
-  // cronjob. Een ververste sessie gaat mee in het antwoord.
-  const gated = await moduleGateResponse(request, supabase);
+  // Modules die deze club heeft uitgezet (0313) of die de groepen van dit lid
+  // dicht hebben (0336): 404, of een lege 200 voor een cronjob. Een ververste
+  // sessie gaat mee in het antwoord.
+  const gated = await moduleGateResponse(request, supabase, gateMember);
   if (gated) {
     response.cookies.getAll().forEach((cookie) => gated.cookies.set(cookie));
     return gated;

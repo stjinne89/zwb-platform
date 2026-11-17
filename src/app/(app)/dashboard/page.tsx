@@ -91,7 +91,8 @@ import {
   type VandaagLiveEvent,
   type VandaagWorkout,
 } from "@/components/tegels/vandaag";
-import { parseDashboardHidden, type DashboardPartKey } from "@/lib/dashboard-parts";
+import type { DashboardPartKey } from "@/lib/dashboard-parts";
+import { getMemberModules } from "@/lib/member-modules";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { liveRidersLabel } from "@/lib/live/riders-label";
 import { loadWeightMissing } from "@/lib/teams/missing-weight";
@@ -498,30 +499,21 @@ export default async function DashboardPage({
   const params = (await searchParams) ?? {};
   const rawStravaError = params.strava_error;
   const stravaError = Array.isArray(rawStravaError) ? rawStravaError[0] : rawStravaError;
-  const [supabase, user, club] = await Promise.all([
+  const [supabase, user, club, view] = await Promise.all([
     createClient(),
     getRequestUser(),
     getClub(),
+    // Gedeeld met de layout, dus meestal al binnen.
+    getMemberModules(),
   ]);
-  // Modules die deze club uit heeft (0313): hun vragen vertrekken niet, en een
-  // blok zonder data valt hieronder vanzelf weg.
-  const on = club.isEnabled;
+  // Modules die de club uit heeft (0313), die de groepen van het lid dicht
+  // hebben of die het lid verborgen heeft (0336): hun vragen vertrekken niet, en
+  // een blok zonder data valt hieronder vanzelf weg.
+  const on = view.shows;
   const skip = () => Promise.resolve({ data: null });
-  // Wat het lid op het profiel verborgen heeft (0318). Loopt mee met de grote
-  // ronde hieronder; zonder migratie of bij een fout is niets verborgen.
-  const hiddenPromise: Promise<Set<DashboardPartKey>> = user
-    ? Promise.resolve(
-        supabase
-          .from("profile_stats_tiles")
-          .select("dashboard_hidden")
-          .eq("profile_id", user.id)
-          .maybeSingle(),
-      ).then(
-        ({ data }) =>
-          parseDashboardHidden((data as { dashboard_hidden?: unknown } | null)?.dashboard_hidden),
-        () => new Set<DashboardPartKey>(),
-      )
-    : Promise.resolve(new Set<DashboardPartKey>());
+  // Wat het lid op het dashboard verborgen heeft (0318); zonder migratie of bij
+  // een fout is niets verborgen.
+  const hidden = view.dashboardHidden;
   // Elke databasevraag is een oversteek (functies in Ohio, database in Ierland), dus
   // wat niet van elkaar afhangt, vertrekt tegelijk: de ritbron loopt mee met de
   // grote ronde hieronder in plaats van ervoor en erna.
@@ -532,12 +524,8 @@ export default async function DashboardPage({
   // want Garmin en Wahoo eerst bijwerken kost een oversteek.
   // Wie beide eventgroepen verborgen heeft, hoeft niet te weten wie er rijdt.
   const livePromise = (
-    user && on("samen_fietsen")
-      ? hiddenPromise.then((hidden) =>
-          hidden.has("mijn_events") && hidden.has("overige_events")
-            ? null
-            : loadLiveNow(supabase, user.id),
-        )
+    user && on("samen_fietsen") && !(hidden.has("mijn_events") && hidden.has("overige_events"))
+      ? loadLiveNow(supabase, user.id)
       : Promise.resolve(null)
   ).catch(() => null);
 
@@ -579,7 +567,6 @@ export default async function DashboardPage({
     { data: instagramRows },
     { data: zrlResultRows },
     needsWeight,
-    hidden,
   ] = await Promise.all([
     user
       ? supabase
@@ -695,7 +682,6 @@ export default async function DashboardPage({
       .order("computed_at", { ascending: false })
       .limit(40),
     user ? loadWeightMissing(supabase, user.id, { inTeam: true }) : Promise.resolve(false),
-    hiddenPromise,
   ]);
   const show = (part: DashboardPartKey) => !hidden.has(part);
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];

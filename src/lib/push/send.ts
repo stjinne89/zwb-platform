@@ -13,6 +13,8 @@ import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClub } from "@/lib/club";
 import { clubPushIcons } from "@/lib/club-icons";
+import { profileIdsBlockedFrom } from "@/lib/auth/permissions";
+import { TRIGGER_MODULE } from "@/lib/push/trigger-modules";
 
 export type PushPayload = {
   title: string;
@@ -124,6 +126,11 @@ export async function sendNotificationToMembers(
     profileIds = profileIds.filter((id) => id !== options.excludeProfileId);
   }
   profileIds = Array.from(new Set(profileIds));
+  const triggerModule = TRIGGER_MODULE[trigger];
+  if (triggerModule && profileIds.length > 0) {
+    const blocked = await profileIdsBlockedFrom(admin, triggerModule, profileIds);
+    if (blocked.size > 0) profileIds = profileIds.filter((id) => !blocked.has(id));
+  }
   if (profileIds.length === 0) {
     return { sent: 0, pruned: 0, skipped: false, reachedProfileIds: [] };
   }

@@ -50,6 +50,7 @@ export const GUIDES = [
       "Je profiel bepaalt wat andere leden mogen zien.",
       "Onder je naam op Profiel staat een schuifknop met drie standen: het potlood om je profiel te bewerken, de mensen voor hoe andere leden het zien en de wereldbol voor je deelbare profiel. Profiel opent in het midden.",
       "Onder Interesses kies je welke eventtypes je wilt zien op de kalender, en welke afstand en hoogtemeters je grens zijn.",
+      "Onder Onderdelen vink je uit wat je niet gebruikt, zoals {m:omnium} of {m:managerspel}, of bij {m:training} bijvoorbeeld Voeding of Materiaal. Dat verdwijnt dan uit het menu, de tegels van Club, de tabbalk van {m:training} en het dashboard. Een link die je krijgt, bijvoorbeeld in WhatsApp of een melding, werkt gewoon. Een nieuw onderdeel staat er vanzelf bij.",
       "Onder Dashboard vink je uit wat je op je dashboard niet wilt zien, zoals de trainingstegels als je niet met {m:training} traint. De volgorde blijft gelijk, en een nieuw onderdeel staat er vanzelf bij. De meldingen over je Zwift-ID en gewicht en het blok met je ritten en de Strava-sync blijven altijd staan.",
       "Badges blijven zichtbaar op je profiel en in de ledenlijst.",
       "Onder Mijn fietsen tonen we je fietsen uit Strava (naam + kilometers); zonder Strava voeg je een fiets handmatig toe. Je kiest per fiets of die zichtbaar is en zet er een foto bij.",
@@ -537,6 +538,7 @@ export const ADMIN_GUIDES = [
     bullets: [
       "De rechtenmatrix (Beheer → Rechten) bepaalt per communityrol welke beheeracties zijn toegestaan. Elk beheerscherm hoort bij één recht: Kalenderbronnen (eventscan, Zwift-routes), Competities (ZRL-beheer, FRR), Sunday Race Club, Omnium, Koppelingen (koppelingen van leden, Strava-sync, segmenten en storingsmeldingen), Pushberichten aan alle leden, Tips en citaten (Community beheren), Badges, {m:managerspel} en Rechten zelf. Wie een recht niet heeft, ziet het scherm ook niet in het beheermenu.",
       "Content modereren geeft het recht om posts, reacties, eventchat, ritverslagen, foto's en verjaardagsberichten van anderen weg te halen. Alle events beheren geeft het recht om andermans events te bewerken of te verwijderen.",
+      "Onder Onderdelen zet je per communityrol een module dicht. Een lid kan dan niet meer bij die module: het menu, de tegels en het dashboard tonen hem niet, een link geeft Niet gevonden en meldingen van die module blijven weg. Zit een lid in meer rollen, dan telt de ruimste: is de module voor een van zijn rollen open, dan kan hij erin. Beheerders kunnen er altijd in. Een module die een dichte module nodig heeft, zoals {m:managerspel} {m:teams}, gaat mee dicht. Gegevens blijven bewaard; zet je de module weer open, dan is alles terug.",
       "Ledenrollen beheren mag rollen geven, maar de rol Bestuur (alle rechten) alleen als je ook rechten beheert. Beheerdersrechten (admin) kan alleen een admin geven.",
       "Technische admins behouden altijd volledige toegang.",
       "Een bestuursmelding gaat alleen naar apparaten van leden die aankondigingen hebben ingeschakeld.",
