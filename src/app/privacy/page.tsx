@@ -117,7 +117,10 @@ export default function PrivacyPage() {
             in welk ladderteam je rijdt. Dat kan ook voor renners zonder
             {" "}<ClubShortName />-account: dan staat hun naam uit het rooster met Zwift-ID, rank,
             eventueel geslacht en hun Zwift Racing Score (of vELO 2) op de Club
-            Ladder-pagina, tot ze hun naam claimen. Voor de matchup en het
+            Ladder-pagina, tot ze hun naam claimen. Wie de ladderteams indeelt,
+            ziet in de Ladderpuzzel per renner ook een geschatte zMAP, uit
+            dezelfde gegevens als bij de ZRL-teamindeling hieronder; dat geldt
+            ook voor renners zonder account. Voor de matchup en het
             route-advies rekenen we met het gewicht uit de Zwift-uitslag van
             bewaarde ladderraces en uit segmentpassages van de racebriefing, ook
             van renners van andere clubs; voor een <MemberNoun /> zonder die twee met

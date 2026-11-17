@@ -40,8 +40,8 @@ gaat stabiliteit voor nieuwe features.
 0. **Club Ladder seizoen 8: zMAP-regel in de Ladderpuzzel (2026-11-17):
    lokaal gecommit, niet gepusht.** Geen migratie. Toggle Nu / Seizoen 8 voor
    wie indeelt. Open: in de browser bekijken met een captain-login (de lokale
-   server vroeg om in te loggen), de privacyzin voor ladder-captains (voorgelegd,
-   nog niet akkoord), pushen. Na de wissel eind december: de stand Nu en de
+   server vroeg om in te loggen), pushen. De privacyzin staat op `/privacy`
+   (akkoord eigenaar: "Ja, zet erin"). Na de wissel eind december: de stand Nu en de
    rankregel weghalen. Zie de ronde "Gebouwd — Club Ladder seizoen 8:
    zMAP-regel in de Ladderpuzzel".
 
@@ -12585,7 +12585,12 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
 > Zodra de ladder zMAP op renner- en rosterpagina's toont, de schatting daarmee
 > vergelijken. Privacy: de geschatte zMAP zagen alleen captains en beheerders
 > op een ZRL-hoofdteam; nu ook wie de ladder indeelt, ook van renners zonder
-> account. Zin voor `/privacy` voorgelegd, nog niet gezet.
+> account. Daarvoor staat in het ladderblok op `/privacy` na "…tot ze hun naam
+> claimen.": "Wie de ladderteams indeelt, ziet in de Ladderpuzzel per renner ook
+> een geschatte zMAP, uit dezelfde gegevens als bij de ZRL-teamindeling
+> hieronder; dat geldt ook voor renners zonder account." Akkoord eigenaar ("Ja,
+> zet erin", 2026-11-17); alleen een tekstaanpassing, geen nieuwe
+> privacyversie (zelfde gegevens als bij de ZRL).
 >
 > **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden, de
 > unitsuite (nieuw: `club-ladder-zmap-rule.test.ts`). Bij de volle suite liepen
