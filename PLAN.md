@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-16)
+## Actieve volgorde (bijgewerkt 2026-11-17)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -30,6 +30,12 @@ gaat stabiliteit voor nieuwe features.
    geen `.env.local` in de worktree), het toetsscript draaien op de echte
    events zodra de Supabase-connector er weer is. Zie de rondes
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
+
+0. **Kapotte herziening wordt niet meer gepubliceerd (2026-11-17): lokaal
+   gecommit, niet gepusht.** Geen migratie. Karens schema is op productie al
+   met de hand hersteld. Open: pushen, en na de deploy één nachtelijke cron
+   nalopen op `generation_failed` met de nieuwe melding. Zie de ronde
+   "Hersteld — Kapotte herziening wist Karens schema".
 
 0. **Snelste fiets: tijdritfiets in de ploegentijdrit (2026-11-16): op
    2026-11-16 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie.
@@ -12418,6 +12424,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Kapotte herziening wist Karens schema
+
+**2026-11-17, commit "Herziening: kapot AI-antwoord niet publiceren", lokaal, niet gepusht. Geen migratie.**
+
+- **Wat er gebeurde.** De nachtelijke herziening van 17 november (01:00 UTC;
+  aanleiding: Snerttocht, Mallorca 312 en een eigen rit op 12 december in de
+  jaarplanning) kreeg van Claude (`claude-opus-5-5`) een antwoord met een
+  samenvatting van een blok van zes weken, maar maar één echte training
+  ("Rustige duur 240 min" op 17 november) plus een plaatshouder met datum en
+  titel `"x"`. De plaatshouder viel stil weg; de ene training werd gepubliceerd
+  als herziening over 17 november tot en met 27 december. Omdat een herziening
+  het hele bereik vervangt (`publishRange`), werden 26 AI-trainingen van 18
+  november tot en met 26 december weggezet en uit intervals.icu gewist. Karen
+  zag een leeg schema; alleen races, eigen ritten en warming-ups bleven staan.
+- **Waarom het doorkwam.** Een herziening mocht met één training terugkomen
+  (`minWorkouts` staat in `startBackgroundAdaptation` standaard op 1, bedoeld
+  voor de dag-aanpassing), en niets keek of het antwoord het venster vulde.
+  Een ongeldige datum werd niet als fout gezien.
+- **Wat.** `brokenPlanUpdateReason` in `training/plan-update-guard.ts`: een
+  herziening is kapot bij een training zonder geldige datum, of bij minder dan
+  een kwart van de trainingen uit `planUpdate.remainingWorkouts` in het venster
+  (vanaf zes openstaande). `finishAiGeneration` en `runPlanUpdateNow` maken er
+  dan geen schema van maar zetten de generatie op `failed` met die reden; het
+  lopende schema blijft staan. Mislukt markeren is nodig, anders haalt de cron
+  hem elk uur opnieuw op.
+- **Hersteld op productie (2026-11-17, met de hand, eigenaar: "Ja, allebei").**
+  De 25 trainingen van 18 november tot en met 26 december van plan `8fce6f85`
+  weer actief gezet (`superseded_at` leeg) en met `pushWorkoutToIntervals`
+  opnieuw in intervals.icu gezet: 25 van de 25 gelukt, geen dubbele dagen.
+  12 december bewust niet teruggezet: daar staat de eigen rit van 6 uur die de
+  herziening aanleidde. "Rustige duur 240 min" van 17 november (kampdag in
+  Calpe) blijft staan. De Snerttocht en Mallorca 312 zijn dus nog niet in het
+  schema verwerkt; dat doet de volgende herziening.
+- **Bewust niet.** `minWorkouts` voor een herziening niet verhoogd: het strict
+  schema dwingt dan vulsel af, en dat was hier juist het probleem (de
+  plaatshouder). Geen automatische nieuwe poging na een kapot antwoord: de
+  volgende wijziging of cron-run start vanzelf een nieuwe herziening, en een
+  directe herhaling kost een tweede AI-aanroep op hetzelfde moment. De
+  kwart-grens kan een echte, zeer grote schrapping tegenhouden; dat blijft dan
+  het oude schema, wat veiliger is dan een leeg schema.
+- **Nagekeken:** de herzieningen van de laatste 60 dagen. Alleen Karen kreeg zo
+  een leeg schema.
+- **Geverifieerd:** `plan-update-guard.test.ts` (8 nieuw, waaronder het
+  antwoord van 17 november), `tsc` en de unit-tests (los gedraaid groen; in de
+  volledige run alleen time-outs en `omnium-live` zonder `.env.local`).
+  **Niet in de app bekeken.** Of de cron een kapot antwoord echt als
+  `generation_failed` boekt, is pas na de deploy te zien.
 
 ### Hersteld — Snelste fiets: tijdritfiets in de ploegentijdrit
 

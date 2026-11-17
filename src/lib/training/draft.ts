@@ -28,6 +28,7 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { buildTodayRides, buildYesterdayContext } from "@/lib/training/adapt-context";
+import { brokenPlanUpdateReason } from "@/lib/training/plan-update-guard";
 import { buildComplianceContext } from "@/lib/training/compliance";
 import { loadSymptomLoadForAi } from "@/lib/training/symptoms";
 import {
@@ -1919,6 +1920,7 @@ export async function runPlanUpdateNow(
     kind: "plan_update",
     meter: { profileId: plan.profile_id as string, trigger: args.trigger },
   });
+  const broken = brokenPlanUpdateReason(ai.plan.workouts ?? [], ai.promptSummary);
 
   const { data: aiRow, error: aiError } = await args.admin
     .from("training_ai_generations")
@@ -1931,7 +1933,8 @@ export async function runPlanUpdateNow(
       adaptation_kind: "plan_update",
       adapt_from_date: fromDate,
       model: ai.model,
-      status: "completed",
+      status: broken ? "failed" : "completed",
+      ...(broken ? { error: broken } : {}),
       prompt_text: prompt,
       prompt_summary: ai.promptSummary,
       response_json: ai.plan,
@@ -1941,6 +1944,7 @@ export async function runPlanUpdateNow(
     .select(AI_GENERATION_COLUMNS)
     .single();
   if (aiError) throw new Error(aiError.message);
+  if (broken) return { ok: false, error: broken };
 
   const newPlanId = await createPlanFromAiGeneration(
     args.admin,
@@ -2125,6 +2129,25 @@ export async function finishAiGeneration(
 
     if (result.status !== "completed") {
       return { ok: true, generationId: row.id, status: "in_progress" };
+    }
+
+    // Een kapotte herziening niet publiceren: die zou het hele bereik leegmaken.
+    // Als mislukt markeren, anders haalt de cron hem elk uur opnieuw op.
+    const broken =
+      row.adaptation_kind === "plan_update"
+        ? brokenPlanUpdateReason(result.plan.workouts ?? [], row.prompt_summary)
+        : null;
+    if (broken) {
+      await admin
+        .from("training_ai_generations")
+        .update({
+          status: "failed",
+          error: broken,
+          response_json: result.plan,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", row.id);
+      return { ok: true, generationId: row.id, status: "failed", error: broken };
     }
 
     const planId = await createPlanFromAiGeneration(admin, row, result.plan);
