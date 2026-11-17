@@ -12440,6 +12440,53 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — TTT-bot zelf installeren, vanaf de TTT Planner
+
+**2026-11-17, de commit die dit blok toevoegt, lokaal, niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar wilde dat leden de TTT-bot met de Sauce-mod zelf
+  kunnen installeren, met uitleg op groep 8-niveau. Plek: op de TTT Planner,
+  niet op /hulp, als inklapbaar blok (keuze eigenaar, tegen de afspraak in
+  AGENTS.md dat uitleg naar /hulp gaat; /hulp verwijst er nu naar vanuit de
+  Botlink-regel).
+- **Blok TTT-bot installeren** (`ttt-planner/_components/ttt-bot-guide.tsx`),
+  dicht onder de planner, voor iedereen die de planner opent. Vijf stappen:
+  Sauce for Zwift met de webserver aan, een eigen Discord-app met token, de
+  uitnodigingslink (OAuth2: `bot`, `applications.commands`; Send Messages,
+  Connect, Speak) naar een Discord-beheerder, het installatiebestand, en de
+  racedag. Daaronder "Werkt het niet?".
+- **Installatiebestand.** `public/downloads/ZWB-TTT-bot-installeren.bat` haalt
+  `bot/installeren.ps1` van GitHub (`main`) en draait het: Node via winget als
+  er geen Node 22+ is, de bestanden van `bot/` (zonder tests) en
+  `sauce-mod/zwb-zrl-live` via de GitHub-boom naar
+  `%LOCALAPPDATA%\ZWB-TTT-bot` (niet Documenten: OneDrive zou `node_modules`
+  synchroniseren), `npm install --omit=dev`, Piper met Nathalie, `.env` (vraagt
+  token en of Sauce op deze pc staat, anders het IP), de mod naar
+  `Documenten\SauceMods` en een snelkoppeling TTT-bot op het bureaublad. Nog
+  een keer draaien werkt bij en laat `.env`, `.piper` en `.cache` staan. De
+  `.bat` haalt altijd de nieuwste versie, dus hij veroudert niet.
+  `.gitattributes` geeft `.bat` CRLF, ook in de Netlify-build.
+- **Elk lid een eigen bot.** Eén token op twee pc's geeft twee bots die op
+  hetzelfde commando antwoorden, en het token is de sleutel van de bot. Gevolg:
+  meerdere bots op de server, elk met een eigen `/ttt`; Discord toont de
+  botnaam erbij.
+- **Stem vastgezet op `v1.0.0`.** De stem `nl_BE-nathalie-medium` op `main` van
+  rhasspy/piper-voices is op 2026-11-13 opnieuw getraind; die heeft fonemen van
+  meer tekens en de `piper.exe` van 2023.11.14-2 weigert hem ("is not a single
+  codepoint"). De installatie en `bot/README.md` nemen nu `v1.0.0`, de stem die
+  de ploeg in oktober koos. Een bestaande installatie raakt dit niet.
+- **Getest.** Het script met `-Bron .` in een lege map, met een nep-token: 20
+  bestanden, `npm install`, Piper met de v1.0.0-stem spreekt een zin uit, de
+  mod en de snelkoppeling staan er, en `npm start` komt tot Discord ("Discord
+  weigert het token"). Het blok gezien in de lokale app; `tsc` en eslint
+  schoon. **Niet getest:** de echte download van GitHub (het script staat pas
+  na een push op `main`), het installeren van Node via winget, een pc zonder
+  iets erop, de Windows-waarschuwing bij het downloaden, en of de
+  rechtenlijst in stap 3 genoeg is voor een bot die niet van de eigenaar is.
+- **Bewust niet.** Een `.exe` (de spraakonderdelen worden per pc ingesteld),
+  een video, en een gedeelde bot voor de hele club (één spraakkanaal per server
+  per bot).
+
 ### Gebouwd — Onderdelen per ledengroep afsluiten en per lid verbergen
 
 **2026-11-17, commits `8d40b45f` en `d15f6891` (privacyzin), lokaal, niet gepusht. Migratie `0336_module_access.sql` op 2026-11-17 met de Supabase-connector op productie toegepast (versie `20261117085800`, eigenaar: "Ja, toepassen").** Daarna nagekeken: alle zeven rollen hebben `blocked_modules = {}` (alles open), de zeven rijen in `profile_stats_tiles` hebben `module_hidden = []`, en de check-constraint staat er. Voor de leden verandert er dus niets tot iemand iets dichtzet of verbergt.

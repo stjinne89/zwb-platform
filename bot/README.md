@@ -26,6 +26,17 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 
 ## Installeren
 
+Voor leden: download `ZWB-TTT-bot-installeren.bat` onderaan de TTT Planner en
+dubbelklik erop. Dat haalt `installeren.ps1` van GitHub (main) en doet de stappen
+hieronder: Node via winget, de bot naar `%LOCALAPPDATA%\ZWB-TTT-bot`,
+`npm install`, Piper met Nathalie, `.env` (vraagt het token en waar Sauce staat),
+de mod ZWB ZRL Live naar `Documenten\SauceMods` en een snelkoppeling TTT-bot op
+het bureaublad. Nog een keer draaien werkt de bot bij en laat `.env`, `.piper` en
+`.cache` staan. Elk lid maakt een eigen Discord-app; een token delen geeft twee
+bots die op hetzelfde commando antwoorden.
+
+Met de hand:
+
 1. Node 22 of nieuwer.
 2. `npm install` in deze map.
 3. Maak een Discord-app op <https://discord.com/developers/applications>, voeg een
@@ -38,7 +49,9 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
    - **Piper** (aanbevolen, zo draait de bot nu): download
      `piper_windows_amd64.zip` van <https://github.com/rhasspy/piper/releases> en
      de stem `nl_BE-nathalie-medium.onnx` met het bijbehorende `.onnx.json` van
-     <https://huggingface.co/rhasspy/piper-voices> (map `nl/nl_BE/nathalie/medium`).
+     <https://huggingface.co/rhasspy/piper-voices>, versie `v1.0.0` (map
+     `nl/nl_BE/nathalie/medium`). De stem op `main` is op 2026-11-13 opnieuw
+     getraind en werkt niet met deze `piper.exe` ("is not a single codepoint").
      Pak ze uit in `bot/.piper/` (staat buiten git) en zet `PIPER_PATH` (naar
      `piper.exe`) en `PIPER_MODEL` (naar het `.onnx`-bestand) in `.env`. De ploeg
      koos deze Vlaamse vrouwenstem na de eerste race.

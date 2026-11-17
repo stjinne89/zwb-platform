@@ -11,6 +11,7 @@ import {
   type SavedTttPlan,
 } from "./_components/ttt-import";
 import { TttCheatsheet } from "./_components/ttt-cheatsheet";
+import { TttBotGuide } from "./_components/ttt-bot-guide";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -307,6 +308,8 @@ export default async function TttPlannerPage({
       {start?.teamId && manageable.has(start.teamId) && (
         <TttCheatsheet teamIds={cheatsheetTeamIds} riders={cheatsheetRiders} />
       )}
+
+      <TttBotGuide />
     </div>
   );
 }

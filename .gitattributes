@@ -1,0 +1,3 @@
+# cmd.exe leest een .bat met alleen LF soms verkeerd; zo krijgt ook de
+# Netlify-build (Linux) CRLF in public/downloads.
+*.bat text eol=crlf
