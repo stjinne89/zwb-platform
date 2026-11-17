@@ -32,9 +32,8 @@ gaat stabiliteit voor nieuwe features.
    "Gebouwd — Eventvoeding, stap 1 tot en met 8" en "Ontwerp — Eventvoeding".
 
 0. **Onderdelen per ledengroep afsluiten en per lid verbergen (2026-11-17):
-   lokaal gecommit, niet gepusht.** Migratie `0336_module_access.sql`, nog
-   niet toegepast. Open: de migratie toepassen,
-   pushen, en na de deploy het rechtenscherm, het profielblok en de poort met
+   lokaal gecommit, niet gepusht.** Migratie `0336_module_access.sql` op
+   2026-11-17 op productie toegepast. Open: pushen, en na de deploy het rechtenscherm, het profielblok en de poort met
    een testlid nalopen. Zie de ronde "Onderdelen per ledengroep afsluiten en
    per lid verbergen".
 
@@ -12434,7 +12433,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Onderdelen per ledengroep afsluiten en per lid verbergen
 
-**2026-11-17, commit "Onderdelen: per ledengroep afsluiten, per lid verbergen", lokaal, niet gepusht. Migratie `0336_module_access.sql`, nog niet toegepast.**
+**2026-11-17, commits `8d40b45f` en `d15f6891` (privacyzin), lokaal, niet gepusht. Migratie `0336_module_access.sql` op 2026-11-17 met de Supabase-connector op productie toegepast (versie `20261117085800`, eigenaar: "Ja, toepassen").** Daarna nagekeken: alle zeven rollen hebben `blocked_modules = {}` (alles open), de zeven rijen in `profile_stats_tiles` hebben `module_hidden = []`, en de check-constraint staat er. Voor de leden verandert er dus niets tot iemand iets dichtzet of verbergt.
 
 - **Waarom.** Leden lieten de eigenaar weten dat ze een beetje overweldigd raken
   door alle mogelijkheden en functies. Voorstel akkoord (eigenaar: "Ja, bouw
@@ -12517,8 +12516,8 @@ nieuwe toestemming.
 de poort per groep, migratie 0336 in PGlite), samen met `modules`,
 `dashboard-parts` en `admin-areas` groen. In de volledige run alleen
 time-outs onder belasting (los gedraaid groen) en `omnium-live` zonder
-`.env.local`. **Niet lokaal te controleren:** de migratie op productie (geen
-Docker of Supabase-config), en het rechtenscherm, het profielblok, het menu en
+`.env.local`. De migratie is niet lokaal gedraaid (geen Docker of
+Supabase-config), wel in PGlite en daarna op productie. **Niet bekeken:** het rechtenscherm, het profielblok, het menu en
 de poort in de ingelogde app (geen `.env.local` in de worktree).
 
 ### Hersteld — Kapotte herziening wist Karens schema
