@@ -12446,7 +12446,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — TTT-bot: besturen met spraak
 
-**2026-11-17, de commit die dit blok toevoegt, lokaal, niet gepusht. Geen migratie.**
+**2026-11-17, commits `cb7a9886` (bot) en de commit die de handleiding toevoegt, op 2026-11-17 gepusht naar `main` (eigenaar: "Neem je deze instructie ook mee in de /hulp van de tttbot in de app, zo ja push naar main"). Geen migratie.**
 
 - **Waarom.** De eigenaar wil de bot tijdens het rijden met zijn stem bedienen.
   Na onderzoek en een meting: "Ik wil dit gewoon gaan bouwen en dan kunnen we
@@ -12470,8 +12470,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
   `whisper-server` (0,2 s sneller, maar een proces en poort om te beheren).
 - **Niet getest.** Ontvangen in Discord zelf (met DAVE-versleuteling), een echte
   stem tijdens inspanning, de belasting naast Zwift. Dat is de test van vanavond.
-  De privacyverklaring noemt het nog niet; tekst ligt bij de eigenaar. De
-  handleiding op de planner noemt spraak pas als de test slaagt.
+  De privacyverklaring noemt het nog niet; tekst ligt bij de eigenaar.
+- **Handleiding.** Op verzoek van de eigenaar staat spraak al vóór de test in
+  het blok TTT-bot installeren op de planner (stap 6, plus een regel bij "Werkt
+  het niet?"), en verwijst de Botlink-regel op /hulp ernaar. Niet in de lokale
+  app bekeken; wel `tsc` en eslint schoon.
 
 ### Hersteld — Garmin live: nieuwe sessieroute en geen spook-live meer
 

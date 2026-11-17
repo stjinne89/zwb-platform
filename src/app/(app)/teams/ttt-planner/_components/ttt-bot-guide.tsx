@@ -180,6 +180,40 @@ export function TttBotGuide() {
               <li>Na de finish stopt de bot vanzelf. Je kunt ook op <strong>Stop</strong> drukken.</li>
             </ol>
           </Step>
+
+          <Step number={6} title="Bestuur de bot met je stem">
+            <p>
+              Typ <Code>/ttt start spraak:True</Code> in plaats van <Code>/ttt start</Code>. De bot
+              luistert dan alleen naar jou, niet naar de rest van je ploeg.
+            </p>
+            <p>
+              Begin elk commando met <strong>Coach</strong>. Zeg je dat niet, dan doet de bot niets.
+              Zo zet &ldquo;daar komt de klim&rdquo; hem niet stil.
+            </p>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>
+                <strong>Coach, klim</strong> en boven <strong>Coach, hervat</strong>
+              </li>
+              <li>
+                <strong>Coach, volgende</strong>: meteen de volgende renner
+              </li>
+              <li>
+                <strong>Coach, plus tien</strong>: de kopbeurt duurt 10 seconden langer (of twintig,
+                dertig)
+              </li>
+              <li>
+                <strong>Coach, deel twee</strong>: over op het plan van deel 2
+              </li>
+              <li>
+                <strong>Coach, Jeroen gelost</strong> of <strong>Coach, Jeroen terug</strong>, met de
+                naam van je ploeggenoot
+              </li>
+            </ul>
+            <p>
+              Zeg het kort en duidelijk. Snapt de bot je niet, dan zegt hij &ldquo;Niet
+              verstaan&rdquo;. Stoppen gaat alleen met de knop <strong>Stop</strong>.
+            </p>
+          </Step>
         </ol>
 
         <div className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
@@ -202,6 +236,11 @@ export function TttBotGuide() {
             <li>
               <strong>De bot hoort niet wie er op kop rijdt.</strong> Kijk of Sauce open is en of Zwift
               meekijkt met iemand uit je ploeg.
+            </li>
+            <li>
+              <strong>De bot hoort je commando&apos;s niet.</strong> Startte je met{" "}
+              <Code>spraak:True</Code> en begin je met &ldquo;Coach&rdquo;? Zegt de bot bij het starten
+              dat spraak niet is ingesteld, dubbelklik dan nog een keer op het installatiebestand.
             </li>
             <li>
               <strong>Een nieuwe versie?</strong> Dubbelklik nog een keer op het installatiebestand.
