@@ -100,7 +100,7 @@ export default function PrivacyPage() {
             <strong>Account- en profielgegevens:</strong> naam, e-mailadres,
             profielfoto, regio, ZRL-categorie, Zwift-/Strava-ID, FTP en gewicht
             (voor zover je die invult), biografie en zichtbaarheids­voorkeuren,
-            en welke onderdelen je op je dashboard verborgen hebt (alleen voor
+            en welke onderdelen je in de app en op je dashboard verborgen hebt (alleen voor
             jezelf zichtbaar).
             Je fietsen (naam, merk en model, afstand en foto) zien andere leden op
             je profiel, behalve de fietsen die je daar verbergt. Zet je je

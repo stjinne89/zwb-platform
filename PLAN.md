@@ -33,7 +33,7 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Onderdelen per ledengroep afsluiten en per lid verbergen (2026-11-17):
    lokaal gecommit, niet gepusht.** Migratie `0336_module_access.sql`, nog
-   niet toegepast. Open: de privacyzin voorleggen, de migratie toepassen,
+   niet toegepast. Open: de migratie toepassen,
    pushen, en na de deploy het rechtenscherm, het profielblok en de poort met
    een testlid nalopen. Zie de ronde "Onderdelen per ledengroep afsluiten en
    per lid verbergen".
@@ -12482,8 +12482,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
   één kleine vraag als geen enkele rol de module dicht heeft. Gegevens blijven
   bewaard; weer open = alles terug.
 - **Uitleg** op `/hulp` (Profiel en ledenlijst; Rollen, rechten en
-  notificaties). De privacyzin over verborgen onderdelen is nog **niet**
-  aangepast: eerst voorleggen (zie hieronder).
+  notificaties), en de privacyzin (zie hieronder).
 
 **Bewust niet gebouwd.**
 - **ZWBeter-onderdelen per groep afsluiten** (bijvoorbeeld alleen Voeding):
@@ -12507,10 +12506,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 - **Geen andere melding dan de 404** voor een lid dat op een dichte module
   komt, net als bij een club-uit module.
 
-**Privacyzin (voorstel, nog niet op `/privacy`).** Bij de profielgegevens nu:
-"welke onderdelen je op je dashboard verborgen hebt". Voorstel: "welke
-onderdelen je in de app en op je dashboard verborgen hebt". Een voorkeur van
-jezelf, alleen voor jou zichtbaar; geen nieuwe toestemming.
+**Privacyzin.** Bij de profielgegevens stond "welke onderdelen je op je
+dashboard verborgen hebt"; nu "welke onderdelen je in de app en op je
+dashboard verborgen hebt" (voorgelegd, eigenaar: "Ja, aanpassen"). Een
+voorkeur van jezelf, alleen voor jou zichtbaar: geen nieuwe versie en geen
+nieuwe toestemming.
 
 **Getest.** `tsc` en ESLint schoon. Nieuw: `tests/unit/module-access.test.ts`
 (open wint, beheerder, vereiste modules, zonder rij of kolom, verbergen per lid,
