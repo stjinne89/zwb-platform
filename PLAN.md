@@ -103,8 +103,8 @@ gaat stabiliteit voor nieuwe features.
    Zie de ronde
    "ZRL-teamindeling: zelf indelen, op een eigen pagina".
 
-0. **Racebriefing: de ploegentijdrit als ploegentijdrit (2026-11-17): commit `af7be6f1`, lokaal,
-   niet gepusht.** Geen migratie. Beurten uit de TTT Planner op het briefje,
+0. **Racebriefing: de ploegentijdrit als ploegentijdrit (2026-11-17): commit `af7be6f1`,
+   op 2026-11-17 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie. Beurten uit de TTT Planner op het briefje,
    ploegen op gecombineerde kracht (20 min W/kg van de sterkste vier),
    TTT-waarschuwingen. Open: pagina bekijken na de deploy. Zie de ronde
    "Racebriefing: de ploegentijdrit als ploegentijdrit".
@@ -12471,7 +12471,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefing: de ploegentijdrit als ploegentijdrit
 
-**2026-11-17, commit `af7be6f1` ("Racebriefing: ploegentijdrit met beurten en ploegkracht"), lokaal, niet gepusht. Geen migratie.**
+**2026-11-17, commit `af7be6f1` ("Racebriefing: ploegentijdrit met beurten en ploegkracht"), op 2026-11-17 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
 
 - **Waarom.** De eigenaar zag dat de racebriefing van een TTT geen rekening
   hield met het format. De kop en Onthouden noemden het wel een ploegentijdrit,
