@@ -12568,7 +12568,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
   vanavond testen of het daadwerkelijk werkt."
 - **Wat.** `/ttt start spraak:True` laat de bot luisteren naar wie dat commando
   gaf, en alleen naar die persoon (`bot/src/listen.ts`). Commando's beginnen met
-  "Coach": klim, hervat, volgende, plus (tien/twintig/dertig), deel twee,
+  "Coach": start, klim, hervat, volgende, plus (tien/twintig/dertig), deel twee,
   "<naam> gelost"/"<naam> terug" (`bot/src/voice-command.ts`, 7 tests). Zonder
   "Coach" doet hij niets; onbekend geeft "Niet verstaan". Het statusbericht
   toont "Spraak: aan". Zonder spraak blijft de bot doof in het kanaal, zoals
@@ -12595,6 +12595,14 @@ link naar `/live/[eventId]`, zie de update hierboven).
   het blok TTT-bot installeren op de planner (stap 6, plus een regel bij "Werkt
   het niet?"), en verwijst de Botlink-regel op /hulp ernaar. Niet in de lokale
   app bekeken; wel `tsc` en eslint schoon.
+- **"Coach, start" (2026-11-17, de commit die deze regel toevoegt).** Vraag van
+  de eigenaar ("coach, start is geen command?"); voorstel akkoord. Bij een
+  ZRL-ploegentijdrit start de ploeg in een rij en klopt de vertraging vooraf
+  vaak niet. Nu: `/ttt start spraak:True vertraging:600`, en "Coach, start" als
+  de ploeg echt wegrijdt; de rest van de vertraging vervalt (`startNow` in
+  `session.ts`, via de bestaande `skip` vóór de start). Loopt de rotatie al, dan
+  zegt de bot "We rijden al." en verandert er niets. 3 tests erbij; whisper
+  verstond "Coach, start." van Piper goed met de nieuwe hint.
 
 ### Hersteld — Garmin live: nieuwe sessieroute en geen spook-live meer
 

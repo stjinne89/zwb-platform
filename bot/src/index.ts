@@ -37,6 +37,7 @@ import { CACHE_DIR, piperEngine, Tts, windowsEngine } from "./tts.ts";
 import { VoiceListener, type Whisper } from "./listen.ts";
 import {
   ALREADY,
+  ALREADY_RUNNING,
   confirmation,
   confirmationPhrases,
   parseVoiceCommand,
@@ -212,6 +213,10 @@ function onVoice(state: GuildState, text: string, ms: number) {
   log(`spraak ${ms} ms: "${text}" → ${JSON.stringify(command)}`);
   const say = (phrase: string) => state.speech.say(phrase, "clock");
   switch (command.kind) {
+    case "start":
+      // De wissel naar de eerste renner spreekt de klok zelf uit.
+      if (!session.startNow()) say(ALREADY_RUNNING);
+      break;
     case "klim":
     case "hervat":
       if (!session.setFree(command.kind === "klim")) say(ALREADY);

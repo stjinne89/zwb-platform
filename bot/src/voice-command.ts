@@ -3,6 +3,8 @@
 // "daar komt de klim" de bot niet stilzet. Stoppen kan bewust niet met spraak.
 
 export type VoiceCommand =
+  /** De echte start: de rest van de vertraging vervalt. */
+  | { kind: "start" }
   | { kind: "klim" }
   | { kind: "hervat" }
   | { kind: "volgende" }
@@ -93,6 +95,7 @@ export function parseVoiceCommand(text: string, names: string[]): VoiceCommand |
     if (rider !== -1) return { kind: has("terug") ? "terug" : "gelost", rider };
     return { kind: "onbekend" };
   }
+  if (has("start", "starten", "starts")) return { kind: "start" };
   if (has("klim", "klimmen", "clim")) return { kind: "klim" };
   if (has("hervat", "hervatten", "rotatie")) return { kind: "hervat" };
   if (has("volgende", "wissel", "skip")) return { kind: "volgende" };
@@ -113,6 +116,7 @@ export function parseVoiceCommand(text: string, names: string[]): VoiceCommand |
 export function voicePrompt(names: string[]) {
   const [first = "Jeroen", second = first] = names;
   return [
+    "Coach, start.",
     "Coach, klim.",
     "Coach, hervat.",
     "Coach, volgende.",
@@ -127,6 +131,8 @@ export function voicePrompt(names: string[]) {
 export const NOT_UNDERSTOOD = "Niet verstaan.";
 /** Klim terwijl het al klim is, of hervat terwijl de rotatie loopt. */
 export const ALREADY = "Staat al zo.";
+/** "Coach, start" terwijl de rotatie al loopt. */
+export const ALREADY_RUNNING = "We rijden al.";
 
 /** Wat de bot terugzegt na een commando dat zelf niets uitspreekt. */
 export function confirmation(command: VoiceCommand, names: string[]): string | null {
@@ -142,6 +148,7 @@ export function confirmationPhrases(names: string[]) {
   return [
     NOT_UNDERSTOOD,
     ALREADY,
+    ALREADY_RUNNING,
     `${DEFAULT_PLUS_S} seconden erbij.`,
     ...names.flatMap((name) => [`${name} gelost.`, `${name} terug.`]),
   ];

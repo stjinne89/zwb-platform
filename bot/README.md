@@ -121,6 +121,7 @@ alleen naar jou, niet naar de rest van de ploeg. Begin elk commando met
 
 | Zeg | Doet |
 |---|---|
+| Coach, start | Nu wegrijden: de rest van de vertraging vervalt (alleen tijdens het aftellen) |
 | Coach, klim | Klim |
 | Coach, hervat | Hervat rotatie |
 | Coach, volgende | Meteen de volgende renner |

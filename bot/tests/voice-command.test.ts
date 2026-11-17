@@ -1,5 +1,46 @@
 import { describe, expect, it } from "vitest";
+import type { PlanRider } from "../src/plan.ts";
+import { Session } from "../src/session.ts";
 import { confirmation, parseVoiceCommand, voicePrompt } from "../src/voice-command.ts";
+
+describe("Coach, start", () => {
+  const riders: PlanRider[] = [
+    { order: 1, name: "Koen", zwiftId: "1", pullWatts: 315, pullSeconds: 30 },
+    { order: 2, name: "Jeroen", zwiftId: "2", pullWatts: 350, pullSeconds: 30 },
+  ];
+  function setup() {
+    const clock = { now: 0 };
+    const said: string[] = [];
+    const session = new Session(
+      { name: "TTT", eventTitle: null, estimatedSpeedKmh: null, riders },
+      { say: (text) => said.push(text), changed: () => undefined, finished: () => undefined, log: () => undefined },
+      () => clock.now,
+    );
+    return { session, said, clock };
+  }
+
+  it("laat de rest van de vertraging vallen en zet de eerste renner op kop", () => {
+    const { session, said, clock } = setup();
+    session.start(600);
+    clock.now = 42_000;
+    expect(session.startNow()).toBe(true);
+    expect(session.rotation.current).toBe(0);
+    expect(session.rotation.startedAt).toBe(42_000);
+    expect(session.rotation.endsAt).toBe(72_000);
+    expect(said.at(-1)).toContain("Koen");
+    session.stop();
+  });
+
+  it("doet niets als de rotatie al loopt", () => {
+    const { session, clock } = setup();
+    session.start(0);
+    session.skip();
+    clock.now = 10_000;
+    expect(session.startNow()).toBe(false);
+    expect(session.rotation.current).toBe(0);
+    session.stop();
+  });
+});
 
 const NAMES = ["Koen", "Jeroen", "Marc", "Wouter"];
 const parse = (text: string) => parseVoiceCommand(text, NAMES);
@@ -13,6 +54,12 @@ describe("spraakcommando's", () => {
     expect(parse("Coach, plus tien.")).toEqual({ kind: "plus", seconds: 10 });
     expect(parse("Coach, deel twee.")).toEqual({ kind: "deel", number: 2 });
     expect(parse("Coach, Jeroen gelost.")).toEqual({ kind: "gelost", rider: 1 });
+  });
+
+  it("herkent de start", () => {
+    expect(parse("Coach, start.")).toEqual({ kind: "start" });
+    expect(parse("Coach, starten!")).toEqual({ kind: "start" });
+    expect(voicePrompt(NAMES)).toContain("Coach, start.");
   });
 
   it("negeert praat zonder wekwoord, ook met een commandowoord erin", () => {

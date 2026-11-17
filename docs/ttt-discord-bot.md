@@ -194,7 +194,7 @@ dat is niet gebouwd en niet gemeten.
 Op verzoek van de eigenaar (2026-11-17): de captain moet tijdens het rijden de
 bot kunnen bedienen zonder muis. `/ttt start spraak:True` laat de bot luisteren
 naar wie dat commando gaf, en alleen naar die persoon. Commando's beginnen met
-"Coach": klim, hervat, volgende, plus (tien/twintig/dertig), deel twee, en
+"Coach": start (tijdens het aftellen), klim, hervat, volgende, plus (tien/twintig/dertig), deel twee, en
 "<naam> gelost" of "<naam> terug". Stoppen bewust niet: per ongeluk stoppen
 midden in een race is lastig te herstellen.
 

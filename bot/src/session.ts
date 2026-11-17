@@ -151,6 +151,16 @@ export class Session {
   }
 
   /**
+   * Nu wegrijden, ook als de vertraging nog loopt: de captain geeft de echte
+   * start. Alleen tijdens het aftellen; loopt de rotatie al, dan niets.
+   */
+  startNow() {
+    if (!this.running || this.free || this.rotation.current !== -1) return false;
+    this.apply(skip(this.rotation, this.now()));
+    return true;
+  }
+
+  /**
    * Vrij rijden aan of uit. Aan: klok en coach zwijgen, iedereen rijdt zijn
    * eigen tempo. Uit: de rotatie begint opnieuw met wie Sauce nu vooraan ziet,
    * of anders met de volgende in het plan.

@@ -200,6 +200,11 @@ export function TttBotGuide() {
             </p>
             <ul className="list-disc space-y-1 pl-5">
               <li>
+                <strong>Coach, start</strong>: jullie rijden nu weg. Weet je je starttijd niet precies,
+                typ dan <Code>/ttt start spraak:True vertraging:600</Code> en zeg &ldquo;Coach,
+                start&rdquo; als jullie echt vertrekken.
+              </li>
+              <li>
                 <strong>Coach, klim</strong> en boven <strong>Coach, hervat</strong>
               </li>
               <li>
