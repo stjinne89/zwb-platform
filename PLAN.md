@@ -39,8 +39,8 @@ gaat stabiliteit voor nieuwe features.
    (database) gedaan op een eigen Supabase-project in een aparte, gratis
    organisatie van de eigenaar. §3 (Netlify) gedaan: site
    `rabobank-alpe-dhuzes.netlify.app`, eerste deploy van `main@bd06866` gelukt.
-   Auth-URL's in Supabase gezet. Open: e-mailtemplates en eigen SMTP (§2),
-   de eerste beheerder (§4), de
+   Auth-URL's in Supabase gezet; eerste beheerder (§4) gezet. Open:
+   e-mailtemplates en eigen SMTP (§2), de
    inrichting met Uitdaging aan (§5), het pushen van Uitdaging (de site bouwt
    van `main`, waar de module nog niet staat), en de pagina in de browser
    bekijken. Meer dan 10 deelnemers, dus
@@ -12533,6 +12533,13 @@ link naar `/live/[eventId]`, zie de update hierboven).
   het venster terecht en sprong het dashboard naar Users; daarna was de
   instelling ongewijzigd, maar andere pagina's zijn niet nagelopen. Nog niet:
   e-mailtemplates en een eigen SMTP-dienst (zonder SMTP twee auth-mails per uur).
+- **Eerste beheerder (2026-11-17).** De eigenaar registreerde zich op de
+  site; het account was bevestigd (de mail kwam dus aan) en had een profiel als
+  `community_member`. Claude zette met de SQL uit installatie §4, in één
+  transactie met de trigger even uit, `is_admin`, `is_approved`,
+  `approved_at` en rol `board` op dat ene profiel (op id, het enige account).
+  Nagekeken: de vier waarden staan, en `profiles_protect_admin_fields` staat
+  weer aan.
 - **Getest.** `tsc` en eslint schoon; `uitdaging`, `modules`, `module-access`,
   `baseline` (0337 loopt op PGlite in beide routes en geeft hetzelfde schema),
   `club-texts-tokens` en `dashboard-parts` groen. De volledige set: 4663
