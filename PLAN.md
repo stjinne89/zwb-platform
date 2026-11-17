@@ -12604,8 +12604,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   `session.ts`, via de bestaande `skip` vóór de start). Loopt de rotatie al, dan
   zegt de bot "We rijden al." en verandert er niets. 3 tests erbij; whisper
   verstond "Coach, start." van Piper goed met de nieuwe hint.
-- **Herkenning na de eerste test (2026-11-17, lokaal gecommit, nog niet
-  gepusht).** De eigenaar plakte het logboek van de test: commandowoorden
+- **Herkenning na de eerste test (2026-11-17, commit `d492f06e`, gepusht naar
+  `main`, eigenaar: "Push naar main").** De eigenaar plakte het logboek van de test: commandowoorden
   allemaal goed, namen vaak niet; 14 van de 28 zinnen met "Coach" deden wat
   bedoeld was. Nu: namen op klank vergeleken en met meer speling bij lange
   namen, de beste renner telt en bij twee even goede geen; "koelost" en andere
