@@ -7,9 +7,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Hersteld — Pagina's scrolden niet meer na twee pop-ups (2026-11-17): lokaal
-   gecommit, niet gepusht.** Geen migratie. Open: pushen, en daarna op een
-   iPhone het weekoverzicht en een melding samen laten openen en sluiten. Zie de
+0. **Hersteld — Pagina's scrolden niet meer na twee pop-ups (2026-11-17): op
+   2026-11-17 gepusht naar `main` (`1e2f13ad`, eigenaar: "Ja, push").** Geen
+   migratie. Open: na de deploy op een iPhone het weekoverzicht en een melding samen laten openen en sluiten. Zie de
    ronde "Hersteld — Pagina's scrolden niet meer na twee pop-ups".
 
 0. **Eventvoeding: een plan dat sluit op tempo en duur (2026-11-13).** De
@@ -12476,7 +12476,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Pagina's scrolden niet meer na twee pop-ups
 
-**2026-11-17, lokaal gecommit, niet gepusht. Geen migratie.**
+**2026-11-17, commit `1e2f13ad` ("Scrollen: één getelde scroll-lock voor pop-ups en dialogen"), op 2026-11-17 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.**
 
 - **Melding.** De eigenaar kon op zijn iPhone (Safari) niet scrollen, onder
   meer op `/zwbeter-worden/protocollen/durability-test`, "op heel veel pagina's".
