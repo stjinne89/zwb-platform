@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Bijgesteld — TTT-bot op de race van 2026-11-17: lokaal gecommit, niet
-   gepusht.** Geen migratie. Kopbeurt telt vanaf "Wissel", geen verzonnen
+0. **Bijgesteld — TTT-bot op de race van 2026-11-17: op 2026-11-17 gepusht naar
+   `main` (`2e845954`, `79b898a6`, `b625bf75`, eigenaar: "Push naar main").** Geen migratie. Kopbeurt telt vanaf "Wissel", geen verzonnen
    "deel twee" meer, één renner tegelijk lossen, keuzemenu en "los" (`2e845954`);
    daarna Klim heet Pauze, knop Start vóór de start, `/ttt beurt` en één beurt
    overslaan (de commit daarna). Open: in een race horen; Bart moet bijwerken.
@@ -12822,8 +12822,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   link nagelopen: de route geeft 200 en het plan parseert (5 renners). 1 test.
   **Niet gecontroleerd:** of het klembord of de optie `link` de bron was; beide
   lopen nu goed. De bot op de bot-pc moet opnieuw gestart worden na een pull.
-- **Bijgesteld op de race van 2026-11-17 (2026-11-17, de commit die dit
-  toevoegt, lokaal, niet gepusht).** De eigenaar gaf de logboeken van B3 (met
+- **Bijgesteld op de race van 2026-11-17 (2026-11-17, commit `2e845954`,
+  op 2026-11-17 gepusht naar `main`, eigenaar: "Push naar main").** De eigenaar gaf de logboeken van B3 (met
   Sauce) en ZWB Cycling A (Bart, zonder Sauce) en de stream van B1; voorstel
   besproken, de eigenaar bevestigde de oorzaken. Gebouwd:
   - **Kopbeurt telt vanaf "Wissel".** Sauce zag de nieuwe man 8 tot 16 s na de
@@ -12857,8 +12857,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
     bijwerken. Kevin (B1) zag beurten van 45 s; in zijn stream duurden ze 28
     tot 36 s, het plan van B1 is onbekend.
     Details: [ttt-discord-bot.md](docs/ttt-discord-bot.md#besturen-met-spraak).
-- **Pauze, Start, beurt en overslaan (2026-11-17, de commit die dit toevoegt,
-  lokaal, niet gepusht).** Wensen van de leden na dezelfde race; de eigenaar
+- **Pauze, Start, beurt en overslaan (2026-11-17, commits `79b898a6` en `b625bf75`,
+  op 2026-11-17 gepusht naar `main`, eigenaar: "Push naar main").** Wensen van de leden na dezelfde race; de eigenaar
   koos per onderdeel.
   - **Klim heet Pauze**, overal: knop, `/ttt pauze`, "Coach, pauze" en de zin
     "Pauze. Eigen tempo.". "Coach, klim" verstaat de bot niet meer (eigenaar:
