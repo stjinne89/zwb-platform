@@ -37,9 +37,12 @@ gaat stabiliteit voor nieuwe features.
    eigenaar, 2026-11-17), zonder nieuwe privacyversie (eigenaar: "Ja, zonder
    versie"). Installatie volgens [installatie.md](docs/installatie.md): §2
    (database) gedaan op een eigen Supabase-project in een aparte, gratis
-   organisatie van de eigenaar. Open: Supabase-auth (§2, laatste stap), de
-   Netlify-site (§3), de eerste beheerder (§4), de inrichting met Uitdaging aan
-   (§5), en de pagina in de browser bekijken. Meer dan 10 deelnemers, dus
+   organisatie van de eigenaar. §3 (Netlify) gedaan: site
+   `rabobank-alpe-dhuzes.netlify.app`, eerste deploy van `main@bd06866` gelukt.
+   Open: Supabase-auth (§2, laatste stap), de eerste beheerder (§4), de
+   inrichting met Uitdaging aan (§5), het pushen van Uitdaging (de site bouwt
+   van `main`, waar de module nog niet staat), en de pagina in de browser
+   bekijken. Meer dan 10 deelnemers, dus
    Strava niet voor iedereen. Zie de ronde "Module Uitdaging".
 
 0. **Onderdelen per ledengroep afsluiten en per lid verbergen (2026-11-17):
@@ -12510,6 +12513,17 @@ link naar `/live/[eventId]`, zie de update hierboven).
   `installation.applied_migrations`, `uitdaging` uit, de vier policies, de
   club heet "Club" zonder inrichting, 0 profielen, teams, sponsors, roster en
   events, 50 cols met Alpe d'Huez.
+- **Rabobank-site op Netlify (2026-11-17).** Op verzoek van de eigenaar in
+  zijn Chrome aangemaakt: import van `zwb-platform`, branch `main`, team
+  voorZpWelBokaal, naam `rabobank-alpe-dhuzes`. De vijf env-variabelen uit §3
+  importeerde de eigenaar zelf via "Import from a .env file", uit
+  `.env.rabobank-app` (onder `.gitignore`; Claude zette daarin de
+  Supabase-URL, het site-adres en een nieuwe `TOKEN_ENCRYPTION_KEY`, de
+  eigenaar de twee Supabase-sleutels). Alle vijf staan als *secret*, ook de
+  `NEXT_PUBLIC_`-waarden; de build met de secrets-scan slaagde toch. De site is
+  zonder Netlify-login bereikbaar (`/login` geeft 200, ondanks "nieuwe
+  projecten zijn privé") en toont "Club", dus de app praat met de nieuwe
+  database. Elke push naar `main` bouwt nu ook deze site.
 - **Getest.** `tsc` en eslint schoon; `uitdaging`, `modules`, `module-access`,
   `baseline` (0337 loopt op PGlite in beide routes en geeft hetzelfde schema),
   `club-texts-tokens` en `dashboard-parts` groen. De volledige set: 4663
