@@ -1,0 +1,250 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { routes as zwiftRoutes } from "zwift-data";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { getClub } from "@/lib/club";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import {
+  createBoundBroadcast,
+  deleteBroadcast,
+  ensureReusableStream,
+  getStreamIngestion,
+  youtubeErrorMessage,
+} from "@/lib/youtube-live/api";
+import {
+  broadcastDescription,
+  broadcastTitle,
+  eventTakesStreams,
+  inPrepareWindow,
+  scheduledStartFor,
+} from "@/lib/youtube-live/broadcast";
+import {
+  loadYouTubeConnection,
+  removeYouTubeConnection,
+  youtubeAccessToken,
+} from "@/lib/youtube-live/connection";
+import { YouTubeGrantRevokedError, youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
+import { ridesInEvent } from "@/lib/youtube-live/streams";
+
+// Livestreams, fase 1 (0338). Alle schrijfacties lopen via de service-role, na
+// de controles hier: module aan, ingericht, goedgekeurd lid, gekoppeld kanaal,
+// en ingeschreven of opgesteld bij de race.
+
+type Result = { ok: true } | { ok: false; error: string };
+
+type EventRow = {
+  id: string;
+  type: string;
+  title: string;
+  start_at: string;
+  team_id: string | null;
+  parent_event_id: string | null;
+  zwift_event_id: number | null;
+  zwift_route_id: number | null;
+  laps: number | null;
+};
+
+async function approvedUser() {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return null;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_approved")
+    .eq("id", access.user.id)
+    .maybeSingle();
+  if (!(profile as { is_approved?: boolean } | null)?.is_approved) return null;
+  return { supabase, access, userId: access.user.id };
+}
+
+async function livestreamsOn(): Promise<boolean> {
+  return youtubeLiveConfigured() && (await getClub()).isEnabled("livestream");
+}
+
+function grantError(err: unknown): string {
+  return err instanceof YouTubeGrantRevokedError ? "Koppel YouTube opnieuw op je profiel." : youtubeErrorMessage(err);
+}
+
+export async function prepareStream(eventId: string): Promise<Result> {
+  if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const { supabase, userId } = session;
+
+  const { data } = await supabase
+    .from("events")
+    .select("id, type, title, start_at, team_id, parent_event_id, zwift_event_id, zwift_route_id, laps")
+    .eq("id", eventId)
+    .maybeSingle();
+  const event = data as EventRow | null;
+  if (!event) return { ok: false, error: "Race niet gevonden." };
+
+  const { count: subEvents } = await supabase
+    .from("events")
+    .select("id", { count: "exact", head: true })
+    .eq("parent_event_id", event.id);
+  const now = new Date();
+  if (!eventTakesStreams(event, (subEvents ?? 0) > 0)) {
+    return { ok: false, error: "Bij deze race kan geen stream." };
+  }
+  if (!inPrepareWindow(event.start_at, now)) {
+    return { ok: false, error: "Klaarzetten kan vanaf twee weken voor de start." };
+  }
+  if (!(await ridesInEvent(supabase, userId, event))) {
+    return { ok: false, error: "Alleen wie zich aanmeldde of opgesteld is, kan streamen." };
+  }
+
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("event_streams")
+    .select("id")
+    .eq("event_id", event.id)
+    .eq("profile_id", userId)
+    .maybeSingle();
+  if (existing) return { ok: true };
+
+  const connection = await loadYouTubeConnection(admin, userId);
+  if (!connection) return { ok: false, error: "Koppel eerst YouTube op je profiel." };
+
+  // Een teamrace zonder eigen route rijdt die van zijn raceweek.
+  let routeId = event.zwift_route_id;
+  let laps = event.laps;
+  if (!routeId && event.parent_event_id) {
+    const { data: parent } = await supabase
+      .from("events")
+      .select("zwift_route_id, laps")
+      .eq("id", event.parent_event_id)
+      .maybeSingle();
+    routeId = (parent as { zwift_route_id: number | null } | null)?.zwift_route_id ?? null;
+    laps = laps ?? (parent as { laps: number | null } | null)?.laps ?? null;
+  }
+  const routeName = routeId ? zwiftRoutes.find((r) => r.id === Number(routeId))?.name ?? null : null;
+  const club = await getClub();
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "") || null;
+  const liveStandUrl =
+    site && event.type === "zrl" && event.team_id && event.zwift_event_id ? `${site}/live/zrl/${event.id}` : null;
+
+  const scheduledStart = scheduledStartFor(event.start_at, now);
+  let videoId: string;
+  try {
+    const accessToken = await youtubeAccessToken(admin, connection, now);
+    let streamId = connection.stream_id;
+    if (!streamId) {
+      streamId = await ensureReusableStream(accessToken, null);
+      await admin.from("youtube_connections").update({ stream_id: streamId }).eq("profile_id", userId);
+    }
+    videoId = await createBoundBroadcast(accessToken, streamId, {
+      title: broadcastTitle({ eventTitle: event.title, clubShortName: club.texts.shortName, routeName }),
+      description: broadcastDescription({
+        eventTitle: event.title,
+        startAt: event.start_at,
+        routeName,
+        laps,
+        clubName: club.texts.name,
+        liveStandUrl,
+      }),
+      scheduledStart,
+      // Standaard openbaar (besluit eigenaar 2026-11-18).
+      privacy: "public",
+    });
+  } catch (err) {
+    console.error("[livestream/prepare]", err);
+    return { ok: false, error: grantError(err) };
+  }
+
+  const { error } = await admin.from("event_streams").insert({
+    event_id: event.id,
+    profile_id: userId,
+    youtube_video_id: videoId,
+    channel_title: connection.channel_title,
+    scheduled_start_at: scheduledStart.toISOString(),
+  });
+  if (error) {
+    // Dubbel klikken: de tweede uitzending mag niet los op YouTube blijven staan.
+    try {
+      await deleteBroadcast(await youtubeAccessToken(admin, connection), videoId);
+    } catch {
+      // niet kritiek
+    }
+    if (error.code === "23505") return { ok: true };
+    return { ok: false, error: "De stream kon niet worden opgeslagen." };
+  }
+  revalidatePath(`/events/${event.id}`);
+  return { ok: true };
+}
+
+export async function removeStream(streamId: string): Promise<Result> {
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const { access, userId } = session;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("event_streams")
+    .select("id, event_id, profile_id, youtube_video_id, scheduled_start_at")
+    .eq("id", streamId)
+    .maybeSingle();
+  const stream = data as {
+    id: string;
+    event_id: string;
+    profile_id: string;
+    youtube_video_id: string;
+    scheduled_start_at: string;
+  } | null;
+  if (!stream) return { ok: true };
+  const own = stream.profile_id === userId;
+  if (!own && !access.has("events.manage_all")) return { ok: false, error: "Geen recht." };
+
+  // Alleen een eigen uitzending die nog niet begon, gaat ook op YouTube weg.
+  // Een opname van een gereden race blijft van het lid.
+  if (own && Date.parse(stream.scheduled_start_at) > Date.now()) {
+    try {
+      const connection = await loadYouTubeConnection(admin, userId);
+      if (connection) await deleteBroadcast(await youtubeAccessToken(admin, connection), stream.youtube_video_id);
+    } catch (err) {
+      console.error("[livestream/remove]", err);
+    }
+  }
+  const { error } = await admin.from("event_streams").delete().eq("id", stream.id);
+  if (error) return { ok: false, error: "Weghalen lukte niet." };
+  revalidatePath(`/events/${stream.event_id}`);
+  return { ok: true };
+}
+
+export async function revealStreamKey(): Promise<
+  { ok: true; serverUrl: string; streamKey: string } | { ok: false; error: string }
+> {
+  if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const admin = createAdminClient();
+  const connection = await loadYouTubeConnection(admin, session.userId);
+  if (!connection) return { ok: false, error: "Koppel eerst YouTube." };
+  try {
+    const accessToken = await youtubeAccessToken(admin, connection);
+    let streamId = connection.stream_id;
+    if (!streamId) {
+      streamId = await ensureReusableStream(accessToken, null);
+      await admin.from("youtube_connections").update({ stream_id: streamId }).eq("profile_id", session.userId);
+    }
+    const ingestion = await getStreamIngestion(accessToken, streamId);
+    if (!ingestion) return { ok: false, error: "YouTube gaf geen streamsleutel." };
+    return { ok: true, serverUrl: ingestion.serverUrl, streamKey: ingestion.streamKey };
+  } catch (err) {
+    console.error("[livestream/key]", err);
+    return { ok: false, error: grantError(err) };
+  }
+}
+
+export async function disconnectYouTube(): Promise<Result> {
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  try {
+    await removeYouTubeConnection(createAdminClient(), session.userId);
+  } catch {
+    return { ok: false, error: "Ontkoppelen lukte niet." };
+  }
+  revalidatePath("/profiel");
+  return { ok: true };
+}

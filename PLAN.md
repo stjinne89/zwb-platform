@@ -1,11 +1,23 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-17)
+## Actieve volgorde (bijgewerkt 2026-11-18)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Gebouwd — Livestreams via YouTube, fase 1 (2026-11-18): lokaal gecommit,
+   niet gepusht.** Migratie `0338_youtube_livestreams.sql`, niet toegepast.
+   Leden koppelen hun eigen YouTube-kanaal, zetten bij hun race een stream
+   klaar, en de stream speelt af op de race en naast de live ZRL-stand. Open,
+   in deze volgorde: Google Cloud inrichten en `YOUTUBE_OAUTH_CLIENT_ID` en
+   `-SECRET` op Netlify zetten ([livestream-youtube.md](docs/livestream-youtube.md)),
+   akkoord op de privacytekst (`/privacy#livestream`, voorstel: zonder nieuwe
+   versie), de migratie toepassen, pushen; daarna een echte proefstream en de
+   Google-verificatie aanvragen. Fase 2 (pushmelding, overlay, Nu live) en
+   fase 3 (starten vanaf de telefoon) volgen. Zie de ronde "Gebouwd —
+   Livestreams via YouTube, fase 1".
 
 0. **Bijgesteld — TTT-bot op de race van 2026-11-17: op 2026-11-17 gepusht naar
    `main` (`2e845954`, `79b898a6`, `b625bf75`, eigenaar: "Push naar main").** Geen migratie. Kopbeurt telt vanaf "Wissel", geen verzonnen
@@ -1301,8 +1313,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0280`
-(`0279_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en vóór het toepassen hernummerd bij het samenvoegen met main, waar `0277` en `0278` al gebruikt waren;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0339`
+(`0338_youtube_livestreams` is van livestreams via YouTube, fase 1, 2026-11-18, nog niet toegepast; de nummers `0280` tot en met `0337` staan bij hun eigen rondes; daarvoor:
+`0279_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en vóór het toepassen hernummerd bij het samenvoegen met main, waar `0277` en `0278` al gebruikt waren;
 `0278_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en zo ook op productie toegepast (`schema_migrations` noemt hem `0277_member_zwift_bikes`), hernummerd bij het samenvoegen met main, waar `0277_zitvlees_week_badge` al stond;
 `0277_zitvlees_week_badge` is van ZWB Rankings, 2026-10-26, toegepast op 2026-10-26;
 `0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
@@ -12487,6 +12500,96 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Livestreams via YouTube, fase 1
+
+**2026-11-18, commit volgt in de volgende PLAN-commit, niet gepusht (AGENTS.md: lokaal tot de eigenaar om een push vraagt). Migratie `0338_youtube_livestreams.sql`, niet toegepast.**
+
+- **Waarom.** De eigenaar wil zijn Zwift-races streamen via YouTube en dat
+  simpel vanuit de app doen. Voorstel, besluiten en de inrichting van Google
+  Cloud staan in [livestream-youtube.md](docs/livestream-youtube.md). Besluiten
+  van 2026-11-18: elk lid op het eigen kanaal, Windows-pc, Mac, iPad en iPhone
+  (geen Apple TV, geen Android), standaard openbaar, met microfoon, de stream
+  in de app, klaarzetten alleen wie ingeschreven of opgesteld is, alle fases
+  nu, de helper van fase 3 voor Windows en Mac.
+- **De grens.** Het beeld komt van OBS (pc, Mac) of een screencast-app (iPad,
+  iPhone), niet uit de app: een browser kan Zwift niet opnemen en niet naar
+  YouTube streamen. Er loopt geen video over Netlify of Supabase.
+- **Gebouwd.**
+  - Module `livestream` ("Livestreams", groep Zwift, pad `/api/youtube`). Zonder
+    `YOUTUBE_OAUTH_CLIENT_ID` en `YOUTUBE_OAUTH_CLIENT_SECRET` is alles
+    verborgen, ook als de module aan staat (zo ook bij de Rabobank-installatie).
+  - Koppelen per lid: `/api/youtube/connect` en `/api/youtube/callback`
+    (Google OAuth, scope `youtube`, offline en consent, state-cookie; `?terug=`
+    alleen een pad binnen de app). Bij koppelen haalt de app het kanaal op en
+    hergebruikt of maakt één vaste stream ("Zwift-races (via de clubapp)"),
+    zodat de sleutel in OBS gelijk blijft als een lid opnieuw koppelt. Tokens
+    versleuteld met `encryptSecret`. Code in `src/lib/youtube-live/`.
+  - Profiel, blok YouTube (`#youtube`, onder Strava): koppelen, het kanaal,
+    Streamsleutel tonen (server en sleutel live bij YouTube opgehaald, niet
+    bewaard) en Ontkoppelen (toestemming bij Google ingetrokken, rij weg).
+  - Racepagina, blok Live (na drie uur Terugkijken) onder Raceinfo: speler op
+    `youtube-nocookie.com` met `playsinline`, een knop per lid bij meer
+    streams (wie eerst klaarzette, staat voorop), Op YouTube, en Weghalen voor
+    de eigen stream (eventbeheer: elke stream). Stream klaarzetten voor wie Ja
+    heeft op de race of in de opstelling van het team staat (op de race of de
+    raceweek), van 14 dagen voor tot 2 uur na de start, alleen bij online
+    races (ZRL, ladder, Zwift, FRR, MyWhoosh, Omnium, SRC) en niet op een
+    raceweek of hoofdevent. Zonder koppeling staat er een knop die koppelt en
+    terugkomt op de race.
+  - De uitzending: titel "racenaam · club · route" (hooguit 100 tekens, zonder
+    `<` en `>`, die YouTube weigert), beschrijving met de starttijd in
+    Nederlandse tijd, route en rondes, de link naar de live stand bij een
+    ZRL-race en de clubnaam. Openbaar, auto-start en auto-stop, insluiten aan,
+    gepland tien minuten voor de start (minstens twee minuten na nu). Mislukt
+    het koppelen aan de stream, dan gaat de uitzending weer weg; bij dubbel
+    klikken ook de tweede.
+  - Live ZRL-pagina: de speler boven de stand, alleen voor ingelogde leden.
+  - Weghalen: de eigen stream vóór de start gaat ook op YouTube weg; daarna
+    blijft de opname op het kanaal en verdwijnt alleen de koppeling met de race.
+  - Verloopt de koppeling (Google geeft `invalid_grant`, zoals na 7 dagen in de
+    testfase), dan zet de app `needs_reconnect` en vraagt het lid opnieuw te
+    koppelen.
+  - Account verwijderen trekt ook de YouTube-toestemming in
+    (`src/lib/account-deletion.ts`).
+  - Migratie: `youtube_connections` (één rij per lid; leden lezen alleen kanaal
+    en status van de eigen rij via kolomrechten, tokens alleen de
+    service-role) en `event_streams` (één per lid per race, video-ID met
+    formaatcontrole; lezen voor goedgekeurde leden, schrijven alleen de
+    service-role na de controles in `src/app/(app)/_actions/livestream.ts`).
+  - Hulp: gids "Livestreams: je race streamen op YouTube" onder Events en
+    wedstrijden, met de instelling per apparaat, en een zoekregel. Privacy:
+    `/privacy#livestream`, met de vermelding van de YouTube API Services en
+    links naar de voorwaarden van YouTube, het privacybeleid van Google en
+    intrekken bij Google; die vraagt Google bij de verificatie.
+  - Inrichting: [livestream-youtube.md](docs/livestream-youtube.md), een rij in
+    het runbook (§3), [installatie.md](docs/installatie.md) §6 en
+    `.env.local.example`.
+- **Bewust niet in deze ronde.** Pushmelding, live-status, de kaart Nu live en
+  de ZRL-overlay horen bij fase 2; de kolommen `status` en `live_notified_at`
+  staan er al voor en blijven tot dan op `gepland` en leeg. De helper voor
+  starten vanaf de telefoon is fase 3. Geen eigen thumbnails en geen eigen
+  titel kiezen: de titel volgt uit de race. Geen stream voor anonieme kijkers
+  op de openbare live stand: wie er streamt, is geen openbaar gegeven (een
+  oordeel, geen besluit van de eigenaar; de video zelf is wel openbaar op
+  YouTube). Geen YouTube-chat in de app. Geen streams bij buitenritten.
+- **Privacy, besluit eigenaar nodig.** Een nieuwe verwerking, maar alleen van
+  wie zelf YouTube koppelt; koppelen is de toestemming, zoals bij Uitdaging.
+  Voorstel: zonder nieuwe privacyversie. De tekst op `/privacy#livestream`
+  wacht op akkoord.
+- **Niet geverifieerd.** De migratie is niet toegepast (geen Docker of
+  Supabase-config hier); getest in PGlite (`youtube-livestream-migration.test.ts`:
+  tokens onleesbaar, eigen rij, wachtende leden zien niets, geen schrijfrecht,
+  cascade). Google-OAuth en de YouTube-aanroepen zijn alleen getest met een
+  nagebootste fetch (`youtube-livestream.test.ts`), niet tegen Google. De
+  schermen zijn alleen als HTML getest (`youtube-livestream-render.test.ts`),
+  niet in de browser bekeken: er is geen `.env.local` in deze omgeving. Niet
+  vastgesteld: de quota per aanroep, of auto-start werkt zonder monitorstream,
+  of YouTube API-uitzendingen van een niet-geaudit project op privé zet, of
+  insluiten bij elk kanaal werkt, en of een geplande tijd vlak na nu altijd
+  geaccepteerd wordt. `tsc`, ESLint op de gewijzigde bestanden en de
+  unit-suite schoon, op twee falers na die er al waren (`omnium-live.test.ts`
+  wil een `.env.local`, `club-texts-render.test.ts` vindt ZWB in de beheerhulp).
 
 ### Gebouwd — Sauce-venster ZWB TTT-plan
 

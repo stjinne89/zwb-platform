@@ -4,8 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Verwijdert een account volledig: storage-bestanden (avatar, eventfoto's,
- * verhaalfoto's) worden best-effort opgeruimd, de Strava-toestemming wordt
- * ingetrokken en daarna gaat de auth-gebruiker weg, wat via de FK-cascades alle
+ * verhaalfoto's) worden best-effort opgeruimd, de Strava- en YouTube-toestemming
+ * worden ingetrokken en daarna gaat de auth-gebruiker weg, wat via de FK-cascades alle
  * profielgekoppelde data wist. Gedeeld door "eigen account verwijderen" (G3,
  * AVG art. 17) en "lid verwijderen" door het bestuur; wie wat mag, controleert
  * de aanroeper. Verwacht de service-role client.
@@ -59,6 +59,15 @@ export async function deleteAccount(
   try {
     const { revokeStravaConnection } = await import("@/lib/strava/sweep");
     await revokeStravaConnection(admin, profileId, "account_deleted");
+  } catch {
+    // niet kritiek voor de verwijdering zelf
+  }
+
+  // Hetzelfde voor YouTube (0338): de toestemming bij Google intrekken. De
+  // uitzendingen op het kanaal van het lid zelf blijven van het lid.
+  try {
+    const { removeYouTubeConnection } = await import("@/lib/youtube-live/connection");
+    await removeYouTubeConnection(admin, profileId);
   } catch {
     // niet kritiek voor de verwijdering zelf
   }

@@ -146,6 +146,22 @@ export const GUIDES = [
     ],
   },
   {
+    id: "livestreamen",
+    icon: Smartphone,
+    title: "{m:livestream}: je race streamen op YouTube",
+    bullets: [
+      "Rijd je een race, dan kun je hem live uitzenden op je eigen YouTube-kanaal. Andere {leden} kijken mee op de race en naast de live stand.",
+      "Eén keer instellen: zet livestreamen aan op je YouTube-kanaal. YouTube vraagt daarvoor je telefoonnummer, en de eerste keer duurt het tot 24 uur. Koppel daarna YouTube onder Profiel. Met Streamsleutel tonen zie je de server en de sleutel. Die vul je één keer in; ze blijven gelijk, ook als je opnieuw koppelt.",
+      "Windows-pc of Mac: installeer OBS Studio (gratis). Kies bij Instellingen, Stream de dienst YouTube - RTMPS en vul de streamsleutel in; kies niet Account koppelen. Maak een scène met het Zwift-venster en je microfoon, en stel bij Sneltoetsen een toets in voor Start en Stop streamen: die werkt ook als Zwift op de voorgrond staat. Kies bij Uitvoer een hardware-encoder (NVENC, AMD of Apple), zodat Zwift niet hapert.",
+      "iPad of iPhone: installeer een screencast-app, bijvoorbeeld Larix Screencaster, en vul de server en de sleutel in. Start de screencast voordat je Zwift opent. Loopt het niet soepel, sluit de iPad dan met een kabel aan op een Mac en neem hem op in OBS.",
+      "Apple TV en Android worden niet ondersteund. Rijd je op een Apple TV, stream dan vanaf een pc, Mac of iPad.",
+      "Op de race tik je op Stream klaarzetten. Dat kan als je bent aangemeld of in de opstelling staat, vanaf twee weken voor de start. De app maakt een openbare uitzending met de naam van de race. Start OBS of je screencast-app een paar minuten voor de start: YouTube gaat vanzelf live, en stopt vanzelf als jij stopt.",
+      "Met microfoon: draag een headset, zodat Discord en de TTT-bot niet via je speakers in de stream komen. Zet geen muziek op de achtergrond: dan dempt of blokkeert YouTube de opname.",
+      "Rijden er meer {leden} met een stream, dan kies je met de knoppen boven de speler wiens beeld je ziet. Je eigen stream haal je weg met Weghalen onder de speler. Vóór de start verdwijnt de uitzending dan ook van YouTube; daarna blijft de opname op je kanaal.",
+      "Vraagt de app je om YouTube opnieuw te koppelen, doe dat dan op je profiel. Je streamsleutel blijft hetzelfde.",
+    ],
+  },
+  {
     id: "rankings",
     icon: Trophy,
     title: "{kort} Rankings",

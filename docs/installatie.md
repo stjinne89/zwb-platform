@@ -153,6 +153,7 @@ staat welke env-variabelen er nog niet zijn.
 | Telegram-bot | [runbook §5](runbook.md), "Telegram-bot voor berichten op de fietscomputer". Maak een eigen bot. |
 | LiveTrack-mail (Resend) | [runbook §5](runbook.md), "Live volgen via Garmin/Wahoo instellen". |
 | Integratiecheck | `/beheer` → koppelingen, en [runbook §5](runbook.md). |
+| Livestreams (YouTube) | [livestream-youtube.md](livestream-youtube.md), "Google Cloud inrichten". Zonder `YOUTUBE_OAUTH_CLIENT_ID` en `-SECRET` blijft de module verborgen, ook als hij aan staat. |
 
 ## 7. Nieuwe migraties
 

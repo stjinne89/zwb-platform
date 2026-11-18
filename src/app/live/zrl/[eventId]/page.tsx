@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
+import { LivePageStreams } from "@/components/livestream/live-page-streams";
 import { freezeZrlResultNow, saveZrlTeamAssignment } from "./_actions";
 import { zwiftDsConfigured } from "@/lib/events/zwift-club";
 import { DS_AFTER_MS } from "@/lib/ds/schedule";
@@ -182,6 +183,8 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
           </form>
         )}
       </div>
+
+      {access.user && !editing && <LivePageStreams eventId={view.event.id} />}
 
       {editing && (
         <section className="rounded-lg border bg-card">

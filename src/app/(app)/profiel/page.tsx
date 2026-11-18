@@ -12,6 +12,9 @@ import { PushToggle } from "./_components/push-toggle";
 import { CalendarFeed, type CalendarFeedStatus } from "./_components/calendar-feed";
 import { MyQuotes, type MyQuote } from "./_components/my-quotes";
 import { StravaSection } from "./_components/strava-section";
+import { getClub } from "@/lib/club";
+import { YouTubeSection } from "./_components/youtube-section";
+import { youtubeConnectErrorText, youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { loadRideSourceStatus } from "@/lib/intervals/ride-source-status";
 import { BikeShowcase } from "./_components/bike-showcase";
 import { AccountData } from "./_components/account-data";
@@ -64,7 +67,11 @@ function awardBadge(row: AwardRow) {
 export default async function ProfielPage({
   searchParams,
 }: {
-  searchParams: Promise<{ weergave?: string | string[] }>;
+  searchParams: Promise<{
+    weergave?: string | string[];
+    youtube?: string | string[];
+    youtube_fout?: string | string[];
+  }>;
 }) {
   const supabase = await createClient();
   const user = await getRequestUser();
@@ -72,7 +79,7 @@ export default async function ProfielPage({
 
   // Standaard: het profiel zoals leden het zien. Bewerken en het deelbare
   // profiel staan links en rechts op de weergaveknop.
-  const { weergave } = await searchParams;
+  const { weergave, youtube: youtubeDone, youtube_fout: youtubeError } = await searchParams;
   if (weergave === "deelbaar") {
     const toggle = <ProfileViewToggle view="deelbaar" />;
     return (
@@ -118,6 +125,21 @@ export default async function ProfielPage({
 
   const access = await getRequestAccess();
   const rideStatus = await loadRideSourceStatus(user.id).catch(() => null);
+  // Livestreams (0338): alleen als de module aan staat en Google ingericht is.
+  const showYouTube = youtubeLiveConfigured() && (await getClub()).isEnabled("livestream");
+  const { data: youtubeConn } = showYouTube
+    ? await supabase
+        .from("youtube_connections")
+        .select("channel_title, needs_reconnect")
+        .eq("profile_id", user.id)
+        .maybeSingle()
+    : { data: null };
+  const youtubeNotice =
+    typeof youtubeError === "string" && youtubeConnectErrorText(youtubeError)
+      ? { ok: false, text: youtubeConnectErrorText(youtubeError) as string }
+      : youtubeDone === "gekoppeld"
+        ? { ok: true, text: "YouTube is gekoppeld." }
+        : null;
 
   const [
     { data: profile, error: profileError },
@@ -346,6 +368,15 @@ export default async function ProfielPage({
           }
         />
       </div>
+
+      {showYouTube && (
+        <div id="youtube" className="scroll-mt-20">
+          <YouTubeSection
+            connection={youtubeConn as { channel_title: string | null; needs_reconnect: boolean } | null}
+            notice={youtubeNotice}
+          />
+        </div>
+      )}
 
       <div id="vertrekpunten" className="scroll-mt-20">
         <StartPoints points={startPoints} />

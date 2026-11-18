@@ -142,6 +142,7 @@ vangen, maar weet hier hoe je ze ververst:
 | `ANTHROPIC_API_KEY` | Trainings-AI als `AI_PROVIDER=anthropic` (zie "Overstap naar Claude" onderaan) | Bij rotatie, of als het maandtegoed op is | Claude Console (platform.claude.com), API Keys en Usage |
 | `INSTAGRAM_ACCESS_TOKEN` | Instagram-sync (`/media` en de cron) | Ja, long-lived token (~60 dgn) | Token uit de Meta-app, "API setup with Instagram login" (begint met `IGAA`; een `EAA`-token is van Facebook en werkt niet). Verlengen: `graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=…` |
 | `YOUTUBE_API_KEY` | `/media` YouTube-sync | Quota/rotatie | Google Cloud Console |
+| `YOUTUBE_OAUTH_CLIENT_ID` / `YOUTUBE_OAUTH_CLIENT_SECRET` | Livestreams: leden koppelen hun YouTube-kanaal (`/api/youtube/*`) | Secret bij rotatie; koppelingen van leden vervallen na 7 dagen zolang het toestemmingsscherm op "Testing" staat | Google Cloud Console, zie [livestream-youtube](livestream-youtube.md) |
 
 Overige secrets (`SUPABASE_SERVICE_ROLE_KEY`, `TOKEN_ENCRYPTION_KEY`, VAPID-keys,
 cron-secrets) zijn statisch en hoeven alleen bij een bewuste rotatie aangepast.

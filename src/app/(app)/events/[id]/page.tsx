@@ -34,6 +34,7 @@ import {
   type TeamDiscordRow,
 } from "@/lib/events/race-links";
 import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
+import { RaceStreams } from "./_components/race-streams";
 import { isTeamRace, raceTeamIds as teamAndParentIds } from "@/lib/events/team-races";
 import { ZrlTeamRank } from "./_components/zrl-team-rank";
 import { LadderMatchupView } from "./_components/ladder-matchup";
@@ -1536,6 +1537,14 @@ export default async function EventDetailPage({
             : null
         }
         links={raceLinks}
+      />
+
+      <RaceStreams
+        supabase={supabase}
+        event={event}
+        hasSubEvents={isParentEvent}
+        userId={user?.id ?? null}
+        canManage={canManage}
       />
 
       {fuelReview ? (

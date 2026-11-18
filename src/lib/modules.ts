@@ -36,6 +36,7 @@ export type ModuleKey =
   | "pacing"
   | "rennersniveau"
   | "live_race"
+  | "livestream"
   | "src"
   | "omnium"
   | "managerspel";
@@ -156,6 +157,9 @@ export const MODULES: readonly ModuleDef[] = [
     paths: ["/live/zrl", "/ds", "/api/live/zrl"],
     requires: ["teams"],
   },
+  // Leden streamen hun races op het eigen YouTube-kanaal (0338). Werkt pas met
+  // YOUTUBE_OAUTH_CLIENT_ID en -SECRET; zonder die twee blijft alles verborgen.
+  { key: "livestream", label: "Livestreams", group: "zwift", paths: ["/api/youtube"] },
   {
     key: "src",
     label: "Sunday Race Club",

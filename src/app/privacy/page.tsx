@@ -234,6 +234,39 @@ export default function PrivacyPage() {
             laatste stand per renner bewaren we hooguit zes uur; daarna wissen we
             hem.
           </li>
+          <li id="livestream" className="scroll-mt-20">
+            <strong><ModuleName module="livestream" /> (je race streamen op YouTube):</strong>{" "}
+            alleen als je zelf YouTube koppelt. Dan bewaren we je kanaal-ID en
+            kanaalnaam en, versleuteld, de toegangssleutels van Google waarmee
+            de app op jouw kanaal één vaste stream en per race een uitzending
+            aanmaakt. Je streamsleutel bewaren we niet. Zet je bij een race een
+            stream klaar, dan bewaren we bij die race het nummer van de
+            uitzending; ingelogde <MemberNoun plural /> zien de stream met je naam op de
+            race en naast de live stand. De uitzending zelf staat openbaar op je
+            eigen kanaal, met je stem als je een microfoon gebruikt, en in beeld
+            ook andere renners met hun Zwift-naam, zoals in de game. Daarvoor
+            gebruiken we de YouTube API Services; voor de uitzending gelden de{" "}
+            <a href="https://www.youtube.com/t/terms" className="text-primary underline">
+              Servicevoorwaarden van YouTube
+            </a>{" "}
+            en het{" "}
+            <a href="https://policies.google.com/privacy" className="text-primary underline">
+              Privacybeleid van Google
+            </a>
+            . De speler in de app komt van youtube-nocookie.com: YouTube zet pas
+            cookies als je op afspelen tikt. Ontkoppel je, dan trekken we de
+            toestemming bij Google in en wissen we de sleutels; dat kan ook bij
+            Google zelf, onder{" "}
+            <a
+              href="https://myaccount.google.com/permissions"
+              className="text-primary underline"
+            >
+              Apps met toegang tot je account
+            </a>
+            . Streams die al bij races staan, blijven staan tot je ze weghaalt.
+            Bij het opheffen van je account verdwijnt alles, behalve de video&apos;s
+            op je eigen kanaal.
+          </li>
           <li id="racebriefing" className="scroll-mt-20">
             <strong>Racebriefing (ZRL):</strong> voor een ZRL-race van een
             {" "}<ClubShortName />-team vragen we bij Zwift van iedereen in de startgroep de Zwift

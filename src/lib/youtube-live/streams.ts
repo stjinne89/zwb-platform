@@ -1,0 +1,85 @@
+import "server-only";
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { isVideoId } from "@/lib/youtube-live/broadcast";
+
+// Streams bij races (migratie 0338): lezen voor de speler, en of een lid bij
+// een race mag streamen (ingeschreven of opgesteld; besluit eigenaar 2026-11-18).
+
+export type EventStream = {
+  id: string;
+  eventId: string;
+  profileId: string;
+  videoId: string;
+  name: string;
+  channelTitle: string | null;
+  createdAt: string;
+};
+
+type StreamRow = {
+  id: string;
+  event_id: string;
+  profile_id: string;
+  youtube_video_id: string;
+  channel_title: string | null;
+  created_at: string;
+  profiles: { display_name: string | null } | { display_name: string | null }[] | null;
+};
+
+/** De streams van deze races, oudste eerst: wie als eerste klaarzette, staat voorop. */
+export async function loadEventStreams(
+  supabase: SupabaseClient,
+  eventIds: string[],
+): Promise<EventStream[]> {
+  if (eventIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("event_streams")
+    .select("id, event_id, profile_id, youtube_video_id, channel_title, created_at, profiles(display_name)")
+    .in("event_id", eventIds)
+    .order("created_at");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as StreamRow[])
+    .filter((row) => isVideoId(row.youtube_video_id))
+    .map((row) => {
+      const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+      return {
+        id: row.id,
+        eventId: row.event_id,
+        profileId: row.profile_id,
+        videoId: row.youtube_video_id,
+        name: profile?.display_name?.trim() || row.channel_title || "Stream",
+        channelTitle: row.channel_title,
+        createdAt: row.created_at,
+      };
+    });
+}
+
+/**
+ * Rijdt dit lid deze race? Ja op de race, of in de opstelling van het team van
+ * de race (op de race zelf of op de raceweek erboven).
+ */
+export async function ridesInEvent(
+  supabase: SupabaseClient,
+  profileId: string,
+  event: { id: string; team_id: string | null; parent_event_id: string | null },
+): Promise<boolean> {
+  const [{ data: rsvp }, lineup] = await Promise.all([
+    supabase
+      .from("event_rsvps")
+      .select("status")
+      .eq("event_id", event.id)
+      .eq("profile_id", profileId)
+      .maybeSingle(),
+    event.team_id
+      ? supabase
+          .from("team_event_lineups")
+          .select("id")
+          .eq("profile_id", profileId)
+          .eq("team_id", event.team_id)
+          .in("event_id", [event.id, event.parent_event_id].filter(Boolean) as string[])
+          .limit(1)
+      : Promise.resolve({ data: [] as unknown[] }),
+  ]);
+  if ((rsvp as { status?: string } | null)?.status === "yes") return true;
+  return (lineup.data ?? []).length > 0;
+}
