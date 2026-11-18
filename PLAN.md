@@ -12510,7 +12510,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Livestreams via YouTube, fase 3
 
-**2026-11-18, commit volgt in de PLAN-commit erna, lokaal, niet gepusht (eigenaar: "ga verder met fase 3"; pushen als alles klaar is). Migratie `0340_stream_helpers.sql`, niet toegepast; vereist `0338`.**
+**2026-11-18, commit `0195cca` ("Livestreams via YouTube, fase 3: OBS starten en stoppen vanaf de telefoon"), lokaal, niet gepusht (eigenaar: "ga verder met fase 3"; pushen als alles klaar is). Migratie `0340_stream_helpers.sql`, niet toegepast; vereist `0338`.**
 
 - **Waarom.** Op de fiets staat Zwift op de voorgrond en heb je de telefoon
   eerder bij de hand dan de muis. Besluit eigenaar 2026-11-18: de helper voor
