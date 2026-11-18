@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Livestreams via YouTube, fase 1 (2026-11-18): lokaal gecommit,
-   niet gepusht.** Migratie `0338_youtube_livestreams.sql`, niet toegepast.
+0. **Gebouwd — Livestreams via YouTube, fase 1 (2026-11-18): `84fe41d`, lokaal
+   gecommit, niet gepusht.** Migratie `0338_youtube_livestreams.sql`, niet toegepast.
    Leden koppelen hun eigen YouTube-kanaal, zetten bij hun race een stream
    klaar, en de stream speelt af op de race en naast de live ZRL-stand. Open,
    in deze volgorde: Google Cloud inrichten en `YOUTUBE_OAUTH_CLIENT_ID` en
@@ -12503,7 +12503,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Livestreams via YouTube, fase 1
 
-**2026-11-18, commit volgt in de volgende PLAN-commit, niet gepusht (AGENTS.md: lokaal tot de eigenaar om een push vraagt). Migratie `0338_youtube_livestreams.sql`, niet toegepast.**
+**2026-11-18, commit `84fe41d` ("Livestreams via YouTube, fase 1: kanaal koppelen, stream klaarzetten, speler bij de race"), lokaal, niet gepusht (AGENTS.md: lokaal tot de eigenaar om een push vraagt). Migratie `0338_youtube_livestreams.sql`, niet toegepast.**
 
 - **Waarom.** De eigenaar wil zijn Zwift-races streamen via YouTube en dat
   simpel vanuit de app doen. Voorstel, besluiten en de inrichting van Google
