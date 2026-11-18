@@ -59,7 +59,8 @@ als het beeld stopt.
 ## Google Cloud inrichten
 
 In het Google Cloud-project waar nu de `YOUTUBE_API_KEY` in zit
-(console.cloud.google.com):
+(console.cloud.google.com; dat is "zwb omnium"). Stap 1 tot en met 7 zijn op
+2026-11-18 gedaan, met status Testing; zie `PLAN.md`.
 
 1. **YouTube Data API v3** staat al aan voor de kanaalsync van Media.
 2. **Google Auth Platform → Branding**: appnaam, ondersteuningsadres, logo,
@@ -92,9 +93,10 @@ die het gebruik van de YouTube API Services noemt; die zin staat op
 - **Realtime voor de stream-hulp.** De hulp luistert op een openbaar Realtime-
   kanaal met een lange, willekeurige naam; de opdrachten zijn ondertekend, dus
   wie de naam kent, kan niets laten doen. Dat vraagt dat openbare kanalen in
-  Supabase (Realtime, Settings) zijn toegestaan. Niet nagekeken op het
-  ZWB-project, en de broadcast-aanroep (`/realtime/v1/api/broadcast`) is niet
-  tegen Supabase getest.
+  Supabase (Realtime, Settings) zijn toegestaan; op het ZWB-project staat
+  "Allow public access to channels" aan (nagekeken 2026-11-18). De
+  broadcast-aanroep (`/realtime/v1/api/broadcast`) is niet tegen Supabase
+  getest.
 
 - **Privé-vergrendeling.** Uploads via `videos.insert` vanuit een niet-geaudit
   API-project van na 28 juli 2020 zet YouTube op privé. Of dat ook voor
@@ -108,9 +110,11 @@ die het gebruik van de YouTube API Services noemt; die zin staat op
   met open streams: bij elke 2 minuten rond één raceavond ongeveer 135. Niet nagelezen in Googles
   quotacalculator (de Google-documentatie was vanuit de bouwomgeving niet
   bereikbaar).
-- **Netlify.** De statuscron draait elke 2 minuten een functie (ruim 700 per
-  dag); zonder open stream is dat één databasequery. Beperk de job op
-  cron-job.org tot de raceavonden als de Netlify-tegoeden krap worden.
+- **Netlify.** De statuscron draait een functie per run; zonder open stream is
+  dat één databasequery. Op cron-job.org staat hij sinds 2026-11-18 op
+  `*/2 18-21 * * 2-4` (di, wo en do, 18:00 tot 22:00), ongeveer 360 runs per
+  week in plaats van ruim 700 per dag. Een race buiten die uren krijgt geen
+  live-status en geen pushmelding; verruim dan de job.
 - **Live-status.** Of `liveBroadcastContent` direct op `live` springt zodra
   auto-start de uitzending start, en of een video met privé-vergrendeling
   inderdaad niet in `videos.list` terugkomt (dan telt hij als `weg`), is niet

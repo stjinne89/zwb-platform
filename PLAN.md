@@ -26,16 +26,47 @@ gaat stabiliteit voor nieuwe features.
    speelt af op de race, naast de live ZRL-stand en als tegel Nu live; de
    eerste stream van een race geeft een pushmelding, en er is een ZRL-overlay
    voor OBS. Met de stream-hulp (`stream-hulp/`, Windows en Mac) start en stopt
-   een lid OBS vanaf de telefoon. Open (de eerste twee doet de eigenaar): Google
-   Cloud inrichten en `YOUTUBE_OAUTH_CLIENT_ID`, `-SECRET` en
-   `YOUTUBE_STATUS_SECRET` op Netlify zetten
-   ([livestream-youtube.md](docs/livestream-youtube.md)), de cron op
-   cron-job.org; daarna in het Supabase-dashboard nakijken dat Realtime,
-   Settings, "Allow public access" aan staat (met de connector niet te zien;
-   volgens Supabase standaard aan, en de eventchat gebruikt al openbare
-   kanalen), een echte proefstream, en de Google-verificatie aanvragen. Zie de
+   een lid OBS vanaf de telefoon. **Ingericht op 2026-11-18** (in Chrome, met
+   akkoord van de eigenaar per stap; geen code gewijzigd):
+   - *Google Cloud*, project "zwb omnium" (daar zit de bestaande
+     `YOUTUBE_API_KEY`; het project "ZWB Platform" heeft geen sleutels).
+     YouTube Data API v3 stond al aan. Google Auth Platform: appnaam ZWB
+     Cycling, startpagina en `/privacy` op `zwb-platform.netlify.app`, dat
+     domein geautoriseerd; type External, status **Testing** (niet
+     gepubliceerd); alleen de eigenaar is testgebruiker; scope
+     `auth/youtube` (gevoelig); webclient "ZWB-platform YouTube" met de
+     redirect-URI's naar `/api/youtube/callback` op de site en op
+     `localhost:3000`. Akkoord met de User Data Policy van Google gegeven
+     (eigenaar: "Ja, alleen ik"). Het toestemmingsscherm toont het domein in
+     plaats van "ZWB Cycling" en geen links naar de privacyverklaring; dat
+     blijft zo tot de merkverificatie.
+   - *Netlify*: `YOUTUBE_OAUTH_CLIENT_ID` (geen geheim, zoals
+     `STRAVA_CLIENT_ID`), `YOUTUBE_OAUTH_CLIENT_SECRET` en
+     `YOUTUBE_STATUS_SECRET` (beide geheim, vier deploycontexten, niet lokaal;
+     het statusgeheim is 40 tekens, willekeurig). Daarna één deploy van
+     `main@e6e1597`, klaar in 1m55s.
+   - *cron-job.org*: job "ZWB YouTube live-status", `POST
+     /api/youtube/status` met de bearer, `*/2 18-21 * * 2-4` (Europe/Amsterdam):
+     alleen di, wo en do van 18:00 tot 22:00, want races zijn altijd tussen
+     19:00 en 21:00 op die dagen (eigenaar) en de uitzending staat tien minuten
+     vóór de start. Testrun: HTTP 200,
+     `{"ok":true,"open":0,"checked":0,...,"notified":0}`.
+   - *Supabase Realtime*: "Allow public access to channels" stond al aan;
+     niets gewijzigd.
+   - *Koppelen*: op `/profiel?weergave=bewerken#youtube` staat het blok met
+     YouTube koppelen; Google (waarschuwing "niet geverifieerd", daarna
+     toestemming) stuurt terug, maar het profiel meldt "Livestreamen staat nog
+     niet aan op je YouTube-kanaal" (`youtube_fout=live-uit`). De
+     OAuth-inrichting werkt dus; er is nog geen koppeling bewaard.
+
+   Open: de eigenaar zet livestreamen aan in YouTube Studio (kan tot 24 uur
+   duren) en koppelt daarna opnieuw; pas dan is "Gekoppeld met <kanaal>"
+   gezien. Verder een echte proefstream, de Google-verificatie aanvragen, en
+   de stream-hulp op een pc of Mac installeren. Het client-secret en het
+   statusgeheim kwamen tijdens het inrichten in de sessie-uitvoer van de
+   assistent terecht (niet in de repo); de eigenaar kan ze vervangen. Zie de
    rondes "Gebouwd — Livestreams via YouTube, fase 1", "…, fase 2" en
-   "…, fase 3".
+   "…, fase 3", en [livestream-youtube.md](docs/livestream-youtube.md).
 
 0. **Bijgesteld — TTT-bot op de race van 2026-11-17: op 2026-11-17 gepusht naar
    `main` (`2e845954`, `79b898a6`, `b625bf75`, eigenaar: "Push naar main").** Geen migratie. Kopbeurt telt vanaf "Wissel", geen verzonnen
