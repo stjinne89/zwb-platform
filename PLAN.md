@@ -13,7 +13,7 @@ gaat stabiliteit voor nieuwe features.
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
 0. **Gebouwd — OBS-overlay per stream, in de huisstijl (2026-11-18): lokaal
-   gecommit, niet gepusht.** Migratie `0341_stream_overlay_stand.sql` is
+   gecommit (`96d93ca`), niet gepusht.** Migratie `0341_stream_overlay_stand.sql` is
    **nog niet** op productie toegepast; dat moet vóór de push (anders mislukt
    de schakelaar met "Opslaan lukte niet."; de overlay zelf werkt ook zonder).
    Elke eigen stream krijgt een overlay-link `/live/stream/<id>/overlay` met
@@ -12595,7 +12595,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — OBS-overlay per stream, in de huisstijl
 
-**2026-11-18, lokaal gecommit, niet gepusht. Migratie `0341_stream_overlay_stand.sql` niet op productie toegepast.**
+**2026-11-18, commit `96d93ca` ("OBS-overlay per stream, in de huisstijl: clublogo, sponsors en schakelbare stand"), lokaal, niet gepusht. Migratie `0341_stream_overlay_stand.sql` niet op productie toegepast.**
 
 - **Waarom.** De eigenaar wilde het ZWB-logo en de sponsors in de overlay,
   "het design van de app", de echte logo's, alle sponsors "even lang en even
