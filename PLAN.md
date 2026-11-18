@@ -12,10 +12,11 @@ gaat stabiliteit voor nieuwe features.
    `/zwbeter-worden/schema` (maand) en op de trainerkalender bekijken, licht en
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
-0. **Gebouwd — OBS-overlay per stream, in de huisstijl (2026-11-18): lokaal
-   gecommit (`96d93ca`), niet gepusht.** Migratie `0341_stream_overlay_stand.sql` is
-   **nog niet** op productie toegepast; dat moet vóór de push (anders mislukt
-   de schakelaar met "Opslaan lukte niet."; de overlay zelf werkt ook zonder).
+0. **Gebouwd — OBS-overlay per stream, in de huisstijl (2026-11-18): commit
+   `96d93ca`, op 2026-11-18 gepusht naar `main` (eigenaar: "Yes, apply and
+   push").** Migratie `0341_stream_overlay_stand.sql` op 2026-11-18 vóór de
+   push met de Supabase-connector op productie toegepast (versie
+   `20261118163941`); kolom nagekeken (boolean, standaard true, niet null).
    Elke eigen stream krijgt een overlay-link `/live/stream/<id>/overlay` met
    het clublogo, de sponsors (één tegelijk, elk 8 s, allemaal even groot) en
    bij een ZRL-race de live stand, aan en uit te zetten met een schakelaar.
@@ -1372,8 +1373,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0341`
-(`0340_stream_helpers` is van livestreams via YouTube, fase 3, 2026-11-18, toegepast op 2026-11-18;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0342`
+(`0341_stream_overlay_stand` is van de OBS-overlay per stream, 2026-11-18, toegepast op 2026-11-18;
+`0340_stream_helpers` is van livestreams via YouTube, fase 3, 2026-11-18, toegepast op 2026-11-18;
 `0339_race_stream_live_status` is van livestreams via YouTube, fase 2, 2026-11-18, toegepast op 2026-11-18;
 `0338_youtube_livestreams` is van livestreams via YouTube, fase 1, 2026-11-18, toegepast op 2026-11-18; de nummers `0280` tot en met `0337` staan bij hun eigen rondes; daarvoor:
 `0279_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en vóór het toepassen hernummerd bij het samenvoegen met main, waar `0277` en `0278` al gebruikt waren;
@@ -12595,7 +12597,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — OBS-overlay per stream, in de huisstijl
 
-**2026-11-18, commit `96d93ca` ("OBS-overlay per stream, in de huisstijl: clublogo, sponsors en schakelbare stand"), lokaal, niet gepusht. Migratie `0341_stream_overlay_stand.sql` niet op productie toegepast.**
+**2026-11-18, commit `96d93ca` ("OBS-overlay per stream, in de huisstijl: clublogo, sponsors en schakelbare stand"), op 2026-11-18 gepusht naar `main`. Migratie `0341_stream_overlay_stand.sql` op 2026-11-18 op productie toegepast (versie `20261118163941`).**
 
 - **Waarom.** De eigenaar wilde het ZWB-logo en de sponsors in de overlay,
   "het design van de app", de echte logo's, alle sponsors "even lang en even
@@ -12638,8 +12640,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   Geen grotere of langere plek voor hogere sponsortiers (eigenaar: allemaal
   gelijk). Geen Nederlandse overlay: de kijkers zijn ook van andere clubs.
 - **Niet geverifieerd.** `0341` alleen in PGlite getest (standaard aan, ook
-  voor bestaande streams, niet null, opnieuw uit te voeren); niet op
-  productie. De oude ZRL-link is lokaal bekeken met echte data (B1, TTT van
+  voor bestaande streams, niet null, opnieuw uit te voeren); op productie
+  alleen de kolom nagekeken. De oude ZRL-link is lokaal bekeken met echte data (B1, TTT van
   2026-11-17, echte logo's, wisseling en lettertype nagekeken). De
   stream-route alleen op 404 bij een onbekende id: er staat nog geen stream
   in productie. De schakelaar is niet aangeklikt en niet in OBS bekeken.
