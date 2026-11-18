@@ -92,7 +92,9 @@ gaat stabiliteit voor nieuwe features.
      YouTube Data API v3 stond al aan. Google Auth Platform: appnaam ZWB
      Cycling, startpagina en `/privacy` op `zwb-platform.netlify.app`, dat
      domein geautoriseerd; type External, status **Testing** (niet
-     gepubliceerd); alleen de eigenaar is testgebruiker; scope
+     gepubliceerd); testgebruikers: de eigenaar, en sinds 2026-11-18 één lid
+     dat zich als tester meldde (adressen staan alleen in Google Cloud, niet
+     in de repo; 2 van de 100); scope
      `auth/youtube` (gevoelig); webclient "ZWB-platform YouTube" met de
      redirect-URI's naar `/api/youtube/callback` op de site en op
      `localhost:3000`. Akkoord met de User Data Policy van Google gegeven
