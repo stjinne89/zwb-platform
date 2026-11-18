@@ -131,3 +131,18 @@ describe("event_streams", () => {
     }
   });
 });
+
+describe("0341 overlay_stand", () => {
+  it("zet de stand standaard aan, ook voor bestaande streams, en mag opnieuw", async () => {
+    const sql = (await readFile("supabase/migrations/0341_stream_overlay_stand.sql", "utf8")).replace(
+      /notify pgrst[^;]*;/g,
+      "",
+    );
+    await db.exec(sql);
+    await db.exec(sql);
+    const { rows } = await db.query<{ overlay_stand: boolean }>("select overlay_stand from public.event_streams");
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.overlay_stand === true)).toBe(true);
+    await expect(db.exec("update public.event_streams set overlay_stand = null")).rejects.toThrow();
+  });
+});

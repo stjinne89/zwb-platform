@@ -16,6 +16,8 @@ export type EventStream = {
   createdAt: string;
   /** Bijgehouden door de cron (0339); zonder cron blijft hij op gepland. */
   status: "gepland" | "live" | "afgelopen";
+  /** De live stand in de overlay (0341); zonder die kolom aan. */
+  overlayStand: boolean;
 };
 
 type StreamRow = {
@@ -26,6 +28,7 @@ type StreamRow = {
   channel_title: string | null;
   created_at: string;
   status: string;
+  overlay_stand?: boolean | null;
   profiles: { display_name: string | null } | { display_name: string | null }[] | null;
 };
 
@@ -37,7 +40,8 @@ export async function loadEventStreams(
   if (eventIds.length === 0) return [];
   const { data, error } = await supabase
     .from("event_streams")
-    .select("id, event_id, profile_id, youtube_video_id, channel_title, created_at, status, profiles(display_name)")
+    // Alle kolommen: zo werkt dit ook als de code live staat vóór 0341.
+    .select("*, profiles(display_name)")
     .in("event_id", eventIds)
     .order("created_at");
   if (error) throw new Error(error.message);
@@ -55,6 +59,7 @@ export async function loadEventStreams(
         channelTitle: row.channel_title,
         createdAt: row.created_at,
         status: row.status === "live" || row.status === "afgelopen" ? row.status : "gepland",
+        overlayStand: row.overlay_stand !== false,
       };
     });
 }

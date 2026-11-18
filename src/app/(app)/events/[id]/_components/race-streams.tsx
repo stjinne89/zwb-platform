@@ -16,7 +16,7 @@ import {
 } from "@/lib/youtube-live/broadcast";
 import { youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { loadEventStreams, ridesInEvent } from "@/lib/youtube-live/streams";
-import { OverlayLinkButton, PrepareStreamButton } from "./prepare-stream-button";
+import { OverlayLinkButton, OverlayStandToggle, PrepareStreamButton } from "./prepare-stream-button";
 
 /**
  * Streams bij een race (livestreams, fase 1): de speler voor iedereen, en de
@@ -83,11 +83,10 @@ export async function RaceStreams({
   const anyLive = streams.some((stream) => stream.status === "live");
   const allEnded = streams.length > 0 && streams.every((stream) => stream.status === "afgelopen");
   const label = anyLive || (!allEnded && streamsAreLive(event.start_at, now)) ? "Live" : "Terugkijken";
-  // Overlay met de live stand voor in OBS, bij je eigen stream in een ZRL-race.
-  const overlayPath =
-    ownStream && event.type === "zrl" && event.team_id && event.zwift_event_id
-      ? `/live/zrl/${event.id}/overlay`
-      : null;
+  // Overlay voor in OBS bij je eigen stream (0341): logo en sponsors altijd, de
+  // live stand alleen in een ZRL-race en met de schakelaar aan.
+  const overlayPath = ownStream ? `/live/stream/${ownStream.id}/overlay` : null;
+  const hasLiveStand = event.type === "zrl" && Boolean(event.team_id && event.zwift_event_id);
   const connectHref = `/api/youtube/connect?terug=${encodeURIComponent(`/events/${event.id}`)}`;
 
   return (
@@ -115,6 +114,9 @@ export async function RaceStreams({
         />
       )}
       {overlayPath && <OverlayLinkButton path={overlayPath} />}
+      {ownStream && hasLiveStand && (
+        <OverlayStandToggle streamId={ownStream.id} initial={ownStream.overlayStand} />
+      )}
       {showPrepare &&
         (connected ? (
           <PrepareStreamButton eventId={event.id} />

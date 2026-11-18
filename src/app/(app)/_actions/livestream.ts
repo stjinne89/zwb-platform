@@ -218,6 +218,31 @@ export async function removeStream(streamId: string): Promise<Result> {
   return { ok: true };
 }
 
+/** De live stand in de overlay van deze stream aan of uit (0341). */
+export async function setOverlayStand(streamId: string, on: boolean): Promise<Result> {
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const { access, userId } = session;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("event_streams")
+    .select("id, event_id, profile_id")
+    .eq("id", streamId)
+    .maybeSingle();
+  const stream = data as { id: string; event_id: string; profile_id: string } | null;
+  if (!stream) return { ok: false, error: "Stream niet gevonden." };
+  if (stream.profile_id !== userId && !access.has("events.manage_all")) {
+    return { ok: false, error: "Geen recht." };
+  }
+  const { error } = await admin
+    .from("event_streams")
+    .update({ overlay_stand: Boolean(on) })
+    .eq("id", stream.id);
+  if (error) return { ok: false, error: "Opslaan lukte niet." };
+  revalidatePath(`/events/${stream.event_id}`);
+  return { ok: true };
+}
+
 export async function revealStreamKey(): Promise<
   { ok: true; serverUrl: string; streamKey: string } | { ok: false; error: string }
 > {

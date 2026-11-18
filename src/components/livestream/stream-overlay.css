@@ -1,0 +1,121 @@
+/* OBS-overlay van een stream (0341): 1920×1080, doorzichtig. Nachtversie van
+   het design tegels: rechte hoeken, geen schaduw, lichte cijfers, geen
+   hoofdletters. Kleuren als --ov-* op .stream-overlay (lib/youtube-live/overlay-theme.ts). */
+html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !important; }
+
+.stream-overlay {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  padding: 40px;
+  overflow: hidden;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.stream-overlay-panel { width: 560px; background: var(--ov-ground); }
+
+/* De kop: de tegel van wedstrijden met de tenueband, zoals op de startpagina. */
+.stream-overlay-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  background: var(--ov-head);
+  color: var(--ov-head-text);
+  overflow: hidden;
+}
+.stream-overlay-head::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, transparent 0 64%, rgb(255 255 255 / 0.1) 64% 81%, transparent 81%);
+  pointer-events: none;
+}
+.stream-overlay-head > * { position: relative; z-index: 1; }
+
+/* Het logo op papier met een gouden rand (DESIGN.md, logo in donker). */
+.stream-overlay-logo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--ov-paper);
+  color: var(--ov-ink);
+  padding: 8px 14px 7px;
+  border-radius: 0.8rem;
+  box-shadow: 0 0 0 2px var(--ov-head), 0 0 0 3.5px var(--ov-gold);
+}
+.stream-overlay-logo img { display: block; height: 44px; width: auto; max-width: 160px; object-fit: contain; }
+.stream-overlay-logo span { font-weight: 600; font-size: 22px; line-height: 44px; white-space: nowrap; }
+
+.stream-overlay-titles { display: grid; min-width: 0; gap: 2px; }
+.stream-overlay-status { font-size: 18px; font-weight: 400; opacity: 0.8; }
+.stream-overlay-head h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 500;
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* De stand: panelen met 6px ertussen; de eigen ploeg met de gouden onderlijn. */
+.stream-overlay-stand {
+  list-style: none;
+  margin: 0;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+.stream-overlay-stand li {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--ov-row);
+  font-size: 24px;
+  line-height: 1.2;
+}
+.stream-overlay-stand li[data-own] { box-shadow: inset 0 -2px 0 var(--ov-gold); }
+.stream-overlay-stand li[data-own] .stream-overlay-team { color: var(--ov-gold); }
+.stream-overlay-rank { color: var(--ov-muted); font-weight: 300; }
+.stream-overlay-team { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stream-overlay-value { font-weight: 300; }
+.stream-overlay-wait { margin: 0; padding: 16px 24px; font-size: 22px; color: var(--ov-muted); }
+
+/* Sponsors linksonder: één logo tegelijk, elk even groot. */
+.stream-overlay-sponsors {
+  position: absolute;
+  left: 40px;
+  bottom: 40px;
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px 14px;
+  background: var(--ov-ground);
+}
+.stream-overlay-caption { font-size: 16px; color: var(--ov-muted); }
+.stream-overlay-sponsor {
+  position: relative;
+  width: 280px;
+  height: 110px;
+  background: var(--ov-paper);
+}
+.stream-overlay-sponsor img {
+  position: absolute;
+  inset: 14px 20px;
+  width: calc(100% - 40px);
+  height: calc(100% - 28px);
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.stream-overlay-sponsor img[data-shown] { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-overlay-sponsor img { transition: none; }
+}

@@ -12,6 +12,15 @@ gaat stabiliteit voor nieuwe features.
    `/zwbeter-worden/schema` (maand) en op de trainerkalender bekijken, licht en
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
+0. **Gebouwd — OBS-overlay per stream, in de huisstijl (2026-11-18): lokaal
+   gecommit, niet gepusht.** Migratie `0341_stream_overlay_stand.sql` is
+   **nog niet** op productie toegepast; dat moet vóór de push (anders mislukt
+   de schakelaar met "Opslaan lukte niet."; de overlay zelf werkt ook zonder).
+   Elke eigen stream krijgt een overlay-link `/live/stream/<id>/overlay` met
+   het clublogo, de sponsors (één tegelijk, elk 8 s, allemaal even groot) en
+   bij een ZRL-race de live stand, aan en uit te zetten met een schakelaar.
+   Zie de ronde "Gebouwd — OBS-overlay per stream, in de huisstijl".
+
 0. **Gebouwd — Livestreams via YouTube, fase 1, 2 en 3 (2026-11-18): op
    2026-11-18 gepusht naar `main` (eigenaar: "je mag nu alles naar main
    pushen").** Migraties `0338_youtube_livestreams.sql`,
@@ -24,8 +33,9 @@ gaat stabiliteit voor nieuwe features.
    is goed"), zonder nieuwe privacyversie zoals voorgesteld. Leden koppelen hun
    eigen YouTube-kanaal, zetten bij hun race een stream klaar, en de stream
    speelt af op de race, naast de live ZRL-stand en als tegel Nu live; de
-   eerste stream van een race geeft een pushmelding, en er is een ZRL-overlay
-   voor OBS. Met de stream-hulp (`stream-hulp/`, Windows en Mac) start en stopt
+   eerste stream van een race geeft een pushmelding, en er is een overlay
+   voor OBS (sinds de ronde "OBS-overlay per stream" per stream, in de
+   huisstijl). Met de stream-hulp (`stream-hulp/`, Windows en Mac) start en stopt
    een lid OBS vanaf de telefoon. **Ingericht op 2026-11-18** (in Chrome, met
    akkoord van de eigenaar per stap; geen code gewijzigd):
    - *Google Cloud*, project "zwb omnium" (daar zit de bestaande
@@ -12583,6 +12593,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
 
+### Gebouwd — OBS-overlay per stream, in de huisstijl
+
+**2026-11-18, lokaal gecommit, niet gepusht. Migratie `0341_stream_overlay_stand.sql` niet op productie toegepast.**
+
+- **Waarom.** De eigenaar wilde het ZWB-logo en de sponsors in de overlay,
+  "het design van de app", de echte logo's, alle sponsors "even lang en even
+  groot … wat voor soort sponsoring ook", en de live stand "met een schakelaar
+  in de app" aan en uit. Het logo "vast in de kop". Akkoord op het voorstel:
+  "Ja, bouwen".
+- **Wat.**
+  - Gedeelde overlay `components/livestream/stream-overlay.tsx` (+ `.css`):
+    1920×1080, doorzichtig, de nachtversie van het design tegels in de kleuren
+    en letter van de club (`lib/youtube-live/overlay-theme.ts`; zonder eigen
+    kleuren de handmatige ZWB-nachtwaarden uit DESIGN.md, anders
+    `deriveTheme`). Kop: de kalendertegel met tenueband, het clublogo op een
+    papieren plaatje met gouden rand, een kleine statusregel (`ZRL live · A`,
+    `Final`, `Starts soon`, of `Live`) en de titel van de race op maximaal
+    twee regels. Daaronder bij een ZRL-race de stand als panelen met 6 px
+    ertussen, de eigen ploeg in goud met de gouden onderlijn. Linksonder
+    "Sponsors" met één logo tegelijk op papier, 280×110, elk 8 s, alle tiers
+    gelijk (`sponsor-rotator.tsx`; alle logo's staan er al, alleen de
+    zichtbare wisselt, zodat er bij het wisselen niets laadt en het
+    doorloopt als de pagina ververst). `loadFooterSponsors` uit de
+    sponsorstrip wordt hergebruikt (zelfde cache van een uur).
+  - Nieuwe route `/live/stream/<streamId>/overlay`: openbaar (OBS logt niet
+    in), via de service-rol omdat `event_streams` niet voor anon leesbaar
+    is. Elke race met een stream krijgt nu een overlay, niet alleen ZRL.
+    Ververst elke 15 s, ook na de uitslag, zodat de schakelaar blijft werken.
+  - `0341`: `event_streams.overlay_stand boolean not null default true`.
+    Server action `setOverlayStand` (eigen stream of `events.manage_all`), en
+    onder de eigen stream bij een ZRL-race met team en Zwift-event het
+    vinkje Live stand in de overlay. De knop Overlay-link voor OBS staat nu
+    onder elke eigen stream en kopieert de nieuwe link. De stream-query
+    selecteert `*`, zodat de app ook vóór 0341 werkt.
+  - De oude link `/live/zrl/<eventId>/overlay` blijft werken voor wie hem in
+    OBS heeft, in de nieuwe opmaak, met de stand altijd aan.
+    `zrl-overlay.css` is weg.
+  - Hulp: de tekst over de overlay-link bijgewerkt (logo, sponsors,
+    schakelaar, "gemarkeerd" in plaats van "oranje").
+- **Bewust niet.** Geen klok (eigenaar, bij het voorstel). Geen Club
+  Ladder-overlay nagebouwd: er is geen live positiedata op de server; de
+  Sauce-mod `gazhay/sauce4clubLadder` kan naast onze overlay in OBS staan.
+  Geen grotere of langere plek voor hogere sponsortiers (eigenaar: allemaal
+  gelijk). Geen Nederlandse overlay: de kijkers zijn ook van andere clubs.
+- **Niet geverifieerd.** `0341` alleen in PGlite getest (standaard aan, ook
+  voor bestaande streams, niet null, opnieuw uit te voeren); niet op
+  productie. De oude ZRL-link is lokaal bekeken met echte data (B1, TTT van
+  2026-11-17, echte logo's, wisseling en lettertype nagekeken). De
+  stream-route alleen op 404 bij een onbekende id: er staat nog geen stream
+  in productie. De schakelaar is niet aangeklikt en niet in OBS bekeken.
+  Tests: `stream-overlay-theme.test.ts`, en een blok `0341` in
+  `youtube-livestream-migration.test.ts`.
+
 ### Gebouwd — Livestreams via YouTube, fase 3
 
 **2026-11-18, commit `0195cca` ("Livestreams via YouTube, fase 3: OBS starten en stoppen vanaf de telefoon"), op 2026-11-18 gepusht naar `main`. Migratie `0340_stream_helpers.sql` op 2026-11-18 op productie toegepast (versie `20261118125134`). Daarna (`d4f3257`) heet de snelkoppeling Stream-hulp, zodat de hulp clubneutraal blijft.**
@@ -12681,9 +12744,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
   - ZRL-overlay `/live/zrl/<id>/overlay`: browserbron op 1920×1080 met
     doorzichtige achtergrond, de teamstand van de live stand (top 8, `?teams=5`
     tot 15; staat de eigen ploeg lager, dan vervangt die de laatste rij, in
-    oranje), punten of in een TTT de tijd van de vierde renner, ververst elke
-    15 s tot de stand definitief is. Engels, zoals de Omnium-overlay. Onder de
-    eigen stream bij een ZRL-race de knop Overlay-link voor OBS.
+    oranje; sinds de ronde "OBS-overlay per stream" in de huisstijl en goud),
+    punten of in een TTT de tijd van de vierde renner, ververst elke 15 s tot
+    de stand definitief is. Engels, zoals de Omnium-overlay. Onder de eigen
+    stream bij een ZRL-race de knop Overlay-link voor OBS (sinds die ronde
+    onder elke eigen stream, met de link per stream).
   - Hulp, privacy (`/privacy#livestream`: statuscontrole met het nummer van de
     uitzending, de melding met naam, de tegel), runbook §2 (cronregel),
     `.env.local.example`, [livestream-youtube.md](docs/livestream-youtube.md)
@@ -12692,7 +12757,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   (alleen de cron schrijft de status; zonder cron valt het label terug op de
   klok). Geen melding als een stream stopt. Geen tegel in Mijn events: wie
   zelf rijdt, kijkt niet. Geen overlay voor andere races dan ZRL: daar is geen
-  live stand. Geen Nederlandse overlay: de kijkers zijn ook van andere clubs.
+  live stand (achterhaald: sinds de ronde "OBS-overlay per stream" heeft elke
+  stream een overlay met logo en sponsors, de stand alleen bij ZRL). Geen Nederlandse overlay: de kijkers zijn ook van andere clubs.
 - **Netlify.** Elke 2 minuten is ruim 700 functieaanroepen per dag, de
   meeste met alleen één databasequery. Beperk de job op cron-job.org tot de
   raceavonden als de tegoeden krap worden; de melding komt dan alleen binnen
@@ -12702,7 +12768,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
   `videos.list` alleen met een nagebootste fetch; niet vastgesteld dat
   `liveBroadcastContent` meteen `live` wordt bij auto-start, en dat een
   privé-vergrendelde video niet terugkomt. De melding is niet echt verstuurd.
-  De overlay en de tegel zijn niet in de browser of in OBS bekeken. Tests:
+  De overlay en de tegel zijn niet in de browser of in OBS bekeken (de
+  overlay inmiddels wel lokaal in de browser, zie de ronde "OBS-overlay per
+  stream"). Tests:
   `youtube-livestream-status.test.ts`.
 
 ### Gebouwd — Livestreams via YouTube, fase 1

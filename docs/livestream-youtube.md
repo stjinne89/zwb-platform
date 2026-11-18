@@ -48,6 +48,9 @@ als het beeld stopt.
    2 minuten, alleen rond een race met een geplande stream), melding Liverace
    (één per race), tegel Nu live op het dashboard, een rode stip in de speler,
    en de ZRL-overlay als browserbron voor OBS (`/live/zrl/<id>/overlay`).
+   Sinds 0341 per stream (`/live/stream/<id>/overlay`): clublogo, sponsors
+   en bij ZRL de stand, die met een schakelaar aan en uit gaat; de oude link
+   blijft werken.
 3. **Starten vanaf de telefoon** (gebouwd 2026-11-18): de stream-hulp
    (`stream-hulp/`, Windows en Mac) zet OBS via obs-websocket (`StartStream`,
    `StopStream`) aan of uit als het lid op de race op OBS starten of stoppen

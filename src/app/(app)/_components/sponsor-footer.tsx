@@ -12,7 +12,7 @@ export const SPONSOR_FOOTER_TAG = "sponsor-footer";
  * service-rol toont hier niets wat een lid niet zelf mag zien. Wijzigingen via
  * /sponsors legen de cache meteen.
  */
-const loadFooterSponsors = unstable_cache(
+export const loadFooterSponsors = unstable_cache(
   async (): Promise<CarouselSponsor[]> => {
     const { data } = await createAdminClient()
       .from("sponsors")
