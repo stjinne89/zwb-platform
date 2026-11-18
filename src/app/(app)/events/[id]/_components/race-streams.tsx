@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Radio } from "lucide-react";
 import { StreamPlayer } from "@/components/livestream/stream-player";
+import { HelperControls, type HelperState } from "@/components/livestream/helper-controls";
+import { helperOnline } from "@/lib/youtube-live/helper";
 import { buttonVariants } from "@/components/ui/button";
 import { getClub } from "@/lib/club";
 import { cn } from "@/lib/utils";
@@ -41,6 +43,7 @@ export async function RaceStreams({
     Awaited<ReturnType<typeof loadEventStreams>>,
     boolean,
     { channel_title: string | null; needs_reconnect: boolean } | null,
+    { obs_state: HelperState["obsState"]; last_seen_at: string | null } | null,
   ];
   try {
     loaded = await Promise.all([
@@ -56,12 +59,21 @@ export async function RaceStreams({
             .maybeSingle()
             .then(({ data }) => data as { channel_title: string | null; needs_reconnect: boolean } | null)
         : Promise.resolve(null),
+      // De stream-hulp (0340); zonder die tabel gewoon geen knoppen.
+      userId
+        ? supabase
+            .from("stream_helpers")
+            .select("obs_state, last_seen_at")
+            .eq("profile_id", userId)
+            .maybeSingle()
+            .then(({ data }) => data as { obs_state: HelperState["obsState"]; last_seen_at: string | null } | null)
+        : Promise.resolve(null),
     ]);
   } catch (err) {
     console.error("[race-streams]", err);
     return null;
   }
-  const [streams, mayPrepare, connection] = loaded;
+  const [streams, mayPrepare, connection, helper] = loaded;
   const ownStream = streams.find((stream) => stream.profileId === userId) ?? null;
   const showPrepare = mayPrepare && !ownStream;
   if (streams.length === 0 && !showPrepare) return null;
@@ -95,6 +107,11 @@ export async function RaceStreams({
           removableIds={streams
             .filter((stream) => canManage || stream.profileId === userId)
             .map((stream) => stream.id)}
+        />
+      )}
+      {ownStream && helper && (
+        <HelperControls
+          state={{ online: helperOnline(helper.last_seen_at, now), obsState: helper.obs_state }}
         />
       )}
       {overlayPath && <OverlayLinkButton path={overlayPath} />}

@@ -46,6 +46,8 @@ const PUBLIC_PATHS = [
   "/api/intervals/rides/sync",
   "/api/instagram/sync",
   "/api/youtube/status",
+  // De stream-hulp meldt zich zonder sessie; de handtekening is het bewijs (0340).
+  "/api/youtube/hulp",
   "/api/briljant/weekly",
   "/api/briljant/zrs-history",
   "/api/app-updates/weekly",

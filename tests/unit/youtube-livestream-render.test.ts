@@ -10,7 +10,11 @@ vi.mock("@/app/(app)/_actions/livestream", () => ({
   revealStreamKey: vi.fn(),
   disconnectYouTube: vi.fn(),
   prepareStream: vi.fn(),
+  pairStreamHelper: vi.fn(),
+  unpairStreamHelper: vi.fn(),
+  streamHelperCommand: vi.fn(),
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {} }) }));
 
 const { StreamPlayer } = await import("@/components/livestream/stream-player");
 const { YouTubeSection } = await import("@/app/(app)/profiel/_components/youtube-section");
@@ -62,10 +66,42 @@ describe("YouTubeSection", () => {
     expect(html).not.toContain("Server");
   });
 
+  it("biedt de hulp-app aan, en toont de stand als die gekoppeld is", () => {
+    const zonder = renderToStaticMarkup(
+      createElement(YouTubeSection, { connection: { channel_title: "K", needs_reconnect: false }, notice: null }),
+    );
+    expect(zonder).toContain("Hulp-app koppelen");
+    expect(zonder).toContain('href="/downloads/ZWB-stream-hulp-installeren.bat"');
+    const met = renderToStaticMarkup(
+      createElement(YouTubeSection, {
+        connection: { channel_title: "K", needs_reconnect: false },
+        notice: null,
+        helper: { online: true, obsState: "streaming" },
+      }),
+    );
+    expect(met).toContain("OBS streamt");
+    expect(met).toContain("Nieuwe koppelcode");
+    expect(met).toContain("Hulp-app ontkoppelen");
+  });
+
   it("vraagt opnieuw koppelen als Google de koppeling liet vervallen", () => {
     const html = renderToStaticMarkup(
       createElement(YouTubeSection, { connection: { channel_title: "Mijn kanaal", needs_reconnect: true }, notice: null }),
     );
     expect(html).toContain("YouTube opnieuw koppelen");
+  });
+});
+
+describe("HelperControls", () => {
+  it("biedt starten aan, en stoppen zodra OBS streamt", async () => {
+    const { HelperControls } = await import("@/components/livestream/helper-controls");
+    const klaar = renderToStaticMarkup(createElement(HelperControls, { state: { online: true, obsState: "idle" } }));
+    expect(klaar).toContain("OBS starten");
+    expect(klaar).toContain("OBS klaar");
+    const loopt = renderToStaticMarkup(createElement(HelperControls, { state: { online: true, obsState: "streaming" } }));
+    expect(loopt).toContain("OBS stoppen");
+    const uit = renderToStaticMarkup(createElement(HelperControls, { state: { online: false, obsState: "streaming" } }));
+    expect(uit).toContain("Hulp-app staat niet aan");
+    expect(uit).toContain("OBS starten");
   });
 });

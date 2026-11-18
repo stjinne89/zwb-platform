@@ -7,20 +7,22 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Livestreams via YouTube, fase 1 en 2 (2026-11-18): lokaal
+0. **Gebouwd — Livestreams via YouTube, fase 1, 2 en 3 (2026-11-18): lokaal
    gecommit, niet gepusht (eigenaar: "pushen kan als we klaar zijn").**
-   Migraties `0338_youtube_livestreams.sql` en `0339_race_stream_live_status.sql`,
-   niet toegepast. Leden koppelen hun eigen YouTube-kanaal, zetten bij hun race
+   Migraties `0338_youtube_livestreams.sql`, `0339_race_stream_live_status.sql`
+   en `0340_stream_helpers.sql`, niet toegepast. Leden koppelen hun eigen YouTube-kanaal, zetten bij hun race
    een stream klaar, en de stream speelt af op de race, naast de live ZRL-stand
    en als tegel Nu live; de eerste stream van een race geeft een pushmelding, en
-   er is een ZRL-overlay voor OBS. Open, in deze volgorde: Google Cloud
+   er is een ZRL-overlay voor OBS. Met de stream-hulp (`stream-hulp/`, Windows
+   en Mac) start en stopt een lid OBS vanaf de telefoon. Open, in deze volgorde: Google Cloud
    inrichten en `YOUTUBE_OAUTH_CLIENT_ID`, `-SECRET` en `YOUTUBE_STATUS_SECRET`
    op Netlify zetten ([livestream-youtube.md](docs/livestream-youtube.md)),
    akkoord op de privacytekst (`/privacy#livestream`, voorstel: zonder nieuwe
    versie), de migraties toepassen in volgorde, pushen, de cron op
    cron-job.org; daarna een echte proefstream en de Google-verificatie
-   aanvragen. Fase 3 (starten vanaf de telefoon) volgt. Zie de rondes
-   "Gebouwd — Livestreams via YouTube, fase 1" en "…, fase 2".
+   aanvragen; nakijken dat openbare Realtime-kanalen aan staan (voor de
+   stream-hulp). Zie de rondes "Gebouwd — Livestreams via YouTube, fase 1",
+   "…, fase 2" en "…, fase 3".
 
 0. **Bijgesteld — TTT-bot op de race van 2026-11-17: op 2026-11-17 gepusht naar
    `main` (`2e845954`, `79b898a6`, `b625bf75`, eigenaar: "Push naar main").** Geen migratie. Kopbeurt telt vanaf "Wissel", geen verzonnen
@@ -1316,8 +1318,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0340`
-(`0339_race_stream_live_status` is van livestreams via YouTube, fase 2, 2026-11-18, nog niet toegepast, vereist `0338`;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0341`
+(`0340_stream_helpers` is van livestreams via YouTube, fase 3, 2026-11-18, nog niet toegepast, vereist `0338`;
+`0339_race_stream_live_status` is van livestreams via YouTube, fase 2, 2026-11-18, nog niet toegepast, vereist `0338`;
 `0338_youtube_livestreams` is van livestreams via YouTube, fase 1, 2026-11-18, nog niet toegepast; de nummers `0280` tot en met `0337` staan bij hun eigen rondes; daarvoor:
 `0279_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en vóór het toepassen hernummerd bij het samenvoegen met main, waar `0277` en `0278` al gebruikt waren;
 `0278_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en zo ook op productie toegepast (`schema_migrations` noemt hem `0277_member_zwift_bikes`), hernummerd bij het samenvoegen met main, waar `0277_zitvlees_week_badge` al stond;
@@ -12505,6 +12508,66 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Livestreams via YouTube, fase 3
+
+**2026-11-18, commit volgt in de PLAN-commit erna, lokaal, niet gepusht (eigenaar: "ga verder met fase 3"; pushen als alles klaar is). Migratie `0340_stream_helpers.sql`, niet toegepast; vereist `0338`.**
+
+- **Waarom.** Op de fiets staat Zwift op de voorgrond en heb je de telefoon
+  eerder bij de hand dan de muis. Besluit eigenaar 2026-11-18: de helper voor
+  elk systeem waarop OBS draait, Windows en Mac.
+- **Gebouwd.**
+  - Pakket `stream-hulp/` (Node 22, tsx, `@supabase/supabase-js`,
+    `obs-websocket-js`), net als de TTT-bot een eigen pakket buiten
+    `tsconfig.json` en ESLint van het platform. Luistert op een eigen
+    Realtime-kanaal naar opdrachten, bedient OBS via obs-websocket (OBS 28+,
+    poort 4455, wachtwoord), en meldt de stand (`streaming`, `idle`,
+    `obs-offline`) bij het starten, bij elke verandering en elke tien minuten.
+    Geen open poort op de pc: alles is uitgaand.
+  - Protocol (`stream-hulp/src/protocol.ts`, kopie in
+    `src/lib/youtube-live/helper-protocol.ts`): koppelcode `zwb1.` + base64url
+    met site, Supabase-adres, publieke sleutel, kanaal en geheim. Opdrachten
+    ondertekend met HMAC-SHA256, een minuut geldig en één keer
+    (nonce). Terugmeldingen ondertekend, hooguit vijf minuten oud en nieuwer
+    dan de vorige. `tests/unit/stream-hulp-protocol.test.ts` houdt de kopieën
+    gelijk.
+  - Platform: `stream_helpers` (0340; kanaal en geheim versleuteld, vinden via
+    de hash van het kanaal; het lid leest alleen stand en laatst gezien),
+    acties koppelen (nieuwe code, oude ongeldig), ontkoppelen en
+    start/stop (`sendHelperCommand`: Realtime-broadcast via de REST-aanroep
+    met de service-sleutel), en de openbare route `POST /api/youtube/hulp` voor
+    de terugmelding (in `PUBLIC_PATHS`; geen verschil tussen onbekend kanaal en
+    foute handtekening).
+  - Profiel, blok YouTube: Hulp-app met de stand, Installeren op Windows
+    (`public/downloads/ZWB-stream-hulp-installeren.bat`, haalt
+    `stream-hulp/installeren.ps1` van GitHub), Installeren op Mac (naar /hulp:
+    één regel in Terminal, `stream-hulp/installeren.sh`), Hulp-app koppelen of
+    Nieuwe koppelcode, en ontkoppelen. Racepagina, onder de eigen stream: OBS
+    starten of OBS stoppen, met de stand ernaast ("OBS streamt", "OBS klaar",
+    "OBS niet bereikbaar", "Hulp-app staat niet aan" na 15 minuten stilte); na
+    een opdracht ververst de pagina na 4 s.
+  - Hulp (twee regels onder Livestreams) en privacy (kanaal, geheim, stand en
+    laatst gezien; de app stuurt geen beeld of bestanden; opdrachten via
+    Supabase).
+- **Bewust niet.** Geen helper voor iPad of iPhone (iOS laat een
+  schermuitzending alleen door de gebruiker starten). Geen scènes wisselen of
+  opnemen vanuit de app: start en stop was de vraag. Geen automatische start
+  op de starttijd (zie fase 1: een bewuste klik). De hulp start niet vanzelf
+  met de computer; zoals de TTT-bot start je hem zelf.
+- **Getest.** Het protocol (beide kanten), de migratie in PGlite, de knoppen en
+  het profielblok als HTML. Het Mac-script van begin tot eind in deze omgeving
+  (met nagespeelde invoer; `.env` alleen leesbaar voor de eigenaar). De hulp
+  zelf: start, weigert een ongeldige koppelcode, meldt OBS niet bereikbaar, en
+  verbindt met een nagebootste OBS (obs-websocket 5, msgpack) en vraagt de
+  stand op; `StartStream` en het bijbehorende event werkten tegen die
+  nabootsing.
+- **Niet geverifieerd.** `0340` niet toegepast. Het Windows-script niet
+  gedraaid (geen Windows hier). Supabase Realtime niet echt gebruikt: de
+  broadcast-aanroep en of openbare kanalen op het ZWB-project aan staan. Niet
+  tegen een echte OBS. `npm install` faalt in deze omgeving met
+  "Cannot read properties of null (reading 'edgesOut')", ook voor de TTT-bot;
+  met `--legacy-peer-deps` lukt het. Bij de leden werkt de bot-installatie wel,
+  dus vermoedelijk ligt het aan deze omgeving; niet bevestigd voor de hulp.
+
 ### Gebouwd — Livestreams via YouTube, fase 2
 
 **2026-11-18, commit `8b2f780` ("Livestreams via YouTube, fase 2: live-status, melding Liverace, Nu live en ZRL-overlay"), lokaal, niet gepusht (eigenaar: "ga eerst maar verder met de volgende fase, pushen kan als we klaar zijn"). Migratie `0339_race_stream_live_status.sql`, niet toegepast; vereist `0338`.**
@@ -12634,7 +12697,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 - **Bewust niet in deze ronde.** Pushmelding, live-status, de kaart Nu live en
   de ZRL-overlay horen bij fase 2 (inmiddels gebouwd, zie die ronde; de
   kolommen `status` en `live_notified_at` vult nu de statuscron). De helper voor
-  starten vanaf de telefoon is fase 3. Geen eigen thumbnails en geen eigen
+  starten vanaf de telefoon is fase 3 (inmiddels gebouwd, zie die ronde). Geen eigen thumbnails en geen eigen
   titel kiezen: de titel volgt uit de race. Geen stream voor anonieme kijkers
   op de openbare live stand: wie er streamt, is geen openbaar gegeven (een
   oordeel, geen besluit van de eigenaar; de video zelf is wel openbaar op

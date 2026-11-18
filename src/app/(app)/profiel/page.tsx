@@ -15,6 +15,7 @@ import { StravaSection } from "./_components/strava-section";
 import { getClub } from "@/lib/club";
 import { YouTubeSection } from "./_components/youtube-section";
 import { youtubeConnectErrorText, youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
+import { helperOnline } from "@/lib/youtube-live/helper";
 import { loadRideSourceStatus } from "@/lib/intervals/ride-source-status";
 import { BikeShowcase } from "./_components/bike-showcase";
 import { AccountData } from "./_components/account-data";
@@ -142,6 +143,20 @@ export default async function ProfielPage({
         .eq("profile_id", user.id)
         .maybeSingle()
     : { data: null };
+  // De stream-hulp (0340); zonder die tabel geen stand, wel de knop koppelen.
+  const { data: helperRow } = showYouTube
+    ? await supabase
+        .from("stream_helpers")
+        .select("obs_state, last_seen_at")
+        .eq("profile_id", user.id)
+        .maybeSingle()
+    : { data: null };
+  const helperState = helperRow
+    ? {
+        online: helperOnline((helperRow as { last_seen_at: string | null }).last_seen_at),
+        obsState: (helperRow as { obs_state: "streaming" | "idle" | "obs-offline" | null }).obs_state,
+      }
+    : null;
   const youtubeNotice =
     typeof youtubeError === "string" && youtubeConnectErrorText(youtubeError)
       ? { ok: false, text: youtubeConnectErrorText(youtubeError) as string }
@@ -382,6 +397,7 @@ export default async function ProfielPage({
           <YouTubeSection
             connection={youtubeConn as { channel_title: string | null; needs_reconnect: boolean } | null}
             notice={youtubeNotice}
+            helper={helperState}
           />
         </div>
       )}

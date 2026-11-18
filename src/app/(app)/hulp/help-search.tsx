@@ -27,7 +27,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "Je race live uitzenden op je eigen YouTube-kanaal, met OBS of een screencast-app.",
     href: "/hulp/wedstrijden#livestreamen",
     terms:
-      "livestream live stream streamen uitzenden youtube kanaal obs studio streamsleutel sleutel rtmp rtmps larix screencast ipad iphone mac windows apple tv microfoon headset discord stream klaarzetten terugkijken opname melding nu live overlay browserbron browser-bron teamstand",
+      "livestream live stream streamen uitzenden youtube kanaal obs studio streamsleutel sleutel rtmp rtmps larix screencast ipad iphone mac windows apple tv microfoon headset discord stream klaarzetten terugkijken opname melding nu live overlay browserbron browser-bron teamstand hulp-app stream-hulp obs starten stoppen telefoon koppelcode websocket terminal",
   },
   { title: "{m:managerspel}", text: "Zwift-racegame: ladder, ZRL, FRR-tour, routes, slipstream, W′, powerups, ploegorders, deelname en sportgegevens.", href: "/hulp/wedstrijden#zwbgame", terms: "game spel wielrennen koers race zwift ladder club ladder uitdagen zrl wtrl puntenrace race of truth scratch ploegentijdrit ttt fal fts leaguepunten frr flamme rouge tour etappe tijdrit klassement egap trui groen bolletjes blauw bezemwagen punten ploeg peloton blob slipstream draft wiel w' w-prime frisheid tactiek powerup veer aerohelm draft boost supertuck sprint kom lead-out breng me terug dagvorm route ronden liggend landschap volledig scherm groep bekijken camera hoogteprofiel om beurten aanvallen tegenaanval standen sparen meerijden naar voren aanvallen ftp gewicht wkg kwaliteiten strava intervals spelprofiel toestemming pauzeren hervatten" },
   {

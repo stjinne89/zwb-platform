@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Eigen pakket met eigen controles (bot/README.md).
     "bot/**",
+    "stream-hulp/**",
   ]),
 ]);
 

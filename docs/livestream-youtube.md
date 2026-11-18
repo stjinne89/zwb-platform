@@ -48,10 +48,13 @@ als het beeld stopt.
    2 minuten, alleen rond een race met een geplande stream), melding Liverace
    (één per race), tegel Nu live op het dashboard, een rode stip in de speler,
    en de ZRL-overlay als browserbron voor OBS (`/live/zrl/<id>/overlay`).
-3. **Starten vanaf de telefoon**: een kleine helper op de pc of Mac die OBS via
-   obs-websocket (`StartStream`, `StopStream`) aanzet als het lid in de app op
-   Start tikt. Op een iPad kan het niet: iOS laat alleen de gebruiker zelf een
-   schermuitzending starten.
+3. **Starten vanaf de telefoon** (gebouwd 2026-11-18): de stream-hulp
+   (`stream-hulp/`, Windows en Mac) zet OBS via obs-websocket (`StartStream`,
+   `StopStream`) aan of uit als het lid op de race op OBS starten of stoppen
+   tikt. De opdracht gaat ondertekend over een eigen Supabase Realtime-kanaal;
+   de hulp meldt de stand terug op `POST /api/youtube/hulp`. Zie
+   `stream-hulp/README.md`. Op een iPad kan het niet: iOS laat alleen de
+   gebruiker zelf een schermuitzending starten.
 
 ## Google Cloud inrichten
 
@@ -85,6 +88,13 @@ die het gebruik van de YouTube API Services noemt; die zin staat op
 `/privacy#livestream`). Dat kan weken duren.
 
 ## Wat niet zeker is
+
+- **Realtime voor de stream-hulp.** De hulp luistert op een openbaar Realtime-
+  kanaal met een lange, willekeurige naam; de opdrachten zijn ondertekend, dus
+  wie de naam kent, kan niets laten doen. Dat vraagt dat openbare kanalen in
+  Supabase (Realtime, Settings) zijn toegestaan. Niet nagekeken op het
+  ZWB-project, en de broadcast-aanroep (`/realtime/v1/api/broadcast`) is niet
+  tegen Supabase getest.
 
 - **Privé-vergrendeling.** Uploads via `videos.insert` vanuit een niet-geaudit
   API-project van na 28 juli 2020 zet YouTube op privé. Of dat ook voor

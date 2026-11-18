@@ -268,7 +268,13 @@ export default function PrivacyPage() {
             >
               Apps met toegang tot je account
             </a>
-            . Streams die al bij races staan, blijven staan tot je ze weghaalt.
+            . Koppel je ook de hulp-app op je computer (om OBS vanaf je telefoon
+            te starten), dan bewaren we versleuteld een kanaal en een geheim om
+            die app opdrachten te sturen, en de stand van OBS (streamt, klaar of
+            niet bereikbaar) met wanneer de app zich laatst meldde. De app stuurt
+            alleen die stand; geen beeld en geen bestanden. De opdrachten lopen
+            via Supabase, de databasedienst van de app. Streams die al bij races
+            staan, blijven staan tot je ze weghaalt.
             Bij het opheffen van je account verdwijnt alles, behalve de video&apos;s
             op je eigen kanaal.
           </li>

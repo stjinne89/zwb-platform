@@ -27,6 +27,7 @@ import {
 } from "@/lib/youtube-live/connection";
 import { YouTubeGrantRevokedError, youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { ridesInEvent } from "@/lib/youtube-live/streams";
+import { createHelperPairing, removeHelper, sendHelperCommand } from "@/lib/youtube-live/helper";
 
 // Livestreams, fase 1 (0338). Alle schrijfacties lopen via de service-role, na
 // de controles hier: module aan, ingericht, goedgekeurd lid, gekoppeld kanaal,
@@ -252,4 +253,48 @@ export async function disconnectYouTube(): Promise<Result> {
   }
   revalidatePath("/profiel");
   return { ok: true };
+}
+
+// ── Stream-hulp (fase 3, 0340) ────────────────────────────────────────────
+
+/** Een nieuwe koppelcode voor de stream-hulp; een eerdere hulp werkt daarna niet meer. */
+export async function pairStreamHelper(): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
+  if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  try {
+    const code = await createHelperPairing(createAdminClient(), session.userId);
+    revalidatePath("/profiel");
+    return { ok: true, code };
+  } catch (err) {
+    console.error("[livestream/pair]", err);
+    return { ok: false, error: "Koppelen lukte niet." };
+  }
+}
+
+export async function unpairStreamHelper(): Promise<Result> {
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  try {
+    await removeHelper(createAdminClient(), session.userId);
+  } catch {
+    return { ok: false, error: "Ontkoppelen lukte niet." };
+  }
+  revalidatePath("/profiel");
+  return { ok: true };
+}
+
+/** OBS starten of stoppen via de eigen stream-hulp. */
+export async function streamHelperCommand(action: "start" | "stop"): Promise<Result> {
+  if (action !== "start" && action !== "stop") return { ok: false, error: "Onbekende opdracht." };
+  if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  try {
+    await sendHelperCommand(createAdminClient(), session.userId, action);
+    return { ok: true };
+  } catch (err) {
+    console.error("[livestream/helper]", err);
+    return { ok: false, error: "De hulp-app is niet te bereiken." };
+  }
 }
