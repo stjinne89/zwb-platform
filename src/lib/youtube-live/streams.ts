@@ -14,6 +14,8 @@ export type EventStream = {
   name: string;
   channelTitle: string | null;
   createdAt: string;
+  /** Bijgehouden door de cron (0339); zonder cron blijft hij op gepland. */
+  status: "gepland" | "live" | "afgelopen";
 };
 
 type StreamRow = {
@@ -23,6 +25,7 @@ type StreamRow = {
   youtube_video_id: string;
   channel_title: string | null;
   created_at: string;
+  status: string;
   profiles: { display_name: string | null } | { display_name: string | null }[] | null;
 };
 
@@ -34,12 +37,13 @@ export async function loadEventStreams(
   if (eventIds.length === 0) return [];
   const { data, error } = await supabase
     .from("event_streams")
-    .select("id, event_id, profile_id, youtube_video_id, channel_title, created_at, profiles(display_name)")
+    .select("id, event_id, profile_id, youtube_video_id, channel_title, created_at, status, profiles(display_name)")
     .in("event_id", eventIds)
     .order("created_at");
   if (error) throw new Error(error.message);
   return ((data ?? []) as StreamRow[])
-    .filter((row) => isVideoId(row.youtube_video_id))
+    // "weg": YouTube kent de video niet meer, of hij staat op privé (0339).
+    .filter((row) => isVideoId(row.youtube_video_id) && row.status !== "weg")
     .map((row) => {
       const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
       return {
@@ -50,6 +54,7 @@ export async function loadEventStreams(
         name: profile?.display_name?.trim() || row.channel_title || "Stream",
         channelTitle: row.channel_title,
         createdAt: row.created_at,
+        status: row.status === "live" || row.status === "afgelopen" ? row.status : "gepland",
       };
     });
 }

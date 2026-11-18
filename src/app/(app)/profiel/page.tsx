@@ -134,6 +134,14 @@ export default async function ProfielPage({
         .eq("profile_id", user.id)
         .maybeSingle()
     : { data: null };
+  // Liverace (0339) los opgehaald: zonder die kolom blijven de andere meldingen werken.
+  const { data: raceStreamPref } = showYouTube
+    ? await supabase
+        .from("notification_preferences")
+        .select("on_race_stream_live")
+        .eq("profile_id", user.id)
+        .maybeSingle()
+    : { data: null };
   const youtubeNotice =
     typeof youtubeError === "string" && youtubeConnectErrorText(youtubeError)
       ? { ok: false, text: youtubeConnectErrorText(youtubeError) as string }
@@ -432,6 +440,11 @@ export default async function ProfielPage({
           canAnswerQuestions={access.has("qa.answer")}
           canReviewBekers={access.has("achievements.finalize")}
           canPlaceStories={access.has("community.manage")}
+          raceStreamLive={
+            showYouTube
+              ? ((raceStreamPref as { on_race_stream_live?: boolean } | null)?.on_race_stream_live ?? true)
+              : null
+          }
           hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
         />
       </div>

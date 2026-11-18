@@ -6,11 +6,17 @@ import { removeStream } from "@/app/(app)/_actions/livestream";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+function LiveDot() {
+  return <span className="size-2 rounded-full bg-red-600" aria-label="live" />;
+}
+
 export type PlayerStream = {
   id: string;
   name: string;
   embedUrl: string;
   watchUrl: string;
+  /** Volgens de laatste controle bij YouTube (0339). */
+  live?: boolean;
 };
 
 /**
@@ -53,6 +59,7 @@ export function StreamPlayer({
               variant={stream.id === selected.id ? "default" : "outline"}
               onClick={() => setSelectedId(stream.id)}
             >
+              {stream.live && <LiveDot />}
               {stream.name}
             </Button>
           ))}
@@ -70,7 +77,12 @@ export function StreamPlayer({
         />
       </div>
       <div className={cn("flex flex-wrap items-center gap-3 text-sm")}>
-        {streams.length === 1 && <span className="text-muted-foreground">{selected.name}</span>}
+        {streams.length === 1 && (
+          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+            {selected.live && <LiveDot />}
+            {selected.name}
+          </span>
+        )}
         <a
           href={selected.watchUrl}
           target="_blank"

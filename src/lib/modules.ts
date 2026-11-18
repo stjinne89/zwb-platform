@@ -159,7 +159,13 @@ export const MODULES: readonly ModuleDef[] = [
   },
   // Leden streamen hun races op het eigen YouTube-kanaal (0338). Werkt pas met
   // YOUTUBE_OAUTH_CLIENT_ID en -SECRET; zonder die twee blijft alles verborgen.
-  { key: "livestream", label: "Livestreams", group: "zwift", paths: ["/api/youtube"] },
+  {
+    key: "livestream",
+    label: "Livestreams",
+    group: "zwift",
+    paths: ["/api/youtube"],
+    crons: ["/api/youtube/status"],
+  },
   {
     key: "src",
     label: "Sunday Race Club",

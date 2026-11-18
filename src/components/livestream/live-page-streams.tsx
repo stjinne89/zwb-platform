@@ -27,6 +27,7 @@ export async function LivePageStreams({ eventId }: { eventId: string }) {
           name: stream.name,
           embedUrl: streamEmbedUrl(stream.videoId),
           watchUrl: streamWatchUrl(stream.videoId),
+          live: stream.status === "live",
         }))}
       />
     </section>

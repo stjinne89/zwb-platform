@@ -91,6 +91,10 @@ export async function updateNotificationPreferences(formData: FormData) {
     ...(formData.has("__has_member_pending")
       ? { on_member_pending: formData.get("on_member_pending") === "on" }
       : {}),
+    // Liverace (0339) staat alleen in het formulier als livestreams aan staan.
+    ...(formData.has("__has_race_stream_live")
+      ? { on_race_stream_live: formData.get("on_race_stream_live") === "on" }
+      : {}),
     // Zelfde regel voor wie vragen in Q&A beantwoordt.
     ...(formData.has("__has_qa_question")
       ? { on_qa_question: formData.get("on_qa_question") === "on" }

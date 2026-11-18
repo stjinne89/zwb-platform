@@ -99,11 +99,16 @@ export async function prepareStream(eventId: string): Promise<Result> {
   const admin = createAdminClient();
   const { data: existing } = await admin
     .from("event_streams")
-    .select("id")
+    .select("id, status")
     .eq("event_id", event.id)
     .eq("profile_id", userId)
     .maybeSingle();
-  if (existing) return { ok: true };
+  // Een stream die van YouTube verdween (0339), mag opnieuw.
+  if ((existing as { status?: string } | null)?.status === "weg") {
+    await admin.from("event_streams").delete().eq("id", (existing as { id: string }).id);
+  } else if (existing) {
+    return { ok: true };
+  }
 
   const connection = await loadYouTubeConnection(admin, userId);
   if (!connection) return { ok: false, error: "Koppel eerst YouTube op je profiel." };

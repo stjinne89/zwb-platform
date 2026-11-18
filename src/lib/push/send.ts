@@ -59,7 +59,9 @@ export type NotificationTrigger =
   // Clubverhaal (0288): een nieuw verhaal voor wie plaatst; een geplaatst of
   // teruggestuurd verhaal voor wie het schreef.
   | "on_story_submitted"
-  | "on_story_reviewed";
+  | "on_story_reviewed"
+  // Livestreams (0339): de eerste stream van een race gaat live.
+  | "on_race_stream_live";
 
 let vapidConfigured = false;
 function ensureVapid(): boolean {

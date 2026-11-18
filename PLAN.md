@@ -7,17 +7,20 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Livestreams via YouTube, fase 1 (2026-11-18): `84fe41d`, lokaal
-   gecommit, niet gepusht.** Migratie `0338_youtube_livestreams.sql`, niet toegepast.
-   Leden koppelen hun eigen YouTube-kanaal, zetten bij hun race een stream
-   klaar, en de stream speelt af op de race en naast de live ZRL-stand. Open,
-   in deze volgorde: Google Cloud inrichten en `YOUTUBE_OAUTH_CLIENT_ID` en
-   `-SECRET` op Netlify zetten ([livestream-youtube.md](docs/livestream-youtube.md)),
+0. **Gebouwd — Livestreams via YouTube, fase 1 en 2 (2026-11-18): lokaal
+   gecommit, niet gepusht (eigenaar: "pushen kan als we klaar zijn").**
+   Migraties `0338_youtube_livestreams.sql` en `0339_race_stream_live_status.sql`,
+   niet toegepast. Leden koppelen hun eigen YouTube-kanaal, zetten bij hun race
+   een stream klaar, en de stream speelt af op de race, naast de live ZRL-stand
+   en als tegel Nu live; de eerste stream van een race geeft een pushmelding, en
+   er is een ZRL-overlay voor OBS. Open, in deze volgorde: Google Cloud
+   inrichten en `YOUTUBE_OAUTH_CLIENT_ID`, `-SECRET` en `YOUTUBE_STATUS_SECRET`
+   op Netlify zetten ([livestream-youtube.md](docs/livestream-youtube.md)),
    akkoord op de privacytekst (`/privacy#livestream`, voorstel: zonder nieuwe
-   versie), de migratie toepassen, pushen; daarna een echte proefstream en de
-   Google-verificatie aanvragen. Fase 2 (pushmelding, overlay, Nu live) en
-   fase 3 (starten vanaf de telefoon) volgen. Zie de ronde "Gebouwd —
-   Livestreams via YouTube, fase 1".
+   versie), de migraties toepassen in volgorde, pushen, de cron op
+   cron-job.org; daarna een echte proefstream en de Google-verificatie
+   aanvragen. Fase 3 (starten vanaf de telefoon) volgt. Zie de rondes
+   "Gebouwd — Livestreams via YouTube, fase 1" en "…, fase 2".
 
 0. **Bijgesteld — TTT-bot op de race van 2026-11-17: op 2026-11-17 gepusht naar
    `main` (`2e845954`, `79b898a6`, `b625bf75`, eigenaar: "Push naar main").** Geen migratie. Kopbeurt telt vanaf "Wissel", geen verzonnen
@@ -1313,8 +1316,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0339`
-(`0338_youtube_livestreams` is van livestreams via YouTube, fase 1, 2026-11-18, nog niet toegepast; de nummers `0280` tot en met `0337` staan bij hun eigen rondes; daarvoor:
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0340`
+(`0339_race_stream_live_status` is van livestreams via YouTube, fase 2, 2026-11-18, nog niet toegepast, vereist `0338`;
+`0338_youtube_livestreams` is van livestreams via YouTube, fase 1, 2026-11-18, nog niet toegepast; de nummers `0280` tot en met `0337` staan bij hun eigen rondes; daarvoor:
 `0279_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en vóór het toepassen hernummerd bij het samenvoegen met main, waar `0277` en `0278` al gebruikt waren;
 `0278_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en zo ook op productie toegepast (`schema_migrations` noemt hem `0277_member_zwift_bikes`), hernummerd bij het samenvoegen met main, waar `0277_zitvlees_week_badge` al stond;
 `0277_zitvlees_week_badge` is van ZWB Rankings, 2026-10-26, toegepast op 2026-10-26;
@@ -12501,6 +12505,68 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Livestreams via YouTube, fase 2
+
+**2026-11-18, commit volgt in de PLAN-commit erna, lokaal, niet gepusht (eigenaar: "ga eerst maar verder met de volgende fase, pushen kan als we klaar zijn"). Migratie `0339_race_stream_live_status.sql`, niet toegepast; vereist `0338`.**
+
+- **Waarom.** Fase 2 van [livestream-youtube.md](docs/livestream-youtube.md):
+  leden horen het als een race live gaat (besluit eigenaar 2026-11-18: een
+  pushmelding voor wie die aan heeft), zien op het dashboard wat er nu live
+  is, en een streamer kan de live stand in beeld zetten.
+- **Gebouwd.**
+  - Cron `POST /api/youtube/status` (cron-job.org, elke 2 minuten, bearer
+    `YOUTUBE_STATUS_SECRET`; `lib/youtube-live/status-run.ts`). Neemt streams
+    met status `gepland` of `live` tot een half uur voor hun geplande start,
+    vraagt de recente (tot vier uur na de start) in één `videos.list` met de
+    bestaande `YOUTUBE_API_KEY` (1 eenheid per 50 video's, geen tokens van
+    leden) en zet `live`, `afgelopen` of `weg`; ouder dan vier uur wordt
+    `afgelopen` zonder YouTube. Zonder open streams één databasequery. In het
+    register van module `livestream` en in `PUBLIC_PATHS`, zoals de andere
+    crons.
+  - Melding Liverace (`on_race_stream_live`, standaard aan zoals live
+    meerijden): één per race, als de eerste stream live gaat. De run legt
+    `live_notified_at` vast vóór het versturen, zodat een tweede run niet
+    dubbel stuurt; een latere stream van dezelfde race stuurt niets meer. Tekst
+    "<race> is live" en "Anna en Bram streamen de race.", link naar de race;
+    bij één streamer krijgt die zelf de melding niet. De schakelaar staat op
+    het profiel bij Meldingen, alleen als livestreams aan staan (verborgen veld
+    `__has_race_stream_live`, zodat de waarde anders blijft staan), en wordt los
+    gelezen, zodat de andere meldingen werken zolang `0339` er niet is.
+  - Dashboard, rij Overige events: tegel "Stream · nu" per race met wie er
+    live is (`dashboard/_components/live-streams.tsx`), alleen met status
+    `live` van de cron.
+  - Speler: een rode stip bij wie live is. Het blok op de racepagina heet Live
+    zolang een stream live is of de race nog loopt, en Terugkijken als alle
+    streams afgelopen zijn of de race drie uur voorbij is. Een stream met
+    status `weg` (YouTube kent de video niet, of hij staat op privé) verdwijnt
+    uit de speler; die kan het lid opnieuw klaarzetten.
+  - ZRL-overlay `/live/zrl/<id>/overlay`: browserbron op 1920×1080 met
+    doorzichtige achtergrond, de teamstand van de live stand (top 8, `?teams=5`
+    tot 15; staat de eigen ploeg lager, dan vervangt die de laatste rij, in
+    oranje), punten of in een TTT de tijd van de vierde renner, ververst elke
+    15 s tot de stand definitief is. Engels, zoals de Omnium-overlay. Onder de
+    eigen stream bij een ZRL-race de knop Overlay-link voor OBS.
+  - Hulp, privacy (`/privacy#livestream`: statuscontrole met het nummer van de
+    uitzending, de melding met naam, de tegel), runbook §2 (cronregel),
+    `.env.local.example`, [livestream-youtube.md](docs/livestream-youtube.md)
+    stap 7.
+- **Bewust niet.** Geen eigen statuscontrole bij het openen van een pagina
+  (alleen de cron schrijft de status; zonder cron valt het label terug op de
+  klok). Geen melding als een stream stopt. Geen tegel in Mijn events: wie
+  zelf rijdt, kijkt niet. Geen overlay voor andere races dan ZRL: daar is geen
+  live stand. Geen Nederlandse overlay: de kijkers zijn ook van andere clubs.
+- **Netlify.** Elke 2 minuten is ruim 700 functieaanroepen per dag, de
+  meeste met alleen één databasequery. Beperk de job op cron-job.org tot de
+  raceavonden als de tegoeden krap worden; de melding komt dan alleen binnen
+  die uren.
+- **Niet geverifieerd.** `0339` niet toegepast; in PGlite getest (standaard
+  aan, status `weg` mag, andere waarden niet, opnieuw uit te voeren).
+  `videos.list` alleen met een nagebootste fetch; niet vastgesteld dat
+  `liveBroadcastContent` meteen `live` wordt bij auto-start, en dat een
+  privé-vergrendelde video niet terugkomt. De melding is niet echt verstuurd.
+  De overlay en de tegel zijn niet in de browser of in OBS bekeken. Tests:
+  `youtube-livestream-status.test.ts`.
+
 ### Gebouwd — Livestreams via YouTube, fase 1
 
 **2026-11-18, commit `84fe41d` ("Livestreams via YouTube, fase 1: kanaal koppelen, stream klaarzetten, speler bij de race"), lokaal, niet gepusht (AGENTS.md: lokaal tot de eigenaar om een push vraagt). Migratie `0338_youtube_livestreams.sql`, niet toegepast.**
@@ -12566,8 +12632,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
     het runbook (§3), [installatie.md](docs/installatie.md) §6 en
     `.env.local.example`.
 - **Bewust niet in deze ronde.** Pushmelding, live-status, de kaart Nu live en
-  de ZRL-overlay horen bij fase 2; de kolommen `status` en `live_notified_at`
-  staan er al voor en blijven tot dan op `gepland` en leeg. De helper voor
+  de ZRL-overlay horen bij fase 2 (inmiddels gebouwd, zie die ronde; de
+  kolommen `status` en `live_notified_at` vult nu de statuscron). De helper voor
   starten vanaf de telefoon is fase 3. Geen eigen thumbnails en geen eigen
   titel kiezen: de titel volgt uit de race. Geen stream voor anonieme kijkers
   op de openbare live stand: wie er streamt, is geen openbaar gegeven (een

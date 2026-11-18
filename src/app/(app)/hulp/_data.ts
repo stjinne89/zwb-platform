@@ -158,7 +158,9 @@ export const GUIDES = [
       "Op de race tik je op Stream klaarzetten. Dat kan als je bent aangemeld of in de opstelling staat, vanaf twee weken voor de start. De app maakt een openbare uitzending met de naam van de race. Start OBS of je screencast-app een paar minuten voor de start: YouTube gaat vanzelf live, en stopt vanzelf als jij stopt.",
       "Met microfoon: draag een headset, zodat Discord en de TTT-bot niet via je speakers in de stream komen. Zet geen muziek op de achtergrond: dan dempt of blokkeert YouTube de opname.",
       "Rijden er meer {leden} met een stream, dan kies je met de knoppen boven de speler wiens beeld je ziet. Je eigen stream haal je weg met Weghalen onder de speler. Vóór de start verdwijnt de uitzending dan ook van YouTube; daarna blijft de opname op je kanaal.",
-      "Vraagt de app je om YouTube opnieuw te koppelen, doe dat dan op je profiel. Je streamsleutel blijft hetzelfde.",
+      "Gaat de eerste stream van een race live, dan krijg je een melding, als Een race van {kort} gaat live op YouTube aan staat bij Meldingen op je profiel. Op je dashboard staat de race dan onder Overige events, en bij de speler staat een rode stip bij wie nu live is. YouTube wordt elke paar minuten nagekeken, dus de melding kan even op zich laten wachten.",
+      "Bij een ZRL-race staat onder je eigen stream de knop Overlay-link voor OBS. Voeg in OBS een Browser-bron toe met die link, breedte 1920 en hoogte 1080: dan staat de live teamstand linksboven in je stream, met je eigen ploeg in oranje. Zet ?teams=5 achter de link voor minder ploegen.",
+      "Vraagt de app je om YouTube opnieuw te koppelen, doe dat dan op je profiel. Je streamsleutel blijft hetzelfde. Verdwijnt je stream van de race, dan kon YouTube hem niet meer vinden of staat hij op privé; zet hem dan opnieuw klaar.",
     ],
   },
   {

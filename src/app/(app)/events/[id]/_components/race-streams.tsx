@@ -14,7 +14,7 @@ import {
 } from "@/lib/youtube-live/broadcast";
 import { youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { loadEventStreams, ridesInEvent } from "@/lib/youtube-live/streams";
-import { PrepareStreamButton } from "./prepare-stream-button";
+import { OverlayLinkButton, PrepareStreamButton } from "./prepare-stream-button";
 
 /**
  * Streams bij een race (livestreams, fase 1): de speler voor iedereen, en de
@@ -28,7 +28,7 @@ export async function RaceStreams({
   canManage,
 }: {
   supabase: SupabaseClient;
-  event: StreamableEvent & { id: string };
+  event: StreamableEvent & { id: string; zwift_event_id?: number | string | null };
   hasSubEvents: boolean;
   userId: string | null;
   canManage: boolean;
@@ -67,12 +67,21 @@ export async function RaceStreams({
   if (streams.length === 0 && !showPrepare) return null;
 
   const connected = Boolean(connection && !connection.needs_reconnect);
+  // De status komt van de cron (0339); zonder die cron beslist de klok.
+  const anyLive = streams.some((stream) => stream.status === "live");
+  const allEnded = streams.length > 0 && streams.every((stream) => stream.status === "afgelopen");
+  const label = anyLive || (!allEnded && streamsAreLive(event.start_at, now)) ? "Live" : "Terugkijken";
+  // Overlay met de live stand voor in OBS, bij je eigen stream in een ZRL-race.
+  const overlayPath =
+    ownStream && event.type === "zrl" && event.team_id && event.zwift_event_id
+      ? `/live/zrl/${event.id}/overlay`
+      : null;
   const connectHref = `/api/youtube/connect?terug=${encodeURIComponent(`/events/${event.id}`)}`;
 
   return (
     <section className="space-y-3 rounded-lg border bg-card p-4">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        {streamsAreLive(event.start_at, now) ? "Live" : "Terugkijken"}
+        {label}
       </h2>
       {streams.length > 0 && (
         <StreamPlayer
@@ -81,12 +90,14 @@ export async function RaceStreams({
             name: stream.name,
             embedUrl: streamEmbedUrl(stream.videoId),
             watchUrl: streamWatchUrl(stream.videoId),
+            live: stream.status === "live",
           }))}
           removableIds={streams
             .filter((stream) => canManage || stream.profileId === userId)
             .map((stream) => stream.id)}
         />
       )}
+      {overlayPath && <OverlayLinkButton path={overlayPath} />}
       {showPrepare &&
         (connected ? (
           <PrepareStreamButton eventId={event.id} />

@@ -39,6 +39,8 @@ import { CoreStatus } from "./_components/core-status";
 import { FrrStandings } from "./_components/frr-standings";
 import { MemberResults } from "./_components/member-results";
 import { MyRaces } from "./_components/my-races";
+import { LiveStreamTiles } from "./_components/live-streams";
+import { youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { MyTeams } from "./_components/my-teams";
 import { QaDashboard } from "./_components/qa";
 import { RecentBekers } from "./_components/recent-bekers";
@@ -969,6 +971,11 @@ export default async function DashboardPage({
 
       {show("overige_events") && (
         <TileRow label="Overige events">
+          {on("livestream") && youtubeLiveConfigured() && (
+            <Suspense fallback={null}>
+              <LiveStreamTiles />
+            </Suspense>
+          )}
           {liveNow?.together && !liveNow.together.mine && (
             <LiveTogetherTile live={liveNow.together} />
           )}

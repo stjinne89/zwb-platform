@@ -1,0 +1,14 @@
+/* Browserbron voor OBS op 1920×1080 (livestreams, fase 2). Doorzichtig, zoals
+   de Omnium-overlay; alleen het paneel linksboven is zichtbaar. */
+html:has(.zrl-overlay), body:has(.zrl-overlay) { background: transparent !important; }
+.zrl-overlay { width: 1920px; height: 1080px; padding: 40px; overflow: hidden; color: #fff; font-family: system-ui, sans-serif; }
+.zrl-overlay-panel { width: 520px; border-left: 6px solid #f59e0b; border-radius: 0 16px 16px 0; background: rgba(15, 23, 42, .9); padding: 20px 24px; box-shadow: 0 12px 40px #0003; }
+.zrl-overlay header { display: flex; justify-content: space-between; gap: 16px; color: #fbbf24; font-size: 16px; letter-spacing: .1em; font-weight: 700; }
+.zrl-overlay h1 { font-size: 22px; font-weight: 700; margin: 10px 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zrl-overlay table { width: 100%; border-collapse: collapse; font-size: 22px; table-layout: fixed; }
+.zrl-overlay th { font-size: 14px; color: #cbd5e1; text-align: left; padding-bottom: 6px; font-weight: 600; }
+.zrl-overlay td { padding: 6px 0; border-top: 1px solid #ffffff1f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zrl-overlay th:first-child, .zrl-overlay td:first-child { width: 44px; color: #94a3b8; }
+.zrl-overlay th:last-child, .zrl-overlay td:last-child { width: 100px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.zrl-overlay tr.own td { color: #fbbf24; font-weight: 700; }
+.zrl-overlay p { font-size: 20px; padding: 8px 0; color: #cbd5e1; }

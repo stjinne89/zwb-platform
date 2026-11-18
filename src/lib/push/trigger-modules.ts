@@ -21,4 +21,5 @@ export const TRIGGER_MODULE: Partial<Record<NotificationTrigger, ModuleKey>> = {
   on_maintenance_due: "garage",
   on_story_submitted: "clubverhaal",
   on_story_reviewed: "clubverhaal",
+  on_race_stream_live: "livestream",
 };

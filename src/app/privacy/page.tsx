@@ -242,7 +242,12 @@ export default function PrivacyPage() {
             aanmaakt. Je streamsleutel bewaren we niet. Zet je bij een race een
             stream klaar, dan bewaren we bij die race het nummer van de
             uitzending; ingelogde <MemberNoun plural /> zien de stream met je naam op de
-            race en naast de live stand. De uitzending zelf staat openbaar op je
+            race, naast de live stand en, zolang hij live is, op het dashboard.
+            Of de uitzending live is, vragen we elke paar minuten bij YouTube op
+            met het nummer van de uitzending, zonder jouw sleutels, en we bewaren
+            die status bij de stream. Gaat de eerste stream van een race live, dan
+            krijgen <MemberNoun plural /> die die melding aan hebben een pushbericht met je
+            naam en de race. De uitzending zelf staat openbaar op je
             eigen kanaal, met je stem als je een microfoon gebruikt, en in beeld
             ook andere renners met hun Zwift-naam, zoals in de game. Daarvoor
             gebruiken we de YouTube API Services; voor de uitzending gelden de{" "}

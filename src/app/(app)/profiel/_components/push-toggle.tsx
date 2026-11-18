@@ -42,6 +42,8 @@ type Props = {
   /** Alleen zichtbaar voor wie voordrachten voor ZWBekers keurt. */
   canReviewBekers?: boolean;
   canPlaceStories?: boolean;
+  /** Livestreams (0339): alleen als de module aan staat; null = niet tonen. */
+  raceStreamLive?: boolean | null;
 };
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -63,6 +65,7 @@ export function PushToggle({
   canAnswerQuestions = false,
   canReviewBekers = false,
   canPlaceStories = false,
+  raceStreamLive = null,
 }: Props) {
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | null>(
@@ -254,6 +257,13 @@ export function PushToggle({
           />
           Iemand start een live-rit waar ik mee fiets
         </label>
+        {raceStreamLive !== null && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="hidden" name="__has_race_stream_live" value="1" />
+            <input type="checkbox" name="on_race_stream_live" defaultChecked={raceStreamLive} />
+            <ClubText text="Een race van {kort} gaat live op YouTube" />
+          </label>
+        )}
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"

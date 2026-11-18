@@ -45,6 +45,7 @@ const PUBLIC_PATHS = [
   "/api/src/sync",
   "/api/intervals/rides/sync",
   "/api/instagram/sync",
+  "/api/youtube/status",
   "/api/briljant/weekly",
   "/api/briljant/zrs-history",
   "/api/app-updates/weekly",

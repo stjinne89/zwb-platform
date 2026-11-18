@@ -43,10 +43,11 @@ als het beeld stopt.
 1. **Uitzending vanuit de app** (gebouwd 2026-11-18): YouTube koppelen per lid,
    Stream klaarzetten op de race, speler op de racepagina en naast de live
    ZRL-stand, hulp en privacytekst. Google-verificatie aanvragen.
-2. **Pushmelding, overlay en terugkijken**: live-status via `videos.list` met de
-   API-sleutel (elke 2 minuten rond een race met een geplande stream), melding
-   Liverace (één per race), kaart Nu live op het dashboard, ZRL-overlay als
-   browserbron voor OBS.
+2. **Pushmelding, overlay en terugkijken** (gebouwd 2026-11-18): live-status
+   via `videos.list` met de API-sleutel (cron `POST /api/youtube/status`, elke
+   2 minuten, alleen rond een race met een geplande stream), melding Liverace
+   (één per race), tegel Nu live op het dashboard, een rode stip in de speler,
+   en de ZRL-overlay als browserbron voor OBS (`/live/zrl/<id>/overlay`).
 3. **Starten vanaf de telefoon**: een kleine helper op de pc of Mac die OBS via
    obs-websocket (`StartStream`, `StopStream`) aanzet als het lid in de app op
    Start tikt. Op een iPad kan het niet: iOS laat alleen de gebruiker zelf een
@@ -70,6 +71,10 @@ In het Google Cloud-project waar nu de `YOUTUBE_API_KEY` in zit
    `http://localhost:3000/api/youtube/callback`.
 6. Zet client-ID en -secret op Netlify als `YOUTUBE_OAUTH_CLIENT_ID` en
    `YOUTUBE_OAUTH_CLIENT_SECRET`. Zonder die twee blijft alles verborgen.
+7. Voor fase 2: kies een willekeurig geheim als `YOUTUBE_STATUS_SECRET` op
+   Netlify en maak op cron-job.org een job `POST /api/youtube/status` met
+   `Authorization: Bearer <geheim>`, elke 2 minuten. Mag beperkt tot de uren
+   waarin er geraced wordt. Hij gebruikt de bestaande `YOUTUBE_API_KEY`.
 
 **Zolang de status Testing is, vervalt een koppeling na 7 dagen.** De app ziet
 dat (`needs_reconnect`) en vraagt het lid opnieuw te koppelen; de sleutel blijft
@@ -89,9 +94,17 @@ die het gebruik van de YouTube API Services noemt; die zin staat op
   van livestreams, nieuwere niet. Geen officiële bron gevonden. Lukt het niet,
   dan staat onder de speler de link Op YouTube.
 - **Quota.** Ongeveer 50 eenheden per `insert` en `bind`, 1 per `list`, tegen
-  10.000 per dag voor het hele project. Niet nagelezen in Googles
+  10.000 per dag voor het hele project. De statuscron kost 1 eenheid per run
+  met open streams: bij elke 2 minuten rond één raceavond ongeveer 135. Niet nagelezen in Googles
   quotacalculator (de Google-documentatie was vanuit de bouwomgeving niet
   bereikbaar).
+- **Netlify.** De statuscron draait elke 2 minuten een functie (ruim 700 per
+  dag); zonder open stream is dat één databasequery. Beperk de job op
+  cron-job.org tot de raceavonden als de Netlify-tegoeden krap worden.
+- **Live-status.** Of `liveBroadcastContent` direct op `live` springt zodra
+  auto-start de uitzending start, en of een video met privé-vergrendeling
+  inderdaad niet in `videos.list` terugkomt (dan telt hij als `weg`), is niet
+  tegen YouTube getest.
 - **Starttijd.** De uitzending staat tien minuten voor de start gepland, en
   minstens twee minuten na het klaarzetten. Of YouTube een geplande tijd vlak
   na nu altijd accepteert, is niet getest.
