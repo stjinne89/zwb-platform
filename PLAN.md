@@ -7,22 +7,30 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Livestreams via YouTube, fase 1, 2 en 3 (2026-11-18): lokaal
-   gecommit, niet gepusht (eigenaar: "pushen kan als we klaar zijn").**
-   Migraties `0338_youtube_livestreams.sql`, `0339_race_stream_live_status.sql`
-   en `0340_stream_helpers.sql`, niet toegepast. Leden koppelen hun eigen YouTube-kanaal, zetten bij hun race
-   een stream klaar, en de stream speelt af op de race, naast de live ZRL-stand
-   en als tegel Nu live; de eerste stream van een race geeft een pushmelding, en
-   er is een ZRL-overlay voor OBS. Met de stream-hulp (`stream-hulp/`, Windows
-   en Mac) start en stopt een lid OBS vanaf de telefoon. Open, in deze volgorde: Google Cloud
-   inrichten en `YOUTUBE_OAUTH_CLIENT_ID`, `-SECRET` en `YOUTUBE_STATUS_SECRET`
-   op Netlify zetten ([livestream-youtube.md](docs/livestream-youtube.md)),
-   akkoord op de privacytekst (`/privacy#livestream`, voorstel: zonder nieuwe
-   versie), de migraties toepassen in volgorde, pushen, de cron op
-   cron-job.org; daarna een echte proefstream en de Google-verificatie
-   aanvragen; nakijken dat openbare Realtime-kanalen aan staan (voor de
-   stream-hulp). Zie de rondes "Gebouwd — Livestreams via YouTube, fase 1",
-   "…, fase 2" en "…, fase 3".
+0. **Gebouwd — Livestreams via YouTube, fase 1, 2 en 3 (2026-11-18): op
+   2026-11-18 gepusht naar `main` (eigenaar: "je mag nu alles naar main
+   pushen").** Migraties `0338_youtube_livestreams.sql`,
+   `0339_race_stream_live_status.sql` en `0340_stream_helpers.sql` op
+   2026-11-18 vóór de push met de Supabase-connector op productie toegepast, in
+   die volgorde (versies `20261118125111`, `20261118125126`, `20261118125134`);
+   policies, kolomrechten en de standaard van `on_race_stream_live` daarna
+   nagekeken, en de security-advisor meldt niets over de nieuwe tabellen. De
+   privacytekst op `/privacy#livestream` is akkoord (eigenaar: "privacy tekst
+   is goed"), zonder nieuwe privacyversie zoals voorgesteld. Leden koppelen hun
+   eigen YouTube-kanaal, zetten bij hun race een stream klaar, en de stream
+   speelt af op de race, naast de live ZRL-stand en als tegel Nu live; de
+   eerste stream van een race geeft een pushmelding, en er is een ZRL-overlay
+   voor OBS. Met de stream-hulp (`stream-hulp/`, Windows en Mac) start en stopt
+   een lid OBS vanaf de telefoon. Open (de eerste twee doet de eigenaar): Google
+   Cloud inrichten en `YOUTUBE_OAUTH_CLIENT_ID`, `-SECRET` en
+   `YOUTUBE_STATUS_SECRET` op Netlify zetten
+   ([livestream-youtube.md](docs/livestream-youtube.md)), de cron op
+   cron-job.org; daarna in het Supabase-dashboard nakijken dat Realtime,
+   Settings, "Allow public access" aan staat (met de connector niet te zien;
+   volgens Supabase standaard aan, en de eventchat gebruikt al openbare
+   kanalen), een echte proefstream, en de Google-verificatie aanvragen. Zie de
+   rondes "Gebouwd — Livestreams via YouTube, fase 1", "…, fase 2" en
+   "…, fase 3".
 
 0. **Bijgesteld — TTT-bot op de race van 2026-11-17: op 2026-11-17 gepusht naar
    `main` (`2e845954`, `79b898a6`, `b625bf75`, eigenaar: "Push naar main").** Geen migratie. Kopbeurt telt vanaf "Wissel", geen verzonnen
@@ -1319,9 +1327,9 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0341`
-(`0340_stream_helpers` is van livestreams via YouTube, fase 3, 2026-11-18, nog niet toegepast, vereist `0338`;
-`0339_race_stream_live_status` is van livestreams via YouTube, fase 2, 2026-11-18, nog niet toegepast, vereist `0338`;
-`0338_youtube_livestreams` is van livestreams via YouTube, fase 1, 2026-11-18, nog niet toegepast; de nummers `0280` tot en met `0337` staan bij hun eigen rondes; daarvoor:
+(`0340_stream_helpers` is van livestreams via YouTube, fase 3, 2026-11-18, toegepast op 2026-11-18;
+`0339_race_stream_live_status` is van livestreams via YouTube, fase 2, 2026-11-18, toegepast op 2026-11-18;
+`0338_youtube_livestreams` is van livestreams via YouTube, fase 1, 2026-11-18, toegepast op 2026-11-18; de nummers `0280` tot en met `0337` staan bij hun eigen rondes; daarvoor:
 `0279_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en vóór het toepassen hernummerd bij het samenvoegen met main, waar `0277` en `0278` al gebruikt waren;
 `0278_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en zo ook op productie toegepast (`schema_migrations` noemt hem `0277_member_zwift_bikes`), hernummerd bij het samenvoegen met main, waar `0277_zitvlees_week_badge` al stond;
 `0277_zitvlees_week_badge` is van ZWB Rankings, 2026-10-26, toegepast op 2026-10-26;
@@ -12510,7 +12518,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Livestreams via YouTube, fase 3
 
-**2026-11-18, commit `0195cca` ("Livestreams via YouTube, fase 3: OBS starten en stoppen vanaf de telefoon"), lokaal, niet gepusht (eigenaar: "ga verder met fase 3"; pushen als alles klaar is). Migratie `0340_stream_helpers.sql`, niet toegepast; vereist `0338`.**
+**2026-11-18, commit `0195cca` ("Livestreams via YouTube, fase 3: OBS starten en stoppen vanaf de telefoon"), op 2026-11-18 gepusht naar `main`. Migratie `0340_stream_helpers.sql` op 2026-11-18 op productie toegepast (versie `20261118125134`). Daarna (`d4f3257`) heet de snelkoppeling Stream-hulp, zodat de hulp clubneutraal blijft.**
 
 - **Waarom.** Op de fiets staat Zwift op de voorgrond en heb je de telefoon
   eerder bij de hand dan de muis. Besluit eigenaar 2026-11-18: de helper voor
@@ -12560,7 +12568,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
   verbindt met een nagebootste OBS (obs-websocket 5, msgpack) en vraagt de
   stand op; `StartStream` en het bijbehorende event werkten tegen die
   nabootsing.
-- **Niet geverifieerd.** `0340` niet toegepast. Het Windows-script niet
+- **Niet geverifieerd.** Het Windows-script niet
   gedraaid (geen Windows hier). Supabase Realtime niet echt gebruikt: de
   broadcast-aanroep en of openbare kanalen op het ZWB-project aan staan. Niet
   tegen een echte OBS. `npm install` faalt in deze omgeving met
@@ -12570,7 +12578,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Livestreams via YouTube, fase 2
 
-**2026-11-18, commit `8b2f780` ("Livestreams via YouTube, fase 2: live-status, melding Liverace, Nu live en ZRL-overlay"), lokaal, niet gepusht (eigenaar: "ga eerst maar verder met de volgende fase, pushen kan als we klaar zijn"). Migratie `0339_race_stream_live_status.sql`, niet toegepast; vereist `0338`.**
+**2026-11-18, commit `8b2f780` ("Livestreams via YouTube, fase 2: live-status, melding Liverace, Nu live en ZRL-overlay"), op 2026-11-18 gepusht naar `main`. Migratie `0339_race_stream_live_status.sql` op 2026-11-18 op productie toegepast (versie `20261118125126`).**
 
 - **Waarom.** Fase 2 van [livestream-youtube.md](docs/livestream-youtube.md):
   leden horen het als een race live gaat (besluit eigenaar 2026-11-18: een
@@ -12622,7 +12630,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
   meeste met alleen één databasequery. Beperk de job op cron-job.org tot de
   raceavonden als de tegoeden krap worden; de melding komt dan alleen binnen
   die uren.
-- **Niet geverifieerd.** `0339` niet toegepast; in PGlite getest (standaard
+- **Niet geverifieerd.** `0339` vóór het toepassen in PGlite getest (standaard
   aan, status `weg` mag, andere waarden niet, opnieuw uit te voeren).
   `videos.list` alleen met een nagebootste fetch; niet vastgesteld dat
   `liveBroadcastContent` meteen `live` wordt bij auto-start, en dat een
@@ -12632,7 +12640,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Livestreams via YouTube, fase 1
 
-**2026-11-18, commit `84fe41d` ("Livestreams via YouTube, fase 1: kanaal koppelen, stream klaarzetten, speler bij de race"), lokaal, niet gepusht (AGENTS.md: lokaal tot de eigenaar om een push vraagt). Migratie `0338_youtube_livestreams.sql`, niet toegepast.**
+**2026-11-18, commit `84fe41d` ("Livestreams via YouTube, fase 1: kanaal koppelen, stream klaarzetten, speler bij de race"), op 2026-11-18 gepusht naar `main` (eigenaar: "je mag nu alles naar main pushen"). Migratie `0338_youtube_livestreams.sql` op 2026-11-18 op productie toegepast (versie `20261118125111`).**
 
 - **Waarom.** De eigenaar wil zijn Zwift-races streamen via YouTube en dat
   simpel vanuit de app doen. Voorstel, besluiten en de inrichting van Google
@@ -12702,12 +12710,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
   op de openbare live stand: wie er streamt, is geen openbaar gegeven (een
   oordeel, geen besluit van de eigenaar; de video zelf is wel openbaar op
   YouTube). Geen YouTube-chat in de app. Geen streams bij buitenritten.
-- **Privacy, besluit eigenaar nodig.** Een nieuwe verwerking, maar alleen van
-  wie zelf YouTube koppelt; koppelen is de toestemming, zoals bij Uitdaging.
-  Voorstel: zonder nieuwe privacyversie. De tekst op `/privacy#livestream`
-  wacht op akkoord.
-- **Niet geverifieerd.** De migratie is niet toegepast (geen Docker of
-  Supabase-config hier); getest in PGlite (`youtube-livestream-migration.test.ts`:
+- **Privacy.** Een nieuwe verwerking, maar alleen van wie zelf YouTube
+  koppelt; koppelen is de toestemming, zoals bij Uitdaging. Daarom zonder
+  nieuwe privacyversie. De tekst op `/privacy#livestream` (met de aanvullingen
+  van fase 2 en 3) is op 2026-11-18 akkoord (eigenaar: "privacy tekst is
+  goed").
+- **Niet geverifieerd.** De migratie is vóór het toepassen getest in PGlite (`youtube-livestream-migration.test.ts`:
   tokens onleesbaar, eigen rij, wachtende leden zien niets, geen schrijfrecht,
   cascade). Google-OAuth en de YouTube-aanroepen zijn alleen getest met een
   nagebootste fetch (`youtube-livestream.test.ts`), niet tegen Google. De
