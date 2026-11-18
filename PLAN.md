@@ -12507,7 +12507,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Livestreams via YouTube, fase 2
 
-**2026-11-18, commit volgt in de PLAN-commit erna, lokaal, niet gepusht (eigenaar: "ga eerst maar verder met de volgende fase, pushen kan als we klaar zijn"). Migratie `0339_race_stream_live_status.sql`, niet toegepast; vereist `0338`.**
+**2026-11-18, commit `8b2f780` ("Livestreams via YouTube, fase 2: live-status, melding Liverace, Nu live en ZRL-overlay"), lokaal, niet gepusht (eigenaar: "ga eerst maar verder met de volgende fase, pushen kan als we klaar zijn"). Migratie `0339_race_stream_live_status.sql`, niet toegepast; vereist `0338`.**
 
 - **Waarom.** Fase 2 van [livestream-youtube.md](docs/livestream-youtube.md):
   leden horen het als een race live gaat (besluit eigenaar 2026-11-18: een
