@@ -144,10 +144,13 @@ export function WorkoutCalendar({
                   return (
                     <div
                       key={cell.dateKey}
+                      aria-current={cell.dateKey === todayKey ? "date" : undefined}
                       className={cn(
                         "min-h-16 rounded-md border p-1 text-left",
                         cell.inMonth ? "bg-background" : "bg-muted/30 text-muted-foreground",
-                        cell.dateKey === todayKey && "border-primary",
+                        // Goud is jij, nu. Een ring en geen randkleur: het design
+                        // maakt de rand van deze cellen doorzichtig (globals.css).
+                        cell.dateKey === todayKey && "cal-vandaag",
                       )}
                     >
                       <span className="text-xs tabular-nums">{dayNumber}</span>

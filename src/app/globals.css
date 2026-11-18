@@ -831,6 +831,12 @@ html[data-viewport-fout] .tg-tabs-bottom {
   border-color: transparent;
   background-color: var(--tg-panel);
 }
+/* Vandaag in de schemakalender. De regel hierboven maakt de rand van de
+   dagcel doorzichtig, dus een randkleur valt weg; een ring niet. Goud is jij,
+   nu. Buiten de schil (zonder --tg-vandaag) het jerseygoud. */
+.cal-vandaag {
+  box-shadow: 0 0 0 2px var(--tg-vandaag, var(--zwb-gold));
+}
 /* Ook knoppen: ronde pillen (schema, core-series, Vermogen) zijn hier recht. */
 [data-design="tegels"] :is(span, a, p, li, button, label).rounded-full:not([class*="size-"]) {
   border-radius: 0;

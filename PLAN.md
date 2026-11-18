@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Hersteld — Vandaag goud omlijnd in de schemakalender (2026-11-18): op
+   2026-11-18 gepusht naar `main` (eigenaar: "push maar naar main").** Geen migratie. Open: na de deploy op
+   `/zwbeter-worden/schema` (maand) en op de trainerkalender bekijken, licht en
+   donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
+
 0. **Gebouwd — Livestreams via YouTube, fase 1, 2 en 3 (2026-11-18): op
    2026-11-18 gepusht naar `main` (eigenaar: "je mag nu alles naar main
    pushen").** Migraties `0338_youtube_livestreams.sql`,
@@ -12515,6 +12520,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Vandaag goud omlijnd in de schemakalender
+
+**2026-11-18, commit "Schemakalender: vandaag goud omlijnd", op 2026-11-18 gepusht naar `main` (eigenaar: "push maar naar main"). Geen migratie.**
+
+- **Melding.** De eigenaar moest in de maandweergave van ZWBeter → Schema elke
+  keer zoeken welke dag vandaag was, en vroeg om het dagvak van vandaag goud te
+  omlijnen.
+- **Oorzaak.** De dagcel in `WorkoutCalendar`
+  (`src/app/(app)/zwbeter-worden/_components/workout-calendar.tsx`) kreeg voor
+  vandaag `border-primary`. Sinds het tegelsdesign maakt de regel
+  `[data-design="tegels"] .border[class*="bg-background"]` in `globals.css`
+  de rand van zo'n vlak doorzichtig, en die regel weegt zwaarder dan één
+  utility-klasse. In de lopende maand (cellen met `bg-background`) was vandaag
+  dus helemaal niet gemarkeerd; alleen een dag buiten de maand hield een rand.
+- **Herstel.** Nieuwe klasse `.cal-vandaag` in `globals.css`, direct onder die
+  regel: een ring van 2px (`box-shadow`, die de paneelregel niet raakt) in
+  `--tg-vandaag`, met het jerseygoud als terugval buiten de schil. Goud volgt
+  het kleurbeleid: goud is jij, nu. De cel krijgt ook `aria-current="date"`.
+  Omdat de trainerkalender (`TrainerWorkoutCalendar`) dezelfde component
+  gebruikt, is vandaag daar nu ook goud omlijnd; bewust zo gelaten, het is
+  dezelfde vraag.
+- **Bewust niet.** Geen gouden dagnummer: goud als kleine tekst op licht haalt
+  maar 3,1:1 (zie `--zwblok-own-text`). Geen gevuld vlak: de cel houdt het
+  paneel, zodat de gekleurde trainingsblokjes leesbaar blijven, en de
+  selectiering van een training (`ring-foreground`) blijft het enige andere
+  kader.
+- **Niet gecontroleerd.** Typecheck en lint schoon. Niet in de echte app
+  bekeken (geen `.env.local` in deze container); wel een nagebootste
+  maandweergave met dezelfde paneel- en ringregels in licht en donker: het
+  kader valt in beide op.
 
 ### Gebouwd — Livestreams via YouTube, fase 3
 
