@@ -79,9 +79,9 @@ printf '%s\n' "# Geschreven door installeren.sh. Deel de koppelcode met niemand.
 ok "Instellingen opgeslagen."
 
 stap 4 "Startbestand op het bureaublad"
-START="$BUREAUBLAD/ZWB stream-hulp.command"
+START="$BUREAUBLAD/Stream-hulp.command"
 printf '%s\n' "#!/bin/bash" "cd \"$MAP\"" "echo 'De stream-hulp start. Laat dit venster open tijdens de race.'" "npm start" > "$START"
 chmod +x "$START"
-ok "Startbestand 'ZWB stream-hulp' gemaakt."
+ok "Startbestand 'Stream-hulp' gemaakt."
 
-printf '\n\033[32mKlaar!\033[0m\nStart OBS, en daarna de hulp met dubbelklikken op "ZWB stream-hulp" op je bureaublad.\n'
+printf '\n\033[32mKlaar!\033[0m\nStart OBS, en daarna de hulp met dubbelklikken op "Stream-hulp" op je bureaublad.\n'

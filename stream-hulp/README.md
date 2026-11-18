@@ -24,7 +24,7 @@ Een nieuwe koppelcode maakt de oude ongeldig.
   `%LOCALAPPDATA%\ZWB-stream-hulp`, met een snelkoppeling op het bureaublad.
 - **Mac:** in Terminal
   `curl -fsSL https://raw.githubusercontent.com/stjinne89/zwb-platform/main/stream-hulp/installeren.sh | bash`.
-  Zet de hulp in `~/ZWB-stream-hulp`, met `ZWB stream-hulp.command` op het
+  Zet de hulp in `~/ZWB-stream-hulp`, met `Stream-hulp.command` op het
   bureaublad.
 
 Met de hand: Node 22 of nieuwer, `npm install`, `.env.example` naar `.env`

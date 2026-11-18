@@ -153,12 +153,12 @@ Write-Utf8 $start (@(
   "pause",
   ""
 ) -join "`r`n")
-$link = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $Bureaublad "ZWB stream-hulp.lnk"))
+$link = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $Bureaublad "Stream-hulp.lnk"))
 $link.TargetPath = $start
 $link.WorkingDirectory = $Map
 $link.Save()
-Ok "Snelkoppeling 'ZWB stream-hulp' gemaakt."
+Ok "Snelkoppeling 'Stream-hulp' gemaakt."
 
 Write-Host ""
 Write-Host "Klaar!" -ForegroundColor Green
-Write-Host "Start OBS, en daarna de hulp met de snelkoppeling 'ZWB stream-hulp'."
+Write-Host "Start OBS, en daarna de hulp met de snelkoppeling 'Stream-hulp'."
