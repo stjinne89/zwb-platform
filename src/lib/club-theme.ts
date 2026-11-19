@@ -129,7 +129,7 @@ function oklchToLinear({ l, c, h }: Oklch): Rgb {
 const inGamut = (rgb: Rgb) => rgb.every((c) => c >= -1e-4 && c <= 1 + 1e-4);
 
 /** OKLCH naar hex; buiten sRGB gaat de chroma omlaag tot de kleur past. */
-function oklchToHex(color: Oklch): string {
+export function oklchToHex(color: { l: number; c: number; h: number }): string {
   const l = Math.min(1, Math.max(0, color.l));
   let lo = 0;
   let hi = Math.max(0, color.c);

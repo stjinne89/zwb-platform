@@ -224,3 +224,35 @@ export async function createBoundBroadcast(
 export async function deleteBroadcast(accessToken: string, videoId: string): Promise<void> {
   await call(accessToken, "DELETE", "liveBroadcasts", { id: videoId });
 }
+
+/**
+ * Zet de thumbnail van een uitzending (PNG, hoogstens 2 MB). Ongeveer 50
+ * eenheden. Weigert YouTube (kanaal zonder eigen thumbnails), dan een
+ * YouTubeApiError; de stream zelf werkt dan gewoon met de automatische.
+ */
+export async function setThumbnail(accessToken: string, videoId: string, png: ArrayBuffer): Promise<void> {
+  const url = new URL("https://www.googleapis.com/upload/youtube/v3/thumbnails/set");
+  url.searchParams.set("videoId", videoId);
+  url.searchParams.set("uploadType", "media");
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "image/png" },
+    body: png,
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (res.ok) return;
+  const text = await res.text();
+  let parsed: ApiErrorBody = {};
+  try {
+    parsed = JSON.parse(text) as ApiErrorBody;
+  } catch {
+    // geen JSON
+  }
+  const reason = parsed.error?.errors?.[0]?.reason ?? null;
+  throw new YouTubeApiError(
+    `YouTube thumbnail ${res.status}${reason ? ` (${reason})` : ""}: ${parsed.error?.message ?? text.slice(0, 200)}`,
+    res.status,
+    reason,
+  );
+}

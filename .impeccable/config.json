@@ -14,6 +14,12 @@
         "value": "arial",
         "createdAt": "2026-10-28T10:14:40.696Z",
         "reason": "ZWBgame (game.module.css) sets Arial; owner asked /verhaal to follow the game's design (2026-10-28)"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "club",
+        "createdAt": "2026-11-19T17:37:13.497Z",
+        "reason": "Satori alias for the club's own tegels font (Barlow Semi Condensed or the chosen club font), loaded as data in src/lib/youtube-live/thumbnail.tsx"
       }
     ]
   }

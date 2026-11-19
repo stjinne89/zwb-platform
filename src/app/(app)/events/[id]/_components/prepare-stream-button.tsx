@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Copy, Radio } from "lucide-react";
-import { prepareStream, setOverlayStand } from "@/app/(app)/_actions/livestream";
+import { Check, Copy, ImageUp, Radio } from "lucide-react";
+import { prepareStream, refreshStreamThumbnail, setOverlayStand } from "@/app/(app)/_actions/livestream";
 import { Button } from "@/components/ui/button";
 
 export function PrepareStreamButton({ eventId }: { eventId: string }) {
@@ -86,5 +86,35 @@ export function OverlayLinkButton({ path }: { path: string }) {
       {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
       {copied ? "Gekopieerd" : "Overlay-link voor OBS"}
     </Button>
+  );
+}
+
+/** Maakt de thumbnail van de eigen stream opnieuw en zet hem op YouTube. */
+export function ThumbnailButton({ streamId }: { streamId: string }) {
+  const [pending, startTransition] = useTransition();
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={pending}
+        onClick={() => {
+          setError(null);
+          setDone(false);
+          startTransition(async () => {
+            const res = await refreshStreamThumbnail(streamId);
+            if (res.ok) setDone(true);
+            else setError(res.error);
+          });
+        }}
+      >
+        {done ? <Check className="size-3.5" /> : <ImageUp className="size-3.5" />}
+        {pending ? "Bezig…" : done ? "Thumbnail staat erop" : "Thumbnail vernieuwen"}
+      </Button>
+      {error && <span className="text-sm text-destructive">{error}</span>}
+    </>
   );
 }

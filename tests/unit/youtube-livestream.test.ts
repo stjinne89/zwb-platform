@@ -8,6 +8,7 @@ import {
   scheduledStartFor,
   streamEmbedUrl,
   streamsAreLive,
+  thumbnailLines,
 } from "@/lib/youtube-live/broadcast";
 import {
   exchangeYouTubeCode,
@@ -21,6 +22,7 @@ import {
 import {
   createBoundBroadcast,
   ensureReusableStream,
+  setThumbnail,
   STREAM_TITLE,
   YouTubeApiError,
   youtubeErrorMessage,
@@ -258,5 +260,46 @@ describe("meldingen na het koppelen", () => {
     expect(youtubeConnectErrorText("Bel dit nummer")).toBeNull();
     expect(youtubeConnectErrorText("toString")).toBeNull();
     expect(youtubeConnectErrorText(null)).toBeNull();
+  });
+});
+
+describe("thumbnail (2026-11-19)", () => {
+  it("zet tijd, titel en route op de thumbnail, in Nederlandse tijd", () => {
+    const lines = thumbnailLines({
+      eventTitle: "Club Ladder: ZWBandits <> Valhalla",
+      startAt: "2026-11-19T19:01:00Z",
+      routeName: "Montmartre Mixer",
+      laps: 2,
+      clubName: "ZWB Cycling",
+    });
+    expect(lines.status).toBe("Live · donderdag 19 november om 20:01");
+    expect(lines.title).toBe("Club Ladder: ZWBandits Valhalla");
+    expect(lines.detail).toBe("Montmartre Mixer, 2 rondes");
+  });
+
+  it("noemt de club als de route onbekend is, en kort een lange titel in", () => {
+    const lines = thumbnailLines({ eventTitle: "x".repeat(120), startAt: "2026-11-19T19:01:00Z", clubName: "ZWB Cycling" });
+    expect(lines.detail).toBe("ZWB Cycling");
+    expect(lines.title).toHaveLength(90);
+    expect(lines.title.endsWith("…")).toBe(true);
+  });
+
+  it("stuurt de PNG naar thumbnails.set en geeft een weigering door", async () => {
+    const calls: Array<{ url: string; type: string | null }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: URL | string, init?: RequestInit) => {
+        calls.push({ url: String(url), type: new Headers(init?.headers).get("Content-Type") });
+        return calls.length === 1
+          ? json(200, { items: [] })
+          : json(403, { error: { message: "no custom thumbnails", errors: [{ reason: "forbidden" }] } });
+      }),
+    );
+    await setThumbnail("token", "vid12345678", new ArrayBuffer(8));
+    const url = new URL(calls[0].url);
+    expect(url.pathname).toBe("/upload/youtube/v3/thumbnails/set");
+    expect(url.searchParams.get("videoId")).toBe("vid12345678");
+    expect(calls[0].type).toBe("image/png");
+    await expect(setThumbnail("token", "vid12345678", new ArrayBuffer(8))).rejects.toMatchObject({ status: 403 });
   });
 });

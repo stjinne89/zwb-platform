@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PALETTE } from "@/lib/club-theme";
-import { overlayColors, overlayColorVars } from "@/lib/youtube-live/overlay-theme";
+import { overlayColors, overlayColorVars, plainColors } from "@/lib/youtube-live/overlay-theme";
 
 // De kleuren van de OBS-overlay (0341): de nachtversie van de huisstijl.
 
@@ -24,5 +24,21 @@ describe("overlayColors", () => {
     const vars = overlayColorVars(overlayColors(null));
     expect(Object.keys(vars)).toHaveLength(9);
     expect(Object.keys(vars).every((key) => key.startsWith("--ov-"))).toBe(true);
+  });
+});
+
+describe("plainColors (thumbnail)", () => {
+  it("zet oklch om naar hex en laat hex en rgb staan", () => {
+    const colors = plainColors(overlayColors(null));
+    expect(colors.gold).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(colors.text).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(colors.head).toBe("#00505f");
+    expect(colors.row).toBe("rgb(255 255 255 / 0.055)");
+  });
+
+  it("geeft goud een warme kleur, geen grijs", () => {
+    const hex = plainColors(overlayColors(null)).gold;
+    const [r, , b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    expect(r).toBeGreaterThan(b + 30);
   });
 });

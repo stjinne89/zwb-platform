@@ -60,6 +60,12 @@ gaat stabiliteit voor nieuwe features.
    `/zwbeter-worden/schema` (maand) en op de trainerkalender bekijken, licht en
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
+0. **Gebouwd — Thumbnail per stream (2026-11-19): lokaal gecommit, niet
+   gepusht.** Geen migratie. Bij Stream klaarzetten maakt de app een
+   thumbnail van 1280×720 in de clubkleuren en zet hem op YouTube; onder de
+   eigen stream staat Thumbnail vernieuwen. Zie de ronde "Gebouwd — Thumbnail
+   per stream".
+
 0. **Gebouwd — OBS-overlay per stream, in de huisstijl (2026-11-18): commit
    `96d93ca`, op 2026-11-18 gepusht naar `main` (eigenaar: "Yes, apply and
    push").** Migratie `0341_stream_overlay_stand.sql` op 2026-11-18 vóór de
@@ -12982,6 +12988,48 @@ bekende ontbrekende pakketten na.
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
 
+### Gebouwd — Thumbnail per stream
+
+**2026-11-19, lokaal gecommit, niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar vroeg of er "iets met de thumbnails" kon; YouTube
+  koos tot nu toe zelf een beeld uit de stream. Akkoord op het voorstel:
+  "Yes, build it".
+- **Wat.**
+  - `lib/youtube-live/thumbnail.tsx`: een PNG van 1280×720 met `next/og`
+    (Satori), in de nachtkleuren en letter van de club zoals de overlay: de
+    kalendertegel met tenueband, het clublogo op papier met gouden rand, een
+    gouden regel `Live · donderdag 19 november om 20:01`, de titel van de race
+    (hoogstens 90 tekens, regels in balans) en de route met rondes, of anders
+    de clubnaam (`thumbnailLines` in `broadcast.ts`, puur). Satori kent geen
+    oklch, dus `plainColors` zet die kleuren om naar hex (`oklchToHex` uit
+    `club-theme.ts` is daarvoor geëxporteerd).
+  - Satori leest geen woff2: de vier clubletters staan als ttf (400 en 500) in
+    `src/fonts/og`, op 2026-11-19 van de css2-API van Google Fonts gehaald
+    (OFL, zoals de rest). `next.config.ts` neemt ze mee in de server-trace
+    van `/events/*` (server actions) en `/live/stream/*/thumbnail`.
+  - `setThumbnail` in `api.ts` (`thumbnails.set`, uploadType media, ongeveer
+    50 quota-eenheden). Bij Stream klaarzetten na het opslaan van de stream;
+    een fout breekt het klaarzetten niet (YouTube houdt dan de automatische
+    thumbnail). Server action `refreshStreamThumbnail`, alleen voor de eigen
+    stream (de thumbnail gaat met het eigen kanaal), met de knop Thumbnail
+    vernieuwen naast Overlay-link voor OBS. Weigert YouTube met 403, dan de
+    melding dat eigen thumbnails aan moeten (telefoonnummer bevestigen).
+  - `/live/stream/<id>/thumbnail`: dezelfde PNG om te bekijken, openbaar
+    zoals de overlay (alleen titel, tijd en route).
+  - Hulp: de alinea over Stream klaarzetten noemt de thumbnail en de knop.
+- **Bewust niet.** Geen sponsors op de thumbnail: op dit formaat onleesbaar,
+  en ze staan al in de overlay. Geen eigen foto of titel uploaden: beeld en
+  titel volgen uit de race. Geen thumbnail voor wie een stream van een ander
+  beheert (`events.manage_all`): dat zou met het kanaal van die ander moeten.
+- **Niet geverifieerd.** Lokaal bekeken met echte data (Club Ladder
+  ZWBandits – Valhalla Garmr, 2026-11-19): logo, kleuren, letter en tekst
+  kloppen. De upload naar YouTube is alleen met een nagebootste fetch getest;
+  niet vastgesteld dat de scope `auth/youtube` en de kanalen eigen
+  thumbnails toestaan. Of Netlify de ttf-bestanden echt meeneemt, blijkt pas
+  na de deploy. Tests: `youtube-livestream.test.ts` (tekst en upload),
+  `stream-overlay-theme.test.ts` (hex-kleuren).
+
 ### Gebouwd — OBS-overlay per stream, in de huisstijl
 
 **2026-11-18, commit `96d93ca` ("OBS-overlay per stream, in de huisstijl: clublogo, sponsors en schakelbare stand"), op 2026-11-18 gepusht naar `main`. Migratie `0341_stream_overlay_stand.sql` op 2026-11-18 op productie toegepast (versie `20261118163941`).**
@@ -13229,7 +13277,8 @@ bekende ontbrekende pakketten na.
 - **Bewust niet in deze ronde.** Pushmelding, live-status, de kaart Nu live en
   de ZRL-overlay horen bij fase 2 (inmiddels gebouwd, zie die ronde; de
   kolommen `status` en `live_notified_at` vult nu de statuscron). De helper voor
-  starten vanaf de telefoon is fase 3 (inmiddels gebouwd, zie die ronde). Geen eigen thumbnails en geen eigen
+  starten vanaf de telefoon is fase 3 (inmiddels gebouwd, zie die ronde). Geen eigen thumbnails (achterhaald: sinds
+  de ronde "Thumbnail per stream" maakt de app er een) en geen eigen
   titel kiezen: de titel volgt uit de race. Geen stream voor anonieme kijkers
   op de openbare live stand: wie er streamt, is geen openbaar gegeven (een
   oordeel, geen besluit van de eigenaar; de video zelf is wel openbaar op

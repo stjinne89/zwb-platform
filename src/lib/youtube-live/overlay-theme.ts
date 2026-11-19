@@ -3,7 +3,7 @@
 // DESIGN.md; met eigen kleuren afgeleid zoals de rest van de app
 // (lib/club-theme.ts). Puur, voor de tests.
 
-import { deriveTheme, type ClubPalette } from "@/lib/club-theme";
+import { deriveTheme, oklchToHex, type ClubPalette } from "@/lib/club-theme";
 
 export type OverlayColors = {
   /** Ondergrond van paneel en sponsorvak, dekkend genoeg boven video. */
@@ -69,4 +69,16 @@ export function overlayColorVars(colors: OverlayColors): Record<string, string> 
     "--ov-paper": colors.paper,
     "--ov-ink": colors.ink,
   };
+}
+
+/**
+ * Dezelfde kleuren zonder oklch: Satori (de thumbnail, next/og) leest alleen
+ * hex en rgb. `oklch(l c h)` wordt hex; de rest blijft staan.
+ */
+export function plainColors(colors: OverlayColors): OverlayColors {
+  const plain = (value: string) => {
+    const m = /^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/.exec(value.trim());
+    return m ? oklchToHex({ l: Number(m[1]), c: Number(m[2]), h: Number(m[3]) }) : value;
+  };
+  return Object.fromEntries(Object.entries(colors).map(([k, v]) => [k, plain(v)])) as OverlayColors;
 }

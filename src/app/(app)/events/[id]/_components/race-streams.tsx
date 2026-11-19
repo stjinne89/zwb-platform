@@ -16,7 +16,7 @@ import {
 } from "@/lib/youtube-live/broadcast";
 import { youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { loadEventStreams, ridesInEvent } from "@/lib/youtube-live/streams";
-import { OverlayLinkButton, OverlayStandToggle, PrepareStreamButton } from "./prepare-stream-button";
+import { OverlayLinkButton, OverlayStandToggle, PrepareStreamButton, ThumbnailButton } from "./prepare-stream-button";
 
 /**
  * Streams bij een race (livestreams, fase 1): de speler voor iedereen, en de
@@ -113,7 +113,12 @@ export async function RaceStreams({
           state={{ online: helperOnline(helper.last_seen_at, now), obsState: helper.obs_state }}
         />
       )}
-      {overlayPath && <OverlayLinkButton path={overlayPath} />}
+      {ownStream && overlayPath && (
+        <div className="flex flex-wrap items-center gap-2">
+          <OverlayLinkButton path={overlayPath} />
+          <ThumbnailButton streamId={ownStream.id} />
+        </div>
+      )}
       {ownStream && hasLiveStand && (
         <OverlayStandToggle streamId={ownStream.id} initial={ownStream.overlayStand} />
       )}

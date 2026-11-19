@@ -104,6 +104,22 @@ export function broadcastDescription(input: {
   return clip(lines.join("\n"), 4500);
 }
 
+/** De tekst op de thumbnail (lib/youtube-live/thumbnail.tsx): titel, wanneer, en route of club. */
+export function thumbnailLines(input: {
+  eventTitle: string;
+  startAt: string;
+  routeName?: string | null;
+  laps?: number | null;
+  clubName: string;
+}): { status: string; title: string; detail: string } {
+  const laps = input.laps && input.laps > 1 ? `, ${input.laps} rondes` : "";
+  return {
+    status: `Live · ${START_FORMAT.format(new Date(input.startAt))}`,
+    title: clip(clean(input.eventTitle), 90),
+    detail: input.routeName ? `${clean(input.routeName)}${laps}` : clean(input.clubName),
+  };
+}
+
 const VIDEO_ID = /^[A-Za-z0-9_-]{6,20}$/;
 
 export function isVideoId(value: string): boolean {

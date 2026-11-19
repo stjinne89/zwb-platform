@@ -11,6 +11,8 @@ import {
   deleteBroadcast,
   ensureReusableStream,
   getStreamIngestion,
+  setThumbnail,
+  YouTubeApiError,
   youtubeErrorMessage,
 } from "@/lib/youtube-live/api";
 import {
@@ -28,6 +30,7 @@ import {
 import { YouTubeGrantRevokedError, youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { ridesInEvent } from "@/lib/youtube-live/streams";
 import { createHelperPairing, removeHelper, sendHelperCommand } from "@/lib/youtube-live/helper";
+import { siteOrigin, streamThumbnail, thumbnailRoute, type ThumbnailEvent } from "@/lib/youtube-live/thumbnail";
 
 // Livestreams, fase 1 (0338). Alle schrijfacties lopen via de service-role, na
 // de controles hier: module aan, ingericht, goedgekeurd lid, gekoppeld kanaal,
@@ -66,6 +69,28 @@ async function livestreamsOn(): Promise<boolean> {
 
 function grantError(err: unknown): string {
   return err instanceof YouTubeGrantRevokedError ? "Koppel YouTube opnieuw op je profiel." : youtubeErrorMessage(err);
+}
+
+/**
+ * Maakt de thumbnail en zet hem op YouTube (2026-11-19). Een fout breekt de
+ * stream niet: YouTube houdt dan de automatische thumbnail.
+ */
+async function pushThumbnail(
+  accessToken: string,
+  videoId: string,
+  input: { eventTitle: string; startAt: string; routeName: string | null; laps: number | null },
+): Promise<string | null> {
+  try {
+    const image = await streamThumbnail({ ...input, origin: siteOrigin() });
+    await setThumbnail(accessToken, videoId, await image.arrayBuffer());
+    return null;
+  } catch (err) {
+    console.error("[livestream/thumbnail]", err);
+    if (err instanceof YouTubeApiError && err.status === 403) {
+      return "YouTube weigerde de thumbnail: zet eigen thumbnails aan op je kanaal (telefoonnummer bevestigen).";
+    }
+    return "De thumbnail kon niet naar YouTube.";
+  }
 }
 
 export async function prepareStream(eventId: string): Promise<Result> {
@@ -177,8 +202,50 @@ export async function prepareStream(eventId: string): Promise<Result> {
     if (error.code === "23505") return { ok: true };
     return { ok: false, error: "De stream kon niet worden opgeslagen." };
   }
+  try {
+    await pushThumbnail(await youtubeAccessToken(admin, connection), videoId, {
+      eventTitle: event.title,
+      startAt: event.start_at,
+      routeName,
+      laps,
+    });
+  } catch (err) {
+    console.error("[livestream/thumbnail]", err);
+  }
   revalidatePath(`/events/${event.id}`);
   return { ok: true };
+}
+
+/** De thumbnail van de eigen stream opnieuw maken en op YouTube zetten. */
+export async function refreshStreamThumbnail(streamId: string): Promise<Result> {
+  if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("event_streams")
+    .select("profile_id, youtube_video_id, events(title, start_at, zwift_route_id, laps, parent_event_id)")
+    .eq("id", streamId)
+    .maybeSingle();
+  const stream = data as { profile_id: string; youtube_video_id: string; events: ThumbnailEvent | null } | null;
+  if (!stream?.events) return { ok: false, error: "Stream niet gevonden." };
+  // Alleen de eigen stream: de thumbnail gaat met het eigen kanaal naar YouTube.
+  if (stream.profile_id !== session.userId) return { ok: false, error: "Geen recht." };
+  const connection = await loadYouTubeConnection(admin, session.userId);
+  if (!connection) return { ok: false, error: "Koppel eerst YouTube op je profiel." };
+  let accessToken: string;
+  try {
+    accessToken = await youtubeAccessToken(admin, connection);
+  } catch (err) {
+    return { ok: false, error: grantError(err) };
+  }
+  const route = await thumbnailRoute(admin, stream.events);
+  const error = await pushThumbnail(accessToken, stream.youtube_video_id, {
+    eventTitle: stream.events.title,
+    startAt: stream.events.start_at,
+    ...route,
+  });
+  return error ? { ok: false, error } : { ok: true };
 }
 
 export async function removeStream(streamId: string): Promise<Result> {
