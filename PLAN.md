@@ -8,10 +8,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven (2026-11-19):
-   lokaal gecommit, niet gepusht.** Migratie
-   `0342_club_ladder_rider_rematch.sql` nog niet toegepast. Open: 0342 vóór
-   of bij de push op productie toepassen, daarna een matchup openen en
-   wedstrijd 17723 nakijken (Rich T.Pot hoort op 4227567). Zie de ronde
+   gepusht naar `main`.** Migratie `0342_club_ladder_rider_rematch.sql`
+   toegepast op 2026-11-19 (118 wedstrijden teruggezet). Open: na de deploy een
+   matchup openen en wedstrijd 17723 nakijken (Rich T.Pot hoort op 4227567). Zie de ronde
    "Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven".
 
 0. **Gebouwd — Club Ladder: ranking ook voor World (2026-11-19): gepusht naar
@@ -1402,8 +1401,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0342`
-(`0341_stream_overlay_stand` is van de OBS-overlay per stream, 2026-11-18, toegepast op 2026-11-18;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0343`
+(`0342_club_ladder_rider_rematch` is van het herkoppelen van ladderrenners, 2026-11-19, toegepast op 2026-11-19;
+`0341_stream_overlay_stand` is van de OBS-overlay per stream, 2026-11-18, toegepast op 2026-11-18;
 `0340_stream_helpers` is van livestreams via YouTube, fase 3, 2026-11-18, toegepast op 2026-11-18;
 `0339_race_stream_live_status` is van livestreams via YouTube, fase 2, 2026-11-18, toegepast op 2026-11-18;
 `0338_youtube_livestreams` is van livestreams via YouTube, fase 1, 2026-11-18, toegepast op 2026-11-18; de nummers `0280` tot en met `0337` staan bij hun eigen rondes; daarvoor:
@@ -12595,8 +12595,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven
 
-**2026-11-19, lokaal gecommit (hash in `git log`), niet gepusht.** Migratie
-`0342_club_ladder_rider_rematch.sql`, nog niet toegepast. Gevonden bij een
+**2026-11-19, commit `6a1675b2`, gepusht naar `main`** (eigenaar: "Ja,
+toepassen en pushen"). Migratie `0342_club_ladder_rider_rematch.sql`,
+toegepast op 2026-11-19: 118 wedstrijden teruggezet, 5 bleven opgehaald.
+Gevonden bij een
 analyse van tegenstander Valhalla Garmr (vraag eigenaar: "Ja, zoek het uit").
 
 - **Fout.** `matchZwiftResults` (`lib/club-ladder/team-power.ts`) koppelde elke
