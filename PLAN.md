@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Club Ladder: ranking ook voor World (2026-11-19): lokaal
-   gecommit, niet gepusht.** Geen migratie. Open: na de deploy de knop World
+0. **Gebouwd — Club Ladder: ranking ook voor World (2026-11-19): gepusht naar
+   `main` (`8308e841`).** Geen migratie. Open: na de deploy de knop World
    onder Ranking proberen op een teampagina. Zie de ronde "Gebouwd — Club
    Ladder: ranking ook voor World".
 
@@ -12588,8 +12588,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: ranking ook voor World
 
-**2026-11-19, commit "Club Ladder: ranking ook voor World", lokaal, niet
-gepusht.** Geen migratie. Op verzoek van de eigenaar ("Ik zie in de app enkel
+**2026-11-19, commit `8308e841`, gepusht naar `main`** (eigenaar: "Push maar"). Geen migratie. Op verzoek van de eigenaar ("Ik zie in de app enkel
 de EMEA ranglijst, zou je een toggle kunnen maken naar wereld?").
 
 - **Waarom.** Op `/teams/club-ladder/[teamId]` stond onder Ranking alleen de
