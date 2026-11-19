@@ -21,6 +21,32 @@ export function isNoticeIntegration(value: unknown): value is NoticeIntegration 
   return (NOTICE_INTEGRATIONS as readonly string[]).includes(String(value));
 }
 
+/**
+ * Geen ontbrekende koppeling maar een verkeerd gekoppelde bron (0343): het lid
+ * heeft intervals.icu, maar zijn ritten komen daar via Strava binnen, en zulke
+ * ritten geeft intervals.icu niet door. Telt voor het overzicht als "gekoppeld",
+ * dus lost hij niet vanzelf op; hij verdwijnt pas als het lid hem gezien heeft.
+ * Niet in NOTICE_INTEGRATIONS, want dat zijn de filters in /beheer/koppelingen.
+ */
+export const STRAVA_STUB_NOTICE = "intervals-strava" as const;
+
+export type NoticeKind = NoticeIntegration | typeof STRAVA_STUB_NOTICE;
+
+export const NOTICE_KINDS = [...NOTICE_INTEGRATIONS, STRAVA_STUB_NOTICE] as const;
+
+export function isNoticeKind(value: unknown): value is NoticeKind {
+  return (NOTICE_KINDS as readonly string[]).includes(String(value));
+}
+
+/** De uitleg bij STRAVA_STUB_NOTICE: alle ritten of een deel komt via Strava. */
+export function stravaStubNoticeBody(share: "all" | "part"): string {
+  const start =
+    share === "all"
+      ? "Je ritten komen via Strava in intervals.icu."
+      : "Een deel van je ritten komt via Strava in intervals.icu.";
+  return `${start} Zulke ritten geeft intervals.icu niet aan {kort} door. Ze tellen dan niet mee voor badges, weekstanden en cols, en je trainingsschema ziet geen vermogen, belasting of zonetijden. Koppel in intervals.icu bij Settings → Connections je Garmin, Wahoo, Zwift of ander toestel rechtstreeks.`;
+}
+
 export type NoticeTemplate = {
   title: string;
   body: string;
@@ -109,6 +135,24 @@ export function noticeTemplate(
         video: "live-gps",
       };
   }
+}
+
+/** De vaste titel en links per meldingstype, ook voor STRAVA_STUB_NOTICE. */
+export function noticeKindTemplate(
+  kind: NoticeKind,
+  options: { stravaCapFull?: boolean } = {},
+): NoticeTemplate {
+  if (kind === STRAVA_STUB_NOTICE) {
+    return {
+      title: "Je ritten via Strava komen niet binnen",
+      body: stravaStubNoticeBody("all"),
+      href: "https://intervals.icu/settings",
+      linkLabel: "Naar intervals.icu",
+      helpHref: "/hulp/koppelen#ritten-via-intervals",
+      video: "zonder-strava",
+    };
+  }
+  return noticeTemplate(kind, options);
 }
 
 /** Opschonen voor opslag: witruimte eraf, hooguit NOTICE_BODY_MAX tekens. */

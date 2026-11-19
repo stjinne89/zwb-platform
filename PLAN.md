@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Pop-up: ritten via Strava komen niet binnen (2026-11-19):
+   lokaal gecommit, niet gepusht.** Migratie
+   `0343_integration_notice_strava_stub.sql` nog niet toegepast; de meldingen
+   aan 17 leden zijn nog niet verstuurd. Zie de ronde "Gebouwd — Pop-up: ritten
+   via Strava komen niet binnen".
+
 0. **Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven (2026-11-19):
    gepusht naar `main`.** Migratie `0342_club_ladder_rider_rematch.sql`
    toegepast op 2026-11-19 (118 wedstrijden teruggezet). Open: na de deploy een
@@ -12593,6 +12599,52 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Pop-up: ritten via Strava komen niet binnen
+
+**2026-11-19, lokaal gecommit, niet gepusht.** Migratie
+`0343_integration_notice_strava_stub.sql`, **nog niet toegepast**. Aanleiding:
+de eigenaar vroeg waarom de vermogensdata van Martijn Wesseling ontbreekt, en
+daarna om alle leden met hetzelfde probleem een waarschuwing en instructie te
+sturen.
+
+- **Oorzaak bij het lid.** Martijn heeft intervals.icu gekoppeld en geen
+  Strava (plekken vol, 10/10). Al zijn 404 ritten komen in intervals.icu via
+  Strava binnen, en die geeft intervals.icu via de API alleen als stub door
+  (`source: "STRAVA"`, `_note`). `isStravaStub` slaat ze bewust over, dus niet
+  alleen het vermogen maar de hele rit ontbreekt. Zijn powercurve
+  (`rider_power_profiles`, door intervals zelf berekend) is er wel.
+- **Wie het treft (laatste 60 dagen, geen eigen Strava of ritten via
+  intervals).** Alle ritten als stub: 6 leden. Een deel als stub, met een stub
+  in de laatste vier weken: 11 leden. Vijf leden met alleen stubs van september
+  of begin oktober laten we weg; die hebben het vermoedelijk al opgelost. De
+  eigenaar heeft zelf 83 stubs met Strava gekoppeld en "Ritten via
+  intervals.icu" aan; niet nagelopen of die ritten in ZWB missen.
+- **Waarom een nieuw soort melding.** De pop-up uit `0307` is voor een
+  ontbrekende koppeling: bij deze leden telt intervals.icu als in orde en Strava
+  als niet nodig, dus `loadOpenIntegrationNotices` zou zo'n melding meteen op
+  opgelost zetten. Nieuwe waarde `intervals-strava` (`STRAVA_STUB_NOTICE` in
+  `lib/integrations/notices.ts`), buiten `NOTICE_INTEGRATIONS`, want die lijst
+  zijn de filters in `/beheer/koppelingen`. Titel "Je ritten via Strava komen
+  niet binnen", knop naar intervals.icu, uitleg naar
+  `/hulp/koppelen#ritten-via-intervals` (stap 2 daar zegt al "Niet via
+  Strava"), video `zonder-strava`. Twee teksten: `stravaStubNoticeBody("all")`
+  en `("part")`.
+- **Bewust niet.** Geen verstuurknop in `/beheer/koppelingen`: deze verzending
+  gaat één keer met de hand (SQL), en het filter daar kent geen stubs. Geen
+  vanzelf oplossen: of de nieuwste rit geen stub meer is, zegt bij leden met
+  gemengde bronnen niets. Geen nieuwe hulptekst: die stond er al. Geen
+  pushbericht: van de 17 leden hebben er twee push aan.
+- **Privacy.** Geen nieuwe gegevens: dezelfde tabel en velden als `0307`, een
+  bericht van de club over een koppeling.
+- **Getest.** `integration-notices.test.ts` (6 tests, de check in `0343` gelijk
+  aan `NOTICE_KINDS`, beide teksten binnen 600 tekens), typecheck en ESLint
+  schoon. Hele suite: `omnium-live.test.ts` (geen `.env.local`),
+  `admin-areas.test.ts` (time-out, bekend) en `club-texts-render.test.ts`
+  ("beheer noemt ZWB niet") falen, ook los gedraaid; geen van drie raakt deze
+  wijziging.
+- **Niet geverifieerd.** De migratie (geen Docker/Supabase-config), de pop-up
+  in de echte app, en de verzending zelf.
+
 ### Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven
 
 **2026-11-19, commit `6a1675b2`, gepusht naar `main`** (eigenaar: "Ja,
@@ -22359,7 +22411,9 @@ twaalfde uitzondering in `src/lib/privacy.ts`.
 
 **Getest.** Typecheck, ESLint en `next build` schoon. 9 nieuwe tests
 (`integration-notices.test.ts` en `member-integrations.test.ts`), onder meer
-dat de check in `0307` precies de koppelingen van de code noemt. De migratie
+dat de check in `0307` precies de koppelingen van de code noemt (sinds de
+ronde "Pop-up: ritten via Strava komen niet binnen" toetst die test de check
+uit `0343`, met `intervals-strava` erbij). De migratie
 in PGlite gedraaid, twee keer (idempotent), met stubs voor `auth.uid()` en de
 rollen: een lid leest alleen de eigen melding, insert/update/delete geweigerd,
 anon geweigerd, Zwift en lege tekst door de check geweigerd. Met voorbeelddata

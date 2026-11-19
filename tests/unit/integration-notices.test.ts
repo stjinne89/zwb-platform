@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   cleanNoticeBody,
   isNoticeIntegration,
+  isNoticeKind,
   NOTICE_BODY_MAX,
   NOTICE_INTEGRATIONS,
+  NOTICE_KINDS,
+  noticeKindTemplate,
   noticeTemplate,
+  STRAVA_STUB_NOTICE,
+  stravaStubNoticeBody,
 } from "@/lib/integrations/notices";
 import { readFile, stat } from "node:fs/promises";
 import { helpHrefForAnchor } from "@/lib/help-categories";
@@ -55,12 +60,28 @@ describe("pop-up nog niet gekoppeld", () => {
     expect(cleanNoticeBody("x".repeat(NOTICE_BODY_MAX + 1))).toBeNull();
   });
 
-  it("staat in de check van de migratie met precies dezelfde koppelingen", async () => {
-    const sql = await readFile("supabase/migrations/0307_integration_notices.sql", "utf8");
+  it("staat in de check van de migratie met precies dezelfde soorten", async () => {
+    const created = await readFile("supabase/migrations/0307_integration_notices.sql", "utf8");
+    expect(created).toContain(`between 1 and ${NOTICE_BODY_MAX}`);
+    const sql = await readFile("supabase/migrations/0343_integration_notice_strava_stub.sql", "utf8");
     const match = /check \(integration in \(([^)]*)\)\)/.exec(sql);
     expect(match).not.toBeNull();
     const ids = [...match![1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
-    expect(ids.sort()).toEqual([...NOTICE_INTEGRATIONS].sort());
-    expect(sql).toContain(`between 1 and ${NOTICE_BODY_MAX}`);
+    expect(ids.sort()).toEqual([...NOTICE_KINDS].sort());
+  });
+
+  it("heeft een melding voor ritten die via Strava in intervals.icu komen", async () => {
+    expect(isNoticeKind(STRAVA_STUB_NOTICE)).toBe(true);
+    expect(isNoticeIntegration(STRAVA_STUB_NOTICE)).toBe(false);
+    const template = noticeKindTemplate(STRAVA_STUB_NOTICE);
+    expect(template.helpHref).toBe("/hulp/koppelen#ritten-via-intervals");
+    expect(helpHrefForAnchor("ritten-via-intervals")).toBe(template.helpHref);
+    expect(noticeKindTemplate("push")).toEqual(noticeTemplate("push"));
+    for (const share of ["all", "part"] as const) {
+      const body = stravaStubNoticeBody(share).replaceAll("{kort}", "ZWBasis");
+      expect(cleanNoticeBody(body)).toBe(body);
+      expect(body).toMatch(/Settings → Connections/);
+    }
+    expect(stravaStubNoticeBody("part")).toMatch(/^Een deel/);
   });
 });

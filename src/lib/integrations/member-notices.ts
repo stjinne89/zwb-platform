@@ -10,7 +10,13 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadMemberIntegrationInputs, stravaCapIsFull } from "@/lib/integrations/load";
 import { memberIntegrations } from "@/lib/integrations/member-overview";
-import { isNoticeIntegration, noticeTemplate, NOTICE_INTEGRATIONS } from "@/lib/integrations/notices";
+import {
+  isNoticeIntegration,
+  isNoticeKind,
+  noticeKindTemplate,
+  NOTICE_INTEGRATIONS,
+  type NoticeKind,
+} from "@/lib/integrations/notices";
 import { helpVideo, helpVideoDuration, helpVideoHref } from "@/lib/help-videos";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,21 +49,27 @@ export async function loadOpenIntegrationNotices(
   if (error || !data || data.length === 0) return [];
 
   const rows = (data as { id: string; integration: string; body: string }[]).filter((row) =>
-    isNoticeIntegration(row.integration),
+    isNoticeKind(row.integration),
   );
   if (rows.length === 0) return [];
 
   const admin = createAdminClient();
-  const [member] = await loadMemberIntegrationInputs(admin, { profileIds: [profileId] });
-  const missing = new Set(
+  // Alleen meldingen over een ontbrekende koppeling lossen vanzelf op; de
+  // melding over ritten via Strava (0343) blijft tot het lid hem zag.
+  const needsCheck = rows.some((row) => isNoticeIntegration(row.integration));
+  const [member] = needsCheck
+    ? await loadMemberIntegrationInputs(admin, { profileIds: [profileId] })
+    : [];
+  const missing = new Set<string>(
     member
       ? memberIntegrations(member.input)
           .filter((item) => item.missing)
           .map((item) => item.key as string)
       : NOTICE_INTEGRATIONS,
   );
+  const stillOpen = (integration: string) => !isNoticeIntegration(integration) || missing.has(integration);
 
-  const resolved = rows.filter((row) => !missing.has(row.integration)).map((row) => row.id);
+  const resolved = rows.filter((row) => !stillOpen(row.integration)).map((row) => row.id);
   if (resolved.length > 0) {
     await admin
       .from("integration_notices")
@@ -70,7 +82,7 @@ export async function loadOpenIntegrationNotices(
       );
   }
 
-  const open = rows.filter((row) => missing.has(row.integration));
+  const open = rows.filter((row) => stillOpen(row.integration));
   if (open.length === 0) return [];
   const capFull = open.some((row) => row.integration === "strava") ? await stravaCapIsFull(admin) : false;
 
@@ -88,7 +100,7 @@ export async function loadOpenIntegrationNotices(
   }
 
   return [...byIntegration.values()].map((entry) => {
-    const template = noticeTemplate(entry.integration as (typeof NOTICE_INTEGRATIONS)[number], {
+    const template = noticeKindTemplate(entry.integration as NoticeKind, {
       stravaCapFull: capFull,
     });
     return {
