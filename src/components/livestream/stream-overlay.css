@@ -13,7 +13,9 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
   font-variant-numeric: tabular-nums;
 }
 
-.stream-overlay-panel { width: 560px; background: var(--ov-ground); }
+/* Onder het cijferblok van Zwift linksboven (vermogen, cadans, kJ), dat tot
+   ongeveer 310px reikt (eigenaar, 2026-11-19, screenshot uit OBS). */
+.stream-overlay-panel { width: 560px; margin-top: 290px; background: var(--ov-ground); }
 
 /* De kop: de tegel van wedstrijden met de tenueband, zoals op de startpagina. */
 .stream-overlay-head {
@@ -76,7 +78,7 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
   grid-template-columns: 40px 1fr auto;
   align-items: baseline;
   gap: 12px;
-  padding: 8px 14px;
+  padding: 6px 14px;
   background: var(--ov-row);
   font-size: 24px;
   line-height: 1.2;

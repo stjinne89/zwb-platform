@@ -104,8 +104,12 @@ export function zrlStatus(view: ZrlLiveView): string {
   return view.subgroupLabel ? `ZRL live · ${view.subgroupLabel}` : "ZRL live";
 }
 
-/** ?teams=5 tot 15, standaard 8 (overlayRows begrenst). */
+/**
+ * ?teams=5 tot 8, standaard 8 (overlayRows begrenst de onderkant). Hoogstens
+ * 8: sinds de stand onder de Zwift-cijfers begint (2026-11-19), raakt meer het
+ * sponsorvak (gemeten: 8 ploegen laten 16px over, 10 lopen 77px erin).
+ */
 export function wantedTeams(value: string | string[] | undefined): number {
   const n = Number(typeof value === "string" ? value : NaN);
-  return Number.isFinite(n) ? n : 8;
+  return Number.isFinite(n) ? Math.min(n, 8) : 8;
 }

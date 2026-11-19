@@ -60,6 +60,11 @@ gaat stabiliteit voor nieuwe features.
    `/zwbeter-worden/schema` (maand) en op de trainerkalender bekijken, licht en
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
+0. **Bijgesteld — OBS-overlay onder de cijfers van Zwift (2026-11-19):
+   lokaal gecommit, niet gepusht.** Geen migratie. Kop en stand links vanaf
+   330px, `?teams=` tot 8. Zie de ronde "Bijgesteld — OBS-overlay onder de
+   cijfers van Zwift".
+
 0. **Gebouwd — Thumbnail per stream (2026-11-19): commit `687c025`, op
    2026-11-19 gepusht naar `main` (`415bbd1`, eigenaar: "Yes, push").** Geen migratie. Bij Stream klaarzetten maakt de app een
    thumbnail van 1280×720 in de clubkleuren en zet hem op YouTube; onder de
@@ -12988,6 +12993,26 @@ bekende ontbrekende pakketten na.
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
 
+### Bijgesteld — OBS-overlay onder de cijfers van Zwift
+
+**2026-11-19, lokaal gecommit, niet gepusht. Geen migratie.**
+
+- **Waarom.** Op een screenshot uit OBS van de eigenaar viel de kop van de
+  overlay linksboven over het cijferblok van Zwift (vermogen, cadans, kJ).
+  Gekozen uit twee voorstellen: "Yes, move it down" (de andere optie was een
+  plek kiezen per stream).
+- **Wat.** Het paneel met kop en stand begint links op 330px in plaats van
+  40px (`margin-top: 290px`), de sponsors blijven linksonder. De rijen van de
+  stand zijn wat lager (6px in plaats van 8px boven en onder), en `?teams=`
+  gaat nu tot 8 in plaats van 15: lokaal gemeten laten 8 ploegen met een
+  titel van twee regels 16px over boven het sponsorvak, 10 lopen er 77px in.
+  Hulp: de overlay staat links onder de cijfers van Zwift; zet Sauce-vensters
+  rechts.
+- **Bewust niet.** Geen plek kiezen per stream: pas nodig als iemand de
+  Zwift-cijfers anders heeft staan.
+- **Niet geverifieerd.** De 310px van het Zwift-blok is geschat uit de
+  screenshot (1080p, standaard-HUD); niet in OBS met Zwift nagemeten.
+
 ### Gebouwd — Thumbnail per stream
 
 **2026-11-19, commit `687c025` ("Thumbnail per stream: in de clubkleuren naar YouTube bij klaarzetten"), daarna `415bbd1` (letters in de trace van de racepagina); op 2026-11-19 gepusht naar `main`. Geen migratie.**
@@ -13184,7 +13209,7 @@ bekende ontbrekende pakketten na.
     uit de speler; die kan het lid opnieuw klaarzetten.
   - ZRL-overlay `/live/zrl/<id>/overlay`: browserbron op 1920×1080 met
     doorzichtige achtergrond, de teamstand van de live stand (top 8, `?teams=5`
-    tot 15; staat de eigen ploeg lager, dan vervangt die de laatste rij, in
+    tot 15, sinds 2026-11-19 tot 8; staat de eigen ploeg lager, dan vervangt die de laatste rij, in
     oranje; sinds de ronde "OBS-overlay per stream" in de huisstijl en goud),
     punten of in een TTT de tijd van de vierde renner, ververst elke 15 s tot
     de stand definitief is. Engels, zoals de Omnium-overlay. Onder de eigen
