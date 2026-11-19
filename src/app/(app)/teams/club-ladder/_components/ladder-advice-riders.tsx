@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { MemberLink } from "@/components/member-link";
-import { DURATION_LABELS, type OverviewRider } from "@/lib/club-ladder/advice";
+import type { OverviewRider } from "@/lib/club-ladder/advice";
 import type { PowerDuration } from "@/lib/club-ladder/routes";
-import { DURATIONS } from "@/lib/club-ladder/team-power";
+import { DURATION_LABELS, DURATIONS } from "@/lib/club-ladder/team-power";
 import { cn } from "@/lib/utils";
 
 const wkgFormat = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -12737,6 +12737,16 @@ indeling", "Bouw maar met mediaan".
   Naast het voordeel staat hoeveel paren we winnen (`wins`, bv. 2/5).
 - **Overzicht met namen.** `LadderAdviceRiders`: onze vijf en hun vijf in één
   tabel, sorteerbaar per duur, onze namen via `MemberLink`.
+- **`DURATION_LABELS` naar `team-power.ts`.** Een clientcomponent die het uit
+  `advice.ts` haalde, trok via `routes.ts` `safe-fetch` (`node:net`) mee naar
+  de browser: de dev-server gaf een 500, de productiebuild niet. `advice.ts`
+  exporteert het nog. Ook de resultaattabel van de briefing leest het nu uit
+  `team-power.ts`.
+- **Lokaal nagelopen (dev, productie-database, zonder 0343).** Advies tegen
+  Cryo-Gen: mediaan en 4/5 bij 5 min, de tabel, drie renners van de
+  tegenstander gekozen (`hun=`, drie paren, tabs weg), Indoor rekent opnieuw en
+  valt zonder kolom terug op ZwiftRacing. `/teams`, een teampagina, de
+  indeling en twee ladder-events laden met de schakelaar.
 - **Bewust niet.** De matchup (`matchup.ts`) houdt zijn eigen vergelijking per
   duur en kreeg geen mediaan: daar ging de vraag niet over. De racebriefing
   volgt de schakelaar niet en blijft op Alles: daar staat geen

@@ -5,11 +5,10 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { MemberLink } from "@/components/member-link";
 import { PowerUnitToggle } from "@/components/power-unit";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ui/responsive-table";
-import { DURATION_LABELS } from "@/lib/club-ladder/advice";
 import type { LadderPlace } from "@/lib/club-ladder/briefing";
 import { heatHue, ladderPower, ladderPowerRange, nextLadderSort, sortLadderPlaces, type LadderSort, type LadderSortKey } from "@/lib/club-ladder/briefing-sort";
 import type { PowerDuration } from "@/lib/club-ladder/routes";
-import { DURATIONS } from "@/lib/club-ladder/team-power";
+import { DURATION_LABELS, DURATIONS } from "@/lib/club-ladder/team-power";
 import { cn } from "@/lib/utils";
 import { useMatchupUnit } from "../../_components/ladder-matchup-riders";
 

@@ -2,9 +2,9 @@ import { EVEN_PCT, formatEdge } from "./edge-tone";
 import { powerOverview, routeEdge, type AdviceRider, type RiderPair } from "./rank-pairs";
 import { shownWeight, weightsUsable } from "./rider-weight";
 import { routeClassOfSlug, ROUTE_CLASS_LABELS, type LadderRouteClass, type LadderRouteOption, type PowerDuration } from "./routes";
-import { DURATIONS, sameTeam, type PowerWkg, type StoredMatch } from "./team-power";
+import { DURATION_LABELS, DURATIONS, sameTeam, type PowerWkg, type StoredMatch } from "./team-power";
 
-export const DURATION_LABELS: Record<PowerDuration, string> = { s15: "15 s", m1: "1 min", m5: "5 min", m20: "20 min" };
+export { DURATION_LABELS };
 
 export type ClassRecord = { races: number; wins: number; pointsShare: number };
 

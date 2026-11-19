@@ -6,6 +6,9 @@ import type { PowerDuration } from "./routes";
 export type PowerWkg = Record<PowerDuration, number | null>;
 export const DURATIONS: PowerDuration[] = ["s15", "m1", "m5", "m20"];
 
+/** Labels per duur; hier en niet in `advice.ts`, zodat clientcomponenten de parcourslijst niet meeslepen. */
+export const DURATION_LABELS: Record<PowerDuration, string> = { s15: "15 s", m1: "1 min", m5: "5 min", m20: "20 min" };
+
 export type MatchRider = LadderResultRider & {
   zwiftId: number | null;
   weightKg: number | null;
