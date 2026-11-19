@@ -61,7 +61,7 @@ gaat stabiliteit voor nieuwe features.
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
 0. **Herzien — OBS-overlay als kader om Zwift, thumbnail met matchup
-   (2026-11-19): lokaal gecommit, niet gepusht.** Geen migratie. Na de eerste
+   (2026-11-19): commit `0d91afa`, lokaal, niet gepusht.** Geen migratie. Na de eerste
    stream: de overlay is een kader met de tenuebanen van de app, Zwift staat
    op 80% rechtsonder; Nederlands; thumbnail zonder "Live". Open: na de push
    de Zwift-bron in OBS op positie 384, 216 en begrenzingsvak 1536×864 zetten
@@ -13002,7 +13002,7 @@ bekende ontbrekende pakketten na.
 
 ### Herzien — OBS-overlay als kader om Zwift
 
-**2026-11-19, lokaal gecommit, niet gepusht. Geen migratie.**
+**2026-11-19, commit `0d91afa`, lokaal, niet gepusht. Geen migratie.**
 
 - **Waarom.** De eerste stream (Club Ladder ZWBeasts – TeamNL Cloud9 Thunder,
   YouTube `Zb1RRYr4JNc`) is beoordeeld met `/impeccable critique` op vijf
