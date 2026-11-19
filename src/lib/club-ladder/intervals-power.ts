@@ -30,7 +30,7 @@ const positive = (value: unknown) => {
 
 /**
  * Per profiel-id de curve en het gewicht; profielen zonder watt ontbreken. Met
- * `indoor` de indoorcurve (migratie 0343): wie die niet heeft, ontbreekt, en
+ * `indoor` de indoorcurve (migratie 0344): wie die niet heeft, ontbreekt, en
  * valt in het advies terug op ZwiftRacing, dat toch al binnen is.
  */
 export async function loadIntervalsPower(

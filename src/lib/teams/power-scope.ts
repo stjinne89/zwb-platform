@@ -1,7 +1,7 @@
 // Alles of indoor: met welke intervals.icu-curve de vermogensweergaves van
 // Teams, de indeling en de Club Ladder rekenen (2026-11-19). De keuze staat in
 // een cookie, zodat ze op elke pagina met vermogen meeloopt; de indoorcurve
-// staat in `rider_power_profiles.indoor_profile` (migratie 0343).
+// staat in `rider_power_profiles.indoor_profile` (migratie 0344).
 
 export type PowerScope = "all" | "indoor";
 

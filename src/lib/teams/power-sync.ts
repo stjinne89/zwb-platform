@@ -234,7 +234,7 @@ export async function syncOnePowerProfile(
     };
     // Databases zonder de curve-migraties kennen die kolommen niet; dan slaan we
     // eerst de vermoeide curves over en daarna de hele curve.
-    // Zonder migratie 0343 ook de indoorcurve.
+    // Zonder migratie 0344 ook de indoorcurve.
     let { error } = await supabase.from("rider_power_profiles").upsert(profileRow);
     for (const skipped of [
       ["indoor_profile"],

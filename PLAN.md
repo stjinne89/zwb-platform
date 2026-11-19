@@ -21,7 +21,7 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Club Ladder: indoorcurve, tegenstander kiezen en mediaan
    (2026-11-19): lokaal gecommit, niet gepusht.** Migratie
-   `0343_rider_power_profile_indoor.sql`, nog niet toegepast: eerst toepassen,
+   `0344_rider_power_profile_indoor.sql`, nog niet toegepast: eerst toepassen,
    dan pushen (zonder de kolom geeft Indoor lege waarden; Alles en de sync
    blijven werken). Open: na de eerste sync in `rider_power_profiles` nagaan of
    `indoor_profile` echt afwijkt bij leden die buiten rijden (het filter van
@@ -1422,8 +1422,8 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0344`
-(`0343_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, nog niet toegepast;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0345`
+(`0344_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, geschreven als `0343` en vóór het toepassen hernummerd, want main had `0343` al;
 `0342_club_ladder_rider_rematch` is van het herkoppelen van ladderrenners, 2026-11-19, toegepast op 2026-11-19;
 `0341_stream_overlay_stand` is van de OBS-overlay per stream, 2026-11-18, toegepast op 2026-11-18;
 `0340_stream_helpers` is van livestreams via YouTube, fase 3, 2026-11-18, toegepast op 2026-11-18;
@@ -12698,7 +12698,7 @@ sturen.
 ### Gebouwd — Club Ladder: indoorcurve, tegenstander kiezen en mediaan
 
 **2026-11-19, lokaal gecommit, niet gepusht.** Migratie
-`0343_rider_power_profile_indoor.sql`, nog niet toegepast. Vragen van de ploeg
+`0344_rider_power_profile_indoor.sql`, nog niet toegepast. Vragen van de ploeg
 over het advies op `/teams/club-ladder/[teamId]?tegen=…#advies` (Bart: een
 schakelaar "volledig/indoor"; Kevin: renners van de tegenstander kiezen, en een
 overzicht dat laat zien wie een duur draagt). Eigenaar na het voorstel: "Ik wil
@@ -12706,7 +12706,7 @@ de echte indoorcurve, het gaat om het verschil tussen binnen en buiten, dus ik
 wil de trainingen meenemen. Ik wil de schakelaar ook op teampagina's en
 indeling", "Bouw maar met mediaan".
 
-- **Indoorcurve (0343).** `rider_power_profiles.indoor_profile` (jsonb, met
+- **Indoorcurve (0344).** `rider_power_profiles.indoor_profile` (jsonb, met
   dezelfde sleutels als de kolommen: `watts_15s` … `wkg_20m`, `rider_type`).
   `syncOnePowerProfile` vraagt naast de volledige curve een tweede op met
   `filters=[{"field_id":"indoor","value":"indoor","id":1}]` (zelfde 90 dagen,
@@ -12742,7 +12742,7 @@ indeling", "Bouw maar met mediaan".
   de browser: de dev-server gaf een 500, de productiebuild niet. `advice.ts`
   exporteert het nog. Ook de resultaattabel van de briefing leest het nu uit
   `team-power.ts`.
-- **Lokaal nagelopen (dev, productie-database, zonder 0343).** Advies tegen
+- **Lokaal nagelopen (dev, productie-database, zonder 0344).** Advies tegen
   Cryo-Gen: mediaan en 4/5 bij 5 min, de tabel, drie renners van de
   tegenstander gekozen (`hun=`, drie paren, tabs weg), Indoor rekent opnieuw en
   valt zonder kolom terug op ZwiftRacing. `/teams`, een teampagina, de
