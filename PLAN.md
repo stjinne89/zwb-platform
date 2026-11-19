@@ -61,7 +61,7 @@ gaat stabiliteit voor nieuwe features.
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
 0. **Bijgesteld — OBS-overlay onder de cijfers van Zwift (2026-11-19):
-   lokaal gecommit, niet gepusht.** Geen migratie. Kop en stand links vanaf
+   lokaal gecommit (`21f1454`), niet gepusht.** Geen migratie. Kop en stand links vanaf
    330px, `?teams=` tot 8. Zie de ronde "Bijgesteld — OBS-overlay onder de
    cijfers van Zwift".
 
@@ -12995,7 +12995,7 @@ bekende ontbrekende pakketten na.
 
 ### Bijgesteld — OBS-overlay onder de cijfers van Zwift
 
-**2026-11-19, lokaal gecommit, niet gepusht. Geen migratie.**
+**2026-11-19, commit `21f1454`, lokaal, niet gepusht. Geen migratie.**
 
 - **Waarom.** Op een screenshot uit OBS van de eigenaar viel de kop van de
   overlay linksboven over het cijferblok van Zwift (vermogen, cadans, kJ).
