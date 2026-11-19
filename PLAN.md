@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Ingericht — Club Ladder-sessie warm houden (2026-11-19): geplande taak
+   op de eigen pc, geen code en geen migratie.** Open: over een paar dagen
+   nagaan of de sync de aanmeldingen nog leest. Zie de ronde "Ingericht — Club
+   Ladder-sessie warm houden".
+
 0. **Gebouwd — Club Ladder: uitdagers zoeken (2026-11-19): gepusht naar `main`
    (`e5e13173`).**
    Geen migratie. Open: beide knoppen na de deploy als captain proberen. Zie de
@@ -12568,6 +12573,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Ingericht — Club Ladder-sessie warm houden
+
+**2026-11-19, geen code, geen migratie.** Op verzoek van de eigenaar ("een
+taak klaarzetten die elke dag de club ladder cookie vernieuwt via Chrome").
+
+- **Wat de cookie doet.** `connect.sid` van ladder.cycleracing.club is
+  httpOnly en 24 uur geldig, en die termijn schuift op bij elk bezoek. De
+  eigenaar zag in DevTools dat Expires na het verversen van een pagina opschoof
+  van `2026-11-20T07:45:23Z` naar `2026-11-20T07:46:50Z`. De waarde zelf
+  blijft gelijk, dus een bezoek in Chrome houdt ook dezelfde `LADDER_COOKIE`
+  op Netlify en in `.env.local` geldig, zolang die uit deze Chrome-sessie komt.
+- **Geplande taak** `club-ladder-sessie-warmhouden` (Claude-app op de eigen pc,
+  `~/.claude/scheduled-tasks/`), om 07:00 en 19:00. Opent de ladder in een nieuw
+  Chrome-tabblad, kijkt of de pagina ingelogd is (doorsturen naar `/dashboard`,
+  "Logout") en sluit het tabblad weer. Niet ingelogd: een pushmelding om de cookie zelf
+  te vernieuwen. Op 2026-11-19 zijn de stappen met de hand nagelopen
+  (ingelogd). Een proefrun van de taak zelf mocht niet vanuit de sessie.
+
+**Bewust niet:**
+- De cookie niet automatisch vervangen. Chrome kan een httpOnly-cookie niet
+  uitlezen, een nieuwe env-waarde op Netlify vraagt elke keer een deploy
+  (credits), en de cookie invoeren blijft bij de eigenaar.
+- Niet één keer per dag: met de vertraging van een paar minuten bij het
+  starten zou een run soms net na de 24 uur vallen.
+- De cookie (nog) niet in de database gezet. Pas nodig als het warm houden
+  niet blijkt te werken.
+
+**Niet gecontroleerd:** de taak draait alleen als de pc aan staat en de
+Claude-app open is. Staan ze meer dan 24 uur uit, dan verloopt de sessie. Of
+de ladder ook een harde maximale sessieduur heeft, is onbekend.
 
 ### Gebouwd — Club Ladder: uitdagers zoeken
 

@@ -136,7 +136,7 @@ vangen, maar weet hier hoe je ze ververst:
 
 | Credential | Gebruikt voor | Vervalt? | Vernieuwen |
 |---|---|---|---|
-| `LADDER_COOKIE` | Club-ladder/graveyard scraper (`ladder.cycleracing.club`) | Ja, sessiecookie | Inloggen, `connect.sid`-cookie kopiëren via DevTools → Application → Cookies |
+| `LADDER_COOKIE` | Club-ladder/graveyard scraper (`ladder.cycleracing.club`) | Na 24 uur zonder gebruik; elk bezoek verlengt hem. De geplande taak `club-ladder-sessie-warmhouden` opent de ladder om 07:00 en 19:00 in Chrome | Inloggen, `connect.sid`-cookie kopiëren via DevTools → Application → Cookies, met `connect.sid=` ervoor |
 | `WTRL_COOKIE` | ZRL/WTRL-data; alleen gebruikt als `WTRL_SYNC_ENABLED=true` (staat uit sinds 2026-09-21, WTRL-voorwaarden) | Ja, sessiecookie | Inloggen bij WTRL, sessiecookie kopiëren |
 | `ZWIFT_USERNAME` / `ZWIFT_PASSWORD` | Zwift-club-serviceaccount (event-feed + entrants) | Wachtwoord/lockout | Eigen ZWB-serviceaccount; bij lockout wachtwoord resetten. Verifieer met "Test clubkoppeling" op `/beheer/event-scan` |
 | `STRAVA_CLIENT_SECRET` | Strava OAuth | Nee (tenzij geroteerd) | Strava API-dashboard |
