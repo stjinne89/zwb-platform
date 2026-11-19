@@ -20,10 +20,9 @@ gaat stabiliteit voor nieuwe features.
    Pop-up: ritten via Strava komen niet binnen".
 
 0. **Gebouwd — Club Ladder: indoorcurve, tegenstander kiezen en mediaan
-   (2026-11-19): lokaal gecommit, niet gepusht.** Migratie
-   `0344_rider_power_profile_indoor.sql`, nog niet toegepast: eerst toepassen,
-   dan pushen (zonder de kolom geeft Indoor lege waarden; Alles en de sync
-   blijven werken). Open: na de eerste sync in `rider_power_profiles` nagaan of
+   (2026-11-19): gepusht naar `main` (`3652cd3d`, `8790e917`, `62c1cb68`).**
+   Migratie `0344_rider_power_profile_indoor.sql` op 2026-11-19 vóór de push
+   toegepast. Indoor blijft leeg tot de volgende sync per lid. Open: na de eerste sync in `rider_power_profiles` nagaan of
    `indoor_profile` echt afwijkt bij leden die buiten rijden (het filter van
    intervals.icu is niet live getest). Zie de ronde "Gebouwd — Club Ladder:
    indoorcurve, tegenstander kiezen en mediaan".
@@ -1423,7 +1422,8 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0345`
-(`0344_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, geschreven als `0343` en vóór het toepassen hernummerd, want main had `0343` al;
+(`0344_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, toegepast op 2026-11-19, geschreven als `0343` en vóór het toepassen hernummerd, want main had `0343` al;
+`0343_integration_notice_strava_stub` is van de pop-up voor ritten via Strava, 2026-11-19, toegepast op 2026-11-19;
 `0342_club_ladder_rider_rematch` is van het herkoppelen van ladderrenners, 2026-11-19, toegepast op 2026-11-19;
 `0341_stream_overlay_stand` is van de OBS-overlay per stream, 2026-11-18, toegepast op 2026-11-18;
 `0340_stream_helpers` is van livestreams via YouTube, fase 3, 2026-11-18, toegepast op 2026-11-18;
@@ -12697,8 +12697,10 @@ sturen.
 
 ### Gebouwd — Club Ladder: indoorcurve, tegenstander kiezen en mediaan
 
-**2026-11-19, lokaal gecommit, niet gepusht.** Migratie
-`0344_rider_power_profile_indoor.sql`, nog niet toegepast. Vragen van de ploeg
+**2026-11-19, commits `3652cd3d`, `8790e917` en `62c1cb68`, gepusht naar
+`main`** (eigenaar: "Toepassen en pushen"). Migratie
+`0344_rider_power_profile_indoor.sql` op 2026-11-19 vóór de push toegepast;
+geschreven als `0343` en hernummerd, want main had `0343` intussen al. Vragen van de ploeg
 over het advies op `/teams/club-ladder/[teamId]?tegen=…#advies` (Bart: een
 schakelaar "volledig/indoor"; Kevin: renners van de tegenstander kiezen, en een
 overzicht dat laat zien wie een duur draagt). Eigenaar na het voorstel: "Ik wil
