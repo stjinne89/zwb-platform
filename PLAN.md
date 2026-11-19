@@ -19,6 +19,15 @@ gaat stabiliteit voor nieuwe features.
    (`seen_at`) en of hun ritten daarna wel binnenkomen. Zie de ronde "Gebouwd —
    Pop-up: ritten via Strava komen niet binnen".
 
+0. **Gebouwd — Club Ladder: indoorcurve, tegenstander kiezen en mediaan
+   (2026-11-19): lokaal gecommit, niet gepusht.** Migratie
+   `0343_rider_power_profile_indoor.sql`, nog niet toegepast: eerst toepassen,
+   dan pushen (zonder de kolom geeft Indoor lege waarden; Alles en de sync
+   blijven werken). Open: na de eerste sync in `rider_power_profiles` nagaan of
+   `indoor_profile` echt afwijkt bij leden die buiten rijden (het filter van
+   intervals.icu is niet live getest). Zie de ronde "Gebouwd — Club Ladder:
+   indoorcurve, tegenstander kiezen en mediaan".
+
 0. **Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven (2026-11-19):
    gepusht naar `main`.** Migratie `0342_club_ladder_rider_rematch.sql`
    toegepast op 2026-11-19 (118 wedstrijden teruggezet). Open: na de deploy een
@@ -1413,8 +1422,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0343`
-(`0342_club_ladder_rider_rematch` is van het herkoppelen van ladderrenners, 2026-11-19, toegepast op 2026-11-19;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0344`
+(`0343_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, nog niet toegepast;
+`0342_club_ladder_rider_rematch` is van het herkoppelen van ladderrenners, 2026-11-19, toegepast op 2026-11-19;
 `0341_stream_overlay_stand` is van de OBS-overlay per stream, 2026-11-18, toegepast op 2026-11-18;
 `0340_stream_helpers` is van livestreams via YouTube, fase 3, 2026-11-18, toegepast op 2026-11-18;
 `0339_race_stream_live_status` is van livestreams via YouTube, fase 2, 2026-11-18, toegepast op 2026-11-18;
@@ -12685,6 +12695,64 @@ sturen.
 - **Niet geverifieerd.** De pop-up in de echte app; lokaal kon de migratie niet
   draaien (geen Docker/Supabase-config).
 
+### Gebouwd — Club Ladder: indoorcurve, tegenstander kiezen en mediaan
+
+**2026-11-19, lokaal gecommit, niet gepusht.** Migratie
+`0343_rider_power_profile_indoor.sql`, nog niet toegepast. Vragen van de ploeg
+over het advies op `/teams/club-ladder/[teamId]?tegen=…#advies` (Bart: een
+schakelaar "volledig/indoor"; Kevin: renners van de tegenstander kiezen, en een
+overzicht dat laat zien wie een duur draagt). Eigenaar na het voorstel: "Ik wil
+de echte indoorcurve, het gaat om het verschil tussen binnen en buiten, dus ik
+wil de trainingen meenemen. Ik wil de schakelaar ook op teampagina's en
+indeling", "Bouw maar met mediaan".
+
+- **Indoorcurve (0343).** `rider_power_profiles.indoor_profile` (jsonb, met
+  dezelfde sleutels als de kolommen: `watts_15s` … `wkg_20m`, `rider_type`).
+  `syncOnePowerProfile` vraagt naast de volledige curve een tweede op met
+  `filters=[{"field_id":"indoor","value":"indoor","id":1}]` (zelfde 90 dagen,
+  trainingen inbegrepen) en schrijft hem weg via `indoorProfilePayload`. Mislukt
+  die tweede vraag, dan blijft alleen indoor leeg. Zonder migratie probeert de
+  upsert het opnieuw zonder de kolom.
+- **Schakelaar Alles/Indoor.** Cookie `zwb-power-scope`
+  (`lib/teams/power-scope.ts`, `PowerScopeToggle`), dus één keuze voor alle
+  pagina's: `/teams`, `/teams/[id]`, `/teams/[id]/indeling`, de Club
+  Ladder-teampagina (advies en teamprofiel) en de matchup en het parcoursadvies
+  op het event van een ladderrace. `withPowerScope` wisselt de rij om; Indoor
+  zonder indoorcurve geeft lege duren, niet de volledige curve, want die zou de
+  vergelijking stil vertekenen. In het advies en de matchup valt zo'n renner
+  terug op ZwiftRacing (alleen Zwift-races, dus binnen).
+- **Verwachting blijft op Alles.** De matchup legt vóór de start de
+  verwachting vast (0308); dat gebeurt alleen met de volledige curve, zodat de
+  uitslag niet afhangt van wie er in indoorstand keek.
+- **Renners van de tegenstander kiezen.** `hun=` in de URL (Zwift-ID's), zoals
+  `met=` voor onze kant; `LadderAdviceSelection` is daarvoor algemeen gemaakt
+  (`param`, `label`). Te kiezen uit wie de laatste tien ladderraces voor hem
+  reed en vermogen heeft. Vijf of minder blijven die renners, meer dan vijf: de
+  beste vijf daaruit (Overall). Iedereen mag het, want er wordt niets bewaard.
+  Met een keuze vervallen de tabs per type.
+- **Mediaan.** `pairUp` (`rank-pairs.ts`) neemt de mediaan van de
+  log-verschillen in plaats van het gemiddelde, ook voor het voordeel per
+  parcours. Waarom: één renner die zijn paar met 40% wint, trok het gemiddelde
+  naar "wij beter" terwijl vier paren verloren (Kevins voorbeeld met Pim).
+  Naast het voordeel staat hoeveel paren we winnen (`wins`, bv. 2/5).
+- **Overzicht met namen.** `LadderAdviceRiders`: onze vijf en hun vijf in één
+  tabel, sorteerbaar per duur, onze namen via `MemberLink`.
+- **Bewust niet.** De matchup (`matchup.ts`) houdt zijn eigen vergelijking per
+  duur en kreeg geen mediaan: daar ging de vraag niet over. De racebriefing
+  volgt de schakelaar niet en blijft op Alles: daar staat geen
+  vermogensschakelaar, en de verwachting moet vast blijven. De zMAP in de
+  puzzel van de ladder volgt hem ook niet: `withPuzzleZmap` blijft bij de
+  volledige curve, want dat is een categoriegrens, geen vergelijking.
+- **Niet lokaal te testen.** De migratie (geen Docker/Supabase-config) en het
+  indoorfilter van intervals.icu: het formaat komt uit de gemergde
+  intervals-MCP-server (`tools/power_curves.py`), niet uit een eigen aanroep.
+  Na de eerste sync in productie nagaan of `indoor_profile` afwijkt van de
+  volledige curve bij leden die buiten rijden; anders is `"value": true` het
+  volgende om te proberen.
+- **Tests.** `club-ladder-rank-pairs` (mediaan, één uitschieter, even aantal)
+  en `power-scope` (omwisselen, lege indoor, `hun=`). `club-texts-render`
+  ("beheer noemt ZWB niet") faalde al zonder deze ronde.
+
 ### Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven
 
 **2026-11-19, commit `6a1675b2`, gepusht naar `main`** (eigenaar: "Ja,
@@ -22282,7 +22350,8 @@ elkaar, zonder toeval.
 - **Renner tegen renner** (`club-ladder/rank-pairs.ts`, puur): per duur beide
   vijftallen op volgorde, beste tegen beste tot en met vijf. Per paar het
   log-verschil in procenten, het voordeel van de duur is het gemiddelde ervan,
-  vanaf drie paren (`MIN_PAIRS`). Per parcours de duren gewogen zoals eerder, met
+  vanaf drie paren (`MIN_PAIRS`). *Sinds 2026-11-19 de mediaan, zie de ronde
+  "Gebouwd — Club Ladder: indoorcurve, tegenstander kiezen en mediaan".* Per parcours de duren gewogen zoals eerder, met
   gewicht omgerekend naar 75 kg op de hellingen als beide kanten minstens drie
   gewichten hebben. Zonder selectie kiest het per parcours onze vijf sterksten
   voor dat parcours (sterkte zoals `routeRatings`); bij de route staat "Met …".

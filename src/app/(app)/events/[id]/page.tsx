@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, ArrowUpRight, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { readPowerScope } from "@/lib/teams/power-scope-server";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -534,9 +535,11 @@ export default async function EventDetailPage({
   for (const list of lineupByTeam.values()) list.sort((a, b) => a.name.localeCompare(b.name, "nl"));
   const ownLineup = event.team_id ? lineupByTeam.get(event.team_id) ?? [] : [];
   // Ladderrace: ZWB tegen de tegenstander, vermogen per duur (migr. 0302).
+  // Alles of indoor voor onze intervals.icu-curve, zoals de kijker koos (2026-11-19).
+  const powerScope = event.type === "ladder" ? await readPowerScope() : "all";
   const ladderMatchup =
     event.type === "ladder" && event.team_id && user
-      ? await loadLadderEventMatchup(createAdminClient(), event.id, event).catch(() => null)
+      ? await loadLadderEventMatchup(createAdminClient(), event.id, event, { scope: powerScope }).catch(() => null)
       : null;
   // Na de race: de uitslag van de ladder naast de verwachting. Na de matchup,
   // die de renners van de wedstrijd al ophaalt.
@@ -549,7 +552,7 @@ export default async function EventDetailPage({
   // renners van de wedstrijden al ophaalt.
   const ladderRouteAdvice =
     event.type === "ladder" && event.team_id && user && !isParentEvent && !ladderResult
-      ? await loadLadderEventRouteAdvice(createAdminClient(), event.id, event).catch(() => null)
+      ? await loadLadderEventRouteAdvice(createAdminClient(), event.id, event, powerScope).catch(() => null)
       : null;
 
   // Gewone Zwift-race of FRR-etappe vóór de start: de aangemelde leden met hun
@@ -1835,7 +1838,12 @@ export default async function EventDetailPage({
       )}
 
       {ladderMatchup && (
-        <LadderMatchupView matchup={ladderMatchup.matchup} byFocus={ladderMatchup.byFocus} routeLabel={ladderMatchup.routeLabel} />
+        <LadderMatchupView
+          matchup={ladderMatchup.matchup}
+          byFocus={ladderMatchup.byFocus}
+          routeLabel={ladderMatchup.routeLabel}
+          powerScope={powerScope}
+        />
       )}
 
       {showTttPlan && (

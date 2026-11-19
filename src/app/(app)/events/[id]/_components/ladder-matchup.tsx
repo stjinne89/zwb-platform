@@ -10,6 +10,8 @@ import { matchupHeat, type MatchupHeat } from "@/lib/club-ladder/matchup-heat";
 import { SQUAD_FOCUS_LABELS, SQUAD_FOCUSES, type SquadFocus } from "@/lib/club-ladder/opponent-five";
 import { DURATIONS } from "@/lib/club-ladder/team-power";
 import { POWER_UNIT_COOKIE } from "@/lib/training/power-unit";
+import type { PowerScope } from "@/lib/teams/power-scope";
+import { PowerScopeToggle } from "@/components/power-scope-toggle";
 import { cn } from "@/lib/utils";
 import { MatchupPower, MatchupRiderTable, MatchupUnitLabel } from "./ladder-matchup-riders";
 
@@ -21,11 +23,14 @@ export async function LadderMatchupView({
   matchup,
   byFocus,
   routeLabel,
+  powerScope,
 }: {
   matchup: LadderMatchup;
   /** Per type de beste vijf van de tegenstander, om tussen te wisselen. */
   byFocus?: Record<SquadFocus, LadderMatchup> | null;
   routeLabel: string | null;
+  /** Alles of indoor; zonder geen schakelaar (zoals in de briefing). */
+  powerScope?: PowerScope;
 }) {
   // De echte ploeg van de tegenstander (opgesteld of aangemeld) als eerste tab, voor de types.
   const known = matchup.theirs.focus == null && matchup.theirs.riders.length > 0;
@@ -54,7 +59,10 @@ export async function LadderMatchupView({
       <section id="matchup" className="scroll-mt-20 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Matchup</h2>
-          <PowerUnitToggle />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {powerScope && <PowerScopeToggle scope={powerScope} />}
+            <PowerUnitToggle />
+          </div>
         </div>
         <div className="space-y-4 rounded-lg border bg-card p-4">
           <div className="grid grid-cols-[1fr_auto_1fr] items-baseline gap-3">

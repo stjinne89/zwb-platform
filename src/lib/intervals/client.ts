@@ -676,9 +676,13 @@ export async function fetchIntervalsPowerCurve(
   apiKey: string,
   athleteId: string,
   period = "90d",
-  options: { includeFatigue?: boolean } = {},
+  options: { includeFatigue?: boolean; indoor?: boolean } = {},
 ): Promise<IntervalsPowerCurve> {
   const now = new Date().toISOString().slice(0, 10);
+  // Alleen ritten binnen (trainer, Zwift): het filter `indoor` van intervals.icu,
+  // als JSON in één parameter, zoals de intervals-MCP-server het meestuurt. Niet
+  // live gecontroleerd bij het bouwen (2026-11-19); zie PLAN.md.
+  const filters = options.indoor ? JSON.stringify([{ field_id: "indoor", value: "indoor", id: 1 }]) : null;
   // Vermoeide curves bestaan alleen voor de twee drempels die de renner zelf in
   // intervals.icu instelt (after_kj0/after_kj1); `<periode>-kj0` vraagt die op.
   // Zonder ingestelde drempels valt de aanroep terug op de gewone curve.
@@ -691,6 +695,7 @@ export async function fetchIntervalsPowerCurve(
       type: "Ride",
       includeRanks: "false",
       now,
+      ...(filters ? { filters } : {}),
     });
     return [
       `/api/v1/athlete/0/power-curves?${query.toString()}`,

@@ -1,6 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { withPowerScope } from "@/lib/teams/power-scope";
+import { readPowerScope } from "@/lib/teams/power-scope-server";
+import { PowerScopeToggle } from "@/components/power-scope-toggle";
 import { BackLink } from "@/components/app-ui";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadWtrlSummaries } from "@/lib/teams/wtrl-summary";
@@ -34,7 +37,7 @@ function upcomingEventsCutoffIso() {
 type Status = RankingAvailabilityEntry["status"];
 
 export default async function TeamIndelingPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+  const [{ id }, powerScope] = await Promise.all([params, readPowerScope()]);
   const supabase = await createClient();
   const admin = createAdminClient();
   const [user, access] = await Promise.all([getRequestUser(), getRequestAccess()]);
@@ -180,7 +183,7 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
     profileIds.length > 0
       ? admin
           .from("rider_power_profiles")
-          .select("profile_id, wkg_15s, wkg_1m, wkg_5m, wkg_20m")
+          .select(`profile_id, wkg_15s, wkg_1m, wkg_5m, wkg_20m${powerScope === "indoor" ? ", indoor_profile" : ""}`)
           .in("profile_id", profileIds)
       : Promise.resolve({ data: [] }),
     loadWtrlSummaries(supabase, scopeIds),
@@ -191,14 +194,17 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
   };
   const intervalsOf = new Map(
     (
-      (intervalsRows ?? []) as Array<{
+      (intervalsRows ?? []) as unknown as Array<{
         profile_id: string;
         wkg_15s: number | string | null;
         wkg_1m: number | string | null;
         wkg_5m: number | string | null;
         wkg_20m: number | string | null;
       }>
-    ).map((row) => [
+    )
+      // Alles of indoor (2026-11-19): de racefit en het vermogen volgen de gekozen curve.
+      .map((row) => withPowerScope(row, powerScope))
+      .map((row) => [
       row.profile_id,
       {
         s15: numberOrNull(row.wkg_15s),
@@ -369,7 +375,10 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
 
   return (
     <div className="space-y-6">
-      <BackLink href={`/teams/${team.id}`} label={team.name} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <BackLink href={`/teams/${team.id}`} label={team.name} />
+        <PowerScopeToggle scope={powerScope} />
+      </div>
       <ZrlRankingTable
         teams={childTeams}
         riders={riders}

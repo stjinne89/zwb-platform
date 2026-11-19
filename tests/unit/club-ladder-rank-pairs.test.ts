@@ -10,7 +10,7 @@ function side(name: string, values: PowerWkg[], weightKg: number | null = null):
 }
 
 describe("pairUp: beste tegen beste", () => {
-  it("zet beide kanten op volgorde en middelt de verschillen per paar", () => {
+  it("zet beide kanten op volgorde en neemt de mediaan van de verschillen per paar", () => {
     // Het voorbeeld uit de vraag aan de eigenaar (5 min): +2, +4, −3, −3, −7.
     const result = pairUp([4.31, 4.95, 3.9, 4.79, 4.22], [4.62, 4.45, 4.83, 4.19, 4.37]);
     expect(result.pairs.map((pair) => [pair.ours, pair.theirs])).toEqual([
@@ -21,9 +21,21 @@ describe("pairUp: beste tegen beste", () => {
       [3.9, 4.19],
     ]);
     expect(result.pairs.map((pair) => pair.pct)).toEqual([2, 4, -3, -3, -7]);
-    // Gemiddeld over de exacte verschillen −1,56%, dus −2% (de afgeronde paren middelen tot −1,4%).
-    expect(result.edge! * 100).toBeCloseTo(-1.56, 2);
-    expect(Math.round(result.edge! * 100)).toBe(-2);
+    // De middelste van de exacte verschillen: 4,31 tegen 4,45, −3,2% (het gemiddelde was −1,56%).
+    expect(result.edge!).toBeCloseTo(Math.log(4.31 / 4.45), 10);
+    expect(Math.round(result.edge! * 100)).toBe(-3);
+  });
+
+  it("laat één uitschieter het voordeel niet bepalen", () => {
+    // Onze beste wint zijn paar met 40%, de andere vier verliezen elk 5%.
+    const result = pairUp([7, 3.8, 3.8, 3.8, 3.8], [5, 4, 4, 4, 4]);
+    expect(result.pairs.map((pair) => pair.pct)).toEqual([34, -5, -5, -5, -5]);
+    expect(Math.round(result.edge! * 100)).toBe(-5);
+  });
+
+  it("neemt bij een even aantal paren het midden van de middelste twee", () => {
+    const result = pairUp([5, 4, 3, 2], [4, 4, 4, 4]);
+    expect(result.edge!).toBeCloseTo((Math.log(4 / 4) + Math.log(3 / 4)) / 2, 10);
   });
 
   it("maakt zoveel paren als de kleinste kant, en pas vanaf drie telt het", () => {
@@ -32,10 +44,11 @@ describe("pairUp: beste tegen beste", () => {
   });
 
   it("is niet het verschil van de gemiddelden", () => {
-    // Gemiddelde gelijk (4), maar onze beste is veel beter en onze slechtste veel slechter.
+    // Gemiddelde gelijk (4), maar onze beste is veel beter en onze slechtste veel slechter:
+    // het middelste paar is gelijk, dus gelijk op.
     const result = pairUp([5, 4, 3], [4.2, 4, 3.8]);
     expect(result.pairs.map((pair) => pair.pct)).toEqual([17, 0, -24]);
-    expect(result.edge!).toBeLessThan(0);
+    expect(result.edge!).toBe(0);
   });
 });
 

@@ -4,6 +4,7 @@ import { after } from "next/server";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
 import { loadVelo1 } from "@/lib/zwiftracing/velo1";
 import type { createAdminClient } from "@/lib/supabase/admin";
+import type { PowerScope } from "@/lib/teams/power-scope";
 import { matchupWeights } from "./briefing";
 import { expectationRiders } from "./event-result";
 import { saveLadderExpectation } from "./expectation-store";
@@ -52,6 +53,8 @@ export async function loadLadderEventMatchup(
     starters?: MatchupSignup[];
     /** Deze wedstrijd telt niet mee als vermogensbron: de verwachting vóór de race. */
     excludeResultId?: number;
+    /** Alles of indoor voor de intervals.icu-curve van onze renners (2026-11-19). */
+    scope?: PowerScope;
   } = {},
 ): Promise<LadderEventMatchup | null> {
   if (!event.team_id) return null;
@@ -110,7 +113,7 @@ export async function loadLadderEventMatchup(
     riderRaces(admin, zwiftIds).then((rows) => rows.filter((match) => match.resultId !== exclude)),
     loadRiderMetrics(zwiftIds),
     loadRiderWeights(admin, [...zwiftIds, ...raceIds]),
-    intervalsByZwiftId(admin, ourZwiftIds),
+    intervalsByZwiftId(admin, ourZwiftIds, options.scope),
     profilesByZwiftId(admin, zwiftIds),
     loadVelo1(admin, zwiftIds),
   ]);
@@ -161,8 +164,9 @@ export async function loadLadderEventMatchup(
   // Alleen als er echt te kiezen valt: voor elk type een ploeg en een vergelijking.
   const choosable = variants.every(([focus, row]) => row.theirs.focus === focus && row.basis !== "races");
   // Vóór de start vastleggen waarmee de verwachting rekent, voor de uitslag erna (0308).
+  // Alleen met de volledige curve: de verwachting hangt niet af van wie in indoorstand kijkt.
   const startAt = event.start_at;
-  if (startAt && Date.parse(startAt) > Date.now()) {
+  if (startAt && Date.parse(startAt) > Date.now() && (options.scope ?? "all") === "all") {
     const riders = expectationRiders([matchup, ...variants.map(([, row]) => row)]);
     after(() => saveLadderExpectation(admin, eventId, startAt, riders, matchupWeights(matchup)).catch(() => null));
   }
@@ -186,7 +190,11 @@ async function profilesByZwiftId(admin: Admin, zwiftIds: number[]): Promise<Map<
 }
 
 /** intervals.icu per Zwift-ID, via het profiel met dat Zwift-ID; zonder profiel of curve ontbreekt hij. */
-async function intervalsByZwiftId(admin: Admin, zwiftIds: number[]): Promise<Map<number, IntervalsPower>> {
+async function intervalsByZwiftId(
+  admin: Admin,
+  zwiftIds: number[],
+  scope: PowerScope = "all",
+): Promise<Map<number, IntervalsPower>> {
   if (zwiftIds.length === 0) return new Map();
   const { data } = await admin.from("profiles").select("id, zwift_id").in("zwift_id", zwiftIds);
   const profileByZwift = new Map<number, string>();
@@ -194,7 +202,7 @@ async function intervalsByZwiftId(admin: Admin, zwiftIds: number[]): Promise<Map
     const id = positiveId(row.zwift_id);
     if (id) profileByZwift.set(id, row.id);
   }
-  const power = await loadIntervalsPower(admin, [...profileByZwift.values()]);
+  const power = await loadIntervalsPower(admin, [...profileByZwift.values()], scope);
   const out = new Map<number, IntervalsPower>();
   for (const [zwiftId, profileId] of profileByZwift) {
     const row = power.get(profileId);

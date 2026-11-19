@@ -31,7 +31,25 @@ export function parseAdviceSelection(value: string | string[] | undefined, allow
   return [...out];
 }
 
-/** `&met=…` voor achter een URL met al een `?`, of leeg zonder selectie. */
-export function adviceSelectionQuery(keys: string[]): string {
-  return keys.length > 0 ? `&${ADVICE_SELECTION_PARAM}=${encodeURIComponent(keys.join(","))}` : "";
+/** `&met=…` (of een andere naam) voor achter een URL met al een `?`, of leeg zonder selectie. */
+export function adviceSelectionQuery(keys: Array<string | number>, param: string = ADVICE_SELECTION_PARAM): string {
+  return keys.length > 0 ? `&${param}=${encodeURIComponent(keys.join(","))}` : "";
+}
+
+/**
+ * De renners van de tegenstander waartegen het advies rekent (`hun=`, Zwift-ID's,
+ * 2026-11-19): in plaats van de vijf die hij per type zou kiezen. Of ze echt
+ * voor hem reden, toetst het advies aan zijn laatste races.
+ */
+export const OPPONENT_SELECTION_PARAM = "hun";
+
+export function parseOpponentSelection(value: string | string[] | undefined): number[] {
+  const raw = Array.isArray(value) ? value.join(",") : value ?? "";
+  const out = new Set<number>();
+  for (const part of raw.split(",")) {
+    const id = Number(part.trim());
+    if (/^\d{1,12}$/.test(part.trim()) && Number.isSafeInteger(id) && id > 0) out.add(id);
+    if (out.size >= MAX_KEYS) break;
+  }
+  return [...out];
 }

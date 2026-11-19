@@ -1,5 +1,6 @@
 import "server-only";
 
+import { withPowerScope, type PowerScope } from "@/lib/teams/power-scope";
 import { after } from "next/server";
 import type { ClubLadderFixture } from "@/lib/club-ladder/summary";
 import {
@@ -440,6 +441,8 @@ export async function loadLadderRiders(
   ladderTeams: TeamRow[],
   admin: ReturnType<typeof createAdminClient>,
   supabase: Awaited<ReturnType<typeof createClient>>,
+  /** Alles of indoor voor de intervals.icu-kolommen (2026-11-19). */
+  scope: PowerScope = "all",
 ): Promise<{ riders: LadderRider[]; withdrawn: Set<string>; scoreSource: LadderScoreSource }> {
   // Ook teams in het archief: een captain kan er al renners in zetten voordat het
   // team op de ladder terugkeert.
@@ -499,7 +502,7 @@ export async function loadLadderRiders(
   const [{ data: powerRows }, scores] = await Promise.all([
     supabase
       .from("rider_power_profiles")
-      .select("profile_id, ftp_watts, ftp_wkg, wkg_1m, wkg_5m, wkg_20m, rider_type")
+      .select(`profile_id, ftp_watts, ftp_wkg, wkg_1m, wkg_5m, wkg_20m, rider_type${scope === "indoor" ? ", indoor_profile" : ""}`)
       .in(
         "profile_id",
         profiles.map((profile) => profile.id),
@@ -509,7 +512,7 @@ export async function loadLadderRiders(
   return {
     riders: buildLadderRiders(
       profiles,
-      (powerRows ?? []) as LadderRiderPower[],
+      ((powerRows ?? []) as unknown as LadderRiderPower[]).map((row) => withPowerScope(row, scope)),
       memberships,
       scores,
       poolIds,

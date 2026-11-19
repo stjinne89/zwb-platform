@@ -3,14 +3,15 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { adviceSelectionQuery } from "@/lib/club-ladder/advice-selection";
+import { ADVICE_SELECTION_PARAM, adviceSelectionQuery } from "@/lib/club-ladder/advice-selection";
 
 export type AdviceSelectionOption = { key: string; name: string };
 
 /**
  * Een teamleider vinkt aan met wie het advies rekent, in plaats van de beste
- * vijf per parcours. Alleen in de URL: de pagina rekent opnieuw, er wordt niets
- * bewaard. `href` is de pagina met `?tegen=` en zonder `met=`.
+ * vijf per parcours; met `param="hun"` hetzelfde voor de renners van de
+ * tegenstander (2026-11-19). Alleen in de URL: de pagina rekent opnieuw, er
+ * wordt niets bewaard. `href` is de pagina met `?tegen=` en zonder deze `param`.
  */
 export function LadderAdviceSelection({
   href,
@@ -18,8 +19,12 @@ export function LadderAdviceSelection({
   selected,
   custom,
   resetLabel,
+  param = ADVICE_SELECTION_PARAM,
+  label = "Eigen selectie",
 }: {
   href: string;
+  param?: string;
+  label?: string;
   options: AdviceSelectionOption[];
   /** Met wie het advies nu rekent; leeg is de beste vijf. */
   selected: string[];
@@ -49,7 +54,7 @@ export function LadderAdviceSelection({
       return;
     }
     startTransition(() => {
-      router.push(`${href}${adviceSelectionQuery(keys)}#advies`, { scroll: false });
+      router.push(`${href}${adviceSelectionQuery(keys, param)}#advies`, { scroll: false });
     });
   }
 
@@ -59,7 +64,7 @@ export function LadderAdviceSelection({
     return (
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" size="sm" variant="outline" onClick={() => setOpen(true)}>
-          Eigen selectie
+          {label}
         </Button>
         {names.length > 0 && <span className="text-xs">{names.join(", ")}</span>}
       </div>

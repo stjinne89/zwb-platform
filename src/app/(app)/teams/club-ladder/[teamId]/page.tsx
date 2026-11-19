@@ -24,13 +24,20 @@ import {
   type ClubLadderStanding,
 } from "@/lib/club-ladder/summary";
 import { normalizeTeamName } from "@/lib/ladder";
-import { adviceSelectionQuery, parseAdviceSelection } from "@/lib/club-ladder/advice-selection";
+import {
+  adviceSelectionQuery,
+  OPPONENT_SELECTION_PARAM,
+  parseAdviceSelection,
+  parseOpponentSelection,
+} from "@/lib/club-ladder/advice-selection";
 import { ladderRouteRows, loadLadderRouteAdvice, type AdviceCandidate, type LadderRouteAdvice } from "@/lib/club-ladder/route-advice";
 import { getRequestAccess } from "@/lib/auth/request";
 import { loadWeightMissing } from "@/lib/teams/missing-weight";
 import { MissingWeightNotice } from "@/components/missing-weight-notice";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { readPowerScope } from "@/lib/teams/power-scope-server";
+import { PowerScopeToggle } from "@/components/power-scope-toggle";
 import { cn } from "@/lib/utils";
 import { DeleteResultButton, TeamChatLinksForm, TeamResultForm } from "../../[id]/_components/admin-panel";
 import { LadderRouteAdviceView } from "../_components/ladder-route-advice";
@@ -76,9 +83,13 @@ export default async function ClubLadderTeamPage({
   searchParams,
 }: {
   params: Promise<{ teamId: string }>;
-  searchParams: Promise<{ sort?: string; tegen?: string; met?: string | string[] }>;
+  searchParams: Promise<{ sort?: string; tegen?: string; met?: string | string[]; hun?: string | string[] }>;
 }) {
-  const [{ teamId }, { sort: sortParam, tegen, met }] = await Promise.all([params, searchParams]);
+  const [{ teamId }, { sort: sortParam, tegen, met, hun }, powerScope] = await Promise.all([
+    params,
+    searchParams,
+    readPowerScope(),
+  ]);
   if (!/^[0-9a-f-]{36}$/i.test(teamId)) notFound();
   const riderSort = parseLadderRiderSort(sortParam);
   const supabase = await createClient();
@@ -92,7 +103,7 @@ export default async function ClubLadderTeamPage({
   if (!team) notFound();
 
   const [{ riders: loadedRiders, withdrawn, scoreSource }, canAssign, canEditRoutes, { data: favoriteRows }] = await Promise.all([
-    loadLadderRiders(teamRows, admin, supabase),
+    loadLadderRiders(teamRows, admin, supabase, powerScope),
     canAssignLadderRiders(access),
     canEditLadderPuzzle(access),
     // Leeg zolang 0298 niet is toegepast.
@@ -285,6 +296,9 @@ export default async function ClubLadderTeamPage({
       options,
       budgetMs: ANALYSIS_BUDGET_MS,
       refreshBudgetMs: METRICS_REFRESH_BUDGET_MS,
+      scope: powerScope,
+      // De renners van de tegenstander uit de URL (`hun=`), anders zijn vijf per type (2026-11-19).
+      theirIds: parseOpponentSelection(hun),
     });
   } else if (ladderResults.length > 0) {
     after(() => storeLadderResults(admin, ladderResults));
@@ -299,7 +313,10 @@ export default async function ClubLadderTeamPage({
   const adviceBase = (name: string) =>
     `/teams/club-ladder/${team.id}?tegen=${encodeURIComponent(name)}${sortParam ? `&sort=${sortParam}` : ""}`;
   // De eigen selectie gaat mee naar een andere tegenstander: het blijven dezelfde renners van ons.
+  // De gekozen renners van de tegenstander niet: die horen bij hem.
   const adviceHref = (name: string) => `${adviceBase(name)}${customQuery}#advies`;
+  const theirSelected = routeAdvice?.theirSelected ?? [];
+  const theirQuery = adviceSelectionQuery(theirSelected, OPPONENT_SELECTION_PARAM);
   const opponentHref = (row: ClubLadderStanding) => adviceHref(row.name);
   // Een geplande wedstrijd met event: advies, selectie en matchup staan op het event (2026-11-11).
   const plannedHref = (row: ClubLadderStanding) => {
@@ -397,13 +414,16 @@ export default async function ClubLadderTeamPage({
 
       {opponent && (
         <section id="advies" className="scroll-mt-20 rounded-lg border bg-card p-4">
-          <h2 className="font-semibold">Advies tegen {opponent.name}</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold">Advies tegen {opponent.name}</h2>
+            <PowerScopeToggle scope={powerScope} />
+          </div>
           {canSelect && teamRiders.length > 0 && (
             <div className="mt-3">
               <LadderAdviceSelection
                 // Na het toepassen rekent de pagina opnieuw; een nieuwe sleutel klapt de keuzelijst dicht.
                 key={customKeys.join(",")}
-                href={adviceBase(opponent.name)}
+                href={`${adviceBase(opponent.name)}${theirQuery}`}
                 options={[...teamRiders]
                   .sort((a, b) => a.name.localeCompare(b.name, "nl"))
                   .map((rider) => ({ key: riderKey(rider), name: rider.name }))}
@@ -416,6 +436,21 @@ export default async function ClubLadderTeamPage({
                 }
                 custom={customKeys.length > 0}
                 resetLabel={hasSelection ? "Selectie van het event" : "Beste vijf"}
+              />
+            </div>
+          )}
+          {/* Iedereen mag de ploeg van de tegenstander proberen: het staat alleen in de URL. */}
+          {routeAdvice && routeAdvice.opponentPool.length > 0 && (
+            <div className="mt-2">
+              <LadderAdviceSelection
+                key={theirSelected.join(",")}
+                param={OPPONENT_SELECTION_PARAM}
+                label={`Renners van ${opponent.name}`}
+                href={`${adviceBase(opponent.name)}${customQuery}`}
+                options={routeAdvice.opponentPool.map((rider) => ({ key: String(rider.zwiftId), name: rider.name }))}
+                selected={theirSelected.map(String)}
+                custom={theirSelected.length > 0}
+                resetLabel="Vijf per type"
               />
             </div>
           )}
@@ -434,7 +469,10 @@ export default async function ClubLadderTeamPage({
       </section>
 
       <section id="teamprofiel" className="scroll-mt-20 rounded-lg border bg-card p-4">
-        <h2 className="font-semibold">Teamprofiel</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold">Teamprofiel</h2>
+          <PowerScopeToggle scope={powerScope} />
+        </div>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
           <Metric icon={<Users className="size-4" />} label="Riders" value={strength.riders} />
           <Metric icon={<Activity className="size-4" />} label={`${scoreLabel} gem.`} value={n(strength.avgScore)} />
@@ -450,7 +488,7 @@ export default async function ClubLadderTeamPage({
           scoreLabel={scoreLabel}
           canRemove={canAssign && !inPuzzle}
           opponent={opponent?.name ?? null}
-          adviceQuery={customQuery}
+          adviceQuery={`${customQuery}${theirQuery}`}
         />
       </section>
 

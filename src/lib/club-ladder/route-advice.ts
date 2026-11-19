@@ -3,6 +3,7 @@ import "server-only";
 import { after } from "next/server";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
 import type { createAdminClient } from "@/lib/supabase/admin";
+import type { PowerScope } from "@/lib/teams/power-scope";
 import { buildLadderAdvice, recentMatches, type LadderAdvice } from "./advice";
 import { riderRaces } from "./event-matchup";
 import { loadIntervalsPower } from "./intervals-power";
@@ -30,6 +31,10 @@ export type LadderRouteAdvice = {
   byFocus: Array<{ focus: SquadFocus; advice: LadderAdvice | null; squad: OpponentSquad }> | null;
   /** De ploeg van de tegenstander als er maar één advies is. */
   squad: OpponentSquad | null;
+  /** Wie van de tegenstander te kiezen is: met vermogen, uit zijn laatste races, meest gereden eerst. */
+  opponentPool: Array<{ zwiftId: number; name: string; races: number }>;
+  /** De gekozen renners van de tegenstander waarmee dit advies rekent; leeg is per type. */
+  theirSelected: number[];
 };
 
 /** Wat de parcourskaarten van elk parcours tonen; dezelfde lijst als de favorieten. */
@@ -75,9 +80,13 @@ export async function loadLadderRouteAdvice(
     budgetMs: number;
     /** Na het antwoord ZwiftRacing aanvullen, zo lang; 0 slaat dat over. */
     refreshBudgetMs: number;
+    /** Alles of indoor voor de intervals.icu-curve van onze renners (2026-11-19). */
+    scope?: PowerScope;
+    /** Zwift-ID's van de tegenstander om mee te rekenen; wie niet in zijn laatste races reed, valt weg. */
+    theirIds?: number[];
   },
 ): Promise<LadderRouteAdvice> {
-  const { ourNames, opponent, candidates, favorites, budgetMs, refreshBudgetMs } = input;
+  const { ourNames, opponent, candidates, favorites, budgetMs, refreshBudgetMs, scope = "all" } = input;
   const options = input.options ?? ladderRouteOptions();
   const [ours, theirs] = await Promise.all([loadTeamMatches(admin, ourNames), loadTeamMatches(admin, [opponent], RECENT_RACES)]);
   const all = [...new Map([...ours, ...theirs].map((row) => [row.result_id, row])).values()];
@@ -94,6 +103,7 @@ export async function loadLadderRouteAdvice(
     loadIntervalsPower(
       admin,
       candidates.map((rider) => rider.profileId).filter((id): id is string => id != null),
+      scope,
     ),
   ]);
   // ZwiftRacing van beide ploegen na het antwoord aanvullen: wie ontbreekt (zoals een
@@ -118,8 +128,14 @@ export async function loadLadderRouteAdvice(
     }),
   }));
   const pool = squadPool(recent, ladderPower, power90, riderWeights);
-  const adviceFor = (focus: SquadFocus) => {
-    const five = pickFive(pool, focus, options);
+  const opponentPool = [...pool]
+    .sort((a, b) => b.races - a.races || a.name.localeCompare(b.name, "nl"))
+    .map(({ zwiftId, name, races }) => ({ zwiftId, name, races }));
+  const wanted = new Set(input.theirIds ?? []);
+  const chosen = pool.filter((rider) => wanted.has(rider.zwiftId));
+  const adviceFor = (focus: SquadFocus, from = pool) => {
+    // Een eigen keuze van vijf of minder blijft die renners; meer dan vijf: de beste vijf daaruit.
+    const five = from === pool || from.length > 5 ? pickFive(from, focus, options) : from;
     return {
       focus,
       squad: { riders: five.map(({ name, races }) => ({ name, races })), races: recent.races },
@@ -141,13 +157,18 @@ export async function loadLadderRouteAdvice(
       }),
     };
   };
+  const theirSelected = chosen.map((rider) => rider.zwiftId);
+  if (chosen.length > 0) {
+    const picked = adviceFor("overall", chosen);
+    return { advice: picked.advice, byFocus: null, squad: picked.squad, opponentPool, theirSelected };
+  }
   // Met vijf of minder renners is er niets te kiezen: dan één advies.
   if (pool.length > 5) {
-    const byFocus = SQUAD_FOCUSES.map(adviceFor);
-    return { advice: byFocus[0].advice, byFocus, squad: null };
+    const byFocus = SQUAD_FOCUSES.map((focus) => adviceFor(focus));
+    return { advice: byFocus[0].advice, byFocus, squad: null, opponentPool, theirSelected };
   }
   const only = adviceFor("overall");
-  return { advice: only.advice, byFocus: null, squad: only.squad };
+  return { advice: only.advice, byFocus: null, squad: only.squad, opponentPool, theirSelected };
 }
 
 const positiveId = (value: unknown) => {
@@ -174,6 +195,7 @@ export async function loadLadderEventRouteAdvice(
   admin: Admin,
   eventId: string,
   event: { team_id: string | null; title: string; zwift_route_id: number | string | null },
+  scope: PowerScope = "all",
 ): Promise<LadderEventRouteAdvice | null> {
   if (!event.team_id || positiveId(event.zwift_route_id)) return null;
   const teamId = event.team_id;
@@ -206,6 +228,7 @@ export async function loadLadderEventRouteAdvice(
     budgetMs: EVENT_BUDGET_MS,
     // De matchup ververst ZwiftRacing al na het antwoord; twee tegelijk lopen elkaar in de weg.
     refreshBudgetMs: 0,
+    scope,
   });
   return { opponent, routeAdvice, routeRows: ladderRouteRows(options), selection: selected.length > 0 };
 }

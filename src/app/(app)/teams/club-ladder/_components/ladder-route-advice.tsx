@@ -6,6 +6,7 @@ import { EDGE_TONE_BORDER, EDGE_TONE_TEXT, edgeTone, formatEdge } from "@/lib/cl
 import { SQUAD_FOCUS_LABELS } from "@/lib/club-ladder/opponent-five";
 import type { LadderRouteAdvice, OpponentSquad } from "@/lib/club-ladder/route-advice";
 import { cn } from "@/lib/utils";
+import { LadderAdviceRiders } from "./ladder-advice-riders";
 import { LadderAdviceRoutes } from "./ladder-advice-routes";
 import type { LadderRouteRow } from "./ladder-routes";
 
@@ -103,6 +104,11 @@ function AdviceView({
                   >
                     {row.edgePct == null ? "–" : formatEdge(row.edgePct)}
                   </span>
+                  {row.edgePct != null && (
+                    <span className="whitespace-nowrap tabular-nums text-muted-foreground" title="Paren gewonnen">
+                      {row.wins}/{row.pairs.length}
+                    </span>
+                  )}
                   {row.pairs.map((pair, index) => {
                     const pairTone = edgeTone(pair.pct);
                     return (
@@ -128,6 +134,7 @@ function AdviceView({
             </span>
           </div>
           {advice.missing.length > 0 && <p className="text-xs text-muted-foreground">Zonder vermogen: {advice.missing.join(", ")}</p>}
+          <LadderAdviceRiders ours={advice.riders.ours} theirs={advice.riders.theirs} opponent={opponent} />
         </>
       )}
       {squad && squad.riders.length > 0 && (

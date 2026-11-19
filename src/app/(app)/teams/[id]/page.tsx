@@ -1,3 +1,6 @@
+import { withPowerScope } from "@/lib/teams/power-scope";
+import { readPowerScope } from "@/lib/teams/power-scope-server";
+import { PowerScopeToggle } from "@/components/power-scope-toggle";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowUpRight, CalendarDays, ListOrdered, Plus, Users } from "lucide-react";
@@ -132,7 +135,7 @@ export default async function TeamDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const [{ id }, powerScope] = await Promise.all([params, readPowerScope()]);
   const supabase = await createClient();
   const admin = createAdminClient();
 
@@ -364,7 +367,8 @@ export default async function TeamDetailPage({
   const canManage = canManageRoster || canManageResults || isCaptain;
 
   const powerByProfile = new Map(
-    ((powerRows ?? []) as PowerRow[]).map((row) => [row.profile_id, row]),
+    // Alles of indoor (2026-11-19): de tabel en de opstelling volgen de gekozen curve.
+    ((powerRows ?? []) as PowerRow[]).map((row) => [row.profile_id, withPowerScope(row, powerScope)]),
   );
   const membershipsByProfile = new Map<string, TeamRosterRow["teams"]>();
   const profileById = new Map<string, MemberRow["profiles"]>();
@@ -638,6 +642,10 @@ export default async function TeamDetailPage({
         <Metric icon={<Users className="size-4" />} label="Renners" value={rows.length} />
         <Metric icon={<CalendarDays className="size-4" />} label="Teamraces" value={calendarEvents.length} />
       </section>
+
+      <div className="flex justify-end">
+        <PowerScopeToggle scope={powerScope} />
+      </div>
 
       <TeamRosterTable
         rows={rosterRows}

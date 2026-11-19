@@ -11,6 +11,7 @@ import {
   rideSportSettings,
 } from "@/lib/intervals/client";
 import { powerProfilePayload, wattsAtDuration } from "@/lib/teams/power-profile";
+import { INDOOR_PROFILE_KEYS } from "@/lib/teams/power-scope";
 import { intervalsFtpSetting, loadFtpRidesSince, pickFtp } from "@/lib/training/ftp-source";
 
 export type IntervalsConnectionRow = {
@@ -68,6 +69,31 @@ function compactFatigueCurves(
     return points.length > 1 ? [{ afterKj: curve.afterKj, points }] : [];
   });
 }
+/**
+ * De indoorcurve in dezelfde sleutels als de kolommen (zie lib/teams/power-scope.ts),
+ * met het gewicht van de volledige rij. Null zonder één indoorpunt: wie de laatste
+ * 90 dagen niet binnen reed, heeft geen indoorwaarde.
+ */
+export function indoorProfilePayload(
+  points: Array<{ seconds: number; watts: number }>,
+  weightKg: number | null,
+) {
+  if (points.length === 0) return null;
+  const at = (seconds: number) => wattsAtDuration(points, seconds);
+  const payload = powerProfilePayload({
+    weightKg,
+    watts15s: at(15),
+    watts30s: at(30),
+    watts1m: at(60),
+    watts2m: at(120),
+    watts5m: at(300),
+    watts10m: at(600),
+    watts20m: at(1200),
+  });
+  const out = Object.fromEntries(INDOOR_PROFILE_KEYS.map((key) => [key, payload[key]]));
+  return INDOOR_PROFILE_KEYS.some((key) => key !== "rider_type" && out[key] != null) ? out : null;
+}
+
 export async function syncOnePowerProfile(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -91,10 +117,12 @@ export async function syncOnePowerProfile(
   }
 
   try {
-    const [curve, athlete, wellness, latestTest] = await Promise.all([
+    const [curve, indoorCurve, athlete, wellness, latestTest] = await Promise.all([
       fetchIntervalsPowerCurve(connection.api_key, athleteId, "90d", {
         includeFatigue: true,
       }),
+      // De indoorcurve naast de volledige; mislukt die, dan blijft alleen indoor leeg.
+      fetchIntervalsPowerCurve(connection.api_key, athleteId, "90d", { indoor: true }).catch(() => null),
       fetchIntervalsAthlete(connection.api_key).catch(() => null),
       fetchIntervalsWellness(connection.api_key, athleteId, 30).catch(() => []),
       supabase
@@ -152,6 +180,7 @@ export async function syncOnePowerProfile(
       watts10m,
       watts20m,
     });
+    const indoorProfile = indoorProfilePayload(indoorCurve?.points ?? [], payload.weight_kg);
     const hasCurve = Boolean(watts15s || watts30s || watts1m || watts2m || watts5m || watts10m || watts20m);
     const hasFallback = Boolean(payload.ftp_watts || payload.weight_kg);
 
@@ -196,6 +225,7 @@ export async function syncOnePowerProfile(
       ...payload,
       curve_points: compactCurvePoints(curve.points),
       curve_points_fatigue: compactFatigueCurves(curve.fatigueCurves),
+      indoor_profile: indoorProfile,
       sync_status: hasCurve ? "ok" : hasFallback ? "partial" : "error",
       sync_error: hasCurve
         ? null
@@ -204,9 +234,14 @@ export async function syncOnePowerProfile(
     };
     // Databases zonder de curve-migraties kennen die kolommen niet; dan slaan we
     // eerst de vermoeide curves over en daarna de hele curve.
+    // Zonder migratie 0343 ook de indoorcurve.
     let { error } = await supabase.from("rider_power_profiles").upsert(profileRow);
-    for (const skipped of [["curve_points_fatigue"], ["curve_points_fatigue", "curve_points"]]) {
-      if (!error?.message.includes("curve_points")) break;
+    for (const skipped of [
+      ["indoor_profile"],
+      ["indoor_profile", "curve_points_fatigue"],
+      ["indoor_profile", "curve_points_fatigue", "curve_points"],
+    ]) {
+      if (!error?.message.includes("curve_points") && !error?.message.includes("indoor_profile")) break;
       const trimmedRow = Object.fromEntries(
         Object.entries(profileRow).filter(([key]) => !skipped.includes(key)),
       );

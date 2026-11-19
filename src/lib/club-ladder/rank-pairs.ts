@@ -1,7 +1,10 @@
 // Ladderadvies renner tegen renner, op volgorde: per duur onze beste tegen hun
 // beste, nummer twee tegen nummer twee, tot en met vijf. Per paar het verschil in
 // procenten (log-verschil, zoals elders in de ladder), en het voordeel van een
-// duur is het gemiddelde van die verschillen. Geen teamgemiddelde van W/kg en
+// duur is de mediaan van die verschillen: één uitschieter (een renner die zijn
+// paar met 40% wint) trekt het zo niet meer de goede kant op terwijl de andere
+// paren verliezen (gemiddelde tot 2026-11-19, vraag van de ploeg). Naast het
+// voordeel telt het advies hoeveel paren we winnen. Geen teamgemiddelde van W/kg en
 // geen toeval: wat er staat, volgt direct uit de vermogens (keuze eigenaar
 // 2026-11-04).
 //
@@ -75,11 +78,22 @@ export type RiderPair = { ours: number; theirs: number; /** Ons verschil in hele
 export type DurationPairs = {
   duration: PowerDuration;
   pairs: RiderPair[];
-  /** Gemiddeld verschil van de paren (log), null met minder dan drie paren. */
+  /** Mediaan van de verschillen van de paren (log), null met minder dan drie paren. */
   edge: number | null;
 };
 
-/** Beide kanten op volgorde, beste tegen beste; zoveel paren als de kleinste kant. */
+/** De middelste waarde; bij een even aantal het gemiddelde van de middelste twee. */
+export function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * Beide kanten op volgorde, beste tegen beste; zoveel paren als de kleinste
+ * kant. Een paar telt als gewonnen vanaf een half procent (afgerond 1%).
+ */
 export function pairUp(ours: number[], theirs: number[]): { pairs: RiderPair[]; edge: number | null } {
   const a = ours.filter((v) => v > 0).sort((x, y) => y - x).slice(0, LADDER_SIDE);
   const b = theirs.filter((v) => v > 0).sort((x, y) => y - x).slice(0, LADDER_SIDE);
@@ -87,7 +101,7 @@ export function pairUp(ours: number[], theirs: number[]): { pairs: RiderPair[]; 
   const logs = Array.from({ length: count }, (_, i) => Math.log(a[i] / b[i]));
   return {
     pairs: logs.map((log, i) => ({ ours: a[i], theirs: b[i], pct: Math.round(log * 100) })),
-    edge: count >= MIN_PAIRS ? logs.reduce((sum, v) => sum + v, 0) / count : null,
+    edge: count >= MIN_PAIRS ? median(logs) : null,
   };
 }
 
@@ -196,9 +210,13 @@ export function routeEdge(input: {
  * Het overzicht per duur in gewone W/kg: onze vijf (zonder selectie de vijf
  * besten over alle duren samen) tegen hun vijf, op volgorde.
  */
-export function powerOverview(ours: AdviceRider[], theirs: AdviceRider[]): { durations: DurationPairs[]; missing: string[] } {
+export function powerOverview(
+  ours: AdviceRider[],
+  theirs: AdviceRider[],
+): { durations: DurationPairs[]; missing: string[]; five: AdviceRider[] } {
   const five = chooseFive(ours, ours.map((rider) => (hasPower(rider.wkg) ? rider.wkg : null)), EQUAL);
   return {
+    five: five.map((row) => row.rider),
     durations: DURATIONS.map((duration) => ({
       duration,
       ...pairUp(

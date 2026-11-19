@@ -2,7 +2,7 @@ import { EVEN_PCT, formatEdge } from "./edge-tone";
 import { powerOverview, routeEdge, type AdviceRider, type RiderPair } from "./rank-pairs";
 import { shownWeight, weightsUsable } from "./rider-weight";
 import { routeClassOfSlug, ROUTE_CLASS_LABELS, type LadderRouteClass, type LadderRouteOption, type PowerDuration } from "./routes";
-import { DURATIONS, sameTeam, type StoredMatch } from "./team-power";
+import { DURATIONS, sameTeam, type PowerWkg, type StoredMatch } from "./team-power";
 
 export const DURATION_LABELS: Record<PowerDuration, string> = { s15: "15 s", m1: "1 min", m5: "5 min", m20: "20 min" };
 
@@ -31,9 +31,14 @@ export function reasonText(reason: AdviceReason) {
 export type AdviceDuration = {
   duration: PowerDuration;
   pairs: RiderPair[];
-  /** Gemiddeld verschil van de paren in hele procenten, null met minder dan drie paren. */
+  /** Mediaan van de verschillen van de paren in hele procenten, null met minder dan drie paren. */
   edgePct: number | null;
+  /** Paren die wij winnen (afgerond minstens +1%). */
+  wins: number;
 };
+
+/** Een renner in het overzicht met namen: onze vijf en hun vijf, om op te sorteren. */
+export type OverviewRider = { key: string; name: string; wkg: PowerWkg | null; source: AdviceRider["source"] };
 
 export type LadderAdvice = {
   routes: RouteAdvice[];
@@ -48,6 +53,8 @@ export type LadderAdvice = {
   theirs: { riders: number };
   /** Van onze vijf zonder vermogen; die tellen niet mee in de paren. */
   missing: string[];
+  /** De renners achter de paren, met naam (vraag van de ploeg, 2026-11-19). */
+  riders: { ours: OverviewRider[]; theirs: OverviewRider[] };
 };
 
 /** Gewicht van de uitslagen per routeklasse naast het krachtverschil (eigen vuistregel). */
@@ -182,11 +189,18 @@ export function buildLadderAdvice(input: {
       duration: row.duration,
       pairs: row.pairs,
       edgePct: row.edge == null ? null : toPct(row.edge),
+      wins: row.pairs.filter((pair) => pair.pct > 0).length,
     })),
     weightKg: { ours: shownWeight(ourPowered), theirs: shownWeight(theirPowered) },
     weightCounts: weightsUsable(ourPowered, theirPowered),
     ours: { riders: ourPowered.length },
     theirs: { riders: theirPowered.length },
     missing: overview.missing,
+    riders: {
+      ours: overview.five.map(overviewRider),
+      theirs: theirs.slice(0, 5).map(overviewRider),
+    },
   };
 }
+
+const overviewRider = (rider: AdviceRider): OverviewRider => ({ key: rider.key, name: rider.name, wkg: rider.wkg, source: rider.source });

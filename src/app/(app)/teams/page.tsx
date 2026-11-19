@@ -1,3 +1,6 @@
+import { withPowerScope } from "@/lib/teams/power-scope";
+import { readPowerScope } from "@/lib/teams/power-scope-server";
+import { PowerScopeToggle } from "@/components/power-scope-toggle";
 import Link from "next/link";
 import { Activity, ArrowRight, LinkIcon, Plus, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -119,6 +122,7 @@ function TeamToolLink({ href, label }: { href: string; label: string }) {
 }
 
 export default async function TeamsPage() {
+  const powerScope = await readPowerScope();
   const supabase = await createClient();
   const admin = createAdminClient();
 
@@ -147,7 +151,7 @@ export default async function TeamsPage() {
     supabase
       .from("rider_power_profiles")
       .select(
-        "profile_id, rider_type, sync_status, synced_at, ftp_watts, ftp_wkg, watts_15s, watts_30s, watts_1m, watts_2m, watts_5m, watts_10m, watts_20m, wkg_15s, wkg_30s, wkg_1m, wkg_2m, wkg_5m, wkg_10m, wkg_20m",
+        `profile_id, rider_type, sync_status, synced_at, ftp_watts, ftp_wkg, watts_15s, watts_30s, watts_1m, watts_2m, watts_5m, watts_10m, watts_20m, wkg_15s, wkg_30s, wkg_1m, wkg_2m, wkg_5m, wkg_10m, wkg_20m${powerScope === "indoor" ? ", indoor_profile" : ""}`,
       ),
   ]);
 
@@ -188,7 +192,8 @@ export default async function TeamsPage() {
   }
 
   const powerByProfile = new Map(
-    ((powerRows ?? []) as PowerRow[]).map((row) => [row.profile_id, row]),
+    // Alles of indoor (2026-11-19), zoals op de teampagina.
+    ((powerRows ?? []) as unknown as PowerRow[]).map((row) => [row.profile_id, withPowerScope(row, powerScope)]),
   );
 
   let profileRows = (profiles ?? []) as ProfileRow[];
@@ -332,6 +337,9 @@ export default async function TeamsPage() {
         </div>
       </section>
 
+      <div className="flex justify-end">
+        <PowerScopeToggle scope={powerScope} />
+      </div>
       <TeamRosterTable rows={rows} teams={teamOptions} curveCollapsed />
     </div>
   );
