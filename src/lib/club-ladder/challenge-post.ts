@@ -110,8 +110,12 @@ export function amsterdamZone(date: string | undefined, time: string) {
   return offset === "GMT+02:00" ? "CEST" : "CET";
 }
 
+/** `up`: wij dagen een ploeg boven ons uit; `down`: we zoeken een uitdager onder ons. */
+export type ChallengeDirection = "up" | "down";
+
 export function buildChallengePost(input: {
   teamName: string;
+  direction?: ChallengeDirection;
   dates: string[];
   /** HH:MM in Nederlandse tijd. */
   time: string;
@@ -127,6 +131,11 @@ export function buildChallengePost(input: {
   });
   return {
     title: `${input.teamName} vs ?? On ${days}`,
-    body: [`We are looking for a race on ${days}${when}`, ...tags].join("\n"),
+    body: [
+      input.direction === "down"
+        ? `Looking for a challenger on ${days}${when}`
+        : `We are looking for a race on ${days}${when}`,
+      ...tags,
+    ].join("\n"),
   };
 }

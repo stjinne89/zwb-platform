@@ -7,6 +7,7 @@ import {
   parseDirectoryCaptains,
   raceOrganisationUrl,
 } from "@/lib/club-ladder/challenge-post";
+import { challengeableTeams, challengerTeams } from "@/lib/club-ladder/rules";
 
 // Vorm van /directory/search?q= (november 2026), ingekort tot wat telt.
 const DIRECTORY = [
@@ -102,5 +103,43 @@ describe("raceOrganisationUrl", () => {
 
   it("opent de server zolang het kanaal onbekend is", () => {
     expect(raceOrganisationUrl("WOMENS")).toBe(CLUB_LADDER_DISCORD_SERVER_URL);
+  });
+});
+
+describe("uitdagers zoeken", () => {
+  const row = (position: number, name: string, region = "EMEA") => ({
+    position,
+    name,
+    ladderTeamId: position,
+    region,
+    form: [],
+    move: null,
+  });
+  const standings = [
+    ...Array.from({ length: 20 }, (_, i) => row(i + 1, `Ploeg ${i + 1}`)),
+    row(13, "Andere regio", "AMER"),
+  ];
+
+  it("neemt de zeven ploegen onder ons in dezelfde regio", () => {
+    expect(challengerTeams(standings, standings[9]).map((r) => r.position)).toEqual([11, 12, 13, 14, 15, 16, 17]);
+    expect(challengeableTeams(standings, standings[9]).map((r) => r.position)).toEqual([3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it("stopt onderaan de ladder", () => {
+    expect(challengerTeams(standings, standings[17]).map((r) => r.position)).toEqual([19, 20]);
+  });
+
+  it("vraagt om een uitdager", () => {
+    const post = buildChallengePost({
+      teamName: "ZWBandits",
+      direction: "down",
+      dates: ["2026-11-25"],
+      time: "20:00",
+      opponents: [
+        { name: "Ploeg 11", ladderTeamId: 11, position: 11, captains: [{ name: "A B", role: "captain", discordName: "ab" }] },
+      ],
+    });
+    expect(post.title).toBe("ZWBandits vs ?? On the 25th");
+    expect(post.body).toBe("Looking for a challenger on the 25th approx 20:00 CET\n@ab (Ploeg 11)");
   });
 });

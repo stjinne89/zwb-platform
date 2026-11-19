@@ -1,11 +1,15 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-18)
+## Actieve volgorde (bijgewerkt 2026-11-19)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Gebouwd — Club Ladder: uitdagers zoeken (2026-11-19): gepusht naar `main`.**
+   Geen migratie. Open: beide knoppen na de deploy als captain proberen. Zie de
+   ronde "Club Ladder: uitdagers zoeken".
 
 0. **Hersteld — Vandaag goud omlijnd in de schemakalender (2026-11-18): op
    2026-11-18 gepusht naar `main` (eigenaar: "push maar naar main").** Geen migratie. Open: na de deploy op
@@ -12563,6 +12567,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: uitdagers zoeken
+
+**2026-11-19, gepusht naar `main`** (eigenaar: "Push maar"). Op verzoek van de eigenaar ("Kun je ook een
+knop maken om de 7 captains naar beneden klaar te zetten?"), na een kort
+voorstel ("Ja, bouwen"). Geen migratie. Bouwt voort op de ronde "Club Ladder:
+uitdaging klaarzetten voor Discord".
+
+- **Regel.** `challengerTeams` (`lib/club-ladder/rules.ts`) is de spiegel van
+  `challengeableTeams`: de ploegen tot zeven plekken lager in dezelfde regio.
+  Zij mogen ons uitdagen; wij hen niet.
+- **Tweede knop.** Onder Ranking staat naast Uitdaging klaarzetten de knop
+  Uitdagers zoeken, voor dezelfde mensen (`canAssignLadderRiders`). Het is
+  hetzelfde onderdeel (`LadderChallengePost`) met `direction="down"`: dezelfde
+  captains uit de directory, dagen, tijd, vinkjes, kopiëren en Open Discord.
+  Alleen de eerste regel van de tekst verschilt: "Looking for a challenger on
+  the 25th approx 20:00 CET". De titel blijft "<ploeg> vs ?? On ...". Een
+  ploeg met een geplande wedstrijd staat ook hier uit.
+
+**Bewust niet:**
+- Geen post met de ploegen erboven én eronder samen: dat zijn twee vragen
+  (wij dagen uit, of zij dagen ons uit), en apart blijft elke post kort.
+- De ranking op de pagina toont nog steeds zeven plekken erboven en drie
+  eronder; de knop zoekt zelf de zeven eronder in de hele stand.
+
+**Niet lokaal gecontroleerd:** de knoppen zijn niet in de browser gezien
+(geen `.env.local` in deze worktree, geen ZWB-sessie) en de directory-aanroep
+is niet vanaf de server gedraaid. Vitest `club-ladder*` 205 groen, waarvan 13
+in `club-ladder-challenge-post` (3 nieuw), eslint schoon, `tsc` schoon op de
+bekende ontbrekende pakketten na.
 
 ### Hersteld — Vandaag goud omlijnd in de schemakalender
 

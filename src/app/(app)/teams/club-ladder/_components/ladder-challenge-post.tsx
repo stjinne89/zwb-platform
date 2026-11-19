@@ -1,9 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { ArrowUpRight, Check, Copy, Megaphone } from "lucide-react";
+import { ArrowUpRight, Check, Copy, Megaphone, UserPlus } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { buildChallengePost, challengeContact, type ChallengeOpponent } from "@/lib/club-ladder/challenge-post";
+import {
+  buildChallengePost,
+  challengeContact,
+  type ChallengeDirection,
+  type ChallengeOpponent,
+} from "@/lib/club-ladder/challenge-post";
 import { cn } from "@/lib/utils";
 import { loadChallengeCaptains } from "../_actions";
 
@@ -20,11 +25,14 @@ export type ChallengeCandidate = {
 
 export function LadderChallengePost({
   teamName,
+  direction = "up",
   candidates,
   channelUrl,
 }: {
   /** Naam van ons team op de ladder. */
   teamName: string;
+  /** `up`: de ploegen boven ons uitdagen; `down`: de ploegen onder ons oproepen. */
+  direction?: ChallengeDirection;
   candidates: ChallengeCandidate[];
   channelUrl: string;
 }) {
@@ -53,11 +61,12 @@ export function LadderChallengePost({
     () =>
       buildChallengePost({
         teamName,
+        direction,
         dates,
         time,
         opponents: (opponents ?? []).filter((o) => chosen.has(o.name)),
       }),
-    [teamName, dates, time, opponents, chosen],
+    [teamName, direction, dates, time, opponents, chosen],
   );
   const ready = dates.some(Boolean) && chosen.size > 0;
 
@@ -84,8 +93,8 @@ export function LadderChallengePost({
     return (
       <div className="space-y-1">
         <Button type="button" variant="outline" size="sm" onClick={open} disabled={pending}>
-          <Megaphone className="size-4" />
-          {pending ? "Captains ophalen…" : "Uitdaging klaarzetten"}
+          {direction === "down" ? <UserPlus className="size-4" /> : <Megaphone className="size-4" />}
+          {pending ? "Captains ophalen…" : direction === "down" ? "Uitdagers zoeken" : "Uitdaging klaarzetten"}
         </Button>
         {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
@@ -93,7 +102,7 @@ export function LadderChallengePost({
   }
 
   return (
-    <div className="space-y-4 rounded-md border bg-background p-3">
+    <div className="w-full space-y-4 rounded-md border bg-background p-3">
       <div className="flex flex-wrap items-end gap-2">
         {dates.map((date, index) => (
           <input

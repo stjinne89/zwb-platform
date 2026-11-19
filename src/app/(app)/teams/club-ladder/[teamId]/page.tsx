@@ -10,7 +10,7 @@ import { parseLadderRiderSort, sortLadderRiders } from "@/lib/club-ladder/riders
 import { loadLadderSelections } from "@/lib/club-ladder/selection";
 import { ladderRouteOptions } from "@/lib/club-ladder/routes";
 import { raceOrganisationUrl } from "@/lib/club-ladder/challenge-post";
-import { CHALLENGE_RANGE, challengeableTeams } from "@/lib/club-ladder/rules";
+import { CHALLENGE_RANGE, challengeableTeams, challengerTeams } from "@/lib/club-ladder/rules";
 import { storeLadderResults } from "@/lib/club-ladder/store";
 import { ladderResultUrl, ladderTeamResults, type TeamMatchResult } from "@/lib/club-ladder/event-result";
 import { ladderOpponentFromTitle } from "@/lib/club-ladder/fixture-events";
@@ -135,6 +135,7 @@ export default async function ClubLadderTeamPage({
   const aliases = teamAliases(team, source);
   const { match, window } = findStandingWindow(standings, aliases, syncResult?.position ?? null);
   const challengeable = match ? challengeableTeams(standings, match) : [];
+  const challengers = match ? challengerTeams(standings, match) : [];
   const teamFixtures = fixtures.filter((fixture) => fixtureMatches(fixture, aliases)).slice(0, 6);
   // Nog geen plek in de stand: de hele ranking om door te scrollen, in de regio van de tegenstanders.
   const fixtureRegions = new Set(
@@ -337,18 +338,27 @@ export default async function ClubLadderTeamPage({
       <section className="rounded-lg border bg-card p-4">
         <h2 className="font-semibold">Ranking</h2>
         {!match && <p className="text-sm text-muted-foreground">Niet in de live stand gevonden.</p>}
-        {match && canAssign && challengeable.length > 0 && (
-          <div className="mt-3">
-            <LadderChallengePost
-              teamName={match.name}
-              channelUrl={raceOrganisationUrl(match.region)}
-              candidates={challengeable.map((row) => ({
-                name: row.name,
-                ladderTeamId: row.ladderTeamId,
-                position: row.position,
-                planned: plannedNames.has(normalizeTeamName(row.name)),
-              }))}
-            />
+        {match && canAssign && (challengeable.length > 0 || challengers.length > 0) && (
+          <div className="mt-3 flex flex-wrap items-start gap-2">
+            {([
+              ["up", challengeable],
+              ["down", challengers],
+            ] as const).map(([direction, rows]) =>
+              rows.length > 0 ? (
+                <LadderChallengePost
+                  key={direction}
+                  direction={direction}
+                  teamName={match.name}
+                  channelUrl={raceOrganisationUrl(match.region)}
+                  candidates={rows.map((row) => ({
+                    name: row.name,
+                    ladderTeamId: row.ladderTeamId,
+                    position: row.position,
+                    planned: plannedNames.has(normalizeTeamName(row.name)),
+                  }))}
+                />
+              ) : null,
+            )}
           </div>
         )}
         <StandingsTable

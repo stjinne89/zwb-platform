@@ -34,3 +34,16 @@ export function challengeableTeams(standings: ClubLadderStanding[], team: ClubLa
     )
     .sort((a, b) => a.position - b.position);
 }
+
+/** De ploegen die `team` mogen uitdagen: tot zeven plekken lager in dezelfde regio. */
+export function challengerTeams(standings: ClubLadderStanding[], team: ClubLadderStanding) {
+  return standings
+    .filter(
+      (row) =>
+        row.region === team.region &&
+        row.position > team.position &&
+        row.position <= team.position + CHALLENGE_RANGE &&
+        normalizeTeamName(row.name) !== normalizeTeamName(team.name),
+    )
+    .sort((a, b) => a.position - b.position);
+}
