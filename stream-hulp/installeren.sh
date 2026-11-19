@@ -48,7 +48,8 @@ for pad in package.json tsconfig.json src/index.ts src/protocol.ts; do
 done
 ok "Bestanden in $MAP."
 echo "  Onderdelen installeren (npm). Dit duurt even."
-(cd "$MAP" && npm install --omit=dev --no-audit --no-fund --loglevel=error) || stop_met "npm install mislukte. Lees de tekst hierboven."
+# Geen dev-onderdelen: npm 10 crasht anders op de peer-dependencies van vitest.
+(cd "$MAP" && npm pkg delete devDependencies && npm install --omit=dev --no-audit --no-fund --loglevel=error) || stop_met "npm install mislukte. Lees de tekst hierboven."
 ok "Onderdelen geinstalleerd."
 
 stap 3 "Instellingen"

@@ -95,6 +95,9 @@ Ok "Bestanden in $Map."
 Write-Host "  Onderdelen installeren (npm). Dit duurt even."
 Push-Location $Map
 try {
+  # De hulp heeft geen dev-onderdelen nodig. npm 10 (bij Node 22) crasht anders
+  # op de peer-dependencies van vitest, ook met --omit=dev.
+  & npm.cmd pkg delete devDependencies
   & npm.cmd install --omit=dev --no-audit --no-fund --loglevel=error
   if ($LASTEXITCODE -ne 0) { Stop-Met "npm install mislukte. Lees de rode tekst hierboven." }
 } finally {

@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Hersteld — Stream-hulp installeren op Windows: npm crashte (2026-11-19):
+   lokaal gecommit, niet gepusht.** Geen migratie. Open: pushen, daarna het
+   lid de `.bat` opnieuw laten draaien. Zie de ronde "Hersteld — Stream-hulp
+   installeren op Windows: npm crashte".
+
 0. **Gebouwd — Pop-up: ritten via Strava komen niet binnen (2026-11-19):
    gepusht naar `main` (eigenaar: "Alles").** Migratie
    `0343_integration_notice_strava_stub.sql` op 2026-11-19 toegepast; 17
@@ -12600,6 +12605,34 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Stream-hulp installeren op Windows: npm crashte
+
+**2026-11-19, lokaal gecommit, niet gepusht. Geen migratie.**
+
+- **Waarom.** Een lid kreeg bij het installeren van de stream-hulp op Windows
+  "Cannot read properties of null (reading 'edgesOut')" bij `npm install`
+  (Node 22.17.1, npm 10.9.2, het debug-log uit de WhatsApp-bijlage). Hier
+  nagespeeld met `npx npm@10.9.2`: zelfde fout. Oorzaak: npm 10 rekent ook met
+  `--omit=dev` de dev-onderdelen door, en struikelt over de peer-dependencies
+  van vitest (`vitest@*` wijst inmiddels naar 5.x, `@vitest/browser-playwright`
+  5.1.1 botst met vitest 4.1.12). npm 11 (bij Node 24) heeft er geen last van.
+  De TTT-bot heeft hetzelfde vitest, maar levert `package-lock.json` mee en
+  rekent dus niets opnieuw uit; de stream-hulp haalt alleen `package.json`.
+- **Gebouwd.** `installeren.ps1` en `installeren.sh` draaien vóór
+  `npm install` eerst `npm pkg delete devDependencies` in de installatiemap. De
+  hulp heeft vitest, TypeScript en de Node-types niet nodig om te draaien.
+- **Bewust niet.** Geen `package-lock.json` voor de stream-hulp: dan moet die
+  bij elke versie mee, terwijl de dev-onderdelen bij de leden toch niets doen.
+  Geen `--legacy-peer-deps`: dat verbergt ook echte conflicten in de
+  onderdelen die de hulp wél gebruikt. Node niet naar 24 gedwongen: 22 is LTS
+  en staat bij leden al.
+- **Getest.** Met npm 10.9.2: `npm pkg delete devDependencies` en daarna
+  `npm install --omit=dev` installeert 21 pakketten, `tsx` staat erin.
+  Beide scripts op syntax nagekeken. **Niet geverifieerd:** het hele
+  Windows-script niet van begin tot eind gedraaid (vraagt om koppelcode en
+  OBS-wachtwoord), en pas na een push naar `main` haalt de `.bat` het nieuwe
+  script op.
+
 ### Gebouwd — Pop-up: ritten via Strava komen niet binnen
 
 **2026-11-19, commit `7dbc5b40`, gepusht naar `main`** (eigenaar: "Alles").
@@ -12973,10 +13006,10 @@ bekende ontbrekende pakketten na.
 - **Niet geverifieerd.** Het Windows-script niet
   gedraaid (geen Windows hier). Supabase Realtime niet echt gebruikt: de
   broadcast-aanroep en of openbare kanalen op het ZWB-project aan staan. Niet
-  tegen een echte OBS. `npm install` faalt in deze omgeving met
-  "Cannot read properties of null (reading 'edgesOut')", ook voor de TTT-bot;
-  met `--legacy-peer-deps` lukt het. Bij de leden werkt de bot-installatie wel,
-  dus vermoedelijk ligt het aan deze omgeving; niet bevestigd voor de hulp.
+  tegen een echte OBS. `npm install` faalde in deze omgeving met
+  "Cannot read properties of null (reading 'edgesOut')". Dat lag niet aan de
+  omgeving maar aan npm 10 en de dev-onderdelen; het trof ook leden op Windows
+  (zie "Hersteld — Stream-hulp installeren op Windows: npm crashte").
 
 ### Gebouwd — Livestreams via YouTube, fase 2
 
