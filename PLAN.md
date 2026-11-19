@@ -13025,9 +13025,11 @@ bekende ontbrekende pakketten na.
   beheert (`events.manage_all`): dat zou met het kanaal van die ander moeten.
 - **Niet geverifieerd.** Lokaal bekeken met echte data (Club Ladder
   ZWBandits – Valhalla Garmr, 2026-11-19): logo, kleuren, letter en tekst
-  kloppen. De upload naar YouTube is alleen met een nagebootste fetch getest;
-  niet vastgesteld dat de scope `auth/youtube` en de kanalen eigen
-  thumbnails toestaan. In een lokale productiebuild staan de acht
+  kloppen. Na de deploy op 2026-11-19 op productie bevestigd: de thumbnail
+  van de stream van de eigenaar (Club Ladder ZWBandits – Valhalla Garmr)
+  staat op YouTube (`maxresdefault.jpg` van de video is onze PNG), dus de
+  scope `auth/youtube` volstaat voor `thumbnails.set`. Bij een kanaal zonder
+  eigen thumbnails is de 403-melding niet gezien. In een lokale productiebuild staan de acht
   ttf-bestanden in de trace van de racepagina en van de thumbnailroute; op
   Netlify blijkt het pas na de deploy. Tests: `youtube-livestream.test.ts` (tekst en upload),
   `stream-overlay-theme.test.ts` (hex-kleuren).
