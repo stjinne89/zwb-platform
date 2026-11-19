@@ -9,8 +9,9 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Ingevuld — ZRL R2: routes vooraf uit Zwift Insider (2026-11-19): alleen
    data in productie, geen code en geen migratie.** Routes van W2, W3, W4 en
-   W6 in de teamraces gezet, zodat Racefit er nu al is. Open: W4 telt pas als
-   tijdrit na de Zwift-koppeling; W5 (Miles of Isles) mist in `zwift-data`.
+   W6 in de teamraces gezet, zodat Racefit er nu al is; W4 heeft " — Race of
+   Truth" in de titel en telt als tijdrit. Open: W5 (Miles of Isles) mist in
+   `zwift-data`.
    Zie de ronde "Ingevuld — ZRL R2: routes vooraf uit Zwift Insider".
 
 0. **Ingericht — Club Ladder-sessie warm houden (2026-11-19): geplande taak
@@ -12614,11 +12615,14 @@ invullen").
   - Zwift Insider automatisch uitlezen: het is een gewone webpagina zonder vaste
     opbouw en zo'n scraper breekt snel. Eén keer per ronde met de hand invullen
     is genoeg.
-  - De titels van W4 niet aangevuld met " — Race of Truth". Racefit herkent een
-    tijdrit aan de titel (`isTimeTrialTitle`), en dat achtervoegsel zet
-    `fillZrlEventDetails` pas bij de koppeling. Tot dan rekent Racefit W4 als
-    gewone race.
-- **Geverifieerd:** de 32 bijgewerkte rijen (`returning`); de routes staan in
+- **W4 als tijdrit.** Racefit herkent een tijdrit aan de titel
+  (`isTimeTrialTitle`), en " — Race of Truth" zet `fillZrlEventDetails` pas
+  bij de koppeling. Daarom heeft W4 dat achtervoegsel nu al gekregen, in de
+  raceweek en de acht races (9 rijen, alleen zonder Zwift-event en zonder
+  " — " in de titel), op verzoek van de eigenaar ("Ja, W4-titels aanvullen").
+  Het is hetzelfde achtervoegsel dat `zrlTitleWithFormat` maakt, dus de sync
+  laat het staan; geeft Zwift een ander format, dan vervangt hij het.
+- **Geverifieerd:** de 32 bijgewerkte rijen en de 9 W4-titels (`returning`); de routes staan in
   `zwift_routes`; `weekCourses` geeft voor alle acht een parcours, en W4 alleen
   met " — Race of Truth" in de titel als tijdrit (met een wegwerptest, niet
   bewaard). Twee events op Zwift wijzen ook naar de W2-routes: "Team Tempo –
