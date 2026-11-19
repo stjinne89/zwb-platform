@@ -20,6 +20,15 @@
         "value": "club",
         "createdAt": "2026-11-19T17:37:13.497Z",
         "reason": "Satori alias for the club's own tegels font (Barlow Semi Condensed or the chosen club font), loaded as data in src/lib/youtube-live/thumbnail.tsx"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/livestream/stream-overlay.css"
+        ],
+        "createdAt": "2026-11-19T21:13:53.324Z",
+        "reason": "Bottom inset gold line under the own team's row is DESIGN.md's Hierregel (gold line under a panel, 3-4px inset shadow), not a side tab"
       }
     ]
   }
