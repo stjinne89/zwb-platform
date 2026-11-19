@@ -8,10 +8,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Pop-up: ritten via Strava komen niet binnen (2026-11-19):
-   lokaal gecommit, niet gepusht.** Migratie
-   `0343_integration_notice_strava_stub.sql` nog niet toegepast; de meldingen
-   aan 17 leden zijn nog niet verstuurd. Zie de ronde "Gebouwd — Pop-up: ritten
-   via Strava komen niet binnen".
+   gepusht naar `main` (eigenaar: "Alles").** Migratie
+   `0343_integration_notice_strava_stub.sql` op 2026-11-19 toegepast; 17
+   meldingen verstuurd. Open: na de deploy nagaan of leden de pop-up zien
+   (`seen_at`) en of hun ritten daarna wel binnenkomen. Zie de ronde "Gebouwd —
+   Pop-up: ritten via Strava komen niet binnen".
 
 0. **Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven (2026-11-19):
    gepusht naar `main`.** Migratie `0342_club_ladder_rider_rematch.sql`
@@ -12601,8 +12602,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Pop-up: ritten via Strava komen niet binnen
 
-**2026-11-19, lokaal gecommit, niet gepusht.** Migratie
-`0343_integration_notice_strava_stub.sql`, **nog niet toegepast**. Aanleiding:
+**2026-11-19, commit `7dbc5b40`, gepusht naar `main`** (eigenaar: "Alles").
+Migratie `0343_integration_notice_strava_stub.sql` op 2026-11-19 vóór de
+push met de Supabase-connector toegepast (versie `20261119164448`); de check
+daarna nagekeken. Aanleiding:
 de eigenaar vroeg waarom de vermogensdata van Martijn Wesseling ontbreekt, en
 daarna om alle leden met hetzelfde probleem een waarschuwing en instructie te
 sturen.
@@ -12615,8 +12618,8 @@ sturen.
   (`rider_power_profiles`, door intervals zelf berekend) is er wel.
 - **Wie het treft (laatste 60 dagen, geen eigen Strava of ritten via
   intervals).** Alle ritten als stub: 6 leden. Een deel als stub, met een stub
-  in de laatste vier weken: 11 leden. Vijf leden met alleen stubs van september
-  of begin oktober laten we weg; die hebben het vermoedelijk al opgelost. De
+  sinds 15 oktober: 11 leden. Vijf leden met alleen stubs van september of
+  begin oktober laten we weg; die hebben het vermoedelijk al opgelost. De
   eigenaar heeft zelf 83 stubs met Strava gekoppeld en "Ritten via
   intervals.icu" aan; niet nagelopen of die ritten in ZWB missen.
 - **Waarom een nieuw soort melding.** De pop-up uit `0307` is voor een
@@ -12642,8 +12645,13 @@ sturen.
   `admin-areas.test.ts` (time-out, bekend) en `club-texts-render.test.ts`
   ("beheer noemt ZWB niet") falen, ook los gedraaid; geen van drie raakt deze
   wijziging.
-- **Niet geverifieerd.** De migratie (geen Docker/Supabase-config), de pop-up
-  in de echte app, en de verzending zelf.
+- **Verstuurd (2026-11-19).** Met SQL 17 rijen `intervals-strava` ingevoegd,
+  `sent_by` de eigenaar, `{kort}` ingevuld als ZWB: 6 met de tekst "all" en 11
+  met "part"; testaccounts, demo-accounts en de eigenaar overgeslagen. Rijen van
+  vóór de deploy negeert de oude code (`isNoticeIntegration`), dus de volgorde
+  migratie, rijen, push kon geen kwaad.
+- **Niet geverifieerd.** De pop-up in de echte app; lokaal kon de migratie niet
+  draaien (geen Docker/Supabase-config).
 
 ### Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven
 
