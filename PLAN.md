@@ -60,8 +60,8 @@ gaat stabiliteit voor nieuwe features.
    `/zwbeter-worden/schema` (maand) en op de trainerkalender bekijken, licht en
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
-0. **Gebouwd — Thumbnail per stream (2026-11-19): lokaal gecommit (`025fce1`), niet
-   gepusht.** Geen migratie. Bij Stream klaarzetten maakt de app een
+0. **Gebouwd — Thumbnail per stream (2026-11-19): commit `687c025`, op
+   2026-11-19 gepusht naar `main` (`415bbd1`, eigenaar: "Yes, push").** Geen migratie. Bij Stream klaarzetten maakt de app een
    thumbnail van 1280×720 in de clubkleuren en zet hem op YouTube; onder de
    eigen stream staat Thumbnail vernieuwen. Zie de ronde "Gebouwd — Thumbnail
    per stream".
@@ -12990,7 +12990,7 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Thumbnail per stream
 
-**2026-11-19, commit `025fce1` ("Thumbnail per stream: in de clubkleuren naar YouTube bij klaarzetten"), lokaal, niet gepusht. Geen migratie.**
+**2026-11-19, commit `687c025` ("Thumbnail per stream: in de clubkleuren naar YouTube bij klaarzetten"), daarna `415bbd1` (letters in de trace van de racepagina); op 2026-11-19 gepusht naar `main`. Geen migratie.**
 
 - **Waarom.** De eigenaar vroeg of er "iets met de thumbnails" kon; YouTube
   koos tot nu toe zelf een beeld uit de stream. Akkoord op het voorstel:
