@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven (2026-11-19):
+   lokaal gecommit, niet gepusht.** Migratie
+   `0342_club_ladder_rider_rematch.sql` nog niet toegepast. Open: 0342 vóór
+   of bij de push op productie toepassen, daarna een matchup openen en
+   wedstrijd 17723 nakijken (Rich T.Pot hoort op 4227567). Zie de ronde
+   "Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven".
+
 0. **Gebouwd — Club Ladder: ranking ook voor World (2026-11-19): gepusht naar
    `main` (`8308e841`).** Geen migratie. Open: na de deploy de knop World
    onder Ranking proberen op een teampagina. Zie de ronde "Gebouwd — Club
@@ -12586,6 +12593,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Club Ladder: Zwift-ID's in sprints doorgeschoven
+
+**2026-11-19, lokaal gecommit (hash in `git log`), niet gepusht.** Migratie
+`0342_club_ladder_rider_rematch.sql`, nog niet toegepast. Gevonden bij een
+analyse van tegenstander Valhalla Garmr (vraag eigenaar: "Ja, zoek het uit").
+
+- **Fout.** `matchZwiftResults` (`lib/club-ladder/team-power.ts`) koppelde elke
+  ladderrenner aan de éérste Zwift-rij binnen 2 s rijtijd. In een sprint
+  schoven de ID's door. Wedstrijd 17723 (23 oktober, R.G.V.): Dan Stockdale
+  kreeg de ID van Liam Mckeever (tegenstander), Liam die van Rich T.Pot en
+  Rich die van Dan, met gewicht, ZRS en vermogen erbij. Nagekeken op de
+  zwiftracing.app-uitslag van event 5745858. In `club_ladder_match_riders`
+  hingen 53 Zwift-ID's aan meer dan één naam; de meeste zijn naamwijzigingen,
+  ongeveer tien zijn duidelijk andere renners (bijv. Lifjeld/Tysso en
+  Aucotio/Trett precies omgewisseld). Gevolg: verkeerd vermogen en gewicht in
+  het advies en de matchup.
+- **Meting.** De ladder toont de Zwift-rijtijd afgerond op 0,01 s: alle 89
+  koppelingen die met een bewaarde Zwift-uitslag (`zrl_race_snapshots`) te
+  controleren waren, lagen binnen 0,005 s.
+- **Fix.** Alle paren binnen 0,05 s, kleinste verschil eerst; wie geen tijd
+  heeft valt zoals voorheen terug op finishplek bij even lange lijsten. Tests:
+  de sprint van 17723 en een tijd die meer dan afronding verschilt; beide
+  falen op de oude code.
+- **Herstel (0342).** `riders_fetched_at` terug op leeg bij elke wedstrijd met
+  twee renners binnen 2 s (118 van de 123), zodat `ensureMatchRiders` ze bij
+  het laden van een matchup opnieuw ophaalt binnen het bestaande budget van
+  15 s. Oude wedstrijden die niemand meer laadt, blijven verkeerd staan tot ze
+  terugkomen; dat is bewust, want ze tellen nergens mee.
+- **Bewust niet.** Geen koppeling op naam of W/kg: de tijd is exact genoeg, en
+  W/kg van andere clubs staat niet in de bewaarde Zwift-uitslag.
+- **Niet lokaal te testen.** De migratie (geen Docker/Supabase-config) en het
+  opnieuw ophalen via de Zwift-API.
+- **Correctie.** De ronde over het advies hieronder zegt dat renners "op
+  rijtijd" gekoppeld worden; dat klopt nog, maar tot deze ronde met 2 s marge
+  en de eerste treffer.
+
 ### Gebouwd — Club Ladder: ranking ook voor World
 
 **2026-11-19, commit `8308e841`, gepusht naar `main`** (eigenaar: "Push maar"). Geen migratie. Op verzoek van de eigenaar ("Ik zie in de app enkel
@@ -24467,7 +24510,10 @@ eigen pagina.
   volgt uit de winnende kant (bij gelijke stand verliest de uitdager).
   `matches.ts` haalt daarna de Zwift-uitslag van het event op
   (`fetchSubgroupResults`, met de bestaande wachtrij van 2 verzoeken per
-  seconde) en koppelt renners op rijtijd, anders op finishplek. Zo krijgt elke
+  seconde) en koppelt renners op rijtijd (sinds 2026-11-19 het kleinste
+  verschil binnen 0,05 s; daarvoor de eerste rij binnen 2 s, wat in sprints
+  ID's doorschoof, zie de ronde "Hersteld — Club Ladder: Zwift-ID's in sprints
+  doorgeschoven"), anders op finishplek. Zo krijgt elke
   renner Zwift-ID, gewicht, ZRS en `criticalP` (15 s, 1, 5, 20 min) in W/kg,
   bewaard in `club_ladder_match_riders`. Alleen voor teams die iemand
   analyseert, binnen 12 s per paginaverzoek.

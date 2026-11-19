@@ -166,11 +166,37 @@ describe("koppeling met de Zwift-uitslag", () => {
 
   it("koppelt op rijtijd en rekent W/kg uit", () => {
     const matched = matchZwiftResults(riders, [
-      { profileId: 22, rank: 2, durationMs: 1_510_400, weightKg: 70, criticalPower: { s15: 700, m1: 420, m5: 300, m20: 260 }, scoreBefore: 500 },
-      { profileId: 11, rank: 1, durationMs: 1_500_200, weightKg: 80, criticalPower: { s15: 800, m1: 480, m5: 360, m20: 320 } },
+      { profileId: 22, rank: 2, durationMs: 1_510_004, weightKg: 70, criticalPower: { s15: 700, m1: 420, m5: 300, m20: 260 }, scoreBefore: 500 },
+      { profileId: 11, rank: 1, durationMs: 1_499_996, weightKg: 80, criticalPower: { s15: 800, m1: 480, m5: 360, m20: 320 } },
     ]);
     expect(matched[0]).toMatchObject({ zwiftId: 11, weightKg: 80, powerWkg: { s15: 10, m1: 6, m5: 4.5, m20: 4 } });
     expect(matched[1]).toMatchObject({ zwiftId: 22, racingScore: 500 });
+  });
+
+  it("koppelt in een sprint op de dichtstbijzijnde tijd, niet de eerste binnen de marge", () => {
+    // Wedstrijd 17723 (2026-10-23): vier renners binnen 0,9 s; de ladder zet de
+    // gediskwalificeerde Dan bovenaan, Zwift sorteert op plek.
+    const sprint = [
+      { name: "Dan", position: 1, points: 10, timeS: 2304.77, avgWkg: 3.06, team: "G" },
+      { name: "Mike", position: 2, points: 9, timeS: 2271.12, avgWkg: 3.12, team: "G" },
+      { name: "Liam", position: 3, points: 8, timeS: 2304.24, avgWkg: 2.99, team: "T" },
+      { name: "Rich", position: 4, points: 7, timeS: 2304.29, avgWkg: 3.04, team: "G" },
+      { name: "Paul", position: 5, points: 6, timeS: 2305.1, avgWkg: 3.07, team: "T" },
+    ];
+    const row = (profileId: number, rank: number, durationMs: number) => ({ profileId, rank, durationMs, weightKg: null, criticalPower: null });
+    const matched = matchZwiftResults(sprint, [
+      row(2117354, 1, 2_271_118),
+      row(6627918, 2, 2_304_238),
+      row(4227567, 3, 2_304_292),
+      row(5361158, 4, 2_304_771),
+      row(6784336, 5, 2_305_104),
+    ]);
+    expect(matched.map((rider) => rider.zwiftId)).toEqual([5361158, 2117354, 6627918, 4227567, 6784336]);
+  });
+
+  it("koppelt niet op een tijd die meer dan afronding verschilt", () => {
+    const matched = matchZwiftResults([riders[0]], [{ profileId: 11, rank: 3, durationMs: 1_501_000, weightKg: 80, criticalPower: null }, { profileId: 12, rank: 4, durationMs: 1_520_000, weightKg: 80, criticalPower: null }]);
+    expect(matched[0].zwiftId).toBeNull();
   });
 
   it("valt terug op finishplek bij even lange lijsten", () => {

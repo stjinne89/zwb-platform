@@ -26,32 +26,47 @@ export type StoredMatch = {
   riders: MatchRider[];
 };
 
-/** Rijtijden van ladder en Zwift verschillen hooguit afronding; 2 s ruimte. */
-const TIME_TOLERANCE_S = 2;
+/**
+ * De ladder toont de Zwift-rijtijd, afgerond op 0,01 s: alle 89 koppelingen die
+ * met een bewaarde Zwift-uitslag te controleren waren, lagen binnen 0,005 s
+ * (2026-11-19). Tot dan gold 2 s ruimte, en in een sprint schoof de eerste rij
+ * binnen die ruimte de Zwift-ID's door (wedstrijd 17723: drie renners verkeerd).
+ */
+const TIME_TOLERANCE_S = 0.05;
 
 /**
  * Koppelt de renners van de ladderuitslag aan de Zwift-uitslag van hetzelfde
- * event: op rijtijd, en anders op finishplek als beide lijsten even lang zijn.
+ * event: op rijtijd, kleinste verschil eerst over alle paren, en anders op
+ * finishplek als beide lijsten even lang zijn.
  */
 export function matchZwiftResults(riders: LadderResultRider[], results: SubgroupResult[]): MatchRider[] {
   const used = new Set<number>();
+  const chosen = new Map<number, SubgroupResult>();
+  const pairs: Array<{ index: number; row: SubgroupResult; diff: number }> = [];
+  riders.forEach((rider, index) => {
+    if (rider.timeS == null) return;
+    for (const row of results) {
+      if (row.durationMs == null) continue;
+      const diff = Math.abs(row.durationMs / 1000 - rider.timeS);
+      if (diff <= TIME_TOLERANCE_S) pairs.push({ index, row, diff });
+    }
+  });
+  for (const { index, row } of pairs.sort((a, b) => a.diff - b.diff)) {
+    if (chosen.has(index) || used.has(row.profileId)) continue;
+    chosen.set(index, row);
+    used.add(row.profileId);
+  }
   const sameLength = riders.length === results.length;
-  return riders.map((rider) => {
-    let result =
-      rider.timeS == null
-        ? undefined
-        : results.find(
-            (row) =>
-              !used.has(row.profileId) &&
-              row.durationMs != null &&
-              Math.abs(row.durationMs / 1000 - rider.timeS!) <= TIME_TOLERANCE_S,
-          );
+  return riders.map((rider, index) => {
+    let result = chosen.get(index);
     if (!result && sameLength) {
       const byRank = results.find((row) => row.rank === rider.position);
-      if (byRank && !used.has(byRank.profileId)) result = byRank;
+      if (byRank && !used.has(byRank.profileId)) {
+        result = byRank;
+        used.add(byRank.profileId);
+      }
     }
     if (!result) return { ...rider, zwiftId: null, weightKg: null, racingScore: null, powerWkg: null };
-    used.add(result.profileId);
     const weight = result.weightKg ?? null;
     const cp = result.criticalPower;
     const wkg = (watts: number | null | undefined) => (watts && weight ? Math.round((watts / weight) * 100) / 100 : null);
