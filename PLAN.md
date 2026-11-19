@@ -13007,7 +13007,8 @@ bekende ontbrekende pakketten na.
   - Satori leest geen woff2: de vier clubletters staan als ttf (400 en 500) in
     `src/fonts/og`, op 2026-11-19 van de css2-API van Google Fonts gehaald
     (OFL, zoals de rest). `next.config.ts` neemt ze mee in de server-trace
-    van `/events/*` (server actions) en `/live/stream/*/thumbnail`.
+    van `/**/events/*` (de racepagina staat in de routegroep `(app)`; daar
+    draaien de server actions) en `/live/stream/*/thumbnail`.
   - `setThumbnail` in `api.ts` (`thumbnails.set`, uploadType media, ongeveer
     50 quota-eenheden). Bij Stream klaarzetten na het opslaan van de stream;
     een fout breekt het klaarzetten niet (YouTube houdt dan de automatische
@@ -13026,8 +13027,9 @@ bekende ontbrekende pakketten na.
   ZWBandits – Valhalla Garmr, 2026-11-19): logo, kleuren, letter en tekst
   kloppen. De upload naar YouTube is alleen met een nagebootste fetch getest;
   niet vastgesteld dat de scope `auth/youtube` en de kanalen eigen
-  thumbnails toestaan. Of Netlify de ttf-bestanden echt meeneemt, blijkt pas
-  na de deploy. Tests: `youtube-livestream.test.ts` (tekst en upload),
+  thumbnails toestaan. In een lokale productiebuild staan de acht
+  ttf-bestanden in de trace van de racepagina en van de thumbnailroute; op
+  Netlify blijkt het pas na de deploy. Tests: `youtube-livestream.test.ts` (tekst en upload),
   `stream-overlay-theme.test.ts` (hex-kleuren).
 
 ### Gebouwd — OBS-overlay per stream, in de huisstijl

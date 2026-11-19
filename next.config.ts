@@ -51,7 +51,7 @@ const nextConfig: NextConfig = {
     "/api/app-updates/weekly": ["./PLAN.md"],
     // De letters van de stream-thumbnail (lib/youtube-live/thumbnail.tsx):
     // klaarzetten en vernieuwen draaien als server action op de racepagina.
-    "/events/*": ["./src/fonts/og/*.ttf"],
+    "/**/events/*": ["./src/fonts/og/*.ttf"],
     "/live/stream/*/thumbnail": ["./src/fonts/og/*.ttf"],
   },
   experimental: {
