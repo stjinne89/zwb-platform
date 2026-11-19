@@ -25,7 +25,7 @@ export default async function ZrlOverlayPage({ params, searchParams }: PageProps
   if (outcome.status === "not-found") notFound();
 
   if (outcome.status !== "ok") {
-    return <StreamOverlay title="" status="ZRL live" stand={null} refreshSeconds={30} />;
+    return <StreamOverlay title="" status="Live · ZRL" stand={null} refreshSeconds={30} />;
   }
   const { view } = outcome;
   return (

@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
 import { StreamOverlay, wantedTeams, zrlStatus } from "@/components/livestream/stream-overlay";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { overlayInfo, overlayStatus, overlayTitle } from "@/lib/youtube-live/broadcast";
+import { thumbnailRoute } from "@/lib/youtube-live/event-route";
 import { loadZrlLive } from "@/lib/zrl-live/snapshot";
 
 // De OBS-overlay van één stream (0341). Openbaar, want OBS logt niet in; de
 // link bevat alleen de id van de stream. event_streams is niet voor iedereen
-// leesbaar, dus via de service-rol, en alleen titel, soort en schakelaar.
-// Logo en sponsors staan er altijd; de stand alleen bij een ZRL-race met de
-// schakelaar aan. Elke 15 seconden ververst, dus de schakelaar werkt mee.
+// leesbaar, dus via de service-rol, en alleen titel, soort, route en schakelaar.
+// Kader, logo en sponsors staan er altijd; de stand alleen bij een ZRL-race met
+// de schakelaar aan. Elke 15 seconden ververst, dus de schakelaar werkt mee.
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -21,29 +23,49 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+type StreamEvent = {
+  id: string;
+  title: string;
+  type: string;
+  start_at: string;
+  end_at: string | null;
+  distance_km: number | string | null;
+  laps: number | null;
+  zwift_route_id: number | null;
+  parent_event_id: string | null;
+  team_id: string | null;
+  zwift_event_id: string | null;
+};
+
 type StreamRow = {
   overlay_stand?: boolean | null;
-  events: { id: string; title: string; type: string; start_at: string; team_id: string | null; zwift_event_id: string | null } | null;
+  events: StreamEvent | null;
 };
 
 export default async function StreamOverlayPage({ params, searchParams }: PageProps) {
   const { streamId } = await params;
   const query = (await searchParams) ?? {};
+  const admin = createAdminClient();
   // "*" zodat de pagina ook werkt zolang 0341 nog niet is toegepast.
-  const { data } = await createAdminClient()
+  const { data } = await admin
     .from("event_streams")
-    .select("*, events(id, title, type, start_at, team_id, zwift_event_id)")
+    .select(
+      "*, events(id, title, type, start_at, end_at, distance_km, laps, zwift_route_id, parent_event_id, team_id, zwift_event_id)",
+    )
     .eq("id", streamId)
     .maybeSingle();
   const stream = data as StreamRow | null;
   const event = stream?.events;
   if (!stream || !event) notFound();
 
+  const distanceKm = event.distance_km === null ? null : Number(event.distance_km);
+  const route = await thumbnailRoute(admin, event).catch(() => ({ routeName: null, laps: event.laps }));
+  const info = overlayInfo({ ...route, distanceKm });
+  const title = overlayTitle(event.title);
+  const status = overlayStatus({ type: event.type, startAt: event.start_at, endAt: event.end_at, distanceKm, now: new Date() });
+  const plain = <StreamOverlay title={title} status={status} info={info} stand={null} refreshSeconds={15} />;
+
   const hasStand = event.type === "zrl" && Boolean(event.team_id && event.zwift_event_id);
-  const started = new Date() >= new Date(event.start_at);
-  const plain = (
-    <StreamOverlay title={event.title} status={started ? "Live" : "Starts soon"} stand={null} refreshSeconds={15} />
-  );
   if (!hasStand) return plain;
 
   const outcome = await loadZrlLive(event.id);
@@ -51,8 +73,9 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
   const { view } = outcome;
   return (
     <StreamOverlay
-      title={event.title}
+      title={title}
       status={zrlStatus(view)}
+      info={info}
       stand={stream.overlay_stand !== false ? { view, teams: wantedTeams(query.teams) } : null}
       refreshSeconds={15}
     />

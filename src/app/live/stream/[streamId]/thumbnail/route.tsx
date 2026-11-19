@@ -11,7 +11,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ stre
   const admin = createAdminClient();
   const { data } = await admin
     .from("event_streams")
-    .select("events(title, start_at, zwift_route_id, laps, parent_event_id)")
+    .select("events(title, type, start_at, zwift_route_id, laps, parent_event_id)")
     .eq("id", streamId)
     .maybeSingle();
   const event = (data as { events: ThumbnailEvent | null } | null)?.events;
@@ -19,6 +19,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ stre
   const route = await thumbnailRoute(admin, event);
   return streamThumbnail({
     eventTitle: event.title,
+    eventType: event.type,
     startAt: event.start_at,
     ...route,
     origin: new URL(request.url).origin,

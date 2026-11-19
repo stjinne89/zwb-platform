@@ -78,7 +78,7 @@ function grantError(err: unknown): string {
 async function pushThumbnail(
   accessToken: string,
   videoId: string,
-  input: { eventTitle: string; startAt: string; routeName: string | null; laps: number | null },
+  input: { eventTitle: string; eventType: string; startAt: string; routeName: string | null; laps: number | null },
 ): Promise<string | null> {
   try {
     const image = await streamThumbnail({ ...input, origin: siteOrigin() });
@@ -205,6 +205,7 @@ export async function prepareStream(eventId: string): Promise<Result> {
   try {
     await pushThumbnail(await youtubeAccessToken(admin, connection), videoId, {
       eventTitle: event.title,
+      eventType: event.type,
       startAt: event.start_at,
       routeName,
       laps,
@@ -224,7 +225,7 @@ export async function refreshStreamThumbnail(streamId: string): Promise<Result> 
   const admin = createAdminClient();
   const { data } = await admin
     .from("event_streams")
-    .select("profile_id, youtube_video_id, events(title, start_at, zwift_route_id, laps, parent_event_id)")
+    .select("profile_id, youtube_video_id, events(title, type, start_at, zwift_route_id, laps, parent_event_id)")
     .eq("id", streamId)
     .maybeSingle();
   const stream = data as { profile_id: string; youtube_video_id: string; events: ThumbnailEvent | null } | null;
@@ -242,6 +243,7 @@ export async function refreshStreamThumbnail(streamId: string): Promise<Result> 
   const route = await thumbnailRoute(admin, stream.events);
   const error = await pushThumbnail(accessToken, stream.youtube_video_id, {
     eventTitle: stream.events.title,
+    eventType: stream.events.type,
     startAt: stream.events.start_at,
     ...route,
   });

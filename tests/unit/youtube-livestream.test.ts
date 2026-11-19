@@ -8,6 +8,11 @@ import {
   scheduledStartFor,
   streamEmbedUrl,
   streamsAreLive,
+  expectedRaceEnd,
+  ladderMatchup,
+  overlayInfo,
+  overlayStatus,
+  overlayTitle,
   thumbnailLines,
 } from "@/lib/youtube-live/broadcast";
 import {
@@ -263,18 +268,67 @@ describe("meldingen na het koppelen", () => {
   });
 });
 
+describe("overlay als kader (2026-11-19)", () => {
+  const START = "2026-11-19T19:15:00Z";
+  const at = (minutes: number) => new Date(Date.parse(START) + minutes * 60_000);
+
+  it("leest de ploegen uit een laddertitel en zet ze als thuis vs uit", () => {
+    expect(ladderMatchup("Club Ladder: ZWBeasts – TeamNL Cloud9 Thunder")).toEqual({ home: "ZWBeasts", away: "TeamNL Cloud9 Thunder" });
+    expect(ladderMatchup("ZRL race 3")).toBeNull();
+    expect(overlayTitle("Club Ladder: ZWBeasts – TeamNL Cloud9 Thunder")).toBe("ZWBeasts vs TeamNL Cloud9 Thunder");
+    expect(overlayTitle("ZRL race 3")).toBe("ZRL race 3");
+  });
+
+  it("zegt begint zo, live en afgelopen, in het Nederlands", () => {
+    const race = { type: "ladder", startAt: START, distanceKm: 19 };
+    expect(overlayStatus({ ...race, now: at(-5) })).toBe("Begint zo · Club Ladder");
+    expect(overlayStatus({ ...race, now: at(20) })).toBe("Live · Club Ladder");
+    expect(overlayStatus({ ...race, now: at(31) })).toBe("Afgelopen");
+    expect(overlayStatus({ type: "omnium", startAt: START, now: at(20) })).toBe("Live");
+  });
+
+  it("neemt de eindtijd als die er is, anders een schatting uit de afstand", () => {
+    expect(expectedRaceEnd({ startAt: START, endAt: "2026-11-19T20:00:00Z" }).toISOString()).toBe("2026-11-19T20:00:00.000Z");
+    expect(expectedRaceEnd({ startAt: START, distanceKm: 38 }).toISOString()).toBe("2026-11-19T20:15:00.000Z");
+    expect(expectedRaceEnd({ startAt: START, endAt: START }).toISOString()).toBe("2026-11-19T21:15:00.000Z");
+  });
+
+  it("zet route, rondes en afstand in de kolom links", () => {
+    expect(overlayInfo({ routeName: "BRAEk-fast Crits and Grits", laps: 1, distanceKm: 19.6 })).toEqual([
+      "BRAEk-fast Crits and Grits",
+      "19,6 km",
+    ]);
+    expect(overlayInfo({ routeName: null, laps: 3, distanceKm: null })).toEqual(["3 rondes"]);
+    expect(overlayInfo({})).toEqual([]);
+  });
+});
+
 describe("thumbnail (2026-11-19)", () => {
-  it("zet tijd, titel en route op de thumbnail, in Nederlandse tijd", () => {
+  it("zet soort, tijd, titel en route op de thumbnail, in Nederlandse tijd en zonder Live", () => {
     const lines = thumbnailLines({
-      eventTitle: "Club Ladder: ZWBandits <> Valhalla",
+      eventTitle: "Snelle race <> Valhalla",
+      eventType: "zwift",
       startAt: "2026-11-19T19:01:00Z",
       routeName: "Montmartre Mixer",
       laps: 2,
       clubName: "ZWB Cycling",
     });
-    expect(lines.status).toBe("Live · donderdag 19 november om 20:01");
-    expect(lines.title).toBe("Club Ladder: ZWBandits Valhalla");
-    expect(lines.detail).toBe("Montmartre Mixer, 2 rondes");
+    expect(lines.status).toBe("Zwift-race · donderdag 19 november om 20:01");
+    expect(lines.status).not.toContain("Live");
+    expect(lines.title).toBe("Snelle race Valhalla");
+    expect(lines.matchup).toBeNull();
+    expect(lines.detail).toBe("Montmartre Mixer · 2 rondes");
+  });
+
+  it("zet bij de ladder de twee ploegen apart", () => {
+    const lines = thumbnailLines({
+      eventTitle: "Club Ladder: ZWBeasts – TeamNL Cloud9 Thunder",
+      eventType: "ladder",
+      startAt: "2026-11-19T19:15:00Z",
+      clubName: "ZWB Cycling",
+    });
+    expect(lines.status).toBe("Club Ladder · donderdag 19 november om 20:15");
+    expect(lines.matchup).toEqual({ home: "ZWBeasts", away: "TeamNL Cloud9 Thunder" });
   });
 
   it("noemt de club als de route onbekend is, en kort een lange titel in", () => {

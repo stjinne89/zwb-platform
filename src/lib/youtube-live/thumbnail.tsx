@@ -3,17 +3,16 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { routes as zwiftRoutes } from "zwift-data";
 import { getClub } from "@/lib/club";
 import { DEFAULT_FONT, type ClubFont } from "@/lib/club-theme";
 import { clubLogoUrl } from "@/lib/club-icons";
 import { thumbnailLines } from "@/lib/youtube-live/broadcast";
-import { overlayColors, plainColors } from "@/lib/youtube-live/overlay-theme";
+import { overlayColors, plainColors, tenueBands } from "@/lib/youtube-live/overlay-theme";
 
 // De thumbnail van een stream op YouTube (2026-11-19): 1280×720, in de
-// nachtkleuren en letter van de club, zoals de OBS-overlay. Het clublogo, de
-// race, wanneer, en de route. Geen sponsors: op dit formaat onleesbaar, en ze
+// nachtkleuren en letter van de club, met de tenuebanen van het kader van de
+// OBS-overlay. Het clublogo, soort en wanneer, de race (bij de ladder de twee
+// ploegen onder elkaar) en de route. Geen sponsors: op dit formaat onleesbaar, en ze
 // staan al in de overlay. Satori leest geen woff2, dus de letters staan als ttf
 // in src/fonts/og (next.config: outputFileTracingIncludes).
 
@@ -24,38 +23,12 @@ async function fontData(font: ClubFont, weight: 400 | 500): Promise<ArrayBuffer>
   return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
 }
 
-export type ThumbnailEvent = {
-  title: string;
-  start_at: string;
-  zwift_route_id: number | null;
-  laps: number | null;
-  parent_event_id: string | null;
-};
-
-/** De route van de race, of die van zijn raceweek (zoals bij klaarzetten). */
-export async function thumbnailRoute(
-  admin: SupabaseClient,
-  event: ThumbnailEvent,
-): Promise<{ routeName: string | null; laps: number | null }> {
-  let routeId = event.zwift_route_id;
-  let laps = event.laps;
-  if (!routeId && event.parent_event_id) {
-    const { data } = await admin
-      .from("events")
-      .select("zwift_route_id, laps")
-      .eq("id", event.parent_event_id)
-      .maybeSingle();
-    const parent = data as { zwift_route_id: number | null; laps: number | null } | null;
-    routeId = parent?.zwift_route_id ?? null;
-    laps = laps ?? parent?.laps ?? null;
-  }
-  const routeName = routeId ? zwiftRoutes.find((r) => r.id === Number(routeId))?.name ?? null : null;
-  return { routeName, laps };
-}
+export { thumbnailRoute, type ThumbnailEvent } from "./event-route";
 
 /** De thumbnail als ImageResponse (PNG). `origin` maakt een logo-pad absoluut. */
 export async function streamThumbnail(input: {
   eventTitle: string;
+  eventType: string;
   startAt: string;
   routeName: string | null;
   laps: number | null;
@@ -69,12 +42,17 @@ export async function streamThumbnail(input: {
   const logo = logoPath ? new URL(logoPath, input.origin).toString() : null;
   const lines = thumbnailLines({
     eventTitle: input.eventTitle,
+    eventType: input.eventType,
     startAt: input.startAt,
     routeName: input.routeName,
     laps: input.laps,
     clubName: texts.name,
   });
-  const titleSize = lines.title.length > 60 ? 68 : lines.title.length > 36 ? 80 : 96;
+  const { matchup } = lines;
+  const longest = matchup ? Math.max(matchup.home.length, matchup.away.length) : lines.title.length;
+  const titleSize = matchup
+    ? longest > 22 ? 72 : longest > 14 ? 84 : 96
+    : longest > 60 ? 68 : longest > 36 ? 80 : 96;
 
   return new ImageResponse(
     (
@@ -85,10 +63,10 @@ export async function streamThumbnail(input: {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "64px 72px",
-          background: colors.head,
-          backgroundImage: "linear-gradient(118deg, transparent 0%, transparent 64%, rgba(255,255,255,0.1) 64%, rgba(255,255,255,0.1) 81%, transparent 81%)",
-          color: colors.headText,
+          padding: "60px 72px 64px",
+          backgroundColor: colors.ground,
+          backgroundImage: tenueBands(colors),
+          color: colors.text,
           fontFamily: "Club",
         }}
       >
@@ -112,10 +90,18 @@ export async function streamThumbnail(input: {
             )}
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <span style={{ fontSize: 36, fontWeight: 400, color: colors.gold }}>{lines.status}</span>
-          <span style={{ fontSize: titleSize, fontWeight: 500, lineHeight: 1.08, textWrap: "balance" }}>{lines.title}</span>
-          <span style={{ fontSize: 36, fontWeight: 400, opacity: 0.8 }}>{lines.detail}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <span style={{ fontSize: 40, fontWeight: 400, color: colors.gold }}>{lines.status}</span>
+          {matchup ? (
+            <div style={{ display: "flex", flexDirection: "column", fontSize: titleSize, fontWeight: 500, lineHeight: 1.05 }}>
+              <span>{matchup.home}</span>
+              <span style={{ fontSize: Math.round(titleSize * 0.5), fontWeight: 400, color: colors.gold, margin: "6px 0 4px" }}>vs</span>
+              <span>{matchup.away}</span>
+            </div>
+          ) : (
+            <span style={{ fontSize: titleSize, fontWeight: 500, lineHeight: 1.08, textWrap: "balance" }}>{lines.title}</span>
+          )}
+          <span style={{ fontSize: 40, fontWeight: 400, color: colors.muted }}>{lines.detail}</span>
         </div>
       </div>
     ),

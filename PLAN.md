@@ -60,11 +60,17 @@ gaat stabiliteit voor nieuwe features.
    `/zwbeter-worden/schema` (maand) en op de trainerkalender bekijken, licht en
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
+0. **Herzien — OBS-overlay als kader om Zwift, thumbnail met matchup
+   (2026-11-19): lokaal gecommit, niet gepusht.** Geen migratie. Na de eerste
+   stream: de overlay is een kader met de tenuebanen van de app, Zwift staat
+   op 80% rechtsonder; Nederlands; thumbnail zonder "Live". Open: na de push
+   de Zwift-bron in OBS op positie 384, 216 en begrenzingsvak 1536×864 zetten
+   en een stream bekijken. Zie de ronde "Herzien — OBS-overlay als kader om
+   Zwift".
+
 0. **Bijgesteld — OBS-overlay onder de cijfers van Zwift (2026-11-19):
    commit `21f1454`, op 2026-11-19 gepusht naar `main` (eigenaar: "Yes,
-   push").** Geen migratie. Kop en stand links vanaf
-   330px, `?teams=` tot 8. Zie de ronde "Bijgesteld — OBS-overlay onder de
-   cijfers van Zwift".
+   push").** Achterhaald door het kader hierboven.
 
 0. **Gebouwd — Thumbnail per stream (2026-11-19): commit `687c025`, op
    2026-11-19 gepusht naar `main` (`415bbd1`, eigenaar: "Yes, push").** Geen migratie. Bij Stream klaarzetten maakt de app een
@@ -12994,7 +13000,65 @@ bekende ontbrekende pakketten na.
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
 
+### Herzien — OBS-overlay als kader om Zwift
+
+**2026-11-19, lokaal gecommit, niet gepusht. Geen migratie.**
+
+- **Waarom.** De eerste stream (Club Ladder ZWBeasts – TeamNL Cloud9 Thunder,
+  YouTube `Zb1RRYr4JNc`) is beoordeeld met `/impeccable critique` op vijf
+  stilstaande beelden (15/24). De kop viel over meldingen van Zwift links
+  (Drafting Boost, de segmentuitslag), het sponsorvak lag de hele race over de
+  vermogensgrafiek, "Live" bleef staan na de finish en op de thumbnail bij
+  terugkijken, de tekst was klein voor kijkers op een telefoon en het beeld
+  had zwarte randen. De eigenaar koos zelf de oplossing: "het zwiftscherm een
+  beetje kleiner maken zodat de overlay een blok links en boven het zwiftbeeld"
+  kan, met ruimte voor de ZRL-stand of het Sauce-venster van de ladder; "de
+  lijnen uit het design van de app" erin; overlay en thumbnail Nederlands
+  ("we zijn een nederlandse club en nederlandse volgers"). Akkoord op de
+  schets: "Yes, build it" (Zwift op 80%; 75% was de andere optie).
+- **Wat.**
+  - `stream-overlay.tsx`/`.css`: een kader van 1920×1080 met een balk boven
+    (216px) en een kolom links (384px) in nachtpetrol met de vier tenuebanen
+    van de app in donker (`tenueBands` in `overlay-theme.ts`, dezelfde hoeken,
+    stops en dekking als `.app-shell[data-design="tegels"]::before`; bij eigen
+    clubkleuren uit `secondary`, `neutral` en `accent`). De twee stukken
+    tekenen de banen over het hele vlak, zodat ze achter Zwift door lijken te
+    lopen. Het gat (`ZWIFT_WINDOW`: 1536×864 op 384, 216) blijft doorzichtig,
+    met een gouden haarlijn aan de kant van het kader. Boven de titeltegel
+    (kalenderkleur met witte baan, titel 42px, status 26px in goud) en rechts
+    de sponsors op het paneel; links route en afstand (`overlayInfo`), bij ZRL
+    de stand.
+  - De ondergrond van de overlay is nu dekkend (`ground`), want er zit geen
+    video meer achter. `?teams=` weer tot 15, standaard 15: lokaal gemeten
+    eindigt een stand van 15 ploegen op 934px.
+  - Nederlands: "Begint zo", "Live" en "Afgelopen", met het soort erachter
+    ("Live · Club Ladder"); ZRL "Live · ZRL A", "Uitslag · ZRL", "Wacht op
+    punten". "Afgelopen" volgt uit de eindtijd van het event, anders uit de
+    afstand bij 38 km/u (`expectedRaceEnd`, liever te laat dan te vroeg),
+    anders twee uur. Bij de ladder is de titel "thuis vs uit" (`overlayTitle`).
+  - Thumbnail: dezelfde vier banen op nachtpetrol in plaats van de
+    kalendertegel; de gouden regel is het soort en de datum zonder "Live"
+    (YouTube zet zelf een label, en de thumbnail blijft staan na de stream);
+    bij de ladder de twee ploegen onder elkaar met "vs" ertussen; status en
+    route 40px. `thumbnailRoute` staat nu in `event-route.ts`, zodat de
+    overlay de route kan tonen zonder `next/og` mee te nemen.
+  - Hulp: Zwift-bron via Transformeren, Transformatie bewerken op positie 384,
+    216 en begrenzingsvak 1536 bij 864; bij de ladder het Sauce-venster in de
+    kolom links.
+- **Bewust niet.** Geen live score bij de ladder: er is nog steeds geen live
+  positiedata (zie "OBS-overlay per stream"); de kolom is vrij voor de
+  Sauce-mod. Geen plek of grootte kiezen per stream. Geen eindstand van de
+  ladder na de race: niet onderzocht of de uitslag op tijd binnen is.
+- **Niet geverifieerd.** Lokaal bekeken op 1920×1080 met de echte ladderstream
+  en de B1-TTT van 2026-11-17 (15 ploegen) en de thumbnail van de ladderstream;
+  niet in OBS met Zwift erachter. De Nederlandse namen van de OBS-menu's
+  (Transformatie bewerken, begrenzingsvak) zijn niet in OBS nagekeken. De
+  38 km/u is een aanname, niet gemeten tegen uitslagen.
+
 ### Bijgesteld — OBS-overlay onder de cijfers van Zwift
+
+> Achterhaald op 2026-11-19 door "Herzien — OBS-overlay als kader om Zwift":
+> de overlay ligt niet meer over Zwift heen, en `?teams=` gaat weer tot 15.
 
 **2026-11-19, commit `21f1454`, op 2026-11-19 gepusht naar `main`. Geen migratie.**
 
@@ -13025,7 +13089,8 @@ bekende ontbrekende pakketten na.
   - `lib/youtube-live/thumbnail.tsx`: een PNG van 1280×720 met `next/og`
     (Satori), in de nachtkleuren en letter van de club zoals de overlay: de
     kalendertegel met tenueband, het clublogo op papier met gouden rand, een
-    gouden regel `Live · donderdag 19 november om 20:01`, de titel van de race
+    gouden regel `Live · donderdag 19 november om 20:01` (sinds het kader
+    zonder "Live": `Club Ladder · donderdag …`), de titel van de race
     (hoogstens 90 tekens, regels in balans) en de route met rondes, of anders
     de clubnaam (`thumbnailLines` in `broadcast.ts`, puur). Satori kent geen
     oklch, dus `plainColors` zet die kleuren om naar hex (`oklchToHex` uit
@@ -13103,7 +13168,9 @@ bekende ontbrekende pakketten na.
   Ladder-overlay nagebouwd: er is geen live positiedata op de server; de
   Sauce-mod `gazhay/sauce4clubLadder` kan naast onze overlay in OBS staan.
   Geen grotere of langere plek voor hogere sponsortiers (eigenaar: allemaal
-  gelijk). Geen Nederlandse overlay: de kijkers zijn ook van andere clubs.
+  gelijk). Geen Nederlandse overlay: de kijkers zijn ook van andere clubs
+  (achterhaald: sinds het kader van 2026-11-19 Nederlands, op verzoek van de
+  eigenaar).
 - **Niet geverifieerd.** `0341` alleen in PGlite getest (standaard aan, ook
   voor bestaande streams, niet null, opnieuw uit te voeren); op productie
   alleen de kolom nagekeken. De oude ZRL-link is lokaal bekeken met echte data (B1, TTT van
@@ -13210,10 +13277,11 @@ bekende ontbrekende pakketten na.
     uit de speler; die kan het lid opnieuw klaarzetten.
   - ZRL-overlay `/live/zrl/<id>/overlay`: browserbron op 1920×1080 met
     doorzichtige achtergrond, de teamstand van de live stand (top 8, `?teams=5`
-    tot 15, sinds 2026-11-19 tot 8; staat de eigen ploeg lager, dan vervangt die de laatste rij, in
+    tot 15, op 2026-11-19 even tot 8, sinds het kader weer tot 15; staat de eigen ploeg lager, dan vervangt die de laatste rij, in
     oranje; sinds de ronde "OBS-overlay per stream" in de huisstijl en goud),
     punten of in een TTT de tijd van de vierde renner, ververst elke 15 s tot
-    de stand definitief is. Engels, zoals de Omnium-overlay. Onder de eigen
+    de stand definitief is. Engels, zoals de Omnium-overlay (sinds het kader
+    Nederlands). Onder de eigen
     stream bij een ZRL-race de knop Overlay-link voor OBS (sinds die ronde
     onder elke eigen stream, met de link per stream).
   - Hulp, privacy (`/privacy#livestream`: statuscontrole met het nummer van de
@@ -13225,7 +13293,8 @@ bekende ontbrekende pakketten na.
   klok). Geen melding als een stream stopt. Geen tegel in Mijn events: wie
   zelf rijdt, kijkt niet. Geen overlay voor andere races dan ZRL: daar is geen
   live stand (achterhaald: sinds de ronde "OBS-overlay per stream" heeft elke
-  stream een overlay met logo en sponsors, de stand alleen bij ZRL). Geen Nederlandse overlay: de kijkers zijn ook van andere clubs.
+  stream een overlay met logo en sponsors, de stand alleen bij ZRL). Geen Nederlandse overlay: de kijkers zijn ook van andere clubs
+  (achterhaald: sinds het kader Nederlands).
 - **Netlify.** Elke 2 minuten is ruim 700 functieaanroepen per dag, de
   meeste met alleen één databasequery. Beperk de job op cron-job.org tot de
   raceavonden als de tegoeden krap worden; de melding komt dan alleen binnen

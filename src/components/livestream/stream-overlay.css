@@ -1,29 +1,65 @@
-/* OBS-overlay van een stream (0341): 1920×1080, doorzichtig. Nachtversie van
-   het design tegels: rechte hoeken, geen schaduw, lichte cijfers, geen
-   hoofdletters. Kleuren als --ov-* op .stream-overlay (lib/youtube-live/overlay-theme.ts). */
+/* OBS-overlay van een stream (0341): 1920×1080. Sinds 2026-11-19 een kader om
+   het Zwift-beeld (1536×864 op 384, 216, zie ZWIFT_WINDOW): een balk boven en
+   een kolom links in nachtpetrol met de vier tenuebanen van de app. Het gat
+   blijft doorzichtig, zodat Zwift eronder in OBS zichtbaar is. Design tegels:
+   rechte hoeken, geen schaduw, lichte cijfers. Kleuren als --ov-* op
+   .stream-overlay (lib/youtube-live/overlay-theme.ts). */
 html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !important; }
 
 .stream-overlay {
+  --ov-top: 216px;
+  --ov-side: 384px;
   position: relative;
   width: 1920px;
   height: 1080px;
-  padding: 40px;
   overflow: hidden;
   color: var(--ov-text);
   font-variant-numeric: tabular-nums;
 }
 
-/* Onder het cijferblok van Zwift linksboven (vermogen, cadans, kJ), dat tot
-   ongeveer 310px reikt (eigenaar, 2026-11-19, screenshot uit OBS). */
-.stream-overlay-panel { width: 560px; margin-top: 290px; background: var(--ov-ground); }
+/* Het kader in twee stukken. Elk stuk tekent de banen over het hele vlak en
+   schuift ze mee, zodat ze achter Zwift door lijken te lopen. */
+.stream-overlay-frame {
+  position: absolute;
+  background-color: var(--ov-ground);
+  background-image: var(--ov-bands);
+  background-size: 1920px 1080px;
+  background-repeat: no-repeat;
+}
+.stream-overlay-frame-top { left: 0; top: 0; width: 1920px; height: var(--ov-top); background-position: 0 0; }
+.stream-overlay-frame-side {
+  left: 0;
+  top: var(--ov-top);
+  width: var(--ov-side);
+  height: calc(1080px - var(--ov-top));
+  background-position: 0 calc(-1 * var(--ov-top));
+}
 
-/* De kop: de tegel van wedstrijden met de tenueband, zoals op de startpagina. */
+/* Een gouden haarlijn om het Zwift-beeld, aan de kant van het kader. */
+.stream-overlay-window {
+  position: absolute;
+  left: calc(var(--ov-side) - 2px);
+  top: calc(var(--ov-top) - 2px);
+  right: 0;
+  bottom: 0;
+  border-top: 2px solid var(--ov-gold);
+  border-left: 2px solid var(--ov-gold);
+  pointer-events: none;
+}
+
+/* De titel: de tegel van wedstrijden met de witte baan, zoals op de startpagina. */
 .stream-overlay-head {
-  position: relative;
+  position: absolute;
+  left: 40px;
+  top: 36px;
+  height: 144px;
+  width: max-content;
+  min-width: 760px;
+  max-width: 1440px;
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 20px 24px;
+  gap: 28px;
+  padding: 0 40px 0 28px;
   background: var(--ov-head);
   color: var(--ov-head-text);
   overflow: hidden;
@@ -44,19 +80,19 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
   place-items: center;
   background: var(--ov-paper);
   color: var(--ov-ink);
-  padding: 8px 14px 7px;
+  padding: 10px 18px 9px;
   border-radius: 0.8rem;
-  box-shadow: 0 0 0 2px var(--ov-head), 0 0 0 3.5px var(--ov-gold);
+  box-shadow: 0 0 0 2px var(--ov-head), 0 0 0 4px var(--ov-gold);
 }
-.stream-overlay-logo img { display: block; height: 44px; width: auto; max-width: 160px; object-fit: contain; }
-.stream-overlay-logo span { font-weight: 600; font-size: 22px; line-height: 44px; white-space: nowrap; }
+.stream-overlay-logo img { display: block; height: 60px; width: auto; max-width: 220px; object-fit: contain; }
+.stream-overlay-logo span { font-weight: 600; font-size: 30px; line-height: 60px; white-space: nowrap; }
 
-.stream-overlay-titles { display: grid; min-width: 0; gap: 2px; }
-.stream-overlay-status { font-size: 18px; font-weight: 400; opacity: 0.8; }
+.stream-overlay-titles { display: grid; min-width: 0; gap: 4px; }
+.stream-overlay-status { font-size: 26px; font-weight: 400; color: var(--ov-gold); white-space: nowrap; }
 .stream-overlay-head h1 {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.15;
+  font-size: 42px;
+  line-height: 1.1;
   font-weight: 500;
   text-wrap: balance;
   display: -webkit-box;
@@ -65,58 +101,74 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
   overflow: hidden;
 }
 
-/* De stand: panelen met 6px ertussen; de eigen ploeg met de gouden onderlijn. */
-.stream-overlay-stand {
-  list-style: none;
-  margin: 0;
-  padding: 12px;
-  display: grid;
-  gap: 6px;
-}
-.stream-overlay-stand li {
-  display: grid;
-  grid-template-columns: 40px 1fr auto;
-  align-items: baseline;
-  gap: 12px;
-  padding: 6px 14px;
-  background: var(--ov-row);
-  font-size: 24px;
-  line-height: 1.2;
-}
-.stream-overlay-stand li[data-own] { box-shadow: inset 0 -2px 0 var(--ov-gold); }
-.stream-overlay-stand li[data-own] .stream-overlay-team { color: var(--ov-gold); }
-.stream-overlay-rank { color: var(--ov-muted); font-weight: 300; }
-.stream-overlay-team { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.stream-overlay-value { font-weight: 300; }
-.stream-overlay-wait { margin: 0; padding: 16px 24px; font-size: 22px; color: var(--ov-muted); }
-
-/* Sponsors linksonder: één logo tegelijk, elk even groot. */
+/* Sponsors rechts in de balk: één logo tegelijk, elk even groot, op het
+   doorzichtige paneel van het design. */
 .stream-overlay-sponsors {
   position: absolute;
-  left: 40px;
-  bottom: 40px;
+  right: 40px;
+  top: 36px;
+  height: 144px;
   display: grid;
+  align-content: center;
   gap: 8px;
-  padding: 12px 14px 14px;
-  background: var(--ov-ground);
+  padding: 0 16px;
+  background: var(--ov-row);
 }
-.stream-overlay-caption { font-size: 16px; color: var(--ov-muted); }
+.stream-overlay-caption { font-size: 18px; color: var(--ov-muted); }
 .stream-overlay-sponsor {
   position: relative;
   width: 280px;
-  height: 110px;
+  height: 92px;
   background: var(--ov-paper);
 }
 .stream-overlay-sponsor img {
   position: absolute;
-  inset: 14px 20px;
+  inset: 12px 20px;
   width: calc(100% - 40px);
-  height: calc(100% - 28px);
+  height: calc(100% - 24px);
   object-fit: contain;
   opacity: 0;
   transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .stream-overlay-sponsor img[data-shown] { opacity: 1; }
+
+/* De kolom links: route en afstand, bij ZRL de stand. Verder vrij, voor een
+   venster van Sauce (de ladder). */
+.stream-overlay-side {
+  position: absolute;
+  left: 40px;
+  top: calc(var(--ov-top) + 28px);
+  width: calc(var(--ov-side) - 40px - 26px);
+  display: grid;
+  gap: 20px;
+}
+.stream-overlay-info { margin: 0; display: grid; gap: 2px; font-size: 22px; line-height: 1.3; color: var(--ov-muted); }
+.stream-overlay-info span:first-child { color: var(--ov-text); font-weight: 500; }
+
+/* De stand: panelen met 6px ertussen; de eigen ploeg met de gouden onderlijn. */
+.stream-overlay-stand {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.stream-overlay-stand li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--ov-row);
+  font-size: 22px;
+  line-height: 1.2;
+}
+.stream-overlay-stand li[data-own] { box-shadow: inset 0 -3px 0 var(--ov-gold); }
+.stream-overlay-stand li[data-own] .stream-overlay-team { color: var(--ov-gold); }
+.stream-overlay-rank { color: var(--ov-muted); font-weight: 300; }
+.stream-overlay-team { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stream-overlay-value { font-weight: 300; }
+.stream-overlay-wait { margin: 0; padding: 14px 12px; font-size: 22px; color: var(--ov-muted); background: var(--ov-row); }
 
 @media (prefers-reduced-motion: reduce) {
   .stream-overlay-sponsor img { transition: none; }
