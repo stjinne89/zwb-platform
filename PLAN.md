@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Club Ladder: ranking ook voor World (2026-11-19): lokaal
+   gecommit, niet gepusht.** Geen migratie. Open: na de deploy de knop World
+   onder Ranking proberen op een teampagina. Zie de ronde "Gebouwd — Club
+   Ladder: ranking ook voor World".
+
 0. **Ingevuld — ZRL R2: routes vooraf uit Zwift Insider (2026-11-19): alleen
    data in productie, geen code en geen migratie.** Routes van W2, W3, W4 en
    W6 in de teamraces gezet, zodat Racefit er nu al is; W4 heeft " — Race of
@@ -12580,6 +12585,39 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: ranking ook voor World
+
+**2026-11-19, commit "Club Ladder: ranking ook voor World", lokaal, niet
+gepusht.** Geen migratie. Op verzoek van de eigenaar ("Ik zie in de app enkel
+de EMEA ranglijst, zou je een toggle kunnen maken naar wereld?").
+
+- **Waarom.** Op `/teams/club-ladder/[teamId]` stond onder Ranking alleen de
+  regionale stand. De parser sloeg de World-ladder (`section.pLadder`) sinds
+  2026-10-26 bewust over, omdat elk team er anders twee keer in stond.
+- **Parser** (`lib/club-ladder/summary.ts`). De World-ladder komt nu apart in
+  `summary.world`; `standings` blijft alleen de regio's, dus de sync, de
+  uitdaagregels en `total_teams` veranderen niet. Het lezen van een rij staat
+  in `parseLadderRows`, gedeeld door beide. De World-rijen hebben dezelfde
+  `data-team-id` als de regio's (gemeten op de live summary van 2026-11-19);
+  elke rij krijgt de regio van de regionale rij met hetzelfde ID en dezelfde
+  naam, anders dezelfde naam, anders "World". `findWorldWindow` geeft het team
+  met vijf plekken erboven en eronder.
+- **Pagina.** Onder Ranking twee knoppen (`ChoiceTabs`): de eigen regio (bijv.
+  EMEA) en World. De server rendert beide; wisselen laadt de pagina niet
+  opnieuw. Advies- en Gepland-links werken op naam, dus ook in World. Staat het
+  team niet in World, dan de hele World-lijst in een scrollvak, net als bij de
+  regio. Zonder World-ladder (onbekende opmaak) alleen de regiotabel, zonder
+  knoppen.
+- **Bewust niet.** De metric Positie bovenaan blijft de regionale plek: daar
+  hangen uitdagen en de race-organisation-kanalen aan. Geen `?stand=` in de
+  URL: de keuze hoeft niet gedeeld te worden.
+- **Gemeten** tegen de live summary van 2026-11-19: 268 teams in World, alle
+  268 met een regio (EMEA 182, AMER 51, WOMENS 22, APAC 13). ZWBeasts World 3,
+  ZWBullets 31, ZWBandits 152, ZWBeauties 221.
+- **Gecontroleerd.** Vitest `club-ladder*` 207 groen (2 nieuw in
+  `club-ladder-summary`), eslint schoon, `tsc` schoon. **Niet gecontroleerd:**
+  de pagina in de browser (geen ZWB-sessie in deze worktree).
 
 ### Ingevuld — ZRL R2: routes vooraf uit Zwift Insider
 
@@ -27095,7 +27133,9 @@ werden bij AMER geteld (310 in plaats van 48).
 **Nu** (`src/lib/club-ladder/summary.ts`, herschreven).
 - Stand: per `section.aLadder` de regio uit de `h2`, en per `tr.ladderRow`
   positie (`data-position`), naam, vorm en stijging. De World-ladder
-  (`section.pLadder`) blijft erbuiten.
+  (`section.pLadder`) blijft erbuiten. *Sinds 2026-11-19 apart gelezen in
+  `summary.world`, voor de knop World onder Ranking; zie "Club Ladder: ranking
+  ook voor World".*
 - Vorm: de letter in elk `.formSquare`. Een verdedigde plek (`DEFEND`) is een W,
   zoals de ladder hem toont. Lege blokjes tellen niet.
 - Stijging: de klasse van `.movebubble` (`upMove`, `downMove`, `staticMove`)

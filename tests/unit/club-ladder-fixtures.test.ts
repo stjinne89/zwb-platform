@@ -172,7 +172,7 @@ describe("wedstrijd naar event", () => {
   });
 
   it("slaat een team van het kerkhof met een geplande wedstrijd over in plaats van een fout", () => {
-    const summary = { standings: [], fixtures: [fixture()], results: [], fetchedAt: "", sourceUrl: "" };
+    const summary = { standings: [], world: [], fixtures: [fixture()], results: [], fetchedAt: "", sourceUrl: "" };
     const source = { id: "s", team_id: "beasts", provider: "club_ladder", source_url: "", match_name: "ZWBeasts", teams: { name: "ZWBeasts", type: "ladder", division: null, is_graveyard: false } };
     expect(() => clubLadderResultFromSummary(source as never, summary)).toThrow(/Wel een wedstrijd gepland/);
   });
@@ -284,6 +284,7 @@ describe("syncLadderFixtures", () => {
       form: [],
       move: null,
     })),
+    world: [],
     fixtures,
     results: [],
     fetchedAt: now.toISOString(),

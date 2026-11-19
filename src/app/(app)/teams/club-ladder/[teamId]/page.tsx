@@ -4,6 +4,7 @@ import { after } from "next/server";
 import { Activity, ArrowUpRight, RefreshCw, Swords, Trophy, Users } from "lucide-react";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { TeamChatLinks } from "@/components/team-chat-links";
+import { ChoiceTabs } from "@/components/choice-tabs";
 import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
 import { loadTeamMatches } from "@/lib/club-ladder/matches";
 import { parseLadderRiderSort, sortLadderRiders } from "@/lib/club-ladder/riders";
@@ -17,6 +18,7 @@ import { ladderOpponentFromTitle } from "@/lib/club-ladder/fixture-events";
 import {
   fetchClubLadderSummary,
   findStandingWindow,
+  findWorldWindow,
   type ClubLadderFixture,
   type ClubLadderResult,
   type ClubLadderStanding,
@@ -116,6 +118,7 @@ export default async function ClubLadderTeamPage({
   const teamRiderIds = new Set(teamRiders.map((rider) => rider.rosterEntryId ?? rider.id));
 
   let standings: ClubLadderStanding[] = [];
+  let world: ClubLadderStanding[] = [];
   let fixtures: ClubLadderFixture[] = [];
   let ladderResults: ClubLadderResult[] = [];
   let liveError: string | null = null;
@@ -123,6 +126,7 @@ export default async function ClubLadderTeamPage({
   try {
     const summary = await fetchClubLadderSummary();
     standings = summary.standings;
+    world = summary.world;
     fixtures = summary.fixtures;
     ladderResults = summary.results;
     fetchedAt = summary.fetchedAt;
@@ -147,6 +151,8 @@ export default async function ClubLadderTeamPage({
   );
   const unrankedRows = fixtureRegions.size > 0 ? standings.filter((row) => fixtureRegions.has(row.region)) : standings;
   const rankingRows = match ? challengeWindow(standings, match) : standings.length > 0 ? unrankedRows : window;
+  // World: alle regio's samen; zonder eigen plek de hele lijst om door te scrollen.
+  const worldWindow = findWorldWindow(world, aliases);
   const planned = teamFixtures.flatMap((fixture) => [fixture.home, fixture.away]);
   const plannedNames = new Set(planned.map(normalizeTeamName));
   // Het event dat de sync per wedstrijd aanmaakt (migr. 0300).
@@ -304,6 +310,19 @@ export default async function ClubLadderTeamPage({
     return eventId ? `/events/${eventId}${fixture!.route ? "#matchup" : "#parcoursadvies"}` : null;
   };
 
+  const standingsTable = (rows: ClubLadderStanding[], scrollable: boolean) => (
+    <StandingsTable
+      rows={rows}
+      selectedAliases={aliases}
+      challengeable={challengeable.map((row) => row.name)}
+      planned={planned}
+      opponentHref={opponentHref}
+      plannedHref={plannedHref}
+      activeOpponent={opponent?.name ?? null}
+      scrollable={scrollable}
+    />
+  );
+
   return (
     <div className="space-y-6">
       <BackLink href="/teams/club-ladder" label="Club Ladder" />
@@ -361,16 +380,19 @@ export default async function ClubLadderTeamPage({
             )}
           </div>
         )}
-        <StandingsTable
-          rows={rankingRows}
-          selectedAliases={aliases}
-          challengeable={challengeable.map((row) => row.name)}
-          planned={planned}
-          opponentHref={opponentHref}
-          plannedHref={plannedHref}
-          activeOpponent={opponent?.name ?? null}
-          scrollable={!match}
-        />
+        {world.length > 0 ? (
+          <div className="mt-3">
+            <ChoiceTabs
+              label="Ranking"
+              tabs={[
+                { key: "regio", label: match?.region ?? "Regio", content: standingsTable(rankingRows, !match) },
+                { key: "world", label: "World", content: standingsTable(worldWindow?.window ?? world, !worldWindow) },
+              ]}
+            />
+          </div>
+        ) : (
+          standingsTable(rankingRows, !match)
+        )}
       </section>
 
       {opponent && (

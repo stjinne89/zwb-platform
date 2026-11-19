@@ -52,6 +52,8 @@ export type ClubLadderResult = {
 
 export type ClubLadderSummary = {
   standings: ClubLadderStanding[];
+  /** De World-ladder (alle regio's samen), met per team de regio uit de regionale stand. */
+  world: ClubLadderStanding[];
   fixtures: ClubLadderFixture[];
   results: ClubLadderResult[];
   fetchedAt: string;
@@ -64,18 +66,11 @@ function clean(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-// Opmaak van /summary (oktober 2026): per regio een section.aLadder met een h2
-// en rijen tr.ladderRow. De World-ladder (section.pLadder) telt alle regio's
-// samen opnieuw en blijft buiten de stand, anders staat elk team er twee keer in.
-function parseStandings($: cheerio.CheerioAPI) {
+function parseLadderRows($: cheerio.CheerioAPI, block: ReturnType<cheerio.CheerioAPI>, region: string) {
   const rows: ClubLadderStanding[] = [];
-
-  $("section.aLadder").each((_, section) => {
-    const block = $(section);
-    if (block.hasClass("pLadder")) return;
-    const region = clean(block.children("h2").first().text()).toUpperCase() || "Club Ladder";
-
-    block.find("tr.ladderRow").each((__, tr) => {
+  block
+    .find("tr.ladderRow")
+    .each((_, tr) => {
       const row = $(tr);
       const position = Number(row.attr("data-position") ?? clean(row.find("td.nposCol").text()));
       const name = clean(row.find("td.highlightBold").text());
@@ -83,7 +78,7 @@ function parseStandings($: cheerio.CheerioAPI) {
 
       const form = row
         .find(".formSquare")
-        .map((___, square) => clean($(square).text()).toUpperCase())
+        .map((__, square) => clean($(square).text()).toUpperCase())
         .get()
         .filter((result) => result === "W" || result === "L");
 
@@ -97,9 +92,35 @@ function parseStandings($: cheerio.CheerioAPI) {
       const ladderTeamId = Number.isSafeInteger(teamId) && teamId > 0 ? teamId : null;
       rows.push({ position, name, ladderTeamId, region, form, move });
     });
-  });
-
   return rows;
+}
+
+// Opmaak van /summary (oktober 2026): per regio een section.aLadder met een h2
+// en rijen tr.ladderRow. De World-ladder (section.pLadder) telt alle regio's
+// samen opnieuw en blijft buiten de stand, anders staat elk team er twee keer in.
+function parseStandings($: cheerio.CheerioAPI) {
+  const rows: ClubLadderStanding[] = [];
+  $("section.aLadder").each((_, section) => {
+    const block = $(section);
+    if (block.hasClass("pLadder")) return;
+    const region = clean(block.children("h2").first().text()).toUpperCase() || "Club Ladder";
+    rows.push(...parseLadderRows($, block, region));
+  });
+  return rows;
+}
+
+// De World-ladder heeft dezelfde rijen en dezelfde team-ID's als de regio's
+// (gemeten 2026-11-19); de regio komt uit de regionale stand, op ID en naam samen.
+function parseWorldStandings($: cheerio.CheerioAPI, regional: ClubLadderStanding[]) {
+  const key = (row: ClubLadderStanding) => `${row.ladderTeamId ?? ""}:${normalizeTeamName(row.name)}`;
+  const byKey = new Map(regional.map((row) => [key(row), row.region]));
+  const byName = new Map(regional.map((row) => [normalizeTeamName(row.name), row.region]));
+  const section = $("section.aLadder.pLadder").first();
+  if (section.length === 0) return [];
+  return parseLadderRows($, section, "World").map((row) => ({
+    ...row,
+    region: byKey.get(key(row)) ?? byName.get(normalizeTeamName(row.name)) ?? "World",
+  }));
 }
 
 function dayToDate(label: string, fetchedAt: Date) {
@@ -203,8 +224,10 @@ function dedupeStandings(rows: ClubLadderStanding[]) {
 
 export function parseClubLadderSummary(html: string, now = new Date()): ClubLadderSummary {
   const $ = cheerio.load(html);
+  const standings = dedupeStandings(parseStandings($));
   return {
-    standings: dedupeStandings(parseStandings($)),
+    standings,
+    world: parseWorldStandings($, standings),
     fixtures: parseFixtures($, now),
     results: parseResults($),
     fetchedAt: now.toISOString(),
@@ -230,6 +253,15 @@ export async function fetchClubLadderSummary(): Promise<ClubLadderSummary> {
   });
   if (!res.ok) throw new Error(`Club Ladder summary gaf HTTP ${res.status}.`);
   return parseClubLadderSummary(await res.text());
+}
+
+/** Het team in de World-ladder met vijf plekken erboven en eronder, of null als het er niet in staat. */
+export function findWorldWindow(world: ClubLadderStanding[], aliases: string[]) {
+  const normalizedAliases = aliases.map(normalizeTeamName).filter(Boolean);
+  const index = world.findIndex((row) => normalizedAliases.includes(normalizeTeamName(row.name)));
+  if (index < 0) return null;
+  const start = Math.max(0, index - 5);
+  return { match: world[index], window: world.slice(start, start + 11) };
 }
 
 export function findStandingWindow(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseClubLadderSummary } from "@/lib/club-ladder/summary";
+import { findWorldWindow, parseClubLadderSummary } from "@/lib/club-ladder/summary";
 import { dayRow, fixtureRow, ladderRow, ladderSection, summaryPage } from "../fixtures/club-ladder";
 
 const HTML = summaryPage(
@@ -17,7 +17,16 @@ const HTML = summaryPage(
       ladderRow(4, "Vegan Vanguard", [], { cls: "staticMove" }),
     ]),
     ladderSection("WOMENS", [ladderRow(1, "ZWB Zwiftladies", ["WIN"], { cls: "staticMove" })]),
-    ladderSection("World", [ladderRow(1, "Cryo-Gen Handlebar Heroes", ["WIN"], { cls: "upMove" })], true),
+    ladderSection(
+      "World",
+      [
+        ladderRow(1, "Cryo-Gen Handlebar Heroes", ["WIN"], { cls: "upMove" }),
+        ladderRow(2, "ZWB Zwiftladies", ["WIN"], { cls: "staticMove" }),
+        ladderRow(3, "ZWBeasts", ["LOSS"], { cls: "downMove", steps: 1 }),
+        ladderRow(4, "Nieuwe Ploeg", [], { cls: "staticMove" }),
+      ],
+      true,
+    ),
   ],
 );
 
@@ -75,9 +84,25 @@ describe("parseClubLadderSummary", () => {
     ]);
   });
 
+  it("leest de World-ladder apart, met de regio uit de regionale stand", () => {
+    expect(summary.world.map((row) => [row.position, row.name, row.region, row.move])).toEqual([
+      [1, "Cryo-Gen Handlebar Heroes", "EMEA", "▲"],
+      [2, "ZWB Zwiftladies", "WOMENS", "="],
+      [3, "ZWBeasts", "EMEA", "▼ 1"],
+      [4, "Nieuwe Ploeg", "World", "="],
+    ]);
+  });
+
+  it("vindt het team in de World-ladder, of null als het er niet in staat", () => {
+    expect(findWorldWindow(summary.world, ["zwbeasts"])?.match.position).toBe(3);
+    expect(findWorldWindow(summary.world, ["ZWBeasts"])?.window).toHaveLength(4);
+    expect(findWorldWindow(summary.world, ["ZWBandits"])).toBeNull();
+  });
+
   it("geeft een lege stand als de opmaak onbekend is", () => {
     const empty = parseClubLadderSummary("<html><body><table><tr><td>1</td><td>Team</td></tr></table></body></html>");
     expect(empty.standings).toEqual([]);
+    expect(empty.world).toEqual([]);
     expect(empty.fixtures).toEqual([]);
   });
 });
