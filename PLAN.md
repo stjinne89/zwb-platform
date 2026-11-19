@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Ingevuld — ZRL R2: routes vooraf uit Zwift Insider (2026-11-19): alleen
+   data in productie, geen code en geen migratie.** Routes van W2, W3, W4 en
+   W6 in de teamraces gezet, zodat Racefit er nu al is. Open: W4 telt pas als
+   tijdrit na de Zwift-koppeling; W5 (Miles of Isles) mist in `zwift-data`.
+   Zie de ronde "Ingevuld — ZRL R2: routes vooraf uit Zwift Insider".
+
 0. **Ingericht — Club Ladder-sessie warm houden (2026-11-19): geplande taak
    op de eigen pc, geen code en geen migratie.** Open: over een paar dagen
    nagaan of de sync de aanmeldingen nog leest. Zie de ronde "Ingericht — Club
@@ -12573,6 +12579,53 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Ingevuld — ZRL R2: routes vooraf uit Zwift Insider
+
+**2026-11-19, geen code, geen migratie. Alleen data in productie**, met de
+Supabase-connector. Op verzoek van de eigenaar ("Kun je de routes niet uit het
+overzicht op zwiftinsider alvast halen?"), na een voorstel ("Ja, W2–W6
+invullen").
+
+- **Waarom.** Racefit (`teams/zrl-racefit.ts`) ontbrak voor R2 W2 (24 nov).
+  Geen race in die week had een route: de route komt alleen binnen als een race
+  aan zijn Zwift-event hangt. WTRL had de divisie-events op 2026-11-19 nog niet
+  gepubliceerd; in de lijst met `tags=wtrl` stond voor 24 nov alleen het event
+  "Team Tempo – Race 2" (05:00 UTC). De divisies in `wtrl_teams` hebben sinds
+  2026-11-16 wel een nummer, dus de koppeling werkt zodra de events er zijn.
+- **Wat.** Volgens [Zwift Insider](https://zwiftinsider.com/zrl-r21/) zijn
+  `zwift_route_id`, `laps`, `distance_km` en `elevation_m` ingevuld in de 32
+  teamraces van R2 W2, W3, W4 en W6. Dat gebeurde alleen bij races zonder
+  Zwift-event en zonder route. A/B geldt voor B1, B2, B3, Bdev, ZRL A en
+  Zwiftladies B; C/D voor ZRL C en Zwiftladies C. Afstand en hoogte komen uit
+  `zwift-data` (inloop + rondes), net als `eventRouteTotals`, en kloppen met de
+  cijfers van Zwift Insider.
+  - W2: Muir And The Mountain (A/B), Elevation Evaluation (C/D).
+  - W3: Bon Voyage (A/B), Gentil 8 (C/D).
+  - W4: No Sleep Till Brooklyn (A/B), Spinfinity (C/D).
+  - W6: Sprinter's Playground, 3 rondes (A/B) en 2 rondes (C/D).
+- **Wat ermee gebeurt bij de koppeling.** `linkZrlEvents` kiest races op
+  `zwift_event_id is null`, dus een ingevulde route houdt de koppeling niet
+  tegen. De route van het Zwift-event overschrijft de ingevulde; een fout in
+  het overzicht van Zwift Insider wordt zo vanzelf rechtgezet.
+- **Bewust niet.**
+  - W5 (Miles of Isles): die route staat nog niet in `zwift-data`, dus Racefit
+    kan er niets mee.
+  - Zwift Insider automatisch uitlezen: het is een gewone webpagina zonder vaste
+    opbouw en zo'n scraper breekt snel. Eén keer per ronde met de hand invullen
+    is genoeg.
+  - De titels van W4 niet aangevuld met " — Race of Truth". Racefit herkent een
+    tijdrit aan de titel (`isTimeTrialTitle`), en dat achtervoegsel zet
+    `fillZrlEventDetails` pas bij de koppeling. Tot dan rekent Racefit W4 als
+    gewone race.
+- **Geverifieerd:** de 32 bijgewerkte rijen (`returning`); de routes staan in
+  `zwift_routes`; `weekCourses` geeft voor alle acht een parcours, en W4 alleen
+  met " — Race of Truth" in de titel als tijdrit (met een wegwerptest, niet
+  bewaard). Twee events op Zwift wijzen ook naar de W2-routes: "Team Tempo –
+  Race 2" rijdt Muir And The Mountain, een recon ride op 24 nov Elevation
+  Evaluation.
+- **Niet geverifieerd:** de indelingspagina in de browser; of WTRL de routes
+  van W3–W6 nog wijzigt.
 
 ### Ingericht — Club Ladder-sessie warm houden
 
