@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Hersteld — Stream-hulp installeren op Windows: npm crashte (2026-11-19):
-   lokaal gecommit, niet gepusht.** Geen migratie. Open: pushen, daarna het
+   gepusht naar `main` (`cabcf88a`).** Geen migratie. Open: het
    lid de `.bat` opnieuw laten draaien. Zie de ronde "Hersteld — Stream-hulp
    installeren op Windows: npm crashte".
 
@@ -12607,7 +12607,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Stream-hulp installeren op Windows: npm crashte
 
-**2026-11-19, lokaal gecommit, niet gepusht. Geen migratie.**
+**2026-11-19, commit `cabcf88a`, gepusht naar `main`. Geen migratie.**
 
 - **Waarom.** Een lid kreeg bij het installeren van de stream-hulp op Windows
   "Cannot read properties of null (reading 'edgesOut')" bij `npm install`
@@ -12630,8 +12630,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
   `npm install --omit=dev` installeert 21 pakketten, `tsx` staat erin.
   Beide scripts op syntax nagekeken. **Niet geverifieerd:** het hele
   Windows-script niet van begin tot eind gedraaid (vraagt om koppelcode en
-  OBS-wachtwoord), en pas na een push naar `main` haalt de `.bat` het nieuwe
-  script op.
+  OBS-wachtwoord), en de `.bat` niet op Windows gedraaid.
 
 ### Gebouwd — Pop-up: ritten via Strava komen niet binnen
 
