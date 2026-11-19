@@ -7,7 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Club Ladder: uitdagers zoeken (2026-11-19): gepusht naar `main`.**
+0. **Gebouwd — Club Ladder: uitdagers zoeken (2026-11-19): gepusht naar `main`
+   (`e5e13173`).**
    Geen migratie. Open: beide knoppen na de deploy als captain proberen. Zie de
    ronde "Club Ladder: uitdagers zoeken".
 
@@ -12570,7 +12571,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: uitdagers zoeken
 
-**2026-11-19, gepusht naar `main`** (eigenaar: "Push maar"). Op verzoek van de eigenaar ("Kun je ook een
+**2026-11-19, commit `e5e13173`, gepusht naar `main`** (eigenaar: "Push maar"). Op verzoek van de eigenaar ("Kun je ook een
 knop maken om de 7 captains naar beneden klaar te zetten?"), na een kort
 voorstel ("Ja, bouwen"). Geen migratie. Bouwt voort op de ronde "Club Ladder:
 uitdaging klaarzetten voor Discord".
