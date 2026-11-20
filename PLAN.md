@@ -82,7 +82,7 @@ gaat stabiliteit voor nieuwe features.
    thumbnail".
 
 0. **Gebouwd — Streams op de kalender, resolutie per stream, helmkleur
-   (2026-11-20): lokaal, nog niet gepusht.** Migratie
+   (2026-11-20): commit `f59cdf3`, lokaal, nog niet gepusht.** Migratie
    `0348_stream_overlay_size` (`event_streams.overlay_size`) nog níét op
    productie: toepassen vóór de push, anders werkt de keuze Resolutie niet
    (lezen valt terug op 1920×1080). Open: op de kalender een race met een
@@ -13120,7 +13120,7 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Streams op de kalender, resolutie per stream, helmkleur
 
-**2026-11-20, lokaal, nog niet gepusht. Migratie `0348_stream_overlay_size`,
+**2026-11-20, commit `f59cdf3`, lokaal, nog niet gepusht. Migratie `0348_stream_overlay_size`,
 nog niet op productie.**
 
 - **Waarom.** Drie wensen van de eigenaar in één ronde ("Je mag beide
