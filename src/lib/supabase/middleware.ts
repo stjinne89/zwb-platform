@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { loadGateProfile } from "@/lib/auth/gate-profile";
 import { getSessionUser } from "@/lib/auth/session-user";
 import { moduleGateResponse, type GateMember } from "@/lib/modules-gate";
 
@@ -152,11 +153,8 @@ export async function updateSession(request: NextRequest) {
   // groepen voor de modulepoort per ledengroep (0336).
   let gateMember: GateMember | null = null;
   if (user && !isPublic && !isPendingOk) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_approved, is_admin, community_roles")
-      .eq("id", user.id)
-      .maybeSingle();
+    // Een minuut onthouden per instantie (gate-profile.ts).
+    const profile = await loadGateProfile(supabase, user.id);
     if (profile) {
       gateMember = {
         isAdmin: profile.is_admin === true,

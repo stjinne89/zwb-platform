@@ -7,6 +7,15 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Databasecheck 2026-11-17: goedkeuringscheck onthouden, storage-policies
+   (2026-11-20, gepusht 2026-11-24): gepusht naar `main` (`HASH`, eigenaar: "ja,
+   hernummer maar en push de commit").** Migratie
+   `0355_storage_rls_initplan.sql` (geschreven als 0345, hernummerd) is
+   **niet toegepast**. Volgens de eigenaar staat de compute op Micro. Open: 0355
+   toepassen, en in de volgende check het aantal profielvragen van de
+   middleware meten. Zie de ronde "Databasecheck 2026-11-17: middleware,
+   nawerk en storage-policies".
+
 0. **Bijgesteld — Dashboard: events zes dagen vooruit (2026-11-24): gepusht
    naar `main` (`ce1d10cc`, eigenaar: "Ja, push").** Geen migratie. Open: na de
    deploy op een ZRL-avond nagaan dat er één ronde op het dashboard staat. Zie
@@ -1613,8 +1622,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0355`
-(`0354_sponsor_overlay_fixed` is van de vaste sponsor in de overlay, 2026-11-23, toegepast op 2026-11-23;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0356`
+(`0355_storage_rls_initplan` is van de storage-policies uit de databasecheck, 2026-11-20 geschreven als `0345`, hernummerd en op 2026-11-24 gepusht, **niet toegepast**;
+`0354_sponsor_overlay_fixed` is van de vaste sponsor in de overlay, 2026-11-23, toegepast op 2026-11-23;
 `0353_zrl_race_passes` is van de racepasses per race, toegepast op 2026-11-23;
 `0352_captain_availability_solo_team` is van het beschikbaarheidsvakje bij ZRL A en C, 2026-11-23, toegepast op 2026-11-23;
 `0351_bike_tire_setups` staat op main;
@@ -12821,6 +12831,70 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Databasecheck 2026-11-17: middleware, nawerk en storage-policies
+
+**2026-11-20 geschreven, 2026-11-24 gepusht naar `main` (`HASH`). Migratie
+0355 geschreven, niet toegepast.** Op verzoek van de
+eigenaar, als uitvoering van het voorstel na de databasecheck van 2026-11-17
+(0 ACTIE; database 276 MB, disk 30%, egress 2,18 GB na 15 dagen, ~4,4 GB
+doorgerekend).
+
+- **Compute.** Het project draait nog op **Nano** (0,5 GB RAM, 71–73% in
+  gebruik), terwijl Supabase Nano in een betaalde organisatie als Micro rekent
+  en de compute-credits Micro dekken. Supabase upgradet dat niet zelf, vanwege
+  ongeveer 2 minuten onderbreking. De eigenaar zet het zelf op Micro. Dat is
+  vermoedelijk ook de verklaring voor de grillige looptijden: dezelfde
+  index-scan kostte op 2026-11-17 eerst 733 ms en kort daarna 90 ms. Die
+  verklaring is niet bewezen; na de upgrade opnieuw meten. (Bijgewerkt
+  2026-11-24: volgens de eigenaar staat de compute nu op Micro; niet zelf
+  nagekeken.)
+- **Gebouwd: goedkeuringscheck onthouden.** De middleware vroeg bij elk verzoek
+  `profiles.is_approved, is_admin, community_roles` op. In de edge-logs van
+  2026-11-19/20 was dat 14.421 keer per dag, de drukste REST-vraag van het
+  project, met pieken van 18 tot 25 per seconde per lid. Dat zijn de
+  link-prefetches van Next. `src/lib/auth/gate-profile.ts` onthoudt het profiel
+  per warme instantie een minuut (maximaal 500 leden), op dezelfde manier als
+  `modules-gate.ts`. Fouten en ontbrekende profielen worden niet onthouden.
+  Gevolg: goedkeuren, intrekken of een groepswijziging werkt in de middleware
+  hooguit een minuut later door. De rechten op data blijven in RLS.
+  **Bewust niet:** een ondertekende cookie (vraagt een nieuw geheim in
+  Netlify), en geen claim in het JWT via een auth-hook (migratie en een uur
+  vertraging). Prefetches ook niet overslaan: dan zou een niet-goedgekeurd lid
+  de pagina-inhoud toch krijgen.
+- **Onderzocht: strava_activities (O1).** Ongeveer 3.600 REST-aanroepen per dag,
+  verdeeld over een stuk of twaalf vormen. Elke vorm heeft een filter op
+  `profile_id` en een index; de drukste is `loadRacePaceFactor` met ~430 per
+  dag. Er is geen uitschieter. De hoge gemiddelde tijden (70–980 ms) passen bij
+  de Nano-CPU, niet bij een slecht plan. **Bewust niet:** extra indexen.
+  Mogelijk later: `markExcludedRides` (compliance.ts) als losse query schrappen
+  en `training_excluded_at` in STRAVA_RIDE_COLUMNS opnemen. Dat scheelt ~240
+  aanroepen per dag; de reden voor de losse query (0163 kon ontbreken) geldt
+  niet meer.
+- **Onderzocht: waarom het nawerk ~47 keer per dag draait (O2).** Twee bronnen
+  van elk ongeveer de helft. (1) Webhooks: 198 events in 7 dagen (131 create,
+  56 update, waarvan 32 een titelwijziging, en 11 delete) van 10 leden, samen
+  ~23 runs per dag. Ook een overgeslagen event (`skipped`) zet het profiel in
+  `touchedProfiles` en start het hele nawerk. (2) De cron "Strava sync"
+  (`limit=1`, elk uur) draait na een voltooide sync altijd
+  `runPostSyncForProfile` met gear, summaries en Watopia, ook zonder nieuwe rit:
+  24 keer per dag. **Niet gebouwd:** beide filters vragen eerst een besluit,
+  omdat het nawerk ook achterstallige samenvattingen en gear inhaalt die bij
+  een rate limit bleven liggen.
+- **Geschreven: 0355.** Geschreven als `0345`; dat nummer kreeg op `main`
+  intussen `0345_stream_overlay_theme`, dus vóór de push hernummerd naar het
+  eerstvolgende vrije nummer. Geen van de migraties 0346–0354 raakt
+  `storage.objects`. Zestien policies op `storage.objects` (avatars, bikes,
+  birthday-gpx, birthday-photos, event-gpx, event-photos) gebruikten een kale
+  `auth.uid()`. 0355 zet ze met `alter policy` om naar `(select auth.uid())`
+  en houdt commando en rollen gelijk. De voorwaarden zijn overgenomen uit
+  `pg_policies` in productie. De advisor kijkt niet in `storage`, daarom
+  stonden ze er nog.
+
+**Niet geverifieerd:** 0355 is niet uitgevoerd en lokaal niet te testen (geen
+Docker). De werking van het geheugen in de middleware op Netlify is niet
+gemeten; alleen de unit-tests (`tests/unit/gate-profile.test.ts`) en de
+typecheck zijn gedraaid. Niet in de browser nagekeken.
+
 ### Bijgesteld — Dashboard: events zes dagen vooruit
 
 **2026-11-24, commit `ce1d10cc`, gepusht naar `main`. Geen migratie.**
@@ -16330,7 +16404,8 @@ niet uit zijn profiel) en het scherm in de browser.
 - **Niet meegepusht.** De lokale commit `a810a8cc` (middleware en
   storage-policies) wacht nog op de compute-upgrade. Zijn migratienummer 0345 is
   op `main` intussen bezet door `0345_stream_overlay_theme`; hij moet dus een
-  nieuw nummer krijgen.
+  nieuw nummer krijgen. (Bijgewerkt 2026-11-24: hernummerd naar 0355 en
+  gepusht; zie de ronde "Databasecheck 2026-11-17".)
 
 ### Hersteld — Verse waarde van de durability-test weer 90 dagen
 
@@ -20223,7 +20298,9 @@ niet eens geraakt; de index zou niets doen.
 **Niet verklaard:** dezelfde select liep met de hand eerst 1.025 ms en direct
 daarna 7 ms, terwijl de RPC structureel boven 600 ms blijft. Waarom de scan in
 de RPC zo traag is, is niet vastgesteld; de index en de lagere frequentie
-omzeilen het. Op 10 november toegepast in productie. Nagekeken: de policy
+omzeilen het. (Bijgewerkt 2026-11-20: vermoedelijk de Nano-compute; zie de
+ronde "Databasecheck 2026-11-17". Op 2026-11-17 was de snelste run 26 ms en
+het gemiddelde over de week ~566 ms.) Op 10 november toegepast in productie. Nagekeken: de policy
 heeft `( SELECT auth.uid() AS uid)` in `using` en `with check`, en de select van
 de functie gebruikt `training_workouts_prune_idx` (Index Only Scan, 3 ms).
 Niet gemeten: de duur van de RPC zelf via de cron; dat moet uit de volgende

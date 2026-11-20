@@ -16,7 +16,8 @@ export type SessionUser = { id: string; email?: string };
  *
  * Gevolg om te kennen: een ingetrokken sessie of verwijderd account blijft
  * geldig tot het JWT verloopt (standaard een uur). De goedkeuring van een lid
- * wordt los daarvan bij elk verzoek in de database nagekeken (middleware), en
+ * wordt los daarvan in de middleware nagekeken, per instantie een minuut
+ * onthouden (gate-profile.ts), en
  * de database controleert het JWT bij elke query zelf.
  *
  * Lukt de lokale controle niet (bijvoorbeeld de sleutel is niet op te halen),
