@@ -74,15 +74,15 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
-0. **Gebouwd — Eigen kopman bij Strip (2026-11-20): commit `1edb507`, lokaal, nog niet
-   gepusht.** Migratie `0347_stream_kopman` (tabel `stream_kopman`) nog níét
-   op productie: toepassen vóór de push, anders slaat Opslaan niets op (lezen
-   valt terug op geen kopman). Open: bij een eigen stream Strip kiezen, een
+0. **Gebouwd — Eigen kopman bij Strip (2026-11-20): commit `1edb507`, op
+   2026-11-20 gepusht naar `main` (eigenaar: "Ja, beide").** Migratie
+   `0347_stream_kopman` (tabel `stream_kopman`) op 2026-11-20 vóór de push op
+   productie toegepast. Open: bij een eigen stream Strip kiezen, een
    kopman samenstellen en opslaan, en overlay en thumbnail op YouTube
    bekijken. Zie de ronde "Gebouwd — Eigen kopman bij Strip".
 
 0. **Gebouwd — Voorbeelden in de stijlkeuze (2026-11-20): commit
-   `e700dbb`, lokaal, nog niet gepusht.** Geen migratie. Open: na de push bij een eigen
+   `e700dbb`, op 2026-11-20 gepusht naar `main`.** Geen migratie. Open: na de push bij een eigen
    stream Stijl openklappen en kiezen. Zie de ronde "Gebouwd — Voorbeelden in
    de stijlkeuze".
 
@@ -1486,7 +1486,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0348`
-(`0347_stream_kopman` is van de eigen kopman bij Strip, 2026-11-20, nog niet toegepast;
+(`0347_stream_kopman` is van de eigen kopman bij Strip, 2026-11-20, toegepast op 2026-11-20;
 `0346_stream_overlay_style` is van de stijlen voor overlay en thumbnail, 2026-11-20, toegepast op 2026-11-20;
 `0345_stream_overlay_theme` is van donker of licht per stream, 2026-11-20, toegepast op 2026-11-20;
 `0344_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, toegepast op 2026-11-19, geschreven als `0343` en vóór het toepassen hernummerd, want main had `0343` al;
@@ -13067,8 +13067,8 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Eigen kopman bij Strip
 
-**2026-11-20, commit `1edb507`, lokaal, nog niet gepusht. Migratie `0347_stream_kopman`, nog
-niet op productie.**
+**2026-11-20, commit `1edb507`, op 2026-11-20 gepusht naar `main`. Migratie
+`0347_stream_kopman` op 2026-11-20 vóór de push op productie toegepast.**
 
 - **Waarom.** De eigenaar wilde dat een lid bij de streamstijl Strip een eigen
   "kopman" kan samenstellen zoals de renners in het spel Kopman, in een
@@ -13115,19 +13115,20 @@ niet op productie.**
     genoeg om je te herkennen, meer maakt de editor lang.
 - **Niet meer waar.** "Strip … gebruikt geen Kopman-figuren" (DESIGN.md en de
   ronde "Gebouwd — Stijlen voor overlay en thumbnail"): bijgewerkt.
-- **Niet geverifieerd.** `0347` alleen in PGlite getest (twee keer uit te
+- **Niet geverifieerd.** `0347` vooraf in PGlite getest (twee keer uit te
   voeren, array geweigerd, het lid ziet alleen de eigen rij en mag niet
-  schrijven, cascade bij een weg profiel). Lokaal op tijdelijke testpagina's
+  schrijven, cascade bij een weg profiel). Op productie toegepast op
+  2026-11-20: tabel leeg, RLS aan, één policy (select eigen rij),
+  `authenticated` alleen select, `anon` niets, de check staat. Lokaal op tijdelijke testpagina's
   bekeken: de overlay op 1920×1080 in rust, aanval en zege, de thumbnail
   (Satori tekent de rasterpunten en uitsnedes), en de editor op breed en op
-  375px. Niet gezien: opslaan tegen de database (tabel staat nog niet op
-  productie), de editor op de echte racepagina ingelogd, en de thumbnail op
+  375px. Niet gezien: opslaan tegen de database, de editor op de echte racepagina ingelogd, en de thumbnail op
   YouTube. De volledige testrun heeft één bestaande fout die ook zonder deze
   ronde faalt (`club-texts-render`: "beheer noemt ZWB niet").
 
 ### Gebouwd — Voorbeelden in de stijlkeuze
 
-**2026-11-20, commit `e700dbb`, lokaal, nog niet gepusht. Geen migratie.**
+**2026-11-20, commit `e700dbb`, op 2026-11-20 gepusht naar `main`. Geen migratie.**
 
 - **Waarom.** De eigenaar wilde dat leden zien hoe overlay en thumbnail
   eruitzien voordat ze een stijl kiezen. Akkoord op het voorstel: "Ja,
