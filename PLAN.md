@@ -1,11 +1,18 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-19)
+## Actieve volgorde (bijgewerkt 2026-11-20)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Hersteld — Club Ladder: gecorrigeerde uitslag bleef oud op de eventpagina
+   (2026-11-20): gepusht naar `main` (eigenaar: "Yes, push").** Geen migratie.
+   Open: na de deploy een sync draaien en op het event ZWBeasts – TeamNL
+   Cloud9 Thunder (19 november) 26–29 en de renners aan de goede kant
+   nakijken. Zie de ronde "Hersteld — Club Ladder: gecorrigeerde uitslag bleef
+   oud op de eventpagina".
 
 0. **Bijgesteld — Eventscan toont geen events uit het verleden (2026-11-20):
    gepusht naar `main` (`df7ab729`).** Geen migratie. Open: na de deploy
@@ -12681,6 +12688,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Club Ladder: gecorrigeerde uitslag bleef oud op de eventpagina
+
+**2026-11-20, gepusht naar `main` (zie `git log -- src/lib/club-ladder/store.ts`).
+Geen migratie.** Melding van de eigenaar: de uitslag op het event
+ZWBeasts – TeamNL Cloud9 Thunder van 19 november veranderde niet na een sync,
+het resultatenoverzicht op de ZWBeasts-pagina wel.
+
+- **Oorzaak.** De ladder heeft wedstrijd 18294 achteraf gecorrigeerd van 31–23
+  naar 26–29 (verlies). `storeLadderResults` deed een upsert met
+  `ignoreDuplicates`: een bekende wedstrijd bleef zoals hij was. In
+  `club_ladder_matches` stond dus nog 31–23. Ook de renners stonden verkeerd:
+  de uitslagpagina zegt per renner alleen of hij aan de winnende kant zat, en
+  `parseLadderResultPage` leidt het team af uit de opgeslagen score. Daardoor
+  stonden de vijf ZWB'ers bij TeamNL en andersom.
+- **Gebouwd.** `storeLadderResults` vergelijkt eerst met wat er al staat
+  (`changedLadderResults`, puur en getest). Als de score of de fase is
+  veranderd (bijvoorbeeld "Finished" naar "Final"), worden de score en de fase
+  bijgewerkt, de renners van die wedstrijd verwijderd en `riders_fetched_at`
+  teruggezet. De eventpagina en de matchup halen de renners daarna opnieuw op
+  (`ensureMatchRiders`). Route, tijd en de route-slug uit de uitslagpagina
+  blijven staan.
+- **Bewust niet.** Geen volledige upsert: die zou de route-slug van
+  `ensureMatchRiders` (uit de Zwift-routeId) overschrijven met die uit de
+  routenaam van de summary. Geen migratie om oude wedstrijden te
+  controleren: de summary toont alleen de laatste week, dus een correctie van
+  daarvoor ziet de sync niet. Wedstrijd 18294 valt nog binnen die week en
+  wordt bij de eerste sync na de deploy rechtgezet.
+- **Niet lokaal geverifieerd.** De schrijfkant (update en delete via de
+  admin-client) is niet tegen de database gedraaid; alleen de vergelijking is
+  getest (`tests/unit/club-ladder-store.test.ts`).
 
 ### Bijgesteld — Eventscan toont geen events uit het verleden
 
