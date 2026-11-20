@@ -82,9 +82,11 @@ gaat stabiliteit voor nieuwe features.
    thumbnail".
 
 0. **Gebouwd — Het canvas volgt het Zwift-beeld (2026-11-20): commit
-   `2e12ebb`, lokaal, nog niet gepusht.** Migratie `0350_stream_overlay_zwift_size` (nieuwe check op
-   `event_streams.overlay_size`) nog níét op productie: toepassen vóór de
-   push, anders weigert de database de nieuwe maten. Open: in OBS een
+   `2e12ebb`, op 2026-11-20 gepusht naar `main` (eigenaar: "Ja, beide").**
+   Migratie `0350_stream_overlay_zwift_size` (nieuwe check op
+   `event_streams.overlay_size`) op 2026-11-20 vóór de push op productie
+   toegepast: check met de vijf canvassen, standaard `1920x1080`, de vier
+   bestaande streams ongewijzigd op `1920x1080`. Open: in OBS een
    Zwift-beeld van 1920×1080 op 100% in een canvas van 2400×1350 zetten en
    kijken of het precies in het gat valt. Zie de ronde "Gebouwd — Het canvas
    volgt het Zwift-beeld".
@@ -1524,7 +1526,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0351`
-(`0350_stream_overlay_zwift_size` is van het canvas dat het Zwift-beeld volgt, 2026-11-20, nog niet toegepast;
+(`0350_stream_overlay_zwift_size` is van het canvas dat het Zwift-beeld volgt, 2026-11-20, toegepast op 2026-11-20;
 `0349_avatar_kopman` is van de kopman als avatar, 2026-11-20, toegepast op 2026-11-20;
 `0348_stream_overlay_size` is van de resolutie per stream, 2026-11-20, toegepast op 2026-11-20;
 `0347_stream_kopman` is van de eigen kopman bij Strip, 2026-11-20, toegepast op 2026-11-20;
@@ -13139,8 +13141,9 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Het canvas volgt het Zwift-beeld
 
-**2026-11-20, commit `2e12ebb`, lokaal, nog niet gepusht. Migratie
-`0350_stream_overlay_zwift_size`, nog niet op productie.**
+**2026-11-20, commit `2e12ebb`, op 2026-11-20 gepusht naar `main`. Migratie
+`0350_stream_overlay_zwift_size` op 2026-11-20 vóór de push op productie
+toegepast (check en standaard nagekeken, vier streams op `1920x1080`).**
 
 - **Waarom.** Met de resolutie van 0348 schaalde het gat in de overlay mee,
   maar moest het lid het Zwift-beeld in OBS nog op maat trekken. De eigenaar
