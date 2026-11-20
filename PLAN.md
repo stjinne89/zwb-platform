@@ -75,9 +75,9 @@ gaat stabiliteit voor nieuwe features.
    thumbnail".
 
 0. **Gebouwd — Parcours op de thumbnail, titel op één regel, donker of licht
-   per stream (2026-11-20): commit `dc0f94e`, lokaal, niet gepusht.** Migratie `0345`
-   (`event_streams.overlay_theme`), niet op productie toegepast. Open: 0345
-   toepassen, pushen, en bij een stream Licht kiezen en de thumbnail op YouTube
+   per stream (2026-11-20): commit `dc0f94e`, op 2026-11-20 gepusht naar `main`.**
+   Migratie `0345` (`event_streams.overlay_theme`) op 2026-11-20 op productie
+   toegepast. Open: bij een stream Licht kiezen en de thumbnail op YouTube
    bekijken. Zie de ronde "Gebouwd — Parcours op de thumbnail, donker of licht".
 
 0. **Herzien — OBS-overlay als kader om Zwift, thumbnail met matchup
@@ -1465,8 +1465,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0345`
-(`0344_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, toegepast op 2026-11-19, geschreven als `0343` en vóór het toepassen hernummerd, want main had `0343` al;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0346`
+(`0345_stream_overlay_theme` is van donker of licht per stream, 2026-11-20, toegepast op 2026-11-20;
+`0344_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, toegepast op 2026-11-19, geschreven als `0343` en vóór het toepassen hernummerd, want main had `0343` al;
 `0343_integration_notice_strava_stub` is van de pop-up voor ritten via Strava, 2026-11-19, toegepast op 2026-11-19;
 `0342_club_ladder_rider_rematch` is van het herkoppelen van ladderrenners, 2026-11-19, toegepast op 2026-11-19;
 `0341_stream_overlay_stand` is van de OBS-overlay per stream, 2026-11-18, toegepast op 2026-11-18;
@@ -13044,8 +13045,8 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Parcours op de thumbnail, donker of licht
 
-**2026-11-20, commit `dc0f94e`, lokaal, niet gepusht. Migratie `0345_stream_overlay_theme`,
-niet op productie toegepast.**
+**2026-11-20, commit `dc0f94e`, op 2026-11-20 gepusht naar `main`. Migratie
+`0345_stream_overlay_theme` op 2026-11-20 op productie toegepast.**
 
 - **Waarom.** Op een thumbnail van de eigenaar (Stage 2 - Zwift Epic - Four
   Foalsmen) was de rechterhelft leeg en liep een titel van 36 tekens over twee
@@ -13087,8 +13088,9 @@ niet op productie toegepast.**
   die niet in zwift-data of de routebibliotheek staan: de Zwift Epic-etappe
   (route 1353706660) heeft daardoor geen kolom.
 - **Niet geverifieerd.** `0345` alleen in PGlite getest (standaard donker, ook
-  voor bestaande streams, alleen dark en light, opnieuw uit te voeren); niet
-  op productie toegepast. Zonder 0345 werken overlay en thumbnail (`*` in de
+  voor bestaande streams, alleen dark en light, opnieuw uit te voeren). Op
+  productie toegepast op 2026-11-20: kolom en check staan, de twee bestaande
+  streams staan op donker. Zonder 0345 werken overlay en thumbnail (`*` in de
   select), maar geeft de keuze Donker/Licht "Opslaan lukte niet". Lokaal
   bekeken: de thumbnail van de ladderstream in donker en licht, die van de Zwift
   Epic-etappe op één regel, de overlay in licht op 1920×1080. De keuze onder de
