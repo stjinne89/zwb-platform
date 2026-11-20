@@ -93,7 +93,14 @@ async function pushThumbnail(
   }
 }
 
-export async function prepareStream(eventId: string): Promise<Result> {
+/**
+ * Klaarzetten. Lukt de stream maar weigert YouTube de thumbnail, dan `ok` met
+ * `thumbnailError` (2026-11-20): de pagina wordt dan niet hier ververst, maar
+ * door de knop, zodat de melding bij Thumbnail vernieuwen kan blijven staan.
+ */
+export async function prepareStream(
+  eventId: string,
+): Promise<{ ok: true; thumbnailError?: string } | { ok: false; error: string }> {
   if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
   const session = await approvedUser();
   if (!session) return { ok: false, error: "Niet ingelogd." };
@@ -202,8 +209,9 @@ export async function prepareStream(eventId: string): Promise<Result> {
     if (error.code === "23505") return { ok: true };
     return { ok: false, error: "De stream kon niet worden opgeslagen." };
   }
+  let thumbnailError: string | null;
   try {
-    await pushThumbnail(await youtubeAccessToken(admin, connection), videoId, {
+    thumbnailError = await pushThumbnail(await youtubeAccessToken(admin, connection), videoId, {
       eventTitle: event.title,
       eventType: event.type,
       startAt: event.start_at,
@@ -212,7 +220,9 @@ export async function prepareStream(eventId: string): Promise<Result> {
     });
   } catch (err) {
     console.error("[livestream/thumbnail]", err);
+    thumbnailError = "De thumbnail kon niet naar YouTube.";
   }
+  if (thumbnailError) return { ok: true, thumbnailError };
   revalidatePath(`/events/${event.id}`);
   return { ok: true };
 }

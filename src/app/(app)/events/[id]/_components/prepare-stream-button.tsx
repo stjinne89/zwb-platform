@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Copy, ImageUp, Radio } from "lucide-react";
 import { prepareStream, refreshStreamThumbnail, setOverlayStand } from "@/app/(app)/_actions/livestream";
 import { Button } from "@/components/ui/button";
 
+// Na het klaarzetten verdwijnt PrepareStreamButton en verschijnt ThumbnailButton;
+// een geweigerde thumbnail gaat via deze map mee, per race.
+const thumbnailErrors = new Map<string, string>();
+
 export function PrepareStreamButton({ eventId }: { eventId: string }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -20,6 +26,10 @@ export function PrepareStreamButton({ eventId }: { eventId: string }) {
           startTransition(async () => {
             const res = await prepareStream(eventId);
             if (!res.ok) setError(res.error);
+            else if (res.thumbnailError) {
+              thumbnailErrors.set(eventId, res.thumbnailError);
+              router.refresh();
+            }
           });
         }}
       >
@@ -90,10 +100,14 @@ export function OverlayLinkButton({ path }: { path: string }) {
 }
 
 /** Maakt de thumbnail van de eigen stream opnieuw en zet hem op YouTube. */
-export function ThumbnailButton({ streamId }: { streamId: string }) {
+export function ThumbnailButton({ streamId, eventId }: { streamId: string; eventId: string }) {
   const [pending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    const fromPrepare = thumbnailErrors.get(eventId) ?? null;
+    thumbnailErrors.delete(eventId);
+    return fromPrepare;
+  });
   return (
     <>
       <Button

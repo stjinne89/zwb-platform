@@ -116,7 +116,7 @@ export async function RaceStreams({
       {ownStream && overlayPath && (
         <div className="flex flex-wrap items-center gap-2">
           <OverlayLinkButton path={overlayPath} />
-          <ThumbnailButton streamId={ownStream.id} />
+          <ThumbnailButton streamId={ownStream.id} eventId={event.id} />
         </div>
       )}
       {ownStream && hasLiveStand && (

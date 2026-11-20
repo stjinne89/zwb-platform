@@ -66,6 +66,13 @@ gaat stabiliteit voor nieuwe features.
    `/zwbeter-worden/schema` (maand) en op de trainerkalender bekijken, licht en
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
+0. **Hersteld — Klaarzetten meldt een geweigerde thumbnail (2026-11-20):
+   lokaal gecommit, niet gepusht.** Geen migratie. Bij de stream van Stage 2
+   (Zwift Epic) kwam de thumbnail niet op YouTube en zei de app niets. Open:
+   na de push een stream klaarzetten en kijken of de melding verschijnt als
+   YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
+   thumbnail".
+
 0. **Herzien — OBS-overlay als kader om Zwift, thumbnail met matchup
    (2026-11-19): commit `0d91afa`, op 2026-11-19 gepusht naar `main`
    (eigenaar: "Yes, push").** Geen migratie. Na de eerste
@@ -13105,6 +13112,33 @@ bekende ontbrekende pakketten na.
   Zwift-cijfers anders heeft staan.
 - **Niet geverifieerd.** De 310px van het Zwift-blok is geschat uit de
   screenshot (1080p, standaard-HUD); niet in OBS met Zwift nagemeten.
+
+### Hersteld — Klaarzetten meldt een geweigerde thumbnail
+
+**2026-11-20, lokaal gecommit (hash volgt bij de push). Geen migratie.**
+
+- **Waarom.** De stream van Stage 2 – Zwift Epic – Four Foalsmen (video
+  `X2T8U5CLfgk`, klaargezet op 2026-11-20 om 09:17) kreeg op YouTube geen
+  thumbnail: `maxresdefault.jpg` is het kanaalplaatje. Onze eigen PNG op
+  `/live/stream/<id>/thumbnail` rendert op productie wel goed, dus de upload
+  naar YouTube mislukte. `prepareStream` gooide de fout van `pushThumbnail` weg
+  en meldde de stream als gelukt, zodat niemand het zag. De oorzaak van deze
+  ene weigering staat alleen in de Netlify-log (`[livestream/thumbnail]`) en is
+  niet nagekeken.
+- **Wat.** `prepareStream` geeft bij een gelukte stream met een geweigerde
+  thumbnail `{ ok: true, thumbnailError }` terug en ververst de pagina dan niet
+  zelf. De knop Stream klaarzetten verdwijnt na het klaarzetten, dus hij legt de
+  melding per race in een kleine map in de clientmodule en doet daarna
+  `router.refresh()`. `ThumbnailButton` (nu met `eventId`) leest die melding bij
+  het verschijnen en toont hem naast Thumbnail vernieuwen, zodat de oplossing
+  ernaast staat.
+- **Bewust niet.** Geen kolom in `event_streams` voor de thumbnailstatus: de
+  melding hoeft alleen bij het klaarzetten te verschijnen, en Thumbnail
+  vernieuwen geeft altijd de actuele fout. Geen automatische nieuwe poging.
+- **Niet geverifieerd.** Typecheck, lint en de livestreamtests (57) zijn groen.
+  Het pad met een echte weigering van YouTube is niet doorlopen; het
+  verversen via `router.refresh()` met de melding is niet in de browser
+  bekeken.
 
 ### Gebouwd — Thumbnail per stream
 
