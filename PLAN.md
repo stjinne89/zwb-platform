@@ -82,7 +82,7 @@ gaat stabiliteit voor nieuwe features.
    thumbnail".
 
 0. **Gebouwd — Kopman op het profiel, als avatar, winter- of zomershirt
-   (2026-11-20): lokaal, nog niet gepusht.** Migratie `0349_avatar_kopman`
+   (2026-11-20): commit `76e91e5`, lokaal, nog niet gepusht.** Migratie `0349_avatar_kopman`
    (`profiles.avatar_photo_url`) nog níét op productie: toepassen vóór de
    push, anders lukt de keuze Kopman als avatar niet. Open: ingelogd op
    Profiel → Bewerken een kopman opslaan, Avatar op Kopman en terug op Foto
@@ -13129,8 +13129,8 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Kopman op het profiel, als avatar
 
-**2026-11-20, lokaal, nog niet gepusht. Migratie `0349_avatar_kopman`, nog niet
-op productie.**
+**2026-11-20, commit `76e91e5`, lokaal, nog niet gepusht. Migratie `0349_avatar_kopman`,
+nog niet op productie.**
 
 - **Waarom.** De eigenaar wilde de kopman op het profiel (het potlood) kunnen
   maken, vanzelf overgenomen op overlay en thumbnail, met de keuze tussen
