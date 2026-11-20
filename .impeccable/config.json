@@ -35,6 +35,15 @@
         "value": "stencil",
         "createdAt": "2026-11-20T10:18:13.032Z",
         "reason": "Satori-alias voor Big Shoulders Stencil in de Zeefdruk-thumbnail; DESIGN.md: Eigen register Streamstijlen"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/livestream/stream-overlay-rugnummer.css"
+        ],
+        "createdAt": "2026-11-20T10:20:04.747Z",
+        "reason": "Gouden bies in L-vorm om het Zwift-gat (boven en links), geen kaart met zijrand"
       }
     ]
   }
