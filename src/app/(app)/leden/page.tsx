@@ -1,3 +1,4 @@
+import { memberAvatar } from "@/lib/avatar";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -296,7 +297,7 @@ export default async function LedenPage() {
           region: p.region,
           zwift_id: p.zwift_id,
           zrl_category: p.zrl_category,
-          avatar_url: p.avatar_url,
+          avatar_url: memberAvatar(p.id, p.avatar_url),
           is_admin: p.is_admin,
           community_roles: p.community_roles,
           zwb: zwbByProfile.get(p.id) ?? null,

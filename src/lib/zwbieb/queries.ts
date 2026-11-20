@@ -1,3 +1,4 @@
+import { memberAvatar } from "@/lib/avatar";
 import type { createClient } from "@/lib/supabase/server";
 import { countUnread, type ThreadReadState } from "./data";
 import {
@@ -66,7 +67,7 @@ export async function loadMembers(
     .from("profiles")
     .select("id, display_name, avatar_url")
     .in("id", unique);
-  return new Map(((data ?? []) as MemberSummary[]).map((m) => [m.id, m]));
+  return new Map(((data ?? []) as MemberSummary[]).map((m) => [m.id, { ...m, avatar_url: memberAvatar(m.id, m.avatar_url) }]));
 }
 
 /** De gesprekken van het lid, als vrager of als kenner, nieuwste eerst. */

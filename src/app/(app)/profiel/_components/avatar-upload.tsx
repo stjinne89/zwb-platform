@@ -43,10 +43,17 @@ function parseAvatarStoragePath(url: string | null): string | null {
   return m ? m[1] : null;
 }
 
+/**
+ * De eigen foto. `currentAvatarUrl` is de foto, ook als de kopman de avatar is
+ * (0349, `kopmanActive`): dan staat de foto in avatar_photo_url. Een nieuwe
+ * foto maakt de foto weer de avatar.
+ */
 export function AvatarUpload({
   currentAvatarUrl,
+  kopmanActive = false,
 }: {
   currentAvatarUrl: string | null;
+  kopmanActive?: boolean;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -95,7 +102,7 @@ export function AvatarUpload({
 
       const { error: updErr } = await supabase
         .from("profiles")
-        .update({ avatar_url: publicUrl })
+        .update(kopmanActive ? { avatar_url: publicUrl, avatar_photo_url: null } : { avatar_url: publicUrl })
         .eq("id", user.id);
       if (updErr) throw new Error(updErr.message);
 
@@ -116,7 +123,7 @@ export function AvatarUpload({
   }
 
   async function handleDelete() {
-    if (!confirm("Eigen foto verwijderen? Je krijgt weer de Strava-foto of initials.")) return;
+    if (!confirm("Eigen foto verwijderen? Je avatar wordt dan je kopman.")) return;
     setError(null);
     setMessage(null);
     setPending("delete");
@@ -135,7 +142,7 @@ export function AvatarUpload({
 
       const { error: updErr } = await supabase
         .from("profiles")
-        .update({ avatar_url: null })
+        .update(kopmanActive ? { avatar_photo_url: null } : { avatar_url: null })
         .eq("id", user.id);
       if (updErr) throw new Error(updErr.message);
 

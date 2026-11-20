@@ -1,3 +1,4 @@
+import { memberAvatar } from "@/lib/avatar";
 import { notFound } from "next/navigation";
 import {
   ProfileReadonlyView,
@@ -29,7 +30,8 @@ function visibleProfile(profile: ProfileRow): ReadonlyProfile {
   return {
     id: profile.id,
     display_name: profile.display_name,
-    avatar_url: isVisible(profile, "avatar") ? profile.avatar_url : null,
+    // Verborgen: geen foto en ook geen kopman, alleen de initialen.
+    avatar_url: isVisible(profile, "avatar") ? memberAvatar(profile.id, profile.avatar_url) : null,
     region: isVisible(profile, "region") ? profile.region : null,
     zwift_id: isVisible(profile, "zwift_id") ? profile.zwift_id : null,
     strava_id: isVisible(profile, "strava_id") ? profile.strava_id : null,

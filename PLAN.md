@@ -81,6 +81,14 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
+0. **Gebouwd — Kopman op het profiel, als avatar, winter- of zomershirt
+   (2026-11-20): lokaal, nog niet gepusht.** Migratie `0349_avatar_kopman`
+   (`profiles.avatar_photo_url`) nog níét op productie: toepassen vóór de
+   push, anders lukt de keuze Kopman als avatar niet. Open: ingelogd op
+   Profiel → Bewerken een kopman opslaan, Avatar op Kopman en terug op Foto
+   zetten, en de ledenlijst bekijken met de standaardkopman bij leden zonder
+   foto. Zie de ronde "Gebouwd — Kopman op het profiel, als avatar".
+
 0. **Gebouwd — Streams op de kalender, resolutie per stream, helmkleur
    (2026-11-20): commit `f59cdf3`, lokaal, nog niet gepusht.** Migratie
    `0348_stream_overlay_size` (`event_streams.overlay_size`) nog níét op
@@ -1506,8 +1514,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0349`
-(`0348_stream_overlay_size` is van de resolutie per stream, 2026-11-20, nog niet toegepast;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0350`
+(`0349_avatar_kopman` is van de kopman als avatar, 2026-11-20, nog niet toegepast;
+`0348_stream_overlay_size` is van de resolutie per stream, 2026-11-20, nog niet toegepast;
 `0347_stream_kopman` is van de eigen kopman bij Strip, 2026-11-20, toegepast op 2026-11-20;
 `0346_stream_overlay_style` is van de stijlen voor overlay en thumbnail, 2026-11-20, toegepast op 2026-11-20;
 `0345_stream_overlay_theme` is van donker of licht per stream, 2026-11-20, toegepast op 2026-11-20;
@@ -13118,6 +13127,81 @@ bekende ontbrekende pakketten na.
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
 
+### Gebouwd — Kopman op het profiel, als avatar
+
+**2026-11-20, lokaal, nog niet gepusht. Migratie `0349_avatar_kopman`, nog niet
+op productie.**
+
+- **Waarom.** De eigenaar wilde de kopman op het profiel (het potlood) kunnen
+  maken, vanzelf overgenomen op overlay en thumbnail, met de keuze tussen
+  kopman en foto als avatar en tussen het winter- en zomershirt. Akkoord op het
+  voorstel ("Ja bouw maar zo"), met de wens erbij: de kopman standaard als
+  avatar voor wie nog geen afbeelding heeft, een vrouw bij vrouwelijke leden
+  en een man bij mannen.
+- **Wat.**
+  - Editor naar `profiel/_components/kopman-editor.tsx`, als blok Kopman onder
+    Profielfoto op Profiel → Bewerken (`#kopman`). Rijen Avatar (Foto of
+    Kopman, alleen met een foto), Figuur (Man of Vrouw), Huid, Kapsel, Haar,
+    Gezicht (man), Shirt (Winter of Zomer), Helm en Bril. Zonder eigen kopman
+    staat de standaardkopman klaar; **Kopman opslaan** bewaart, **Kopman
+    weghalen** haalt de rij weg. "Geen" is vervallen: zonder rij is er geen
+    figuur in Strip, en de avatar is dan de standaardkopman. Ook een lid dat
+    nog niet is goedgekeurd kan opslaan (de avatar is van iedereen).
+  - Onder Stijl op de racepagina staat bij Strip alleen nog **Kopman
+    aanpassen**, een link naar het profiel. De overlay leest de kopman bij elke
+    verversing. Na opslaan gaan de thumbnails van de komende eigen streams in
+    Strip opnieuw naar YouTube (hooguit vijf).
+  - Shirt (`look.shirt`, in het bestaande jsonb van 0347): winter is het
+    donkere shirt zoals het was; zomer is wit (`#f6f7f6`, het wit van de
+    materiaalrekenaar) met de onderkant, de zijpanelen en het mouwboord in de
+    clubkleur; de gouden baan en kraag blijven. In de clubkleuren van het palet
+    (`tenueInks`), niet in de vaste kleuren van de rekenaar: het platform heeft
+    meer clubs.
+  - Avatar (`lib/avatar.ts`, puur): `/live/kopman/[profileId]` maakt een PNG
+    van 256 px (borstbeeld, rust), de eigen kopman of de standaardkopman
+    (`defaultKopman`: vrouw bij `profiles.sex = 'vrouw'`, anders man).
+    `memberAvatar` zet dat adres waar `avatar_url` leeg is: in de kop, de
+    ledenlijst, het ledenprofiel, de kalender (verjaardagen, wie meerijdt), de
+    verjaardagspagina, ZWBekers, de bibliotheek, de deler van een recept en
+    ZWBlokken. Een verborgen avatar blijft initialen, ook geen kopman.
+  - `0349`: `profiles.avatar_photo_url`. Kiest een lid met een foto de
+    kopman, dan wordt `avatar_url` het adres van de kopman met `?v=` (een jaar
+    in de cache, een nieuwe versie bij elke opslag) en bewaart
+    `avatar_photo_url` de foto. Terug naar Foto zet hem terug; een nieuwe foto
+    uploaden maakt de foto weer de avatar. Zonder foto en met een eigen
+    kopman wordt die vanzelf de avatar.
+  - Strava (`stravaAvatarPatch`): een Strava-foto vervangt de kopman niet,
+    maar gaat naar `avatar_photo_url`. Ontkoppelen haalt ook daar een
+    Strava-foto weg. Lezen met `select("*")`, zodat het zonder 0349 blijft
+    werken.
+  - `/hulp`: bij Profiel een punt over Kopman en Avatar; de streamtekst wijst
+    naar het profiel. DESIGN.md: winter en zomer, en de kopman als avatar.
+- **Bewust niet.**
+  - Geen standaardkopman in de database invullen voor de 29 leden zonder foto:
+    bij het tonen blijft hij kloppen als het geslacht of de kopman verandert,
+    en Strava blijft zien dat er nog geen foto is.
+  - Geen opgeslagen plaatje in de bucket `avatars`: het adres van de route
+    werkt overal waar nu een foto staat, zonder bestanden op te ruimen.
+  - Geen derde, neutrale figuur bij "zeg ik liever niet" of zonder geslacht:
+    die krijgen de man, zoals de standaard al was.
+  - Standaardkopman niet in Strip: zonder eigen kopman blijft Strip zonder
+    figuur, zoals afgesproken bij 0347.
+- **Niet meer waar.** De editor onder Stijl en `saveStreamKopman` (ronde
+  "Gebouwd — Eigen kopman bij Strip"), en "het shirt blijft het clubtenue"
+  zonder keuze (rondes kopman en helmkleur): bijgewerkt. De bevestiging bij
+  Eigen foto verwijderen noemde Strava-foto of initialen; nu de kopman.
+- **Privacy.** De standaardkopman laat zien of iemand bij Geslacht vrouw koos,
+  en het plaatje is zonder inloggen op te vragen voor wie het id kent (net als
+  overlay en thumbnail). De privacyverklaring is nog niet aangepast: eerst
+  voorleggen.
+- **Niet geverifieerd.** `0349` niet in PGlite getest (één `add column if not
+  exists`). Lokaal bekeken: de route geeft voor een vrouw, een man en een lid
+  met eigen kopman een PNG (onbekend id: 404), en de editor op breed en op
+  375px met winter en zomer, op een tijdelijke testpagina. Niet gezien:
+  ingelogd opslaan, de keuze Avatar tegen de database (kolom staat nog niet op
+  productie), de avatars in de echte ledenlijst, en de cache van de route op
+  Netlify.
+
 ### Gebouwd — Streams op de kalender, resolutie per stream, helmkleur
 
 **2026-11-20, commit `f59cdf3`, lokaal, nog niet gepusht. Migratie `0348_stream_overlay_size`,
@@ -13166,7 +13250,8 @@ nog niet op productie.**
   - Geen vrije helmkleur, maar een vaste reeks: zo blijft het in de stijl.
     DESIGN.md noemt de helm de enige uitzondering op "geen vrije kleur".
 - **Niet meer waar.** "Geen vrije kleur voor tenue of helm" (ronde "Gebouwd —
-  Eigen kopman bij Strip"): de helm heeft nu een keuze, het shirt niet. En
+  Eigen kopman bij Strip"): de helm heeft nu een keuze. (Sinds "Gebouwd —
+  Kopman op het profiel, als avatar" ook het shirt: winter of zomer.) En
   de overlay is niet meer altijd 1920×1080 (hulp aangepast).
 - **Niet geverifieerd.** `0348` alleen in PGlite getest (standaard
   1920x1080, opnieuw uit te voeren, 3440x1440 geweigerd). Lokaal op
@@ -13208,7 +13293,7 @@ nog niet op productie.**
 - **Wat.**
   - `0347`: tabel `stream_kopman` (`profile_id` als sleutel, `look` jsonb,
     alleen een object). Het lid leest de eigen rij; schrijven alleen via de
-    service-role in `saveStreamKopman`. Weg met het profiel (cascade).
+    service-role in `saveStreamKopman` (sinds 0349 `saveKopman`). Weg met het profiel (cascade).
   - `lib/youtube-live/kopman.ts` (puur): de keuzes (man of vrouw, zes
     huidskleuren, vier kapsels per soort, acht haarkleuren, gezichtshaar
     alleen bij een man, geen/bril/zonnebril), `parseKopman` (controleert en
@@ -13231,12 +13316,15 @@ nog niet op productie.**
     meetekent plus drie kleine stemmingen. Pas **Kopman opslaan** bewaart hem
     en zet de thumbnail van deze stream opnieuw op YouTube; daarna laden de
     voorbeelden opnieuw. Alleen bij de eigen stream (de figuur hoort bij het
-    profiel van wie streamt).
+    profiel van wie streamt). (Niet meer zo sinds "Gebouwd — Kopman op het
+    profiel, als avatar": de editor staat op het profiel, onder Stijl staat
+    alleen nog de link Kopman aanpassen.)
 - **Bewust niet.**
   - Geen vrije kleur voor tenue of helm: die komen uit de clubkleuren.
     (Sinds "Gebouwd — Streams op de kalender, resolutie per stream,
-    helmkleur" kiest een lid de helm uit acht vaste kleuren; het shirt blijft
-    het clubtenue.)
+    helmkleur" kiest een lid de helm uit acht vaste kleuren, en sinds
+    "Gebouwd — Kopman op het profiel, als avatar" het winter- of zomershirt
+    van het clubtenue.)
   - Geen opslaan bij elke tik: elke keer de thumbnail naar YouTube zou de
     YouTube-quota opmaken.
   - Niet onderin de kolom links, zoals voorgesteld: bij ZRL vult de stand die

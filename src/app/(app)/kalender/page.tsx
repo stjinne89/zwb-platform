@@ -1,3 +1,4 @@
+import { memberAvatar } from "@/lib/avatar";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
@@ -304,7 +305,7 @@ export default async function KalenderPage({
         kind: "birthday" as const,
         id: profile.id,
         displayName: profile.display_name,
-        avatarUrl: profile.avatar_url,
+        avatarUrl: memberAvatar(profile.id, profile.avatar_url),
         birthDate: profile.birth_date,
         dateKey: occurrence.dateKey,
         year: occurrence.year,
@@ -443,7 +444,7 @@ export default async function KalenderPage({
       current.push({
         id: profile.id,
         name: profile.display_name,
-        avatarUrl: profile.avatar_url,
+        avatarUrl: memberAvatar(profile.id, profile.avatar_url),
       });
       yesRidersByEvent.set(target, current);
     }

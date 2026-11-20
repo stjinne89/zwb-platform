@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { stravaAvatarPatch } from "@/lib/avatar";
 import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
 import { ridesComeViaIntervals } from "@/lib/intervals/ride-preference";
 import { createClient } from "@/lib/supabase/server";
@@ -104,17 +105,14 @@ export async function GET(request: NextRequest) {
       // Lees huidige avatar — overschrijf alleen als hij leeg is of zelf
       // afkomstig is van Strava (cdn-domein), zodat een handmatige upload
       // niet wordt vervangen door Strava's foto.
+      // Is de kopman de avatar (0349), dan wordt de foto bewaard voor later.
+      // "*" zodat dit ook werkt zolang 0349 nog niet is toegepast.
       const { data: current } = await supabase
         .from("profiles")
-        .select("avatar_url")
+        .select("*")
         .eq("id", user.id)
         .single();
-      const existing = current?.avatar_url as string | null | undefined;
-      const isStravaCdn =
-        !existing || /strava|cloudfront\.net\/avatar/i.test(existing);
-      if (isStravaCdn) {
-        profileUpdate.avatar_url = avatarFromStrava;
-      }
+      Object.assign(profileUpdate, stravaAvatarPatch(current, avatarFromStrava));
     }
     await supabase.from("profiles").update(profileUpdate).eq("id", user.id);
 

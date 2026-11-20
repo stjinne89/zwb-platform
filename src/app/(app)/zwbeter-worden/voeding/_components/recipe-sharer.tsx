@@ -1,3 +1,4 @@
+import { memberAvatar } from "@/lib/avatar";
 import type { Recipe } from "@/lib/nutrition/recipes";
 
 /**
@@ -8,6 +9,7 @@ export function RecipeSharer({ recipe, size = 20 }: { recipe: Recipe; size?: num
   if (recipe.is_standard || recipe.visibility !== "leden") return null;
   const person = recipe.show_owner ? recipe.sharer : null;
   const name = person?.display_name?.trim() || "Lid";
+  const avatar = person ? memberAvatar(recipe.owner_id, person.avatar_url) : null;
 
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
@@ -16,10 +18,10 @@ export function RecipeSharer({ recipe, size = 20 }: { recipe: Recipe; size?: num
         style={{ width: size, height: size, fontSize: Math.round(size * 0.5) }}
         aria-hidden
       >
-        {person?.avatar_url ? (
+        {avatar ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={person.avatar_url}
+            src={avatar}
             alt=""
             width={size}
             height={size}

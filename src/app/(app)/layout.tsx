@@ -1,3 +1,4 @@
+import { memberAvatar } from "@/lib/avatar";
 import { redirect } from "next/navigation";
 import { HeaderHelpLink } from "./_components/header-help-link";
 import Link from "next/link";
@@ -193,7 +194,7 @@ export default async function AppLayout({
             displayName={displayName}
             personalItems={personalItems}
             beheerPage={hasBeheerPage}
-            avatarUrl={(profile?.avatar_url as string | null) ?? null}
+            avatarUrl={memberAvatar(user.id, profile?.avatar_url as string | null)}
           />
           <ThemeToggle className="size-11 px-0 text-muted-foreground hover:bg-transparent hover:text-primary [&_svg]:size-5!" />
         </>

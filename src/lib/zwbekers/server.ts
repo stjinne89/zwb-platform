@@ -1,3 +1,4 @@
+import { memberAvatar } from "@/lib/avatar";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
@@ -93,7 +94,7 @@ type DetailRow = SummaryRow & {
 
 function person(profile: ProfileRef): Person | null {
   if (!profile) return null;
-  return { id: profile.id, name: profile.display_name?.trim() || "Lid", avatarUrl: profile.avatar_url };
+  return { id: profile.id, name: profile.display_name?.trim() || "Lid", avatarUrl: memberAvatar(profile.id, profile.avatar_url) };
 }
 
 function summary(row: SummaryRow): BekerSummary {

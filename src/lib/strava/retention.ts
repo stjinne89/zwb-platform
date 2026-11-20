@@ -84,9 +84,10 @@ export async function purgeStravaDataForProfile(
 
   // De avatar is Strava's bestand; dat blijven we niet hotlinken zonder grant.
   // Een zelf geüploade foto raken we niet aan.
+  // "*" zodat dit ook werkt zolang 0349 (de bewaarde foto naast de kopman) nog niet is toegepast.
   const { data: profile } = await admin
     .from("profiles")
-    .select("avatar_url")
+    .select("*")
     .eq("id", profileId)
     .maybeSingle();
 
@@ -94,6 +95,8 @@ export async function purgeStravaDataForProfile(
   const patch: Record<string, any> = { strava_id: null };
   const avatar = profile?.avatar_url as string | null | undefined;
   if (avatar && STRAVA_CDN_AVATAR.test(avatar)) patch.avatar_url = null;
+  const photo = profile?.avatar_photo_url as string | null | undefined;
+  if (photo && STRAVA_CDN_AVATAR.test(photo)) patch.avatar_photo_url = null;
 
   await admin.from("profiles").update(patch).eq("id", profileId);
 

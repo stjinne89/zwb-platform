@@ -11,7 +11,8 @@ import {
 // van de renners uit Kopman (src/kopman/ui/portrait.tsx), met toestemming van
 // de eigenaar overgenomen. Een eigen kopie, zodat Kopman los van ZWB blijft. Nieuw
 // ten opzichte van Kopman: een vrouw met eigen kapsels en wimpers, en het
-// clubtenue (banen, gouden kraag, helm met gouden bies).
+// clubtenue (banen, gouden kraag, helm met gouden bies) als winter- of
+// zomershirt (wit met een donkere onderkant en mouwboord).
 //
 // Zonder hooks en zonder CSS-klassen, en de onderdelen als gewone functies in
 // plaats van componenten: zo tekent Satori (de thumbnail) dezelfde svg als de
@@ -257,7 +258,7 @@ export function kopmanSvg({
       {mood === "zege" ? (
         <g>
           <path d={`M${f(50 + S - 13)} 88 C${f(50 + S - 7)} 72 79 60 77.4 49 L88.6 47.6 C90.6 61 ${f(50 + S + 2)} 76 ${f(50 + S - 1)} 90Z`} fill={J} stroke={INK} strokeWidth={1.8} strokeLinejoin="round" />
-          <path d="M77.2 51 L88.8 49.6" stroke={colors.gold} strokeWidth={3} />
+          <path d="M77.2 51 L88.8 49.6" stroke={colors.summer ? colors.band : colors.gold} strokeWidth={3} />
           <path d="M77.2 49.6 L88.8 48.2 M77.6 52.6 L89 51.2" stroke={INK} strokeWidth={0.9} />
           <path d="M76.6 47.6 C74.8 41 76.2 34.8 82 34 C88 33.2 91.2 37 90.4 43 C90 46.2 88.4 48.2 85 48.2Z" fill={face.skin} stroke={INK} strokeWidth={1.6} strokeLinejoin="round" />
           <path d="M79.6 37.6 Q84 36.4 88.8 38.6 M79 41.2 Q84 40 89.8 42.2 M77.4 44.4 Q82 45.6 85.2 43.4" fill="none" stroke={INK} strokeWidth={0.9} strokeLinecap="round" />
@@ -267,7 +268,12 @@ export function kopmanSvg({
       <path d={jerseyPath} fill={J} stroke={INK} strokeWidth={2.1} strokeLinejoin="round" />
       <g clipPath={`url(#${jerseyClip})`}>
         <path d={`M${f(50 - S)} 86 L${f(50 - S + 8)} 80 L${f(50 - S + 12)} 101 H${f(50 - S)}Z M${f(50 + S)} 86 L${f(50 + S - 8)} 80 L${f(50 + S - 12)} 101 H${f(50 + S)}Z`} fill={colors.trim} stroke={INK} strokeWidth={1} />
-        <path d={`M${f(50 - S)} 99 L${f(50 + S)} 84 V90 L${f(50 - S)} 105Z`} fill={colors.band} stroke={INK} strokeWidth={0.8} />
+        <path
+          d={colors.summer ? `M${f(50 - S)} 99 L${f(50 + S)} 84 V101 H${f(50 - S)}Z` : `M${f(50 - S)} 99 L${f(50 + S)} 84 V90 L${f(50 - S)} 105Z`}
+          fill={colors.band}
+          stroke={INK}
+          strokeWidth={0.8}
+        />
         <path d={`M${f(50 - S)} 94.6 L${f(50 + S)} 79.6 V82.4 L${f(50 - S)} 97.4Z`} fill={colors.gold} stroke={INK} strokeWidth={0.8} />
         <ellipse cx={50} cy={82} rx={f(neck + 10)} ry={6} fill={jerseyShadow} />
         <ellipse cx={f(50 + S - 2)} cy={96} rx={14} ry={12} fill={jerseyShadow} />

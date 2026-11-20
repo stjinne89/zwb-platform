@@ -20,6 +20,8 @@ export type KopmanLook = {
   glasses: number;
   /** De kleur van de helm, zie kopmanHelmets (sinds 2026-11-20, wens eigenaar). */
   helmet: number;
+  /** Het shirt, zie KOPMAN_SHIRTS: het winter- of het zomertenue (2026-11-20, wens eigenaar). */
+  shirt: number;
 };
 
 export const KOPMAN_SKINS = ["#f7dcc4", "#efc6a2", "#e2ac82", "#cc8f62", "#a96d45", "#7c4c2f"] as const;
@@ -42,12 +44,22 @@ export const KOPMAN_HAIR: Record<KopmanLook["body"], readonly string[]> = {
 
 export const KOPMAN_FACIAL = ["Geen", "Stoppels", "Snor", "Baard"] as const;
 export const KOPMAN_GLASSES = ["Geen", "Bril", "Zonnebril"] as const;
+/** Winter: het donkere shirt in de clubkleur. Zomer: het witte shirt met een donkere onderkant. */
+export const KOPMAN_SHIRTS = ["Winter", "Zomer"] as const;
 
-export const DEFAULT_KOPMAN: KopmanLook = { body: "man", skin: 1, hair: 0, hairColor: 1, facial: 0, glasses: 0, helmet: 0 };
+export const DEFAULT_KOPMAN: KopmanLook = { body: "man", skin: 1, hair: 0, hairColor: 1, facial: 0, glasses: 0, helmet: 0, shirt: 0 };
+
+/**
+ * De kopman van een lid dat er zelf (nog) geen heeft gemaakt: een vrouw als
+ * het opgegeven geslacht vrouw is, anders een man (0349, wens eigenaar).
+ */
+export function defaultKopman(sex: string | null | undefined): KopmanLook {
+  return sex === "vrouw" ? { ...DEFAULT_KOPMAN, body: "vrouw" } : DEFAULT_KOPMAN;
+}
 
 /**
  * De helmkleuren: eerst de clubkleuren (de eerste is de standaard), dan vier
- * gewone helmkleuren. Het shirt blijft altijd het clubtenue.
+ * gewone helmkleuren. Het shirt blijft altijd het clubtenue (winter of zomer).
  */
 export function kopmanHelmets(t: TenueInks): readonly { hex: string; label: string }[] {
   return [
@@ -81,6 +93,7 @@ export function parseKopman(value: unknown): KopmanLook | null {
     facial: body === "man" ? index(v.facial, KOPMAN_FACIAL.length, 0) : 0,
     glasses: index(v.glasses, KOPMAN_GLASSES.length, 0),
     helmet: index(v.helmet, KOPMAN_HELMET_COUNT, 0),
+    shirt: index(v.shirt, KOPMAN_SHIRTS.length, 0),
   };
 }
 
@@ -144,10 +157,17 @@ export function kopmanFace(look: KopmanLook): KopmanFace {
   };
 }
 
+/** Het witte shirt van het zomertenue, als in de materiaalrekenaar. */
+export const KOPMAN_WHITE = "#f6f7f6";
+
 /** De kleuren van de tekening: het tenue van rugnummer en strip. */
 export type KopmanColors = {
+  /** Zomer: wit boven, de onderkant in de clubkleur. */
+  summer: boolean;
   jersey: string;
+  /** De zijpanelen. */
   trim: string;
+  /** De baan over de buik; bij zomer de hele onderkant. */
   band: string;
   gold: string;
   helmet: string;
@@ -157,13 +177,15 @@ export type KopmanColors = {
   dots: string;
 };
 
-export function kopmanColors(t: TenueInks, look?: Pick<KopmanLook, "helmet"> | null): KopmanColors {
+export function kopmanColors(t: TenueInks, look?: Partial<Pick<KopmanLook, "helmet" | "shirt">> | null): KopmanColors {
   const helmets = kopmanHelmets(t);
   const helmet = helmets[look?.helmet ?? 0]?.hex ?? helmets[0].hex;
+  const summer = look?.shirt === 1;
   return {
-    jersey: t.petrol,
-    trim: t.teal,
-    band: t.sage,
+    summer,
+    jersey: summer ? KOPMAN_WHITE : t.petrol,
+    trim: summer ? t.petrol : t.teal,
+    band: summer ? t.petrol : t.sage,
     gold: t.gold,
     helmet,
     helmetBand: helmet === t.gold ? t.petrol : t.gold,

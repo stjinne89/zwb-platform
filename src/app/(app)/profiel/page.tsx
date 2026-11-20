@@ -5,6 +5,11 @@ import { EmptyState } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { AvatarUpload } from "./_components/avatar-upload";
+import { KopmanEditor } from "./_components/kopman-editor";
+import { avatarPhoto, isKopmanAvatar, memberAvatar } from "@/lib/avatar";
+import { defaultKopman } from "@/lib/youtube-live/kopman";
+import { loadKopman } from "@/lib/youtube-live/kopman-store";
+import { tenueInks } from "@/lib/youtube-live/overlay-styles";
 import { BadgeVault, type MilestoneBadgeRow } from "./_components/badge-vault";
 import { ProfileForm } from "./_components/profile-form";
 import { ProfileHeader } from "./_components/profile-header";
@@ -127,7 +132,13 @@ export default async function ProfielPage({
   const access = await getRequestAccess();
   const rideStatus = await loadRideSourceStatus(user.id).catch(() => null);
   // Livestreams (0338): alleen als de module aan staat en Google ingericht is.
-  const showYouTube = youtubeLiveConfigured() && (await getClub()).isEnabled("livestream");
+  const club = await getClub();
+  const showYouTube = youtubeLiveConfigured() && club.isEnabled("livestream");
+  // De kopman (0347) en de bewaarde foto (0349) los: zonder die migraties werkt de rest.
+  const [ownKopman, { data: photoRow }] = await Promise.all([
+    loadKopman(supabase, user.id),
+    supabase.from("profiles").select("avatar_photo_url").eq("id", user.id).maybeSingle(),
+  ]);
   const { data: youtubeConn } = showYouTube
     ? await supabase
         .from("youtube_connections")
@@ -296,13 +307,20 @@ export default async function ProfielPage({
   const milestones = ((milestoneBadges ?? []) as unknown as MilestoneBadgeRow[])
     .filter((badge) => isBadgeVisibleInVault(badge, earnedMilestoneIds.has(badge.id)));
 
+  const avatarUrl = (profileRow as { avatar_url?: string | null })?.avatar_url ?? null;
+  const kopmanActive = isKopmanAvatar(avatarUrl);
+  const photo = avatarPhoto({
+    avatar_url: avatarUrl,
+    avatar_photo_url: (photoRow as { avatar_photo_url?: string | null } | null)?.avatar_photo_url,
+  });
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <ProfileHeader
         displayName={profileRow?.display_name ?? ""}
         email={user.email ?? ""}
         region={profileRow?.region ?? null}
-        avatarUrl={(profileRow as { avatar_url?: string | null })?.avatar_url ?? null}
+        avatarUrl={memberAvatar(user.id, avatarUrl)}
         stravaUsername={stravaUser?.athlete_username ?? null}
         stravaConnected={Boolean(stravaConn)}
         communityRoles={profileRow?.community_roles}
@@ -370,10 +388,14 @@ export default async function ProfielPage({
         }
       />
 
-      <AvatarUpload
-        currentAvatarUrl={
-          (profileRow as { avatar_url?: string | null })?.avatar_url ?? null
-        }
+      <AvatarUpload currentAvatarUrl={photo} kopmanActive={kopmanActive} />
+
+      <KopmanEditor
+        initial={ownKopman}
+        fallback={defaultKopman(profileRow?.sex)}
+        tenue={tenueInks(club.settings.palette)}
+        hasPhoto={Boolean(photo)}
+        initialAvatar={kopmanActive || !photo ? "kopman" : "foto"}
       />
 
       <div id="strava" className="scroll-mt-20">

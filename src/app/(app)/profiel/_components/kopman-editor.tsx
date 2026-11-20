@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useTransition, type ReactNode } from "react";
-import { saveStreamKopman } from "@/app/(app)/_actions/livestream";
+import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+import { saveKopman } from "@/app/(app)/_actions/livestream";
 import { Button } from "@/components/ui/button";
 import { kopmanSvg } from "@/components/livestream/kopman-figure";
 import {
-  DEFAULT_KOPMAN,
   KOPMAN_FACIAL,
   KOPMAN_GLASSES,
   KOPMAN_HAIR,
   KOPMAN_HAIR_COLORS,
+  KOPMAN_SHIRTS,
   KOPMAN_SKINS,
   kopmanColors,
   kopmanFace,
@@ -20,70 +22,96 @@ import {
 import type { TenueInks } from "@/lib/youtube-live/overlay-styles";
 import { cn } from "@/lib/utils";
 
-// De eigen kopman bij de stijl Strip (0347, 2026-11-20). Het voorbeeld tekent
-// meteen mee; pas Opslaan bewaart hem en zet de thumbnail opnieuw op YouTube
-// (elke keer opnieuw zou de YouTube-quota opmaken).
+// De eigen kopman (0347), op het profiel (0349, 2026-11-20): de figuur op de
+// overlay en de thumbnail in Strip, en naar keuze de avatar. Zonder eigen
+// kopman staat de standaardkopman klaar (een vrouw bij geslacht vrouw, anders
+// een man); pas Opslaan bewaart hem. Het voorbeeld tekent meteen mee.
 
 const MOODS: KopmanMood[] = ["aanval", "limiet", "zege"];
 
-type Kind = "geen" | KopmanLook["body"];
+type Avatar = "foto" | "kopman";
 
 export function KopmanEditor({
-  streamId,
   initial,
+  fallback,
   tenue,
-  onSaved,
-  onError,
+  hasPhoto,
+  initialAvatar,
 }: {
-  streamId: string;
+  /** De opgeslagen kopman, of null. */
   initial: KopmanLook | null;
+  /** De standaardkopman, als er nog geen eigen is. */
+  fallback: KopmanLook;
   /** Het clubtenue, van de server. */
   tenue: TenueInks;
-  onSaved: () => void;
-  onError: (message: string | null) => void;
+  /** Alleen met een foto valt er te kiezen; zonder is de kopman de avatar. */
+  hasPhoto: boolean;
+  initialAvatar: Avatar;
 }) {
-  const [saved, setSaved] = useState<KopmanLook | null>(initial);
-  const [kind, setKind] = useState<Kind>(initial?.body ?? "geen");
-  const [look, setLook] = useState<KopmanLook>(initial ?? DEFAULT_KOPMAN);
+  const router = useRouter();
+  const [saved, setSaved] = useState<{ look: KopmanLook | null; avatar: Avatar }>({ look: initial, avatar: initialAvatar });
+  const [look, setLook] = useState<KopmanLook>(initial ?? fallback);
+  const [avatar, setAvatar] = useState<Avatar>(initialAvatar);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const current: KopmanLook | null = kind === "geen" ? null : { ...look, body: kind, facial: kind === "man" ? look.facial : 0 };
-  const dirty = JSON.stringify(current) !== JSON.stringify(saved);
+  const current: KopmanLook = { ...look, facial: look.body === "man" ? look.facial : 0 };
+  const dirty =
+    JSON.stringify(current) !== JSON.stringify(saved.look) || (hasPhoto && avatar !== saved.avatar);
   const set = (change: Partial<KopmanLook>) => setLook({ ...look, ...change });
   const colors = kopmanColors(tenue, current);
 
-  function save() {
-    onError(null);
+  function save(next: KopmanLook | null) {
+    setError(null);
     startTransition(async () => {
-      const res = await saveStreamKopman(current, streamId);
+      const res = await saveKopman(next, hasPhoto ? avatar : "kopman");
       if (!res.ok) {
-        onError(res.error);
+        setError(res.error);
         return;
       }
-      setSaved(current);
-      if (res.thumbnailError) onError(res.thumbnailError);
-      onSaved();
+      setSaved({ look: next, avatar: next ? avatar : "foto" });
+      if (!next) {
+        setLook(fallback);
+        setAvatar("foto");
+      }
+      if (res.thumbnailError) setError(res.thumbnailError);
+      router.refresh();
     });
   }
 
   return (
-    <div className="grid gap-3">
-      <span className="text-sm font-medium">Je kopman</span>
-      <Choice
-        label="Kopman"
-        options={[
-          { value: "geen", label: "Geen" },
-          { value: "man", label: "Man" },
-          { value: "vrouw", label: "Vrouw" },
-        ]}
-        value={kind}
-        onChange={(next) => {
-          // Een ander kapsel per soort: terug naar het eerste.
-          if (next !== "geen" && next !== look.body) setLook({ ...look, body: next, hair: 0 });
-          setKind(next);
-        }}
-      />
-      {current && (
+    <section id="kopman" className="scroll-mt-20 rounded-lg border bg-card p-6">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Kopman</h2>
+      <div className="mt-3 grid gap-3">
+        <div className="grid w-fit grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5">
+          {hasPhoto && (
+            <Row label="Avatar">
+              <Choice
+                label="Avatar"
+                options={[
+                  { value: "foto", label: "Foto" },
+                  { value: "kopman", label: "Kopman" },
+                ]}
+                value={avatar}
+                onChange={setAvatar}
+              />
+            </Row>
+          )}
+          <Row label="Figuur">
+            <Choice
+              label="Figuur"
+              options={[
+                { value: "man", label: "Man" },
+                { value: "vrouw", label: "Vrouw" },
+              ]}
+              value={current.body}
+              onChange={(body) => {
+                // Een ander kapsel per soort: terug naar het eerste.
+                if (body !== look.body) setLook({ ...look, body, hair: 0 });
+              }}
+            />
+          </Row>
+        </div>
         <div className="flex flex-wrap items-start gap-4">
           <div className="grid gap-2">
             <div className="size-40 overflow-hidden rounded-md border-4" style={{ borderColor: colors.helmet }}>
@@ -127,6 +155,14 @@ export function KopmanEditor({
                 />
               </Row>
             )}
+            <Row label="Shirt">
+              <Choice
+                label="Shirt"
+                options={KOPMAN_SHIRTS.map((label, value) => ({ value, label }))}
+                value={current.shirt}
+                onChange={(shirt) => set({ shirt })}
+              />
+            </Row>
             <Row label="Helm">
               <Swatches label="Helm" colors={kopmanHelmets(tenue)} value={look.helmet} onChange={(helmet) => set({ helmet })} />
             </Row>
@@ -140,13 +176,22 @@ export function KopmanEditor({
             </Row>
           </div>
         </div>
-      )}
-      {dirty && (
-        <Button type="button" size="sm" className="w-fit" disabled={pending} onClick={save}>
-          {pending ? "Bezig…" : "Kopman opslaan"}
-        </Button>
-      )}
-    </div>
+        <div className="flex flex-wrap gap-2">
+          {dirty && (
+            <Button type="button" size="sm" disabled={pending} onClick={() => save(current)}>
+              {pending ? "Bezig…" : "Kopman opslaan"}
+            </Button>
+          )}
+          {saved.look && (
+            <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => save(null)}>
+              <Trash2 className="size-4" />
+              Kopman weghalen
+            </Button>
+          )}
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </div>
+    </section>
   );
 }
 

@@ -4,6 +4,7 @@
 // blok → leden is een veelvoud van de 22.000 blokken en zou de pagina
 // onnodig zwaar maken voor iets wat je per keer één blok tegelijk bekijkt.
 
+import { memberAvatar } from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/server";
 import { BLOCK_ZOOM } from "@/lib/zwblokken/grid";
 import { ZWIFT_BLOCK_ZOOM, zwiftWorldBySlug } from "@/lib/zwblokken/zwift";
@@ -72,7 +73,7 @@ export async function GET(request: Request) {
     return {
       id: row.profile_id,
       name: profile.display_name ?? "Naamloos lid",
-      avatar: profile.avatar_url,
+      avatar: memberAvatar(row.profile_id, profile.avatar_url),
       since: row.first_seen_at,
     };
   });

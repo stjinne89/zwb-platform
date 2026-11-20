@@ -1,4 +1,5 @@
 import { encryptSecret, decryptSecret } from "@/lib/crypto/secrets";
+import { stravaAvatarPatch } from "@/lib/avatar";
 import { ridesComeViaIntervals } from "@/lib/intervals/ride-preference";
 import { guessDiscipline } from "@/lib/maintenance/guess-discipline";
 import { hasActivityWriteScope } from "@/lib/strava/scope";
@@ -317,20 +318,19 @@ export async function refreshStravaAthleteInfo(
     if (!avatar) return { avatarUrl: null };
 
     // Overschrijf alleen als er nog geen avatar is OF de bestaande is van
-    // Strava's CDN (zodat een handmatige upload niet wordt vervangen).
+    // Strava's CDN (zodat een handmatige upload niet wordt vervangen). Is de
+    // kopman de avatar (0349), dan wordt de foto bewaard voor later. "*" zodat
+    // dit ook werkt zolang 0349 nog niet is toegepast.
     const { data: current } = await supabase
       .from("profiles")
-      .select("avatar_url")
+      .select("*")
       .eq("id", profileId)
       .single();
-    const existing = current?.avatar_url as string | null | undefined;
-    const isStravaCdn =
-      !existing ||
-      /strava|cloudfront\.net\/(avatar|pictures)/i.test(existing);
-    if (isStravaCdn) {
+    const patch = stravaAvatarPatch(current, avatar);
+    if (Object.keys(patch).length > 0) {
       await supabase
         .from("profiles")
-        .update({ avatar_url: avatar })
+        .update(patch)
         .eq("id", profileId);
     }
 

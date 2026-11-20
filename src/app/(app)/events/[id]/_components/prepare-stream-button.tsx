@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Copy, ImageUp, Radio } from "lucide-react";
 import {
@@ -14,9 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { OVERLAY_STYLES } from "@/lib/youtube-live/overlay-styles";
 import { OVERLAY_SIZES, type OverlaySize } from "@/lib/youtube-live/overlay-size";
-import type { KopmanLook } from "@/lib/youtube-live/kopman";
-import type { TenueInks } from "@/lib/youtube-live/overlay-styles";
-import { KopmanEditor } from "./kopman-editor";
 import { cn } from "@/lib/utils";
 
 // Na het klaarzetten verdwijnt PrepareStreamButton en verschijnt ThumbnailButton;
@@ -209,29 +207,23 @@ type LookResult = Awaited<ReturnType<typeof setOverlayStyle>>;
  * of licht (0345). De overlay volgt bij zijn volgende verversing, de thumbnail
  * gaat meteen opnieuw naar YouTube. Ingeklapt; open toont het elke stijl als
  * de echte thumbnail van deze stream, en de gekozen overlay in het klein
- * (2026-11-20). Pas bij openen laden de voorbeelden. Bij strip ook de eigen
- * kopman (0347); na opslaan laden de voorbeelden opnieuw.
+ * (2026-11-20). Pas bij openen laden de voorbeelden. Bij strip een link naar
+ * de eigen kopman, die sinds 0349 op het profiel staat.
  */
 export function OverlayLookPicker({
   streamId,
   initialStyle,
   initialTheme,
-  initialKopman,
-  tenue,
 }: {
   streamId: string;
   initialStyle: Look;
   initialTheme: Theme;
-  initialKopman: KopmanLook | null;
-  /** Het clubtenue, voor de kopman. */
-  tenue: TenueInks;
 }) {
   const [open, setOpen] = useState(false);
   const [look, setLook] = useState(initialStyle);
   const [theme, setTheme] = useState(initialTheme);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [version, setVersion] = useState(0);
   const current = OVERLAY_STYLES.find((s) => s.key === look);
 
   function change<T extends string>(next: T, was: T, set: (v: T) => void, save: () => Promise<LookResult>) {
@@ -276,7 +268,7 @@ export function OverlayLookPicker({
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={previewUrl(streamId, "thumbnail", option.key, option.modes ? theme : "dark", version)}
+                  src={previewUrl(streamId, "thumbnail", option.key, option.modes ? theme : "dark")}
                   alt=""
                   width={1280}
                   height={720}
@@ -302,15 +294,11 @@ export function OverlayLookPicker({
             />
           )}
           {look === "strip" && (
-            <KopmanEditor
-              streamId={streamId}
-              initial={initialKopman}
-              tenue={tenue}
-              onSaved={() => setVersion((v) => v + 1)}
-              onError={setError}
-            />
+            <Link href="/profiel?weergave=bewerken#kopman" className="w-fit text-sm font-medium underline underline-offset-4">
+              Kopman aanpassen
+            </Link>
           )}
-          <OverlayPreview src={previewUrl(streamId, "overlay", look, current?.modes ? theme : "dark", version)} />
+          <OverlayPreview src={previewUrl(streamId, "overlay", look, current?.modes ? theme : "dark")} />
         </div>
       )}
       {error && <span className="text-sm text-destructive">{error}</span>}
@@ -318,11 +306,9 @@ export function OverlayLookPicker({
   );
 }
 
-function previewUrl(streamId: string, kind: "thumbnail" | "overlay", look: Look, theme: Theme, version: number): string {
+function previewUrl(streamId: string, kind: "thumbnail" | "overlay", look: Look, theme: Theme): string {
   const query = new URLSearchParams({ style: look, theme });
   if (kind === "overlay") query.set("preview", "");
-  // Na het opslaan van de kopman: een nieuwe url, dus opnieuw laden.
-  if (version > 0) query.set("v", String(version));
   return `/live/stream/${streamId}/${kind}?${query}`;
 }
 

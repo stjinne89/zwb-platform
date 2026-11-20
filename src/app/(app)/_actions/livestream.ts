@@ -37,6 +37,7 @@ import type { StreamRoute } from "@/lib/youtube-live/route-facts";
 import { parseKopman, type KopmanLook } from "@/lib/youtube-live/kopman";
 import { loadKopman } from "@/lib/youtube-live/kopman-store";
 import { OVERLAY_SIZES, overlaySize } from "@/lib/youtube-live/overlay-size";
+import { avatarPhoto, kopmanAvatarUrl } from "@/lib/avatar";
 
 // Livestreams, fase 1 (0338). Alle schrijfacties lopen via de service-role, na
 // de controles hier: module aan, ingericht, goedgekeurd lid, gekoppeld kanaal,
@@ -411,14 +412,16 @@ async function changeLook(
 }
 
 /**
- * De eigen kopman bij de stijl strip (0347): opslaan, of met null weghalen.
- * Hij hoort bij het profiel, dus bij alle eigen streams. Staat `streamId` (een
- * eigen stream) in strip, dan gaat de thumbnail meteen opnieuw naar YouTube.
+ * De eigen kopman (0347), opgeslagen vanuit het profiel (0349): `value` null
+ * haalt hem weg. `avatar` kiest wat de avatar is: de foto of de kopman. Zonder
+ * foto is de kopman altijd de avatar (lib/avatar.ts). De thumbnails van de
+ * komende eigen streams in strip gaan daarna opnieuw naar YouTube.
  */
-export async function saveStreamKopman(value: unknown, streamId: string | null): Promise<LookResult> {
-  const session = await approvedUser();
-  if (!session) return { ok: false, error: "Niet ingelogd." };
-  const { userId } = session;
+export async function saveKopman(value: unknown, avatar: "foto" | "kopman"): Promise<LookResult> {
+  // De avatar is van elk lid, ook van wie nog niet is goedgekeurd.
+  const access = await getCurrentUserAccess(await createClient());
+  if (!access.user) return { ok: false, error: "Niet ingelogd." };
+  const userId = access.user.id;
   const look = value === null ? null : parseKopman(value);
   if (value !== null && !look) return { ok: false, error: "Onbekende keuze." };
   const admin = createAdminClient();
@@ -428,12 +431,32 @@ export async function saveStreamKopman(value: unknown, streamId: string | null):
         .upsert({ profile_id: userId, look, updated_at: new Date().toISOString() }, { onConflict: "profile_id" })
     : await admin.from("stream_kopman").delete().eq("profile_id", userId);
   if (error) return { ok: false, error: "Opslaan lukte niet." };
-  if (!streamId) return { ok: true };
-  const stream = await loadThumbnailStream(admin, streamId);
-  if (!stream || stream.profile_id !== userId) return { ok: true };
-  revalidatePath(`/events/${stream.event_id}`);
-  if (overlayStyle(stream.overlay_style) !== "strip" || !(await livestreamsOn())) return { ok: true };
-  const thumbnailError = await pushStreamThumbnail(admin, userId, stream, streamLook(stream));
+
+  // "*" zodat het lezen ook werkt zolang 0349 nog niet is toegepast.
+  const { data: profile } = await admin.from("profiles").select("*").eq("id", userId).maybeSingle();
+  const photo = avatarPhoto(profile as { avatar_url?: string | null; avatar_photo_url?: string | null } | null);
+  const useKopman = Boolean(look) && (avatar === "kopman" || !photo);
+  // Zonder eigen kopman en zonder foto: leeg, dan toont de app de standaardkopman.
+  const avatarChange = useKopman
+    ? { avatar_url: kopmanAvatarUrl(userId, Date.now()), avatar_photo_url: photo }
+    : { avatar_url: photo, avatar_photo_url: null };
+  const { error: avatarError } = await admin.from("profiles").update(avatarChange).eq("id", userId);
+  if (avatarError) return { ok: false, error: "De kopman staat opgeslagen, de avatar niet." };
+  revalidatePath("/", "layout");
+
+  if (!(await livestreamsOn())) return { ok: true };
+  const { data: streams } = await admin
+    .from("event_streams")
+    .select(`*, events(${THUMBNAIL_EVENT_COLUMNS})`)
+    .eq("profile_id", userId)
+    .gt("scheduled_start_at", new Date().toISOString())
+    .order("scheduled_start_at")
+    .limit(5);
+  let thumbnailError: string | null = null;
+  for (const stream of (streams ?? []) as ThumbnailStream[]) {
+    if (overlayStyle(stream.overlay_style) !== "strip") continue;
+    thumbnailError = (await pushStreamThumbnail(admin, userId, stream, streamLook(stream))) ?? thumbnailError;
+  }
   return thumbnailError ? { ok: true, thumbnailError } : { ok: true };
 }
 

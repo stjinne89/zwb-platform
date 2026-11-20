@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_KOPMAN,
+  defaultKopman,
   KOPMAN_HAIR_COLORS,
   KOPMAN_HELMET_COUNT,
   KOPMAN_SKINS,
+  KOPMAN_WHITE,
   kopmanColors,
   kopmanFace,
   kopmanHelmets,
@@ -15,7 +17,7 @@ import { tenueInks } from "@/lib/youtube-live/overlay-styles";
 
 describe("parseKopman", () => {
   it("neemt een geldige figuur over", () => {
-    const look = { body: "vrouw", skin: 4, hair: 2, hairColor: 6, facial: 0, glasses: 2, helmet: 5 };
+    const look = { body: "vrouw", skin: 4, hair: 2, hairColor: 6, facial: 0, glasses: 2, helmet: 5, shirt: 1 };
     expect(parseKopman(look)).toEqual(look);
   });
 
@@ -27,7 +29,7 @@ describe("parseKopman", () => {
   });
 
   it("zet onbekende keuzes terug op een vaste waarde", () => {
-    expect(parseKopman({ body: "man", skin: 99, hair: -1, hairColor: 1.5, facial: "baard", glasses: 7, helmet: 8 })).toEqual({
+    expect(parseKopman({ body: "man", skin: 99, hair: -1, hairColor: 1.5, facial: "baard", glasses: 7, helmet: 8, shirt: 2 })).toEqual({
       body: "man",
       skin: DEFAULT_KOPMAN.skin,
       hair: 0,
@@ -35,6 +37,7 @@ describe("parseKopman", () => {
       facial: 0,
       glasses: 0,
       helmet: 0,
+      shirt: 0,
     });
   });
 
@@ -47,11 +50,24 @@ describe("parseKopman", () => {
       facial: 0,
       glasses: 0,
       helmet: 0,
+      shirt: 0,
     });
   });
 
-  it("een opgeslagen kopman van vóór de helmkleur krijgt de standaardhelm", () => {
-    expect(parseKopman({ body: "man", skin: 1, hair: 0, hairColor: 1, facial: 0, glasses: 0 })?.helmet).toBe(0);
+  it("een opgeslagen kopman van vóór helm en shirt krijgt de standaard", () => {
+    const old = parseKopman({ body: "man", skin: 1, hair: 0, hairColor: 1, facial: 0, glasses: 0 });
+    expect(old?.helmet).toBe(0);
+    expect(old?.shirt).toBe(0);
+  });
+});
+
+describe("defaultKopman", () => {
+  it("een vrouw bij geslacht vrouw, anders een man", () => {
+    expect(defaultKopman("vrouw").body).toBe("vrouw");
+    expect(defaultKopman("man").body).toBe("man");
+    expect(defaultKopman("zeg_ik_liever_niet").body).toBe("man");
+    expect(defaultKopman(null)).toEqual(DEFAULT_KOPMAN);
+    expect(parseKopman(defaultKopman("vrouw"))).toEqual(defaultKopman("vrouw"));
   });
 });
 
@@ -106,6 +122,17 @@ describe("kopmanColors", () => {
     expect(kopmanColors(t, { helmet: 0 }).helmetBand).toBe(t.gold);
     expect(kopmanColors(t, { helmet: 4 }).helmetBand).toBe(t.petrol);
     expect(kopmanHelmets(t)).toHaveLength(KOPMAN_HELMET_COUNT);
+  });
+
+  it("winter is het donkere shirt, zomer wit met een donkere onderkant", () => {
+    const t = tenueInks(null);
+    const winter = kopmanColors(t, { shirt: 0 });
+    const zomer = kopmanColors(t, { shirt: 1 });
+    expect(winter.summer).toBe(false);
+    expect(winter.jersey).toBe(t.petrol);
+    expect(zomer.summer).toBe(true);
+    expect(zomer.jersey).toBe(KOPMAN_WHITE);
+    expect(zomer.band).toBe(t.petrol);
   });
 
   it("shade schuift richting de inkt", () => {

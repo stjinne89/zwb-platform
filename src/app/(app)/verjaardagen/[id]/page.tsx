@@ -1,3 +1,4 @@
+import { memberAvatar } from "@/lib/avatar";
 import { notFound, redirect } from "next/navigation";
 import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -196,6 +197,7 @@ export default async function BirthdayPage({
   }
 
   const age = ageOnBirthday(profile.birth_date, celebrationYear);
+  const avatar = memberAvatar(profile.id, profile.avatar_url);
   const isToday = occurrence.dateKey === amsterdamDateKey();
 
   // RSVP voor het verjaardagsrondje (zelfde model als events): alleen
@@ -288,10 +290,10 @@ export default async function BirthdayPage({
       <header className="relative overflow-hidden rounded-2xl border border-zwb-gold/50 bg-card shadow-sm before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-zwb-gold before:content-['']">
         <div className="bg-gradient-to-br from-zwb-gold/25 via-card to-zwb-gold/5 p-6 pl-7 sm:p-8 sm:pl-9">
           <div className="flex items-center gap-4">
-            {profile.avatar_url ? (
+            {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={profile.avatar_url}
+                src={avatar}
                 alt=""
                 className="size-20 rounded-full object-cover shadow-sm ring-4 ring-zwb-gold/45 ring-offset-2 ring-offset-background"
               />
