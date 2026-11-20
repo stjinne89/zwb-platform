@@ -12725,6 +12725,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Dashboard: workouttegel van een event linkt ook naar het event
+
+**2026-11-20, gepusht naar `main` (zie
+`git log -- src/components/tegels/vandaag.tsx`). Geen migratie.** Op verzoek van
+de eigenaar: een training die uit
+een event komt draagt de titel van dat event, maar de tegel ging altijd naar
+`/zwbeter-worden`, terwijl je vaak het event zocht.
+
+- **Tweedelige tegel.** Heeft de training een `event_id` (migr. 0116, alleen
+  bij origin `event`), dan wordt de tegel in Mijn training twee helften: links
+  (3/5) de training zoals voorheen, naar ZWBeter; rechts (2/5) een petrol vlak
+  met "Event" en de starttijd, naar `/events/[id]`. De knop "Open" valt in die
+  tegel weg; de twee kleuren zeggen al dat het twee knoppen zijn. Een training
+  zonder event blijft zoals hij was; in de veegrij splitst alleen de tegel met
+  een event.
+- **Geen dubbele tegel.** De dashboardquery haalt het event mee via de embed
+  `event:events(id, start_at, parent_event_id)` (één foreign key, in
+  productie nagekeken). Een event dat in de workouttegel zit, ook via zijn
+  hoofdevent, staat niet nog eens als losse tegel bij Overige events.
+- `/ontwerp-voorbeeld` toont het met de race in de veegrij ("ZRL ronde 4 · TTT").
+
+**Bewust niet.** De event-tegel in Jouw races (`MyRaces`) blijft staan: dat is
+een lijst van je races, geen losse tegel, en de eigenaar koos ervoor alleen de
+dubbele event-tegel weg te halen. De warming-up voor een race heeft geen
+`event_id` en splitst dus niet.
+
+**Geverifieerd:** typecheck en lint; in de browser op `/ontwerp-voorbeeld`
+bekeken op telefoon- en desktopbreedte. **Niet geverifieerd:** het echte
+dashboard met een ingelogd lid en een workout met `event_id`.
+
 ### Hersteld — Club Ladder: gecorrigeerde uitslag bleef oud op de eventpagina
 
 **2026-11-20, commit `7edb8c00`, gepusht naar `main`.

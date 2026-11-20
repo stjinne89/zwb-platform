@@ -172,6 +172,7 @@ export default async function OntwerpVoorbeeldPage({
                     when: "vandaag",
                     today: true,
                     meta: "45 min · race",
+                    event: { id: "1", parentId: null, time: "19:30" },
                   },
                 ]}
               />

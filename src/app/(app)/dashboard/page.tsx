@@ -653,7 +653,9 @@ export default async function DashboardPage({
     user && on("training")
       ? supabase
           .from("training_workouts")
-          .select("id, title, scheduled_at, intensity, duration_minutes, structure_json, test_type")
+          .select(
+            "id, title, scheduled_at, intensity, duration_minutes, structure_json, test_type, event:events(id, start_at, parent_event_id)",
+          )
           .is("superseded_at", null)
           .eq("profile_id", user.id)
           .gte("scheduled_at", `${todayKey}T00:00:00`)
@@ -798,10 +800,27 @@ export default async function DashboardPage({
     .filter((row) => dayKeyOf(row.scheduled_at) === firstWorkoutDay)
     .map((row) => {
       const planned = plannedWorkoutIntensity(row, ftp);
+      // Een workout uit een event (migr. 0116) krijgt rechts een eigen vlak dat
+      // naar het event linkt.
+      const event = (Array.isArray(row.event) ? row.event[0] : row.event) as
+        | { id: string; start_at: string; parent_event_id: string | null }
+        | null
+        | undefined;
       return {
         id: row.id,
         title: row.title,
         when: whenLabel(row.scheduled_at),
+        event: event
+          ? {
+              id: event.id,
+              parentId: event.parent_event_id,
+              time: new Date(event.start_at).toLocaleTimeString("nl-NL", {
+                hour: "2-digit",
+                minute: "2-digit",
+                ...amsterdam,
+              }),
+            }
+          : null,
         today: dayKeyOf(row.scheduled_at) === todayKey,
         meta: [row.duration_minutes ? `${row.duration_minutes} min` : null, planned.label ?? null]
           .filter(Boolean)
@@ -819,8 +838,14 @@ export default async function DashboardPage({
   const liveNow = await livePromise;
   // Een event dat al een eigen live-tegel heeft, staat er niet nog eens bij.
   const liveEventIds = new Set((liveNow?.events ?? []).map((event) => event.id));
+  // Een event dat al in de workouttegel zit, ook niet.
+  const workoutEventIds = new Set(
+    workoutTiles.flatMap((workout) =>
+      workout.event ? [workout.event.id, workout.event.parentId ?? workout.event.id] : [],
+    ),
+  );
   const tileEvents = otherEvents
-    .filter((event) => !liveEventIds.has(event.id))
+    .filter((event) => !liveEventIds.has(event.id) && !workoutEventIds.has(event.id))
     .slice(0, 3)
     .map((event) => toTile(event, "kalender"));
   // Uitslagen: de teamuitslagen van de afgelopen week (een per team per

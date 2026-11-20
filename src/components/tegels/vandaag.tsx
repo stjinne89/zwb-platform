@@ -17,6 +17,9 @@ export type VandaagWorkout = {
   meta: string;
   /** De blokken van de training: duur en doelvermogen als % van de FTP. */
   profile?: Array<{ minutes: number; pct: number }>;
+  /** Het event waar de training bij hoort; de tegel krijgt dan rechts een
+   * petrol vlak dat naar het event linkt. */
+  event?: { id: string; parentId: string | null; time: string } | null;
 };
 
 /** Het verloop van een training als trapjeslijn: breedte is tijd, hoogte is
@@ -141,10 +144,11 @@ function WorkoutTile({
   position?: string;
   className?: string;
 }) {
-  return (
+  const event = workout.event;
+  const training = (
     <Link
       href="/zwbeter-worden"
-      className={`tg-tile ${workout.today ? "tg-vandaag" : "tg-zwbeter"} ${className}`}
+      className={`tg-tile ${workout.today ? "tg-vandaag" : "tg-zwbeter"} ${event ? "min-w-0 focus-visible:[outline-offset:-2px]" : className}`}
     >
       <span className="tg-tile-small">
         <ClubText text="{beter} trainen · " />{workout.when}
@@ -156,11 +160,25 @@ function WorkoutTile({
       {workout.profile && <WorkoutProfile blocks={workout.profile} />}
       <span className="mt-auto flex items-end justify-between gap-3 pt-4">
         <span className="text-[0.9375rem] tabular-nums">{workout.meta}</span>
-        <span className="grid min-h-11 place-items-center bg-[var(--tg-paper)] px-5 text-[0.9375rem] font-bold text-[var(--tg-ink)]">
-          Open
-        </span>
+        {!event && (
+          <span className="grid min-h-11 place-items-center bg-[var(--tg-paper)] px-5 text-[0.9375rem] font-bold text-[var(--tg-ink)]">
+            Open
+          </span>
+        )}
       </span>
     </Link>
+  );
+  if (!event) return training;
+  // Een training uit een event: links de training, rechts het event, als twee
+  // helften van één tegel.
+  return (
+    <div className={`grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] ${className}`}>
+      {training}
+      <Link href={`/events/${event.id}`} className="tg-tile tg-kalender min-w-0 focus-visible:[outline-offset:-2px]">
+        <span className="tg-tile-small">Event</span>
+        <span className="tg-tile-num">{event.time}</span>
+      </Link>
+    </div>
   );
 }
 
