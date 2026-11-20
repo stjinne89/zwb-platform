@@ -74,8 +74,8 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
-0. **Gebouwd — Stijlen voor overlay en thumbnail (2026-11-20): lokaal
-   gecommit, nog niet gepusht.** Migratie `0346_stream_overlay_style`
+0. **Gebouwd — Stijlen voor overlay en thumbnail (2026-11-20): commit
+   `2e6adea`, lokaal, nog niet gepusht.** Migratie `0346_stream_overlay_style`
    (`event_streams.overlay_style`) nog niet op productie toegepast. Open:
    eerst 0346 toepassen, dan pushen; daarna bij een eigen stream elke stijl
    kiezen en overlay en thumbnail op YouTube bekijken. Zie de ronde "Gebouwd —
@@ -13053,7 +13053,7 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Stijlen voor overlay en thumbnail
 
-**2026-11-20, lokaal gecommit, nog niet gepusht. Migratie
+**2026-11-20, commit `2e6adea`, lokaal, nog niet gepusht. Migratie
 `0346_stream_overlay_style` nog niet op productie toegepast.**
 
 - **Waarom.** De eigenaar wilde dat leden overlay en thumbnail in een eigen
