@@ -81,8 +81,8 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
-0. **Gebouwd — Het canvas volgt het Zwift-beeld (2026-11-20): lokaal, nog
-   niet gepusht.** Migratie `0350_stream_overlay_zwift_size` (nieuwe check op
+0. **Gebouwd — Het canvas volgt het Zwift-beeld (2026-11-20): commit
+   `2e12ebb`, lokaal, nog niet gepusht.** Migratie `0350_stream_overlay_zwift_size` (nieuwe check op
    `event_streams.overlay_size`) nog níét op productie: toepassen vóór de
    push, anders weigert de database de nieuwe maten. Open: in OBS een
    Zwift-beeld van 1920×1080 op 100% in een canvas van 2400×1350 zetten en
@@ -13139,8 +13139,8 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Het canvas volgt het Zwift-beeld
 
-**2026-11-20, lokaal, nog niet gepusht. Migratie `0350_stream_overlay_zwift_size`,
-nog niet op productie.**
+**2026-11-20, commit `2e12ebb`, lokaal, nog niet gepusht. Migratie
+`0350_stream_overlay_zwift_size`, nog niet op productie.**
 
 - **Waarom.** Met de resolutie van 0348 schaalde het gat in de overlay mee,
   maar moest het lid het Zwift-beeld in OBS nog op maat trekken. De eigenaar
