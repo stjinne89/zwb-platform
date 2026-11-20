@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 // een geweigerde thumbnail gaat via deze map mee, per race.
 const thumbnailErrors = new Map<string, string>();
 
-/** Klaarzetten, met de resolutie van het OBS-canvas (0348; standaard die van de vorige stream). */
+/** Klaarzetten, met de grootte van het Zwift-beeld (0348, 0350; standaard die van de vorige stream). */
 export function PrepareStreamButton({ eventId, initialSize }: { eventId: string; initialSize: OverlaySize }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -58,7 +58,7 @@ export function PrepareStreamButton({ eventId, initialSize }: { eventId: string;
 function SizeSelect({ value, disabled, onChange }: { value: OverlaySize; disabled: boolean; onChange: (value: OverlaySize) => void }) {
   return (
     <select
-      aria-label="Resolutie"
+      aria-label="Zwift-beeld"
       value={value}
       disabled={disabled}
       onChange={(event) => onChange(event.target.value as OverlaySize)}

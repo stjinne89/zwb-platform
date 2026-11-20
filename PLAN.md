@@ -81,6 +81,14 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
+0. **Gebouwd — Het canvas volgt het Zwift-beeld (2026-11-20): lokaal, nog
+   niet gepusht.** Migratie `0350_stream_overlay_zwift_size` (nieuwe check op
+   `event_streams.overlay_size`) nog níét op productie: toepassen vóór de
+   push, anders weigert de database de nieuwe maten. Open: in OBS een
+   Zwift-beeld van 1920×1080 op 100% in een canvas van 2400×1350 zetten en
+   kijken of het precies in het gat valt. Zie de ronde "Gebouwd — Het canvas
+   volgt het Zwift-beeld".
+
 0. **Gebouwd — Kopman op het profiel, als avatar, winter- of zomershirt
    (2026-11-20): commit `6f12db5`, op 2026-11-20 gepusht naar `main`
    (eigenaar: "Ja, beide").** Migratie `0349_avatar_kopman`
@@ -1515,8 +1523,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0350`
-(`0349_avatar_kopman` is van de kopman als avatar, 2026-11-20, toegepast op 2026-11-20;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0351`
+(`0350_stream_overlay_zwift_size` is van het canvas dat het Zwift-beeld volgt, 2026-11-20, nog niet toegepast;
+`0349_avatar_kopman` is van de kopman als avatar, 2026-11-20, toegepast op 2026-11-20;
 `0348_stream_overlay_size` is van de resolutie per stream, 2026-11-20, toegepast op 2026-11-20;
 `0347_stream_kopman` is van de eigen kopman bij Strip, 2026-11-20, toegepast op 2026-11-20;
 `0346_stream_overlay_style` is van de stijlen voor overlay en thumbnail, 2026-11-20, toegepast op 2026-11-20;
@@ -13128,6 +13137,49 @@ bekende ontbrekende pakketten na.
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
 
+### Gebouwd — Het canvas volgt het Zwift-beeld
+
+**2026-11-20, lokaal, nog niet gepusht. Migratie `0350_stream_overlay_zwift_size`,
+nog niet op productie.**
+
+- **Waarom.** Met de resolutie van 0348 schaalde het gat in de overlay mee,
+  maar moest het lid het Zwift-beeld in OBS nog op maat trekken. De eigenaar
+  wilde kiezen op de grootte van het Zwift-beeld, zodat dat op zijn eigen
+  grootte blijft en alleen de positie nog gezet moet worden. Uit twee
+  voorstellen gekozen: "Canvas volgt Zwift" (niet: de balken laten meegroeien
+  op een vast canvas; dat vraagt ombouw van alle stijlen en werkt niet als
+  Zwift even groot is als het canvas).
+- **Wat.**
+  - De keuze heet nu Zwift-beeld: Zwift 1280×720, 1536×864, 1920×1080,
+    2560×1440 of 3840×2160, met het canvas erbij ("Zwift 1920×1080 · canvas
+    2400×1350"). Het canvas is 5/4 van het Zwift-beeld: het gat is in het
+    ontwerp 80%, met een vijfde links en boven voor de balken.
+  - Opgeslagen blijft het canvas in `overlay_size`, dus de overlay (CSS
+    `zoom`, canvas/1920) en het opslaan veranderen niet. Zwift 1536×864 is
+    canvas 1920×1080: de standaard en het ontwerp, en de vier bestaande
+    streams blijven zoals ze waren.
+  - `0350`: de check wordt `1600x900`, `1920x1080`, `2400x1350`, `3200x1800`,
+    `4800x2700`; een rij met een vervallen maat gaat terug naar `1920x1080`.
+  - `/hulp`: Basisresolutie op het canvas, Uitvoerresolutie op wat naar
+    YouTube gaat (bijvoorbeeld 1920×1080), de Browser-bron op het canvas, en
+    de Zwift-bron met Transformatie terugzetten op ware grootte, alleen de
+    positie zetten (bij Zwift 1920×1080: 480, 270).
+- **Bewust niet.**
+  - De balken blijven even breed als in het ontwerp (een vijfde), ook bij een
+    groot Zwift-beeld: de overlay schaalt als geheel.
+  - Geen vrije maat en geen 1024×576, 2048×1152 of 3072×1728: de gangbare
+    Zwift-maten, plus 1536×864 voor wie het oude canvas houdt.
+  - Positie niet automatisch in OBS zetten via de hulp-app: dat is niet
+    uitgezocht.
+- **Niet meer waar.** De maten van 0348 en de plekken op `/hulp` (ronde
+  "Gebouwd — Streams op de kalender, resolutie per stream, helmkleur"):
+  bijgewerkt.
+- **Niet geverifieerd.** `0350` in PGlite getest (twee keer uit te voeren,
+  2560x1440 gaat terug naar 1920x1080 en wordt daarna geweigerd, 2400x1350
+  en 4800x2700 mogen, standaard 1920x1080). De overlay op 2400×1350 niet
+  opnieuw gerenderd; het schalen is hetzelfde als bij 0348 (toen op 2560 en
+  1280 bekeken). Niet gezien in OBS.
+
 ### Gebouwd — Kopman op het profiel, als avatar
 
 **2026-11-20, commit `6f12db5`, op 2026-11-20 gepusht naar `main`. Migratie
@@ -13227,7 +13279,8 @@ bekende ontbrekende pakketten na.
     `initialId`), en het streamblok heeft `id="stream"`.
   - `0348`: `event_streams.overlay_size` (`1280x720`, `1600x900`,
     `1920x1080`, `2560x1440`, `3840x2160`), standaard `1920x1080`, met een
-    check. Alleen 16:9.
+    check. Alleen 16:9. (Sinds 0350 andere canvassen, gekozen via de grootte
+    van het Zwift-beeld: zie "Gebouwd — Het canvas volgt het Zwift-beeld".)
   - Resolutie kiezen: naast Stream klaarzetten (begint op de resolutie van de
     vorige stream van het lid), en na het klaarzetten naast Thumbnail
     vernieuwen (`setOverlaySize`). Een nieuwe stream neemt de resolutie over
@@ -13237,6 +13290,8 @@ bekende ontbrekende pakketten na.
     op Chromium). `?preview` (het voorbeeld in de app) blijft 1920 breed.
   - `/hulp`: per resolutie de plek en het vak voor het Zwift-beeld, berekend
     uit `overlay-size.ts` (bij 2560×1440 positie 512, 288 en vak 2048×1152).
+    (Niet meer zo sinds 0350: per Zwift-beeld het canvas en alleen de
+    positie, op ware grootte.)
   - Helm: acht kleuren in de kopman-editor (Helm): de vijf clubkleuren uit
     het palet, wit, zwart en rood. Opgeslagen in het bestaande `look` van
     0347, dus geen migratie; een eerder opgeslagen kopman krijgt de
