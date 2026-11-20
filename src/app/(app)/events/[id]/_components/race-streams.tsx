@@ -16,6 +16,9 @@ import {
 } from "@/lib/youtube-live/broadcast";
 import { youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { loadEventStreams, ridesInEvent } from "@/lib/youtube-live/streams";
+import { kopmanColors } from "@/lib/youtube-live/kopman";
+import { loadKopman } from "@/lib/youtube-live/kopman-store";
+import { tenueInks } from "@/lib/youtube-live/overlay-styles";
 import { OverlayLinkButton, OverlayStandToggle, OverlayLookPicker, PrepareStreamButton, ThumbnailButton } from "./prepare-stream-button";
 
 /**
@@ -35,7 +38,8 @@ export async function RaceStreams({
   userId: string | null;
   canManage: boolean;
 }) {
-  if (!youtubeLiveConfigured() || !(await getClub()).isEnabled("livestream")) return null;
+  const club = await getClub();
+  if (!youtubeLiveConfigured() || !club.isEnabled("livestream")) return null;
   if (!eventTakesStreams(event, hasSubEvents)) return null;
 
   const now = new Date();
@@ -76,6 +80,8 @@ export async function RaceStreams({
   const [streams, mayPrepare, connection, helper] = loaded;
   const ownStream = streams.find((stream) => stream.profileId === userId) ?? null;
   const showPrepare = mayPrepare && !ownStream;
+  // De eigen kopman bij strip (0347); zonder 0347 gewoon geen figuur.
+  const kopman = ownStream && userId ? await loadKopman(supabase, userId) : null;
   if (streams.length === 0 && !showPrepare) return null;
 
   const connected = Boolean(connection && !connection.needs_reconnect);
@@ -124,6 +130,8 @@ export async function RaceStreams({
           streamId={ownStream.id}
           initialStyle={ownStream.overlayStyle}
           initialTheme={ownStream.overlayTheme}
+          initialKopman={kopman}
+          kopmanColors={kopmanColors(tenueInks(club.settings.palette))}
         />
       )}
       {ownStream && hasLiveStand && (

@@ -26,6 +26,9 @@
   background: var(--ovs-dots-light), var(--tn-petrol); color: var(--tn-paper);
 }
 .stream-overlay[data-style="strip"]:not(:has(.ovs-sponsors)) .ovs-title { right: 26px; }
+/* De eigen kopman (0347): een vierkant plaatje vóór de titel, met dezelfde goot. */
+.ovs-kopman { left: 26px; top: 22px; width: 166px; height: 166px; overflow: hidden; background: var(--tn-page); }
+.stream-overlay[data-style="strip"]:has(.ovs-kopman) .ovs-title { left: 209px; }
 .ovs-caption {
   position: absolute; left: -5px; top: -5px; padding: 6px 18px 5px 22px;
   background: var(--tn-gold); color: var(--tn-ink); border: 4px solid var(--tn-ink);

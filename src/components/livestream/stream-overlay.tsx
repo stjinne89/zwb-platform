@@ -7,6 +7,7 @@ import { clubLogoUrl } from "@/lib/club-icons";
 import { overlayColors, overlayColorVars, tenueBands, type OverlayMode } from "@/lib/youtube-live/overlay-theme";
 import { printInks, styleHasModes, tenueInks, type OverlayStyle } from "@/lib/youtube-live/overlay-styles";
 import type { StreamRoute } from "@/lib/youtube-live/route-facts";
+import { kopmanColors, kopmanFace, type KopmanLook } from "@/lib/youtube-live/kopman";
 import { overlayRows, overlayValue } from "@/lib/zrl-live/overlay";
 import type { ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import { loadFooterSponsors } from "@/app/(app)/_components/sponsor-footer";
@@ -46,6 +47,7 @@ export async function StreamOverlay({
   look = "tegels",
   route = null,
   stand,
+  kopman = null,
   refreshSeconds,
 }: {
   title: string;
@@ -59,6 +61,8 @@ export async function StreamOverlay({
   /** Het parcours los, voor de andere stijlen. */
   route?: StreamRoute | null;
   stand: OverlayStand | null;
+  /** De eigen kopman van het lid (0347); alleen bij strip te zien. */
+  kopman?: KopmanLook | null;
   /** null: niet meer verversen (de uitslag staat vast). */
   refreshSeconds: number | null;
 }) {
@@ -90,6 +94,7 @@ export async function StreamOverlay({
       sponsors: rotator,
       route,
       stand: stand ? <StandRows stand={stand} /> : null,
+      kopman: look === "strip" && kopman ? { face: kopmanFace(kopman), colors: kopmanColors(tenueInks(settings.palette)) } : null,
     };
     const fonts = `${tegelsFontVariables} ${overlayStencil.variable} ${overlayText.variable} ${overlayHand.variable}`;
     return (

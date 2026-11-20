@@ -3,6 +3,7 @@ import { StreamOverlay, wantedTeams, zrlStatus } from "@/components/livestream/s
 import { createAdminClient } from "@/lib/supabase/admin";
 import { overlayInfo, overlayStatus, overlayTitle } from "@/lib/youtube-live/broadcast";
 import { streamRoute } from "@/lib/youtube-live/event-route";
+import { loadKopman } from "@/lib/youtube-live/kopman-store";
 import { overlayStyle } from "@/lib/youtube-live/overlay-styles";
 import { overlayMode } from "@/lib/youtube-live/overlay-theme";
 import { loadZrlLive } from "@/lib/zrl-live/snapshot";
@@ -43,6 +44,7 @@ type StreamEvent = {
 };
 
 type StreamRow = {
+  profile_id: string;
   overlay_stand?: boolean | null;
   overlay_theme?: string | null;
   overlay_style?: string | null;
@@ -76,9 +78,11 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
   const theme = overlayMode(query.theme ?? stream.overlay_theme);
   const look = overlayStyle(query.style ?? stream.overlay_style);
   const refreshSeconds = query.preview !== undefined ? null : 15;
+  // De eigen kopman van het lid (0347), alleen bij strip.
+  const kopman = look === "strip" ? await loadKopman(admin, stream.profile_id) : null;
   const title = overlayTitle(event.title);
   const status = overlayStatus({ type: event.type, startAt: event.start_at, endAt: event.end_at, distanceKm, now: new Date() });
-  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} look={look} route={route} stand={null} refreshSeconds={refreshSeconds} />;
+  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} look={look} route={route} stand={null} kopman={kopman} refreshSeconds={refreshSeconds} />;
 
   const hasStand = event.type === "zrl" && Boolean(event.team_id && event.zwift_event_id);
   if (!hasStand) return plain;
@@ -95,6 +99,7 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
       look={look}
       route={route}
       stand={stream.overlay_stand !== false ? { view, teams: wantedTeams(query.teams) } : null}
+      kopman={kopman}
       refreshSeconds={refreshSeconds}
     />
   );

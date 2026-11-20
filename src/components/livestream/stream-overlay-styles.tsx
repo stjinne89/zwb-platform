@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { routeFigures } from "@/lib/youtube-live/overlay-styles";
 import { profileAreaPath, profileTopPath, type StreamRoute } from "@/lib/youtube-live/route-facts";
+import { kopmanMood, type KopmanColors, type KopmanFace } from "@/lib/youtube-live/kopman";
+import { kopmanSvg } from "./kopman-figure";
 import { SponsorRotator, type RotatorSponsor } from "./sponsor-rotator";
 
 // De drie eigen stijlen van de OBS-overlay (0346), naast het tegelkader in
@@ -19,6 +21,8 @@ export type OverlayParts = {
   route: StreamRoute | null;
   /** De stand bij ZRL, al opgemaakt; dan wordt het parcours compact. */
   stand: ReactNode | null;
+  /** De eigen kopman van het lid (0347), alleen bij strip. */
+  kopman: { face: KopmanFace; colors: KopmanColors } | null;
 };
 
 function Logo({ parts, className }: { parts: OverlayParts; className: string }) {
@@ -245,7 +249,8 @@ export function ZeefdrukOverlay({ parts }: { parts: OverlayParts }) {
 /**
  * Strip: een bladzijde uit een stripalbum in tenuekleuren. Plaatjes met een
  * dikke inktlijn, vlakke kleuren met rasterpunten, een handletter; Zwift is het
- * grote plaatje.
+ * grote plaatje. Met een eigen kopman (0347) staat die in een plaatje vóór de
+ * titel: de kolom is bij ZRL vol met de stand.
  */
 export function StripOverlay({ parts }: { parts: OverlayParts }) {
   const f = routeFigures(parts.route);
@@ -253,6 +258,12 @@ export function StripOverlay({ parts }: { parts: OverlayParts }) {
   return (
     <>
       <div className="ovs-window" aria-hidden />
+      {parts.kopman && (
+        // De eigen kopman (0347), in de stemming van de race.
+        <div className="ovs-panel ovs-kopman" aria-hidden>
+          {kopmanSvg({ ...parts.kopman, mood: kopmanMood(parts.status), uid: "overlay", frame: "bust" })}
+        </div>
+      )}
       <header className="ovs-panel ovs-title">
         <span className="ovs-caption">{parts.status}</span>
         <Logo parts={parts} className="ovs-badge" />

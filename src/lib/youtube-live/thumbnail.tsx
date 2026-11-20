@@ -20,6 +20,8 @@ import {
 } from "@/lib/youtube-live/overlay-styles";
 import { overlayColors, plainColors, tenueBands, type OverlayColors, type OverlayMode } from "@/lib/youtube-live/overlay-theme";
 import { fitTitle, profileAreaPath, profileTopPath, type StreamRoute } from "@/lib/youtube-live/route-facts";
+import { kopmanColors, kopmanFace, type KopmanLook } from "@/lib/youtube-live/kopman";
+import { kopmanSvg } from "@/components/livestream/kopman-figure";
 
 // De thumbnail van een stream op YouTube (2026-11-19): 1280×720, in de kleuren
 // en letter van de club, in de stijl van de overlay (0346): tegels in donker of
@@ -78,6 +80,8 @@ type ThumbData = {
   route: StreamRoute;
   hasRoute: boolean;
   textWidth: number;
+  /** De eigen kopman bij strip (0347). */
+  kopman: KopmanLook | null;
 };
 
 /** De thumbnail als ImageResponse (PNG). `origin` maakt een logo-pad absoluut. */
@@ -88,6 +92,8 @@ export async function streamThumbnail(input: {
   route: StreamRoute;
   theme: OverlayMode;
   look?: OverlayStyle;
+  /** De eigen kopman van het lid; alleen bij strip te zien. */
+  kopman?: KopmanLook | null;
   origin: string;
 }): Promise<ImageResponse> {
   const look = input.look ?? "tegels";
@@ -109,6 +115,7 @@ export async function streamThumbnail(input: {
     route,
     hasRoute,
     textWidth: THUMBNAIL_SIZE.width - PAD_X * 2 - (hasRoute ? ROUTE_WIDTH + GAP : 0),
+    kopman: input.kopman ?? null,
   };
   const body =
     look === "rugnummer"
@@ -510,6 +517,7 @@ function RegMark({ color, left, top }: { color: string; left: number; top: numbe
 // ---------- Strip ----------
 
 const WOBBLE = "14px 10px 15px 11px";
+const KOPMAN_TILE = 220;
 
 function strip(data: ThumbData): ReactElement {
   const { tenue: t, route, hasRoute, textWidth, lines } = data;
@@ -565,6 +573,27 @@ function strip(data: ThumbData): ReactElement {
         >
           {lines.status}
         </div>
+        {data.kopman && (
+          // De eigen kopman (0347): een los plaatje rechtsboven, onder de
+          // statusregel, in de aanval.
+          <div
+            style={{
+              position: "absolute",
+              right: 34,
+              top: 104,
+              display: "flex",
+              width: KOPMAN_TILE,
+              height: KOPMAN_TILE,
+              overflow: "hidden",
+              border: `6px solid ${t.ink}`,
+              borderRadius: WOBBLE,
+              transform: "rotate(2deg)",
+              backgroundColor: t.page,
+            }}
+          >
+            {kopmanSvg({ face: kopmanFace(data.kopman), colors: kopmanColors(t), mood: "aanval", uid: "thumb", frame: "bust", size: KOPMAN_TILE - 12 })}
+          </div>
+        )}
         <div style={{ display: "flex" }}>
           <div
             style={{

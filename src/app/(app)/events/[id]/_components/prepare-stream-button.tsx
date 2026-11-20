@@ -12,6 +12,8 @@ import {
 } from "@/app/(app)/_actions/livestream";
 import { Button } from "@/components/ui/button";
 import { OVERLAY_STYLES } from "@/lib/youtube-live/overlay-styles";
+import type { KopmanColors, KopmanLook } from "@/lib/youtube-live/kopman";
+import { KopmanEditor } from "./kopman-editor";
 import { cn } from "@/lib/utils";
 
 // Na het klaarzetten verdwijnt PrepareStreamButton en verschijnt ThumbnailButton;
@@ -155,22 +157,28 @@ type LookResult = Awaited<ReturnType<typeof setOverlayStyle>>;
  * of licht (0345). De overlay volgt bij zijn volgende verversing, de thumbnail
  * gaat meteen opnieuw naar YouTube. Ingeklapt; open toont het elke stijl als
  * de echte thumbnail van deze stream, en de gekozen overlay in het klein
- * (2026-11-20). Pas bij openen laden de voorbeelden.
+ * (2026-11-20). Pas bij openen laden de voorbeelden. Bij strip ook de eigen
+ * kopman (0347); na opslaan laden de voorbeelden opnieuw.
  */
 export function OverlayLookPicker({
   streamId,
   initialStyle,
   initialTheme,
+  initialKopman,
+  kopmanColors,
 }: {
   streamId: string;
   initialStyle: Look;
   initialTheme: Theme;
+  initialKopman: KopmanLook | null;
+  kopmanColors: KopmanColors;
 }) {
   const [open, setOpen] = useState(false);
   const [look, setLook] = useState(initialStyle);
   const [theme, setTheme] = useState(initialTheme);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
   const current = OVERLAY_STYLES.find((s) => s.key === look);
 
   function change<T extends string>(next: T, was: T, set: (v: T) => void, save: () => Promise<LookResult>) {
@@ -215,7 +223,7 @@ export function OverlayLookPicker({
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={previewUrl(streamId, "thumbnail", option.key, option.modes ? theme : "dark")}
+                  src={previewUrl(streamId, "thumbnail", option.key, option.modes ? theme : "dark", version)}
                   alt=""
                   width={1280}
                   height={720}
@@ -240,7 +248,16 @@ export function OverlayLookPicker({
               onChange={(next) => change(next, theme, setTheme, () => setOverlayTheme(streamId, next))}
             />
           )}
-          <OverlayPreview src={previewUrl(streamId, "overlay", look, current?.modes ? theme : "dark")} />
+          {look === "strip" && (
+            <KopmanEditor
+              streamId={streamId}
+              initial={initialKopman}
+              colors={kopmanColors}
+              onSaved={() => setVersion((v) => v + 1)}
+              onError={setError}
+            />
+          )}
+          <OverlayPreview src={previewUrl(streamId, "overlay", look, current?.modes ? theme : "dark", version)} />
         </div>
       )}
       {error && <span className="text-sm text-destructive">{error}</span>}
@@ -248,9 +265,11 @@ export function OverlayLookPicker({
   );
 }
 
-function previewUrl(streamId: string, kind: "thumbnail" | "overlay", look: Look, theme: Theme): string {
+function previewUrl(streamId: string, kind: "thumbnail" | "overlay", look: Look, theme: Theme, version: number): string {
   const query = new URLSearchParams({ style: look, theme });
   if (kind === "overlay") query.set("preview", "");
+  // Na het opslaan van de kopman: een nieuwe url, dus opnieuw laden.
+  if (version > 0) query.set("v", String(version));
   return `/live/stream/${streamId}/${kind}?${query}`;
 }
 

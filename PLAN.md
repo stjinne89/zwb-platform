@@ -74,6 +74,13 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
+0. **Gebouwd — Eigen kopman bij Strip (2026-11-20): lokaal, nog niet
+   gepusht.** Migratie `0347_stream_kopman` (tabel `stream_kopman`) nog níét
+   op productie: toepassen vóór de push, anders slaat Opslaan niets op (lezen
+   valt terug op geen kopman). Open: bij een eigen stream Strip kiezen, een
+   kopman samenstellen en opslaan, en overlay en thumbnail op YouTube
+   bekijken. Zie de ronde "Gebouwd — Eigen kopman bij Strip".
+
 0. **Gebouwd — Voorbeelden in de stijlkeuze (2026-11-20): commit
    `e700dbb`, lokaal, nog niet gepusht.** Geen migratie. Open: na de push bij een eigen
    stream Stijl openklappen en kiezen. Zie de ronde "Gebouwd — Voorbeelden in
@@ -1478,8 +1485,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0347`
-(`0346_stream_overlay_style` is van de stijlen voor overlay en thumbnail, 2026-11-20, toegepast op 2026-11-20;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0348`
+(`0347_stream_kopman` is van de eigen kopman bij Strip, 2026-11-20, nog niet toegepast;
+`0346_stream_overlay_style` is van de stijlen voor overlay en thumbnail, 2026-11-20, toegepast op 2026-11-20;
 `0345_stream_overlay_theme` is van donker of licht per stream, 2026-11-20, toegepast op 2026-11-20;
 `0344_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, toegepast op 2026-11-19, geschreven als `0343` en vóór het toepassen hernummerd, want main had `0343` al;
 `0343_integration_notice_strava_stub` is van de pop-up voor ritten via Strava, 2026-11-19, toegepast op 2026-11-19;
@@ -13057,6 +13065,66 @@ bekende ontbrekende pakketten na.
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
 
+### Gebouwd — Eigen kopman bij Strip
+
+**2026-11-20, lokaal, nog niet gepusht. Migratie `0347_stream_kopman`, nog
+niet op productie.**
+
+- **Waarom.** De eigenaar wilde dat een lid bij de streamstijl Strip een eigen
+  "kopman" kan samenstellen zoals de renners in het spel Kopman, in een
+  mannelijke en een vrouwelijke versie. Kopman is een losse game, maar de
+  eigenaar gaf toestemming: "Je mag de mannetjes uit Kopman gebruiken in
+  ZWB". Schets van vier mannen, vier vrouwen en de vier stemmingen; akkoord:
+  "Ja, bouwen".
+- **Wat.**
+  - `0347`: tabel `stream_kopman` (`profile_id` als sleutel, `look` jsonb,
+    alleen een object). Het lid leest de eigen rij; schrijven alleen via de
+    service-role in `saveStreamKopman`. Weg met het profiel (cascade).
+  - `lib/youtube-live/kopman.ts` (puur): de keuzes (man of vrouw, zes
+    huidskleuren, vier kapsels per soort, acht haarkleuren, gezichtshaar
+    alleen bij een man, geen/bril/zonnebril), `parseKopman` (controleert en
+    zet onbekende waarden terug), de vaste gezichtsmaten per soort, de
+    stemming uit de statusregel (`kopmanMood`: Begint zo → rust, Live →
+    aanval, Uitslag/Afgelopen → zege) en de kleuren uit het tenue van strip.
+  - `components/livestream/kopman-figure.tsx`: de tekening, een eigen kopie
+    van `src/kopman/ui/portrait.tsx`, zodat Kopman los uit de repo kan. Nieuw
+    erbij: de vrouw (smaller, wimpers, paardenstaart, lang, vlecht, kort), een
+    heldere bril, het tenue (banen, gouden kraag, helm met gouden bies). Zonder
+    hooks, CSS-klassen of animatie, en de onderdelen als functies in plaats
+    van componenten: Satori zet alleen gewone svg-elementen om, en zo tekenen
+    overlay, thumbnail en editor dezelfde svg.
+  - Overlay (Strip): de kopman in een vierkant plaatje vóór de titel
+    (166px); de titel schuift op. Stemming volgt de statusregel.
+  - Thumbnail (Strip): de kopman in een licht scheef plaatje rechtsboven,
+    onder de statusregel, in de aanval.
+  - Onder Stijl, als Strip gekozen is: "Je kopman" met Geen, Man of Vrouw,
+    huid, kapsel, haar, gezicht (man) en bril, een voorbeeld dat meteen
+    meetekent plus drie kleine stemmingen. Pas **Kopman opslaan** bewaart hem
+    en zet de thumbnail van deze stream opnieuw op YouTube; daarna laden de
+    voorbeelden opnieuw. Alleen bij de eigen stream (de figuur hoort bij het
+    profiel van wie streamt).
+- **Bewust niet.**
+  - Geen vrije kleur voor tenue of helm: die komen uit de clubkleuren.
+  - Geen opslaan bij elke tik: elke keer de thumbnail naar YouTube zou de
+    YouTube-quota opmaken.
+  - Niet onderin de kolom links, zoals voorgesteld: bij ZRL vult de stand die
+    kolom tot onderaan. Het plaatje vóór de titel staat er altijd.
+  - Geen animatie in de overlay: OBS ververst elke 15 seconden, en Satori kan
+    het niet.
+  - Geen vrije gezichtsmaten (kaak, ogen, neus): vier keuzes per lid zijn
+    genoeg om je te herkennen, meer maakt de editor lang.
+- **Niet meer waar.** "Strip … gebruikt geen Kopman-figuren" (DESIGN.md en de
+  ronde "Gebouwd — Stijlen voor overlay en thumbnail"): bijgewerkt.
+- **Niet geverifieerd.** `0347` alleen in PGlite getest (twee keer uit te
+  voeren, array geweigerd, het lid ziet alleen de eigen rij en mag niet
+  schrijven, cascade bij een weg profiel). Lokaal op tijdelijke testpagina's
+  bekeken: de overlay op 1920×1080 in rust, aanval en zege, de thumbnail
+  (Satori tekent de rasterpunten en uitsnedes), en de editor op breed en op
+  375px. Niet gezien: opslaan tegen de database (tabel staat nog niet op
+  productie), de editor op de echte racepagina ingelogd, en de thumbnail op
+  YouTube. De volledige testrun heeft één bestaande fout die ook zonder deze
+  ronde faalt (`club-texts-render`: "beheer noemt ZWB niet").
+
 ### Gebouwd — Voorbeelden in de stijlkeuze
 
 **2026-11-20, commit `e700dbb`, lokaal, nog niet gepusht. Geen migratie.**
@@ -13126,8 +13194,10 @@ bekende ontbrekende pakketten na.
 - **Bewust niet.**
   - Geen vrije kleur per lid: de tenuekleuren zijn bindend (PRODUCT.md), een
     stijl onderscheidt genoeg.
-  - Strip heet niet Kopman en gebruikt geen Kopman-figuren: Kopman is een
-    losse game, niet voor ZWB. Alleen de tekenstijl is geleend.
+  - Strip heet niet Kopman: Kopman is een losse game, niet voor ZWB. Alleen
+    de tekenstijl is geleend. (Sinds "Gebouwd — Eigen kopman bij Strip" mag een
+    lid wel een eigen Kopman-renner op Strip zetten, met toestemming van de
+    eigenaar.)
   - Geen papiervezel en geen echte overdruk op de Zeefdruk-thumbnail: Satori
     kent geen filters en blendmodes, dus de mengkleur is vooraf uitgerekend.
   - Rugnummer en Strip hebben geen lichte stand: ze zijn al licht van papier

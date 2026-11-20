@@ -874,8 +874,11 @@ per stijl) en `src/lib/youtube-live/` (`overlay-styles.ts`, `thumbnail.tsx`).
   een inktlijn van 5 tot 7px en lichte goten, licht onregelmatige hoeken,
   rasterpunten als schaduw, een gouden onderschrift, titels en cijfers met een
   inktrand, handletter Shantell Sans. Zwift is het grote plaatje. Alleen
-  donker. Leent de tekenstijl van Kopman, maar heet zo niet en gebruikt geen
-  Kopman-figuren: Kopman is een losse game.
+  donker. Leent de tekenstijl van Kopman, maar heet zo niet: Kopman is een
+  losse game. Sinds 2026-11-20 mag een lid er een eigen Kopman-renner op zetten
+  (toestemming eigenaar): man of vrouw, altijd in het clubtenue, in een
+  vierkant plaatje vóór de titel (overlay) of rechtsboven (thumbnail). De
+  tekening is een eigen kopie (`components/livestream/kopman-figure.tsx`).
 
 #### Don't:
 - **Don't** gebruik een streamstijl buiten overlay en thumbnail.

@@ -34,6 +34,8 @@ import { siteOrigin, streamRoute, streamThumbnail, type ThumbnailEvent } from "@
 import { overlayMode, OVERLAY_MODES, type OverlayMode } from "@/lib/youtube-live/overlay-theme";
 import { overlayStyle, OVERLAY_STYLES, type OverlayStyle } from "@/lib/youtube-live/overlay-styles";
 import type { StreamRoute } from "@/lib/youtube-live/route-facts";
+import { parseKopman, type KopmanLook } from "@/lib/youtube-live/kopman";
+import { loadKopman } from "@/lib/youtube-live/kopman-store";
 
 // Livestreams, fase 1 (0338). Alle schrijfacties lopen via de service-role, na
 // de controles hier: module aan, ingericht, goedgekeurd lid, gekoppeld kanaal,
@@ -90,6 +92,7 @@ async function pushThumbnail(
     route: StreamRoute;
     theme: OverlayMode;
     look: OverlayStyle;
+    kopman?: KopmanLook | null;
   },
 ): Promise<string | null> {
   try {
@@ -233,6 +236,7 @@ export async function prepareStream(
       route: await streamRoute(admin, event),
       theme: last.theme,
       look: last.look,
+      kopman: last.look === "strip" ? await loadKopman(admin, userId) : null,
     });
   } catch (err) {
     console.error("[livestream/thumbnail]", err);
@@ -278,6 +282,7 @@ async function pushStreamThumbnail(
     startAt: stream.events.start_at,
     route: await streamRoute(admin, stream.events),
     ...look,
+    kopman: look.look === "strip" ? await loadKopman(admin, userId) : null,
   });
 }
 
@@ -372,6 +377,33 @@ async function changeLook(
   revalidatePath(`/events/${stream.event_id}`);
   if (!own || !(await livestreamsOn())) return { ok: true };
   const thumbnailError = await pushStreamThumbnail(admin, userId, { ...stream, ...change }, streamLook({ ...stream, ...change }));
+  return thumbnailError ? { ok: true, thumbnailError } : { ok: true };
+}
+
+/**
+ * De eigen kopman bij de stijl strip (0347): opslaan, of met null weghalen.
+ * Hij hoort bij het profiel, dus bij alle eigen streams. Staat `streamId` (een
+ * eigen stream) in strip, dan gaat de thumbnail meteen opnieuw naar YouTube.
+ */
+export async function saveStreamKopman(value: unknown, streamId: string | null): Promise<LookResult> {
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const { userId } = session;
+  const look = value === null ? null : parseKopman(value);
+  if (value !== null && !look) return { ok: false, error: "Onbekende keuze." };
+  const admin = createAdminClient();
+  const { error } = look
+    ? await admin
+        .from("stream_kopman")
+        .upsert({ profile_id: userId, look, updated_at: new Date().toISOString() }, { onConflict: "profile_id" })
+    : await admin.from("stream_kopman").delete().eq("profile_id", userId);
+  if (error) return { ok: false, error: "Opslaan lukte niet." };
+  if (!streamId) return { ok: true };
+  const stream = await loadThumbnailStream(admin, streamId);
+  if (!stream || stream.profile_id !== userId) return { ok: true };
+  revalidatePath(`/events/${stream.event_id}`);
+  if (overlayStyle(stream.overlay_style) !== "strip" || !(await livestreamsOn())) return { ok: true };
+  const thumbnailError = await pushStreamThumbnail(admin, userId, stream, streamLook(stream));
   return thumbnailError ? { ok: true, thumbnailError } : { ok: true };
 }
 
