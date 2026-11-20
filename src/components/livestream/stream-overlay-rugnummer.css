@@ -48,6 +48,8 @@
 .ovr-logo span { font-weight: 600; font-size: 34px; }
 .ovr-bib h1 {
   margin: 0; font-weight: 600; font-size: 54px; line-height: 1; letter-spacing: -0.01em;
+  /* Ruimte onder de laatste regel: overflow knipt anders de staart van g, j, p en y af. */
+  padding-bottom: 0.14em;
   text-wrap: balance; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
 }
 .ovr-bib-foot { background: linear-gradient(90deg, var(--tn-gold) 0 50%, var(--tn-teal) 50%); }

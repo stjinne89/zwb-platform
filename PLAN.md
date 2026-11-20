@@ -81,6 +81,11 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
+0. **Hersteld — Titel van Rugnummer en Strip knipte de onderkant af
+   (2026-11-20): lokaal, nog niet gepusht.** Geen migratie. Open: na de push
+   een titel met g, j, p of y bekijken. Zie de ronde "Hersteld — Titel van
+   Rugnummer en Strip knipte de onderkant af".
+
 0. **Gebouwd — Eigen kopman bij Strip (2026-11-20): commit `1edb507`, op
    2026-11-20 gepusht naar `main` (eigenaar: "Ja, beide").** Migratie
    `0347_stream_kopman` (tabel `stream_kopman`) op 2026-11-20 vóór de push op
@@ -13102,6 +13107,22 @@ bekende ontbrekende pakketten na.
   bekeken (geen `.env.local` in deze container); wel een nagebootste
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
+
+### Hersteld — Titel van Rugnummer en Strip knipte de onderkant af
+
+**2026-11-20, lokaal, nog niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar zag in de overlay in Rugnummer dat de g van
+  "Vikings Valgrind" onderaan wegviel.
+- **Wat.** De titel in de overlay stopt na twee regels met `overflow:
+  hidden`, bij een regelhoogte van 1 (Rugnummer) en 1,02 (Strip). De staart
+  van g, j, p en y valt daaronder en werd afgeknipt, bij Strip ook de
+  inktrand. Nu staat er ruimte onder de laatste regel (Rugnummer `0.14em`,
+  Strip `4px 4px 10px`). Tegels (1,1) en Zeefdruk (stencil in hoofdletters)
+  hadden er geen last van. De thumbnail knipt niet af.
+- **Niet geverifieerd.** Lokaal bekeken op de overlay van de ladderstream en
+  van de Zwift Epic-etappe in Rugnummer en Strip (`?style=`): de g staat er
+  helemaal. Een titel op twee regels niet gezien.
 
 ### Gebouwd — Eigen kopman bij Strip
 
