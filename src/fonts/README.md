@@ -19,7 +19,14 @@ fonts.google.com), die meeleveren in een app toestaat.
 | `cormorant-garamond-*`, `jost-*` | `src/components/briljant/fonts.ts` (ZWBriljant, ZWBekers) |
 | `alfa-slab-one-*`, `cabin-sketch-*`, `kalam-*`, `courier-prime-*` | `src/components/bokaal/fonts.ts` |
 | `big-shoulders-stencil-*` (assen wght en opsz), `karla-*` | `src/components/weekoverzicht/fonts.ts` |
-| `shantell-sans-*` (assen wght, BNCE en INFM) | `src/components/spiekbriefje/paper.tsx` |
+| `shantell-sans-*` (assen wght, BNCE en INFM) | `src/components/spiekbriefje/paper.tsx`, `src/components/livestream/fonts.ts` (overlaystijl Strip) |
+
+`og/` bevat ttf-bestanden voor de thumbnail van een stream
+(`src/lib/youtube-live/thumbnail.tsx`): Satori leest geen woff2 en geen
+variabele assen. De clubletters (`archivo`, `barlow`, `inter`, `schibsted`,
+400 en 500) en, sinds 2026-11-20, de letters van de streamstijlen: `stencil-900`
+(Big Shoulders Stencil, opsz 72) en `karla-500`/`-800` voor Zeefdruk,
+`shantell-500`/`-700` voor Strip. Ook van de css2-API, subset `latin`.
 
 Een nieuw lettertype: haal de woff2 van de subset `latin` op en zet hem hier,
 in plaats van `next/font/google` te gebruiken.

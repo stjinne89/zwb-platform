@@ -1,0 +1,89 @@
+/* Overlaystijl strip (0346): een bladzijde uit een Belgisch stripalbum in de
+   tenuekleuren. Plaatjes met een dikke inktlijn en lichte goten, vlakke
+   kleuren met rasterpunten als schaduw, een handletter (Shantell Sans), een
+   gouden onderschrift; Zwift is het grote plaatje. Inkten als --tn-*. */
+
+.stream-overlay[data-style="strip"] {
+  --ovs-wobble: 11px 8px 12px 9px / 9px 12px 8px 11px;
+  --ovs-dots-light: radial-gradient(rgb(255 255 255 / 0.22) 1.6px, transparent 2.1px) 0 0 / 8px 8px;
+  --ovs-dots-ink: radial-gradient(color-mix(in srgb, var(--tn-ink) 26%, transparent) 1.6px, transparent 2.1px) 0 0 / 8px 8px;
+  color: var(--tn-ink);
+  font-family: var(--font-ov-hand), ui-rounded, system-ui, sans-serif;
+}
+.stream-overlay[data-style="strip"] .stream-overlay-frame { background: var(--tn-page); }
+
+/* Het grote plaatje: een inktlijn om het gat, in de goot. */
+.ovs-window {
+  position: absolute; left: 377px; top: 209px; right: -10px; bottom: -10px; pointer-events: none; z-index: 3;
+  border: 7px solid var(--tn-ink); border-radius: 12px 0 0 0;
+}
+
+.ovs-panel { position: absolute; box-sizing: border-box; border: 5px solid var(--tn-ink); border-radius: var(--ovs-wobble); }
+
+.ovs-title {
+  left: 26px; top: 22px; right: 384px; height: 166px; overflow: hidden;
+  display: flex; align-items: center; gap: 30px; padding: 26px 40px 0 30px;
+  background: var(--ovs-dots-light), var(--tn-petrol); color: var(--tn-paper);
+}
+.stream-overlay[data-style="strip"]:not(:has(.ovs-sponsors)) .ovs-title { right: 26px; }
+.ovs-caption {
+  position: absolute; left: -5px; top: -5px; padding: 6px 18px 5px 22px;
+  background: var(--tn-gold); color: var(--tn-ink); border: 4px solid var(--tn-ink);
+  border-radius: 9px 4px 12px 3px / 4px 11px 5px 10px;
+  font-weight: 700; font-size: 21px; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+}
+.ovs-badge {
+  flex: none; display: grid; place-items: center; transform: rotate(-2deg);
+  background: var(--tn-paper); color: var(--tn-ink); border: 4px solid var(--tn-ink); border-radius: var(--ovs-wobble); padding: 8px 14px 6px;
+}
+.ovs-badge img { display: block; height: 56px; width: auto; max-width: 200px; object-fit: contain; }
+.ovs-badge span { font-weight: 800; font-size: 32px; }
+.ovs-title h1 {
+  margin: 0; font-weight: 700; font-size: 46px; line-height: 1.02;
+  paint-order: stroke fill; -webkit-text-stroke: 7px var(--tn-ink);
+  text-wrap: balance; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+
+.ovs-sponsors {
+  right: 26px; top: 22px; width: 336px; height: 166px;
+  display: grid; place-items: center; background: var(--ovs-dots-ink), var(--tn-sage);
+}
+.ovs-card {
+  position: relative; width: 270px; height: 110px; box-sizing: border-box; transform: rotate(1.5deg);
+  background: #fff; border: 4px solid var(--tn-ink); border-radius: var(--ovs-wobble);
+}
+.ovs-card .stream-overlay-sponsor { width: 100%; height: 100%; background: none; }
+.ovs-card .stream-overlay-sponsor img { inset: 8px 14px; width: calc(100% - 28px); height: calc(100% - 16px); }
+.ovs-card-caption {
+  position: absolute; left: -14px; top: -20px; z-index: 1; padding: 3px 12px;
+  background: var(--tn-page); border: 3px solid var(--tn-ink); border-radius: 6px 3px 8px 4px;
+  font-weight: 700; font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+
+/* De kolom: plaatjes onder elkaar, met dezelfde goot. */
+.ovs-side { position: absolute; left: 26px; top: 209px; width: 334px; display: grid; gap: 17px; }
+.ovs-side .ovs-panel { position: relative; }
+.ovs-route { display: grid; gap: 4px; padding: 22px 24px; background: var(--ovs-dots-light), var(--tn-teal); color: var(--tn-paper); }
+.ovs-route p { margin: 0; }
+.ovs-route-name { font-weight: 600; font-size: 26px; line-height: 1.15; margin-bottom: 8px !important; }
+.ovs-facts, .ovs-laps { font-weight: 600; font-size: 22px; }
+.ovs-fig { font-weight: 800; line-height: 1; paint-order: stroke fill; -webkit-text-stroke: 8px var(--tn-ink); }
+.ovs-fig small { font-size: 0.4em; font-weight: 700; margin-left: 6px; -webkit-text-stroke: 5px var(--tn-ink); }
+.ovs-km { font-size: 92px; }
+.ovs-hm { font-size: 60px; }
+.ovs-profile-panel { height: 150px; overflow: hidden; background: var(--tn-page); }
+.ovs-profile-panel .ovs-profile { position: absolute; left: 0; bottom: 0; }
+.ovs-profile-area { fill: var(--tn-gold); }
+.ovs-profile-line { fill: none; stroke: var(--tn-ink); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+
+/* De stand: elke ploeg een kaartje met een inktlijn; de eigen ploeg goud. */
+.stream-overlay[data-style="strip"] .stream-overlay-stand { gap: 7px; }
+.stream-overlay[data-style="strip"] .stream-overlay-stand li {
+  background: var(--tn-paper); border: 3px solid var(--tn-ink); border-radius: 7px 4px 8px 5px / 5px 8px 4px 7px; padding: 4px 10px;
+}
+.stream-overlay[data-style="strip"] .stream-overlay-stand li[data-own] { box-shadow: none; background: var(--tn-gold); }
+.stream-overlay[data-style="strip"] .stream-overlay-stand li[data-own] .stream-overlay-team { color: inherit; }
+.stream-overlay[data-style="strip"] .stream-overlay-rank,
+.stream-overlay[data-style="strip"] .stream-overlay-value { color: inherit; font-weight: 600; }
+.stream-overlay[data-style="strip"] .stream-overlay-team { font-weight: 700; }
+.stream-overlay[data-style="strip"] .stream-overlay-wait { background: var(--tn-paper); border: 3px solid var(--tn-ink); border-radius: var(--ovs-wobble); color: var(--tn-ink); }

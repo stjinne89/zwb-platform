@@ -163,3 +163,22 @@ describe("0345 overlay_theme", () => {
     await expect(db.exec("update public.event_streams set overlay_theme = null")).rejects.toThrow();
   });
 });
+
+describe("0346 overlay_style", () => {
+  it("zet bestaande streams op tegels, laat alleen de vier stijlen toe, en mag opnieuw", async () => {
+    const sql = (await readFile("supabase/migrations/0346_stream_overlay_style.sql", "utf8")).replace(
+      /notify pgrst[^;]*;/g,
+      "",
+    );
+    await db.exec(sql);
+    await db.exec(sql);
+    const { rows } = await db.query<{ overlay_style: string }>("select overlay_style from public.event_streams");
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.overlay_style === "tegels")).toBe(true);
+    for (const style of ["rugnummer", "zeefdruk", "strip", "tegels"]) {
+      await db.exec(`update public.event_streams set overlay_style = '${style}'`);
+    }
+    await expect(db.exec("update public.event_streams set overlay_style = 'kopman'")).rejects.toThrow();
+    await expect(db.exec("update public.event_streams set overlay_style = null")).rejects.toThrow();
+  });
+});

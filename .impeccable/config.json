@@ -29,6 +29,12 @@
         ],
         "createdAt": "2026-11-19T21:13:53.324Z",
         "reason": "Bottom inset gold line under the own team's row is DESIGN.md's Hierregel (gold line under a panel, 3-4px inset shadow), not a side tab"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "stencil",
+        "createdAt": "2026-11-20T10:18:13.032Z",
+        "reason": "Satori-alias voor Big Shoulders Stencil in de Zeefdruk-thumbnail; DESIGN.md: Eigen register Streamstijlen"
       }
     ]
   }

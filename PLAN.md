@@ -74,6 +74,13 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
+0. **Gebouwd — Stijlen voor overlay en thumbnail (2026-11-20): lokaal
+   gecommit, nog niet gepusht.** Migratie `0346_stream_overlay_style`
+   (`event_streams.overlay_style`) nog niet op productie toegepast. Open:
+   eerst 0346 toepassen, dan pushen; daarna bij een eigen stream elke stijl
+   kiezen en overlay en thumbnail op YouTube bekijken. Zie de ronde "Gebouwd —
+   Stijlen voor overlay en thumbnail".
+
 0. **Gebouwd — Parcours op de thumbnail, titel op één regel, donker of licht
    per stream (2026-11-20): commit `dc0f94e`, op 2026-11-20 gepusht naar `main`.**
    Migratie `0345` (`event_streams.overlay_theme`) op 2026-11-20 op productie
@@ -1465,8 +1472,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0346`
-(`0345_stream_overlay_theme` is van donker of licht per stream, 2026-11-20, toegepast op 2026-11-20;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0347`
+(`0346_stream_overlay_style` is van de stijlen voor overlay en thumbnail, 2026-11-20, nog niet toegepast;
+`0345_stream_overlay_theme` is van donker of licht per stream, 2026-11-20, toegepast op 2026-11-20;
 `0344_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, toegepast op 2026-11-19, geschreven als `0343` en vóór het toepassen hernummerd, want main had `0343` al;
 `0343_integration_notice_strava_stub` is van de pop-up voor ritten via Strava, 2026-11-19, toegepast op 2026-11-19;
 `0342_club_ladder_rider_rematch` is van het herkoppelen van ladderrenners, 2026-11-19, toegepast op 2026-11-19;
@@ -13043,6 +13051,62 @@ bekende ontbrekende pakketten na.
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
 
+### Gebouwd — Stijlen voor overlay en thumbnail
+
+**2026-11-20, lokaal gecommit, nog niet gepusht. Migratie
+`0346_stream_overlay_style` nog niet op productie toegepast.**
+
+- **Waarom.** De eigenaar wilde dat leden overlay en thumbnail in een eigen
+  stijl kunnen kiezen, in ZWB-kleuren, "zodat ieder lid zichzelf een beetje
+  kan onderscheiden binnen de ZWB wereld", met als voorbeeld een
+  Kopman-stijl. Voorstel van vier stijlen, schetsen van drie, akkoord op
+  bouwen: "All three".
+- **Wat.**
+  - `0346`: `event_streams.overlay_style` (`tegels`, `rugnummer`, `zeefdruk`,
+    `strip`), standaard `tegels`, met een check.
+  - `overlay-styles.ts` (puur): de stijlen, welke donker/licht kennen (Tegels
+    en Zeefdruk), de tenue-inkten uit het palet van de club, de drukinkten van
+    het weekoverzicht als hex voor Satori, `overprint` (multiply op licht,
+    screen op donker) en `routeFigures`.
+  - Overlay (`stream-overlay-styles.tsx` en een CSS per stijl): Rugnummer (het
+    kader als tenuestof, titel als rugnummer met spelden), Zeefdruk (het
+    register van het weekoverzicht: vezelpapier, overdruk, de stoet als enige
+    pas uit register, paskruisjes, stencil en Karla), Strip (stripplaatjes met
+    inktlijn, rasterpunten, handletter Shantell Sans). Tegels is ongewijzigd.
+    Alle vier houden het Zwift-gat op 384, 216 vrij en tonen route, cijfers,
+    profiel en, bij ZRL, de stand.
+  - Thumbnail (`thumbnail.tsx`): dezelfde vier, met per stijl eigen ttf's in
+    `src/fonts/og/` (stencil, Karla, Shantell). `fitTitle` kreeg een bereik per
+    stijl; `profileTopPath` geeft de inktlijn van de strip.
+  - Onder de eigen stream de keuze Stijl (vier knoppen), met Donker of licht
+    alleen bij Tegels en Zeefdruk (`setOverlayStyle`, `setOverlayTheme`, samen
+    `changeLook`); de thumbnail gaat bij de eigen stream meteen opnieuw naar
+    YouTube. Een nieuwe stream neemt stijl en donker/licht over van de vorige
+    stream van het lid (`lastLook`). `?style=` op overlay en thumbnail toont
+    een stijl zonder hem te kiezen.
+  - DESIGN.md: het register van het weekoverzicht geldt nu ook voor de
+    Zeefdruk-stream (Grensregel bijgewerkt), en een kort register
+    "Streamstijlen". Impeccable-uitzondering `design-system-font=stencil` (de
+    Satori-alias). Hulp: de vier stijlen en Donker/Licht.
+- **Bewust niet.**
+  - Geen vrije kleur per lid: de tenuekleuren zijn bindend (PRODUCT.md), een
+    stijl onderscheidt genoeg.
+  - Strip heet niet Kopman en gebruikt geen Kopman-figuren: Kopman is een
+    losse game, niet voor ZWB. Alleen de tekenstijl is geleend.
+  - Geen papiervezel en geen echte overdruk op de Zeefdruk-thumbnail: Satori
+    kent geen filters en blendmodes, dus de mengkleur is vooraf uitgerekend.
+  - Rugnummer en Strip hebben geen lichte stand: ze zijn al licht van papier
+    of juist donker van stof, een tweede stand voegt weinig toe.
+- **Niet geverifieerd.** `0346` alleen in PGlite getest (standaard tegels,
+  check, opnieuw uit te voeren). Zonder 0346 op productie werken overlay en
+  thumbnail (`*` in de select, terugval op tegels), maar geeft de keuze Stijl
+  "Opslaan lukte niet". Lokaal bekeken met `?style=` tegen de productiedata:
+  de overlay op 1920×1080 in Rugnummer, Zeefdruk licht en donker, en Strip;
+  de thumbnails van alle stijlen voor de ladderstream en de Zwift
+  Epic-etappe (zonder route). Niet gezien: de keuze in de app (lokaal niet
+  ingelogd), de ZRL-stand in de nieuwe stijlen (geen stream met een stand),
+  en de thumbnail opnieuw naar YouTube.
+
 ### Gebouwd — Parcours op de thumbnail, donker of licht
 
 **2026-11-20, commit `dc0f94e`, op 2026-11-20 gepusht naar `main`. Migratie
@@ -13075,7 +13139,8 @@ bekende ontbrekende pakketten na.
     website met de lichte banen (petrol, teal, salie, goud op 10, 12, 16 en
     26%), panelen petrol op 7% en goud als tekst in de diepere tint
     (`goldText`, Goudregel). Onder de eigen stream de keuze Donker/Licht
-    (`setOverlayTheme`); de overlay volgt binnen 15 seconden, de thumbnail gaat
+    (`setOverlayTheme`; sinds 0346 onderdeel van de stijlkeuze en alleen bij
+    Tegels en Zeefdruk, zie "Gebouwd — Stijlen voor overlay en thumbnail"); de overlay volgt binnen 15 seconden, de thumbnail gaat
     bij de eigen stream meteen opnieuw naar YouTube. `?theme=` op de overlay en
     de thumbnailpreview toont de andere stand zonder hem te kiezen.
   - Overlay: de kolom links toont nu ook de hoogtemeters ("22,1 km · 261 hm").
@@ -13083,8 +13148,10 @@ bekende ontbrekende pakketten na.
 - **Bewust niet.** Geen eigen kleuren per lid: overlay en thumbnail laten de
   club naar buiten zien, en de tenuekleuren zijn bindend (PRODUCT.md); ze
   volgen al de kleuren uit de inrichting, dus een andere club krijgt de zijne.
-  Geen Donker/Licht bij Stream klaarzetten zelf: de eerste thumbnail is
-  donker, wisselen zet hem opnieuw. Geen route ophalen bij Zwift voor routes
+  Geen Donker/Licht bij Stream klaarzetten zelf: wisselen zet de thumbnail
+  opnieuw. (Niet meer waar sinds 0346: de eerste thumbnail is niet meer altijd
+  donker, een nieuwe stream neemt stijl en donker/licht over van de vorige
+  stream van het lid.) Geen route ophalen bij Zwift voor routes
   die niet in zwift-data of de routebibliotheek staan: de Zwift Epic-etappe
   (route 1353706660) heeft daardoor geen kolom.
 - **Niet geverifieerd.** `0345` alleen in PGlite getest (standaard donker, ook

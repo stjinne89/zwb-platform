@@ -3,8 +3,15 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, ImageUp, Radio } from "lucide-react";
-import { prepareStream, refreshStreamThumbnail, setOverlayStand, setOverlayTheme } from "@/app/(app)/_actions/livestream";
+import {
+  prepareStream,
+  refreshStreamThumbnail,
+  setOverlayStand,
+  setOverlayStyle,
+  setOverlayTheme,
+} from "@/app/(app)/_actions/livestream";
 import { Button } from "@/components/ui/button";
+import { OVERLAY_STYLES } from "@/lib/youtube-live/overlay-styles";
 import { cn } from "@/lib/utils";
 
 // Na het klaarzetten verdwijnt PrepareStreamButton en verschijnt ThumbnailButton;
@@ -139,54 +146,98 @@ const THEME_OPTIONS = [
   { value: "light", label: "Licht" },
 ] as const;
 
+type Theme = (typeof THEME_OPTIONS)[number]["value"];
+type Look = (typeof OVERLAY_STYLES)[number]["key"];
+type LookResult = Awaited<ReturnType<typeof setOverlayStyle>>;
+
 /**
- * Overlay en thumbnail in donker of licht (0345). De overlay volgt bij zijn
- * volgende verversing, de thumbnail gaat meteen opnieuw naar YouTube.
+ * De stijl van overlay en thumbnail (0346), en bij tegels en zeefdruk donker
+ * of licht (0345). De overlay volgt bij zijn volgende verversing, de thumbnail
+ * gaat meteen opnieuw naar YouTube.
  */
-export function OverlayThemeToggle({ streamId, initial }: { streamId: string; initial: "dark" | "light" }) {
-  const [theme, setTheme] = useState(initial);
+export function OverlayLookPicker({
+  streamId,
+  initialStyle,
+  initialTheme,
+}: {
+  streamId: string;
+  initialStyle: Look;
+  initialTheme: Theme;
+}) {
+  const [look, setLook] = useState(initialStyle);
+  const [theme, setTheme] = useState(initialTheme);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  function change<T extends string>(next: T, current: T, set: (v: T) => void, save: () => Promise<LookResult>) {
+    if (next === current) return;
+    set(next);
+    setError(null);
+    startTransition(async () => {
+      const res = await save();
+      if (!res.ok) {
+        set(current);
+        setError(res.error);
+      } else if (res.thumbnailError) {
+        setError(res.thumbnailError);
+      }
+    });
+  }
+
   return (
-    <>
-      <div
-        role="radiogroup"
-        aria-label="Overlay en thumbnail"
-        className="inline-flex rounded-md border bg-background p-0.5"
-      >
-        {THEME_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={theme === option.value}
-            disabled={pending}
-            onClick={() => {
-              if (option.value === theme) return;
-              const previous = theme;
-              setTheme(option.value);
-              setError(null);
-              startTransition(async () => {
-                const res = await setOverlayTheme(streamId, option.value);
-                if (!res.ok) {
-                  setTheme(previous);
-                  setError(res.error);
-                } else if (res.thumbnailError) {
-                  setError(res.thumbnailError);
-                }
-              });
-            }}
-            className={cn(
-              "min-h-8 rounded px-3 text-sm font-medium transition",
-              theme === option.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <Segmented
+        label="Stijl"
+        options={OVERLAY_STYLES.map((s) => ({ value: s.key, label: s.label }))}
+        value={look}
+        disabled={pending}
+        onChange={(next) => change(next, look, setLook, () => setOverlayStyle(streamId, next))}
+      />
+      {OVERLAY_STYLES.find((s) => s.key === look)?.modes && (
+        <Segmented
+          label="Donker of licht"
+          options={THEME_OPTIONS}
+          value={theme}
+          disabled={pending}
+          onChange={(next) => change(next, theme, setTheme, () => setOverlayTheme(streamId, next))}
+        />
+      )}
       {error && <span className="text-sm text-destructive">{error}</span>}
-    </>
+    </div>
+  );
+}
+
+function Segmented<T extends string>({
+  label,
+  options,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  options: readonly { value: T; label: string }[];
+  value: T;
+  disabled: boolean;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap rounded-md border bg-background p-0.5">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="radio"
+          aria-checked={value === option.value}
+          disabled={disabled}
+          onClick={() => onChange(option.value)}
+          className={cn(
+            "min-h-8 rounded px-3 text-sm font-medium transition",
+            value === option.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   );
 }

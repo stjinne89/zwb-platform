@@ -91,8 +91,22 @@ export function profileAreaPath(points: ProfilePoint[], width: number, height: n
   return `M0,${height} L${coords.join(" L")} L${width},${height} Z`;
 }
 
+/** Alleen de bovenrand van het profiel, als lijn (de inktlijn van de strip). */
+export function profileTopPath(points: ProfilePoint[], width: number, height: number): string {
+  const area = profileAreaPath(points, width, height);
+  return area.replace(/^M0,[\d.]+ L/, "M").replace(/ L[\d.]+,[\d.]+ Z$/, "");
+}
+
 /** Ongeveer de breedte van een letter, als deel van de lettergrootte, per clubletter. */
-const CHAR_WIDTH: Record<string, number> = { barlow: 0.47, archivo: 0.56, inter: 0.56, schibsted: 0.55 };
+const CHAR_WIDTH: Record<string, number> = {
+  barlow: 0.47,
+  archivo: 0.56,
+  inter: 0.56,
+  schibsted: 0.55,
+  // De letters van de stijlen zeefdruk (stencil, in hoofdletters) en strip (0346).
+  stencil: 0.45,
+  shantell: 0.62,
+};
 
 /**
  * Hoe groot de titel op de thumbnail kan. Eerst één regel, van 96 tot 64px;
@@ -103,14 +117,15 @@ export function fitTitle(
   text: string,
   maxWidth: number,
   font: string,
+  range: { max: number; min: number } = { max: 96, min: 64 },
 ): { size: number; lines: 1 | 2 } {
   const per = CHAR_WIDTH[font] ?? 0.55;
   const width = (size: number) => text.length * per * size;
-  for (let size = 96; size >= 64; size -= 4) {
+  for (let size = range.max; size >= range.min; size -= 4) {
     if (width(size) <= maxWidth) return { size, lines: 1 };
   }
-  for (const size of [80, 72, 64]) {
+  for (const size of [range.min + 16, range.min + 8, range.min].filter((s) => s <= range.max)) {
     if (width(size) <= maxWidth * 1.9) return { size, lines: 2 };
   }
-  return { size: 60, lines: 2 };
+  return { size: range.min - 4, lines: 2 };
 }

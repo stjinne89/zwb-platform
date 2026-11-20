@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isVideoId } from "@/lib/youtube-live/broadcast";
+import { overlayStyle, type OverlayStyle } from "./overlay-styles";
 import { overlayMode, type OverlayMode } from "./overlay-theme";
 
 // Streams bij races (migratie 0338): lezen voor de speler, en of een lid bij
@@ -21,6 +22,8 @@ export type EventStream = {
   overlayStand: boolean;
   /** Donker of licht, voor overlay en thumbnail (0345). */
   overlayTheme: OverlayMode;
+  /** De stijl van overlay en thumbnail (0346). */
+  overlayStyle: OverlayStyle;
 };
 
 type StreamRow = {
@@ -33,6 +36,7 @@ type StreamRow = {
   status: string;
   overlay_stand?: boolean | null;
   overlay_theme?: string | null;
+  overlay_style?: string | null;
   profiles: { display_name: string | null } | { display_name: string | null }[] | null;
 };
 
@@ -65,6 +69,7 @@ export async function loadEventStreams(
         status: row.status === "live" || row.status === "afgelopen" ? row.status : "gepland",
         overlayStand: row.overlay_stand !== false,
         overlayTheme: overlayMode(row.overlay_theme),
+        overlayStyle: overlayStyle(row.overlay_style),
       };
     });
 }

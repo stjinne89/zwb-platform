@@ -3,6 +3,7 @@ import { StreamOverlay, wantedTeams, zrlStatus } from "@/components/livestream/s
 import { createAdminClient } from "@/lib/supabase/admin";
 import { overlayInfo, overlayStatus, overlayTitle } from "@/lib/youtube-live/broadcast";
 import { streamRoute } from "@/lib/youtube-live/event-route";
+import { overlayStyle } from "@/lib/youtube-live/overlay-styles";
 import { overlayMode } from "@/lib/youtube-live/overlay-theme";
 import { loadZrlLive } from "@/lib/zrl-live/snapshot";
 
@@ -10,7 +11,8 @@ import { loadZrlLive } from "@/lib/zrl-live/snapshot";
 // link bevat alleen de id van de stream. event_streams is niet voor iedereen
 // leesbaar, dus via de service-rol, en alleen titel, soort, route en schakelaar.
 // Kader, logo en sponsors staan er altijd; de stand alleen bij een ZRL-race met
-// de schakelaar aan. Elke 15 seconden ververst, dus de schakelaar werkt mee.
+// de schakelaar aan. Elke 15 seconden ververst, dus de schakelaar werkt mee,
+// net als de stijl en donker of licht (?style= en ?theme= voor een voorbeeld).
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -42,6 +44,7 @@ type StreamEvent = {
 type StreamRow = {
   overlay_stand?: boolean | null;
   overlay_theme?: string | null;
+  overlay_style?: string | null;
   events: StreamEvent | null;
 };
 
@@ -70,9 +73,10 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
     elevationM: route?.elevationM,
   });
   const theme = overlayMode(query.theme ?? stream.overlay_theme);
+  const look = overlayStyle(query.style ?? stream.overlay_style);
   const title = overlayTitle(event.title);
   const status = overlayStatus({ type: event.type, startAt: event.start_at, endAt: event.end_at, distanceKm, now: new Date() });
-  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} stand={null} refreshSeconds={15} />;
+  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} look={look} route={route} stand={null} refreshSeconds={15} />;
 
   const hasStand = event.type === "zrl" && Boolean(event.team_id && event.zwift_event_id);
   if (!hasStand) return plain;
@@ -86,6 +90,8 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
       status={zrlStatus(view)}
       info={info}
       theme={theme}
+      look={look}
+      route={route}
       stand={stream.overlay_stand !== false ? { view, teams: wantedTeams(query.teams) } : null}
       refreshSeconds={15}
     />

@@ -1,0 +1,101 @@
+/* Overlaystijl zeefdruk (0346): het eigen register van het weekoverzicht
+   (DESIGN.md), op het kader. Vezelpapier, effen inkten die met multiply (licht)
+   of screen (donker) over elkaar drukken, stencil voor titel en cijfers, Karla
+   voor de rest. De stoet is de enige pas uit register (3px rechts, 2px
+   omhoog); twee paskruisjes in de marge. Inkten als --ovz-*. */
+
+.stream-overlay[data-style="zeefdruk"] {
+  --ovz-blend: multiply;
+  color: var(--ovz-ink);
+  font-family: var(--font-wr-text), ui-sans-serif, system-ui, sans-serif;
+}
+.stream-overlay[data-style="zeefdruk"][data-theme="dark"] { --ovz-blend: screen; }
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-frame { background: var(--ovz-paper); }
+
+/* De papiervezel boven de passen, alleen op het kader: het gat blijft vrij. */
+.ovz-fiber {
+  position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; z-index: 3;
+  mix-blend-mode: var(--ovz-blend);
+  mask: linear-gradient(#000, #000) 0 0 / 1920px 216px no-repeat, linear-gradient(#000, #000) 0 216px / 384px 864px no-repeat;
+}
+.stream-overlay[data-theme="dark"] .ovz-fiber { opacity: 0.5; }
+
+/* De rand van het beeld: een lijn drukinkt. */
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-frame-side { box-shadow: inset -1.5px 0 0 var(--ovz-ink); }
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-frame-top { box-shadow: inset 0 -1.5px 0 var(--ovz-ink); }
+
+/* De titel: een gouden pas, met een petrolpas onder het logo die 14px overlapt. */
+.ovz-head {
+  position: absolute; left: 40px; top: 36px; height: 144px; max-width: 1150px;
+  display: flex; align-items: stretch; gap: 32px; padding-right: 44px;
+  isolation: isolate; z-index: 2;
+}
+.ovz-head::before { content: ""; position: absolute; inset: 0 0 0 250px; background: var(--ovz-gold); mix-blend-mode: var(--ovz-blend); z-index: -1; }
+.ovz-slot { position: relative; flex: none; width: 264px; display: grid; place-items: center; }
+.ovz-slot::before { content: ""; position: absolute; inset: 0; background: var(--ovz-cyan); opacity: 0.6; mix-blend-mode: var(--ovz-blend); }
+/* Het logo staat op licht papier, ook op donker: het logo is gemaakt voor licht. */
+.ovz-logo {
+  position: relative; display: grid; place-items: center; padding: 8px 14px 6px;
+  background: oklch(0.945 0.016 95); color: oklch(0.27 0.025 215); border: 1.5px solid oklch(0.27 0.025 215);
+}
+.ovz-logo img { display: block; height: 58px; width: auto; max-width: 200px; object-fit: contain; }
+.ovz-logo span { font-family: var(--font-wr-stencil), sans-serif; font-weight: 900; font-size: 34px; }
+.ovz-titles { align-self: center; display: grid; gap: 6px; min-width: 0; }
+.ovz-status { font-weight: 800; font-size: 19px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+.ovz-head h1 {
+  margin: 0; font-family: var(--font-wr-stencil), "Arial Narrow", sans-serif; font-weight: 900; font-variation-settings: "opsz" 72;
+  font-size: 56px; line-height: 0.92; text-transform: uppercase;
+  text-wrap: balance; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+/* Op donker papier is de tekst op de gouden pas inkt van het licht. */
+.stream-overlay[data-theme="dark"] .ovz-titles { color: oklch(0.27 0.025 215); }
+
+/* De stoet: goud in register, petrol 3px rechts en 2px omhoog erover. */
+.ovz-stoet { position: absolute; left: 1206px; top: 40px; z-index: 1; mix-blend-mode: var(--ovz-blend); }
+.ovz-stoet-base { color: var(--ovz-gold); }
+.ovz-stoet-off { color: var(--ovz-cyan); transform: translate(3px, -2px); mix-blend-mode: var(--ovz-blend); }
+
+.ovz-sponsors {
+  position: absolute; right: 40px; top: 36px; width: 290px; height: 144px; box-sizing: border-box; z-index: 2;
+  display: grid; grid-template-rows: auto 1fr; gap: 6px; padding: 12px 16px 14px;
+  background: var(--ovz-paper); border: 1.5px solid var(--ovz-ink);
+}
+.ovz-caption { font-weight: 800; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ovz-soft); }
+.ovz-sponsors .stream-overlay-sponsor { width: 100%; height: 100%; background: #fff; }
+.ovz-sponsors .stream-overlay-sponsor img { inset: 6px 10px; width: calc(100% - 20px); height: calc(100% - 12px); }
+
+.ovz-reg { position: absolute; width: 16px; height: 16px; opacity: 0.5; color: var(--ovz-ink); z-index: 2; }
+.ovz-reg-left { left: 12px; top: 640px; }
+.ovz-reg-right { left: 1892px; top: 100px; }
+
+/* De kolom: een petrolpas achter de route, grote stencilcijfers, het profiel. */
+.ovz-side-pass {
+  position: absolute; left: 0; top: 216px; width: 384px; height: 116px;
+  background: var(--ovz-cyan); opacity: 0.55; mix-blend-mode: var(--ovz-blend);
+}
+.ovz-side { position: absolute; left: 40px; top: 250px; width: 300px; display: grid; gap: 10px; z-index: 2; }
+.ovz-route { margin: 0; font-weight: 800; font-size: 24px; line-height: 1.2; }
+.ovz-facts, .ovz-laps { margin: 0; font-weight: 600; font-size: 21px; color: var(--ovz-soft); }
+.ovz-side[data-compact] .ovz-facts { margin: 30px 0 8px; }
+.ovz-big { margin: 0; font-family: var(--font-wr-stencil), sans-serif; font-weight: 900; font-variation-settings: "opsz" 72; line-height: 0.9; }
+.ovz-big small { font-size: 0.42em; margin-left: 6px; }
+.ovz-km { font-size: 132px; margin-top: 8px; }
+.ovz-hm { font-size: 76px; }
+.ovz-profile-box { position: relative; height: 96px; margin-top: 14px; border-bottom: 1.4px solid var(--ovz-ink); }
+.ovz-profile-box .ovs-profile { position: absolute; left: 0; bottom: 0; mix-blend-mode: var(--ovz-blend); }
+.ovz-profile-box .ovs-profile-area { fill: var(--ovz-gold); }
+
+/* De stand: rijen met een lijn ertussen; de eigen ploeg op een gouden pas. */
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-stand { gap: 0; }
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-stand li {
+  background: none; border-top: 1px solid color-mix(in oklab, var(--ovz-ink) 18%, transparent); padding: 7px 4px;
+}
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-stand li[data-own] {
+  box-shadow: none; background: color-mix(in oklab, var(--ovz-gold) 70%, transparent);
+}
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-stand li[data-own] .stream-overlay-team { color: inherit; }
+.stream-overlay[data-style="zeefdruk"][data-theme="dark"] .stream-overlay-stand li[data-own] { color: oklch(0.27 0.025 215); }
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-rank,
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-value { font-family: var(--font-wr-stencil), sans-serif; font-weight: 700; color: inherit; }
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-team { font-weight: 700; }
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-wait { background: none; border: 2px dashed var(--ovz-sage); color: var(--ovz-soft); }

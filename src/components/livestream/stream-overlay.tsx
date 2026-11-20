@@ -5,11 +5,18 @@ import { getClub } from "@/lib/club";
 import { DEFAULT_FONT } from "@/lib/club-theme";
 import { clubLogoUrl } from "@/lib/club-icons";
 import { overlayColors, overlayColorVars, tenueBands, type OverlayMode } from "@/lib/youtube-live/overlay-theme";
+import { printInks, styleHasModes, tenueInks, type OverlayStyle } from "@/lib/youtube-live/overlay-styles";
+import type { StreamRoute } from "@/lib/youtube-live/route-facts";
 import { overlayRows, overlayValue } from "@/lib/zrl-live/overlay";
 import type { ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import { loadFooterSponsors } from "@/app/(app)/_components/sponsor-footer";
+import { overlayHand, overlayStencil, overlayText } from "./fonts";
 import { SponsorRotator } from "./sponsor-rotator";
+import { RugnummerOverlay, StripOverlay, ZeefdrukOverlay, type OverlayParts } from "./stream-overlay-styles";
 import "./stream-overlay.css";
+import "./stream-overlay-rugnummer.css";
+import "./stream-overlay-zeefdruk.css";
+import "./stream-overlay-strip.css";
 
 // De OBS-overlay van een stream (0341), als browserbron op 1920×1080. Sinds
 // 2026-11-19 een kader om het Zwift-beeld: een balk boven (216px) en een kolom
@@ -17,7 +24,10 @@ import "./stream-overlay.css";
 // rechtsonder in, op 80% (1536×864 op 384, 216), zodat niets meer over de HUD
 // van Zwift valt. Boven de titeltegel en de sponsors; links route en afstand,
 // en bij ZRL de stand. Bij de ladder blijft de kolom vrij voor het Sauce-venster.
-// Sinds 2026-11-20 in donker (nachtpetrol) of licht (crème), per stream (0345).
+// Sinds 2026-11-20 in donker (nachtpetrol) of licht (crème), per stream (0345),
+// en in een van vier stijlen (0346): tegels (dit kader), rugnummer, zeefdruk
+// of strip (stream-overlay-styles.tsx). Donker of licht geldt bij tegels en
+// zeefdruk.
 
 /** Waar het Zwift-beeld in het kader staat; ook op /hulp. */
 export const ZWIFT_WINDOW = { x: 384, y: 216, width: 1536, height: 864 } as const;
@@ -33,15 +43,21 @@ export async function StreamOverlay({
   status,
   info = [],
   theme = "dark",
+  look = "tegels",
+  route = null,
   stand,
   refreshSeconds,
 }: {
   title: string;
   /** De kleine regel boven de titel, bv. "Live · Club Ladder". */
   status: string;
-  /** Route en afstand, bovenin de kolom links. */
+  /** Route en afstand, bovenin de kolom links (tegels). */
   info?: string[];
   theme?: OverlayMode;
+  /** De stijl van de stream (0346). */
+  look?: OverlayStyle;
+  /** Het parcours los, voor de andere stijlen. */
+  route?: StreamRoute | null;
   stand: OverlayStand | null;
   /** null: niet meer verversen (de uitslag staat vast). */
   refreshSeconds: number | null;
@@ -52,15 +68,44 @@ export async function StreamOverlay({
   ]);
   const logo = clubLogoUrl(settings);
   const font = settings.font ?? DEFAULT_FONT;
-  const colors = overlayColors(settings.palette, theme);
+  const mode = styleHasModes(look) ? theme : "dark";
+  const colors = overlayColors(settings.palette, mode);
   const style = {
     ...overlayColorVars(colors),
+    ...styleVars(look, settings.palette, mode),
     "--ov-bands": tenueBands(colors),
-    fontFamily: `var(--font-tegels-${font}), system-ui, sans-serif`,
+    "--ov-club-font": `var(--font-tegels-${font}), system-ui, sans-serif`,
+    // Zeefdruk en strip hebben hun eigen letter (in hun CSS).
+    ...(look === "tegels" || look === "rugnummer" ? { fontFamily: `var(--font-tegels-${font}), system-ui, sans-serif` } : {}),
   } as CSSProperties;
+  const rotator = sponsors.map(({ name, logoUrl }) => ({ name, logoUrl }));
+
+  if (look !== "tegels") {
+    const parts: OverlayParts = {
+      logo,
+      clubName: texts.name,
+      shortName: texts.shortName,
+      status,
+      title,
+      sponsors: rotator,
+      route,
+      stand: stand ? <StandRows stand={stand} /> : null,
+    };
+    const fonts = `${tegelsFontVariables} ${overlayStencil.variable} ${overlayText.variable} ${overlayHand.variable}`;
+    return (
+      <main className={`stream-overlay ${fonts}`} style={style} lang="nl" data-style={look} data-theme={mode}>
+        {refreshSeconds !== null && <AutoRefresh seconds={refreshSeconds} />}
+        <div className="stream-overlay-frame stream-overlay-frame-top" aria-hidden />
+        <div className="stream-overlay-frame stream-overlay-frame-side" aria-hidden />
+        {look === "rugnummer" && <RugnummerOverlay parts={parts} />}
+        {look === "zeefdruk" && <ZeefdrukOverlay parts={parts} />}
+        {look === "strip" && <StripOverlay parts={parts} />}
+      </main>
+    );
+  }
 
   return (
-    <main className={`stream-overlay ${tegelsFontVariables}`} style={style} lang="nl" data-theme={theme}>
+    <main className={`stream-overlay ${tegelsFontVariables}`} style={style} lang="nl" data-style="tegels" data-theme={theme}>
       {refreshSeconds !== null && <AutoRefresh seconds={refreshSeconds} />}
       <div className="stream-overlay-frame stream-overlay-frame-top" aria-hidden />
       <div className="stream-overlay-frame stream-overlay-frame-side" aria-hidden />
@@ -84,7 +129,7 @@ export async function StreamOverlay({
       {sponsors.length > 0 && (
         <aside className="stream-overlay-sponsors">
           <span className="stream-overlay-caption">Sponsors</span>
-          <SponsorRotator sponsors={sponsors.map(({ name, logoUrl }) => ({ name, logoUrl }))} />
+          <SponsorRotator sponsors={rotator} />
         </aside>
       )}
 
@@ -100,6 +145,34 @@ export async function StreamOverlay({
       </section>
     </main>
   );
+}
+
+/** De inkten van de andere stijlen als --ovr-*, --ovz-* en --ovs-*. */
+function styleVars(look: OverlayStyle, palette: Parameters<typeof tenueInks>[0], mode: OverlayMode): Record<string, string> {
+  if (look === "zeefdruk") {
+    const p = printInks(mode);
+    return {
+      "--ovz-paper": p.paper,
+      "--ovz-ink": p.ink,
+      "--ovz-soft": p.soft,
+      "--ovz-cyan": p.cyan,
+      "--ovz-gold": p.gold,
+      "--ovz-sage": p.sage,
+    };
+  }
+  if (look === "rugnummer" || look === "strip") {
+    const t = tenueInks(palette);
+    return {
+      "--tn-petrol": t.petrol,
+      "--tn-teal": t.teal,
+      "--tn-sage": t.sage,
+      "--tn-gold": t.gold,
+      "--tn-paper": t.paper,
+      "--tn-page": t.page,
+      "--tn-ink": t.ink,
+    };
+  }
+  return {};
 }
 
 function StandRows({ stand }: { stand: OverlayStand }) {

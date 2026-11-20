@@ -32,6 +32,7 @@ import { ridesInEvent } from "@/lib/youtube-live/streams";
 import { createHelperPairing, removeHelper, sendHelperCommand } from "@/lib/youtube-live/helper";
 import { siteOrigin, streamRoute, streamThumbnail, type ThumbnailEvent } from "@/lib/youtube-live/thumbnail";
 import { overlayMode, OVERLAY_MODES, type OverlayMode } from "@/lib/youtube-live/overlay-theme";
+import { overlayStyle, OVERLAY_STYLES, type OverlayStyle } from "@/lib/youtube-live/overlay-styles";
 import type { StreamRoute } from "@/lib/youtube-live/route-facts";
 
 // Livestreams, fase 1 (0338). Alle schrijfacties lopen via de service-role, na
@@ -82,7 +83,14 @@ function grantError(err: unknown): string {
 async function pushThumbnail(
   accessToken: string,
   videoId: string,
-  input: { eventTitle: string; eventType: string; startAt: string; route: StreamRoute; theme: OverlayMode },
+  input: {
+    eventTitle: string;
+    eventType: string;
+    startAt: string;
+    route: StreamRoute;
+    theme: OverlayMode;
+    look: OverlayStyle;
+  },
 ): Promise<string | null> {
   try {
     const image = await streamThumbnail({ ...input, origin: siteOrigin() });
@@ -196,12 +204,15 @@ export async function prepareStream(
     return { ok: false, error: grantError(err) };
   }
 
+  // Een nieuwe stream krijgt de stijl van de vorige stream van het lid (0346).
+  const last = await lastLook(admin, userId);
   const { error } = await admin.from("event_streams").insert({
     event_id: event.id,
     profile_id: userId,
     youtube_video_id: videoId,
     channel_title: connection.channel_title,
     scheduled_start_at: scheduledStart.toISOString(),
+    ...last.columns,
   });
   if (error) {
     // Dubbel klikken: de tweede uitzending mag niet los op YouTube blijven staan.
@@ -220,7 +231,8 @@ export async function prepareStream(
       eventType: event.type,
       startAt: event.start_at,
       route: await streamRoute(admin, event),
-      theme: "dark",
+      theme: last.theme,
+      look: last.look,
     });
   } catch (err) {
     console.error("[livestream/thumbnail]", err);
@@ -237,6 +249,7 @@ type ThumbnailStream = {
   profile_id: string;
   youtube_video_id: string;
   overlay_theme?: string | null;
+  overlay_style?: string | null;
   events: ThumbnailEvent | null;
 };
 
@@ -248,7 +261,7 @@ async function pushStreamThumbnail(
   admin: ReturnType<typeof createAdminClient>,
   userId: string,
   stream: ThumbnailStream,
-  theme: OverlayMode,
+  look: { theme: OverlayMode; look: OverlayStyle },
 ): Promise<string | null> {
   if (!stream.events) return "Stream niet gevonden.";
   const connection = await loadYouTubeConnection(admin, userId);
@@ -264,9 +277,38 @@ async function pushStreamThumbnail(
     eventType: stream.events.type,
     startAt: stream.events.start_at,
     route: await streamRoute(admin, stream.events),
-    theme,
+    ...look,
   });
 }
+
+/**
+ * De stijl en het thema van de laatste stream van het lid, voor een nieuwe.
+ * Alleen kolommen die er al zijn (zonder 0345 of 0346 blijft het insert gelijk).
+ */
+async function lastLook(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<{ theme: OverlayMode; look: OverlayStyle; columns: Record<string, string> }> {
+  const { data } = await admin
+    .from("event_streams")
+    .select("*")
+    .eq("profile_id", userId)
+    .order("scheduled_start_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const row = (data as { overlay_theme?: string | null; overlay_style?: string | null } | null) ?? {};
+  const theme = overlayMode(row.overlay_theme);
+  const look = overlayStyle(row.overlay_style);
+  const columns: Record<string, string> = {};
+  if ("overlay_theme" in row) columns.overlay_theme = theme;
+  if ("overlay_style" in row) columns.overlay_style = look;
+  return { theme, look, columns };
+}
+
+const streamLook = (stream: ThumbnailStream) => ({
+  theme: overlayMode(stream.overlay_theme),
+  look: overlayStyle(stream.overlay_style),
+});
 
 async function loadThumbnailStream(
   admin: ReturnType<typeof createAdminClient>,
@@ -291,7 +333,7 @@ export async function refreshStreamThumbnail(streamId: string): Promise<Result> 
   if (!stream?.events) return { ok: false, error: "Stream niet gevonden." };
   // Alleen de eigen stream: de thumbnail gaat met het eigen kanaal naar YouTube.
   if (stream.profile_id !== session.userId) return { ok: false, error: "Geen recht." };
-  const error = await pushStreamThumbnail(admin, session.userId, stream, overlayMode(stream.overlay_theme));
+  const error = await pushStreamThumbnail(admin, session.userId, stream, streamLook(stream));
   return error ? { ok: false, error } : { ok: true };
 }
 
@@ -300,12 +342,23 @@ export async function refreshStreamThumbnail(streamId: string): Promise<Result> 
  * volgende verversing; bij de eigen stream gaat de thumbnail meteen mee. Lukt
  * dat niet, dan staat de keuze wel en komt de melding terug.
  */
-export async function setOverlayTheme(
-  streamId: string,
-  theme: string,
-): Promise<{ ok: true; thumbnailError?: string } | { ok: false; error: string }> {
+export async function setOverlayTheme(streamId: string, theme: string): Promise<LookResult> {
   if (!(OVERLAY_MODES as readonly string[]).includes(theme)) return { ok: false, error: "Onbekende keuze." };
-  const mode = overlayMode(theme);
+  return changeLook(streamId, { overlay_theme: overlayMode(theme) });
+}
+
+/** De stijl van overlay en thumbnail (0346), net als donker of licht. */
+export async function setOverlayStyle(streamId: string, style: string): Promise<LookResult> {
+  if (!OVERLAY_STYLES.some((s) => s.key === style)) return { ok: false, error: "Onbekende keuze." };
+  return changeLook(streamId, { overlay_style: overlayStyle(style) });
+}
+
+type LookResult = { ok: true; thumbnailError?: string } | { ok: false; error: string };
+
+async function changeLook(
+  streamId: string,
+  change: { overlay_theme?: OverlayMode; overlay_style?: OverlayStyle },
+): Promise<LookResult> {
   const session = await approvedUser();
   if (!session) return { ok: false, error: "Niet ingelogd." };
   const { access, userId } = session;
@@ -314,11 +367,11 @@ export async function setOverlayTheme(
   if (!stream) return { ok: false, error: "Stream niet gevonden." };
   const own = stream.profile_id === userId;
   if (!own && !access.has("events.manage_all")) return { ok: false, error: "Geen recht." };
-  const { error } = await admin.from("event_streams").update({ overlay_theme: mode }).eq("id", stream.id);
+  const { error } = await admin.from("event_streams").update(change).eq("id", stream.id);
   if (error) return { ok: false, error: "Opslaan lukte niet." };
   revalidatePath(`/events/${stream.event_id}`);
   if (!own || !(await livestreamsOn())) return { ok: true };
-  const thumbnailError = await pushStreamThumbnail(admin, userId, stream, mode);
+  const thumbnailError = await pushStreamThumbnail(admin, userId, { ...stream, ...change }, streamLook({ ...stream, ...change }));
   return thumbnailError ? { ok: true, thumbnailError } : { ok: true };
 }
 

@@ -649,16 +649,18 @@ het voorvoegsel `weekoverzicht-`.
 
 Alleen de weekoverzicht-pop-up (zondagavond, via `launcher.tsx`) en de pagina
 `/weekoverzicht`, die hetzelfde overzicht toont. De voorbeeldpagina
-`/ontwerp-voorbeeld` laat het register zien, verder nergens.
+`/ontwerp-voorbeeld` laat het register zien. Sinds 2026-11-20 ook de
+streamstijl Zeefdruk (OBS-overlay en thumbnail, zie "Eigen register:
+Streamstijlen"), verder nergens.
 
 **De Grensregel.** Binnen het register gelden de Platte-vloerregel, de
 Lichte-cijferregel, de Rechtregel, de Motiefregel, de Kleurregel, de Klikregel
 en de Wisselregel van het hoofdsysteem niet (de knop is hier inkt in beide
 thema's). Omgekeerd lekt er niets uit dit register naar de gewone schermen:
 geen stencilletter, geen Karla, geen overdruk, geen papierkorrel, geen
-paskruisjes, geen `weekoverzicht-`-token. Een scherm buiten het overzicht dat
-er zo uitziet, is fout. De Kolomregel, de Duimregel en de Goudregel blijven ook
-hier gelden.
+paskruisjes, geen `weekoverzicht-`-token. Een scherm buiten het overzicht en
+de Zeefdruk-stream dat er zo uitziet, is fout. De Kolomregel, de Duimregel en
+de Goudregel blijven ook hier gelden.
 
 ### Colors
 
@@ -846,3 +848,37 @@ tint naar 15% met een gestippelde rand van 1,5px in drukinkt en staat er
 - **Don't** rond inktvlakken, stroken of chips af.
 - **Don't** zet meer dan één pas uit register.
 - **Don't** laat een scherm drukken voordat de stencilletter er is.
+
+## Eigen register: Streamstijlen
+
+De OBS-overlay (`/live/stream/[id]/overlay`, 1920×1080) en de thumbnail van
+een stream hebben sinds 2026-11-20 vier stijlen (0346, `event_streams.overlay_style`),
+door het lid per stream gekozen, zodat ieder lid zich binnen de ZWB-wereld
+onderscheidt. Ze gelden alleen daar: niets uit deze stijlen lekt naar de
+gewone schermen. Alle vier blijven in de tenue- of drukinkten van de club; een
+vrije kleur per lid is er bewust niet. Het Zwift-gat (384, 216; 1536×864)
+blijft in elke stijl leeg en doorzichtig. De bron is
+`src/components/livestream/` (`stream-overlay-styles.tsx` en een CSS-bestand
+per stijl) en `src/lib/youtube-live/` (`overlay-styles.ts`, `thumbnail.tsx`).
+
+- **Tegels** (standaard): het kader met tenuebanen, donker of licht (0345).
+- **Rugnummer**: het kader als tenuestof met de banen schuin, de titel als
+  rugnummer van papier met vier spelden, licht scheef. Alleen donker. Clubletter.
+- **Zeefdruk**: het register van het weekoverzicht op het kader: vezelpapier,
+  effen inkten met multiply of screen, de stoet als enige pas uit register,
+  twee paskruisjes, stencil voor titel en cijfers, Karla voor de rest. Donker
+  of licht. Het logo staat ook op donker op licht papier. De thumbnail tekent
+  geen vezel en geen overdruk (Satori kent dat niet): de mengkleur is daar
+  vooraf uitgerekend (`overprint`).
+- **Strip**: een bladzijde uit een stripalbum in tenuekleuren: plaatjes met
+  een inktlijn van 5 tot 7px en lichte goten, licht onregelmatige hoeken,
+  rasterpunten als schaduw, een gouden onderschrift, titels en cijfers met een
+  inktrand, handletter Shantell Sans. Zwift is het grote plaatje. Alleen
+  donker. Leent de tekenstijl van Kopman, maar heet zo niet en gebruikt geen
+  Kopman-figuren: Kopman is een losse game.
+
+#### Don't:
+- **Don't** gebruik een streamstijl buiten overlay en thumbnail.
+- **Don't** geef leden een vrije kleur; een stijl blijft in clubinkten.
+- **Don't** leg iets over het Zwift-gat, behalve de inktlijn van de strip in
+  de goot.
