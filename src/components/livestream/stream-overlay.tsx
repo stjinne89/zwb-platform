@@ -28,9 +28,9 @@ import "./stream-overlay-strip.css";
 // Sinds 2026-11-20 in donker (nachtpetrol) of licht (crème), per stream (0345),
 // en in een van vier stijlen (0346): tegels (dit kader), rugnummer, zeefdruk
 // of strip (stream-overlay-styles.tsx). Donker of licht geldt bij tegels en
-// zeefdruk.
+// zeefdruk. Sinds 0348 op de resolutie van het OBS-canvas van het lid.
 
-/** Waar het Zwift-beeld in het kader staat; ook op /hulp. */
+/** Waar het Zwift-beeld in het kader staat, bij 1920×1080 (andere maten: overlay-size.ts). */
 export const ZWIFT_WINDOW = { x: 384, y: 216, width: 1536, height: 864 } as const;
 
 export type OverlayStand = {
@@ -48,6 +48,7 @@ export async function StreamOverlay({
   route = null,
   stand,
   kopman = null,
+  scale = 1,
   refreshSeconds,
 }: {
   title: string;
@@ -63,6 +64,8 @@ export async function StreamOverlay({
   stand: OverlayStand | null;
   /** De eigen kopman van het lid (0347); alleen bij strip te zien. */
   kopman?: KopmanLook | null;
+  /** De resolutie van de stream als deel van 1920 (0348): het hele kader schaalt mee. */
+  scale?: number;
   /** null: niet meer verversen (de uitslag staat vast). */
   refreshSeconds: number | null;
 }) {
@@ -81,6 +84,9 @@ export async function StreamOverlay({
     "--ov-club-font": `var(--font-tegels-${font}), system-ui, sans-serif`,
     // Zeefdruk en strip hebben hun eigen letter (in hun CSS).
     ...(look === "tegels" || look === "rugnummer" ? { fontFamily: `var(--font-tegels-${font}), system-ui, sans-serif` } : {}),
+    // Ontworpen op 1920×1080; zoom schaalt ook de opmaak, dus de pagina wordt
+    // precies het gekozen formaat (OBS draait op Chromium).
+    ...(scale !== 1 ? { zoom: scale } : {}),
   } as CSSProperties;
   const rotator = sponsors.map(({ name, logoUrl }) => ({ name, logoUrl }));
 
@@ -94,7 +100,7 @@ export async function StreamOverlay({
       sponsors: rotator,
       route,
       stand: stand ? <StandRows stand={stand} /> : null,
-      kopman: look === "strip" && kopman ? { face: kopmanFace(kopman), colors: kopmanColors(tenueInks(settings.palette)) } : null,
+      kopman: look === "strip" && kopman ? { face: kopmanFace(kopman), colors: kopmanColors(tenueInks(settings.palette), kopman) } : null,
     };
     const fonts = `${tegelsFontVariables} ${overlayStencil.variable} ${overlayText.variable} ${overlayHand.variable}`;
     return (

@@ -26,12 +26,17 @@ export type PlayerStream = {
 export function StreamPlayer({
   streams,
   removableIds = [],
+  initialId = null,
 }: {
   streams: PlayerStream[];
+  /** De stream die eerst staat, bv. gekozen op de kalender; anders de eerste. */
+  initialId?: string | null;
   /** Streams die deze kijker mag weghalen: de eigen, of alle voor eventbeheer. */
   removableIds?: string[];
 }) {
-  const [selectedId, setSelectedId] = useState(streams[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState(
+    streams.find((stream) => stream.id === initialId)?.id ?? streams[0]?.id ?? null,
+  );
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const selected = streams.find((stream) => stream.id === selectedId) ?? streams[0];

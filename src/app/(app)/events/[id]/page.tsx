@@ -256,8 +256,11 @@ function LineupNames({
 
 export default async function EventDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  /** ?stream=: de stream die de speler toont, vanaf de kalender (2026-11-20). */
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const club = await getClub();
   const clubTexts = club.texts;
@@ -1548,6 +1551,7 @@ export default async function EventDetailPage({
         hasSubEvents={isParentEvent}
         userId={user?.id ?? null}
         canManage={canManage}
+        selectedStreamId={streamParam((await searchParams)?.stream)}
       />
 
       {fuelReview ? (
@@ -2202,4 +2206,9 @@ export default async function EventDetailPage({
       )}
     </div>
   );
+}
+
+/** De gekozen stream uit ?stream=, alleen als het een id kan zijn. */
+function streamParam(value: string | string[] | undefined): string | null {
+  return typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
 }

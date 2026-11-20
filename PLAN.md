@@ -81,6 +81,15 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
+0. **Gebouwd — Streams op de kalender, resolutie per stream, helmkleur
+   (2026-11-20): lokaal, nog niet gepusht.** Migratie
+   `0348_stream_overlay_size` (`event_streams.overlay_size`) nog níét op
+   productie: toepassen vóór de push, anders werkt de keuze Resolutie niet
+   (lezen valt terug op 1920×1080). Open: op de kalender een race met een
+   stream openen, bij een eigen stream een andere resolutie kiezen en de
+   overlay in OBS op die maat zetten. Zie de ronde "Gebouwd — Streams op de
+   kalender, resolutie per stream, helmkleur".
+
 0. **Hersteld — Titel van Rugnummer en Strip knipte de onderkant af
    (2026-11-20): lokaal, nog niet gepusht.** Geen migratie. Open: na de push
    een titel met g, j, p of y bekijken. Zie de ronde "Hersteld — Titel van
@@ -1497,8 +1506,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0348`
-(`0347_stream_kopman` is van de eigen kopman bij Strip, 2026-11-20, toegepast op 2026-11-20;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0349`
+(`0348_stream_overlay_size` is van de resolutie per stream, 2026-11-20, nog niet toegepast;
+`0347_stream_kopman` is van de eigen kopman bij Strip, 2026-11-20, toegepast op 2026-11-20;
 `0346_stream_overlay_style` is van de stijlen voor overlay en thumbnail, 2026-11-20, toegepast op 2026-11-20;
 `0345_stream_overlay_theme` is van donker of licht per stream, 2026-11-20, toegepast op 2026-11-20;
 `0344_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, toegepast op 2026-11-19, geschreven als `0343` en vóór het toepassen hernummerd, want main had `0343` al;
@@ -13108,6 +13118,66 @@ bekende ontbrekende pakketten na.
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
 
+### Gebouwd — Streams op de kalender, resolutie per stream, helmkleur
+
+**2026-11-20, lokaal, nog niet gepusht. Migratie `0348_stream_overlay_size`,
+nog niet op productie.**
+
+- **Waarom.** Drie wensen van de eigenaar in één ronde ("Je mag beide
+  bouwen", plus de helm). Vanaf de kalender meteen naar een stream, met een
+  keuze bij ZRL of bij meer streams. Leden streamen op een ander OBS-canvas,
+  dus de resolutie moet bij het klaarzetten in te stellen zijn. En de helm van
+  de eigen kopman in een andere kleur.
+- **Wat.**
+  - Kalender: een race met een stream krijgt onder de rij een knop **Live**
+    (rode stip), **Stream** of **Terugkijken**, ook bij de laatste vijf
+    voorbije races. Eén stream: naar de racepagina met die stream gekozen
+    (`/events/[id]?stream=…#stream`). Meer streams, bij een raceweek van alle
+    teamraces: de knop klapt een lijst open ("ZRL B · Kees"), wie live is
+    eerst. Eén extra query (`loadEventStreams`) voor alle races op de
+    kalender, alleen met de module aan; een fout breekt de kalender niet.
+    `calendarStreams` (puur) rekent de staat per regel uit, met de klok als
+    terugval, net als de racepagina.
+  - Racepagina: `?stream=` kiest de stream in de speler (`StreamPlayer`,
+    `initialId`), en het streamblok heeft `id="stream"`.
+  - `0348`: `event_streams.overlay_size` (`1280x720`, `1600x900`,
+    `1920x1080`, `2560x1440`, `3840x2160`), standaard `1920x1080`, met een
+    check. Alleen 16:9.
+  - Resolutie kiezen: naast Stream klaarzetten (begint op de resolutie van de
+    vorige stream van het lid), en na het klaarzetten naast Thumbnail
+    vernieuwen (`setOverlaySize`). Een nieuwe stream neemt de resolutie over
+    (`lastLook`).
+  - Overlay: ontworpen op 1920×1080 en geschaald met CSS `zoom`, zodat ook de
+    opmaak meeschaalt en de pagina precies het gekozen formaat is (OBS draait
+    op Chromium). `?preview` (het voorbeeld in de app) blijft 1920 breed.
+  - `/hulp`: per resolutie de plek en het vak voor het Zwift-beeld, berekend
+    uit `overlay-size.ts` (bij 2560×1440 positie 512, 288 en vak 2048×1152).
+  - Helm: acht kleuren in de kopman-editor (Helm): de vijf clubkleuren uit
+    het palet, wit, zwart en rood. Opgeslagen in het bestaande `look` van
+    0347, dus geen migratie; een eerder opgeslagen kopman krijgt de
+    standaardhelm. Op een gouden helm wordt de bies petrol.
+- **Bewust niet.**
+  - Geen link rechtstreeks naar YouTube vanaf de kalender: in de app blijven
+    stand, ploeg en de andere streams in beeld; de speler heeft zelf "Op
+    YouTube".
+  - Geen ultrawide of 16:10: het gat in het kader is 16:9. Zwift op zo'n
+    scherm krijgt zwarte randen in het vak.
+  - Geen resolutie voor de thumbnail: YouTube wil die altijd op 1280×720.
+  - Geen vrije helmkleur, maar een vaste reeks: zo blijft het in de stijl.
+    DESIGN.md noemt de helm de enige uitzondering op "geen vrije kleur".
+- **Niet meer waar.** "Geen vrije kleur voor tenue of helm" (ronde "Gebouwd —
+  Eigen kopman bij Strip"): de helm heeft nu een keuze, het shirt niet. En
+  de overlay is niet meer altijd 1920×1080 (hulp aangepast).
+- **Niet geverifieerd.** `0348` alleen in PGlite getest (standaard
+  1920x1080, opnieuw uit te voeren, 3440x1440 geweigerd). Lokaal op
+  tijdelijke testpagina's bekeken: de overlay op 2560×1440 en 1280×720 vult
+  het beeld precies, de rode helm in Strip, de kalenderknop (één stream, en
+  bij ZRL een open lijst met twee streams) op breed en op 375px, en de
+  helmkeuze in de editor. Niet gezien: de echte kalender en racepagina
+  ingelogd, `?stream=` met echte streams, de overlay op een andere
+  resolutie in OBS, en het opslaan van de resolutie (kolom staat nog niet op
+  productie).
+
 ### Hersteld — Titel van Rugnummer en Strip knipte de onderkant af
 
 **2026-11-20, lokaal, nog niet gepusht. Geen migratie.**
@@ -13164,6 +13234,9 @@ bekende ontbrekende pakketten na.
     profiel van wie streamt).
 - **Bewust niet.**
   - Geen vrije kleur voor tenue of helm: die komen uit de clubkleuren.
+    (Sinds "Gebouwd — Streams op de kalender, resolutie per stream,
+    helmkleur" kiest een lid de helm uit acht vaste kleuren; het shirt blijft
+    het clubtenue.)
   - Geen opslaan bij elke tik: elke keer de thumbnail naar YouTube zou de
     YouTube-quota opmaken.
   - Niet onderin de kolom links, zoals voorgesteld: bij ZRL vult de stand die

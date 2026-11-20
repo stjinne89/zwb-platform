@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isVideoId } from "@/lib/youtube-live/broadcast";
 import { overlayStyle, type OverlayStyle } from "./overlay-styles";
+import { overlaySize, type OverlaySize } from "./overlay-size";
 import { overlayMode, type OverlayMode } from "./overlay-theme";
 
 // Streams bij races (migratie 0338): lezen voor de speler, en of een lid bij
@@ -24,6 +25,8 @@ export type EventStream = {
   overlayTheme: OverlayMode;
   /** De stijl van overlay en thumbnail (0346). */
   overlayStyle: OverlayStyle;
+  /** De resolutie van de overlay (0348). */
+  overlaySize: OverlaySize;
 };
 
 type StreamRow = {
@@ -37,6 +40,7 @@ type StreamRow = {
   overlay_stand?: boolean | null;
   overlay_theme?: string | null;
   overlay_style?: string | null;
+  overlay_size?: string | null;
   profiles: { display_name: string | null } | { display_name: string | null }[] | null;
 };
 
@@ -70,6 +74,7 @@ export async function loadEventStreams(
         overlayStand: row.overlay_stand !== false,
         overlayTheme: overlayMode(row.overlay_theme),
         overlayStyle: overlayStyle(row.overlay_style),
+        overlaySize: overlaySize(row.overlay_size),
       };
     });
 }

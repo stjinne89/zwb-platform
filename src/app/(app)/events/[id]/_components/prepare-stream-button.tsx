@@ -6,13 +6,16 @@ import { Check, ChevronDown, Copy, ImageUp, Radio } from "lucide-react";
 import {
   prepareStream,
   refreshStreamThumbnail,
+  setOverlaySize,
   setOverlayStand,
   setOverlayStyle,
   setOverlayTheme,
 } from "@/app/(app)/_actions/livestream";
 import { Button } from "@/components/ui/button";
 import { OVERLAY_STYLES } from "@/lib/youtube-live/overlay-styles";
-import type { KopmanColors, KopmanLook } from "@/lib/youtube-live/kopman";
+import { OVERLAY_SIZES, type OverlaySize } from "@/lib/youtube-live/overlay-size";
+import type { KopmanLook } from "@/lib/youtube-live/kopman";
+import type { TenueInks } from "@/lib/youtube-live/overlay-styles";
 import { KopmanEditor } from "./kopman-editor";
 import { cn } from "@/lib/utils";
 
@@ -20,13 +23,16 @@ import { cn } from "@/lib/utils";
 // een geweigerde thumbnail gaat via deze map mee, per race.
 const thumbnailErrors = new Map<string, string>();
 
-export function PrepareStreamButton({ eventId }: { eventId: string }) {
+/** Klaarzetten, met de resolutie van het OBS-canvas (0348; standaard die van de vorige stream). */
+export function PrepareStreamButton({ eventId, initialSize }: { eventId: string; initialSize: OverlaySize }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [size, setSize] = useState(initialSize);
 
   return (
     <div className="flex flex-wrap items-center gap-3">
+      <SizeSelect value={size} disabled={pending} onChange={setSize} />
       <Button
         type="button"
         size="sm"
@@ -34,7 +40,7 @@ export function PrepareStreamButton({ eventId }: { eventId: string }) {
         onClick={() => {
           setError(null);
           startTransition(async () => {
-            const res = await prepareStream(eventId);
+            const res = await prepareStream(eventId, size);
             if (!res.ok) setError(res.error);
             else if (res.thumbnailError) {
               thumbnailErrors.set(eventId, res.thumbnailError);
@@ -48,6 +54,52 @@ export function PrepareStreamButton({ eventId }: { eventId: string }) {
       </Button>
       {error && <span className="text-sm text-destructive">{error}</span>}
     </div>
+  );
+}
+
+function SizeSelect({ value, disabled, onChange }: { value: OverlaySize; disabled: boolean; onChange: (value: OverlaySize) => void }) {
+  return (
+    <select
+      aria-label="Resolutie"
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value as OverlaySize)}
+      className="h-8 rounded-md border bg-background px-2 text-sm"
+    >
+      {OVERLAY_SIZES.map((option) => (
+        <option key={option.key} value={option.key}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** De resolutie van de overlay bij een stream die al klaarstaat (0348). */
+export function OverlaySizeSelect({ streamId, initial }: { streamId: string; initial: OverlaySize }) {
+  const [size, setSize] = useState(initial);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <>
+      <SizeSelect
+        value={size}
+        disabled={pending}
+        onChange={(next) => {
+          const was = size;
+          setSize(next);
+          setError(null);
+          startTransition(async () => {
+            const res = await setOverlaySize(streamId, next);
+            if (!res.ok) {
+              setSize(was);
+              setError(res.error);
+            }
+          });
+        }}
+      />
+      {error && <span className="text-sm text-destructive">{error}</span>}
+    </>
   );
 }
 
@@ -165,13 +217,14 @@ export function OverlayLookPicker({
   initialStyle,
   initialTheme,
   initialKopman,
-  kopmanColors,
+  tenue,
 }: {
   streamId: string;
   initialStyle: Look;
   initialTheme: Theme;
   initialKopman: KopmanLook | null;
-  kopmanColors: KopmanColors;
+  /** Het clubtenue, voor de kopman. */
+  tenue: TenueInks;
 }) {
   const [open, setOpen] = useState(false);
   const [look, setLook] = useState(initialStyle);
@@ -252,7 +305,7 @@ export function OverlayLookPicker({
             <KopmanEditor
               streamId={streamId}
               initial={initialKopman}
-              colors={kopmanColors}
+              tenue={tenue}
               onSaved={() => setVersion((v) => v + 1)}
               onError={setError}
             />

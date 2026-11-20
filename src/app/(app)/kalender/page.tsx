@@ -39,6 +39,10 @@ import {
   nextBirthdayOccurrence,
 } from "@/lib/birthdays";
 import { getClub } from "@/lib/club";
+import { CalendarStreams } from "@/components/livestream/calendar-streams";
+import { calendarStreams, type CalendarTarget } from "@/lib/youtube-live/calendar-streams";
+import { youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
+import { loadEventStreams } from "@/lib/youtube-live/streams";
 import { fillClubText } from "@/lib/club-texts";
 
 const HISTORY_DAYS = 365;
@@ -102,7 +106,8 @@ export default async function KalenderPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const clubTexts = (await getClub()).texts;
+  const club = await getClub();
+  const clubTexts = club.texts;
   const params = await searchParams;
   const onlyForMe = params.voor === "mij";
   const excludedTypes = parseTypeFilter(params.zonder);
@@ -538,9 +543,31 @@ export default async function KalenderPage({
   });
   const eventColor = (type: string) => ({ bg: eventTypeColor(type), ink: eventTypeInk(type) });
 
-  const pastRows: AgendaRow[] = topLevel
-    .filter((event) => lastDayOf(event) < todayKey)
-    .slice(-5)
+  const pastTop = topLevel.filter((event) => lastDayOf(event) < todayKey).slice(-5);
+
+  // Streams per regel (2026-11-20): van de race zelf, of van de teamraces
+  // eronder (ZRL). Mag de kalender nooit breken.
+  const streamTargets = new Map<string, CalendarTarget>();
+  for (const top of [...events, ...pastTop]) {
+    streamTargets.set(top.id, { rowId: top.id, startAt: top.start_at, label: null });
+    for (const child of childrenByParent.get(top.id) ?? []) {
+      streamTargets.set(child.id, { rowId: top.id, startAt: child.start_at, label: subEventLabel(child.title, top.title) });
+    }
+  }
+  const streamsByRow =
+    youtubeLiveConfigured() && club.isEnabled("livestream") && streamTargets.size > 0
+      ? calendarStreams(
+          await loadEventStreams(supabase, [...streamTargets.keys()]).catch(() => []),
+          streamTargets,
+          new Date(),
+        )
+      : new Map();
+  const streamButton = (eventId: string) => {
+    const found = streamsByRow.get(eventId);
+    return found ? <CalendarStreams key="streams" streams={found.streams} state={found.state} /> : null;
+  };
+
+  const pastRows: AgendaRow[] = pastTop
     .map((event) => ({
       key: `past-${event.id}`,
       href: `/events/${event.id}`,
@@ -551,6 +578,7 @@ export default async function KalenderPage({
       sub: ["geweest", fillClubText(eventLabel(event.type, event.kind), clubTexts), event.location]
         .filter(Boolean)
         .join(" · "),
+      extra: streamButton(event.id) ?? undefined,
     }));
 
   const upcomingRows: Array<AgendaRow & { sortKey: string }> = [
@@ -597,16 +625,19 @@ export default async function KalenderPage({
         time: timeOf(event.start_at),
         riders,
         extra:
-          subEvents.length > 0
-            ? subEvents.map((sub) => (
-                <Link
-                  key={sub.id}
-                  href={`/events/${sub.id}`}
-                  className="inline-flex min-h-9 items-center border bg-card px-3 text-xs font-medium hover:bg-muted"
-                >
-                  {subEventLabel(sub.title, event.title)}
-                </Link>
-              ))
+          subEvents.length > 0 || streamsByRow.has(event.id)
+            ? [
+                ...subEvents.map((sub) => (
+                  <Link
+                    key={sub.id}
+                    href={`/events/${sub.id}`}
+                    className="inline-flex min-h-9 items-center border bg-card px-3 text-xs font-medium hover:bg-muted"
+                  >
+                    {subEventLabel(sub.title, event.title)}
+                  </Link>
+                )),
+                streamButton(event.id),
+              ]
             : undefined,
       };
     }),

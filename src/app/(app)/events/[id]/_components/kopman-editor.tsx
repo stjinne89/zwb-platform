@@ -11,11 +11,13 @@ import {
   KOPMAN_HAIR,
   KOPMAN_HAIR_COLORS,
   KOPMAN_SKINS,
+  kopmanColors,
   kopmanFace,
-  type KopmanColors,
+  kopmanHelmets,
   type KopmanLook,
   type KopmanMood,
 } from "@/lib/youtube-live/kopman";
+import type { TenueInks } from "@/lib/youtube-live/overlay-styles";
 import { cn } from "@/lib/utils";
 
 // De eigen kopman bij de stijl Strip (0347, 2026-11-20). Het voorbeeld tekent
@@ -29,14 +31,14 @@ type Kind = "geen" | KopmanLook["body"];
 export function KopmanEditor({
   streamId,
   initial,
-  colors,
+  tenue,
   onSaved,
   onError,
 }: {
   streamId: string;
   initial: KopmanLook | null;
   /** Het clubtenue, van de server. */
-  colors: KopmanColors;
+  tenue: TenueInks;
   onSaved: () => void;
   onError: (message: string | null) => void;
 }) {
@@ -48,6 +50,7 @@ export function KopmanEditor({
   const current: KopmanLook | null = kind === "geen" ? null : { ...look, body: kind, facial: kind === "man" ? look.facial : 0 };
   const dirty = JSON.stringify(current) !== JSON.stringify(saved);
   const set = (change: Partial<KopmanLook>) => setLook({ ...look, ...change });
+  const colors = kopmanColors(tenue, current);
 
   function save() {
     onError(null);
@@ -124,6 +127,9 @@ export function KopmanEditor({
                 />
               </Row>
             )}
+            <Row label="Helm">
+              <Swatches label="Helm" colors={kopmanHelmets(tenue)} value={look.helmet} onChange={(helmet) => set({ helmet })} />
+            </Row>
             <Row label="Bril">
               <Choice
                 label="Bril"
@@ -208,7 +214,7 @@ function Swatches({
           title={color.label}
           onClick={() => onChange(i)}
           className={cn(
-            "size-8 rounded-full border border-black/20 transition",
+            "size-8 rounded-full border border-foreground/30 transition",
             value === i && "ring-2 ring-primary ring-offset-2 ring-offset-background",
           )}
           style={{ backgroundColor: color.hex }}

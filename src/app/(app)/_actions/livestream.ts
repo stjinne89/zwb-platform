@@ -36,6 +36,7 @@ import { overlayStyle, OVERLAY_STYLES, type OverlayStyle } from "@/lib/youtube-l
 import type { StreamRoute } from "@/lib/youtube-live/route-facts";
 import { parseKopman, type KopmanLook } from "@/lib/youtube-live/kopman";
 import { loadKopman } from "@/lib/youtube-live/kopman-store";
+import { OVERLAY_SIZES, overlaySize } from "@/lib/youtube-live/overlay-size";
 
 // Livestreams, fase 1 (0338). Alle schrijfacties lopen via de service-role, na
 // de controles hier: module aan, ingericht, goedgekeurd lid, gekoppeld kanaal,
@@ -115,6 +116,8 @@ async function pushThumbnail(
  */
 export async function prepareStream(
   eventId: string,
+  /** De resolutie van de overlay (0348); zonder de resolutie van de vorige stream. */
+  size?: string,
 ): Promise<{ ok: true; thumbnailError?: string } | { ok: false; error: string }> {
   if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
   const session = await approvedUser();
@@ -209,6 +212,10 @@ export async function prepareStream(
 
   // Een nieuwe stream krijgt de stijl van de vorige stream van het lid (0346).
   const last = await lastLook(admin, userId);
+  // De gekozen resolutie, alleen als de kolom er is (0348).
+  if (size && "overlay_size" in last.columns && OVERLAY_SIZES.some((o) => o.key === size)) {
+    last.columns.overlay_size = overlaySize(size);
+  }
   const { error } = await admin.from("event_streams").insert({
     event_id: event.id,
     profile_id: userId,
@@ -288,7 +295,9 @@ async function pushStreamThumbnail(
 
 /**
  * De stijl en het thema van de laatste stream van het lid, voor een nieuwe.
- * Alleen kolommen die er al zijn (zonder 0345 of 0346 blijft het insert gelijk).
+ * Ook de resolutie (0348). Alleen kolommen die er al zijn (zonder 0345, 0346
+ * of 0348 blijft het insert gelijk). Heeft het lid nog geen stream, dan zijn
+ * er geen kolommen en geldt de standaard van de database.
  */
 async function lastLook(
   admin: ReturnType<typeof createAdminClient>,
@@ -301,12 +310,13 @@ async function lastLook(
     .order("scheduled_start_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const row = (data as { overlay_theme?: string | null; overlay_style?: string | null } | null) ?? {};
+  const row = (data as { overlay_theme?: string | null; overlay_style?: string | null; overlay_size?: string | null } | null) ?? {};
   const theme = overlayMode(row.overlay_theme);
   const look = overlayStyle(row.overlay_style);
   const columns: Record<string, string> = {};
   if ("overlay_theme" in row) columns.overlay_theme = theme;
   if ("overlay_style" in row) columns.overlay_style = look;
+  if ("overlay_size" in row) columns.overlay_size = overlaySize(row.overlay_size);
   return { theme, look, columns };
 }
 
@@ -359,6 +369,26 @@ export async function setOverlayStyle(streamId: string, style: string): Promise<
 }
 
 type LookResult = { ok: true; thumbnailError?: string } | { ok: false; error: string };
+
+/**
+ * De resolutie van de overlay (0348). De overlay volgt bij zijn volgende
+ * verversing; de thumbnail hangt er niet van af.
+ */
+export async function setOverlaySize(streamId: string, size: string): Promise<Result> {
+  if (!OVERLAY_SIZES.some((o) => o.key === size)) return { ok: false, error: "Onbekende keuze." };
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const { access, userId } = session;
+  const admin = createAdminClient();
+  const { data } = await admin.from("event_streams").select("id, event_id, profile_id").eq("id", streamId).maybeSingle();
+  const stream = data as { id: string; event_id: string; profile_id: string } | null;
+  if (!stream) return { ok: false, error: "Stream niet gevonden." };
+  if (stream.profile_id !== userId && !access.has("events.manage_all")) return { ok: false, error: "Geen recht." };
+  const { error } = await admin.from("event_streams").update({ overlay_size: overlaySize(size) }).eq("id", stream.id);
+  if (error) return { ok: false, error: "Opslaan lukte niet." };
+  revalidatePath(`/events/${stream.event_id}`);
+  return { ok: true };
+}
 
 async function changeLook(
   streamId: string,

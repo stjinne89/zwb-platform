@@ -16,10 +16,17 @@ import {
 } from "@/lib/youtube-live/broadcast";
 import { youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { loadEventStreams, ridesInEvent } from "@/lib/youtube-live/streams";
-import { kopmanColors } from "@/lib/youtube-live/kopman";
 import { loadKopman } from "@/lib/youtube-live/kopman-store";
 import { tenueInks } from "@/lib/youtube-live/overlay-styles";
-import { OverlayLinkButton, OverlayStandToggle, OverlayLookPicker, PrepareStreamButton, ThumbnailButton } from "./prepare-stream-button";
+import {
+  OverlayLinkButton,
+  OverlaySizeSelect,
+  OverlayStandToggle,
+  OverlayLookPicker,
+  PrepareStreamButton,
+  ThumbnailButton,
+} from "./prepare-stream-button";
+import { overlaySize } from "@/lib/youtube-live/overlay-size";
 
 /**
  * Streams bij een race (livestreams, fase 1): de speler voor iedereen, en de
@@ -31,12 +38,15 @@ export async function RaceStreams({
   hasSubEvents,
   userId,
   canManage,
+  selectedStreamId = null,
 }: {
   supabase: SupabaseClient;
   event: StreamableEvent & { id: string; zwift_event_id?: number | string | null };
   hasSubEvents: boolean;
   userId: string | null;
   canManage: boolean;
+  /** Vanaf de kalender: deze stream eerst (?stream=). */
+  selectedStreamId?: string | null;
 }) {
   const club = await getClub();
   if (!youtubeLiveConfigured() || !club.isEnabled("livestream")) return null;
@@ -80,6 +90,18 @@ export async function RaceStreams({
   const [streams, mayPrepare, connection, helper] = loaded;
   const ownStream = streams.find((stream) => stream.profileId === userId) ?? null;
   const showPrepare = mayPrepare && !ownStream;
+  // Klaarzetten begint op de resolutie van de vorige stream van het lid (0348).
+  const lastSize =
+    showPrepare && userId
+      ? await supabase
+          .from("event_streams")
+          .select("*")
+          .eq("profile_id", userId)
+          .order("scheduled_start_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+          .then(({ data }) => overlaySize((data as { overlay_size?: string | null } | null)?.overlay_size))
+      : overlaySize(null);
   // De eigen kopman bij strip (0347); zonder 0347 gewoon geen figuur.
   const kopman = ownStream && userId ? await loadKopman(supabase, userId) : null;
   if (streams.length === 0 && !showPrepare) return null;
@@ -96,7 +118,7 @@ export async function RaceStreams({
   const connectHref = `/api/youtube/connect?terug=${encodeURIComponent(`/events/${event.id}`)}`;
 
   return (
-    <section className="space-y-3 rounded-lg border bg-card p-4">
+    <section id="stream" className="scroll-mt-20 space-y-3 rounded-lg border bg-card p-4">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </h2>
@@ -109,6 +131,7 @@ export async function RaceStreams({
             watchUrl: streamWatchUrl(stream.videoId),
             live: stream.status === "live",
           }))}
+          initialId={selectedStreamId}
           removableIds={streams
             .filter((stream) => canManage || stream.profileId === userId)
             .map((stream) => stream.id)}
@@ -123,6 +146,7 @@ export async function RaceStreams({
         <div className="flex flex-wrap items-center gap-2">
           <OverlayLinkButton path={overlayPath} />
           <ThumbnailButton streamId={ownStream.id} eventId={event.id} />
+          <OverlaySizeSelect streamId={ownStream.id} initial={ownStream.overlaySize} />
         </div>
       )}
       {ownStream && overlayPath && (
@@ -131,7 +155,7 @@ export async function RaceStreams({
           initialStyle={ownStream.overlayStyle}
           initialTheme={ownStream.overlayTheme}
           initialKopman={kopman}
-          kopmanColors={kopmanColors(tenueInks(club.settings.palette))}
+          tenue={tenueInks(club.settings.palette)}
         />
       )}
       {ownStream && hasLiveStand && (
@@ -139,7 +163,7 @@ export async function RaceStreams({
       )}
       {showPrepare &&
         (connected ? (
-          <PrepareStreamButton eventId={event.id} />
+          <PrepareStreamButton eventId={event.id} initialSize={lastSize} />
         ) : (
           // Een gewone link: next/link zou de koppelroute vooraf ophalen.
           <a href={connectHref} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>

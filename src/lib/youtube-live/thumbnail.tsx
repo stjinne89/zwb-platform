@@ -591,7 +591,7 @@ function strip(data: ThumbData): ReactElement {
               backgroundColor: t.page,
             }}
           >
-            {kopmanSvg({ face: kopmanFace(data.kopman), colors: kopmanColors(t), mood: "aanval", uid: "thumb", frame: "bust", size: KOPMAN_TILE - 12 })}
+            {kopmanSvg({ face: kopmanFace(data.kopman), colors: kopmanColors(t, data.kopman), mood: "aanval", uid: "thumb", frame: "bust", size: KOPMAN_TILE - 12 })}
           </div>
         )}
         <div style={{ display: "flex" }}>

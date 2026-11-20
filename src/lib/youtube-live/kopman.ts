@@ -18,6 +18,8 @@ export type KopmanLook = {
   facial: number;
   /** Geen, bril of zonnebril. */
   glasses: number;
+  /** De kleur van de helm, zie kopmanHelmets (sinds 2026-11-20, wens eigenaar). */
+  helmet: number;
 };
 
 export const KOPMAN_SKINS = ["#f7dcc4", "#efc6a2", "#e2ac82", "#cc8f62", "#a96d45", "#7c4c2f"] as const;
@@ -41,7 +43,26 @@ export const KOPMAN_HAIR: Record<KopmanLook["body"], readonly string[]> = {
 export const KOPMAN_FACIAL = ["Geen", "Stoppels", "Snor", "Baard"] as const;
 export const KOPMAN_GLASSES = ["Geen", "Bril", "Zonnebril"] as const;
 
-export const DEFAULT_KOPMAN: KopmanLook = { body: "man", skin: 1, hair: 0, hairColor: 1, facial: 0, glasses: 0 };
+export const DEFAULT_KOPMAN: KopmanLook = { body: "man", skin: 1, hair: 0, hairColor: 1, facial: 0, glasses: 0, helmet: 0 };
+
+/**
+ * De helmkleuren: eerst de clubkleuren (de eerste is de standaard), dan vier
+ * gewone helmkleuren. Het shirt blijft altijd het clubtenue.
+ */
+export function kopmanHelmets(t: TenueInks): readonly { hex: string; label: string }[] {
+  return [
+    { hex: t.ink, label: "Clubdonker" },
+    { hex: t.petrol, label: "Clubkleur" },
+    { hex: t.teal, label: "Tweede clubkleur" },
+    { hex: t.sage, label: "Derde clubkleur" },
+    { hex: t.gold, label: "Goud" },
+    { hex: "#f2efe6", label: "Wit" },
+    { hex: "#17191b", label: "Zwart" },
+    { hex: "#c3382e", label: "Rood" },
+  ];
+}
+
+export const KOPMAN_HELMET_COUNT = 8;
 
 const index = (value: unknown, size: number, fallback: number) =>
   typeof value === "number" && Number.isInteger(value) && value >= 0 && value < size ? value : fallback;
@@ -59,6 +80,7 @@ export function parseKopman(value: unknown): KopmanLook | null {
     hairColor: index(v.hairColor, KOPMAN_HAIR_COLORS.length, DEFAULT_KOPMAN.hairColor),
     facial: body === "man" ? index(v.facial, KOPMAN_FACIAL.length, 0) : 0,
     glasses: index(v.glasses, KOPMAN_GLASSES.length, 0),
+    helmet: index(v.helmet, KOPMAN_HELMET_COUNT, 0),
   };
 }
 
@@ -123,15 +145,28 @@ export function kopmanFace(look: KopmanLook): KopmanFace {
 }
 
 /** De kleuren van de tekening: het tenue van rugnummer en strip. */
-export type KopmanColors = { jersey: string; trim: string; band: string; gold: string; helmet: string; sky: string; dots: string };
+export type KopmanColors = {
+  jersey: string;
+  trim: string;
+  band: string;
+  gold: string;
+  helmet: string;
+  /** De bies over de helm: goud, op een gouden helm de clubkleur. */
+  helmetBand: string;
+  sky: string;
+  dots: string;
+};
 
-export function kopmanColors(t: TenueInks): KopmanColors {
+export function kopmanColors(t: TenueInks, look?: Pick<KopmanLook, "helmet"> | null): KopmanColors {
+  const helmets = kopmanHelmets(t);
+  const helmet = helmets[look?.helmet ?? 0]?.hex ?? helmets[0].hex;
   return {
     jersey: t.petrol,
     trim: t.teal,
     band: t.sage,
     gold: t.gold,
-    helmet: t.ink,
+    helmet,
+    helmetBand: helmet === t.gold ? t.petrol : t.gold,
     sky: t.page,
     dots: shade(t.page, 0.08),
   };

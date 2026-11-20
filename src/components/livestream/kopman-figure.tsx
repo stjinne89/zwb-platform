@@ -351,7 +351,7 @@ export function kopmanSvg({
 
       <path d={helmetPath} fill={colors.helmet} stroke={INK} strokeWidth={2} strokeLinejoin="round" />
       <path d={`M${f(50 - hw + 2.2)} 41.6 Q50 27.4 ${f(50 + hw - 2.2)} 41.6`} fill="none" stroke={INK} strokeWidth={3.8} />
-      <path d={`M${f(50 - hw + 2.2)} 41.6 Q50 27.4 ${f(50 + hw - 2.2)} 41.6`} fill="none" stroke={colors.gold} strokeWidth={2} />
+      <path d={`M${f(50 - hw + 2.2)} 41.6 Q50 27.4 ${f(50 + hw - 2.2)} 41.6`} fill="none" stroke={colors.helmetBand} strokeWidth={2} />
       <g fill="#0f1b28" stroke={INK} strokeWidth={0.9}>
         <path d="M48.2 15.4 Q50 14.6 51.8 15.4 L52.4 25.6 Q50 26.6 47.6 25.6Z" />
         <path d={`M${f(50 - hw * 0.5)} 21 Q${f(50 - hw * 0.4)} 19 ${f(50 - hw * 0.28)} 18.6 L${f(50 - hw * 0.32)} 28 Q${f(50 - hw * 0.45)} 29 ${f(50 - hw * 0.58)} 29.4Z`} />

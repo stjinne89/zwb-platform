@@ -876,12 +876,14 @@ per stijl) en `src/lib/youtube-live/` (`overlay-styles.ts`, `thumbnail.tsx`).
   inktrand, handletter Shantell Sans. Zwift is het grote plaatje. Alleen
   donker. Leent de tekenstijl van Kopman, maar heet zo niet: Kopman is een
   losse game. Sinds 2026-11-20 mag een lid er een eigen Kopman-renner op zetten
-  (toestemming eigenaar): man of vrouw, altijd in het clubtenue, in een
+  (toestemming eigenaar): man of vrouw, altijd in het clubshirt, met een helm
+  in een clubkleur of in wit, zwart of rood (wens eigenaar), in een
   vierkant plaatje vóór de titel (overlay) of rechtsboven (thumbnail). De
   tekening is een eigen kopie (`components/livestream/kopman-figure.tsx`).
 
 #### Don't:
 - **Don't** gebruik een streamstijl buiten overlay en thumbnail.
-- **Don't** geef leden een vrije kleur; een stijl blijft in clubinkten.
+- **Don't** geef leden een vrije kleur; een stijl blijft in clubinkten. De
+  enige uitzondering is de helm van de eigen kopman: een vaste reeks van acht.
 - **Don't** leg iets over het Zwift-gat, behalve de inktlijn van de strip in
   de goot.
