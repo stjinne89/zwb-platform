@@ -74,7 +74,7 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
-0. **Gebouwd — Eigen kopman bij Strip (2026-11-20): lokaal, nog niet
+0. **Gebouwd — Eigen kopman bij Strip (2026-11-20): commit `1edb507`, lokaal, nog niet
    gepusht.** Migratie `0347_stream_kopman` (tabel `stream_kopman`) nog níét
    op productie: toepassen vóór de push, anders slaat Opslaan niets op (lezen
    valt terug op geen kopman). Open: bij een eigen stream Strip kiezen, een
@@ -13067,7 +13067,7 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Eigen kopman bij Strip
 
-**2026-11-20, lokaal, nog niet gepusht. Migratie `0347_stream_kopman`, nog
+**2026-11-20, commit `1edb507`, lokaal, nog niet gepusht. Migratie `0347_stream_kopman`, nog
 niet op productie.**
 
 - **Waarom.** De eigenaar wilde dat een lid bij de streamstijl Strip een eigen
