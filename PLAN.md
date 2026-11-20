@@ -75,7 +75,7 @@ gaat stabiliteit voor nieuwe features.
    thumbnail".
 
 0. **Gebouwd — Parcours op de thumbnail, titel op één regel, donker of licht
-   per stream (2026-11-20): lokaal gecommit, niet gepusht.** Migratie `0345`
+   per stream (2026-11-20): commit `dc0f94e`, lokaal, niet gepusht.** Migratie `0345`
    (`event_streams.overlay_theme`), niet op productie toegepast. Open: 0345
    toepassen, pushen, en bij een stream Licht kiezen en de thumbnail op YouTube
    bekijken. Zie de ronde "Gebouwd — Parcours op de thumbnail, donker of licht".
@@ -13044,7 +13044,7 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Parcours op de thumbnail, donker of licht
 
-**2026-11-20, lokaal gecommit, niet gepusht. Migratie `0345_stream_overlay_theme`,
+**2026-11-20, commit `dc0f94e`, lokaal, niet gepusht. Migratie `0345_stream_overlay_theme`,
 niet op productie toegepast.**
 
 - **Waarom.** Op een thumbnail van de eigenaar (Stage 2 - Zwift Epic - Four
