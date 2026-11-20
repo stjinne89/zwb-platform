@@ -164,7 +164,7 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
   line-height: 1.2;
 }
 .stream-overlay-stand li[data-own] { box-shadow: inset 0 -3px 0 var(--ov-gold); }
-.stream-overlay-stand li[data-own] .stream-overlay-team { color: var(--ov-gold); }
+.stream-overlay-stand li[data-own] .stream-overlay-team { color: var(--ov-gold-text); }
 .stream-overlay-rank { color: var(--ov-muted); font-weight: 300; }
 .stream-overlay-team { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stream-overlay-value { font-weight: 300; }

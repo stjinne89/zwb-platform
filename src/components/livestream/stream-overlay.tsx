@@ -4,7 +4,7 @@ import { tegelsFontVariables } from "@/components/tegels/font";
 import { getClub } from "@/lib/club";
 import { DEFAULT_FONT } from "@/lib/club-theme";
 import { clubLogoUrl } from "@/lib/club-icons";
-import { overlayColors, overlayColorVars, tenueBands } from "@/lib/youtube-live/overlay-theme";
+import { overlayColors, overlayColorVars, tenueBands, type OverlayMode } from "@/lib/youtube-live/overlay-theme";
 import { overlayRows, overlayValue } from "@/lib/zrl-live/overlay";
 import type { ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import { loadFooterSponsors } from "@/app/(app)/_components/sponsor-footer";
@@ -17,6 +17,7 @@ import "./stream-overlay.css";
 // rechtsonder in, op 80% (1536×864 op 384, 216), zodat niets meer over de HUD
 // van Zwift valt. Boven de titeltegel en de sponsors; links route en afstand,
 // en bij ZRL de stand. Bij de ladder blijft de kolom vrij voor het Sauce-venster.
+// Sinds 2026-11-20 in donker (nachtpetrol) of licht (crème), per stream (0345).
 
 /** Waar het Zwift-beeld in het kader staat; ook op /hulp. */
 export const ZWIFT_WINDOW = { x: 384, y: 216, width: 1536, height: 864 } as const;
@@ -31,6 +32,7 @@ export async function StreamOverlay({
   title,
   status,
   info = [],
+  theme = "dark",
   stand,
   refreshSeconds,
 }: {
@@ -39,6 +41,7 @@ export async function StreamOverlay({
   status: string;
   /** Route en afstand, bovenin de kolom links. */
   info?: string[];
+  theme?: OverlayMode;
   stand: OverlayStand | null;
   /** null: niet meer verversen (de uitslag staat vast). */
   refreshSeconds: number | null;
@@ -49,7 +52,7 @@ export async function StreamOverlay({
   ]);
   const logo = clubLogoUrl(settings);
   const font = settings.font ?? DEFAULT_FONT;
-  const colors = overlayColors(settings.palette);
+  const colors = overlayColors(settings.palette, theme);
   const style = {
     ...overlayColorVars(colors),
     "--ov-bands": tenueBands(colors),
@@ -57,7 +60,7 @@ export async function StreamOverlay({
   } as CSSProperties;
 
   return (
-    <main className={`stream-overlay ${tegelsFontVariables}`} style={style} lang="nl">
+    <main className={`stream-overlay ${tegelsFontVariables}`} style={style} lang="nl" data-theme={theme}>
       {refreshSeconds !== null && <AutoRefresh seconds={refreshSeconds} />}
       <div className="stream-overlay-frame stream-overlay-frame-top" aria-hidden />
       <div className="stream-overlay-frame stream-overlay-frame-side" aria-hidden />

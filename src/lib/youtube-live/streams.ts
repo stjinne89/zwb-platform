@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isVideoId } from "@/lib/youtube-live/broadcast";
+import { overlayMode, type OverlayMode } from "./overlay-theme";
 
 // Streams bij races (migratie 0338): lezen voor de speler, en of een lid bij
 // een race mag streamen (ingeschreven of opgesteld; besluit eigenaar 2026-11-18).
@@ -18,6 +19,8 @@ export type EventStream = {
   status: "gepland" | "live" | "afgelopen";
   /** De live stand in de overlay (0341); zonder die kolom aan. */
   overlayStand: boolean;
+  /** Donker of licht, voor overlay en thumbnail (0345). */
+  overlayTheme: OverlayMode;
 };
 
 type StreamRow = {
@@ -29,6 +32,7 @@ type StreamRow = {
   created_at: string;
   status: string;
   overlay_stand?: boolean | null;
+  overlay_theme?: string | null;
   profiles: { display_name: string | null } | { display_name: string | null }[] | null;
 };
 
@@ -60,6 +64,7 @@ export async function loadEventStreams(
         createdAt: row.created_at,
         status: row.status === "live" || row.status === "afgelopen" ? row.status : "gepland",
         overlayStand: row.overlay_stand !== false,
+        overlayTheme: overlayMode(row.overlay_theme),
       };
     });
 }

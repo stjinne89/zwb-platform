@@ -1,10 +1,19 @@
-// De kleuren van de OBS-overlay (0341): de nachtversie van de huisstijl, omdat
-// er video naast zit. Sinds 2026-11-19 een kader om het Zwift-beeld, met de vier
-// tenuebanen van de app (globals.css, .app-shell[data-design="tegels"] in donker). Zonder eigen kleuren de handmatige ZWB-waarden uit
+// De kleuren van de OBS-overlay (0341) en de thumbnail. Sinds 2026-11-19 een
+// kader om het Zwift-beeld met de vier tenuebanen van de app
+// (.app-shell[data-design="tegels"]::before); sinds 2026-11-20 per stream in
+// donker (nachtpetrol, standaard) of licht (crème), net als de website (0345). Zonder eigen kleuren de handmatige ZWB-waarden uit
 // DESIGN.md; met eigen kleuren afgeleid zoals de rest van de app
 // (lib/club-theme.ts). Puur, voor de tests.
 
 import { deriveTheme, oklchToHex, type ClubPalette } from "@/lib/club-theme";
+
+export type OverlayMode = "dark" | "light";
+
+export const OVERLAY_MODES: readonly OverlayMode[] = ["dark", "light"];
+
+export function overlayMode(value: unknown): OverlayMode {
+  return value === "light" ? "light" : "dark";
+}
 
 export type OverlayColors = {
   /** De dekkende ondergrond van het kader: nachtpetrol. */
@@ -21,8 +30,10 @@ export type OverlayColors = {
   /** De kop: de tegelkleur van wedstrijden (kalender), met de tekst erop. */
   head: string;
   headText: string;
-  /** Goud: de eigen ploeg en de rand van het logoplaatje. */
+  /** Goud voor lijnen en voor tekst op de titeltegel: rand van logo en Zwift, onderlijn. */
   gold: string;
+  /** Goud als tekst op de ondergrond; bij licht de diepere tint (Goudregel). */
+  goldText: string;
   /** Papier onder logo's, met inkt erop. */
   paper: string;
   ink: string;
@@ -40,7 +51,26 @@ const ZWB_NIGHT: OverlayColors = {
   head: "#00505f",
   headText: "#f5f6f0",
   gold: "oklch(0.72 0.08 80)",
+  goldText: "oklch(0.72 0.08 80)",
   paper: "#f5f6f0",
+  ink: "#0a2b34",
+};
+
+/** Licht, met de handmatige ZWB-waarden uit DESIGN.md en globals.css. */
+const ZWB_DAY: OverlayColors = {
+  ground: "oklch(0.965 0.011 103)",
+  band1: "rgba(0, 70, 83, 0.1)",
+  band2: "rgba(31, 96, 104, 0.12)",
+  band3: "rgba(127, 149, 144, 0.16)",
+  band4: "rgba(184, 135, 61, 0.26)",
+  row: "rgba(0, 70, 83, 0.07)",
+  text: "oklch(0.22 0.034 215)",
+  muted: "oklch(0.43 0.036 205)",
+  head: "#004653",
+  headText: "#fbfbf7",
+  gold: "#b8873d",
+  goldText: "rgb(143, 102, 38)",
+  paper: "#fbfbf7",
   ink: "#0a2b34",
 };
 
@@ -51,7 +81,31 @@ function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function overlayColors(palette: ClubPalette | null): OverlayColors {
+const tripletRgb = (triplet: string) => `rgb(${triplet.trim().split(/\s+/).join(", ")})`;
+
+export function overlayColors(palette: ClubPalette | null, mode: OverlayMode = "dark"): OverlayColors {
+  if (mode === "light") {
+    if (!palette) return ZWB_DAY;
+    const p = palette;
+    const theme = deriveTheme(p);
+    return {
+      ground: theme.light["--background"],
+      // De banen van de app in licht: petrol, teal, salie en goud.
+      band1: withAlpha(p.primary, 0.1),
+      band2: withAlpha(p.secondary, 0.12),
+      band3: withAlpha(p.neutral, 0.16),
+      band4: withAlpha(p.accent, 0.26),
+      row: withAlpha(p.primary, 0.07),
+      text: theme.light["--foreground"],
+      muted: theme.light["--muted-foreground"],
+      head: theme.tiles.light.kalender.bg,
+      headText: theme.tiles.light.kalender.fg,
+      gold: p.accent,
+      goldText: tripletRgb(theme.light["--zwblok-own-text"]),
+      paper: theme.tegelsLight["--tg-paper"],
+      ink: p.ink,
+    };
+  }
   if (!palette) return ZWB_NIGHT;
   const theme = deriveTheme(palette);
   return {
@@ -60,13 +114,14 @@ export function overlayColors(palette: ClubPalette | null): OverlayColors {
     band1: withAlpha(palette.secondary, 0.3),
     band2: withAlpha(palette.neutral, 0.13),
     band3: "rgba(255, 255, 255, 0.05)",
-    band4: withAlpha(palette.accent, 0.34),
+    band4: withAlpha(theme.tiles.dark.vandaag.bg, 0.34),
     row: "rgb(255 255 255 / 0.055)",
     text: theme.dark["--foreground"],
     muted: theme.dark["--muted-foreground"],
     head: theme.tiles.dark.kalender.bg,
     headText: theme.tiles.dark.kalender.fg,
     gold: theme.dark["--primary"],
+    goldText: theme.dark["--primary"],
     paper: theme.tegelsDark["--tg-paper"],
     ink: palette.ink,
   };
@@ -86,6 +141,7 @@ export function overlayColorVars(colors: OverlayColors): Record<string, string> 
     "--ov-head": colors.head,
     "--ov-head-text": colors.headText,
     "--ov-gold": colors.gold,
+    "--ov-gold-text": colors.goldText,
     "--ov-paper": colors.paper,
     "--ov-ink": colors.ink,
   };

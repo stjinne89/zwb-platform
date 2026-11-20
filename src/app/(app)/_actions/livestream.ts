@@ -30,7 +30,9 @@ import {
 import { YouTubeGrantRevokedError, youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { ridesInEvent } from "@/lib/youtube-live/streams";
 import { createHelperPairing, removeHelper, sendHelperCommand } from "@/lib/youtube-live/helper";
-import { siteOrigin, streamThumbnail, thumbnailRoute, type ThumbnailEvent } from "@/lib/youtube-live/thumbnail";
+import { siteOrigin, streamRoute, streamThumbnail, type ThumbnailEvent } from "@/lib/youtube-live/thumbnail";
+import { overlayMode, OVERLAY_MODES, type OverlayMode } from "@/lib/youtube-live/overlay-theme";
+import type { StreamRoute } from "@/lib/youtube-live/route-facts";
 
 // Livestreams, fase 1 (0338). Alle schrijfacties lopen via de service-role, na
 // de controles hier: module aan, ingericht, goedgekeurd lid, gekoppeld kanaal,
@@ -48,6 +50,8 @@ type EventRow = {
   zwift_event_id: number | null;
   zwift_route_id: number | null;
   laps: number | null;
+  distance_km: number | string | null;
+  elevation_m: number | string | null;
 };
 
 async function approvedUser() {
@@ -78,7 +82,7 @@ function grantError(err: unknown): string {
 async function pushThumbnail(
   accessToken: string,
   videoId: string,
-  input: { eventTitle: string; eventType: string; startAt: string; routeName: string | null; laps: number | null },
+  input: { eventTitle: string; eventType: string; startAt: string; route: StreamRoute; theme: OverlayMode },
 ): Promise<string | null> {
   try {
     const image = await streamThumbnail({ ...input, origin: siteOrigin() });
@@ -108,7 +112,7 @@ export async function prepareStream(
 
   const { data } = await supabase
     .from("events")
-    .select("id, type, title, start_at, team_id, parent_event_id, zwift_event_id, zwift_route_id, laps")
+    .select("id, type, title, start_at, team_id, parent_event_id, zwift_event_id, zwift_route_id, laps, distance_km, elevation_m")
     .eq("id", eventId)
     .maybeSingle();
   const event = data as EventRow | null;
@@ -215,8 +219,8 @@ export async function prepareStream(
       eventTitle: event.title,
       eventType: event.type,
       startAt: event.start_at,
-      routeName,
-      laps,
+      route: await streamRoute(admin, event),
+      theme: "dark",
     });
   } catch (err) {
     console.error("[livestream/thumbnail]", err);
@@ -227,37 +231,95 @@ export async function prepareStream(
   return { ok: true };
 }
 
+type ThumbnailStream = {
+  id: string;
+  event_id: string;
+  profile_id: string;
+  youtube_video_id: string;
+  overlay_theme?: string | null;
+  events: ThumbnailEvent | null;
+};
+
+const THUMBNAIL_EVENT_COLUMNS =
+  "title, type, start_at, zwift_route_id, laps, parent_event_id, zwift_event_id, distance_km, elevation_m";
+
+/** Maakt de thumbnail van een eigen stream opnieuw en zet hem op YouTube. */
+async function pushStreamThumbnail(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  stream: ThumbnailStream,
+  theme: OverlayMode,
+): Promise<string | null> {
+  if (!stream.events) return "Stream niet gevonden.";
+  const connection = await loadYouTubeConnection(admin, userId);
+  if (!connection) return "Koppel eerst YouTube op je profiel.";
+  let accessToken: string;
+  try {
+    accessToken = await youtubeAccessToken(admin, connection);
+  } catch (err) {
+    return grantError(err);
+  }
+  return pushThumbnail(accessToken, stream.youtube_video_id, {
+    eventTitle: stream.events.title,
+    eventType: stream.events.type,
+    startAt: stream.events.start_at,
+    route: await streamRoute(admin, stream.events),
+    theme,
+  });
+}
+
+async function loadThumbnailStream(
+  admin: ReturnType<typeof createAdminClient>,
+  streamId: string,
+): Promise<ThumbnailStream | null> {
+  // "*" zodat dit ook werkt zolang 0345 nog niet is toegepast.
+  const { data } = await admin
+    .from("event_streams")
+    .select(`*, events(${THUMBNAIL_EVENT_COLUMNS})`)
+    .eq("id", streamId)
+    .maybeSingle();
+  return (data as ThumbnailStream | null) ?? null;
+}
+
 /** De thumbnail van de eigen stream opnieuw maken en op YouTube zetten. */
 export async function refreshStreamThumbnail(streamId: string): Promise<Result> {
   if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
   const session = await approvedUser();
   if (!session) return { ok: false, error: "Niet ingelogd." };
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("event_streams")
-    .select("profile_id, youtube_video_id, events(title, type, start_at, zwift_route_id, laps, parent_event_id)")
-    .eq("id", streamId)
-    .maybeSingle();
-  const stream = data as { profile_id: string; youtube_video_id: string; events: ThumbnailEvent | null } | null;
+  const stream = await loadThumbnailStream(admin, streamId);
   if (!stream?.events) return { ok: false, error: "Stream niet gevonden." };
   // Alleen de eigen stream: de thumbnail gaat met het eigen kanaal naar YouTube.
   if (stream.profile_id !== session.userId) return { ok: false, error: "Geen recht." };
-  const connection = await loadYouTubeConnection(admin, session.userId);
-  if (!connection) return { ok: false, error: "Koppel eerst YouTube op je profiel." };
-  let accessToken: string;
-  try {
-    accessToken = await youtubeAccessToken(admin, connection);
-  } catch (err) {
-    return { ok: false, error: grantError(err) };
-  }
-  const route = await thumbnailRoute(admin, stream.events);
-  const error = await pushThumbnail(accessToken, stream.youtube_video_id, {
-    eventTitle: stream.events.title,
-    eventType: stream.events.type,
-    startAt: stream.events.start_at,
-    ...route,
-  });
+  const error = await pushStreamThumbnail(admin, session.userId, stream, overlayMode(stream.overlay_theme));
   return error ? { ok: false, error } : { ok: true };
+}
+
+/**
+ * Overlay en thumbnail in donker of licht (0345). De overlay volgt bij zijn
+ * volgende verversing; bij de eigen stream gaat de thumbnail meteen mee. Lukt
+ * dat niet, dan staat de keuze wel en komt de melding terug.
+ */
+export async function setOverlayTheme(
+  streamId: string,
+  theme: string,
+): Promise<{ ok: true; thumbnailError?: string } | { ok: false; error: string }> {
+  if (!(OVERLAY_MODES as readonly string[]).includes(theme)) return { ok: false, error: "Onbekende keuze." };
+  const mode = overlayMode(theme);
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const { access, userId } = session;
+  const admin = createAdminClient();
+  const stream = await loadThumbnailStream(admin, streamId);
+  if (!stream) return { ok: false, error: "Stream niet gevonden." };
+  const own = stream.profile_id === userId;
+  if (!own && !access.has("events.manage_all")) return { ok: false, error: "Geen recht." };
+  const { error } = await admin.from("event_streams").update({ overlay_theme: mode }).eq("id", stream.id);
+  if (error) return { ok: false, error: "Opslaan lukte niet." };
+  revalidatePath(`/events/${stream.event_id}`);
+  if (!own || !(await livestreamsOn())) return { ok: true };
+  const thumbnailError = await pushStreamThumbnail(admin, userId, stream, mode);
+  return thumbnailError ? { ok: true, thumbnailError } : { ok: true };
 }
 
 export async function removeStream(streamId: string): Promise<Result> {

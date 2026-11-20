@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { StreamOverlay, wantedTeams, zrlStatus } from "@/components/livestream/stream-overlay";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { overlayInfo, overlayStatus, overlayTitle } from "@/lib/youtube-live/broadcast";
-import { thumbnailRoute } from "@/lib/youtube-live/event-route";
+import { streamRoute } from "@/lib/youtube-live/event-route";
+import { overlayMode } from "@/lib/youtube-live/overlay-theme";
 import { loadZrlLive } from "@/lib/zrl-live/snapshot";
 
 // De OBS-overlay van één stream (0341). Openbaar, want OBS logt niet in; de
@@ -30,6 +31,7 @@ type StreamEvent = {
   start_at: string;
   end_at: string | null;
   distance_km: number | string | null;
+  elevation_m: number | string | null;
   laps: number | null;
   zwift_route_id: number | null;
   parent_event_id: string | null;
@@ -39,6 +41,7 @@ type StreamEvent = {
 
 type StreamRow = {
   overlay_stand?: boolean | null;
+  overlay_theme?: string | null;
   events: StreamEvent | null;
 };
 
@@ -50,7 +53,7 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
   const { data } = await admin
     .from("event_streams")
     .select(
-      "*, events(id, title, type, start_at, end_at, distance_km, laps, zwift_route_id, parent_event_id, team_id, zwift_event_id)",
+      "*, events(id, title, type, start_at, end_at, distance_km, elevation_m, laps, zwift_route_id, parent_event_id, team_id, zwift_event_id)",
     )
     .eq("id", streamId)
     .maybeSingle();
@@ -58,12 +61,18 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
   const event = stream?.events;
   if (!stream || !event) notFound();
 
-  const distanceKm = event.distance_km === null ? null : Number(event.distance_km);
-  const route = await thumbnailRoute(admin, event).catch(() => ({ routeName: null, laps: event.laps }));
-  const info = overlayInfo({ ...route, distanceKm });
+  const route = await streamRoute(admin, event).catch(() => null);
+  const distanceKm = route?.distanceKm ?? null;
+  const info = overlayInfo({
+    routeName: route?.routeName,
+    laps: route?.laps ?? event.laps,
+    distanceKm,
+    elevationM: route?.elevationM,
+  });
+  const theme = overlayMode(query.theme ?? stream.overlay_theme);
   const title = overlayTitle(event.title);
   const status = overlayStatus({ type: event.type, startAt: event.start_at, endAt: event.end_at, distanceKm, now: new Date() });
-  const plain = <StreamOverlay title={title} status={status} info={info} stand={null} refreshSeconds={15} />;
+  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} stand={null} refreshSeconds={15} />;
 
   const hasStand = event.type === "zrl" && Boolean(event.team_id && event.zwift_event_id);
   if (!hasStand) return plain;
@@ -76,6 +85,7 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
       title={title}
       status={zrlStatus(view)}
       info={info}
+      theme={theme}
       stand={stream.overlay_stand !== false ? { view, teams: wantedTeams(query.teams) } : null}
       refreshSeconds={15}
     />

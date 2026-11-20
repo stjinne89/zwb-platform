@@ -294,9 +294,9 @@ describe("overlay als kader (2026-11-19)", () => {
   });
 
   it("zet route, rondes en afstand in de kolom links", () => {
-    expect(overlayInfo({ routeName: "BRAEk-fast Crits and Grits", laps: 1, distanceKm: 19.6 })).toEqual([
+    expect(overlayInfo({ routeName: "BRAEk-fast Crits and Grits", laps: 1, distanceKm: 22.1, elevationM: 261 })).toEqual([
       "BRAEk-fast Crits and Grits",
-      "19,6 km",
+      "22,1 km · 261 hm",
     ]);
     expect(overlayInfo({ routeName: null, laps: 3, distanceKm: null })).toEqual(["3 rondes"]);
     expect(overlayInfo({})).toEqual([]);
@@ -304,20 +304,16 @@ describe("overlay als kader (2026-11-19)", () => {
 });
 
 describe("thumbnail (2026-11-19)", () => {
-  it("zet soort, tijd, titel en route op de thumbnail, in Nederlandse tijd en zonder Live", () => {
+  it("zet soort, tijd en titel op de thumbnail, in Nederlandse tijd en zonder Live", () => {
     const lines = thumbnailLines({
       eventTitle: "Snelle race <> Valhalla",
       eventType: "zwift",
       startAt: "2026-11-19T19:01:00Z",
-      routeName: "Montmartre Mixer",
-      laps: 2,
-      clubName: "ZWB Cycling",
     });
     expect(lines.status).toBe("Zwift-race · donderdag 19 november om 20:01");
     expect(lines.status).not.toContain("Live");
     expect(lines.title).toBe("Snelle race Valhalla");
     expect(lines.matchup).toBeNull();
-    expect(lines.detail).toBe("Montmartre Mixer · 2 rondes");
   });
 
   it("zet bij de ladder de twee ploegen apart", () => {
@@ -325,15 +321,13 @@ describe("thumbnail (2026-11-19)", () => {
       eventTitle: "Club Ladder: ZWBeasts – TeamNL Cloud9 Thunder",
       eventType: "ladder",
       startAt: "2026-11-19T19:15:00Z",
-      clubName: "ZWB Cycling",
     });
     expect(lines.status).toBe("Club Ladder · donderdag 19 november om 20:15");
     expect(lines.matchup).toEqual({ home: "ZWBeasts", away: "TeamNL Cloud9 Thunder" });
   });
 
-  it("noemt de club als de route onbekend is, en kort een lange titel in", () => {
-    const lines = thumbnailLines({ eventTitle: "x".repeat(120), startAt: "2026-11-19T19:01:00Z", clubName: "ZWB Cycling" });
-    expect(lines.detail).toBe("ZWB Cycling");
+  it("kort een lange titel in", () => {
+    const lines = thumbnailLines({ eventTitle: "x".repeat(120), startAt: "2026-11-19T19:01:00Z" });
     expect(lines.title).toHaveLength(90);
     expect(lines.title.endsWith("…")).toBe(true);
   });

@@ -132,17 +132,19 @@ export function overlayTitle(title: string): string {
 
 const KM = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 1 });
 
-/** Route, rondes en afstand, voor de kolom links in de overlay. */
+/** Route, rondes, afstand en hoogtemeters, voor de kolom links in de overlay. */
 export function overlayInfo(input: {
   routeName?: string | null;
   laps?: number | null;
   distanceKm?: number | null;
+  elevationM?: number | null;
 }): string[] {
   const lines: string[] = [];
   if (input.routeName) lines.push(clean(input.routeName));
   const parts: string[] = [];
   if (input.laps && input.laps > 1) parts.push(`${input.laps} rondes`);
   if (input.distanceKm && input.distanceKm > 0) parts.push(`${KM.format(input.distanceKm)} km`);
+  if (input.elevationM && input.elevationM > 0) parts.push(`${Math.round(input.elevationM)} hm`);
   if (parts.length > 0) lines.push(parts.join(" · "));
   return lines;
 }
@@ -181,25 +183,21 @@ export function overlayStatus(input: {
 
 /**
  * De tekst op de thumbnail (lib/youtube-live/thumbnail.tsx): soort en wanneer,
- * de titel (bij de ladder de twee ploegen), en route of club. Geen "Live": de
- * thumbnail blijft staan als de stream voorbij is, en YouTube zet zelf een label.
+ * en de titel (bij de ladder de twee ploegen). Geen "Live": de thumbnail blijft
+ * staan als de stream voorbij is, en YouTube zet zelf een label. Het parcours
+ * staat rechts, uit route-facts.ts.
  */
 export function thumbnailLines(input: {
   eventTitle: string;
   eventType?: string | null;
   startAt: string;
-  routeName?: string | null;
-  laps?: number | null;
-  clubName: string;
-}): { status: string; title: string; matchup: { home: string; away: string } | null; detail: string } {
-  const laps = input.laps && input.laps > 1 ? ` · ${input.laps} rondes` : "";
+}): { status: string; title: string; matchup: { home: string; away: string } | null } {
   const label = streamTypeLabel(input.eventType);
   const matchup = ladderMatchup(input.eventTitle);
   return {
     status: [matchup ? "Club Ladder" : label, START_FORMAT.format(new Date(input.startAt))].filter(Boolean).join(" · "),
     title: clip(clean(input.eventTitle), 90),
     matchup: matchup ? { home: clip(matchup.home, 40), away: clip(matchup.away, 40) } : null,
-    detail: input.routeName ? `${clean(input.routeName)}${laps}` : clean(input.clubName),
   };
 }
 

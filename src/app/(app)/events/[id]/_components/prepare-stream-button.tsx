@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, ImageUp, Radio } from "lucide-react";
-import { prepareStream, refreshStreamThumbnail, setOverlayStand } from "@/app/(app)/_actions/livestream";
+import { prepareStream, refreshStreamThumbnail, setOverlayStand, setOverlayTheme } from "@/app/(app)/_actions/livestream";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // Na het klaarzetten verdwijnt PrepareStreamButton en verschijnt ThumbnailButton;
 // een geweigerde thumbnail gaat via deze map mee, per race.
@@ -128,6 +129,63 @@ export function ThumbnailButton({ streamId, eventId }: { streamId: string; event
         {done ? <Check className="size-3.5" /> : <ImageUp className="size-3.5" />}
         {pending ? "Bezig…" : done ? "Thumbnail staat erop" : "Thumbnail vernieuwen"}
       </Button>
+      {error && <span className="text-sm text-destructive">{error}</span>}
+    </>
+  );
+}
+
+const THEME_OPTIONS = [
+  { value: "dark", label: "Donker" },
+  { value: "light", label: "Licht" },
+] as const;
+
+/**
+ * Overlay en thumbnail in donker of licht (0345). De overlay volgt bij zijn
+ * volgende verversing, de thumbnail gaat meteen opnieuw naar YouTube.
+ */
+export function OverlayThemeToggle({ streamId, initial }: { streamId: string; initial: "dark" | "light" }) {
+  const [theme, setTheme] = useState(initial);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <>
+      <div
+        role="radiogroup"
+        aria-label="Overlay en thumbnail"
+        className="inline-flex rounded-md border bg-background p-0.5"
+      >
+        {THEME_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={theme === option.value}
+            disabled={pending}
+            onClick={() => {
+              if (option.value === theme) return;
+              const previous = theme;
+              setTheme(option.value);
+              setError(null);
+              startTransition(async () => {
+                const res = await setOverlayTheme(streamId, option.value);
+                if (!res.ok) {
+                  setTheme(previous);
+                  setError(res.error);
+                } else if (res.thumbnailError) {
+                  setError(res.thumbnailError);
+                }
+              });
+            }}
+            className={cn(
+              "min-h-8 rounded px-3 text-sm font-medium transition",
+              theme === option.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
       {error && <span className="text-sm text-destructive">{error}</span>}
     </>
   );

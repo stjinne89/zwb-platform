@@ -74,6 +74,12 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
+0. **Gebouwd — Parcours op de thumbnail, titel op één regel, donker of licht
+   per stream (2026-11-20): lokaal gecommit, niet gepusht.** Migratie `0345`
+   (`event_streams.overlay_theme`), niet op productie toegepast. Open: 0345
+   toepassen, pushen, en bij een stream Licht kiezen en de thumbnail op YouTube
+   bekijken. Zie de ronde "Gebouwd — Parcours op de thumbnail, donker of licht".
+
 0. **Herzien — OBS-overlay als kader om Zwift, thumbnail met matchup
    (2026-11-19): commit `0d91afa`, op 2026-11-19 gepusht naar `main`
    (eigenaar: "Yes, push").** Geen migratie. Na de eerste
@@ -13035,6 +13041,60 @@ bekende ontbrekende pakketten na.
   bekeken (geen `.env.local` in deze container); wel een nagebootste
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
+
+### Gebouwd — Parcours op de thumbnail, donker of licht
+
+**2026-11-20, lokaal gecommit, niet gepusht. Migratie `0345_stream_overlay_theme`,
+niet op productie toegepast.**
+
+- **Waarom.** Op een thumbnail van de eigenaar (Stage 2 - Zwift Epic - Four
+  Foalsmen) was de rechterhelft leeg en liep een titel van 36 tekens over twee
+  regels; daaronder stond alleen "ZWB Cycling", half onder het kaartje "Live
+  over 8 uur" dat YouTube vóór de start linksonder legt. Wens: het parcours en
+  het hoogteverschil rechts, een lange titel kleiner op één regel, en "een
+  donkere versie en een lichte versie zoals de website", of eigen kleuren.
+  Akkoord op het voorstel: "Yes, all three".
+- **Wat.**
+  - `route-facts.ts` (puur) en `event-route.ts`: `streamRoute` zoekt de route
+    van de race, anders die van de raceweek, anders die uit de Zwift-eventcache
+    (`zwift_events.route_id`, via het Zwift-event). Afstand en hoogtemeters uit
+    de race zelf (`distance_km`, `elevation_m`), anders uit zwift-data over de
+    rondes met de aanloop, anders uit de routebibliotheek (`zwift_routes`). Het
+    hoogteprofiel alleen uit de routebibliotheek, over de rondes (tot 6),
+    uitgedund tot 120 punten.
+  - Thumbnail: rechts een kolom van 372px met de routenaam, afstand en
+    hoogtemeters als grote lichte cijfers zoals op de tegels, rondes, en het
+    profiel als gouden vlak (geen lijn: DESIGN.md). Zonder route geen kolom en
+    de volle breedte voor de titel. `fitTitle` zet de titel eerst op één regel
+    van 96 tot 64px, anders twee regels; geschat uit het aantal tekens per
+    clubletter, want Satori meet niet vooraf. De onderste 104px blijven leeg
+    voor het kaartje van YouTube; de clubnaam onderaan is weg (het logo staat
+    er al).
+  - Donker of licht: `overlayColors(palette, mode)`. Licht is de crème van de
+    website met de lichte banen (petrol, teal, salie, goud op 10, 12, 16 en
+    26%), panelen petrol op 7% en goud als tekst in de diepere tint
+    (`goldText`, Goudregel). Onder de eigen stream de keuze Donker/Licht
+    (`setOverlayTheme`); de overlay volgt binnen 15 seconden, de thumbnail gaat
+    bij de eigen stream meteen opnieuw naar YouTube. `?theme=` op de overlay en
+    de thumbnailpreview toont de andere stand zonder hem te kiezen.
+  - Overlay: de kolom links toont nu ook de hoogtemeters ("22,1 km · 261 hm").
+  - Hulp: parcours op de thumbnail en de keuze Donker/Licht.
+- **Bewust niet.** Geen eigen kleuren per lid: overlay en thumbnail laten de
+  club naar buiten zien, en de tenuekleuren zijn bindend (PRODUCT.md); ze
+  volgen al de kleuren uit de inrichting, dus een andere club krijgt de zijne.
+  Geen Donker/Licht bij Stream klaarzetten zelf: de eerste thumbnail is
+  donker, wisselen zet hem opnieuw. Geen route ophalen bij Zwift voor routes
+  die niet in zwift-data of de routebibliotheek staan: de Zwift Epic-etappe
+  (route 1353706660) heeft daardoor geen kolom.
+- **Niet geverifieerd.** `0345` alleen in PGlite getest (standaard donker, ook
+  voor bestaande streams, alleen dark en light, opnieuw uit te voeren); niet
+  op productie toegepast. Zonder 0345 werken overlay en thumbnail (`*` in de
+  select), maar geeft de keuze Donker/Licht "Opslaan lukte niet". Lokaal
+  bekeken: de thumbnail van de ladderstream in donker en licht, die van de Zwift
+  Epic-etappe op één regel, de overlay in licht op 1920×1080. De keuze onder de
+  stream niet in de app aangeklikt (lokaal niet ingelogd), en de thumbnail
+  niet opnieuw naar YouTube gestuurd. De tekenbreedtes van `fitTitle` zijn
+  geschat.
 
 ### Herzien — OBS-overlay als kader om Zwift
 
