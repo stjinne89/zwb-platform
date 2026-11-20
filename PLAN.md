@@ -67,7 +67,8 @@ gaat stabiliteit voor nieuwe features.
    donker. Zie de ronde "Hersteld — Vandaag goud omlijnd in de schemakalender".
 
 0. **Hersteld — Klaarzetten meldt een geweigerde thumbnail (2026-11-20):
-   lokaal gecommit, niet gepusht.** Geen migratie. Bij de stream van Stage 2
+   commit `54157ac`, op 2026-11-20 gepusht naar `main` (eigenaar: "Ja,
+   push").** Geen migratie. Bij de stream van Stage 2
    (Zwift Epic) kwam de thumbnail niet op YouTube en zei de app niets. Open:
    na de push een stream klaarzetten en kijken of de melding verschijnt als
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
@@ -13115,7 +13116,7 @@ bekende ontbrekende pakketten na.
 
 ### Hersteld — Klaarzetten meldt een geweigerde thumbnail
 
-**2026-11-20, lokaal gecommit (hash volgt bij de push). Geen migratie.**
+**2026-11-20, commit `54157ac` ("Klaarzetten meldt een geweigerde thumbnail bij Thumbnail vernieuwen"); op 2026-11-20 gepusht naar `main`. Geen migratie.**
 
 - **Waarom.** De stream van Stage 2 – Zwift Epic – Four Foalsmen (video
   `X2T8U5CLfgk`, klaargezet op 2026-11-20 om 09:17) kreeg op YouTube geen
