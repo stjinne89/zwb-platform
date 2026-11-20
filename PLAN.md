@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Hersteld — Club Ladder: gecorrigeerde uitslag bleef oud op de eventpagina
-   (2026-11-20): gepusht naar `main` (eigenaar: "Yes, push").** Geen migratie.
+   (2026-11-20): gepusht naar `main` (`7edb8c00`, eigenaar: "Yes, push").** Geen migratie.
    Open: na de deploy een sync draaien en op het event ZWBeasts – TeamNL
    Cloud9 Thunder (19 november) 26–29 en de renners aan de goede kant
    nakijken. Zie de ronde "Hersteld — Club Ladder: gecorrigeerde uitslag bleef
@@ -12691,7 +12691,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Club Ladder: gecorrigeerde uitslag bleef oud op de eventpagina
 
-**2026-11-20, gepusht naar `main` (zie `git log -- src/lib/club-ladder/store.ts`).
+**2026-11-20, commit `7edb8c00`, gepusht naar `main`.
 Geen migratie.** Melding van de eigenaar: de uitslag op het event
 ZWBeasts – TeamNL Cloud9 Thunder van 19 november veranderde niet na een sync,
 het resultatenoverzicht op de ZWBeasts-pagina wel.
