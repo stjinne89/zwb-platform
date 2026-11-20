@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, ImageUp, Radio } from "lucide-react";
+import { Check, ChevronDown, Copy, ImageUp, Radio } from "lucide-react";
 import {
   prepareStream,
   refreshStreamThumbnail,
@@ -153,7 +153,9 @@ type LookResult = Awaited<ReturnType<typeof setOverlayStyle>>;
 /**
  * De stijl van overlay en thumbnail (0346), en bij tegels en zeefdruk donker
  * of licht (0345). De overlay volgt bij zijn volgende verversing, de thumbnail
- * gaat meteen opnieuw naar YouTube.
+ * gaat meteen opnieuw naar YouTube. Ingeklapt; open toont het elke stijl als
+ * de echte thumbnail van deze stream, en de gekozen overlay in het klein
+ * (2026-11-20). Pas bij openen laden de voorbeelden.
  */
 export function OverlayLookPicker({
   streamId,
@@ -164,19 +166,21 @@ export function OverlayLookPicker({
   initialStyle: Look;
   initialTheme: Theme;
 }) {
+  const [open, setOpen] = useState(false);
   const [look, setLook] = useState(initialStyle);
   const [theme, setTheme] = useState(initialTheme);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const current = OVERLAY_STYLES.find((s) => s.key === look);
 
-  function change<T extends string>(next: T, current: T, set: (v: T) => void, save: () => Promise<LookResult>) {
-    if (next === current) return;
+  function change<T extends string>(next: T, was: T, set: (v: T) => void, save: () => Promise<LookResult>) {
+    if (next === was) return;
     set(next);
     setError(null);
     startTransition(async () => {
       const res = await save();
       if (!res.ok) {
-        set(current);
+        set(was);
         setError(res.error);
       } else if (res.thumbnailError) {
         setError(res.thumbnailError);
@@ -185,24 +189,95 @@ export function OverlayLookPicker({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Segmented
-        label="Stijl"
-        options={OVERLAY_STYLES.map((s) => ({ value: s.key, label: s.label }))}
-        value={look}
-        disabled={pending}
-        onChange={(next) => change(next, look, setLook, () => setOverlayStyle(streamId, next))}
-      />
-      {OVERLAY_STYLES.find((s) => s.key === look)?.modes && (
-        <Segmented
-          label="Donker of licht"
-          options={THEME_OPTIONS}
-          value={theme}
-          disabled={pending}
-          onChange={(next) => change(next, theme, setTheme, () => setOverlayTheme(streamId, next))}
-        />
+    <div className="grid gap-3">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="inline-flex min-h-11 w-fit items-center gap-2 text-sm font-medium"
+      >
+        <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
+        Stijl · {current?.label}
+        {current?.modes && <span className="text-muted-foreground">· {theme === "dark" ? "Donker" : "Licht"}</span>}
+      </button>
+      {open && (
+        <div className="grid gap-4">
+          <div role="radiogroup" aria-label="Stijl" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {OVERLAY_STYLES.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                role="radio"
+                aria-checked={look === option.key}
+                disabled={pending}
+                onClick={() => change(option.key, look, setLook, () => setOverlayStyle(streamId, option.key))}
+                className="group grid gap-1.5 text-left disabled:opacity-60"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl(streamId, "thumbnail", option.key, option.modes ? theme : "dark")}
+                  alt=""
+                  width={1280}
+                  height={720}
+                  loading="lazy"
+                  className={cn(
+                    "aspect-video w-full rounded-md border bg-muted object-cover transition",
+                    look === option.key ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "group-hover:opacity-90",
+                  )}
+                />
+                <span className={cn("text-sm", look === option.key ? "font-semibold" : "text-muted-foreground")}>
+                  {option.label}
+                </span>
+              </button>
+            ))}
+          </div>
+          {current?.modes && (
+            <Segmented
+              label="Donker of licht"
+              options={THEME_OPTIONS}
+              value={theme}
+              disabled={pending}
+              onChange={(next) => change(next, theme, setTheme, () => setOverlayTheme(streamId, next))}
+            />
+          )}
+          <OverlayPreview src={previewUrl(streamId, "overlay", look, current?.modes ? theme : "dark")} />
+        </div>
       )}
       {error && <span className="text-sm text-destructive">{error}</span>}
+    </div>
+  );
+}
+
+function previewUrl(streamId: string, kind: "thumbnail" | "overlay", look: Look, theme: Theme): string {
+  const query = new URLSearchParams({ style: look, theme });
+  if (kind === "overlay") query.set("preview", "");
+  return `/live/stream/${streamId}/${kind}?${query}`;
+}
+
+/** De overlay op schaal, met een donker vlak waar Zwift komt. */
+function OverlayPreview({ src }: { src: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => setScale(entry.contentRect.width / 1920));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={box} className="relative aspect-video w-full max-w-2xl overflow-hidden rounded-md border bg-neutral-800">
+      {scale > 0 && (
+        <iframe
+          key={src}
+          src={src}
+          title="Overlay"
+          tabIndex={-1}
+          loading="lazy"
+          className="pointer-events-none absolute left-0 top-0 origin-top-left border-0"
+          style={{ width: 1920, height: 1080, transform: `scale(${scale})`, colorScheme: "normal" }}
+        />
+      )}
     </div>
   );
 }

@@ -74,6 +74,11 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
+0. **Gebouwd — Voorbeelden in de stijlkeuze (2026-11-20): lokaal
+   gecommit, nog niet gepusht.** Geen migratie. Open: na de push bij een eigen
+   stream Stijl openklappen en kiezen. Zie de ronde "Gebouwd — Voorbeelden in
+   de stijlkeuze".
+
 0. **Gebouwd — Stijlen voor overlay en thumbnail (2026-11-20): commit
    `2e6adea`, op 2026-11-20 gepusht naar `main` (eigenaar: "Ja, beide").**
    Migratie `0346_stream_overlay_style` (`event_streams.overlay_style`) op
@@ -13051,6 +13056,35 @@ bekende ontbrekende pakketten na.
   bekeken (geen `.env.local` in deze container); wel een nagebootste
   maandweergave met dezelfde paneel- en ringregels in licht en donker: het
   kader valt in beide op.
+
+### Gebouwd — Voorbeelden in de stijlkeuze
+
+**2026-11-20, lokaal gecommit, nog niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar wilde dat leden zien hoe overlay en thumbnail
+  eruitzien voordat ze een stijl kiezen. Akkoord op het voorstel: "Ja,
+  bouwen".
+- **Wat.**
+  - De stijlkeuze onder de eigen stream is een inklapbaar blok "Stijl ·
+    Tegels · Donker". Open toont het vier tegels met de echte thumbnail van
+    deze stream in elke stijl (`/live/stream/[id]/thumbnail?style=&theme=`),
+    twee naast elkaar op de telefoon, vier op breed. Tikken kiest, zoals de
+    knoppen eerst. Daaronder Donker of licht (bij Tegels en Zeefdruk) en de
+    overlay van de gekozen stijl op schaal in een iframe, met een donker vlak
+    waar Zwift komt. Pas bij openklappen laden de vijf voorbeelden.
+  - Overlay: `?preview` ververst niet (geen AutoRefresh).
+  - `next.config.ts`: de overlay (`/live/stream/[id]/overlay`) krijgt
+    `X-Frame-Options: SAMEORIGIN` en `frame-ancestors 'self'`, zodat de app hem
+    zelf mag framen; elk ander pad blijft `DENY`. Nog steeds één regel per pad.
+- **Bewust niet.** Geen uitlegtekst bij de keuze (alleen op `/hulp`). Geen
+  voorbeelden die vooraf laden: vijf renders bij elk bezoek aan de racepagina
+  is zonde als het lid niets wil wisselen.
+- **Niet geverifieerd.** Lokaal bekeken op een tijdelijke testpagina met de
+  ladderstream (niet ingelogd): tegels, de rand om de gekozen stijl, de
+  overlay in het frame, twee kolommen op 375px, en terugvallen met "Niet
+  ingelogd." bij kiezen. De headers per pad met curl gecontroleerd
+  (overlay SAMEORIGIN, thumbnail en login DENY). Niet op de racepagina zelf
+  en niet ingelogd gekozen; niet op Netlify (headers daar niet gezien).
 
 ### Gebouwd — Stijlen voor overlay en thumbnail
 

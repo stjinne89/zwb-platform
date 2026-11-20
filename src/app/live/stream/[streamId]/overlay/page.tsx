@@ -13,6 +13,7 @@ import { loadZrlLive } from "@/lib/zrl-live/snapshot";
 // Kader, logo en sponsors staan er altijd; de stand alleen bij een ZRL-race met
 // de schakelaar aan. Elke 15 seconden ververst, dus de schakelaar werkt mee,
 // net als de stijl en donker of licht (?style= en ?theme= voor een voorbeeld).
+// ?preview: het voorbeeld in de stijlkeuze op de racepagina, zonder verversen.
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -74,9 +75,10 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
   });
   const theme = overlayMode(query.theme ?? stream.overlay_theme);
   const look = overlayStyle(query.style ?? stream.overlay_style);
+  const refreshSeconds = query.preview !== undefined ? null : 15;
   const title = overlayTitle(event.title);
   const status = overlayStatus({ type: event.type, startAt: event.start_at, endAt: event.end_at, distanceKm, now: new Date() });
-  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} look={look} route={route} stand={null} refreshSeconds={15} />;
+  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} look={look} route={route} stand={null} refreshSeconds={refreshSeconds} />;
 
   const hasStand = event.type === "zrl" && Boolean(event.team_id && event.zwift_event_id);
   if (!hasStand) return plain;
@@ -93,7 +95,7 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
       look={look}
       route={route}
       stand={stream.overlay_stand !== false ? { view, teams: wantedTeams(query.teams) } : null}
-      refreshSeconds={15}
+      refreshSeconds={refreshSeconds}
     />
   );
 }

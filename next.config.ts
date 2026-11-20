@@ -29,18 +29,25 @@ const csp = [
 // vooraan, voor de uitsluiting in de algemene regel.
 const CAMERA_PADEN = ["beheer/houding-meetproef", "zwbeter-worden/materiaal/houding"];
 
-function securityHeaders(camera: "()" | "(self)") {
+// De OBS-overlay mag in een frame van de app zelf: de stijlkeuze op de
+// racepagina toont hem als voorbeeld (2026-11-20). Elders blijft framen dicht.
+const OVERLAY_PAD = "live/stream/[^/]+/overlay";
+
+function securityHeaders(camera: "()" | "(self)", frame: "DENY" | "SAMEORIGIN" = "DENY") {
   return [
     { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
     { key: "X-Content-Type-Options", value: "nosniff" },
-    { key: "X-Frame-Options", value: "DENY" },
+    { key: "X-Frame-Options", value: frame },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     {
       key: "Permissions-Policy",
       value: `camera=${camera}, microphone=(), payment=(), usb=(), geolocation=(self)`,
     },
     { key: "X-DNS-Prefetch-Control", value: "on" },
-    { key: "Content-Security-Policy-Report-Only", value: csp },
+    {
+      key: "Content-Security-Policy-Report-Only",
+      value: frame === "SAMEORIGIN" ? csp.replace("frame-ancestors 'none'", "frame-ancestors 'self'") : csp,
+    },
   ];
 }
 
@@ -68,10 +75,11 @@ const nextConfig: NextConfig = {
     // Daarom sluit de algemene regel de camerapaden uit (2026-11-08).
     return [
       {
-        source: `/:path((?!(?:${CAMERA_PADEN.join("|")})$).*)`,
+        source: `/:path((?!(?:${[...CAMERA_PADEN, OVERLAY_PAD].join("|")})$).*)`,
         headers: securityHeaders("()"),
       },
       ...CAMERA_PADEN.map((pad) => ({ source: `/${pad}`, headers: securityHeaders("(self)") })),
+      { source: "/live/stream/:streamId/overlay", headers: securityHeaders("()", "SAMEORIGIN") },
     ];
   },
   // /training heet nu /zwbeter-worden. Permanent, want er staan al verstuurde
