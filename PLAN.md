@@ -75,9 +75,9 @@ gaat stabiliteit voor nieuwe features.
    thumbnail".
 
 0. **Gebouwd — Stijlen voor overlay en thumbnail (2026-11-20): commit
-   `2e6adea`, lokaal, nog niet gepusht.** Migratie `0346_stream_overlay_style`
-   (`event_streams.overlay_style`) nog niet op productie toegepast. Open:
-   eerst 0346 toepassen, dan pushen; daarna bij een eigen stream elke stijl
+   `2e6adea`, op 2026-11-20 gepusht naar `main` (eigenaar: "Ja, beide").**
+   Migratie `0346_stream_overlay_style` (`event_streams.overlay_style`) op
+   2026-11-20 op productie toegepast. Open: bij een eigen stream elke stijl
    kiezen en overlay en thumbnail op YouTube bekijken. Zie de ronde "Gebouwd —
    Stijlen voor overlay en thumbnail".
 
@@ -1473,7 +1473,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0347`
-(`0346_stream_overlay_style` is van de stijlen voor overlay en thumbnail, 2026-11-20, nog niet toegepast;
+(`0346_stream_overlay_style` is van de stijlen voor overlay en thumbnail, 2026-11-20, toegepast op 2026-11-20;
 `0345_stream_overlay_theme` is van donker of licht per stream, 2026-11-20, toegepast op 2026-11-20;
 `0344_rider_power_profile_indoor` is van de indoorcurve, 2026-11-19, toegepast op 2026-11-19, geschreven als `0343` en vóór het toepassen hernummerd, want main had `0343` al;
 `0343_integration_notice_strava_stub` is van de pop-up voor ritten via Strava, 2026-11-19, toegepast op 2026-11-19;
@@ -13053,8 +13053,8 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Stijlen voor overlay en thumbnail
 
-**2026-11-20, commit `2e6adea`, lokaal, nog niet gepusht. Migratie
-`0346_stream_overlay_style` nog niet op productie toegepast.**
+**2026-11-20, commit `2e6adea`, op 2026-11-20 gepusht naar `main`. Migratie
+`0346_stream_overlay_style` op 2026-11-20 op productie toegepast.**
 
 - **Waarom.** De eigenaar wilde dat leden overlay en thumbnail in een eigen
   stijl kunnen kiezen, in ZWB-kleuren, "zodat ieder lid zichzelf een beetje
@@ -13098,9 +13098,8 @@ bekende ontbrekende pakketten na.
   - Rugnummer en Strip hebben geen lichte stand: ze zijn al licht van papier
     of juist donker van stof, een tweede stand voegt weinig toe.
 - **Niet geverifieerd.** `0346` alleen in PGlite getest (standaard tegels,
-  check, opnieuw uit te voeren). Zonder 0346 op productie werken overlay en
-  thumbnail (`*` in de select, terugval op tegels), maar geeft de keuze Stijl
-  "Opslaan lukte niet". Lokaal bekeken met `?style=` tegen de productiedata:
+  check, opnieuw uit te voeren). Op productie toegepast op 2026-11-20: kolom
+  en check staan, de vier bestaande streams staan op tegels. Lokaal bekeken met `?style=` tegen de productiedata:
   de overlay op 1920×1080 in Rugnummer, Zeefdruk licht en donker, en Strip;
   de thumbnails van alle stijlen voor de ladderstream en de Zwift
   Epic-etappe (zonder route). Niet gezien: de keuze in de app (lokaal niet
