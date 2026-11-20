@@ -82,25 +82,26 @@ gaat stabiliteit voor nieuwe features.
    thumbnail".
 
 0. **Gebouwd — Kopman op het profiel, als avatar, winter- of zomershirt
-   (2026-11-20): commit `76e91e5`, lokaal, nog niet gepusht.** Migratie `0349_avatar_kopman`
-   (`profiles.avatar_photo_url`) nog níét op productie: toepassen vóór de
-   push, anders lukt de keuze Kopman als avatar niet. Open: ingelogd op
+   (2026-11-20): commit `6f12db5`, op 2026-11-20 gepusht naar `main`
+   (eigenaar: "Ja, beide").** Migratie `0349_avatar_kopman`
+   (`profiles.avatar_photo_url`) op 2026-11-20 vóór de push op productie
+   toegepast. Open: ingelogd op
    Profiel → Bewerken een kopman opslaan, Avatar op Kopman en terug op Foto
    zetten, en de ledenlijst bekijken met de standaardkopman bij leden zonder
    foto. Zie de ronde "Gebouwd — Kopman op het profiel, als avatar".
 
 0. **Gebouwd — Streams op de kalender, resolutie per stream, helmkleur
-   (2026-11-20): commit `f59cdf3`, lokaal, nog niet gepusht.** Migratie
-   `0348_stream_overlay_size` (`event_streams.overlay_size`) nog níét op
-   productie: toepassen vóór de push, anders werkt de keuze Resolutie niet
-   (lezen valt terug op 1920×1080). Open: op de kalender een race met een
+   (2026-11-20): commit `7e55da0`, op 2026-11-20 gepusht naar `main`
+   (eigenaar: "Ja, beide").** Migratie `0348_stream_overlay_size`
+   (`event_streams.overlay_size`) op 2026-11-20 vóór de push op productie
+   toegepast. Open: op de kalender een race met een
    stream openen, bij een eigen stream een andere resolutie kiezen en de
    overlay in OBS op die maat zetten. Zie de ronde "Gebouwd — Streams op de
    kalender, resolutie per stream, helmkleur".
 
 0. **Hersteld — Titel van Rugnummer en Strip knipte de onderkant af
-   (2026-11-20): lokaal, nog niet gepusht.** Geen migratie. Open: na de push
-   een titel met g, j, p of y bekijken. Zie de ronde "Hersteld — Titel van
+   (2026-11-20): commit `628d3fe`, op 2026-11-20 gepusht naar `main`.** Geen
+   migratie. Open: een titel met g, j, p of y bekijken. Zie de ronde "Hersteld — Titel van
    Rugnummer en Strip knipte de onderkant af".
 
 0. **Gebouwd — Eigen kopman bij Strip (2026-11-20): commit `1edb507`, op
@@ -1515,8 +1516,8 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0350`
-(`0349_avatar_kopman` is van de kopman als avatar, 2026-11-20, nog niet toegepast;
-`0348_stream_overlay_size` is van de resolutie per stream, 2026-11-20, nog niet toegepast;
+(`0349_avatar_kopman` is van de kopman als avatar, 2026-11-20, toegepast op 2026-11-20;
+`0348_stream_overlay_size` is van de resolutie per stream, 2026-11-20, toegepast op 2026-11-20;
 `0347_stream_kopman` is van de eigen kopman bij Strip, 2026-11-20, toegepast op 2026-11-20;
 `0346_stream_overlay_style` is van de stijlen voor overlay en thumbnail, 2026-11-20, toegepast op 2026-11-20;
 `0345_stream_overlay_theme` is van donker of licht per stream, 2026-11-20, toegepast op 2026-11-20;
@@ -13129,8 +13130,8 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Kopman op het profiel, als avatar
 
-**2026-11-20, commit `76e91e5`, lokaal, nog niet gepusht. Migratie `0349_avatar_kopman`,
-nog niet op productie.**
+**2026-11-20, commit `6f12db5`, op 2026-11-20 gepusht naar `main`. Migratie
+`0349_avatar_kopman` op 2026-11-20 vóór de push op productie toegepast.**
 
 - **Waarom.** De eigenaar wilde de kopman op het profiel (het potlood) kunnen
   maken, vanzelf overgenomen op overlay en thumbnail, met de keuze tussen
@@ -13198,14 +13199,14 @@ nog niet op productie.**
   exists`). Lokaal bekeken: de route geeft voor een vrouw, een man en een lid
   met eigen kopman een PNG (onbekend id: 404), en de editor op breed en op
   375px met winter en zomer, op een tijdelijke testpagina. Niet gezien:
-  ingelogd opslaan, de keuze Avatar tegen de database (kolom staat nog niet op
-  productie), de avatars in de echte ledenlijst, en de cache van de route op
+  ingelogd opslaan, de keuze Avatar tegen de database (0349 is op productie
+  toegepast: kolom `avatar_photo_url` bestaat, tekst, leeg), de avatars in de echte ledenlijst, en de cache van de route op
   Netlify.
 
 ### Gebouwd — Streams op de kalender, resolutie per stream, helmkleur
 
-**2026-11-20, commit `f59cdf3`, lokaal, nog niet gepusht. Migratie `0348_stream_overlay_size`,
-nog niet op productie.**
+**2026-11-20, commit `7e55da0`, op 2026-11-20 gepusht naar `main`. Migratie
+`0348_stream_overlay_size` op 2026-11-20 vóór de push op productie toegepast.**
 
 - **Waarom.** Drie wensen van de eigenaar in één ronde ("Je mag beide
   bouwen", plus de helm). Vanaf de kalender meteen naar een stream, met een
@@ -13260,12 +13261,13 @@ nog niet op productie.**
   bij ZRL een open lijst met twee streams) op breed en op 375px, en de
   helmkeuze in de editor. Niet gezien: de echte kalender en racepagina
   ingelogd, `?stream=` met echte streams, de overlay op een andere
-  resolutie in OBS, en het opslaan van de resolutie (kolom staat nog niet op
-  productie).
+  resolutie in OBS, en het opslaan van de resolutie (0348 is op productie
+  toegepast: kolom met check, de vier bestaande streams op 1920x1080; nog niet
+  vanuit de app gekozen).
 
 ### Hersteld — Titel van Rugnummer en Strip knipte de onderkant af
 
-**2026-11-20, lokaal, nog niet gepusht. Geen migratie.**
+**2026-11-20, commit `628d3fe`, op 2026-11-20 gepusht naar `main`. Geen migratie.**
 
 - **Waarom.** De eigenaar zag in de overlay in Rugnummer dat de g van
   "Vikings Valgrind" onderaan wegviel.
