@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Bijgesteld — Eventscan toont geen events uit het verleden (2026-11-20):
-   lokaal gecommit, niet gepusht.** Geen migratie. Open: na de deploy
+   lokaal gecommit (`df7ab729`), niet gepusht.** Geen migratie. Open: na de deploy
    `/beheer/event-scan` openen en nagaan dat alleen events van vandaag en later
    staan. Zie de ronde "Bijgesteld — Eventscan toont geen events uit het
    verleden".
@@ -12647,7 +12647,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Bijgesteld — Eventscan toont geen events uit het verleden
 
-**2026-11-20, lokaal gecommit, niet gepusht. Geen migratie.**
+**2026-11-20, commit `df7ab729`, lokaal gecommit, niet gepusht. Geen migratie.**
 
 - **Waarom.** Op `/beheer/event-scan` bleven alle concepten staan, ook van
   events die allang voorbij waren. De lijst werd daardoor onoverzichtelijk.
