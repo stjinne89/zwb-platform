@@ -74,8 +74,8 @@ gaat stabiliteit voor nieuwe features.
    YouTube weigert. Zie de ronde "Hersteld — Klaarzetten meldt een geweigerde
    thumbnail".
 
-0. **Gebouwd — Voorbeelden in de stijlkeuze (2026-11-20): lokaal
-   gecommit, nog niet gepusht.** Geen migratie. Open: na de push bij een eigen
+0. **Gebouwd — Voorbeelden in de stijlkeuze (2026-11-20): commit
+   `e700dbb`, lokaal, nog niet gepusht.** Geen migratie. Open: na de push bij een eigen
    stream Stijl openklappen en kiezen. Zie de ronde "Gebouwd — Voorbeelden in
    de stijlkeuze".
 
@@ -13059,7 +13059,7 @@ bekende ontbrekende pakketten na.
 
 ### Gebouwd — Voorbeelden in de stijlkeuze
 
-**2026-11-20, lokaal gecommit, nog niet gepusht. Geen migratie.**
+**2026-11-20, commit `e700dbb`, lokaal, nog niet gepusht. Geen migratie.**
 
 - **Waarom.** De eigenaar wilde dat leden zien hoe overlay en thumbnail
   eruitzien voordat ze een stijl kiezen. Akkoord op het voorstel: "Ja,
