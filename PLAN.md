@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Bijgesteld — Eventscan toont geen events uit het verleden (2026-11-20):
+   lokaal gecommit, niet gepusht.** Geen migratie. Open: na de deploy
+   `/beheer/event-scan` openen en nagaan dat alleen events van vandaag en later
+   staan. Zie de ronde "Bijgesteld — Eventscan toont geen events uit het
+   verleden".
+
 0. **Hersteld — Stream-hulp installeren op Windows: npm crashte (2026-11-19):
    gepusht naar `main` (`cabcf88a`).** Geen migratie. Open: het
    lid de `.bat` opnieuw laten draaien. Zie de ronde "Hersteld — Stream-hulp
@@ -12638,6 +12644,27 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Bijgesteld — Eventscan toont geen events uit het verleden
+
+**2026-11-20, lokaal gecommit, niet gepusht. Geen migratie.**
+
+- **Waarom.** Op `/beheer/event-scan` bleven alle concepten staan, ook van
+  events die allang voorbij waren. De lijst werd daardoor onoverzichtelijk.
+- **Gebouwd.** De pagina haalt alleen concepten op met `start_at` vanaf het
+  begin van vandaag (Europe/Amsterdam, via `amsterdamDateKey` en
+  `amsterdamWallTimeToIso`). Een event van vanochtend blijft dus tot middernacht
+  staan, zodat je het na afloop nog kunt publiceren of deelnemers kunt
+  toevoegen. De tellers "Concepten" en "Nog te beoordelen" tellen alleen wat
+  zichtbaar is.
+- **Bewust niet.** Oude concepten worden niet verwijderd: de scan en
+  `publishClubEvents` gebruiken de rij (met `published_event_id` of
+  `ignored_at`) om een event niet opnieuw op te voeren. Een gepubliceerd event
+  weggooien zou zo'n event bij de volgende scan als nieuw concept terugbrengen.
+  Geen knop "toon ook oude events": niemand vroeg erom, en gepubliceerde events
+  staan op de kalender.
+- **Getest.** `tsc --noEmit` en eslint op de pagina schoon. **Niet
+  geverifieerd:** de pagina zelf niet geopend (vraagt een beheerderslogin).
 
 ### Hersteld — Stream-hulp installeren op Windows: npm crashte
 

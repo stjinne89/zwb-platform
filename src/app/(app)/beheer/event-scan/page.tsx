@@ -24,6 +24,7 @@ import { adminAreaPermission } from "@/lib/admin-areas";
 import { getRequestAccess } from "@/lib/auth/request";
 import { ClubShortName } from "@/components/club-texts-provider";
 import { getClub } from "@/lib/club";
+import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -113,6 +114,11 @@ export default async function EventScanPage({ searchParams }: PageProps) {
   if (!access.user) redirect("/login");
   if (!access.has(adminAreaPermission("eventScan"))) redirect("/dashboard");
 
+  // Events van vóór vandaag verdwijnen uit de lijst; de rij blijft bestaan,
+  // zodat een volgende scan een gepubliceerd event niet opnieuw opvoert.
+  const todayStart =
+    amsterdamWallTimeToIso(amsterdamDateKey(), "00:00") ??
+    new Date().toISOString();
   const admin = createAdminClient();
   const [{ data, error }, { data: participantRows }] = await Promise.all([
     admin
@@ -120,6 +126,7 @@ export default async function EventScanPage({ searchParams }: PageProps) {
       .select(
         "id, source, external_id, external_url, title, start_at, distance_km, elevation_m, zwb_match_status, first_seen_at, last_seen_at, ignored_at, published_event_id, published_at",
       )
+      .gte("start_at", todayStart)
       .order("start_at", { ascending: true }),
     admin
       .from("external_event_participants")
