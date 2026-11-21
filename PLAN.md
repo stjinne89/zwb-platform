@@ -7,10 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Bandendruk op Vandaag (2026-11-21): lokaal gecommit
-   (`8db45876`), niet gepusht.** Migratie `0351_bike_tire_setups.sql` nog **niet** toegepast; dat
-   moet vóór de push. Open: de migratie, en daarna in de app een fiets invullen en de druk op Vandaag nakijken. Zie
-   de ronde "Gebouwd — Bandendruk op Vandaag".
+0. **Gebouwd — Bandendruk op Vandaag (2026-11-21): gepusht naar `main`
+   (`06c2e7fd`, `4a2c687e`, eigenaar: "Ja, toepassen en pushen").** Migratie
+   `0351_bike_tire_setups.sql` op 2026-11-21 vóór de push toegepast. Open: na
+   de deploy in Mijn garage een fiets invullen en opslaan, en de druk op Vandaag
+   nakijken. Zie de ronde "Gebouwd — Bandendruk op Vandaag".
 
 0. **Gebouwd — Rit inplannen: eerst duur en intensiteit, korte workouts
    aangevuld met duur (2026-11-21): gepusht naar `main` (`24345543`,
@@ -12738,8 +12739,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Bandendruk op Vandaag
 
-**2026-11-21, commit `8db45876` op `claude/bandendruk`, niet gepusht. Migratie
-`0351_bike_tire_setups.sql`, nog niet toegepast.** Op verzoek van de eigenaar:
+**2026-11-21, commits `06c2e7fd` en `4a2c687e` (privacy), gepusht naar `main`
+(eigenaar: "Ja, toepassen en pushen"). Migratie `0351_bike_tire_setups.sql` op
+2026-11-21 vóór de push op productie toegepast. Daarna nagekeken: de tabel is
+leeg, RLS staat aan, `anon` heeft geen rechten, en de with-check verwijst naar
+`bike_tire_setups.bike_id`.** Op verzoek van de eigenaar:
 naast eten en drinken zet je ook je materiaal klaar. Op Vandaag van ZWBeter
 staat daarom een inklapbaar blok **Bandendruk**: je kiest de fiets, het wegdek
 en of het nat is, en ziet de druk voor en achter in bar en psi. De wielen en
@@ -12784,10 +12788,9 @@ hoeft opnieuw te tekenen.
 **Geverifieerd:** unit-tests (`tests/unit/bandendruk.test.ts`, met een
 handberekening), typecheck en lint. In de browser op
 `/ontwerp-voorbeeld?scherm=bandendruk` bekeken op desktop- en telefoonbreedte,
-inclusief fiets wisselen. **Niet geverifieerd:** de migratie (geen lokale
-Supabase), opslaan in Mijn garage en het blok op Vandaag met een ingelogd lid.
-Zolang 0351 niet is toegepast, toont Mijn garage de startwaarden en mislukt
-opslaan.
+inclusief fiets wisselen. **Niet geverifieerd:** opslaan in Mijn garage en
+het blok op Vandaag met een ingelogd lid. De migratie is niet lokaal getest
+(geen lokale Supabase); alleen op productie toegepast en nagekeken.
 
 ### Gebouwd — Rit inplannen: eerst duur en intensiteit
 
