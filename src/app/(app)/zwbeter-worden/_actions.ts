@@ -86,6 +86,7 @@ import { encryptSecret } from "@/lib/crypto/secrets";
 import { canCoach } from "@/lib/training/coach-access";
 import { methodLabelOf } from "@/lib/training/method-label";
 import { ownWorkoutTemplates } from "@/lib/training/own-workouts";
+import { extendWithEndurance, extraEnduranceMinutes } from "@/lib/training/extend-workout";
 import { replanResultMessage } from "@/lib/training/coach-chat";
 import {
   addPreference,
@@ -1630,7 +1631,9 @@ const RIDE_EFFORTS: Record<string, WorkoutIntensity> = {
  * Een eigen rit of eigen training in het eigen schema zetten: een vast moment
  * waar de planner omheen werkt. Zonder bibliotheekworkout is het een vrij blok
  * zonder structuur — een afspraak, geen voorgeschreven training. Met een
- * template_id komt de workout uit de standaardbibliotheek, met zijn blokken.
+ * template_id komt de workout uit de standaardbibliotheek, met zijn blokken;
+ * is hij korter dan de gekozen duur, dan vult een duurblok de rest
+ * (extend-workout.ts). Die vulling rekent de server zelf uit.
  *
  * Gaat via de service-role omdat RLS leden geen writes op training_workouts
  * toestaat; de eigendomscheck staat daarom hier.
@@ -1648,6 +1651,7 @@ export async function planOwnRide(formData: FormData) {
     if (!kind) throw new Error("Ongeldig soort rit.");
     const note = optionalString(formData.get("note"));
     const templateId = optionalString(formData.get("template_id"));
+    const durationMinutes = Math.round(optionalNumber(formData.get("duration_minutes")) ?? 0);
 
     const plan = await activeBasePlan(admin, user.id);
     if (!plan) {
@@ -1666,23 +1670,32 @@ export async function planOwnRide(formData: FormData) {
     if (templateId && kind === RIDE_KINDS.eigen) {
       const { data } = await ownWorkoutTemplates(
         admin,
-        "title, description, duration_minutes, intensity, target_type, structure_json, method_label",
+        "form, title, description, duration_minutes, intensity, target_type, structure_json, method_label",
       )
         .eq("id", templateId)
         .maybeSingle();
       const template = data as unknown as Record<string, unknown> | null;
       if (!template) throw new Error("Workout niet gevonden in de bibliotheek.");
+      const templateMinutes = Number(template.duration_minutes);
+      const intensity = String(template.intensity) as WorkoutIntensity;
+      // Geen of een ongeldige duur: de workout houdt zijn eigen lengte.
+      const extra =
+        durationMinutes >= 15 && durationMinutes <= 480
+          ? extraEnduranceMinutes(String(template.form), templateMinutes, durationMinutes)
+          : 0;
       workout = {
-        title: String(template.title),
+        title: extra > 0 ? `${String(template.title)} + duur` : String(template.title),
         description: note ?? (template.description as string | null),
-        duration_minutes: Number(template.duration_minutes),
-        intensity: String(template.intensity),
+        duration_minutes: templateMinutes + extra,
+        intensity,
         target_type: String(template.target_type),
-        structure_json: template.structure_json,
+        structure_json:
+          extra > 0
+            ? extendWithEndurance(normalizeWorkoutBlocks(template.structure_json, intensity), extra)
+            : template.structure_json,
         method_label: methodLabelOf(template.method_label as string | null),
       };
     } else {
-      const durationMinutes = Math.round(optionalNumber(formData.get("duration_minutes")) ?? 0);
       if (durationMinutes < 15 || durationMinutes > 480) {
         throw new Error("Kies een duur tussen 15 en 480 minuten.");
       }

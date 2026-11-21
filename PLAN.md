@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Rit inplannen: eerst duur en intensiteit, korte workouts
+   aangevuld met duur (2026-11-21): lokaal gecommit, niet gepusht.** Geen
+   migratie. Open: in de browser nakijken (ingelogd) en daarna pushen. Zie de
+   ronde "Gebouwd — Rit inplannen: eerst duur en intensiteit".
+
 0. **Hersteld — Club Ladder: gecorrigeerde uitslag bleef oud op de eventpagina
    (2026-11-20): gepusht naar `main` (`7edb8c00`, eigenaar: "Yes, push").** Geen migratie.
    Open: na de deploy een sync draaien en op het event ZWBeasts – TeamNL
@@ -12724,6 +12729,69 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Rit inplannen: eerst duur en intensiteit
+
+**2026-11-21, lokaal gecommit (zie `git log -- src/lib/training/extend-workout.ts`),
+niet gepusht. Geen migratie.** Op vraag van een lid, via de eigenaar: bij een
+eigen training eerst de duur kiezen, dan de intensiteit, en dan kiezen uit een
+voorselectie die daarbij past. De eigenaar vulde aan dat een VO2max-training
+langer kan met een extra Z2-blok, om de gaten in de bibliotheek te dichten.
+
+**Waarom.** De oude volgorde liet eerst alle 50 workouts zien en pas daaronder
+duur en zwaarte. Wie wist hoeveel tijd hij had, moest zelf zoeken. De
+bibliotheek heeft bovendien gaten: VO2max loopt van 50 tot 82 minuten, drempel
+van 72 tot 103. Bij 2u30 VO2max paste er niets.
+
+**Wat er veranderde.**
+- `plan-ride-form.tsx`: volgorde Soort → Duur → Intensiteit → Workout →
+  Datum/starttijd → Notitie. Dat geldt voor beide soorten, zodat datum en
+  tijd steeds op dezelfde plek staan. Intensiteit toont de trainingsvormen
+  die in de bibliotheek voorkomen (Herstel, Duurtraining, Tempo, Sweet spot,
+  Drempel / FTP, VO2max, Anaeroob, Sprint). Bij Eigen training vervalt
+  Zwaarte; zonder gekozen workout volgt de zwaarte van het vrije blok uit de
+  intensiteit (herstel → rustig, duur → duur, tempo/sweet spot → tempo, de
+  rest → zwaar). Bij Eigen rit blijft Zwaarte. De Duur-balk blijft nu ook
+  staan als er een workout gekozen is, want hij stuurt de lijst.
+- `src/lib/training/extend-workout.ts` (nieuw, puur, getest in
+  `tests/unit/extend-workout.test.ts`):
+  - `ownWorkoutShortlist`: bij tempo, sweet spot, drempel, VO2max, anaeroob en
+    sprint alles wat binnen de duur past (tot 5 min erover), de langste eerst.
+    Past er niets, dan de kortste. Bij herstel en duur de vijf die het
+    dichtst bij de duur liggen.
+  - `extraEnduranceMinutes` en `extendWithEndurance`: het verschil met de
+    gekozen duur wordt een blok "Duur 60-70%" (het standaard-duurblok van de
+    bibliotheek), na de laatste serie en vóór de cooling-down. Alle 33
+    intervalworkouts in productie eindigen op "Cooling-down"; zonder
+    cooling-down komt het blok achteraan. Onder 10 minuten verschil komt er
+    niets bij.
+- `planOwnRide`: rekent de vulling zelf uit uit `template_id` en
+  `duration_minutes`, en neemt geen blokken van de client over. De titel
+  krijgt "+ duur", de duur wordt workout + vulling. Zonder geldige duur houdt
+  de workout zijn eigen lengte, zoals eerst.
+- `/hulp` (Schema → "Zelf een rit inplannen") beschrijft de nieuwe volgorde en
+  de vulling.
+
+**Bewust niet.**
+- **Inkorten.** Een workout die langer is dan de gekozen duur wordt niet
+  korter gemaakt, want dan valt er een interval weg en is het een andere
+  training.
+- **`resizeBlocks`** (bij "Duur aanpassen") hergebruiken. Die rekt
+  warming-up, herstel tussen de series en cooling-down naar verhouding op.
+  Bij 100 minuten extra krijg je dan een warming-up van een half uur en
+  herstel van tien minuten tussen de intervallen.
+- **Herstel en duur verlengen.** Die vormen hebben al genoeg lengtes
+  (duurtraining 60–240 min).
+- **De vulling over vóór en na de intervallen verdelen.** Als keuze
+  voorgelegd; de eigenaar koos voor één blok erna.
+
+**Niet geverifieerd.** Typecheck en ESLint op de gewijzigde bestanden: schoon.
+Unit-suite: alles groen behalve `club-texts-render` ("beheer noemt ZWB niet"),
+dat ook zonder deze ronde faalt (de Sauce-zin noemt "ZWB TTT-plan"), en een
+paar time-outs onder belasting die los slagen. **Niet in de browser
+bekeken** (de dev-server vanuit de worktree vraagt een inlog). Niet echt een
+verlengde workout ingepland, en niet nagekeken hoe het extra blok in
+intervals.icu landt.
 
 ### Gebouwd — Dashboard: workouttegel van een event linkt ook naar het event
 
@@ -34531,7 +34599,8 @@ workout uit de bibliotheek kunnen zijn.
   Nieuwe methode, duur, intensiteit, omschrijving en blokken), in een
   scrollvak, met per workout **Kies**. Niets gekozen is "zelf invullen"; nog een
   keer op **Gekozen** zet hem terug. Kies je een workout, dan verdwijnen Duur
-  en Zwaarte, en komt de workout met titel,
+  en Zwaarte (sinds 2026-11-21 niet meer: Duur staat bovenaan en stuurt de
+  lijst, zie "Gebouwd — Rit inplannen: eerst duur en intensiteit"), en komt de workout met titel,
   blokken, `target_type` en `method_label` in het schema. Hij blijft
   `origin: 'member'`, gaat naar intervals.icu en de herziening plant eromheen,
   net als een vrije rit.

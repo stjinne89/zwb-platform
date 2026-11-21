@@ -2,8 +2,10 @@
 
 // Een rit of training die het lid zelf vastlegt. Clubritten en wedstrijden
 // lopen via de kalender (EventChoice). Een eigen training kan een workout uit
-// de bibliotheek zijn; anders is het een vrij blok zonder structuur. Het schema
-// plant er daarna omheen.
+// de bibliotheek zijn: eerst duur, dan intensiteit, dan een workout die erbij
+// past (extend-workout.ts vult een korte intervaltraining aan met duur).
+// Anders is het een vrij blok zonder structuur. Het schema plant er daarna
+// omheen.
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -11,8 +13,13 @@ import { CalendarPlus } from "lucide-react";
 import { EvidenceBadge } from "@/components/evidence-badge";
 import { MethodLabelBadge } from "@/components/method-label-badge";
 import { Button } from "@/components/ui/button";
+import {
+  extendWithEndurance,
+  extraEnduranceMinutes,
+  ownWorkoutShortlist,
+} from "@/lib/training/extend-workout";
 import { TRAINING_FORMS } from "@/lib/training/training-forms";
-import { INTENSITY_LABELS } from "@/lib/training/workouts";
+import { INTENSITY_LABELS, type WorkoutIntensity } from "@/lib/training/workouts";
 import type { OwnWorkoutOption } from "@/lib/training/own-workouts";
 import { planOwnRide } from "../_actions";
 import { AdjustTodayLink } from "./adjust-today-link";
@@ -33,6 +40,14 @@ const EFFORTS = [
   { value: "tempo", label: "Tempo" },
   { value: "zwaar", label: "Zwaar" },
 ] as const;
+
+/** Zwaarte van een vrij blok bij een eigen training zonder gekozen workout. */
+function effortFor(intensity: WorkoutIntensity) {
+  if (intensity === "recovery") return "rustig";
+  if (intensity === "endurance") return "duur";
+  if (intensity === "tempo") return "tempo";
+  return "zwaar";
+}
 
 const MIN_MINUTES = 15;
 const MAX_MINUTES = 480;
@@ -59,6 +74,7 @@ export function PlanRideForm({
   const [kind, setKind] = useState<string>("rit");
   const [templateId, setTemplateId] = useState("");
   const [effort, setEffort] = useState<string>("duur");
+  const [formSlug, setFormSlug] = useState("duur");
   const [duration, setDuration] = useState(90);
   const [date, setDate] = useState(todayKey);
   const [saving, setSaving] = useState(false);
@@ -76,12 +92,14 @@ export function PlanRideForm({
   });
 
   const busy = saving || poll.pending;
-  const workout =
-    kind === "eigen" ? (workouts.find((option) => option.id === templateId) ?? null) : null;
-  const workoutGroups = TRAINING_FORMS.map((form) => ({
-    ...form,
-    items: workouts.filter((option) => option.form === form.slug),
-  })).filter((form) => form.items.length > 0);
+  const formChoices = TRAINING_FORMS.filter((form) =>
+    workouts.some((option) => option.form === form.slug),
+  );
+  // Zonder bibliotheek blijft een eigen training een vrij blok met Zwaarte.
+  const byForm = kind === "eigen" && formChoices.length > 0;
+  const activeForm = formChoices.find((form) => form.slug === formSlug) ?? formChoices[0];
+  const shortlist = byForm ? ownWorkoutShortlist(workouts, activeForm.slug, duration) : [];
+  const workout = shortlist.find((option) => option.id === templateId) ?? null;
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -91,7 +109,7 @@ export function PlanRideForm({
 
     const formData = new FormData(event.currentTarget);
     formData.set("kind", kind);
-    formData.set("effort", effort);
+    formData.set("effort", byForm ? effortFor(activeForm.intensity) : effort);
     formData.set("duration_minutes", String(duration));
     if (workout) formData.set("template_id", workout.id);
 
@@ -176,66 +194,132 @@ export function PlanRideForm({
         </div>
       </div>
 
-      {kind === "eigen" && workoutGroups.length > 0 ? (
+      <div>
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Duur
+          </span>
+          <span className="text-sm tabular-nums">{minutesLabel(duration)}</span>
+        </div>
+        <input
+          type="range"
+          min={MIN_MINUTES}
+          max={MAX_MINUTES}
+          step={5}
+          value={duration}
+          onChange={(event) => setDuration(Number(event.target.value))}
+          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+        />
+      </div>
+
+      {byForm ? (
+        <>
+          <div>
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Intensiteit
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {formChoices.map((form) => (
+                <button
+                  key={form.slug}
+                  type="button"
+                  onClick={() => {
+                    setFormSlug(form.slug);
+                    setTemplateId("");
+                  }}
+                  className={`rounded-md border px-3 py-1.5 text-sm transition ${
+                    activeForm.slug === form.slug
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "bg-background hover:border-primary/40"
+                  }`}
+                >
+                  {form.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Workout
+            </span>
+            {/* Zelfde weergave als de workout-bibliotheek bij de trainer. */}
+            <ul className="max-h-[28rem] divide-y overflow-y-auto rounded-md border bg-background/60">
+              {shortlist.map((option) => {
+                const chosen = option.id === templateId;
+                const extra = extraEnduranceMinutes(option.form, option.durationMinutes, duration);
+                return (
+                  <li key={option.id} className={`p-3 ${chosen ? "bg-primary/10" : ""}`}>
+                    <div className="grid gap-2 lg:grid-cols-[1fr_auto] lg:items-center">
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-medium">{option.title}</p>
+                          {option.support ? (
+                            <Link
+                              href={`/zwbeter-worden/kennis/${option.support.slug}`}
+                              title={option.support.title}
+                              className="rounded-full transition hover:opacity-80"
+                            >
+                              <EvidenceBadge evidence={option.support.evidence} />
+                            </Link>
+                          ) : null}
+                          <MethodLabelBadge label={option.methodLabel} />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {extra > 0
+                            ? `${option.durationMinutes} + ${extra} min duur`
+                            : `${option.durationMinutes} min`}
+                          {" · "}
+                          {INTENSITY_LABELS[option.intensity] ?? option.intensity}
+                          {option.description ? ` · ${option.description}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        aria-pressed={chosen}
+                        onClick={() => setTemplateId(chosen ? "" : option.id)}
+                        className={`justify-self-start rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                          chosen
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "hover:bg-accent"
+                        }`}
+                      >
+                        {chosen ? "Gekozen" : "Kies"}
+                      </button>
+                    </div>
+                    <WorkoutBlocks
+                      blocks={extendWithEndurance(option.blocks, extra)}
+                      ftpWatts={ftpWatts}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </>
+      ) : (
         <div>
           <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Workout
+            Zwaarte
           </span>
-          {/* Zelfde weergave als de workout-bibliotheek bij de trainer. */}
-          <div className="max-h-[28rem] space-y-4 overflow-y-auto rounded-md border bg-background/60 p-3">
-            {workoutGroups.map((form) => (
-              <section key={form.slug}>
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {form.label}
-                </h4>
-                <ul className="mt-2 divide-y rounded-md border">
-                  {form.items.map((option) => {
-                    const chosen = option.id === templateId;
-                    return (
-                      <li key={option.id} className={`p-3 ${chosen ? "bg-primary/10" : ""}`}>
-                        <div className="grid gap-2 lg:grid-cols-[1fr_auto] lg:items-center">
-                          <div className="min-w-0">
-                            <div className="flex min-w-0 flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-medium">{option.title}</p>
-                              {option.support ? (
-                                <Link
-                                  href={`/zwbeter-worden/kennis/${option.support.slug}`}
-                                  title={option.support.title}
-                                  className="rounded-full transition hover:opacity-80"
-                                >
-                                  <EvidenceBadge evidence={option.support.evidence} />
-                                </Link>
-                              ) : null}
-                              <MethodLabelBadge label={option.methodLabel} />
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              {option.durationMinutes} min · {INTENSITY_LABELS[option.intensity] ?? option.intensity}
-                              {option.description ? ` · ${option.description}` : ""}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            aria-pressed={chosen}
-                            onClick={() => setTemplateId(chosen ? "" : option.id)}
-                            className={`justify-self-start rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                              chosen
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "hover:bg-accent"
-                            }`}
-                          >
-                            {chosen ? "Gekozen" : "Kies"}
-                          </button>
-                        </div>
-                        <WorkoutBlocks blocks={option.blocks} ftpWatts={ftpWatts} />
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
+          <div className="flex flex-wrap gap-1.5">
+            {EFFORTS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setEffort(option.value)}
+                className={`rounded-md border px-3 py-1.5 text-sm transition ${
+                  effort === option.value
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "bg-background hover:border-primary/40"
+                }`}
+              >
+                {option.label}
+              </button>
             ))}
           </div>
         </div>
-      ) : null}
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
@@ -259,50 +343,6 @@ export function PlanRideForm({
           <input name="time" type="time" defaultValue="09:00" className={FIELD} />
         </label>
       </div>
-
-      {workout ? null : (
-        <>
-          <div>
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Duur
-              </span>
-              <span className="text-sm tabular-nums">{minutesLabel(duration)}</span>
-            </div>
-            <input
-              type="range"
-              min={MIN_MINUTES}
-              max={MAX_MINUTES}
-              step={5}
-              value={duration}
-              onChange={(event) => setDuration(Number(event.target.value))}
-              className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
-            />
-          </div>
-
-          <div>
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Zwaarte
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {EFFORTS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setEffort(option.value)}
-                  className={`rounded-md border px-3 py-1.5 text-sm transition ${
-                    effort === option.value
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "bg-background hover:border-primary/40"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
 
       <label className="block text-sm">
         <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
