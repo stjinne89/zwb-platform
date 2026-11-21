@@ -8,8 +8,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Rit inplannen: eerst duur en intensiteit, korte workouts
-   aangevuld met duur (2026-11-21): lokaal gecommit, niet gepusht.** Geen
-   migratie. Open: in de browser nakijken (ingelogd) en daarna pushen. Zie de
+   aangevuld met duur (2026-11-21): lokaal gecommit (`d4fbb559`), niet
+   gepusht.** Geen migratie. In de browser nagekeken. Open: pushen, en na de
+   deploy één verlengde workout echt inplannen en in intervals.icu bekijken. Zie de
    ronde "Gebouwd — Rit inplannen: eerst duur en intensiteit".
 
 0. **Hersteld — Club Ladder: gecorrigeerde uitslag bleef oud op de eventpagina
@@ -12732,8 +12733,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Rit inplannen: eerst duur en intensiteit
 
-**2026-11-21, lokaal gecommit (zie `git log -- src/lib/training/extend-workout.ts`),
-niet gepusht. Geen migratie.** Op vraag van een lid, via de eigenaar: bij een
+**2026-11-21, lokaal gecommit (`d4fbb559`), niet gepusht. Geen migratie.** Op vraag van een lid, via de eigenaar: bij een
 eigen training eerst de duur kiezen, dan de intensiteit, en dan kiezen uit een
 voorselectie die daarbij past. De eigenaar vulde aan dat een VO2max-training
 langer kan met een extra Z2-blok, om de gaten in de bibliotheek te dichten.
@@ -12788,10 +12788,19 @@ van 72 tot 103. Bij 2u30 VO2max paste er niets.
 **Niet geverifieerd.** Typecheck en ESLint op de gewijzigde bestanden: schoon.
 Unit-suite: alles groen behalve `club-texts-render` ("beheer noemt ZWB niet"),
 dat ook zonder deze ronde faalt (de Sauce-zin noemt "ZWB TTT-plan"), en een
-paar time-outs onder belasting die los slagen. **Niet in de browser
-bekeken** (de dev-server vanuit de worktree vraagt een inlog). Niet echt een
-verlengde workout ingepland, en niet nagekeken hoe het extra blok in
-intervals.icu landt.
+paar time-outs onder belasting die los slagen.
+
+**In de browser bekeken** (dev-server vanuit de worktree, ingelogd, 800 px en
+375 px). VO2max bij 2u30 geeft alle acht workouts, van "82 + 68 min duur" tot
+"50 + 100 min duur", met het duurblok vóór de cooling-down in de balk en de
+wattages. VO2max bij 30 min geeft alleen 4x4 aflopend (50 min). Duurtraining
+bij 2u30 geeft de vijf dichtstbijzijnde; drempel bij 75 min geeft 2x20, 3x12
+en 4x8. Zwaarte staat niet meer bij Eigen training. Geen horizontale scroll,
+geen fouten in de console.
+
+**Niet geverifieerd.** Niet echt een verlengde workout ingepland (dat schrijft
+in het eigen schema en start een herziening op productie), en dus ook niet
+nagekeken hoe het extra blok in intervals.icu landt.
 
 ### Gebouwd — Dashboard: workouttegel van een event linkt ook naar het event
 
