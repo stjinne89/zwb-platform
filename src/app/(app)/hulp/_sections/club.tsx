@@ -6,6 +6,7 @@ import {
   Trophy,
   ChartNoAxesColumn,
   CheckCircle2,
+  Gauge,
   Grid3x3,
   Wrench,
 } from "lucide-react";
@@ -639,6 +640,60 @@ export function ClubHelp() {
                 <span>
                   Vervangen? Klik op <strong className="text-foreground">Vervangen</strong>;
                   de teller begint dan opnieuw vanaf de huidige stand.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article id="bandendruk" className="scroll-mt-20 rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Gauge className="size-4 text-primary" />
+              Bandendruk
+            </h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Vul in Mijn garage bij een fiets{" "}
+                  <strong className="text-foreground">Wielen en banden</strong> in. Op
+                  Vandaag van <ModuleName module="training" /> klap je dan{" "}
+                  <strong className="text-foreground">Bandendruk</strong> open, kies je
+                  de fiets en het wegdek en zie je de druk voor en achter.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  De berekening volgt de regel van Frank Berto: een band staat goed
+                  als hij onder je gewicht 15 % inzakt. Daarvoor tellen je gewicht
+                  uit je profiel, het gewicht van de fiets en de breedte van de band.
+                  Iets minder dan de helft van dat gewicht rust op het voorwiel, dus
+                  voor is de druk lager.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Meet je band op de velg met een schuifmaat en vul de{" "}
+                  <strong className="text-foreground">gemeten</strong> breedte in. Op
+                  een brede velg is een band vaak een paar millimeter breder dan er
+                  op staat.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Slecht asfalt, klinkers, onverhard, tubeless en nat wegdek zetten de
+                  druk wat lager. Dat zijn vuistregels van <ClubShortName />, geen
+                  meting: voelt het zwammig of slaat de band door, pomp dan bij.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Bij hookless velgen gaan we niet boven 5 bar. Staat er op je band
+                  of velg een lager maximum, vul dat in; daar blijft de uitkomst
+                  onder. Bij <em>maximum</em> onder de uitkomst is de druk afgekapt.
                 </span>
               </li>
             </ul>

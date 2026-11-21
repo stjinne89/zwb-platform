@@ -1,11 +1,17 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-20)
+## Actieve volgorde (bijgewerkt 2026-11-21)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Gebouwd — Bandendruk op Vandaag (2026-11-21): lokaal gecommit, niet
+   gepusht.** Migratie `0351_bike_tire_setups.sql` nog **niet** toegepast; dat
+   moet vóór de push. Open: de privacytekst (concept bij de eigenaar), de migratie,
+   en daarna in de app een fiets invullen en de druk op Vandaag nakijken. Zie
+   de ronde "Gebouwd — Bandendruk op Vandaag".
 
 0. **Gebouwd — Rit inplannen: eerst duur en intensiteit, korte workouts
    aangevuld met duur (2026-11-21): gepusht naar `main` (`24345543`,
@@ -12730,6 +12736,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Bandendruk op Vandaag
+
+**2026-11-21, lokaal gecommit op `claude/bandendruk` (zie
+`git log -- src/lib/materiaal/bandendruk.ts`), niet gepusht. Migratie
+`0351_bike_tire_setups.sql`, nog niet toegepast.** Op verzoek van de eigenaar:
+naast eten en drinken zet je ook je materiaal klaar. Op Vandaag van ZWBeter
+staat daarom een inklapbaar blok **Bandendruk**: je kiest de fiets, het wegdek
+en of het nat is, en ziet de druk voor en achter in bar en psi. De wielen en
+banden vul je per fiets in Mijn garage in. Eerst ging er een voorstel naar
+de eigenaar, die op de vraag over wielsets "Ja, één wielset" antwoordde.
+
+- **Rekenregel** (`src/lib/materiaal/bandendruk.ts`, puur): de 15 %-inzakking van
+  Berto, via een regressie op zijn lijnen, met 45 % van renner plus fiets op het
+  voorwiel. Correcties voor wegdek, tubeless en nat zijn aannames van ZWB.
+  Hookless wordt afgekapt op 5 bar, en het lid kan een eigen maximum opgeven.
+  Onderbouwing en onzekerheden staan in [docs/bandendruk.md](docs/bandendruk.md).
+- **Datamodel** (0351): `bike_tire_setups`, één rij per fiets met `bike_id` als
+  sleutel en cascade vanaf `strava_bikes`. RLS op de eigenaar. De with-check
+  eist bovendien dat de fiets van jou is, anders kon een vreemde rij de eigenaar
+  buitensluiten. Het lichaamsgewicht komt uit `profiles.weight_kg`.
+- **Mijn garage**: per fiets (niet gearchiveerd, niet indoor) een inklapbaar
+  **Wielen en banden** met breedte voor en achter, gemeten breedte, type,
+  fietsgewicht, max. druk en hookless. Elke fiets heeft nu een anker
+  `#fiets-<id>`, waar de link op Vandaag naartoe gaat.
+- **Vandaag**: het blok staat onder de voedingskaart. Het verschijnt niet als
+  de garagemodule uit staat of als je geen buitenfiets hebt. De laatst gekozen
+  fiets onthoudt de browser. Zonder gewicht of zonder setup toont het alleen de
+  link om dat in te vullen.
+- **Hulp**: het artikel "Bandendruk" (`/hulp#bandendruk`) onder Mijn fietsen en
+  onderhoud. `/ontwerp-voorbeeld?scherm=bandendruk` toont het blok en het
+  formulier met voorbeelddata.
+
+**Bewust niet.** Meerdere wielsets per fiets (keuze eigenaar). Wegdek afleiden
+uit de gekozen buitenroute: de routes kennen hun ondergrond niet betrouwbaar
+genoeg. Nat uit een weerbericht: er is geen weerbron. Bidons en tas meetellen:
+een paar kilo verandert de druk nauwelijks. Koppelen aan de onderdelen
+Voorband en Achterband: die hebben geen breedte. Velgbreedte en wielmaat zaten
+in het voorstel, maar staan niet in het formulier: de formule gebruikt ze niet,
+en een gemeten bandbreedte is beter dan een schatting uit de velg.
+
+**Privacy.** Het gewicht wordt nu ook voor de bandendruk gebruikt. Er is een
+concepttekst voor de privacyverklaring (alinea "Wielen en banden", naast
+"Zwift-fietsen") aan de eigenaar voorgelegd. Die staat nog **niet** in de
+code.
+
+**Geverifieerd:** unit-tests (`tests/unit/bandendruk.test.ts`, met een
+handberekening), typecheck en lint. In de browser op
+`/ontwerp-voorbeeld?scherm=bandendruk` bekeken op desktop- en telefoonbreedte,
+inclusief fiets wisselen. **Niet geverifieerd:** de migratie (geen lokale
+Supabase), opslaan in Mijn garage en het blok op Vandaag met een ingelogd lid.
+Zolang 0351 niet is toegepast, toont Mijn garage de startwaarden en mislukt
+opslaan.
 
 ### Gebouwd — Rit inplannen: eerst duur en intensiteit
 

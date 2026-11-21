@@ -32,13 +32,27 @@ import { RecentBekersList } from "../(app)/dashboard/_components/recent-bekers";
 import { FitnessTile } from "../(app)/dashboard/_components/training-status";
 import { MemberResultTiles } from "../(app)/dashboard/_components/member-results";
 import { ZWBEKERS_VOORBEELD } from "./zwbekers-voorbeeld";
+import { BandendrukCard } from "../(app)/zwbeter-worden/materiaal/_components/bandendruk-card";
+import { TireSetupForm } from "../(app)/mijn-garage/_components/tire-setup-form";
+import { standaardSetup } from "@/lib/materiaal/bandendruk";
 
 // De schermen van de app met voorbeelddata, zonder login. Alleen bij lokaal
 // ontwikkelen: in productie bestaat deze pagina niet. Bedoeld om het uiterlijk
 // te controleren zonder de productiedatabase; met echte data kijk je in de app
 // zelf.
 
-const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "weekoverzicht", "bokaal", "inloggen"] as const;
+const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "weekoverzicht", "bokaal", "bandendruk", "inloggen"] as const;
+
+// Bandendruk: een racefiets die is ingevuld, een gravelfiets die nog leeg is.
+const BANDENDRUK_FIETSEN = [
+  {
+    id: "b1",
+    label: "Canyon Aeroad",
+    discipline: "race",
+    setup: { ...standaardSetup("race"), achterGemetenMm: 29.5, voorGemetenMm: 29.5, bandType: "tubeless" as const, hookless: true },
+  },
+  { id: "b2", label: "Gravelfiets", discipline: "gravel", setup: null },
+];
 
 // Een jaar met alles erin: een lopend blok dat bijna afloopt, een vakantie waar
 // nog trainingen in staan, een kamp, lege maanden en een A-doel ver weg.
@@ -108,7 +122,14 @@ export default async function OntwerpVoorbeeldPage({
   return (
     <TegelsShell actions={<ThemeToggle />}>
       <div className="space-y-6">
-        {scherm === "bokaal" ? (
+        {scherm === "bandendruk" ? (
+          <div className="space-y-4">
+            <BandendrukCard fietsen={BANDENDRUK_FIETSEN} renKg={74} />
+            <BandendrukCard fietsen={BANDENDRUK_FIETSEN} renKg={null} />
+            <TireSetupForm bikeId="b1" setup={BANDENDRUK_FIETSEN[0].setup!} saved />
+            <TireSetupForm bikeId="b2" setup={standaardSetup("gravel")} saved={false} />
+          </div>
+        ) : scherm === "bokaal" ? (
           <BokaalShell active="/voorzpwelbokaal">
             <BokaalBoard races={BOKAAL_RACES} placed={BOKAAL_PLACED} answers={BOKAAL_ANSWERS} joined balance={8} now={BOKAAL_NOW} />
           </BokaalShell>

@@ -20,6 +20,13 @@ import { loadTips, pickTip } from "@/lib/maintenance/tips";
 import { ComponentForm, type FormBike } from "./_components/component-form";
 import { ComponentActions } from "./_components/component-actions";
 import { BikeControls } from "./_components/bike-controls";
+import { TireSetupForm } from "./_components/tire-setup-form";
+import {
+  TIRE_SETUP_COLUMNS,
+  setupFromRow,
+  standaardSetup,
+  type TireSetupRow,
+} from "@/lib/materiaal/bandendruk";
 
 type BikeRow = {
   id: string;
@@ -96,7 +103,7 @@ export default async function MijnGaragePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: bikes }, { data: components }] = await Promise.all([
+  const [{ data: bikes }, { data: components }, { data: tireSetups }] = await Promise.all([
     supabase
       .from("strava_bikes")
       .select(
@@ -112,7 +119,11 @@ export default async function MijnGaragePage() {
       .eq("profile_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: true }),
+    supabase.from("bike_tire_setups").select(TIRE_SETUP_COLUMNS).eq("profile_id", user.id),
   ]);
+  const setupByBike = new Map(
+    ((tireSetups ?? []) as TireSetupRow[]).map((row) => [row.bike_id, setupFromRow(row)]),
+  );
 
   const header = (
     <PageHeader
@@ -182,7 +193,7 @@ export default async function MijnGaragePage() {
         const discipline = bikeDiscipline(b);
         const list = byBike.get(b.id) ?? [];
         return (
-          <section key={b.id}>
+          <section key={b.id} id={`fiets-${b.id}`} className="scroll-mt-20">
             <SectionHeader
               icon={b.image_url ? undefined : Bike}
               title={
@@ -212,6 +223,13 @@ export default async function MijnGaragePage() {
                 />
               }
             />
+            {!b.retired && discipline !== "indoor" && (
+              <TireSetupForm
+                bikeId={b.id}
+                setup={setupByBike.get(b.id) ?? standaardSetup(discipline)}
+                saved={setupByBike.has(b.id)}
+              />
+            )}
             {list.length === 0 ? (
               <EmptyState>Nog geen onderdelen voor deze fiets.</EmptyState>
             ) : (

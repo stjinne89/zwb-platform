@@ -8,6 +8,7 @@ import {
   resolveThreshold,
   type Discipline,
 } from "@/lib/maintenance/component-types";
+import { MAX_BREEDTE_MM, MIN_BREEDTE_MM, isBandType } from "@/lib/materiaal/bandendruk";
 
 const GARAGE_PATH = "/mijn-garage";
 
@@ -222,5 +223,69 @@ export async function setManualDistance(bikeId: string, km: number) {
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath(GARAGE_PATH);
+  return { ok: true as const };
+}
+
+function optionalMm(value: FormDataEntryValue | null): number | null | "ongeldig" {
+  if (String(value ?? "").trim() === "") return null;
+  const n = parseNumber(value);
+  return n !== null && n >= MIN_BREEDTE_MM && n <= MAX_BREEDTE_MM ? n : "ongeldig";
+}
+
+/** Wielen en banden van één fiets, voor de bandendruk op Vandaag. */
+export async function saveTireSetup(bikeId: string, formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const front = optionalMm(formData.get("front_width_mm"));
+  const rear = optionalMm(formData.get("rear_width_mm"));
+  const frontMeasured = optionalMm(formData.get("front_measured_mm"));
+  const rearMeasured = optionalMm(formData.get("rear_measured_mm"));
+  if (front === null || rear === null || front === "ongeldig" || rear === "ongeldig") {
+    return { ok: false as const, error: `Bandbreedte tussen ${MIN_BREEDTE_MM} en ${MAX_BREEDTE_MM} mm.` };
+  }
+  if (frontMeasured === "ongeldig" || rearMeasured === "ongeldig") {
+    return { ok: false as const, error: `Gemeten breedte tussen ${MIN_BREEDTE_MM} en ${MAX_BREEDTE_MM} mm.` };
+  }
+  const tireType = String(formData.get("tire_type") ?? "");
+  if (!isBandType(tireType)) return { ok: false as const, error: "Kies een bandtype." };
+  const bikeKg = parseNumber(formData.get("bike_kg"));
+  if (bikeKg === null || bikeKg < 3 || bikeKg > 40) {
+    return { ok: false as const, error: "Fietsgewicht tussen 3 en 40 kg." };
+  }
+  const maxRaw = String(formData.get("max_bar") ?? "").trim();
+  const maxBar = maxRaw === "" ? null : parseNumber(maxRaw);
+  if (maxRaw !== "" && (maxBar === null || maxBar < 1 || maxBar > 12)) {
+    return { ok: false as const, error: "Maximale druk tussen 1 en 12 bar." };
+  }
+
+  const { data: bike } = await supabase
+    .from("strava_bikes")
+    .select("id")
+    .eq("id", bikeId)
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  if (!bike) return { ok: false as const, error: "Fiets niet gevonden." };
+
+  const { error } = await supabase.from("bike_tire_setups").upsert({
+    bike_id: bikeId,
+    profile_id: user.id,
+    front_width_mm: front,
+    rear_width_mm: rear,
+    front_measured_mm: frontMeasured,
+    rear_measured_mm: rearMeasured,
+    tire_type: tireType,
+    hookless: formData.get("hookless") === "on",
+    bike_kg: bikeKg,
+    max_bar: maxBar,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(GARAGE_PATH);
+  revalidatePath("/zwbeter-worden");
   return { ok: true as const };
 }

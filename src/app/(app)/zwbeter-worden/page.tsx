@@ -26,6 +26,7 @@ import { AdjustTodayForm } from "./_components/adjust-today-form";
 import { CoreTodayCard } from "./core/_components/core-today-card";
 import { ProtocolTodayCard } from "./_components/protocols/protocol-today-card";
 import { NutritionTodayCard } from "./voeding/_components/nutrition-today-card";
+import { BandendrukTodayCard } from "./materiaal/_components/bandendruk-today-card";
 import { plannedSessions, ridesOnDay } from "@/lib/nutrition/recipes";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { RecoveryCard } from "./_components/recovery-card";
@@ -431,6 +432,8 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
           wellnessState: zwbStatus.recoverySummary?.state ?? null,
         }}
       />
+
+      <BandendrukTodayCard viewer={viewer} />
 
       <AdjustTodayForm initialOpen={paramString(params.aanpassen) === "1"} />
 

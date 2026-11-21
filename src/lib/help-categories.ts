@@ -66,6 +66,7 @@ export const HELP_CATEGORIES = [
       "clubverhaal",
       "mijn-statistieken",
       "mijn-garage",
+      "bandendruk",
     ],
     legacy: ["club"],
   },
