@@ -8,8 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Rit inplannen: eerst duur en intensiteit, korte workouts
-   aangevuld met duur (2026-11-21): lokaal gecommit (`d4fbb559`), niet
-   gepusht.** Geen migratie. In de browser nagekeken. Open: pushen, en na de
+   aangevuld met duur (2026-11-21): gepusht naar `main` (`24345543`,
+   eigenaar: "Push to main").** Geen migratie. In de browser nagekeken. Open: na de
    deploy één verlengde workout echt inplannen en in intervals.icu bekijken. Zie de
    ronde "Gebouwd — Rit inplannen: eerst duur en intensiteit".
 
@@ -12733,7 +12733,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Rit inplannen: eerst duur en intensiteit
 
-**2026-11-21, lokaal gecommit (`d4fbb559`), niet gepusht. Geen migratie.** Op vraag van een lid, via de eigenaar: bij een
+**2026-11-21, gepusht naar `main` (`24345543`, eigenaar: "Push to main"). Geen migratie.** Op vraag van een lid, via de eigenaar: bij een
 eigen training eerst de duur kiezen, dan de intensiteit, en dan kiezen uit een
 voorselectie die daarbij past. De eigenaar vulde aan dat een VO2max-training
 langer kan met een extra Z2-blok, om de gaten in de bibliotheek te dichten.
