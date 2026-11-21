@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Bandendruk op Vandaag (2026-11-21): lokaal gecommit, niet
-   gepusht.** Migratie `0351_bike_tire_setups.sql` nog **niet** toegepast; dat
+0. **Gebouwd — Bandendruk op Vandaag (2026-11-21): lokaal gecommit
+   (`8db45876`), niet gepusht.** Migratie `0351_bike_tire_setups.sql` nog **niet** toegepast; dat
    moet vóór de push. Open: de privacytekst (concept bij de eigenaar), de migratie,
    en daarna in de app een fiets invullen en de druk op Vandaag nakijken. Zie
    de ronde "Gebouwd — Bandendruk op Vandaag".
@@ -12739,8 +12739,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Bandendruk op Vandaag
 
-**2026-11-21, lokaal gecommit op `claude/bandendruk` (zie
-`git log -- src/lib/materiaal/bandendruk.ts`), niet gepusht. Migratie
+**2026-11-21, commit `8db45876` op `claude/bandendruk`, niet gepusht. Migratie
 `0351_bike_tire_setups.sql`, nog niet toegepast.** Op verzoek van de eigenaar:
 naast eten en drinken zet je ook je materiaal klaar. Op Vandaag van ZWBeter
 staat daarom een inklapbaar blok **Bandendruk**: je kiest de fiets, het wegdek
