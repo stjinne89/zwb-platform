@@ -9,8 +9,7 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Bandendruk op Vandaag (2026-11-21): lokaal gecommit
    (`8db45876`), niet gepusht.** Migratie `0351_bike_tire_setups.sql` nog **niet** toegepast; dat
-   moet vóór de push. Open: de privacytekst (concept bij de eigenaar), de migratie,
-   en daarna in de app een fiets invullen en de druk op Vandaag nakijken. Zie
+   moet vóór de push. Open: de migratie, en daarna in de app een fiets invullen en de druk op Vandaag nakijken. Zie
    de ronde "Gebouwd — Bandendruk op Vandaag".
 
 0. **Gebouwd — Rit inplannen: eerst duur en intensiteit, korte workouts
@@ -12776,10 +12775,11 @@ Voorband en Achterband: die hebben geen breedte. Velgbreedte en wielmaat zaten
 in het voorstel, maar staan niet in het formulier: de formule gebruikt ze niet,
 en een gemeten bandbreedte is beter dan een schatting uit de velg.
 
-**Privacy.** Het gewicht wordt nu ook voor de bandendruk gebruikt. Er is een
-concepttekst voor de privacyverklaring (alinea "Wielen en banden", naast
-"Zwift-fietsen") aan de eigenaar voorgelegd. Die staat nog **niet** in de
-code.
+**Privacy.** Het gewicht wordt nu ook voor de bandendruk gebruikt. In de
+privacyverklaring staat daarvoor een nieuwe alinea "Wielen en banden", naast
+"Zwift-fietsen". De eigenaar keurde de tekst goed ("Ja, opnemen"). Het gaat om
+gegevens die het lid al opgaf, dus er komt geen nieuwe privacyversie en niemand
+hoeft opnieuw te tekenen.
 
 **Geverifieerd:** unit-tests (`tests/unit/bandendruk.test.ts`, met een
 handberekening), typecheck en lint. In de browser op

@@ -328,6 +328,13 @@ export default function PrivacyPage() {
             aan of maakt hem leeg op dezelfde plek.
           </li>
           <li>
+            <strong>Wielen en banden:</strong> vul je bij Mijn garage per fiets je
+            bandbreedte, bandtype, velgtype, fietsgewicht en maximale druk in, dan
+            bewaren we die om op Vandaag je bandendruk uit te rekenen. Daarin telt
+            ook het gewicht uit je profiel. Alleen jij ziet deze gegevens; je past ze
+            aan op dezelfde plek, en ze verdwijnen als de fiets verdwijnt.
+          </li>
+          <li>
             <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
             gebruiken we die om de porties in het receptenboek op jou af te
             stemmen en om in je pacingplan voor een Zwift-event je luchtweerstand
