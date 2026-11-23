@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Bijgesteld — Trainingsruimte opent alleen herstel (2026-11-23): lokaal, nog
-   niet gecommit of gepusht.** Geen migratie. Zie de ronde met dezelfde naam.
+0. **Bijgesteld — Trainingsruimte opent alleen herstel (2026-11-23): gepusht naar
+   `main` (`1af24d17`, eigenaar: "Ja, push naar main").** Geen migratie. Zie de ronde met dezelfde naam.
 
 0. **Bijgesteld — Vandaag: Trainingsruimte opent herstel en grafiek
    (2026-11-23): gepusht naar `main` (`84737312`, eigenaar: "Ja, push naar main").** Geen migratie. Open: op
@@ -12803,7 +12803,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Bijgesteld — Trainingsruimte opent alleen herstel
 
-**2026-11-23, lokaal, nog niet gecommit (hash invullen bij de commit). Geen
+**2026-11-23, gepusht naar `main` (`1af24d17`, eigenaar: "Ja, push naar main"). Geen
 migratie.** De eigenaar zag na de deploy dat de grafiek van CTL en Form meeopende
 met Trainingsruimte en wilde dat niet.
 
