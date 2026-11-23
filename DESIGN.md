@@ -523,9 +523,25 @@ Section-typografie, zonder pictogram en zonder lijn eronder, 10px boven de
 inhoud.
 
 ### Pijlers en categorieën (`tg-pillar`)
-De vier ZWBeter-pijlers zijn teal vlakken van minstens 76px hoog met de naam
-onderin; de actieve volgt de Hierregel. Op `/beheer` zijn de categorieën
-pijlers in de kleur van hun soort (`tg-pillar-tone`).
+De ZWBeter-pijlers (vijf, voor een trainer zes) zijn teal vlakken van minstens
+76px hoog met de naam onderin; de actieve volgt de Hierregel. Op `/beheer` zijn
+de categorieën pijlers in de kleur van hun soort (`tg-pillar-tone`).
+
+### ZWBeter Vandaag
+Eén dagkaart bovenaan, daaronder hooguit drie groepen met een sectiekop:
+**Klaar voor de rit**, **Ook vandaag** en **Hoe je ervoor staat**. De dagstaat
+(`vandaagDay`) bepaalt de vorm van de kaart en de volgorde van de groepen:
+
+- **Training of race:** de kaart volgt de Hierregel, daarna rit, ook, stand.
+- **Gereden of rust:** een korte kaart met een rij naar de volgende training,
+  daarna stand, ook.
+- **Later of leeg:** een gewone kaart, daarna ook, stand.
+
+Op de kaart staat wat je nodig hebt om te rijden. De blokken met watt blijven
+open; Zwift, buiten rijden en "Waarom dit schema" zijn ingeklapt, tenzij je al
+een Zwift-event of route koos. Een groep zonder inhoud verbergt zichzelf. Een
+kaart heeft één hoofdknop: bij een race is dat "Naar het event" en wordt "Pas
+vandaag aan" een outline-knop.
 
 ### Lijstlinks en tweede menurij (`tg-link`, `tg-subnav`)
 Een link in een lijst (races, opgeslagen plannen) of een tab onder de pijlers

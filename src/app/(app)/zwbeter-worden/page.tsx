@@ -1,19 +1,13 @@
 import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
-import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
-import { ZwiftEventSuggestions } from "./_components/zwift-event-suggestions";
-import { OutdoorRouteSuggestions } from "./_components/outdoor-route-suggestions";
-import { Suspense } from "react";
+import { Calendar, Mountain, ShieldCheck } from "lucide-react";
+import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { InlineMoreLink } from "@/components/app-ui";
+import { SectionHeader } from "@/components/app-ui";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestUser } from "@/lib/auth/request";
 import { Power } from "@/components/power-unit";
 import { StravaAttribution } from "@/components/strava-brand";
-import {
-  normalizeWorkoutBlocks,
-  plannedWorkoutIntensity,
-  type WorkoutIntensity,
-} from "@/lib/training/workouts";
+import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { amsterdamDayKey, eftpTrend } from "@/lib/training/zwbeterworden";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
 import { PROJECTION_DAYS, scheduleProjection } from "@/lib/training/load-projection";
@@ -22,7 +16,14 @@ import {
   suggestSegmentsForBlock,
   type SegmentCandidate,
 } from "@/lib/training/segment-suggestions";
-import { AdjustTodayForm } from "./_components/adjust-today-form";
+import {
+  hasRideToday,
+  hasTrainingAhead,
+  showsTirePressure,
+  vandaagDay,
+  vandaagSections,
+  type VandaagSection,
+} from "@/lib/training/vandaag-day";
 import { CoreTodayCard } from "./core/_components/core-today-card";
 import { ProtocolTodayCard } from "./_components/protocols/protocol-today-card";
 import { NutritionTodayCard } from "./voeding/_components/nutrition-today-card";
@@ -30,29 +31,20 @@ import { BandendrukTodayCard } from "./materiaal/_components/bandendruk-today-ca
 import { plannedSessions, ridesOnDay } from "@/lib/nutrition/recipes";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { RecoveryCard } from "./_components/recovery-card";
+import { TodayCard, type TodayHub } from "./_components/today-card";
 import { TrainingLoadMetrics } from "./_components/training-load-chart";
-import { PlanCautions } from "./_components/plan-cautions";
 import { MetricCard } from "./_components/ui";
-import { WorkoutBlocks, WorkoutTitle, eventWorkoutBlocks } from "./_components/workout-blocks";
-import { RaceWarmupControl } from "./_components/race-warmup-control";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  isUpcomingRace,
-  loadWarmupOptions,
-  raceWarmupView,
-  warmupRaceId,
-} from "@/lib/training/race-warmup";
+import { isUpcomingRace, loadWarmupOptions, raceWarmupView } from "@/lib/training/race-warmup";
 import {
   eFTPDeltaLabel,
-  formatDayMonth,
   formatHours,
   formatKm,
   formatMeters,
-  formatSegmentTime,
   loadSummary,
 } from "./_components/format";
 import { WorkoutReviewDialog, type PendingReview } from "./_components/workout-review-dialog";
-import { paramString, publishStatusLabel } from "./_components/format";
+import { paramString } from "./_components/format";
 import type { SearchParamsProp, SegmentRow, StravaActivityRow } from "./_components/types";
 import {
   externalIntervalsEvents,
@@ -72,7 +64,6 @@ import {
   upcomingIntervalsEvents,
   zwbStatusFor,
 } from "./_data";
-import { ClubShortName } from "@/components/club-texts-provider";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -168,22 +159,20 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
         ? "FTP uit je profiel"
         : "Nog geen eFTP bekend";
 
-  // Toon workouts van VANDAAG of later. Vergelijk op datum (Amsterdam), niet op
-  // exact tijdstip — anders verdwijnt de training van vandaag zodra de klok het
-  // geplande uur voorbij is.
-  const upcomingWorkouts = memberWorkouts.filter(
-    (workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey,
-  );
-  // Een rustdag telt niet als eerstvolgende workout, en een warming-up ook niet:
-  // die staat bij zijn race.
-  const nextZwbWorkout =
-    upcomingWorkouts.find((workout) => workout.status !== "skipped" && !warmupRaceId(workout)) ??
-    null;
+  const ftpWatts = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
+
   // Zonder deze filter concurreert een gepubliceerde ZWB-workout met zijn eigen
   // intervals.icu-event om de plek van "eerstvolgende workout".
   const nextIntervalsEvent =
     upcomingIntervalsEvents(externalIntervalsEvents(snapshot.events, memberWorkouts), 1)[0] ??
     null;
+  // Wat voor dag het is bepaalt de hele indeling hieronder (2026-11-23).
+  const day = vandaagDay(
+    memberWorkouts,
+    todayKey,
+    nextIntervalsEvent ? String(nextIntervalsEvent.start_date_local).slice(0, 10) : null,
+  );
+  const nextZwbWorkout = day.open ?? day.next;
   const nextWorkout =
     nextZwbWorkout && nextIntervalsEvent
       ? new Date(nextZwbWorkout.scheduled_at).getTime() <=
@@ -195,6 +184,10 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
         : nextIntervalsEvent
           ? { kind: "intervals" as const, event: nextIntervalsEvent }
           : null;
+  // De training waar de kaart helemaal over gaat. Is de dag klaar, dan staat de
+  // volgende alleen als rij en horen er geen routes of segmenten bij.
+  const cardWorkout =
+    hasTrainingAhead(day.state) && nextWorkout?.kind === "zwb" ? nextWorkout.workout : null;
 
   // Segmenten die bij het zwaarste blok van de eerstvolgende workout passen.
   const riddenSegments: SegmentCandidate[] = ((segmentRows ?? []) as SegmentRow[]).flatMap(
@@ -214,15 +207,11 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
       ];
     },
   );
-  const hardestBlock =
-    nextWorkout?.kind === "zwb"
-      ? normalizeWorkoutBlocks(
-          nextWorkout.workout.structure_json,
-          nextWorkout.workout.intensity as WorkoutIntensity,
-        )
-          .filter((block) => block.intensity !== "rest" && block.intensity !== "recovery")
-          .sort((a, b) => b.durationMinutes - a.durationMinutes)[0]
-      : null;
+  const hardestBlock = cardWorkout
+    ? normalizeWorkoutBlocks(cardWorkout.structure_json, cardWorkout.intensity as WorkoutIntensity)
+        .filter((block) => block.intensity !== "rest" && block.intensity !== "recovery")
+        .sort((a, b) => b.durationMinutes - a.durationMinutes)[0]
+    : null;
   const segmentSuggestions = hardestBlock
     ? suggestSegmentsForBlock(hardestBlock, riddenSegments)
     : [];
@@ -231,211 +220,179 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   // Dat antwoord stond alleen in de samenvatting van het schema, waar niemand
   // kijkt. Zie plan-cautions.tsx: bedoeld om mee te kijken zolang we leren hoe
   // streng de opbouwregels uitpakken.
-  const planCautions =
-    nextWorkout?.kind === "zwb" && nextWorkout.workout.plan_id
-      ? planCautionsFromSummary(planSummaries.get(nextWorkout.workout.plan_id))
-      : [];
+  const planCautions = cardWorkout?.plan_id
+    ? planCautionsFromSummary(planSummaries.get(cardWorkout.plan_id))
+    : [];
 
   // Vandaag is de hub van de dag. De Zwift-events en buitenrondjes bij de
   // eerstvolgende training staan daarom hier in plaats van in het schema
   // (besluit eigenaar, 2026-10-12).
-  const hubWorkout = nextWorkout?.kind === "zwb" ? nextWorkout.workout : null;
-  const [hubZwift, hubOutdoor] = hubWorkout
+  const [hubZwift, hubOutdoor] = cardWorkout
     ? await Promise.all([
-        loadZwiftSuggestionViews(viewer, [hubWorkout]),
-        loadOutdoorSuggestionViews(viewer, [hubWorkout]),
+        loadZwiftSuggestionViews(viewer, [cardWorkout]),
+        loadOutdoorSuggestionViews(viewer, [cardWorkout]),
       ])
     : [null, null];
+  const cardIsRace = cardWorkout?.intensity === "race";
+  const hub: TodayHub | null =
+    cardWorkout && hubZwift && hubOutdoor
+      ? {
+          workoutId: cardWorkout.id,
+          // Een race rijd je niet als Zwift-event uit de voorstellen; een eerder
+          // gekozen event blijft wel staan.
+          zwiftMatches: cardIsRace ? [] : (hubZwift.suggestions.get(cardWorkout.id) ?? []),
+          zwiftChosen: hubZwift.chosen.get(cardWorkout.id) ?? null,
+          routes: hubOutdoor.routes.get(cardWorkout.id) ?? [],
+          startPoints: hubOutdoor.startPoints,
+          outdoor: !cardIsRace,
+        }
+      : null;
+
+  // Het advies staat bij de training die eraan komt; is de dag klaar, dan bij je
+  // herstel. Alleen voor wie herstel-data deelt, zoals op de herstelkaart.
+  const cardAdvice =
+    hasTrainingAhead(day.state) &&
+    conn?.wellness_opt_in &&
+    zwbStatus.recoverySummary &&
+    advice.level > 0
+      ? advice
+      : null;
+  const adjustOpen = paramString(params.aanpassen) === "1";
+
+  const tires = showsTirePressure(day.state) ? <BandendrukTodayCard viewer={viewer} /> : null;
+  const core = (
+    <CoreTodayCard
+      viewer={viewer}
+      today={todayKey}
+      context={{
+        hasPlannedWorkoutToday: memberWorkouts.some(
+          (workout) =>
+            String(workout.scheduled_at).slice(0, 10) === todayKey &&
+            workout.status !== "skipped",
+        ),
+        rodeToday: activities.some(
+          (activity) => amsterdamDayKey(new Date(activity.start_date)) === todayKey,
+        ),
+      }}
+    />
+  );
+  const protocols = <ProtocolTodayCard viewer={viewer} today={todayKey} />;
+  const nutrition = (
+    <NutritionTodayCard
+      viewer={viewer}
+      today={todayKey}
+      day={{
+        ...plannedSessions(memberWorkouts, todayKey),
+        ridesToday: ridesOnDay(activities, todayKey),
+        readinessState: zwbStatus.readiness.state,
+        wellnessState: zwbStatus.recoverySummary?.state ?? null,
+      }}
+    />
+  );
+
+  const sections: Record<VandaagSection, ReactNode> = {
+    rit: (
+      <TodayGroup key="rit" title="Klaar voor de rit">
+        {nutrition}
+        {tires}
+        {core}
+      </TodayGroup>
+    ),
+    ook: (
+      <TodayGroup key="ook" title="Ook vandaag">
+        {hasRideToday(day.state) ? (
+          protocols
+        ) : (
+          <>
+            {nutrition}
+            {core}
+            {protocols}
+            {tires}
+          </>
+        )}
+      </TodayGroup>
+    ),
+    stand: (
+      <TodayGroup key="stand" title="Hoe je ervoor staat">
+        {!conn && day.state !== "leeg" ? <ConnectIntervalsForm /> : null}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <TrainingLoadMetrics
+            points={loadPoints}
+            ctl={zwbStatus.ctl}
+            tsb={zwbStatus.tsb}
+            today={todayKey}
+            projection={scheduleProjection({ today: todayKey, points: loadPoints, planned: plannedLoads })}
+          />
+          <MetricCard
+            icon={ShieldCheck}
+            label="Trainingsruimte"
+            value={zwbStatus.readiness.score != null ? `${zwbStatus.readiness.score}` : "-"}
+            hint={advice.title}
+          />
+          <MetricCard
+            icon={Mountain}
+            label="eFTP"
+            value={eftpValue ? <Power watts={eftpValue} /> : "-"}
+            hint={eftpHint}
+          />
+          <MetricCard
+            icon={Calendar}
+            label="7 dagen totaal"
+            className="col-span-2 md:col-span-1"
+            value={formatKm(totals7.distance)}
+            hint={
+              activities.length > 0
+                ? `${activities.length} ritten - ${formatHours(totals7.time)} - ${formatMeters(totals7.elevation)}`
+                : "Nog geen recente Strava-ritten"
+            }
+          />
+        </div>
+        {conn && (
+          <RecoveryCard
+            optIn={Boolean(conn.wellness_opt_in)}
+            summary={zwbStatus.recoverySummary}
+            advice={cardAdvice ? null : advice}
+            lastWellnessDay={lastWellnessDayOf(snapshot.wellness)}
+          />
+        )}
+      </TodayGroup>
+    ),
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       {snapshot.fetchError && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {snapshot.fetchError}
         </p>
       )}
 
-      {!conn && <ConnectIntervalsForm />}
+      {!conn && day.state === "leeg" ? <ConnectIntervalsForm /> : null}
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <TrainingLoadMetrics
-          points={loadPoints}
-          ctl={zwbStatus.ctl}
-          tsb={zwbStatus.tsb}
-          today={todayKey}
-          projection={scheduleProjection({ today: todayKey, points: loadPoints, planned: plannedLoads })}
-        />
-        <MetricCard
-          icon={ShieldCheck}
-          label="Trainingsruimte"
-          value={zwbStatus.readiness.score != null ? `${zwbStatus.readiness.score}` : "-"}
-          hint={advice.title}
-        />
-        <MetricCard
-          icon={Mountain}
-          label="eFTP"
-          value={eftpValue ? <Power watts={eftpValue} /> : "-"}
-          hint={eftpHint}
-        />
-        <MetricCard
-          icon={Calendar}
-          label="7 dagen totaal"
-          className="col-span-2 md:col-span-1"
-          value={formatKm(totals7.distance)}
-          hint={
-            activities.length > 0
-              ? `${activities.length} ritten - ${formatHours(totals7.time)} - ${formatMeters(totals7.elevation)}`
-              : "Nog geen recente Strava-ritten"
-          }
-        />
-      </section>
-
-      {conn && (
-        <RecoveryCard
-          optIn={Boolean(conn.wellness_opt_in)}
-          summary={zwbStatus.recoverySummary}
-          advice={advice}
-          lastWellnessDay={lastWellnessDayOf(snapshot.wellness)}
-        />
-      )}
-
-      {nextWorkout && (
-        <section className="rounded-lg border bg-card p-5">
-          <h2 className="flex items-center gap-2 font-semibold">
-            <ClipboardList className="size-5 text-primary" />
-            Eerstvolgende workout
-          </h2>
-          {nextWorkout.kind === "zwb" ? (
-            <div className="mt-4">
-              <div className="grid gap-2 sm:grid-cols-[120px_1fr_auto] sm:items-center">
-                <span className="text-sm text-muted-foreground">
-                  {formatDayMonth(nextWorkout.workout.scheduled_at)}
-                </span>
-                <div className="min-w-0">
-                  <WorkoutTitle workout={nextWorkout.workout} athleteId={conn?.athlete_id} />
-                  <p className="text-xs text-muted-foreground">
-                    <ClubShortName />-schema - {nextWorkout.workout.duration_minutes} min -{" "}
-                    {plannedWorkoutIntensity(nextWorkout.workout, profile?.ftp_watts ?? null).label}
-                  </p>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {publishStatusLabel(nextWorkout.workout.publish_status)}
-                </span>
-              </div>
-              <WorkoutBlocks
-                blocks={normalizeWorkoutBlocks(
-                  nextWorkout.workout.structure_json,
-                  nextWorkout.workout.intensity as WorkoutIntensity,
-                )}
-                ftpWatts={profile?.ftp_watts}
-                variant="preview"
-              />
-              {hubWorkout && hubZwift && hubOutdoor ? (
-                // grid-cols-1 en niet het kale raster: zonder minmax(0, 1fr) rekt de
-                // kolom op tot de breedste regel en schuift de pagina op de telefoon
-                // zijwaarts.
-                <div className="mt-4 grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
-                  <ZwiftEventSuggestions
-                    workoutId={hubWorkout.id}
-                    matches={hubZwift.suggestions.get(hubWorkout.id) ?? []}
-                    chosen={hubZwift.chosen.get(hubWorkout.id) ?? null}
-                  />
-                  <OutdoorRouteSuggestions
-                    workoutId={hubWorkout.id}
-                    routes={hubOutdoor.routes.get(hubWorkout.id) ?? []}
-                    startPoints={hubOutdoor.startPoints}
-                  />
-                </div>
-              ) : null}
-              {isUpcomingRace(nextWorkout.workout, todayKey) ? (
-                <div className="mt-3">
-                  <RaceWarmupControl
-                    raceWorkoutId={nextWorkout.workout.id}
-                    warmup={raceWarmupView(nextWorkout.workout, memberWorkouts, warmupOptions)}
-                  />
-                </div>
-              ) : null}
-              <PlanCautions items={planCautions} />
-              {/* De "Let op"-regels vertellen wát er is besloten; de vervolgvraag
-                  hoort hier te kunnen beginnen en niet doodlopen. */}
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-                {nextWorkout.workout.event_id ? (
-                  <InlineMoreLink href={`/events/${nextWorkout.workout.event_id}`}>Naar het event</InlineMoreLink>
-                ) : null}
-                <InlineMoreLink href="/zwbeter-worden/coach">Vraag je coach</InlineMoreLink>
-              </div>
-              {segmentSuggestions.length > 0 ? (
-                <div className="mt-4 border-t pt-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Segmenten voor het zware blok
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {segmentSuggestions.map((segment) => (
-                      <span key={segment.slug} className="rounded-full border px-3 py-1 text-xs">
-                        {segment.name}
-                        <span className="ml-1.5 text-muted-foreground tabular-nums">
-                          {formatSegmentTime(segment.estimatedSeconds)}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="mt-4">
-              <div className="grid gap-2 sm:grid-cols-[120px_1fr_auto] sm:items-center">
-                <span className="text-sm text-muted-foreground">
-                  {formatDayMonth(nextWorkout.event.start_date_local)}
-                </span>
-                <p className="truncate font-medium">{nextWorkout.event.name ?? "Workout"}</p>
-                <span className="text-sm tabular-nums text-muted-foreground">
-                  {nextWorkout.event.icu_training_load
-                    ? `${Math.round(nextWorkout.event.icu_training_load)} TSS`
-                    : "intervals.icu"}
-                </span>
-              </div>
-              <WorkoutBlocks
-                blocks={eventWorkoutBlocks(nextWorkout.event)}
-                ftpWatts={profile?.ftp_watts}
-                variant="preview"
-              />
-            </div>
-          )}
-        </section>
-      )}
-
-      <CoreTodayCard
-        viewer={viewer}
+      <TodayCard
+        state={day.state}
+        upcoming={nextWorkout}
+        closed={day.closed}
         today={todayKey}
-        context={{
-          hasPlannedWorkoutToday: memberWorkouts.some(
-            (workout) =>
-              String(workout.scheduled_at).slice(0, 10) === todayKey &&
-              workout.status !== "skipped",
-          ),
-          rodeToday: activities.some(
-            (activity) => amsterdamDayKey(new Date(activity.start_date)) === todayKey,
-          ),
+        ftpWatts={ftpWatts}
+        athleteId={conn?.athlete_id}
+        advice={cardAdvice}
+        cautions={planCautions}
+        hub={hub}
+        warmup={
+          cardWorkout && isUpcomingRace(cardWorkout, todayKey)
+            ? raceWarmupView(cardWorkout, memberWorkouts, warmupOptions)
+            : null
+        }
+        segments={segmentSuggestions}
+        adjust={{
+          show: hasTrainingAhead(day.state) || adjustOpen,
+          initialOpen: adjustOpen,
+          canRest: day.open != null,
         }}
       />
 
-      <ProtocolTodayCard viewer={viewer} today={todayKey} />
-
-      <NutritionTodayCard
-        viewer={viewer}
-        today={todayKey}
-        day={{
-          ...plannedSessions(memberWorkouts, todayKey),
-          ridesToday: ridesOnDay(activities, todayKey),
-          readinessState: zwbStatus.readiness.state,
-          wellnessState: zwbStatus.recoverySummary?.state ?? null,
-        }}
-      />
-
-      <BandendrukTodayCard viewer={viewer} />
-
-      <AdjustTodayForm initialOpen={paramString(params.aanpassen) === "1"} />
+      {vandaagSections(day.state).map((section) => sections[section])}
 
       <Suspense fallback={null}>
         <PendingReviewDialog review={pendingReviewPromise} />
@@ -443,5 +400,16 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
 
       <StravaAttribution />
     </div>
+  );
+}
+
+// De kaarten bepalen zelf of ze iets te tonen hebben; blijft de groep leeg, dan
+// verdwijnt ook de kop.
+function TodayGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="has-[>div:empty]:hidden">
+      <SectionHeader title={title} />
+      <div className="space-y-3">{children}</div>
+    </section>
   );
 }

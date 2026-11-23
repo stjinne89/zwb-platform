@@ -31,7 +31,8 @@ export function WellnessOptInToggle({
       <Button
         type="button"
         size="sm"
-        variant={optIn ? "default" : "outline"}
+        variant="outline"
+        className="min-h-11"
         disabled={pending}
         onClick={toggle}
       >

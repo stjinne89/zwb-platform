@@ -1,5 +1,6 @@
 // De tip zelf, gedeeld door de Vandaag-kaart en de voedingspagina.
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { BookOpen, ChevronRight, Utensils } from "lucide-react";
 import type { NutritionTip as Tip } from "@/lib/nutrition/tips";
@@ -9,17 +10,22 @@ export function NutritionTip({
   tip,
   recipe,
   titleHref,
+  children,
 }: {
   tip: Tip;
   recipe: Recipe | null;
   /** Op Vandaag linkt de titel door naar de voedingspagina. */
   titleHref?: string;
+  /** Wat bij de tip hoort, zoals het ritplan: in dezelfde kaart. */
+  children?: ReactNode;
 }) {
+  // Op Vandaag staat de kaart onder een groepskop.
+  const Heading = titleHref ? "h3" : "h2";
   const title = (
-    <h2 className="flex items-center gap-2 font-semibold">
+    <Heading className="flex items-center gap-2 font-semibold">
       <Utensils className="size-5 text-primary" />
       {tip.title}
-    </h2>
+    </Heading>
   );
 
   return (
@@ -34,6 +40,7 @@ export function NutritionTip({
         )}
         <p className="mt-1 text-sm text-muted-foreground">{tip.body}</p>
       </div>
+      {children ? <div className="border-t p-5">{children}</div> : null}
       {recipe ? (
         <Link
           href={`/zwbeter-worden/voeding/recepten/${recipe.slug}`}

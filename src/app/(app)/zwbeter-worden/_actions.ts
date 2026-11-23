@@ -921,7 +921,9 @@ export async function markTodayRestDay(formData: FormData) {
       .gte("scheduled_at", `${today}T00:00:00`)
       .lt("scheduled_at", `${today}T23:59:59`)
       .order("scheduled_at", { ascending: true });
-    const workout = (workouts ?? []).find((row) => row.status !== "skipped");
+    // Alleen een open training: wie 's ochtends reed en 's avonds rust neemt, houdt
+    // de gereden training.
+    const workout = (workouts ?? []).find((row) => row.status === "planned");
     if (!workout) {
       return { ok: false as const, error: "Er staat vandaag geen training gepland." };
     }

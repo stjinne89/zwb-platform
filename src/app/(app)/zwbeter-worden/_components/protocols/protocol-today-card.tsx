@@ -27,10 +27,10 @@ export async function ProtocolTodayCard({ viewer, today }: { viewer: Viewer; tod
 
   return (
     <section className="space-y-2 rounded-lg border bg-card p-5">
-      <h2 className="flex items-center gap-2 font-semibold">
+      <h3 className="flex items-center gap-2 font-semibold">
         <ListChecks className="size-5 text-primary" />
         Lopende protocollen
-      </h2>
+      </h3>
       {items.map(({ run, protocol }) => {
         const progress = runProgress(protocol, run, today);
         return (

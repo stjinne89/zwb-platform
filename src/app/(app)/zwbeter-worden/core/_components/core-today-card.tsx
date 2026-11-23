@@ -55,10 +55,10 @@ export async function CoreTodayCard({
         className="flex min-h-[44px] items-center justify-between gap-3 rounded-lg p-5 hover:bg-accent/40"
       >
         <div className="min-w-0">
-          <h2 className="flex items-center gap-2 font-semibold">
+          <h3 className="flex items-center gap-2 font-semibold">
             <Dumbbell className="size-5 text-primary" />
             {suggestion.title}
-          </h2>
+          </h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {doneToday
               ? "Vandaag al gedaan."

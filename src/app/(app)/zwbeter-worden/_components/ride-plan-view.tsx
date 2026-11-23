@@ -226,8 +226,11 @@ export function RidePlanView({
   plan: initial,
   log,
   controls,
+  embedded = false,
 }: {
   plan: RidePlan;
+  /** Binnen een andere kaart, dus zonder eigen vlak. */
+  embedded?: boolean;
   /** Boven de bidonkeuze, zoals de knop en de schuifjes bij een event. */
   controls?: ReactNode;
   /** "Gegeten" onder het plan: legt de gekozen bidons en porties vast. */
@@ -240,7 +243,7 @@ export function RidePlanView({
   const choose = (holder: 0 | 1, ml: BidonMl) =>
     setHolders((current) => (holder === 0 ? [ml, current[1]] : [current[0], ml]));
   return (
-    <div className="space-y-3 rounded-lg border bg-card p-4">
+    <div className={embedded ? "space-y-3" : "space-y-3 rounded-lg border bg-card p-4"}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h4 className="flex items-center gap-2 text-sm font-semibold">
           <Bike className="size-4 text-primary" />

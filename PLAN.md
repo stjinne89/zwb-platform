@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Omgebouwd — ZWBeter Vandaag: volgorde en dagstaten (2026-11-23): lokaal,
+   nog niet gecommit of gepusht.** Geen migratie. Open: na de push de echte
+   pagina nakijken op de telefoon, op een dag met training en op een dag die
+   al gereden is. Zie de ronde "Omgebouwd — ZWBeter Vandaag".
+
 0. **Gebouwd — Teamindeling en Racefit voor ZRL A en C (2026-11-23):
    gepusht naar `main` (`c3eaa397`, eigenaar: "je mag dit gelijk committen en pushen naar main").** Geen migratie. Lokaal ingelogd bekeken tegen productiedata. Open:
    één keer echt indelen op A of C, en beslissen of een opstelling van meer dan
@@ -5867,7 +5872,8 @@ lid, ook buiten de kalender")*
 >   afwisseling.
 > - *ZWBeter Vandaag als hub (na de push, nog niet op main).* In dit design
 >   staan de Zwift-events en de buitenrondjes bij de eerstvolgende training op
->   ZWBeter Vandaag, naast elkaar onder de blokken van die training. In het
+>   ZWBeter Vandaag, op de dagkaart van die training (sinds 2026-11-23
+>   ingeklapt onder "Op Zwift of buiten", open als je er al een koos). In het
 >   schema zijn ze in dit design weggehaald (`MemberWorkoutCalendar` kreeg
 >   `suggestions`). Het huidige design toont ze nog in het schema. Ze horen bij
 >   de eerstvolgende training, ook als die niet vandaag is.
@@ -12760,6 +12766,58 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Omgebouwd — ZWBeter Vandaag: volgorde en dagstaten
+
+**2026-11-23, lokaal op de branch `claude/zwbeter-vandaag-layout-d3678a`, nog
+niet gecommit (hash invullen bij de commit). Geen migratie.** De eigenaar vond de
+volgorde op `/zwbeter-worden` niet meer logisch nu er zoveel op staat, en koos
+uit het voorstel "Volgorde en dagstaten".
+
+- **Waarom.** De pagina toonde elke dag dezelfde stapel. De training begon op de
+  telefoon pas na zo'n 1.400px, een gereden training bleef "eerstvolgende", en
+  een rustdag kreeg de ritvoorbereiding.
+- **Dagstaat.** `src/lib/training/vandaag-day.ts` leidt uit het schema af wat
+  voor dag het is: `training`, `race`, `gereden`, `rust`, `later` of `leeg`. Een
+  open training gaat voor alles, zodat wie 's ochtends reed en 's avonds nog een
+  training heeft niet "klaar" is. Warming-ups tellen niet mee.
+- **Indeling.** Eén dagkaart (`today-card.tsx`) met daaronder **Klaar voor de
+  rit**, **Ook vandaag** en **Hoe je ervoor staat**, in een volgorde per
+  dagstaat. Na de rit of op een rustdag komt de stand eerst en verdwijnt de
+  bandendruk.
+- **Op de dagkaart.** De training, het advies (niveau 1 en 2 boven de blokken,
+  anders een regel eronder), de aanpasknop en ingeklapt Zwift/buiten en "Waarom
+  dit schema". Het ritplan zit in de voedingskaart. De herstelwaarden staan
+  achter één regel en klappen vanzelf open als er waarden ontbreken.
+- **FTP (besluit eigenaar).** De blokken blijven op de profiel-FTP rekenen. Die
+  waarde staat nu bij de training; eFTP blijft de trend.
+- **Bug meegenomen.** `markTodayRestDay` pakte de eerste training van de dag,
+  ook als die al gereden was. Hij zoekt nu een open training, zodat een gereden
+  rit op een dag met twee trainingen niet vervalt.
+- **Bewust niet gedaan.**
+  - De segmentkeuze pakt nog het langste blok en niet het zwaarste: dat is
+    rekenwerk en geen indeling.
+  - Adviesteksten en de drie schalen (Trainingsruimte, Readiness, Niveau) zijn
+    ongewijzigd, ook al kan "FRIS GENOEG" naast een negatieve Form staan. Dat
+    vraagt een eigen inhoudelijke keuze.
+  - De bevroren `fatigued`-tekst in "Waarom dit schema" is alleen ingeklapt,
+    omdat de oorzaak in de opgeslagen schema-samenvatting zit.
+  - De ZWBeter-pijlers en het submenu blijven zoals ze zijn, omdat die op alle
+    ZWBeter-pagina's staan.
+  - De blokken met watt blijven open: dat is kerninformatie om te rijden.
+  - Rustdag krijgt geen bevestigingsstap, afgekapte blokbreedtes ("5...") en
+    kleine tikdoelen binnen de Zwift- en routeonderdelen zijn niet aangepakt.
+- **Gecontroleerd.** Typecheck, ESLint op de gewijzigde onderdelen en `next
+  build` zijn schoon. Van de 4.900 tests faalden er twee in de volledige run:
+  `club-texts-render` ("beheer noemt ZWB niet") faalt ook op een schone `main`,
+  en `admin-areas` slaagt los gedraaid. De dagstaten en het lage advies zijn
+  nagelopen met een tijdelijke proefpagina met voorbeelddata, die weer is
+  verwijderd. Op 375px zijn ze bekeken, behalve `later`: daarvan is alleen de
+  opbouw in de HTML gecontroleerd.
+- **Niet lokaal te verifiëren.** De echte pagina met echte gegevens is niet
+  bekeken, want lokaal is er geen login. Core, protocollen en bandendruk waren
+  in de proef stand-ins. Een net gereden training kan pas bij de volgende
+  paginalaad als "gereden" tonen, omdat de detectie naast het laden draait.
+
 ### Gebouwd — Teamindeling en Racefit voor ZRL A en C
 
 **2026-11-23, gepusht naar `main` (`c3eaa397`, eigenaar: "je mag dit gelijk committen en pushen naar main"). Geen migratie.**
@@ -12874,7 +12932,9 @@ de eigenaar, die op de vraag over wielsets "Ja, één wielset" antwoordde.
   **Wielen en banden** met breedte voor en achter, gemeten breedte, type,
   fietsgewicht, max. druk en hookless. Elke fiets heeft nu een anker
   `#fiets-<id>`, waar de link op Vandaag naartoe gaat.
-- **Vandaag**: het blok staat onder de voedingskaart. Het verschijnt niet als
+- **Vandaag**: het blok staat op een dag met een rit onder de voedingskaart en
+  anders in "Ook vandaag"; na de rit of op een rustdag staat het er niet
+  (bijgewerkt 2026-11-23). Het verschijnt ook niet als
   de garagemodule uit staat of als je geen buitenfiets hebt. De laatst gekozen
   fiets onthoudt de browser. Zonder gewicht of zonder setup toont het alleen de
   link om dat in te vullen.
@@ -30741,7 +30801,8 @@ terug te klikken is naar dat event. Een training uit een clubevent droeg al
   **Naar het event** naast Download FIT en intervals.icu.
 - Lijstweergave van `/zwbeter-worden/schema`: dezelfde knop, ook als de training
   nog niet naar intervals.icu is gezet.
-- ZWBeter Vandaag, Eerstvolgende workout: **Naar het event** naast Vraag je coach.
+- ZWBeter Vandaag, Eerstvolgende workout: **Naar het event** naast Vraag je coach
+  (sinds 2026-11-23 bij een race de hoofdknop van de dagkaart).
 - `/hulp/schema` noemt de knop bij Clubevents in je schema; "zeg je af bij de
   events" werd "bij het event zelf".
 
@@ -43408,9 +43469,10 @@ Niet de duur was het probleem, maar dat de redenering onvindbaar was.
 cautions (elk met "Let op: " ervoor) zijn samengevoegd. `plan-summary.ts` haalt
 ze er weer uit — en gebruikt hetzelfde `CAUTION_PREFIX` dat
 `createPlanFromAiGeneration()` bij het samenstellen gebruikt, zodat het formaat
-op één plek staat. De Vandaag-pagina toont ze onder de blokken van de
-eerstvolgende workout, op `plan_id` van díe workout: een herziening draagt haar
-eigen cautions, en dat is de generatie die deze dag heeft bepaald.
+op één plek staat. De Vandaag-pagina toont ze bij de eerstvolgende workout
+(sinds 2026-11-23 ingeklapt onder "Waarom dit schema"), op `plan_id` van díe
+workout: een herziening draagt haar eigen cautions, en dat is de generatie die
+deze dag heeft bepaald.
 
 `memberCautions()` filtert eerst de regels die over de herplanning zelf gaan
 ("Herplanning is beperkt tot ...", "Concept ter review door de trainer") en kapt
@@ -43421,8 +43483,10 @@ Getest tegen letterlijke regels uit schema's van 19 en 20 augustus.
 **Bewust tijdelijk.** Dit is de goedkope manier om mee te kijken of de
 opbouwregels in de praktijk niet te streng uitpakken, over meerdere leden en
 situaties heen. Zit dat vertrouwen er, dan kan het blok er in één keer uit:
-`plan-cautions.tsx` weg, de `loadPlanCautions()`-aanroep uit
-`zwbeter-worden/page.tsx` en klaar. `plan-summary.ts` mag blijven staan.
+`plan-cautions.tsx` weg, de prop `cautions` en het blok "Waarom dit schema" uit
+`today-card.tsx`, en `loadPlanSummaries()` met `planCautionsFromSummary()` uit
+`zwbeter-worden/page.tsx` (bijgewerkt 2026-11-23). `plan-summary.ts` mag blijven
+staan.
 
 **Wat daarbij opviel.** De AI schrijft in cautions soms de namen van zijn eigen
 invoervelden op: *"Er zijn geen gewijzigde randvoorwaarden in

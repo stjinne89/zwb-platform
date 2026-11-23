@@ -79,9 +79,8 @@ export async function NutritionTodayCard({
       : null;
 
   return (
-    <>
-      <NutritionTip tip={tip} recipe={ride ? null : (first?.recipe ?? null)} titleHref="/zwbeter-worden/voeding" />
-      {ride ? <RidePlanView plan={ride} /> : null}
-    </>
+    <NutritionTip tip={tip} recipe={ride ? null : (first?.recipe ?? null)} titleHref="/zwbeter-worden/voeding">
+      {ride ? <RidePlanView plan={ride} embedded /> : null}
+    </NutritionTip>
   );
 }

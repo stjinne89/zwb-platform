@@ -1,8 +1,8 @@
 "use client";
 
-import { type FormEvent, useCallback, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, Moon, Sparkles } from "lucide-react";
+import { ExternalLink, Moon } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { markTodayRestDay } from "../_actions";
@@ -23,8 +23,22 @@ const FEELINGS: { value: string; label: string }[] = [
  * `initialOpen`: het lid komt via de link bij "je schema wordt vannacht
  * bijgewerkt" (AdjustTodayLink) om vandaag meteen aan te passen; dan staat het
  * formulier al open.
+ *
+ * Staat op de dagkaart, dus zonder eigen kaart. `canRest`: er is vandaag een open
+ * training om af te schrijven. `children`: de links naast de knop. `secondary`:
+ * de kaart heeft al een hoofdknop (Naar het event).
  */
-export function AdjustTodayForm({ initialOpen = false }: { initialOpen?: boolean }) {
+export function AdjustTodayForm({
+  initialOpen = false,
+  canRest = true,
+  secondary = false,
+  children,
+}: {
+  initialOpen?: boolean;
+  canRest?: boolean;
+  secondary?: boolean;
+  children?: ReactNode;
+}) {
   const clubTexts = useClubTexts();
   const router = useRouter();
   const [open, setOpen] = useState(initialOpen);
@@ -37,7 +51,7 @@ export function AdjustTodayForm({ initialOpen = false }: { initialOpen?: boolean
     setResult(
       payload.published
         ? `Aangepast. De training staat in ${clubTexts.shortName} en intervals.icu; je trainer kijkt er later naar.`
-        : "Voorstel klaargezet — bekijk het bij je schema's hieronder.",
+        : "Voorstel klaargezet in je schema.",
     );
     setIntervalsUrl(payload.intervalsUrl ?? null);
     setOpen(false);
@@ -104,15 +118,17 @@ export function AdjustTodayForm({ initialOpen = false }: { initialOpen?: boolean
 
   if (!open) {
     return (
-      <div id={ADJUST_TODAY_ANCHOR} className="scroll-mt-20 rounded-lg border bg-card p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 font-semibold">
-            <Sparkles className="size-5 text-primary" />
-            Pas je training van vandaag aan
-          </h2>
-          <Button type="button" size="sm" onClick={() => setOpen(true)}>
-            Aanpassen
+      <div id={ADJUST_TODAY_ANCHOR} className="mt-4 scroll-mt-20">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 [&>a]:min-h-11">
+          <Button
+            type="button"
+            variant={secondary ? "outline" : "default"}
+            className="min-h-11 px-4"
+            onClick={() => setOpen(true)}
+          >
+            Pas vandaag aan
           </Button>
+          {children}
         </div>
         {result && <p className="mt-2 text-sm text-primary">{result}</p>}
         {intervalsUrl && (
@@ -137,12 +153,9 @@ export function AdjustTodayForm({ initialOpen = false }: { initialOpen?: boolean
     <form
       id={ADJUST_TODAY_ANCHOR}
       onSubmit={submit}
-      className="scroll-mt-20 space-y-3 rounded-lg border bg-card p-4"
+      className="mt-4 scroll-mt-20 space-y-3 border-t pt-4"
     >
-      <h2 className="flex items-center gap-2 font-semibold">
-        <Sparkles className="size-5 text-primary" />
-        Pas je training van vandaag aan
-      </h2>
+      <h3 className="font-semibold">Pas je training van vandaag aan</h3>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
@@ -168,7 +181,7 @@ export function AdjustTodayForm({ initialOpen = false }: { initialOpen?: boolean
                 key={f.value}
                 type="button"
                 onClick={() => setFeeling(f.value)}
-                className={`flex-1 rounded-md border px-2 py-2 text-sm transition ${
+                className={`min-h-11 flex-1 rounded-md border px-2 py-2 text-sm transition ${
                   feeling === f.value
                     ? "border-primary bg-primary text-primary-foreground"
                     : "bg-background hover:border-primary/40"
@@ -195,23 +208,25 @@ export function AdjustTodayForm({ initialOpen = false }: { initialOpen?: boolean
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" size="sm" disabled={busy}>
+        <Button type="submit" className="min-h-11 px-4" disabled={busy}>
           {busy ? "Bezig…" : "Maak voorstel"}
         </Button>
+        {canRest ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 px-4"
+            onClick={(event) => restDay(event.currentTarget.form)}
+            disabled={busy}
+          >
+            <Moon data-icon="inline-start" />
+            Rustdag
+          </Button>
+        ) : null}
         <Button
           type="button"
-          size="sm"
-          variant="outline"
-          onClick={(event) => restDay(event.currentTarget.form)}
-          disabled={busy}
-        >
-          <Moon data-icon="inline-start" />
-          Rustdag
-        </Button>
-        <Button
-          type="button"
-          size="sm"
           variant="ghost"
+          className="min-h-11 px-4"
           onClick={() => {
             setOpen(false);
             setError(null);
