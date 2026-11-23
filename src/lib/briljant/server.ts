@@ -36,6 +36,7 @@ import { decidedZrs, loadRaceScores } from "./zrs-history";
 import {
   consistencyWeeks,
   curveRange,
+  durabilityTestDaysFrom,
   durabilityTestFrom,
   fatigueInputs,
   mondayKey,
@@ -245,15 +246,15 @@ const DURABILITY_TEST_TRIES = 3;
 
 /**
  * De dagen van het laatste jaar waarop dit lid de durability-test reed: een
- * training in het schema met die titel, of de afgevinkte taak van het protocol.
- * Nieuwste eerst.
+ * afgeronde training in het schema met die titel, of de afgevinkte taak van het
+ * protocol. Nieuwste eerst.
  */
 async function durabilityTestDays(admin: Admin, profileId: string, today: string): Promise<string[]> {
   const from = shiftDay(today, -(DURABILITY_TEST_VALID_DAYS - 1));
   const [{ data: workouts }, { data: runs }] = await Promise.all([
     admin
       .from("training_workouts")
-      .select("scheduled_at")
+      .select("scheduled_at, status")
       .eq("profile_id", profileId)
       .is("superseded_at", null)
       .ilike("title", `%${DURABILITY_TEST_TITLE}%`)
@@ -271,11 +272,15 @@ async function durabilityTestDays(admin: Admin, profileId: string, today: string
         .gte("day", from)
         .lte("day", today)
     : { data: [] };
-  const days = [
-    ...((workouts ?? []) as Array<{ scheduled_at: string }>).map((row) => amsterdamDayKey(new Date(row.scheduled_at))),
-    ...((checks ?? []) as Array<{ day: string }>).map((row) => row.day),
-  ].filter((day) => day >= from && day <= today);
-  return [...new Set(days)].sort().reverse();
+  return durabilityTestDaysFrom(
+    ((workouts ?? []) as Array<{ scheduled_at: string; status: string | null }>).map((row) => ({
+      day: amsterdamDayKey(new Date(row.scheduled_at)),
+      status: row.status,
+    })),
+    ((checks ?? []) as Array<{ day: string }>).map((row) => row.day),
+    from,
+    today,
+  );
 }
 
 /**

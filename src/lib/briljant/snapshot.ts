@@ -97,6 +97,22 @@ export function fatigueInputs(
 }
 
 /**
+ * De dagen waarop de durability-test gereden is, nieuwste eerst: een afgeronde
+ * training of de afgevinkte taak. Een geplande of overgeslagen test telt niet,
+ * anders wordt een gewone rit op die dag als testuitslag gelezen.
+ */
+export function durabilityTestDaysFrom(
+  workouts: Array<{ day: string; status: string | null }>,
+  checkedDays: string[],
+  from: string,
+  today: string,
+): string[] {
+  const ridden = workouts.filter((workout) => workout.status === "completed").map((workout) => workout.day);
+  const days = [...ridden, ...checkedDays].filter((day) => day >= from && day <= today);
+  return [...new Set(days)].sort().reverse();
+}
+
+/**
  * De uitslag van een durability-test op `day`: de beste 20 minuten na de laagste
  * kJ-stand met genoeg werk, tegen de beste 20 minuten van de 90 dagen tot en met
  * die dag (`fresh`); het verval daartussen telt. Null als er na het werk geen 20

@@ -1,11 +1,17 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-21)
+## Actieve volgorde (bijgewerkt 2026-11-23)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Hersteld — Durability: overgeslagen test telde als uitslag (2026-11-23):
+   gepusht naar `main` (eigenaar: "Ja, push en herstel").** Geen migratie.
+   Barts weekstenen van 16 en 23 november met de hand hersteld. Open: na de
+   deploy zijn steen op `/stats/zwbriljant` bekijken. Zie de ronde "Hersteld —
+   Overgeslagen durability-test telde als uitslag".
 
 0. **Gebouwd — Bandendruk op Vandaag (2026-11-21): gepusht naar `main`
    (`06c2e7fd`, `4a2c687e`, eigenaar: "Ja, toepassen en pushen").** Migratie
@@ -15680,6 +15686,42 @@ Nduranz-producten uit de lijst zijn 1:0,8.
 
 **Niet geverifieerd.** Barts FTP (ongeveer 345 W, afgeleid uit zijn schermen,
 niet uit zijn profiel) en het scherm in de browser.
+
+### Hersteld — Overgeslagen durability-test telde als uitslag
+
+**2026-11-23, lokaal gecommit op `claude/bart-durability-missing-228ab5`, niet gepusht. Geen migratie.**
+
+- **Waarom.** Barts durability viel van 7,62 naar 0 en zijn score van 6,61 naar
+  5,45. Hij reed de test op 13 november en vinkte die af. De AI zette daarna een
+  test op 21 november; die haalde hij op 17 november uit zijn schema (status
+  `skipped`) en hij stopte het protocol. Op 21 november reed hij een gewone rit
+  van 121 minuten en 1772 kJ (NP 248 W). `durabilityTestDays` keek niet naar de
+  status, nam de nieuwste dag, en las de 20 minuten na 1000 kJ uit die rit als
+  testuitslag tegen zijn verse ±345 W: meer dan 18% verval per 10 kJ/kg, niveau 0.
+- **Wat.** `durabilityTestDaysFrom` (`snapshot.ts`): een training telt alleen met
+  status `completed`; de afgevinkte taak telt zoals eerst. Unittest met Barts
+  geval.
+- **Bewust niet gebouwd.** Een ondergrens op de uitslag om een niet-voluit
+  gereden test te herkennen: daarvoor is geen onderbouwde grens gekozen. Gevolg:
+  rijdt een lid op de geplande testdag een andere rit, dan koppelt
+  `detectCompletedWorkouts` die aan de test (`completed`) en telt hij nog steeds
+  als uitslag. Dat vraagt een keuze van de eigenaar.
+- **Data hersteld (2026-11-23, via de connector, eigenaar: "Ja, push en
+  herstel").** Barts weekrijen: durability 7,62 (de waarde van zijn test op 13
+  november), score 16 november 5,46 → 6,77 en 23 november 5,45 → 6,76. De scores
+  komen uit `scoreFor` met de opgeslagen facetten en consistentie; dezelfde
+  berekening met durability 0 gaf precies de oude waarden. Opent Bart ZWBriljant
+  vóór de deploy klaar is, dan zet de oude code deze week weer op 0; zijn eerste
+  bezoek na de deploy herstelt dat.
+- **Geverifieerd:** de ZWBriljant-unittests en tsc op de stand van `main`; de
+  oorzaak in de productiedata; de twee herstelde rijen teruggelezen.
+- **Niet geverifieerd:** de exacte curve van 21 november in intervals.icu (de
+  API-sleutel van het lid is bewust niet gebruikt), de steen in de browser,
+  `next build`.
+- **Niet meegepusht.** De lokale commit `a810a8cc` (middleware en
+  storage-policies) wacht nog op de compute-upgrade. Zijn migratienummer 0345 is
+  op `main` intussen bezet door `0345_stream_overlay_theme`; hij moet dus een
+  nieuw nummer krijgen.
 
 ### Hersteld — Verse waarde van de durability-test weer 90 dagen
 

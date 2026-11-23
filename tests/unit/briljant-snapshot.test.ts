@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   consistencyWeeks,
   curveRange,
+  durabilityTestDaysFrom,
   durabilityTestFrom,
   fatigueInputs,
   monthEnds,
@@ -62,6 +63,29 @@ describe("snapshot", () => {
     // Geen 20 minuten na het werk: geen uitslag.
     expect(durabilityTestFrom("2026-10-25", fresh, [{ afterKj: 1000, points: [{ seconds: 300, watts: 300 }] }], 83)).toBeNull();
     expect(durabilityTestFrom("2026-10-25", fresh, curves, null)).toBeNull();
+  });
+
+  it("telt alleen een gereden of afgevinkte durability-test", () => {
+    // Bart: test op de 13e afgevinkt, die van de 21e uit het schema gehaald en
+    // die dag een gewone duurrit gereden.
+    expect(
+      durabilityTestDaysFrom([{ day: "2026-11-21", status: "skipped" }], ["2026-11-13"], "2025-11-24", "2026-11-23"),
+    ).toEqual(["2026-11-13"]);
+    // Gepland en niet afgerond telt ook niet.
+    expect(durabilityTestDaysFrom([{ day: "2026-11-21", status: "planned" }], [], "2025-11-24", "2026-11-23")).toEqual([]);
+    // Afgerond telt, nieuwste eerst, dubbele dagen één keer, en binnen het venster.
+    expect(
+      durabilityTestDaysFrom(
+        [
+          { day: "2026-11-21", status: "completed" },
+          { day: "2026-11-13", status: "completed" },
+          { day: "2025-01-01", status: "completed" },
+        ],
+        ["2026-11-13"],
+        "2025-11-24",
+        "2026-11-23",
+      ),
+    ).toEqual(["2026-11-21", "2026-11-13"]);
   });
 
   it("legt alleen niveaus, de score, de consistentie en ja/nee per bron vast", () => {
