@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Herschreven — Weekoverzicht: openingszin (2026-11-23): gepusht naar
+   `main` (eigenaar: "Ja, alleen de zin").** Geen migratie. Open: na de deploy
+   de openingsslide bekijken. Zie de ronde "Herschreven — Weekoverzicht:
+   openingszin".
+
 0. **Hersteld — Durability: overgeslagen test telde als uitslag (2026-11-23):
    gepusht naar `main` (`36b0c24f`, eigenaar: "Ja, push en herstel").** Geen migratie.
    Barts weekstenen van 16 en 23 november met de hand hersteld. Open: na de
@@ -12742,6 +12747,22 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Herschreven — Weekoverzicht: openingszin
+
+**2026-11-23, gepusht naar `main` (eigenaar: "Ja, alleen de zin"). Geen
+migratie.** De eigenaar vond "zo reed je week" een rare zin. De openingsslide
+zegt nu "[Voornaam], dit was je week.", zonder voornaam "Dit was je week."
+
+- **Waarom deze zin.** Hij past bij een terugblik en klopt ook in een week
+  zonder ritten, dus de aparte variant "zo was je week" is vervallen.
+- **Niet gedaan.** "Je week in het kort" en "Kijk even terug op je week" zijn
+  voorgesteld en niet gekozen. De oude ontwerpmock in `.impeccable/mocks` houdt
+  de oude zin, omdat die het ontwerp van toen vastlegt. De middleware-commit
+  met migratie 0345 ging bewust niet mee: die wacht op de overstap naar Micro.
+- **Gecontroleerd.** ESLint op het bestand en de typecheck zijn schoon op de
+  stand van `main`, met de `node_modules` van de hoofdmap. De zin is niet in de
+  browser bekeken.
 
 ### Gebouwd — Bandendruk op Vandaag
 

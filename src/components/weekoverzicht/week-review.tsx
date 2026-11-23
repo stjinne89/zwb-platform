@@ -170,7 +170,7 @@ function buildSlides(
           <OpenerPrint riders={rides?.count ?? 3} />
         </div>
         <p className={`${s.lead} ${s.txt}`}>
-          {summary.firstName ? `${summary.firstName}, zo` : "Zo"} {rides ? "reed" : "was"} je week.
+          {summary.firstName ? `${summary.firstName}, dit` : "Dit"} was je week.
         </p>
         <p className={`${s.sub} ${s.txt}`} style={{ marginBottom: 56 }}>{rangeLabel(summary.weekStart, summary.weekEnd)}</p>
       </>
