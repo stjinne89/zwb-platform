@@ -7,8 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Herschreven — Racefit op /hulp als eigen blok (2026-11-23): lokaal
-   gecommit, niet gepusht.** Geen migratie. Open: de eigenaar beslist of het
+0. **Gebouwd — Teamindeling en Racefit voor ZRL A en C (2026-11-23):
+   gepusht naar `main` (eigenaar: "je mag dit gelijk committen en pushen naar main").** Geen migratie. Lokaal ingelogd bekeken tegen productiedata. Open:
+   één keer echt indelen op A of C, en beslissen of een opstelling van meer dan
+   vijf daar oranje blijft. Zie de ronde "Gebouwd — Teamindeling en Racefit voor
+   ZRL A en C".
+
+0. **Herschreven — Racefit op /hulp als eigen blok (2026-11-23):
+   gepusht naar `main` (eigenaar: "je mag dit gelijk committen en pushen naar main").** Geen migratie. Open: de eigenaar beslist of het
    parcoursmodel blijft rekenen zoals de hulp nu beschrijft (sprint bij een
    bergop finish, klimmeters dubbel). Zie de ronde "Herschreven — Racefit op
    /hulp als eigen blok".
@@ -12754,10 +12760,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Teamindeling en Racefit voor ZRL A en C
+
+**2026-11-23, gepusht naar `main` (eigenaar: "je mag dit gelijk committen en pushen naar main"). Geen migratie.**
+
+- **Waarom.** De eigenaar zag bij de A- en C-teams geen teamindeling en dus geen
+  Racefit. De pagina eiste een hoofdteam met subteams; ZRL A en ZRL C hebben die
+  niet en rijden zelf.
+- **Wat.** Elk ZRL-hoofdteam heeft nu de knop Teamindeling. Een team zonder
+  subteams is één blok van 5 met daaronder Reserve (de opstellingen van A en C
+  in productie tellen 4 of 5 renners). Indelen, sortering overnemen, kopiëren
+  naar de rest van de ronde en delen via WhatsApp werken als bij B.
+- **Waar de gegevens staan.** Bij A en C staan opstelling en beschikbaarheid op
+  de eigen race, niet op de raceweek. De indeling gebruikt die races daarom als
+  "weken" (`soloTeamRaces` in `lib/teams/zrl-racefit.ts`), zodat er geen data
+  hoeft te verhuizen. `canAssignZrl` staat zo'n team alleen toe zichzelf in te
+  delen, op zijn eigen races.
+- **Racefit.** Rekent met de eigen route van het team; A en C rijden in R2 W2,
+  W3 en W4 een andere route en in W6 een ander aantal rondes. W5 heeft nog geen
+  route. Zonder eigen route leent het team, net als bij subteams, van een race
+  in dezelfde raceweek en categorie.
+- **Bewust niet.** Geen kolom Dev, want A en C hebben geen Development-team.
+  Captains tikken bij A en C geen beschikbaarheid voor een renner aan:
+  `set_team_availability_for` (0332) weigert teams zonder subteams en een race
+  als event, en dit vraagt dus een migratie. Renners geven het zelf op.
+- **Getest.** Typecheck, lint en de nieuwe unittests slagen. In de volledige
+  testset faalden drie bestanden, geen van alle door deze ronde:
+  `club-texts-render` ("beheer noemt ZWB niet") faalt ook op de schone commit,
+  `omnium-live` miste `.env.local` in de worktree, en `admin-areas` liep tegen
+  een time-out maar slaagt los.
+- **Bekeken (2026-11-23, lokaal, ingelogd, tegen productiedata, alleen
+  lezen).** A en C tonen de knop, één blok met Reserve, per week de juiste route
+  in Racefit, geen Racefit in W5, geen Dev-kolom en geen aantikvakjes. ZRL B houdt
+  zijn vier blokken, de Dev-kolom, Racefit en de aantikvakjes.
+- **Niet geverifieerd.** Opslaan via de nieuwe rechtencheck (indelen, sortering
+  overnemen, wissen) is niet geprobeerd, omdat dat de echte opstelling en de
+  ja's van renners verandert.
+- **Open punt: meer dan vijf.** Bart de Groot zette tijdens deze ronde via de
+  bestaande selectie 7 renners op R2 W2. De indeling toont dat als 7/5, oranje.
+  "Neem sortering over" zou er na de bevestiging 5 van maken en de andere twee
+  hun ja op de race kosten.
+
 ### Herschreven — Racefit op /hulp als eigen blok
 
-**2026-11-23, commit "Hulp: Racefit als eigen blok met voorbeelden", lokaal, niet
-gepusht. Geen migratie.** De eigenaar wilde dat leden snappen hoe Racefit is
+**2026-11-23, commit "Hulp: Racefit als eigen blok met voorbeelden", gepusht naar `main` (eigenaar: "je mag dit gelijk committen en pushen naar main"). Geen migratie.** De eigenaar wilde dat leden snappen hoe Racefit is
 opgebouwd. De uitleg stond al op /hulp, maar in twee lange alinea's binnen de
 kaart Teams en wedstrijden.
 

@@ -3,6 +3,7 @@ import {
   courseForRace,
   isTimeTrialTitle,
   racefitScores,
+  soloTeamRaces,
   timeTrialWeights,
   weekCourses,
   type RaceCourse,
@@ -24,6 +25,41 @@ const flat: RaceCourse = {
   terrain: { s15: [{ pct: 0, share: 1 }], m1: [{ pct: 0, share: 1 }], m5: [{ pct: 0, share: 1 }], m20: [{ pct: 0, share: 1 }] },
   borrowedFrom: null,
 };
+
+describe("team zonder subteams", () => {
+  const own = [
+    { id: "c-w2", parent_event_id: "w2", title: "R2 · W2 · ZRL C", zwift_route_id: null, laps: null },
+    { id: "c-w3", parent_event_id: "w3", title: "R2 · W3 · ZRL C", zwift_route_id: ROUTE_W2, laps: 2 },
+  ];
+  const siblings = [
+    { id: "c-w2", parent_event_id: "w2", team_id: "c", title: "R2 · W2 · ZRL C", zwift_route_id: null, laps: null },
+    { id: "lc-w2", parent_event_id: "w2", team_id: "lc", title: "R2 · W2 · Ladies C", zwift_route_id: ROUTE_W1, laps: 1 },
+    { id: "a-w4", parent_event_id: "w4", team_id: "a", title: "R2 · W4 · ZRL A", zwift_route_id: ROUTE_W1, laps: 1 },
+  ];
+
+  it("de eigen race is de week, en andere races in die raceweek hangen eraan", () => {
+    const races = soloTeamRaces("c", own, siblings);
+    expect(races.map((race) => [race.id, race.parent_event_id, race.team_id])).toEqual([
+      ["c-w2", "c-w2", "c"],
+      ["lc-w2", "c-w2", "lc"],
+      ["c-w3", "c-w3", "c"],
+    ]);
+  });
+
+  it("leent zonder eigen route van dezelfde week en categorie", () => {
+    const races = soloTeamRaces("c", own, siblings).filter((race) => race.parent_event_id === "c-w2");
+    const toRace = (race: (typeof races)[number]) => ({
+      title: race.title,
+      zwiftRouteId: race.zwift_route_id == null ? null : Number(race.zwift_route_id),
+      laps: race.laps,
+    });
+    const { teamCourse, courses } = weekCourses(
+      [{ ...toRace(races[0]), teamId: "c", category: "C" }],
+      [{ ...toRace(races[1]), source: "Ladies C", category: "C" }],
+    );
+    expect(courses[teamCourse.c].borrowedFrom).toBe("Ladies C");
+  });
+});
 
 describe("soort race", () => {
   it("herkent tijdritten aan de titel", () => {

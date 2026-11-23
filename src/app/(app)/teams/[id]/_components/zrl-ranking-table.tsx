@@ -163,6 +163,7 @@ export function ZrlRankingTable({
   canEditAvailability,
   canAssign,
   canAssignWeek,
+  showDev,
 }: {
   teams: RankingTeam[];
   riders: RankedRider[];
@@ -182,6 +183,8 @@ export function ZrlRankingTable({
   canAssign: boolean;
   /** Een hele week in één keer zetten. */
   canAssignWeek: boolean;
+  /** De kolom Dev; niet bij een team zonder subteams. */
+  showDev: boolean;
 }) {
   const [sortKey, setSortKey] = useState<RankingSortKey>("zftp");
   const [eventId, setEventId] = useState("");
@@ -317,7 +320,7 @@ export function ZrlRankingTable({
 
   const assignable = canAssign && eventId !== "";
   const editAvailability = eventId !== "" && canEditAvailability;
-  const colSpan = columns.length + 2;
+  const colSpan = columns.length + (showDev ? 2 : 1);
 
   return (
     <section className="space-y-3 rounded-lg border bg-card p-4">
@@ -392,7 +395,7 @@ export function ZrlRankingTable({
                 </button>
               </th>
             ))}
-            <th className="py-1 pl-1 text-center font-medium sm:pl-2">Dev</th>
+            {showDev && <th className="py-1 pl-1 text-center font-medium sm:pl-2">Dev</th>}
           </tr>
         </thead>
 
@@ -415,6 +418,7 @@ export function ZrlRankingTable({
                       position={index + 1}
                       level={riderLevel(rider, block.team.dev)}
                       inDevTeam={block.team.dev}
+                      showDev={showDev}
                       availability={entryOf(rider)}
                       onCycle={editAvailability ? () => cycle(rider) : undefined}
                       teams={assignable ? ordered : undefined}
@@ -442,6 +446,7 @@ export function ZrlRankingTable({
                     position={block.first + index + 1}
                     level={riderLevel(rider, block.team?.dev ?? false)}
                     inDevTeam={block.team?.dev ?? false}
+                    showDev={showDev}
                     availability={null}
                   />
                 ))}
@@ -458,6 +463,7 @@ export function ZrlRankingTable({
                 position={null}
                 level="ok"
                 inDevTeam={false}
+                showDev={showDev}
                 availability={entryOf(rider)}
                 onCycle={editAvailability ? () => cycle(rider) : undefined}
                 teams={assignable ? ordered : undefined}
@@ -478,6 +484,7 @@ export function ZrlRankingTable({
                 position={null}
                 level="ok"
                 inDevTeam={false}
+                showDev={showDev}
                 availability={entryOf(rider)}
                 onCycle={editAvailability ? () => cycle(rider) : undefined}
                 teams={assignable ? ordered : undefined}
@@ -546,6 +553,7 @@ function RiderRow({
   position,
   level,
   inDevTeam,
+  showDev,
   availability,
   onCycle,
   teams,
@@ -558,6 +566,7 @@ function RiderRow({
   position: number | null;
   level: LimitStatus;
   inDevTeam: boolean;
+  showDev: boolean;
   availability: RankingAvailabilityEntry | null;
   /** Gezet: de captain mag tikken; alleen als de renner het niet zelf koos. */
   onCycle?: () => void;
@@ -638,9 +647,11 @@ function RiderRow({
         </td>
       ))}
       {racefit !== undefined && <td className="px-[3px] py-1 text-right font-medium sm:px-2">{wkg(racefit)}</td>}
-      <td className="py-1 pl-1 text-center sm:pl-2">
-        <DevMark status={rider.dev} emphasize={inDevTeam} />
-      </td>
+      {showDev && (
+        <td className="py-1 pl-1 text-center sm:pl-2">
+          <DevMark status={rider.dev} emphasize={inDevTeam} />
+        </td>
+      )}
     </tr>
   );
 }

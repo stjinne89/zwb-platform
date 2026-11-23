@@ -527,10 +527,9 @@ export default async function TeamDetailPage({
       rosterNameById.set(row.id, row.name);
     }
   }
-  // Teamindeling (ZRL-hoofdteam met subteams, voor wie indeelt) staat sinds
-  // 2026-11-16 op een eigen pagina.
-  const showRanking =
-    canManage && team.type === "zrl" && team.parent_team_id == null && (childTeams ?? []).length > 0;
+  // Teamindeling (ZRL-hoofdteam, voor wie indeelt) staat sinds 2026-11-16 op een
+  // eigen pagina; sinds 2026-11-23 ook voor een team zonder subteams (A, C).
+  const showRanking = canManage && team.type === "zrl" && team.parent_team_id == null;
 
   // Wie zelf in de tabel staat zonder gewicht, ziet waar het in te vullen.
   const needsWeight =

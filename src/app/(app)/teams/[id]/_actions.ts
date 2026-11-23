@@ -641,16 +641,17 @@ type Admin = ReturnType<typeof createAdminClient>;
  * Teamindeling (2026-11-16): mag deze gebruiker renners over deze subteams van
  * het hoofdteam verdelen in deze raceweken? Met teams.manage_roster of als
  * captain van het hoofdteam altijd; als captain van een subteam alleen binnen
- * de eigen subteams, net als setTeamLineup.
+ * de eigen subteams, net als setTeamLineup. Een ZRL-hoofdteam zonder subteams
+ * (A, C; 2026-11-23) deelt alleen zichzelf in, op zijn eigen races.
  */
 async function canAssignZrl(parentTeamId: string, eventIds: string[], teamIds: string[]) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
   const admin = createAdminClient();
-  const [{ data: children }, { data: weeks }, { data: roles }] = await Promise.all([
+  const [{ data: parent }, { data: children }, { data: roles }] = await Promise.all([
+    admin.from("teams").select("type, parent_team_id").eq("id", parentTeamId).maybeSingle(),
     admin.from("teams").select("id").eq("parent_team_id", parentTeamId),
-    admin.from("events").select("id").in("id", eventIds).eq("type", "zrl").is("parent_event_id", null),
     admin
       .from("team_members")
       .select("team_id")
@@ -658,9 +659,16 @@ async function canAssignZrl(parentTeamId: string, eventIds: string[], teamIds: s
       .in("role", ["captain", "co-captain"]),
   ]);
   const childIds = new Set(((children ?? []) as Array<{ id: string }>).map((row) => row.id));
-  if (teamIds.some((teamId) => !childIds.has(teamId))) {
+  const solo = childIds.size === 0;
+  if (solo && (parent?.type !== "zrl" || parent.parent_team_id != null)) {
+    return { ok: false as const, error: "Alleen voor een ZRL-hoofdteam." };
+  }
+  const assignable = solo ? new Set([parentTeamId]) : childIds;
+  if (teamIds.some((teamId) => !assignable.has(teamId))) {
     return { ok: false as const, error: "Alleen subteams van dit team." };
   }
+  const weekQuery = admin.from("events").select("id").in("id", eventIds).eq("type", "zrl");
+  const { data: weeks } = await (solo ? weekQuery.eq("team_id", parentTeamId) : weekQuery.is("parent_event_id", null));
   if ((weeks ?? []).length !== new Set(eventIds).size) {
     return { ok: false as const, error: "Alleen voor een raceweek." };
   }

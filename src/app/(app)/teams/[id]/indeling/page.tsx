@@ -15,7 +15,14 @@ import {
   rankRider,
   type RankingLineup,
 } from "@/lib/teams/zrl-ranking";
-import { racefitScores, weekCourses, type BorrowRace, type TeamRace } from "@/lib/teams/zrl-racefit";
+import {
+  racefitScores,
+  soloTeamRaces,
+  weekCourses,
+  type BorrowRace,
+  type IndelingRace,
+  type TeamRace,
+} from "@/lib/teams/zrl-racefit";
 import { zrlCategoryFromTeamName } from "@/lib/events/zwift-route";
 import { racepassFor, type RacepassRow } from "@/lib/events/race-links";
 import { amsterdamDateKey } from "@/lib/birthdays";
@@ -25,9 +32,12 @@ import {
   type RankingRacefit,
 } from "../_components/zrl-ranking-table";
 
-// Teamindeling van een ZRL-hoofdteam met subteams (eigen pagina sinds
-// 2026-11-16): de ranglijst op geschatte zFTP en zMAP, en per raceweek de echte
-// opstelling (team_event_lineups) die de captain hier met de hand verdeelt.
+// Teamindeling van een ZRL-hoofdteam (eigen pagina sinds 2026-11-16): de
+// ranglijst op geschatte zFTP en zMAP, en per raceweek de echte opstelling
+// (team_event_lineups) die de captain hier met de hand verdeelt.
+//
+// Een team zonder subteams (ZRL A en C, 2026-11-23) is één blok. Zijn opstelling
+// en beschikbaarheid staan op zijn eigen races, dus die zijn hier de "weken".
 
 // Buiten de component zodat de purity-lint Date.now() niet als impure-in-render markeert.
 function upcomingEventsCutoffIso() {
@@ -56,8 +66,16 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
     .eq("parent_team_id", team.id)
     .order("name");
   const childTeams = (childRows ?? []) as Array<{ id: string; name: string }>;
-  if (team.type !== "zrl" || childTeams.length === 0) redirect(`/teams/${team.id}`);
+  if (team.type !== "zrl") redirect(`/teams/${team.id}`);
+  const solo = childTeams.length === 0;
+  const rankingTeams = solo ? [{ id: team.id, name: team.name }] : childTeams;
   const scopeIds = [team.id, ...childTeams.map((row) => row.id)];
+
+  const weekQuery = supabase
+    .from("events")
+    .select("id, title, start_at, parent_event_id, zwift_route_id, laps")
+    .eq("type", "zrl")
+    .gte("start_at", upcomingEventsCutoffIso());
 
   const [{ data: memberRows }, { data: rosterRows }, { data: weekRows }] = await Promise.all([
     admin
@@ -70,13 +88,7 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
       .in("team_id", scopeIds)
       .is("claimed_by", null)
       .order("name"),
-    supabase
-      .from("events")
-      .select("id, title, start_at")
-      .eq("type", "zrl")
-      .is("team_id", null)
-      .is("parent_event_id", null)
-      .gte("start_at", upcomingEventsCutoffIso())
+    (solo ? weekQuery.eq("team_id", team.id) : weekQuery.is("team_id", null).is("parent_event_id", null))
       .order("start_at")
       .limit(12),
   ]);
@@ -97,8 +109,19 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
     redirect(`/teams/${team.id}`);
   }
 
-  const weeks = (weekRows ?? []) as Array<{ id: string; title: string; start_at: string }>;
+  const weeks = (weekRows ?? []) as Array<{
+    id: string;
+    title: string;
+    start_at: string;
+    parent_event_id: string | null;
+    zwift_route_id: number | string | null;
+    laps: number | null;
+  }>;
   const weekIds = weeks.map((week) => week.id);
+  // Zonder subteams: de andere races in dezelfde raceweek, om een route van te lenen.
+  const raceParentIds = solo
+    ? [...new Set(weeks.flatMap((week) => (week.parent_event_id ? [week.parent_event_id] : [])))]
+    : weekIds;
   const [{ data: availabilityRows }, { data: lineupRows }, { data: raceRows }, { data: racepassRows }] = await Promise.all([
     weekIds.length > 0
       ? supabase
@@ -114,18 +137,18 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
           .eq("parent_team_id", team.id)
           .in("event_id", weekIds)
       : Promise.resolve({ data: [] }),
-    weekIds.length > 0
+    raceParentIds.length > 0
       ? supabase
           .from("events")
           .select("id, parent_event_id, team_id, title, zwift_route_id, laps")
-          .in("parent_event_id", weekIds)
+          .in("parent_event_id", raceParentIds)
       : Promise.resolve({ data: [] }),
     // WTRL-racepass per subteam (migr. 0186), voor het WhatsApp-deelbericht.
     weekIds.length > 0
       ? supabase
           .from("team_racepasses")
           .select("team_id, url, valid_from, valid_until")
-          .in("team_id", childTeams.map((row) => row.id))
+          .in("team_id", rankingTeams.map((row) => row.id))
           .gte("valid_until", amsterdamDateKey(new Date(weeks[0].start_at)))
       : Promise.resolve({ data: [] }),
   ]);
@@ -268,15 +291,12 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
     const key = `${row.event_id}:${row.profile_id ?? row.roster_entry_id}`;
     availabilityMap[key] = { status: row.status, byCaptain: row.set_by != null };
   }
-  const races = (raceRows ?? []) as Array<{
-    id: string;
-    parent_event_id: string;
-    team_id: string | null;
-    title: string;
-    zwift_route_id: number | string | null;
-    laps: number | null;
-  }>;
-  const raceToWeek = new Map(races.map((row) => [row.id, row.parent_event_id]));
+  const loadedRaces = (raceRows ?? []) as IndelingRace[];
+  const races = solo ? soloTeamRaces(team.id, weeks, loadedRaces) : loadedRaces;
+  // Zonder subteams telt alleen een ja op de eigen race, niet die op een race van een ander team.
+  const raceToWeek = new Map(
+    races.filter((row) => !solo || row.team_id === team.id).map((row) => [row.id, row.parent_event_id]),
+  );
   if (raceToWeek.size > 0) {
     const { data: raceYes } = await supabase
       .from("event_rsvps")
@@ -294,8 +314,8 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
   // Racefit per raceweek: per parcours van de subteams de score van elke renner.
   // Zonder eigen route leent een subteam die van een race van een ander team in
   // dezelfde week en categorie (nog niet aan Zwift gekoppeld, 2026-11-16).
-  const childIds = new Set(childTeams.map((row) => row.id));
-  const childName = new Map(childTeams.map((row) => [row.id, row.name]));
+  const childIds = new Set(rankingTeams.map((row) => row.id));
+  const childName = new Map(rankingTeams.map((row) => [row.id, row.name]));
   const otherTeamIds = [
     ...new Set(races.filter((race) => race.team_id && !childIds.has(race.team_id) && race.zwift_route_id != null).map((race) => race.team_id as string)),
   ];
@@ -360,7 +380,7 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
   const racepasses: Record<string, Record<string, string>> = {};
   for (const week of weeks) {
     const dateKey = amsterdamDateKey(new Date(week.start_at));
-    for (const child of childTeams) {
+    for (const child of rankingTeams) {
       const url = racepassFor(passes, child.id, dateKey);
       if (url) (racepasses[week.id] ??= {})[child.id] = url;
     }
@@ -380,7 +400,7 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
         <PowerScopeToggle scope={powerScope} />
       </div>
       <ZrlRankingTable
-        teams={childTeams}
+        teams={rankingTeams}
         riders={riders}
         events={weeks.map((week) => ({ id: week.id, title: week.title, startAt: week.start_at }))}
         availability={availabilityMap}
@@ -388,9 +408,11 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
         racefit={racefit}
         racepasses={racepasses}
         teamId={team.id}
-        canEditAvailability={canManageRoster || captainOf.size > 0}
+        // set_team_availability_for (0332) werkt alleen voor een hoofdteam met subteams.
+        canEditAvailability={!solo && (canManageRoster || captainOf.size > 0)}
         canAssign={canManageRoster || captainOf.size > 0}
         canAssignWeek={canManageRoster || captainOf.has(team.id)}
+        showDev={!solo}
       />
     </div>
   );

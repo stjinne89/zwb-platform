@@ -115,6 +115,42 @@ export function weekCourses(races: TeamRace[], borrow: BorrowRace[] = []): WeekC
   return { courses, teamCourse, defaultCourse };
 }
 
+/** Een race zoals de teamindeling hem leest; `parent_event_id` is de week in de keuzelijst. */
+export type IndelingRace = {
+  id: string;
+  parent_event_id: string;
+  team_id: string | null;
+  title: string;
+  zwift_route_id: number | string | null;
+  laps: number | null;
+};
+
+/**
+ * Een team zonder subteams (ZRL A, ZRL C, 2026-11-23) heeft geen eigen raceweek:
+ * zijn opstelling en beschikbaarheid staan op zijn eigen race. Die race is dus de
+ * "week" van de indeling; de races van andere teams in dezelfde raceweek hangen
+ * eraan, zodat Racefit net als bij subteams een route kan lenen.
+ */
+export function soloTeamRaces(
+  teamId: string,
+  own: Array<Omit<IndelingRace, "parent_event_id" | "team_id"> & { parent_event_id: string | null }>,
+  siblings: IndelingRace[],
+): IndelingRace[] {
+  return own.flatMap((race) => [
+    {
+      id: race.id,
+      parent_event_id: race.id,
+      team_id: teamId,
+      title: race.title,
+      zwift_route_id: race.zwift_route_id,
+      laps: race.laps,
+    },
+    ...siblings
+      .filter((other) => race.parent_event_id != null && other.parent_event_id === race.parent_event_id && other.team_id !== teamId)
+      .map((other) => ({ ...other, parent_event_id: race.id })),
+  ]);
+}
+
 export type RacefitRider = { key: string; wkg: PowerWkg | null; weightKg: number | null };
 
 const validKg = (kg: number | null | undefined): kg is number => kg != null && kg >= 30 && kg <= 200;
