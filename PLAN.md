@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Hersteld — Durability: overgeslagen test telde als uitslag (2026-11-23):
-   gepusht naar `main` (eigenaar: "Ja, push en herstel").** Geen migratie.
+   gepusht naar `main` (`36b0c24f`, eigenaar: "Ja, push en herstel").** Geen migratie.
    Barts weekstenen van 16 en 23 november met de hand hersteld. Open: na de
    deploy zijn steen op `/stats/zwbriljant` bekijken. Zie de ronde "Hersteld —
    Overgeslagen durability-test telde als uitslag".
@@ -15689,7 +15689,7 @@ niet uit zijn profiel) en het scherm in de browser.
 
 ### Hersteld — Overgeslagen durability-test telde als uitslag
 
-**2026-11-23, lokaal gecommit op `claude/bart-durability-missing-228ab5`, niet gepusht. Geen migratie.**
+**2026-11-23, commit `36b0c24f`, gepusht naar `main` op 2026-11-23 (eigenaar: "Ja, push en herstel"). Geen migratie.**
 
 - **Waarom.** Barts durability viel van 7,62 naar 0 en zijn score van 6,61 naar
   5,45. Hij reed de test op 13 november en vinkte die af. De AI zette daarna een
