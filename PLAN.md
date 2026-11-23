@@ -1566,8 +1566,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0351`
-(`0350_stream_overlay_zwift_size` is van het canvas dat het Zwift-beeld volgt, 2026-11-20, toegepast op 2026-11-20;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0353`
+(`0352_captain_availability_solo_team` is van het beschikbaarheidsvakje bij ZRL A en C, 2026-11-23, toegepast op 2026-11-23;
+`0351_bike_tire_setups` staat op main;
+`0350_stream_overlay_zwift_size` is van het canvas dat het Zwift-beeld volgt, 2026-11-20, toegepast op 2026-11-20;
 `0349_avatar_kopman` is van de kopman als avatar, 2026-11-20, toegepast op 2026-11-20;
 `0348_stream_overlay_size` is van de resolutie per stream, 2026-11-20, toegepast op 2026-11-20;
 `0347_stream_kopman` is van de eigen kopman bij Strip, 2026-11-20, toegepast op 2026-11-20;
@@ -12767,6 +12769,30 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Beschikbaarheidsvakje ook bij ZRL A en C
+
+**2026-11-23, gepusht naar `main` (eigenaar: "Ja, zet het live"). Migratie
+`0352_captain_availability_solo_team.sql` is vóór de push op productie
+toegepast.** De
+eigenaar miste op de Teamindeling van A en C het vakje waarmee een captain de
+beschikbaarheid van een renner aantikt. Niet iedereen gebruikt de app, dus een
+captain moet ook daar kunnen vastleggen wat via WhatsApp binnenkomt.
+
+- **Database.** `set_team_availability_for` accepteert nu ook een hoofdteam
+  zonder subteams, alleen op een ZRL-race van dat team zelf. Een team met
+  subteams blijft op de raceweek, een subteam blijft geweigerd.
+- **Teamindeling.** De blokkade voor teams zonder subteams is weg. Het vakje
+  werkt verder als bij ZRL B: wat een renner zelf koos blijft vergrendeld.
+- **Gevolg, gelijk aan ZRL B.** Op beschikbaar zetten maakt iemand lid van het
+  team (0171), tenzij een captain hem eerder uit dat team haalde, en reserveert
+  de race in zijn trainingsschema.
+
+**Getest:** de databasefunctie met 15 tests op een geïsoleerde PostgreSQL,
+typecheck en lint. Op productie is de functie als captain van ZRL A aangeroepen
+op een echte race, in een transactie die is teruggedraaid; er is geen rij
+blijven staan. **Niet geverifieerd:** het vakje is niet in de browser aangetikt
+en de reservering in het trainingsschema is niet op productie uitgevoerd.
+
 ### Hersteld — Beschikbare renner niet toe te voegen aan een team
 
 **2026-11-23, gepusht naar `main` (`e20914d9`, eigenaar: "push de fix"). Geen
@@ -12861,9 +12887,9 @@ uit het voorstel "Volgorde en dagstaten".
   route. Zonder eigen route leent het team, net als bij subteams, van een race
   in dezelfde raceweek en categorie.
 - **Bewust niet.** Geen kolom Dev, want A en C hebben geen Development-team.
-  Captains tikken bij A en C geen beschikbaarheid voor een renner aan:
-  `set_team_availability_for` (0332) weigert teams zonder subteams en een race
-  als event, en dit vraagt dus een migratie. Renners geven het zelf op.
+  Captains tikten bij A en C toen nog geen beschikbaarheid aan, omdat
+  `set_team_availability_for` (0332) teams zonder subteams weigerde. Dat kan
+  sinds de ronde "Beschikbaarheidsvakje ook bij ZRL A en C" (0352).
 - **Getest.** Typecheck, lint, de nieuwe unittests en `next build` slagen op de
   stand die gepusht is. In de volledige testset falen twee bestanden, niet door
   deze ronde: `club-texts-render` ("beheer noemt ZWB niet") faalt ook op de schone
@@ -15670,7 +15696,8 @@ op productie.
   maakt `set_by` leeg als de renner zelf schrijft. `can_set_team_availability()`
   (captain of co-captain van het hoofdteam of een subteam, of
   `teams.manage_roster`) en `set_team_availability_for()` (alleen op een
-  ZRL-raceweek van een hoofdteam met subteams; een eigen keuze geeft `false`).
+  ZRL-raceweek van een hoofdteam met subteams, sinds 0352 ook op de eigen race
+  van een team zonder subteams; een eigen keuze geeft `false`).
   De team-join-trigger van 0171 slaat regels zonder profiel over. Bij een
   claim van een rosternaam verhuist zijn beschikbaarheid naar het profiel en
   blijft `set_by` staan; een eigen regel voor dezelfde week wint.

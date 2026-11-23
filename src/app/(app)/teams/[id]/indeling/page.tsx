@@ -408,8 +408,8 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
         racefit={racefit}
         racepasses={racepasses}
         teamId={team.id}
-        // set_team_availability_for (0332) werkt alleen voor een hoofdteam met subteams.
-        canEditAvailability={!solo && (canManageRoster || captainOf.size > 0)}
+        // Sinds 0352 ook bij een team zonder subteams, op zijn eigen races.
+        canEditAvailability={canManageRoster || captainOf.size > 0}
         canAssign={canManageRoster || captainOf.size > 0}
         canAssignWeek={canManageRoster || captainOf.has(team.id)}
         showDev={!solo}

@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0332 tegen een geïsoleerde PostgreSQL, op nagebouwde tabellen. Zegt niets over
-// de productiedatabase zelf; daar is de migratie nog niet toegepast.
+// 0332 en 0352 tegen een geïsoleerde PostgreSQL, op nagebouwde tabellen. Zegt
+// niets over de productiedatabase zelf.
 
 let db: PGlite;
 const migration = (file: string) => readFile(`supabase/migrations/${file}`, "utf8");
@@ -13,6 +13,7 @@ const LID = "00000000-0000-0000-0000-000000000002";
 const ANDER = "00000000-0000-0000-0000-000000000003";
 const CLAIMER = "00000000-0000-0000-0000-000000000004";
 const BEHEERDER = "00000000-0000-0000-0000-000000000005";
+const CAPTAIN_C = "00000000-0000-0000-0000-000000000006";
 
 const ZRL_B = "00000000-0000-0000-0000-0000000000b0";
 const B1 = "00000000-0000-0000-0000-0000000000b1";
@@ -21,6 +22,7 @@ const LOS = "00000000-0000-0000-0000-0000000000c0";
 const WEEK = "00000000-0000-0000-0000-0000000000e1";
 const RACE_B1 = "00000000-0000-0000-0000-0000000000e2";
 const WEEK_2 = "00000000-0000-0000-0000-0000000000e3";
+const RACE_C = "00000000-0000-0000-0000-0000000000e4";
 
 const ROSTER = "00000000-0000-0000-0000-0000000000f1";
 const ROSTER_2 = "00000000-0000-0000-0000-0000000000f2";
@@ -29,10 +31,16 @@ async function as(user: string | null) {
   await db.query("select set_config('request.jwt.claim.sub', $1, false)", [user ?? ""]);
 }
 
-async function setFor(event: string, profile: string | null, roster: string | null, status: string | null) {
+async function setFor(
+  event: string,
+  profile: string | null,
+  roster: string | null,
+  status: string | null,
+  team: string = ZRL_B,
+) {
   const { rows } = await db.query<{ ok: boolean }>(
     "select public.set_team_availability_for($1, $2, $3, $4, $5) as ok",
-    [event, ZRL_B, profile, roster, status],
+    [event, team, profile, roster, status],
   );
   return rows[0].ok;
 }
@@ -83,17 +91,19 @@ beforeAll(async () => {
          returns uuid language plpgsql as $$ begin insert into joins values (p_profile_id, p_event_id); return null; end $$;`,
       `create function public.current_user_has_permission(p text) returns boolean language sql stable
          as $$ select auth.uid() = '${BEHEERDER}'::uuid $$;`,
-      `insert into profiles values ('${CAPTAIN}'), ('${LID}'), ('${ANDER}'), ('${CLAIMER}'), ('${BEHEERDER}');`,
+      `insert into profiles values ('${CAPTAIN}'), ('${LID}'), ('${ANDER}'), ('${CLAIMER}'), ('${BEHEERDER}'), ('${CAPTAIN_C}');`,
       `insert into teams values ('${ZRL_B}', 'ZRL B', null), ('${B1}', 'B1', '${ZRL_B}'), ('${LOS}', 'ZRL C', null);`,
-      `insert into team_members values ('${B1}', '${CAPTAIN}', 'captain'), ('${ZRL_B}', '${LID}', 'member');`,
+      `insert into team_members values ('${B1}', '${CAPTAIN}', 'captain'), ('${ZRL_B}', '${LID}', 'member'), ('${LOS}', '${CAPTAIN_C}', 'captain');`,
       `insert into events values
          ('${WEEK}', 'zrl', null, null),
          ('${RACE_B1}', 'zrl', '${WEEK}', '${B1}'),
-         ('${WEEK_2}', 'zrl', null, null);`,
+         ('${WEEK_2}', 'zrl', null, null),
+         ('${RACE_C}', 'zrl', '${WEEK}', '${LOS}');`,
       `insert into roster_entries values ('${ROSTER}', null), ('${ROSTER_2}', null);`,
     ].join("\n"),
   );
   await db.exec(await migration("0332_captain_availability.sql"));
+  await db.exec(await migration("0352_captain_availability_solo_team.sql"));
   await db.exec(
     `create trigger team_event_availability_team_join after insert or update of status on team_event_availability
        for each row execute function public.handle_team_availability_team_join();`,
@@ -194,7 +204,54 @@ describe("captain zet beschikbaarheid (0332)", () => {
 
   it("is opnieuw te draaien", async () => {
     await db.exec(await migration("0332_captain_availability.sql"));
+    await db.exec(await migration("0352_captain_availability_solo_team.sql"));
     await as(CAPTAIN);
     expect(await setFor(WEEK, null, ROSTER_2, "available")).toBe(true);
+  });
+});
+
+describe("captain zet beschikbaarheid bij een team zonder subteams (0352)", () => {
+  it("zet een renner op de eigen race, en dat telt als aanmelding", async () => {
+    await as(CAPTAIN_C);
+    expect(await setFor(RACE_C, LID, null, "available", LOS)).toBe(true);
+    expect((await row(RACE_C, "profile_id", LID))?.set_by).toBe(CAPTAIN_C);
+    const { rows } = await db.query("select * from joins where profile_id = $1 and event_id = $2", [LID, RACE_C]);
+    expect(rows).toHaveLength(1);
+  });
+
+  it("wist een waarde die een captain zette", async () => {
+    await as(CAPTAIN_C);
+    expect(await setFor(RACE_C, LID, null, null, LOS)).toBe(true);
+    expect(await row(RACE_C, "profile_id", LID)).toBeNull();
+  });
+
+  it("de eigen keuze van de renner gaat voor", async () => {
+    await as(ANDER);
+    await db.query("insert into team_event_availability (event_id, team_id, profile_id, status) values ($1, $2, $3, 'unavailable')", [
+      RACE_C,
+      LOS,
+      ANDER,
+    ]);
+    await as(CAPTAIN_C);
+    expect(await setFor(RACE_C, ANDER, null, "available", LOS)).toBe(false);
+    expect((await row(RACE_C, "profile_id", ANDER))?.status).toBe("unavailable");
+  });
+
+  it("alleen op een race van het team zelf", async () => {
+    await as(CAPTAIN_C);
+    await expect(setFor(WEEK, LID, null, "available", LOS)).rejects.toThrow(/race van dit team/);
+    await expect(setFor(RACE_B1, LID, null, "available", LOS)).rejects.toThrow(/race van dit team/);
+  });
+
+  it("weigert een captain van een ander team en een subteam", async () => {
+    await as(CAPTAIN);
+    await expect(setFor(RACE_C, LID, null, "available", LOS)).rejects.toThrow(/captains/);
+    await as(BEHEERDER);
+    await expect(setFor(RACE_B1, LID, null, "available", B1)).rejects.toThrow(/hoofdteam/);
+  });
+
+  it("een team met subteams blijft alleen op de raceweek", async () => {
+    await as(CAPTAIN);
+    await expect(setFor(RACE_B1, LID, null, "available")).rejects.toThrow(/raceweek/);
   });
 });

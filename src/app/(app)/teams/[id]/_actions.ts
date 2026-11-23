@@ -396,7 +396,8 @@ export async function setTeamAvailability(
 
 /**
  * Een captain zet de beschikbaarheid van een renner voor een ZRL-raceweek
- * (migr. 0332), ook van een rosternaam zonder account. `status` null wist een
+ * (migr. 0332) of, bij een team zonder subteams, voor een eigen race (0352),
+ * ook van een rosternaam zonder account. `status` null wist een
  * waarde die een captain zette. Een eigen keuze van de renner blijft staan; de
  * functie in de database controleert wie het mag.
  */
