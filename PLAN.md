@@ -12,11 +12,11 @@ gaat stabiliteit voor nieuwe features.
    de echte pagina met echte herstelwaarden nakijken. Zie de ronde "Bijgesteld —
    Vandaag: Trainingsruimte opent herstel en grafiek".
 
-0. **Gebouwd — Racepasses per race van de clubsite (2026-11-23): lokaal
-   gecommit, niet gepusht.** Migratie `0353_zrl_race_passes.sql` is nog niet
-   toegepast en moet vóór de push. Open: Ladies C van 24 november nakijken, en na
-   de deploy `/beheer/zrl` en één import controleren. Zie de ronde "Gebouwd —
-   Racepasses per race van de clubsite".
+0. **Gebouwd — Racepasses per race van de clubsite (2026-11-23): gepusht naar
+   `main` (`32f50ce7`, eigenaar: "Toepassen en pushen").** Migratie
+   `0353_zrl_race_passes.sql` op 2026-11-23 vóór de push toegepast. Open: Ladies C
+   van 24 november nakijken, en na de deploy `/beheer/zrl` en één import
+   controleren. Zie de ronde "Gebouwd — Racepasses per race van de clubsite".
 
 0. **Gebouwd — ZWBeter-blokken als veegrij op mobiel (2026-11-23): gepusht naar `main` (`269b8410`, eigenaar: "Ja, push naar main").** Geen migratie. Open: op een echte telefoon het
    vegen en het inschuiven van het actieve blok nakijken. Zie de ronde "Gebouwd
@@ -12834,8 +12834,9 @@ aparte tegel Form, omdat die naar dezelfde grafiek leidt.
 
 ### Gebouwd — Racepasses per race van de clubsite
 
-**2026-11-23, lokaal gecommit, niet gepusht. Commit: de commit die dit blok
-toevoegt. Migratie `0353_zrl_race_passes.sql`, nog niet toegepast.**
+**2026-11-23, gepusht naar `main` (`32f50ce7`, eigenaar: "Toepassen en pushen").
+Migratie `0353_zrl_race_passes.sql` op 2026-11-23 vóór de push op productie
+toegepast: acht passes voor 24 november overgenomen, leden kunnen alleen lezen.**
 
 **Waarom.** De eigenaar vroeg of de racepasses van de racekalender op
 zwbcycling.nl kunnen komen, omdat A/B en C daar op aparte pagina's staan. Bij het
@@ -12877,8 +12878,8 @@ gaan bewust niet mee.
 - Andere clubs slaan de import over; kalender en labels zijn van ZWB.
 
 **Niet geverifieerd.** De migratie is niet lokaal uitgevoerd (geen Docker of
-Supabase-config). De schermen en de schrijfstap zijn niet in de browser of tegen
-de database getest, omdat de tabel nog niet bestaat. Wel getest: `tsc`, ESLint,
+Supabase-config), alleen op productie. De schermen en de schrijfstap van de import
+zijn niet in de browser of tegen de database getest. Wel getest: `tsc`, ESLint,
 de unit-tests en de parser tegen de echte site (acht teams voor 24 november).
 De volledige testrun heeft twee fouten die hier niet vandaan komen: "beheer noemt
 ZWB niet" (de tekst "ZWB TTT-plan" staat al op `main`) en `omnium-live` (vraagt
