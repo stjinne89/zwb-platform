@@ -7,13 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — ZWBeter-blokken als veegrij op mobiel (2026-11-23): lokaal, nog
-   niet gecommit of gepusht.** Geen migratie. Open: op een echte telefoon het
+0. **Gebouwd — ZWBeter-blokken als veegrij op mobiel (2026-11-23): gepusht naar `main` (`269b8410`, eigenaar: "Ja, push naar main").** Geen migratie. Open: op een echte telefoon het
    vegen en het inschuiven van het actieve blok nakijken. Zie de ronde "Gebouwd
    — ZWBeter-blokken als veegrij".
 
 0. **Bijgesteld — ZWBeter Vandaag: eerst de stand, ritblokken dicht
-   (2026-11-23): lokaal, nog niet gecommit of gepusht.** Geen migratie. Open:
+   (2026-11-23): gepusht naar `main` (`269b8410`, eigenaar: "Ja, push naar main").** Geen migratie. Open:
    op de echte pagina beoordelen of de training niet te ver naar beneden zakt.
    Zie de ronde "Bijgesteld — ZWBeter Vandaag".
 
@@ -12788,7 +12787,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter-blokken als veegrij op mobiel
 
-**2026-11-23, lokaal, nog niet gecommit (hash invullen bij de commit). Geen
+**2026-11-23, gepusht naar `main` (`269b8410`, eigenaar: "Ja, push naar main"). Geen
 migratie.** De eigenaar wilde de zes blokken boven heel ZWBeter op de telefoon
 terugbrengen tot twee, met vegen naar de rest, op volgorde van populariteit. De
 drie rijen namen daar 244px in; één rij scheelt 168px.
@@ -12829,7 +12828,7 @@ drie rijen namen daar 244px in; één rij scheelt 168px.
 
 ### Bijgesteld — ZWBeter Vandaag: eerst de stand, ritblokken dicht
 
-**2026-11-23, lokaal, nog niet gecommit (hash invullen bij de commit). Geen
+**2026-11-23, gepusht naar `main` (`269b8410`, eigenaar: "Ja, push naar main"). Geen
 migratie.** Na de ombouw hieronder wilde de eigenaar een andere volgorde: eerst
 hoe je ervoor staat, dan wat je gaat doen, dan wat je daarvoor nodig hebt
 (voeding, materiaal, core) en dan wat er nog meer op de dag is. De blokken uit
