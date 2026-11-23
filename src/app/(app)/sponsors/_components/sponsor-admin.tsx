@@ -32,6 +32,7 @@ export type SponsorAdminRow = {
   tier: "hoofd" | "sub" | "team" | "web" | "vriend";
   display_order: number;
   active: boolean;
+  overlay_fixed?: boolean;
 };
 
 export function SponsorAdmin({ sponsors }: { sponsors: SponsorAdminRow[] }) {
@@ -90,6 +91,11 @@ export function SponsorAdmin({ sponsors }: { sponsors: SponsorAdminRow[] }) {
                     {!sponsor.active && (
                       <span className="ml-2 rounded bg-muted px-1.5 text-xs">
                         inactief
+                      </span>
+                    )}
+                    {sponsor.overlay_fixed && (
+                      <span className="ml-2 rounded bg-muted px-1.5 text-xs">
+                        vast in overlay
                       </span>
                     )}
                   </p>
@@ -237,6 +243,16 @@ function SponsorForm({
             defaultChecked={sponsor?.active}
           />
           Actief (zichtbaar op /sponsors)
+        </label>
+      )}
+      {mode === "edit" && (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="overlay_fixed"
+            defaultChecked={sponsor?.overlay_fixed}
+          />
+          Vast in overlay
         </label>
       )}
       {error && <p className="text-xs text-destructive">{error}</p>}

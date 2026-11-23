@@ -80,7 +80,7 @@ export default async function SponsorsPage() {
   const { data: sponsorRows } = await supabase
     .from("sponsors")
     .select(
-      "id, name, slug, logo_url, website_url, description_md, contact_email, tier, display_order, active",
+      "id, name, slug, logo_url, website_url, description_md, contact_email, tier, display_order, active, overlay_fixed",
     )
     .order("tier")
     .order("display_order");

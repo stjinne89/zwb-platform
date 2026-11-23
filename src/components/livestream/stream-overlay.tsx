@@ -12,7 +12,7 @@ import { overlayRows, overlayValue } from "@/lib/zrl-live/overlay";
 import type { ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import { loadFooterSponsors } from "@/app/(app)/_components/sponsor-footer";
 import { overlayHand, overlayStencil, overlayText } from "./fonts";
-import { SponsorRotator } from "./sponsor-rotator";
+import { OverlaySponsors } from "./sponsor-rotator";
 import { RugnummerOverlay, StripOverlay, ZeefdrukOverlay, type OverlayParts } from "./stream-overlay-styles";
 import "./stream-overlay.css";
 import "./stream-overlay-rugnummer.css";
@@ -88,7 +88,7 @@ export async function StreamOverlay({
     // precies het gekozen formaat (OBS draait op Chromium).
     ...(scale !== 1 ? { zoom: scale } : {}),
   } as CSSProperties;
-  const rotator = sponsors.map(({ name, logoUrl }) => ({ name, logoUrl }));
+  const rotator = sponsors.map(({ name, logoUrl, overlayFixed }) => ({ name, logoUrl, overlayFixed }));
 
   if (look !== "tegels") {
     const parts: OverlayParts = {
@@ -139,8 +139,7 @@ export async function StreamOverlay({
 
       {sponsors.length > 0 && (
         <aside className="stream-overlay-sponsors">
-          <span className="stream-overlay-caption">Sponsors</span>
-          <SponsorRotator sponsors={rotator} />
+          <OverlaySponsors sponsors={rotator} />
         </aside>
       )}
 

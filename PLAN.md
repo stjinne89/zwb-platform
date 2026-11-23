@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Vaste sponsor in de overlay (2026-11-23): lokaal, nog niet
+   gepusht.** Migratie `0354_sponsor_overlay_fixed` nog níét op productie:
+   toepassen vóór de push (`/sponsors` leest de kolom), daarna bij NexReply het
+   vinkje zetten. Open: in OBS bekijken. Zie de ronde met dezelfde naam.
+
 0. **Bijgesteld — Herstelstand als balkje (2026-11-23): gepusht naar `main`
    (`d933e834`, eigenaar: "Ja, push naar main").** Geen migratie. Zie de ronde met dezelfde naam.
 
@@ -1599,8 +1604,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0353`
-(`0352_captain_availability_solo_team` is van het beschikbaarheidsvakje bij ZRL A en C, 2026-11-23, toegepast op 2026-11-23;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0355`
+(`0354_sponsor_overlay_fixed` is van de vaste sponsor in de overlay, 2026-11-23, nog niet toegepast;
+`0353_zrl_race_passes` is van de racepasses per race, toegepast op 2026-11-23;
+`0352_captain_availability_solo_team` is van het beschikbaarheidsvakje bij ZRL A en C, 2026-11-23, toegepast op 2026-11-23;
 `0351_bike_tire_setups` staat op main;
 `0350_stream_overlay_zwift_size` is van het canvas dat het Zwift-beeld volgt, 2026-11-20, toegepast op 2026-11-20;
 `0349_avatar_kopman` is van de kopman als avatar, 2026-11-20, toegepast op 2026-11-20;
@@ -12878,6 +12885,39 @@ aparte tegel Form, omdat die naar dezelfde grafiek leidt.
   proefpagina is weer verwijderd.
 - **Niet lokaal te verifiëren.** De ingelogde pagina met echte gegevens. In de
   proef was de herstelkaart een nabouw met dezelfde onderdelen.
+
+### Gebouwd — Vaste sponsor in de overlay
+
+**2026-11-23, lokaal, nog niet gepusht. Migratie `0354_sponsor_overlay_fixed`,
+nog niet op productie.**
+
+- **Waarom.** NexReply is de online sponsor van de club en moet tijdens een
+  stream altijd in beeld staan. De andere sponsors mogen wisselen.
+- **Wat.**
+  - `sponsors.overlay_fixed` (0354), met een vinkje "Vast in overlay" bij het
+    bewerken op `/sponsors`. Er is er hooguit een: het vinkje zetten haalt het
+    bij de andere sponsor weg.
+  - In alle vier de stijlen staat de vaste sponsor rechts en wisselen de andere
+    links, om de 8 seconden. Zonder vinkje blijft er één wisselend logo.
+  - De bijschriften "Sponsor(s)" zijn weg (wens eigenaar); die ruimte gaat naar
+    het logo. Het vak is 120 px hoog in plaats van 92, en met twee logo's is elk
+    vak 264 px breed.
+  - Om plaats te maken: de titel mag minder breed worden (tegels 1254 px,
+    rugnummer 1224 px, zeefdruk 1040 px, strip tot 624 px van rechts). De stoet
+    van zeefdruk telt dan twee renners in plaats van drie.
+  - `loadFooterSponsors` leest `*`, zodat de sponsorstrip op elke pagina blijft
+    werken zolang 0354 niet is toegepast. Cachesleutel naar `v2`.
+- **Bewust niet.**
+  - Geen naam van een sponsor in de code of in de migratie: welke sponsor vast
+    staat is clubdata. Het vinkje bij NexReply wordt na het toepassen gezet.
+  - Geen meerdere vaste sponsors: daar is in de balk geen plaats voor.
+  - De thumbnail verandert niet: daar staan geen sponsors op.
+- **Niet geverifieerd.** `0354` in PGlite getest (twee keer uit te voeren,
+  standaard uit). De vier stijlen op 1920×1080 bekeken met NexReply tijdelijk
+  als vaste sponsor (markering weer weggehaald), ook met een lange titel; het
+  wisselen links terwijl NexReply blijft staan is gemeten. Zonder de kolom
+  rendert de overlay gewoon met één wisselend logo. Het vinkje op `/sponsors`
+  niet ingelogd geprobeerd. Niet gezien in OBS.
 
 ### Gebouwd — Racepasses per race van de clubsite
 

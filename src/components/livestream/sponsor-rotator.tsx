@@ -1,8 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { splitOverlaySponsors } from "@/lib/youtube-live/overlay-sponsors";
 
-export type RotatorSponsor = { name: string; logoUrl: string };
+export type RotatorSponsor = { name: string; logoUrl: string; overlayFixed?: boolean };
+
+/** De logo's in de overlay: de vaste sponsor (0354) rechts, de rest wisselt links. */
+export function OverlaySponsors({ sponsors }: { sponsors: RotatorSponsor[] }) {
+  const { fixed, rotating } = splitOverlaySponsors(sponsors);
+  return (
+    <div className="stream-overlay-logos" data-pair={fixed && rotating.length > 0 ? "" : undefined}>
+      {rotating.length > 0 && <SponsorRotator sponsors={rotating} />}
+      {fixed && <SponsorRotator sponsors={[fixed]} />}
+    </div>
+  );
+}
 
 /**
  * Eén sponsorlogo tegelijk in de overlay, elk even lang en even groot, wat voor

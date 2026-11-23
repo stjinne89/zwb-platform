@@ -101,31 +101,32 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
   overflow: hidden;
 }
 
-/* Sponsors rechts in de balk: één logo tegelijk, elk even groot, op het
-   doorzichtige paneel van het design. */
+/* Sponsors rechts in de balk, op het doorzichtige paneel van het design: één
+   logo tegelijk, of (0354) links de wisselende en rechts de vaste sponsor. */
 .stream-overlay-sponsors {
   position: absolute;
   right: 40px;
   top: 36px;
   height: 144px;
-  display: grid;
-  align-content: center;
-  gap: 8px;
-  padding: 0 16px;
+  box-sizing: border-box;
+  padding: 12px;
   background: var(--ov-row);
 }
-.stream-overlay-caption { font-size: 18px; color: var(--ov-muted); }
+.stream-overlay-logos { display: flex; gap: 10px; width: 100%; height: 100%; }
 .stream-overlay-sponsor {
   position: relative;
+  flex: none;
   width: 280px;
-  height: 92px;
+  height: 120px;
   background: var(--ov-paper);
 }
+.stream-overlay-logos[data-pair] .stream-overlay-sponsor { width: 264px; }
+.stream-overlay:has(.stream-overlay-logos[data-pair]) .stream-overlay-head { max-width: 1254px; }
 .stream-overlay-sponsor img {
   position: absolute;
-  inset: 12px 20px;
-  width: calc(100% - 40px);
-  height: calc(100% - 24px);
+  inset: 8px 12px;
+  width: calc(100% - 24px);
+  height: calc(100% - 16px);
   object-fit: contain;
   opacity: 0;
   transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1);

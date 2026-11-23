@@ -94,8 +94,14 @@ export async function updateSponsor(id: string, formData: FormData) {
     String(formData.get("contact_email") ?? "").trim() || null;
   const displayOrder = Number(formData.get("display_order") ?? 100) || 100;
   const active = formData.get("active") === "on";
+  const overlayFixed = formData.get("overlay_fixed") === "on";
 
   const admin = createAdminClient();
+  // Eén vaste sponsor in de overlay (0354).
+  if (overlayFixed) {
+    const { error: clearError } = await admin.from("sponsors").update({ overlay_fixed: false }).eq("overlay_fixed", true).neq("id", id);
+    if (clearError) return { ok: false as const, error: clearError.message };
+  }
   const { error } = await admin
     .from("sponsors")
     .update({
@@ -106,6 +112,7 @@ export async function updateSponsor(id: string, formData: FormData) {
       contact_email: contactEmail,
       display_order: displayOrder,
       active,
+      overlay_fixed: overlayFixed,
     })
     .eq("id", id);
   if (error) return { ok: false as const, error: error.message };

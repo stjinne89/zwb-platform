@@ -13,10 +13,11 @@ export const SPONSOR_FOOTER_TAG = "sponsor-footer";
  * /sponsors legen de cache meteen.
  */
 export const loadFooterSponsors = unstable_cache(
-  async (): Promise<CarouselSponsor[]> => {
+  async (): Promise<(CarouselSponsor & { overlayFixed: boolean })[]> => {
+    // "*" zodat deze strip op elke pagina ook werkt zolang 0354 nog niet is toegepast.
     const { data } = await createAdminClient()
       .from("sponsors")
-      .select("name, logo_url, website_url")
+      .select("*")
       .eq("active", true)
       .not("logo_url", "is", null)
       .order("tier")
@@ -27,9 +28,10 @@ export const loadFooterSponsors = unstable_cache(
         name: s.name as string,
         logoUrl: s.logo_url as string,
         websiteUrl: (s.website_url as string | null) ?? null,
+        overlayFixed: s.overlay_fixed === true,
       }));
   },
-  ["sponsor-footer", "v1"],
+  ["sponsor-footer", "v2"],
   { revalidate: 60 * 60, tags: [SPONSOR_FOOTER_TAG] },
 );
 

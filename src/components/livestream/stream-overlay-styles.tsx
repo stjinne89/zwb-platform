@@ -3,7 +3,7 @@ import { routeFigures } from "@/lib/youtube-live/overlay-styles";
 import { profileAreaPath, profileTopPath, type StreamRoute } from "@/lib/youtube-live/route-facts";
 import { kopmanMood, type KopmanColors, type KopmanFace } from "@/lib/youtube-live/kopman";
 import { kopmanSvg } from "./kopman-figure";
-import { SponsorRotator, type RotatorSponsor } from "./sponsor-rotator";
+import { OverlaySponsors, type RotatorSponsor } from "./sponsor-rotator";
 
 // De drie eigen stijlen van de OBS-overlay (0346), naast het tegelkader in
 // stream-overlay.tsx. Zelfde vakken op dezelfde plek: titel en sponsor in de
@@ -93,8 +93,7 @@ export function RugnummerOverlay({ parts }: { parts: OverlayParts }) {
         <aside className="ovr-plate">
           <i className="ovr-tie ovr-tie-a" aria-hidden />
           <i className="ovr-tie ovr-tie-b" aria-hidden />
-          <span className="ovr-plate-caption">{parts.sponsors.length > 1 ? "Sponsors" : "Sponsor"}</span>
-          <SponsorRotator sponsors={parts.sponsors} />
+          <OverlaySponsors sponsors={parts.sponsors} />
         </aside>
       )}
 
@@ -209,8 +208,7 @@ export function ZeefdrukOverlay({ parts }: { parts: OverlayParts }) {
 
       {parts.sponsors.length > 0 && (
         <aside className="ovz-sponsors">
-          <span className="ovz-caption">Sponsors</span>
-          <SponsorRotator sponsors={parts.sponsors} />
+          <OverlaySponsors sponsors={parts.sponsors} />
         </aside>
       )}
 
@@ -272,10 +270,7 @@ export function StripOverlay({ parts }: { parts: OverlayParts }) {
 
       {parts.sponsors.length > 0 && (
         <aside className="ovs-panel ovs-sponsors">
-          <div className="ovs-card">
-            <span className="ovs-card-caption">{parts.sponsors.length > 1 ? "Sponsors" : "Sponsor"}</span>
-            <SponsorRotator sponsors={parts.sponsors} />
-          </div>
+          <OverlaySponsors sponsors={parts.sponsors} />
         </aside>
       )}
 
