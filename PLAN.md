@@ -8,7 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Hersteld — Vermogen: race ontbrak bij ZwiftRacing en intervals.icu
-   (2026-11-23): op branch `claude/zwiftracing-vermogen-curve`, niet gepusht.**
+   (2026-11-23): `7b179fff` op branch `claude/zwiftracing-vermogen-curve`, niet
+   gepusht.**
    Geen migratie. Open: na de deploy in het antwoord van de twee cron-jobs
    nagaan of `noCurve` op 0 blijft en `powerProfiles` per run renners ververst.
    Zie de ronde "Hersteld — Vermogen: race ontbrak".
@@ -12822,7 +12823,7 @@ captain-account bekeken.
 
 ### Hersteld — Vermogen: race ontbrak bij ZwiftRacing en intervals.icu
 
-**2026-11-23, branch `claude/zwiftracing-vermogen-curve`, nog geen commit-hash, niet gepusht.** Geen migratie. Aanleiding: de eigenaar zag bij een renner op
+**2026-11-23, commit `7b179fff` op branch `claude/zwiftracing-vermogen-curve`, niet gepusht.** Geen migratie. Aanleiding: de eigenaar zag bij een renner op
 `zwiftracing.app/riders/<id>/power` veel hogere waardes dan in de app (20 min
 5,23 tegen 4,43 W/kg). De ladderrace van 19 november ontbrak in beide bronnen:
 
