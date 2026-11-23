@@ -12771,7 +12771,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Beschikbaarheidsvakje ook bij ZRL A en C
 
-**2026-11-23, gepusht naar `main` (eigenaar: "Ja, zet het live"). Migratie
+**2026-11-23, gepusht naar `main` (`b2d8b6a8`, eigenaar: "Ja, zet het live"). Migratie
 `0352_captain_availability_solo_team.sql` is vóór de push op productie
 toegepast.** De
 eigenaar miste op de Teamindeling van A en C het vakje waarmee een captain de
