@@ -38,6 +38,13 @@ const HELP_INDEX: HelpResult[] = [
       "frr flamme rouge racing tour ignite erupt oblivion etappe tijdslot slot inschrijven zwift klassement gc egap klasse rivalen tegenstanders renners volgen favoriet ster zwiftpower",
   },
   {
+    title: "Racefit",
+    text: "Hoe het getal in de ZRL-teamindeling is opgebouwd uit je vermogen, de route en je gewicht.",
+    href: "/hulp/wedstrijden#racefit",
+    terms:
+      "racefit race fit teamindeling indeling zrl parcours route weging sprint klim klimmen rondes tijdrit ttt race of truth gewicht w/kg wkg vermogen 15 seconden 1 minuut 5 minuten 20 minuten geleend schuin indoor",
+  },
+  {
     title: "Sunday Race Club",
     text: "De SRC van MyWhoosh: inschrijven, je team per maand en per zondag wie kan.",
     href: "/hulp/wedstrijden#teams",

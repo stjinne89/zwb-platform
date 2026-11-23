@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Herschreven — Racefit op /hulp als eigen blok (2026-11-23): lokaal
+   gecommit, niet gepusht.** Geen migratie. Open: de eigenaar beslist of het
+   parcoursmodel blijft rekenen zoals de hulp nu beschrijft (sprint bij een
+   bergop finish, klimmeters dubbel). Zie de ronde "Herschreven — Racefit op
+   /hulp als eigen blok".
+
 0. **Herschreven — Weekoverzicht: openingszin (2026-11-23): gepusht naar
    `main` (`6abb7051`, eigenaar: "Ja, alleen de zin").** Geen migratie. Open: na de deploy
    de openingsslide bekijken. Zie de ronde "Herschreven — Weekoverzicht:
@@ -12748,6 +12754,39 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Herschreven — Racefit op /hulp als eigen blok
+
+**2026-11-23, commit "Hulp: Racefit als eigen blok met voorbeelden", lokaal, niet
+gepusht. Geen migratie.** De eigenaar wilde dat leden snappen hoe Racefit is
+opgebouwd. De uitleg stond al op /hulp, maar in twee lange alinea's binnen de
+kaart Teams en wedstrijden.
+
+- **Wat.** Een eigen blok `#racefit` op `/hulp/wedstrijden`
+  (`hulp/_sections/racefit.tsx`), direct onder Teams en wedstrijden en vindbaar
+  via de zoekbalk: vier stappen, de regels per route, wat vier echte routes
+  vragen, drie voorbeeldrenners op die routes, en hoe je het getal leest. De
+  tabellen rekenen met `courseForRace` en `racefitScores`, dus ze lopen mee als
+  het model verandert. De twee alinea's zijn één verwijzing geworden.
+- **Rechtgezet in de hulptekst.** Er stond dat de sprint alleen telt zonder
+  bergop finish, en dat alleen hoogtemeters buiten de bekende klimmen als
+  glooiend tellen. `durationDemand` doet iets anders: de sprint houdt bij een
+  bergop finish zijn deel van `0,35 × (1 − heuvels)`, en het glooiende deel
+  rekent met alle hoogtemeters, dus klimmeters tellen ook daar. Van de 18
+  ladderroutes met een bergop finish houden er 10 sprintgewicht (Hot Laps 25%).
+- **Bewust niet.** Het model is niet aangepast: dat verandert Racefit en het
+  parcoursadvies van de Club Ladder, en dat is een keuze van de eigenaar. De
+  opmerking boven `durationDemand` beschrijft nog de bedoeling en is daarom
+  blijven staan. Racefit is niet zichtbaar gemaakt voor gewone leden: de
+  teamindeling blijft voor captains en beheerders.
+- **Basis.** Gebouwd op `origin/main`, zonder de lokale middleware-commit
+  `a810a8cc` met migratie 0345, die wacht op de overstap naar Micro.
+- **Geverifieerd:** tsc, eslint op de gewijzigde bestanden, en
+  `help-categories`, `help-anchors`, `zrl-racefit`. In `club-texts-render` faalt
+  "beheer noemt ZWB niet"; dat faalt ook op schone `origin/main`, door de tekst
+  "ZWB TTT-plan" in de beheergids, en is hier niet aangepakt. Het blok is los
+  gerenderd en op 1200 en 375 px bekeken, zonder de lettertypen van de app.
+- **Niet geverifieerd:** `/hulp/wedstrijden` zelf, ingelogd in de browser.
+
 ### Herschreven — Weekoverzicht: openingszin
 
 **2026-11-23, gepusht naar `main` (`6abb7051`, eigenaar: "Ja, alleen de zin").
@@ -14962,11 +15001,14 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
   minst passende, op procentverschil, of anders een rangpercentiel. Na uitleg
   over de weging per race koos de eigenaar: "Hou deze becijfering maar aan en
   beschrijf dit dan ook goed in hulp".
-- **Wat.** De uitleg van Racefit staat niet meer in de alinea over de
-  teamindeling maar in twee eigen alinea's op /hulp (`hulp/_data.ts`).
+- **Wat.** De uitleg van Racefit stond niet meer in de alinea over de
+  teamindeling maar in twee eigen alinea's op /hulp (`hulp/_data.ts`). Sinds
+  2026-11-23 is dat een eigen blok, en zijn de zinnen over de sprint en het
+  glooiende deel rechtgezet (zie "Herschreven — Racefit op /hulp als eigen
+  blok").
   - Wat het getal is, en hoe de weging per race volgt uit route, rondes en
     soort race: welke klim bij welke duur telt, de grenzen van 1% en 5%,
-    glooiend bij 5 minuten, de sprint zonder bergop finish, rondes met
+    glooiend bij 5 minuten, de sprint, rondes met
     afnemend gewicht en de tijdrit. Met het voorbeeld van London Calling als
     TTT: 5 minuten 49%, 20 minuten 39%, 1 minuut 12%, 15 seconden 0%.
   - Waarom het geen zFTP is en alleen binnen de lijst van die week vergelijkt.
