@@ -7,6 +7,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Bijgesteld — Trainingsruimte opent alleen herstel (2026-11-23): lokaal, nog
+   niet gecommit of gepusht.** Geen migratie. Zie de ronde met dezelfde naam.
+
 0. **Bijgesteld — Vandaag: Trainingsruimte opent herstel en grafiek
    (2026-11-23): gepusht naar `main` (`84737312`, eigenaar: "Ja, push naar main").** Geen migratie. Open: op
    de echte pagina met echte herstelwaarden nakijken. Zie de ronde "Bijgesteld —
@@ -12798,6 +12801,22 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Bijgesteld — Trainingsruimte opent alleen herstel
+
+**2026-11-23, lokaal, nog niet gecommit (hash invullen bij de commit). Geen
+migratie.** De eigenaar zag na de deploy dat de grafiek van CTL en Form meeopende
+met Trainingsruimte en wilde dat niet.
+
+- **Wijziging.** Trainingsruimte opent alleen Herstel & belastbaarheid. Fitness
+  (en Form op desktop) opent alleen de grafiek. Er staat steeds één van de twee
+  open.
+- **Gecontroleerd.** Typecheck, ESLint op `today-stand.tsx` en `next build` zijn
+  schoon. Op een tijdelijke proefpagina op 375px zijn openen, wisselen, sluiten en
+  de `#herstel`-link nagelopen; die pagina is weer verwijderd. De volledige
+  testrun is niet opnieuw gedraaid, omdat alleen de openstand van dit component
+  is veranderd.
+- **Niet lokaal te verifiëren.** De ingelogde pagina met echte gegevens.
+
 ### Bijgesteld — Vandaag: Trainingsruimte opent herstel en grafiek
 
 **2026-11-23, gepusht naar `main` (`84737312`, eigenaar: "Ja, push naar main"). Geen
@@ -12806,7 +12825,8 @@ Trainingsruimte, daar ook de fitnessgrafiek kunnen openen, en op mobiel geen
 aparte tegel Form, omdat die naar dezelfde grafiek leidt.
 
 - **Eén uitklapvlak.** `today-stand.tsx` houdt de tegels en één vlak eronder bij.
-  Trainingsruimte opent herstel met de grafiek, Fitness alleen de grafiek. Het
+  Trainingsruimte opende herstel met de grafiek (**niet meer waar** sinds
+  "Bijgesteld — Trainingsruimte opent alleen herstel"), Fitness alleen de grafiek. Het
   losse blok Herstel & belastbaarheid is weg, dus de dagkaart staat hoger.
 - **Mobiel.** Vier tegels, twee bij twee: Fitness, Trainingsruimte, eFTP en 7
   dagen. Form is daar geen tegel meer, maar blijft als lijn in de grafiek. Vanaf

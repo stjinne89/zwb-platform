@@ -13,11 +13,8 @@ import {
 } from "./training-load-chart";
 import { MetricCard } from "./ui";
 
-/**
- * Wat er onder de tegels openstaat. "herstel" is het vlak zonder grafiek: voor
- * een melding over ontbrekende waarden en voor de link naar de instelling.
- */
-type OpenPanel = "grafiek" | "ruimte" | "herstel" | null;
+/** Wat er onder de tegels openstaat: Fitness en Form openen de grafiek, Trainingsruimte herstel. */
+type OpenPanel = "grafiek" | "herstel" | null;
 
 // Zachte afbreking: op de smalste telefoons past het woord niet op één regel.
 const ROOM_LABEL = "Trainings­ruimte";
@@ -52,7 +49,7 @@ export function TodayStand({
   const [open, setOpen] = useState<OpenPanel>(recoveryNeedsAttention ? "herstel" : null);
   const [range, setRange] = useState<LoadRange>("90d");
   const hasRecovery = Boolean(recovery);
-  const recoveryOpen = open === "ruimte" || open === "herstel";
+  const recoveryOpen = open === "herstel";
   const value = readiness != null ? `${readiness}` : "-";
 
   // `/zwbeter-worden#herstel` is de link naar de instelling; die moet het vlak
@@ -61,7 +58,7 @@ export function TodayStand({
     if (!hasRecovery) return;
     const showRecovery = () => {
       if (window.location.hash !== "#herstel") return;
-      flushSync(() => setOpen((current) => (current === "ruimte" ? current : "herstel")));
+      flushSync(() => setOpen("herstel"));
       document.getElementById("herstel")?.scrollIntoView({ block: "start" });
     };
     const timer = window.setTimeout(showRecovery);
@@ -94,7 +91,7 @@ export function TodayStand({
           hint={adviceTitle}
           opens
           active={recoveryOpen}
-          onClick={() => setOpen((current) => (current === "ruimte" || current === "herstel" ? null : "ruimte"))}
+          onClick={() => setOpen((current) => (current === "herstel" ? null : "herstel"))}
         />
       ) : (
         <MetricCard
@@ -109,7 +106,7 @@ export function TodayStand({
       <div className="col-span-2 space-y-3 lg:order-last lg:col-span-5" hidden={open === null}>
         {/* Blijft staan als het dicht is, zodat de schakelaar zijn stand houdt. */}
         {hasRecovery && <div hidden={!recoveryOpen}>{recovery}</div>}
-        {(open === "grafiek" || open === "ruimte") && (
+        {open === "grafiek" && (
           <TrainingLoadPanel
             points={points}
             today={today}
