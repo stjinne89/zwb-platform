@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Herschreven — Weekoverzicht: openingszin (2026-11-23): gepusht naar
-   `main` (eigenaar: "Ja, alleen de zin").** Geen migratie. Open: na de deploy
+   `main` (`6abb7051`, eigenaar: "Ja, alleen de zin").** Geen migratie. Open: na de deploy
    de openingsslide bekijken. Zie de ronde "Herschreven — Weekoverzicht:
    openingszin".
 
@@ -12750,8 +12750,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Herschreven — Weekoverzicht: openingszin
 
-**2026-11-23, gepusht naar `main` (eigenaar: "Ja, alleen de zin"). Geen
-migratie.** De eigenaar vond "zo reed je week" een rare zin. De openingsslide
+**2026-11-23, gepusht naar `main` (`6abb7051`, eigenaar: "Ja, alleen de zin").
+Geen migratie.** De eigenaar vond "zo reed je week" een rare zin. De openingsslide
 zegt nu "[Voornaam], dit was je week.", zonder voornaam "Dit was je week."
 
 - **Waarom deze zin.** Hij past bij een terugblik en klopt ook in een week
