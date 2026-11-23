@@ -1,6 +1,7 @@
 // Het powerprofiel van één lid ophalen bij intervals.icu en vastleggen in
 // rider_power_profiles (en CP/W'/zones in profile_sport_settings). Gebruikt door
-// de knop op Teams (teams/_actions.ts) en de wekelijkse job van ZWBriljant.
+// de knop op Teams (teams/_actions.ts), de wekelijkse job van ZWBriljant en
+// sinds 2026-11-23 de uurlijkse ververser (power-refresh.ts).
 
 import {
   athletePhysique,

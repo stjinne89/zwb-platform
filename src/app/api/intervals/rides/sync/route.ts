@@ -7,10 +7,14 @@ import {
   type RideSyncResult,
 } from "@/lib/intervals/ride-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { refreshDuePowerProfiles, type PowerRefreshResult } from "@/lib/teams/power-refresh";
 
 // Haalt ritten op bij intervals.icu voor leden zonder Strava-koppeling
 // (migratie 0198, lib/intervals/ride-sync.ts). Per run hooguit `limit` leden, wie
 // het langst niet aan de beurt was eerst. Idempotent.
+//
+// Met de tijd die over is ook de powerprofielen van alle gekoppelde leden die aan
+// de beurt zijn (lib/teams/power-refresh.ts, sinds 2026-11-23).
 //
 // Bearer-token via INTERVALS_RIDES_SYNC_SECRET. Draait elk uur op cron-job.org,
 // niet als Netlify scheduled function (zie docs/runbook.md sectie 8).
@@ -21,6 +25,8 @@ const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 20;
 /** Na deze tijd begint de run aan geen nieuw lid meer. */
 const BUDGET_MS = 8_000;
+/** Tot hier begint de run aan een nieuw powerprofiel; één kost hooguit 15 s. */
+const POWER_UNTIL_MS = 15_000;
 
 export async function POST(request: NextRequest) {
   const auth = checkCronSecret(request, "INTERVALS_RIDES_SYNC_SECRET");
@@ -63,10 +69,19 @@ export async function POST(request: NextRequest) {
 
   const reminded = await sendDueVisitReminders(admin, connections).catch(() => 0);
 
+  // Een fout hier raakt de ritten niet; hij staat alleen in het antwoord.
+  let powerProfiles: PowerRefreshResult | { error: string };
+  try {
+    powerProfiles = await refreshDuePowerProfiles(admin, started + POWER_UNTIL_MS);
+  } catch (err) {
+    powerProfiles = { error: err instanceof Error ? err.message : "powerprofielen verversen faalde" };
+  }
+
   return NextResponse.json({
     ok: results.every((row) => !row.error),
     members: connections.length,
     reminded,
+    powerProfiles,
     processed: results.length,
     stored: results.reduce((sum, row) => sum + row.stored, 0),
     removed: results.reduce((sum, row) => sum + row.removed, 0),

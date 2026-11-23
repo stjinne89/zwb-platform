@@ -24,11 +24,16 @@ import "server-only";
 // past, volgt bij de volgende run. Een 429, 5xx of een pagina die we niet
 // herkennen stopt de run, zodat we niet doorgaan op een site die ons weert of
 // van opbouw veranderde.
+//
+// Sinds 2026-11-23 twee pagina's per renner: de rennerpagina (vELO1, type) en de
+// vermogenspagina, omdat het vermogen op de rennerpagina een race kan missen
+// (zie rider-page.ts). Zonder bruikbare curve blijft het vermogen van de
+// rennerpagina staan en telt de run `noCurve`.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { fetchZwiftRacingPage, zwiftRacingUserAgent } from "./fetch-page";
 import { harvestRaceExpectations, type RaceExpectationResult } from "./race-expectations";
-import { parseRiderPage, type RiderPageData } from "./rider-page";
+import { highestPower, parseRiderPage, parseRiderPowerCurve, type RiderPageData } from "./rider-page";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -43,6 +48,8 @@ const POWER_STALE_MS = 20 * 60 * 60 * 1000;
 const LEGACY_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 /** Tussen twee pagina's; de Chrome-taak deed 0,8 s zonder problemen. */
 const PAGE_SPACING_MS = 1_000;
+/** De tweede pagina krijgt minder tijd, zodat de run binnen `maxDuration` blijft. */
+const CURVE_TIMEOUT_MS = 8_000;
 
 export type ZwiftRacingSyncResult = {
   /** Renners die nu aan de beurt waren. */
@@ -54,6 +61,8 @@ export type ZwiftRacingSyncResult = {
   empty: number;
   /** Bij ZwiftRacing onbekend (404). */
   unknown: number;
+  /** Opgehaald zonder bruikbare curve op de vermogenspagina. */
+  noCurve: number;
   /** Niet opgehaald omdat het budget op was. */
   remaining: number;
   /** Waarom de run eerder stopte, of null. */
@@ -166,16 +175,28 @@ export async function dueZwiftIds(admin: Admin, now = new Date()): Promise<numbe
   return due;
 }
 
-type Fetched = { kind: "ok"; data: RiderPageData } | { kind: "unknown" } | { kind: "stop"; reason: string };
+type Fetched =
+  | { kind: "ok"; data: RiderPageData; hasCurve: boolean }
+  | { kind: "unknown" }
+  | { kind: "later" }
+  | { kind: "stop"; reason: string };
 
-async function fetchRiderPage(zwiftId: number, userAgent: string): Promise<Fetched> {
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchRiderPage(zwiftId: number, userAgent: string, deadline: number): Promise<Fetched> {
   const page = await fetchZwiftRacingPage(`/riders/${zwiftId}`, userAgent);
   if (page.kind !== "ok") return page;
   const data = parseRiderPage(page.html, zwiftId);
-  return data ? { kind: "ok", data } : { kind: "stop", reason: "pagina niet herkend" };
-}
+  if (!data) return { kind: "stop", reason: "pagina niet herkend" };
 
-const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  // Geen tijd meer voor de curve: niets opslaan, de volgende run begint met hem.
+  if (Date.now() > deadline) return { kind: "later" };
+  await pause(PAGE_SPACING_MS);
+  const powerPage = await fetchZwiftRacingPage(`/riders/${zwiftId}/power`, userAgent, CURVE_TIMEOUT_MS);
+  if (powerPage.kind === "stop") return powerPage;
+  const curve = powerPage.kind === "ok" ? parseRiderPowerCurve(powerPage.html, zwiftId) : null;
+  return { kind: "ok", data: { ...data, powerWkg: highestPower(data.powerWkg, curve) }, hasCurve: curve != null };
+}
 
 /** Haalt op wie aan de beurt is tot `deadline` (ms sinds epoch). */
 export async function runZwiftRacingSync(admin: Admin, deadline: number): Promise<ZwiftRacingSyncResult> {
@@ -183,7 +204,7 @@ export async function runZwiftRacingSync(admin: Admin, deadline: number): Promis
   // Eerst een paar uitslagpagina's: een klein, vast deel van het budget.
   const expectations = await harvestRaceExpectations(admin, deadline, userAgent, RESULT_PAGES_PER_RUN);
   const due = await dueZwiftIds(admin);
-  const result: ZwiftRacingSyncResult = { due: due.length, fetched: 0, power: 0, legacy: 0, empty: 0, unknown: 0, remaining: 0, stopped: expectations.stopped, expectations };
+  const result: ZwiftRacingSyncResult = { due: due.length, fetched: 0, power: 0, legacy: 0, empty: 0, unknown: 0, noCurve: 0, remaining: 0, stopped: expectations.stopped, expectations };
   // Weert ZwiftRacing ons op de uitslagpagina, dan ook geen rennerpagina's.
   if (result.stopped) {
     result.remaining = due.length;
@@ -195,7 +216,8 @@ export async function runZwiftRacingSync(admin: Admin, deadline: number): Promis
     if (Date.now() > deadline) break;
     if (index > 0) await pause(PAGE_SPACING_MS);
     const zwiftId = due[index];
-    const page = await fetchRiderPage(zwiftId, userAgent);
+    const page = await fetchRiderPage(zwiftId, userAgent, deadline);
+    if (page.kind === "later") break;
     if (page.kind === "stop") {
       result.stopped = page.reason;
       break;
@@ -209,6 +231,7 @@ export async function runZwiftRacingSync(admin: Admin, deadline: number): Promis
       continue;
     }
     result.fetched += 1;
+    if (!page.hasCurve) result.noCurve += 1;
     const { powerWkg, legacy, phenotype } = page.data;
     // Geen vermogen over 90 dagen: ook de oude waarde weg, die is dan verouderd.
     const { error } = await admin

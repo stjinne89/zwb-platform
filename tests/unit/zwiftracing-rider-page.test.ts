@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseRiderPage, readObject } from "@/lib/zwiftracing/rider-page";
+import { highestPower, parseRiderPage, parseRiderPowerCurve, readObject } from "@/lib/zwiftracing/rider-page";
 
 // Opbouw zoals de rennerpagina van zwiftracing.app hem op 2026-11-11 gaf
 // (TanStack Start, ingekort; verzonnen renner en waarden).
@@ -53,6 +53,51 @@ describe("parseRiderPage", () => {
     const html = `{riderId:"${ID}",power:{wkg15:12,wkg60:7,wkg120:6,wkg300:5,wkg1200:4}}`;
     expect(parseRiderPage(html, ID)?.powerWkg).toEqual({ s15: 12, m1: 7, m2: 6, m5: 5, m20: 4 });
     expect(parseRiderPage(html, ID)?.legacy).toBeNull();
+  });
+});
+
+describe("parseRiderPowerCurve", () => {
+  // Opbouw van `/riders/<id>/power` op 2026-11-23 (ingekort; verzonnen renner).
+  const slot = (id: string, live: number, d90: string) =>
+    `$R[5]={id:"${id}",label:"x",durationSec:1,live:$R[6]={w:400,wkg:${live},achievedAt:1,eventId:"1",title:"Race"},d90:${d90}}`;
+  const d90 = (wkg: number, title = "Race") => `$R[7]={w:300,wkg:${wkg},achievedAt:2,eventId:"2",title:"${title}"}`;
+  const powerPage = (slots: string[]) =>
+    `<script>$R[0]={riderId:${ID},source:"x",curve:$R[4]=[${slots.join(",")}],efforts:$R[9]=[$R[10]={slots:$R[11]={w1200:$R[12]={w:999,wkg:9.99}}}]};</script>`;
+
+  it("leest per duur de d90 en niet de live-waarde", () => {
+    const html = powerPage([slot("w5", 13, d90(12.78)), slot("w15", 10.3, d90(10.08)), slot("w60", 7.3, d90(7.28)), slot("w120", 6.1, d90(6)), slot("w300", 5.7, d90(5.63)), slot("w1200", 5.3, d90(5.23))]);
+    expect(parseRiderPowerCurve(html, ID)).toEqual({ s15: 10.08, m1: 7.28, m2: 6, m5: 5.63, m20: 5.23 });
+  });
+
+  it("laat een eventnaam met haakjes of veldnamen de curve niet breken", () => {
+    const html = powerPage([slot("w300", 5, d90(4.5, 'Cup ]} d90:{wkg:9} \\"finale\\"')), slot("w1200", 4, d90(3.9))]);
+    expect(parseRiderPowerCurve(html, ID)).toEqual({ s15: null, m1: null, m2: null, m5: 4.5, m20: 3.9 });
+  });
+
+  it("neemt bij een duur zonder d90 niet de waarde van de volgende duur", () => {
+    const html = powerPage([slot("w300", 5, "null"), slot("w1200", 4, d90(3.9))]);
+    expect(parseRiderPowerCurve(html, ID)).toEqual({ s15: null, m1: null, m2: null, m5: null, m20: 3.9 });
+  });
+
+  it("geeft null op een andere renner of zonder curve", () => {
+    expect(parseRiderPowerCurve(powerPage([slot("w300", 5, d90(4.5))]), 7654321)).toBeNull();
+    expect(parseRiderPowerCurve(`{riderId:${ID},power:{wkg300:5}}`, ID)).toBeNull();
+    expect(parseRiderPowerCurve(powerPage([slot("w300", 5, "null")]), ID)).toBeNull();
+  });
+});
+
+describe("highestPower", () => {
+  const summary = { s15: 10.08, m1: 7.12, m2: 6, m5: 5.4, m20: 4.43 };
+
+  it("neemt per duur de hoogste", () => {
+    expect(highestPower(summary, { s15: 10, m1: 7.28, m2: 6, m5: 5.63, m20: 5.23 })).toEqual({ s15: 10.08, m1: 7.28, m2: 6, m5: 5.63, m20: 5.23 });
+  });
+
+  it("vult een lege duur en werkt met één reeks", () => {
+    expect(highestPower({ ...summary, m20: null }, { ...summary, m20: 4 })?.m20).toBe(4);
+    expect(highestPower(summary, null)).toEqual(summary);
+    expect(highestPower(null, summary)).toEqual(summary);
+    expect(highestPower(null, null)).toBeNull();
   });
 });
 

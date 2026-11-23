@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Hersteld — Vermogen: race ontbrak bij ZwiftRacing en intervals.icu
+   (2026-11-23): op branch `claude/zwiftracing-vermogen-curve`, niet gepusht.**
+   Geen migratie. Open: na de deploy in het antwoord van de twee cron-jobs
+   nagaan of `noCurve` op 0 blijft en `powerProfiles` per run renners ververst.
+   Zie de ronde "Hersteld — Vermogen: race ontbrak".
+
 0. **Omgebouwd — ZWBeter Vandaag: volgorde en dagstaten (2026-11-23): gepusht
    naar `main` (`9553f9e6`, eigenaar: "Ja, push naar main").** Geen migratie.
    Open: na de deploy de echte pagina nakijken op de telefoon, op een dag met
@@ -12814,6 +12820,51 @@ gewist. Die blijft staan, zodat de captain zo iemand nog kan indelen.
 **Niet geverifieerd:** de keuzelijst is niet in de browser met een echt
 captain-account bekeken.
 
+### Hersteld — Vermogen: race ontbrak bij ZwiftRacing en intervals.icu
+
+**2026-11-23, branch `claude/zwiftracing-vermogen-curve`, nog geen commit-hash, niet gepusht.** Geen migratie. Aanleiding: de eigenaar zag bij een renner op
+`zwiftracing.app/riders/<id>/power` veel hogere waardes dan in de app (20 min
+5,23 tegen 4,43 W/kg). De ladderrace van 19 november ontbrak in beide bronnen:
+
+- **ZwiftRacing:** het blok `power` op de rennerpagina, dat de sync las, miste
+  die race; de curve op de vermogenspagina had hem wel. In een steekproef van 16
+  renners raakte dat 2 renners, allebei door deze ene race. Waarom ZwiftRacing
+  hem in `power` mist, is van buitenaf niet te zien.
+- **intervals.icu:** het profiel was opgehaald vlak vóór de race en werd pas
+  weer ververst door de knop, een bezoek aan ZWBriljant of de wekelijkse job.
+  De "nieuwe rit"-controle zag de race niet: die staat niet in
+  `strava_activities`, en de API van intervals.icu geeft van een rit die via
+  Strava binnenkwam alleen een leeg stompje. De curve telt zo'n rit wel mee.
+
+**Wat er veranderde:**
+- `rider-page.ts` leest ook de `d90` uit de curve (`parseRiderPowerCurve`).
+  `rider-sync.ts` haalt per renner twee pagina's op, want de vermogenspagina
+  heeft geen `legacyRatings`, en bewaart per duur de hoogste van beide. De
+  samenvatting kan namelijk ook hoger zijn dan de curve (5 min 4,97 tegen 4,87).
+  Zonder curve blijft de oude waarde van de rennerpagina en telt `noCurve`.
+- Daardoor past er ongeveer de helft van de renners in een run (circa 8 tot 10
+  in plaats van 16). Op de drukste dag van de laatste vijf (128 renners) past
+  dat ruim in de 48 runs per dag.
+- `lib/teams/power-refresh.ts` draait mee in het uurlijkse
+  `/api/intervals/rides/sync`: hooguit 4 profielen per run, tot 15 s na de
+  start. Aan de beurt: nooit opgehaald, een fietsrit na het ophalen, een fout
+  na 3 uur, en verder iedereen na 20 uur. Die dagelijkse beurt is nodig voor de
+  ritten die we alleen als stompje zien.
+
+**Bewust niet gebouwd:** een eigen cron-job (de eigenaar zou die op
+cron-job.org moeten aanmaken, en het bestaande uurritme is genoeg); een
+plausibiliteitscheck op de sprong van 289 naar 340 W over 20 minuten (dezelfde
+rit in beide bronnen, dus geen onafhankelijke controle); `synced_at` bij een
+fout laten staan (dan zou elk bezoek aan ZWBriljant een kapotte koppeling
+opnieuw proberen).
+
+**Niet geverifieerd:** de twee cron-jobs zijn niet in productie gedraaid. De
+parser is getest op echte pagina's van drie renners. Of de ritten-run meestal
+binnen 15 s klaar is, is niet gemeten; zo niet, dan ververst hij minder
+profielen per uur. Leden met `auto_sync_physique` krijgen hun FTP en gewicht
+nu vaker bijgewerkt, want dat hoort bij dezelfde sync. Unit-tests: alleen
+`club-texts-render` en `omnium-live` falen, en die falen ook op een schone `main`.
+
 ### Omgebouwd — ZWBeter Vandaag: volgorde en dagstaten
 
 **2026-11-23, gepusht naar `main` (`9553f9e6`, eigenaar: "Ja, push naar main").
@@ -18848,7 +18899,9 @@ een voorstel ("Ja, bouw het").
 **Wat er is:**
 - `src/lib/zwiftracing/rider-page.ts`: leest `power` en `legacyRatings` uit de
   rennerpagina, op naam en alleen getallen. Is het niet de pagina van dit
-  Zwift-ID of ontbreekt `power`, dan null.
+  Zwift-ID of ontbreekt `power`, dan null. Sinds 2026-11-23 leest de sync ook de
+  vermogenspagina, omdat `power` een race kan missen (zie "Hersteld — Vermogen:
+  race ontbrak").
 - `src/lib/zwiftracing/rider-sync.ts`: dezelfde selectie als de Chrome-taak
   (aanmeldingen, eigen teamleden en wie de laatste 8 wedstrijden voor de
   tegenstander reed, voor ladderwedstrijden in de komende 8 dagen; opnieuw na

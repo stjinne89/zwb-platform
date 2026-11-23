@@ -16,6 +16,11 @@
 // Geen eigen HTML-parser: we zoeken de twee objecten op naam en lezen alleen
 // getallen. Verandert de opbouw van de pagina, dan geeft `parseRiderPage` null
 // en schrijft de sync niets.
+//
+// De vermogenspagina (`/riders/<id>/power`) heeft een eigen curve, met per duur
+// een `d90`. Op 2026-11-23 bleek `power` een race te missen die daar wel in stond
+// (20 min 4,43 tegen 5,23 W/kg). Die pagina heeft op zijn beurt geen
+// `legacyRatings`, dus de sync leest beide en neemt per duur de hoogste.
 
 export type RiderPagePower = { s15: number | null; m1: number | null; m2: number | null; m5: number | null; m20: number | null };
 export type RiderPageLegacy = { live: number | null; max30: number | null; max90: number | null };
@@ -59,12 +64,14 @@ const round = (value: number | null | undefined, digits: number) => {
   return Math.round(value * f) / f;
 };
 
+const isPageOf = (html: string, zwiftId: number) => new RegExp(`riderId:(?:"${zwiftId}"|${zwiftId})(?!\\d)`).test(html);
+
 /**
  * Vermogen en legacy vELO van één renner, of null als dit niet zijn pagina is
  * of de pagina een opbouw heeft die we niet kennen.
  */
 export function parseRiderPage(html: string, zwiftId: number): RiderPageData | null {
-  if (!new RegExp(`riderId:(?:"${zwiftId}"|${zwiftId})(?!\\d)`).test(html)) return null;
+  if (!isPageOf(html, zwiftId)) return null;
   // Het veld `power` hoort er altijd te zijn; ontbreekt het, dan is de pagina veranderd.
   if (!/[{,]power:/.test(html)) return null;
 
@@ -90,4 +97,52 @@ export function parseRiderPage(html: string, zwiftId: number): RiderPageData | n
   const phenotype = /[{,]phenotype:(?:\$R\[\d+\]=)?\{(?:[^{}]|\{[^{}]*\})*?[{,]label:"([A-Za-z]{2,30})"/.exec(html)?.[1] ?? null;
 
   return { zwiftId, powerWkg: hasPower ? powerWkg : null, legacy: hasLegacy ? legacy : null, phenotype };
+}
+
+/**
+ * Het W/kg per duur over 90 dagen uit de curve van de vermogenspagina, of null
+ * als dit niet zijn pagina is of de curve ontbreekt.
+ */
+export function parseRiderPowerCurve(html: string, zwiftId: number): RiderPagePower | null {
+  if (!isPageOf(html, zwiftId)) return null;
+  const open = /[{,]curve:(?:\$R\[\d+\]=)?\[/.exec(html);
+  if (!open) return null;
+
+  // Eventnamen weg (die kunnen haakjes bevatten); alleen de duur-ID's blijven.
+  const rest = html
+    .slice(open.index + open[0].length - 1)
+    .replace(/"(?:[^"\\]|\\.)*"/g, (text) => (/^"w\d+"$/.test(text) ? text : '""'));
+  let depth = 0;
+  let end = -1;
+  for (let i = 0; i < rest.length; i++) {
+    if (rest[i] === "[") depth += 1;
+    else if (rest[i] === "]" && --depth === 0) {
+      end = i;
+      break;
+    }
+  }
+  if (end < 0) return null;
+
+  const wkg = new Map<string, number>();
+  for (const entry of rest.slice(0, end).split(/(?=\{id:")/)) {
+    const id = /^\{id:"(w\d+)"/.exec(entry)?.[1];
+    const d90 = /[{,]d90:(?:\$R\[\d+\]=)?\{([^{}]*)\}/.exec(entry)?.[1];
+    const value = d90 ? /(?:^|,)wkg:(\d+(?:\.\d+)?)/.exec(d90)?.[1] : undefined;
+    if (id && value) wkg.set(id, Number(value));
+  }
+  const curve: RiderPagePower = {
+    s15: round(wkg.get("w15"), 2),
+    m1: round(wkg.get("w60"), 2),
+    m2: round(wkg.get("w120"), 2),
+    m5: round(wkg.get("w300"), 2),
+    m20: round(wkg.get("w1200"), 2),
+  };
+  return Object.values(curve).some((value) => value != null) ? curve : null;
+}
+
+/** Per duur de hoogste van twee reeksen; null als geen van beide iets heeft. */
+export function highestPower(a: RiderPagePower | null, b: RiderPagePower | null): RiderPagePower | null {
+  if (!a || !b) return a ?? b;
+  const high = (x: number | null, y: number | null) => (x == null ? y : y == null ? x : Math.max(x, y));
+  return { s15: high(a.s15, b.s15), m1: high(a.m1, b.m1), m2: high(a.m2, b.m2), m5: high(a.m5, b.m5), m20: high(a.m20, b.m20) };
 }
