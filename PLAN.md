@@ -8,13 +8,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Teamindeling en Racefit voor ZRL A en C (2026-11-23):
-   gepusht naar `main` (eigenaar: "je mag dit gelijk committen en pushen naar main").** Geen migratie. Lokaal ingelogd bekeken tegen productiedata. Open:
+   gepusht naar `main` (`c3eaa397`, eigenaar: "je mag dit gelijk committen en pushen naar main").** Geen migratie. Lokaal ingelogd bekeken tegen productiedata. Open:
    één keer echt indelen op A of C, en beslissen of een opstelling van meer dan
    vijf daar oranje blijft. Zie de ronde "Gebouwd — Teamindeling en Racefit voor
    ZRL A en C".
 
 0. **Herschreven — Racefit op /hulp als eigen blok (2026-11-23):
-   gepusht naar `main` (eigenaar: "je mag dit gelijk committen en pushen naar main").** Geen migratie. Open: de eigenaar beslist of het
+   gepusht naar `main` (`cad0f1a5`, eigenaar: "je mag dit gelijk committen en pushen naar main").** Geen migratie. Open: de eigenaar beslist of het
    parcoursmodel blijft rekenen zoals de hulp nu beschrijft (sprint bij een
    bergop finish, klimmeters dubbel). Zie de ronde "Herschreven — Racefit op
    /hulp als eigen blok".
@@ -12762,7 +12762,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Teamindeling en Racefit voor ZRL A en C
 
-**2026-11-23, gepusht naar `main` (eigenaar: "je mag dit gelijk committen en pushen naar main"). Geen migratie.**
+**2026-11-23, gepusht naar `main` (`c3eaa397`, eigenaar: "je mag dit gelijk committen en pushen naar main"). Geen migratie.**
 
 - **Waarom.** De eigenaar zag bij de A- en C-teams geen teamindeling en dus geen
   Racefit. De pagina eiste een hoofdteam met subteams; ZRL A en ZRL C hebben die
@@ -12784,11 +12784,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
   Captains tikken bij A en C geen beschikbaarheid voor een renner aan:
   `set_team_availability_for` (0332) weigert teams zonder subteams en een race
   als event, en dit vraagt dus een migratie. Renners geven het zelf op.
-- **Getest.** Typecheck, lint en de nieuwe unittests slagen. In de volledige
-  testset faalden drie bestanden, geen van alle door deze ronde:
-  `club-texts-render` ("beheer noemt ZWB niet") faalt ook op de schone commit,
-  `omnium-live` miste `.env.local` in de worktree, en `admin-areas` liep tegen
-  een time-out maar slaagt los.
+- **Getest.** Typecheck, lint, de nieuwe unittests en `next build` slagen op de
+  stand die gepusht is. In de volledige testset falen twee bestanden, niet door
+  deze ronde: `club-texts-render` ("beheer noemt ZWB niet") faalt ook op de schone
+  `main`, en `club-theme` liep tegen een time-out maar slaagt los.
 - **Bekeken (2026-11-23, lokaal, ingelogd, tegen productiedata, alleen
   lezen).** A en C tonen de knop, één blok met Reserve, per week de juiste route
   in Racefit, geen Racefit in W5, geen Dev-kolom en geen aantikvakjes. ZRL B houdt
@@ -12803,7 +12802,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Herschreven — Racefit op /hulp als eigen blok
 
-**2026-11-23, commit "Hulp: Racefit als eigen blok met voorbeelden", gepusht naar `main` (eigenaar: "je mag dit gelijk committen en pushen naar main"). Geen migratie.** De eigenaar wilde dat leden snappen hoe Racefit is
+**2026-11-23, commit "Hulp: Racefit als eigen blok met voorbeelden", gepusht naar `main` (`cad0f1a5`, eigenaar: "je mag dit gelijk committen en pushen naar main"). Geen migratie.** De eigenaar wilde dat leden snappen hoe Racefit is
 opgebouwd. De uitleg stond al op /hulp, maar in twee lange alinea's binnen de
 kaart Teams en wedstrijden.
 
