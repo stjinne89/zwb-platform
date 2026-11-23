@@ -7,8 +7,8 @@ import { warmupRaceId } from "./race-warmup";
 
 export type VandaagState = "training" | "race" | "gereden" | "rust" | "later" | "leeg";
 
-/** De groepen onder de dagkaart. */
-export type VandaagSection = "rit" | "ook" | "stand";
+/** De onderdelen van de pagina: hoe je ervoor staat, wat je gaat doen, wat je daarvoor nodig hebt, de rest van de dag. */
+export type VandaagSection = "stand" | "dag" | "rit" | "ook";
 
 type DayWorkout = {
   scheduled_at: string;
@@ -63,18 +63,9 @@ export function vandaagDay<W extends DayWorkout>(
   return { state: "leeg", open: null, closed: null, next: null };
 }
 
-const SECTIONS: Record<VandaagState, VandaagSection[]> = {
-  training: ["rit", "ook", "stand"],
-  race: ["rit", "ook", "stand"],
-  // De dag is klaar: dan is de vraag hoe je ervoor staat.
-  gereden: ["stand", "ook"],
-  rust: ["stand", "ook"],
-  later: ["ook", "stand"],
-  leeg: ["ook", "stand"],
-};
-
+/** De volgorde is elke dag gelijk; alleen zonder rit vervalt de ritvoorbereiding. */
 export function vandaagSections(state: VandaagState): VandaagSection[] {
-  return SECTIONS[state];
+  return hasRideToday(state) ? ["stand", "dag", "rit", "ook"] : ["stand", "dag", "ook"];
 }
 
 /** De kaart toont een training die nog moet komen, met alles wat erbij hoort. */

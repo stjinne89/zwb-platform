@@ -93,14 +93,15 @@ describe("vandaagDay", () => {
 });
 
 describe("indeling per dagstaat", () => {
-  it("met een rit vandaag komt de voorbereiding eerst", () => {
-    expect(vandaagSections("training")).toEqual(["rit", "ook", "stand"]);
-    expect(vandaagSections("race")).toEqual(["rit", "ook", "stand"]);
+  it("met een rit vandaag: stand, training, voorbereiding, rest van de dag", () => {
+    expect(vandaagSections("training")).toEqual(["stand", "dag", "rit", "ook"]);
+    expect(vandaagSections("race")).toEqual(["stand", "dag", "rit", "ook"]);
   });
 
-  it("als de dag klaar is komt hoe je ervoor staat eerst", () => {
-    expect(vandaagSections("gereden")).toEqual(["stand", "ook"]);
-    expect(vandaagSections("rust")).toEqual(["stand", "ook"]);
+  it("zonder rit vandaag vervalt alleen de voorbereiding", () => {
+    for (const state of ["gereden", "rust", "later", "leeg"] as const) {
+      expect(vandaagSections(state)).toEqual(["stand", "dag", "ook"]);
+    }
   });
 
   it("alleen met een rit vandaag is er ritvoorbereiding", () => {

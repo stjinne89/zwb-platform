@@ -1024,7 +1024,7 @@ html[data-viewport-fout] .tg-tabs-bottom {
 }
 
 /* ---- ZWBeter ----
-   De vier pijlers als tegels; de andere zijn vol teal, de actieve het paneel met de gouden lijn.
+   De pijlers als tegels; de andere zijn vol teal, de actieve het paneel met de gouden lijn.
    Kerncijfers op de trainingspagina's zijn tegels zoals op het dashboard. */
 .tg-pillar {
   display: flex;

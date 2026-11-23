@@ -2,12 +2,14 @@
 // CoreTodayCard: de pagina geeft de dag door die ze al heeft (schema, ritten,
 // readiness) en de kaart haalt alleen gewicht, lengte en recepten zelf op.
 
+import { Utensils } from "lucide-react";
 import { nutritionDay, nutritionTipForToday, type NutritionDayInput } from "@/lib/nutrition/tips";
 import { rankRecipes } from "@/lib/nutrition/menu";
 import { gutTrainingOn } from "@/lib/nutrition/gut-training";
 import { currentSweatRate } from "@/lib/nutrition/sweat";
 import { ridePlan } from "@/lib/nutrition/ride-plan";
 import { RidePlanView } from "../../_components/ride-plan-view";
+import { TodayFold } from "../../_components/today-fold";
 import {
   energyFactorFor,
   loadGutSource,
@@ -79,8 +81,10 @@ export async function NutritionTodayCard({
       : null;
 
   return (
-    <NutritionTip tip={tip} recipe={ride ? null : (first?.recipe ?? null)} titleHref="/zwbeter-worden/voeding">
-      {ride ? <RidePlanView plan={ride} embedded /> : null}
-    </NutritionTip>
+    <TodayFold icon={Utensils} title="Voeding" summary={tip.title}>
+      <NutritionTip tip={tip} recipe={ride ? null : (first?.recipe ?? null)} pageHref="/zwbeter-worden/voeding">
+        {ride ? <RidePlanView plan={ride} embedded /> : null}
+      </NutritionTip>
+    </TodayFold>
   );
 }

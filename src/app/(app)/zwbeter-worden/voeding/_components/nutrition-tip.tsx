@@ -9,37 +9,29 @@ import type { Recipe } from "@/lib/nutrition/recipes";
 export function NutritionTip({
   tip,
   recipe,
-  titleHref,
+  pageHref,
   children,
 }: {
   tip: Tip;
   recipe: Recipe | null;
-  /** Op Vandaag linkt de titel door naar de voedingspagina. */
-  titleHref?: string;
+  /** Op Vandaag: binnen een uitklapblok dat de titel al draagt, met een rij naar de voedingspagina. */
+  pageHref?: string;
   /** Wat bij de tip hoort, zoals het ritplan: in dezelfde kaart. */
   children?: ReactNode;
 }) {
-  // Op Vandaag staat de kaart onder een groepskop.
-  const Heading = titleHref ? "h3" : "h2";
-  const title = (
-    <Heading className="flex items-center gap-2 font-semibold">
-      <Utensils className="size-5 text-primary" />
-      {tip.title}
-    </Heading>
-  );
-
   return (
-    <div className="rounded-lg border bg-card">
-      <div className="p-5">
-        {titleHref ? (
-          <Link href={titleHref} className="hover:underline">
-            {title}
-          </Link>
-        ) : (
-          title
-        )}
-        <p className="mt-1 text-sm text-muted-foreground">{tip.body}</p>
-      </div>
+    <div className={pageHref ? undefined : "rounded-lg border bg-card"}>
+      {pageHref ? (
+        <p className="px-5 pb-5 text-sm text-muted-foreground">{tip.body}</p>
+      ) : (
+        <div className="p-5">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Utensils className="size-5 text-primary" />
+            {tip.title}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">{tip.body}</p>
+        </div>
+      )}
       {children ? <div className="border-t p-5">{children}</div> : null}
       {recipe ? (
         <Link
@@ -49,6 +41,15 @@ export function NutritionTip({
           <span className="min-w-0 truncate">
             Recept: <span className="font-medium">{recipe.title}</span>
           </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        </Link>
+      ) : null}
+      {pageHref ? (
+        <Link
+          href={pageHref}
+          className="flex min-h-[44px] items-center justify-between gap-3 border-t px-5 py-3 text-sm hover:bg-accent/40"
+        >
+          Naar voeding
           <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
         </Link>
       ) : null}

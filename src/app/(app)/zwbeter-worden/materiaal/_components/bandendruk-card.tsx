@@ -2,8 +2,9 @@
 
 import { useId, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ChevronDown, Gauge } from "lucide-react";
+import { Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TodayFold } from "../../_components/today-fold";
 import {
   WEGDEKKEN,
   WEGDEK_LABEL,
@@ -86,14 +87,7 @@ export function BandendrukCard({ fietsen, renKg }: { fietsen: BandendrukFiets[];
     : fiets.label;
 
   return (
-    <details className="group rounded-lg border bg-card">
-      <summary className="flex cursor-pointer list-none items-center gap-2 p-5 transition hover:bg-muted/50 [&::-webkit-details-marker]:hidden">
-        <Gauge className="size-5 shrink-0 text-primary" aria-hidden />
-        <span className="font-semibold">Bandendruk</span>
-        <span className="min-w-0 flex-1 truncate text-sm tabular-nums text-muted-foreground">{samenvatting}</span>
-        <ChevronDown className="size-4 shrink-0 text-muted-foreground transition group-open:rotate-180" aria-hidden />
-      </summary>
-
+    <TodayFold icon={Gauge} title="Bandendruk" summary={samenvatting}>
       <div className="space-y-4 px-5 pb-5">
         <div className="flex flex-wrap items-center gap-3">
           {fietsen.length > 1 ? (
@@ -158,6 +152,6 @@ export function BandendrukCard({ fietsen, renKg }: { fietsen: BandendrukFiets[];
           </Link>
         </p>
       </div>
-    </details>
+    </TodayFold>
   );
 }

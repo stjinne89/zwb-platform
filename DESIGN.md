@@ -524,24 +524,31 @@ inhoud.
 
 ### Pijlers en categorieën (`tg-pillar`)
 De ZWBeter-pijlers (vijf, voor een trainer zes) zijn teal vlakken van minstens
-76px hoog met de naam onderin; de actieve volgt de Hierregel. Op `/beheer` zijn
-de categorieën pijlers in de kleur van hun soort (`tg-pillar-tone`).
+76px hoog met de naam onderin; de actieve volgt de Hierregel. Ze staan op
+volgorde van gebruik: trainen, coachen (alleen trainers), voeden, kracht, racen,
+materiaal. Op de telefoon zijn ze één veegrij tot de schermrand: twee blokken
+plus 24px van het derde, snappend per blok, en het actieve blok schuift vanzelf
+in beeld. Vanaf `md` staan ze op één rij. Op `/beheer` zijn de categorieën
+pijlers in de kleur van hun soort (`tg-pillar-tone`).
 
 ### ZWBeter Vandaag
-Eén dagkaart bovenaan, daaronder hooguit drie groepen met een sectiekop:
-**Klaar voor de rit**, **Ook vandaag** en **Hoe je ervoor staat**. De dagstaat
-(`vandaagDay`) bepaalt de vorm van de kaart en de volgorde van de groepen:
+De volgorde is elke dag gelijk: **Hoe je ervoor staat**, de dagkaart (wat je
+gaat doen), **Klaar voor de rit** (wat je daarvoor nodig hebt) en **Ook
+vandaag**. Zonder rit vandaag vervalt alleen "Klaar voor de rit". De dagstaat
+(`vandaagDay`) bepaalt de vorm van de kaart:
 
-- **Training of race:** de kaart volgt de Hierregel, daarna rit, ook, stand.
-- **Gereden of rust:** een korte kaart met een rij naar de volgende training,
-  daarna stand, ook.
-- **Later of leeg:** een gewone kaart, daarna ook, stand.
+- **Training of race:** de volle kaart, die de Hierregel volgt.
+- **Gereden of rust:** een korte kaart met een rij naar de volgende training.
+- **Later of leeg:** een gewone kaart.
 
 Op de kaart staat wat je nodig hebt om te rijden. De blokken met watt blijven
 open; Zwift, buiten rijden en "Waarom dit schema" zijn ingeklapt, tenzij je al
 een Zwift-event of route koos. Een groep zonder inhoud verbergt zichzelf. Een
 kaart heeft één hoofdknop: bij een race is dat "Naar het event" en wordt "Pas
 vandaag aan" een outline-knop.
+
+Voeding, Bandendruk en Core zijn uitklapblokken (`TodayFold`) die dicht
+beginnen: pictogram, naam en de kern op één regel.
 
 ### Lijstlinks en tweede menurij (`tg-link`, `tg-subnav`)
 Een link in een lijst (races, opgeslagen plannen) of een tab onder de pijlers

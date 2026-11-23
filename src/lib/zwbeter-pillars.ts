@@ -12,6 +12,8 @@ export type Pillar = {
   hrefs: string[];
 };
 
+// De volgorde is die van het gebruik (meting 2026-11-23): op de telefoon zijn de
+// eerste twee zichtbaar. Coachen staat op twee, maar alleen trainers zien het.
 export const ZWBETER_PILLARS: Pillar[] = [
   {
     id: "trainen",
@@ -31,13 +33,13 @@ export const ZWBETER_PILLARS: Pillar[] = [
       "/zwbeter-worden/coach",
     ],
   },
-  // Analyse van gereden ZRL-races (2026-10-15), los van het eigen trainen.
-  { id: "racen", word: "racen", hrefs: ["/zwbeter-worden/racen"] },
+  { id: "coachen", word: "coachen", hrefs: ["/zwbeter-worden/trainer"] },
   { id: "voeden", word: "voeden", hrefs: ["/zwbeter-worden/voeding"] },
   { id: "kracht", word: "kracht", hrefs: ["/zwbeter-worden/core"] },
+  // Analyse van gereden ZRL-races (2026-10-15), los van het eigen trainen.
+  { id: "racen", word: "racen", hrefs: ["/zwbeter-worden/racen"] },
   // Materiaal en kleine winsten (2026-10-18): kennisbank en rekenaar.
   { id: "materiaal", word: "materiaal", hrefs: ["/zwbeter-worden/materiaal"] },
-  { id: "coachen", word: "coachen", hrefs: ["/zwbeter-worden/trainer"] },
 ];
 
 /** De pijler waar dit pad onder valt; alles wat niet past is trainen. */

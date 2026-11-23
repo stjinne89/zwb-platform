@@ -305,16 +305,16 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
         ) : (
           <>
             {nutrition}
+            {tires}
             {core}
             {protocols}
-            {tires}
           </>
         )}
       </TodayGroup>
     ),
     stand: (
       <TodayGroup key="stand" title="Hoe je ervoor staat">
-        {!conn && day.state !== "leeg" ? <ConnectIntervalsForm /> : null}
+        {!conn ? <ConnectIntervalsForm /> : null}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <TrainingLoadMetrics
             points={loadPoints}
@@ -357,19 +357,9 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
         )}
       </TodayGroup>
     ),
-  };
-
-  return (
-    <div className="space-y-7">
-      {snapshot.fetchError && (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          {snapshot.fetchError}
-        </p>
-      )}
-
-      {!conn && day.state === "leeg" ? <ConnectIntervalsForm /> : null}
-
+    dag: (
       <TodayCard
+        key="dag"
         state={day.state}
         upcoming={nextWorkout}
         closed={day.closed}
@@ -391,6 +381,16 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
           canRest: day.open != null,
         }}
       />
+    ),
+  };
+
+  return (
+    <div className="space-y-7">
+      {snapshot.fetchError && (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          {snapshot.fetchError}
+        </p>
+      )}
 
       {vandaagSections(day.state).map((section) => sections[section])}
 

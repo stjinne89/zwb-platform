@@ -7,6 +7,16 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — ZWBeter-blokken als veegrij op mobiel (2026-11-23): lokaal, nog
+   niet gecommit of gepusht.** Geen migratie. Open: op een echte telefoon het
+   vegen en het inschuiven van het actieve blok nakijken. Zie de ronde "Gebouwd
+   — ZWBeter-blokken als veegrij".
+
+0. **Bijgesteld — ZWBeter Vandaag: eerst de stand, ritblokken dicht
+   (2026-11-23): lokaal, nog niet gecommit of gepusht.** Geen migratie. Open:
+   op de echte pagina beoordelen of de training niet te ver naar beneden zakt.
+   Zie de ronde "Bijgesteld — ZWBeter Vandaag".
+
 0. **Hersteld — Vermogen: race ontbrak bij ZwiftRacing en intervals.icu
    (2026-11-23): gepusht naar `main` (`7b179fff`, eigenaar: "Ja, push naar
    main").**
@@ -12776,6 +12786,76 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter-blokken als veegrij op mobiel
+
+**2026-11-23, lokaal, nog niet gecommit (hash invullen bij de commit). Geen
+migratie.** De eigenaar wilde de zes blokken boven heel ZWBeter op de telefoon
+terugbrengen tot twee, met vegen naar de rest, op volgorde van populariteit. De
+drie rijen namen daar 244px in; één rij scheelt 168px.
+
+- **Volgorde.** Trainen, coachen, voeden, kracht, racen, materiaal. Coachen staat
+  op twee, maar alleen trainers zien het; voor een lid is voeden dus het tweede
+  blok. Op desktop blijft alles op één rij, in dezelfde volgorde.
+- **Veegrij.** Onder `md` twee blokken naast elkaar met 24px van het derde als
+  hint. De rij loopt tot de schermrand en snapt per blok. Het actieve blok schuift
+  vanzelf in beeld, met het blok ervoor ernaast. Dat gaat via de rij zelf, omdat
+  `scrollIntoView` ook de pagina zou verschuiven, en zonder animatie bij
+  `prefers-reduced-motion`.
+- **Waarop de volgorde rust (schatting).** De app meet zelf geen paginabezoek.
+  - Netlify Observability, 16–23 november, volledige paginaladingen binnen
+    ZWBeter (88): trainen 66, coachen 16, racen 3, voeden 1, kracht 1, materiaal 1.
+  - Doorklikken, afgeleid uit prefetch van `/kalender` per herkomstpagina:
+    trainen 482, coachen 132, voeden 104 (waarvan 55 uit de eigen recepten van
+    één lid), racen 18, kracht 16, materiaal 0. Dit onderschat diepe pagina's.
+  - Supabase, 30 dagen, unieke leden: trainen 30, voeden 14 (5 op de
+    voedingspagina zelf, de rest eventvoeding), kracht 7 (21 sessies),
+    materiaal 1. Er zijn 12 trainers en 0 trainerberichten.
+  - Beperkingen: Netlify kijkt 7 dagen terug, en de eigen tests van de eigenaar
+    tellen mee. Kracht staat voor racen omdat daar echte sessies achter zitten.
+- **Bewust niet gebouwd.** Een eigen volgorde per lid: daarvoor is het gebruik
+  van de meeste blokken te laag. Ook geen paginameting in de app, want daar is
+  niet om gevraagd.
+- **Gecontroleerd.** Typecheck, ESLint op de gewijzigde onderdelen en `next
+  build` zijn schoon. In de volledige testrun faalt `club-texts-render`, ook op
+  een schone `main`. `club-theme`, `modules` en `zrl-umbrella-restore` faalden
+  wisselend in de volledige run en slagen los gedraaid. Op een tijdelijke
+  proefpagina met de echte navigatie zijn op 375px nagelopen: twee blokken plus
+  rand, snappen, het actieve blok voor alle zes de pijlers, vijf en zes pijlers,
+  geen horizontale pagina-overflow, 76px tikhoogte, de focusrand en donker. De
+  proefpagina is weer verwijderd.
+- **Niet lokaal te verifiëren.** Vegen met een echte vinger, de vloeiende animatie
+  (de browser-pane stond verborgen, dus alleen de eindposities zijn gecontroleerd)
+  en de ingelogde pagina met echte rechten.
+
+### Bijgesteld — ZWBeter Vandaag: eerst de stand, ritblokken dicht
+
+**2026-11-23, lokaal, nog niet gecommit (hash invullen bij de commit). Geen
+migratie.** Na de ombouw hieronder wilde de eigenaar een andere volgorde: eerst
+hoe je ervoor staat, dan wat je gaat doen, dan wat je daarvoor nodig hebt
+(voeding, materiaal, core) en dan wat er nog meer op de dag is. De blokken uit
+"Klaar voor de rit" moeten standaard dicht.
+
+- **Volgorde.** Elke dag: **Hoe je ervoor staat**, de dagkaart, **Klaar voor de
+  rit** en **Ook vandaag**. Zonder rit vandaag vervalt alleen "Klaar voor de
+  rit". De wisselende volgorde per dagstaat uit de vorige ronde is weg.
+- **Dichte blokken.** Voeding, Bandendruk en Core delen `today-fold.tsx`: naam
+  en kern blijven zichtbaar, de rest klapt open. Ze zijn ook dicht als ze op een
+  dag zonder rit in "Ook vandaag" staan, zodat hetzelfde blok niet per dag
+  anders werkt. De kop van de voedingstip werd een rij "Naar voeding".
+- **Koppelformulier.** Staat zonder intervals-koppeling nu altijd bovenaan, in
+  "Hoe je ervoor staat".
+- **Bewust niet gedaan.** De cijfers in "Hoe je ervoor staat" zijn niet compacter
+  gemaakt, en de lopende protocollen blijven open: daar is niet om gevraagd.
+- **Gecontroleerd.** Typecheck, ESLint op de gewijzigde onderdelen en `next
+  build` zijn schoon. In de volledige testrun faalden drie tests.
+  `club-texts-render` faalt ook op een schone `main`; `admin-areas` en
+  `zrl-reservation` slagen los gedraaid. De volgorde en de dichte blokken zijn
+  voor alle dagstaten nagelopen op een tijdelijke proefpagina met voorbeelddata,
+  die weer is verwijderd.
+- **Niet lokaal te verifiëren.** De echte pagina met echte gegevens. Op de
+  proefpagina begint de dagkaart op 375px op 630px hoogte; op de echte pagina
+  komt daar de ZWBeter-navigatie nog bovenop.
+
 ### Gebouwd — Beschikbaarheidsvakje ook bij ZRL A en C
 
 **2026-11-23, gepusht naar `main` (`b2d8b6a8`, eigenaar: "Ja, zet het live"). Migratie
@@ -12882,7 +12962,8 @@ uit het voorstel "Volgorde en dagstaten".
   training heeft niet "klaar" is. Warming-ups tellen niet mee.
 - **Indeling.** Eén dagkaart (`today-card.tsx`) met daaronder **Klaar voor de
   rit**, **Ook vandaag** en **Hoe je ervoor staat**, in een volgorde per
-  dagstaat. Na de rit of op een rustdag komt de stand eerst en verdwijnt de
+  dagstaat (**niet meer waar** sinds de ronde "Bijgesteld — ZWBeter Vandaag": de
+  stand staat nu altijd bovenaan). Na de rit of op een rustdag verdwijnt de
   bandendruk.
 - **Op de dagkaart.** De training, het advies (niveau 1 en 2 boven de blokken,
   anders een regel eronder), de aanpasknop en ingeklapt Zwift/buiten en "Waarom
@@ -12901,8 +12982,9 @@ uit het voorstel "Volgorde en dagstaten".
     vraagt een eigen inhoudelijke keuze.
   - De bevroren `fatigued`-tekst in "Waarom dit schema" is alleen ingeklapt,
     omdat de oorzaak in de opgeslagen schema-samenvatting zit.
-  - De ZWBeter-pijlers en het submenu blijven zoals ze zijn, omdat die op alle
-    ZWBeter-pagina's staan.
+  - De ZWBeter-pijlers en het submenu bleven in deze ronde zoals ze waren, omdat
+    die op alle ZWBeter-pagina's staan. De pijlers zijn daarna wel aangepast: zie
+    "Gebouwd — ZWBeter-blokken als veegrij op mobiel".
   - De blokken met watt blijven open: dat is kerninformatie om te rijden.
   - Rustdag krijgt geen bevestigingsstap, afgekapte blokbreedtes ("5...") en
     kleine tikdoelen binnen de Zwift- en routeonderdelen zijn niet aangepakt.

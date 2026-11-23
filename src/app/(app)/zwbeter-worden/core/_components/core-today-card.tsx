@@ -13,6 +13,7 @@ import {
   type RecommendContext,
 } from "@/lib/training/mobility";
 import { intervalsStrengthDays } from "@/lib/training/intervals-strength";
+import { TodayFold } from "../../_components/today-fold";
 import { loadIntervalsStrength, loadSeries, loadSessions, type Viewer } from "../_data";
 
 export async function CoreTodayCard({
@@ -49,23 +50,21 @@ export async function CoreTodayCard({
   ).length;
 
   return (
-    <div className="rounded-lg border bg-card">
+    <TodayFold
+      icon={Dumbbell}
+      title="Core"
+      summary={
+        doneToday
+          ? "Vandaag al gedaan"
+          : `${suggestion.duration_minutes} min · ${thisWeek} van ${MOBILITY_SESSIONS_PER_WEEK} deze week`
+      }
+    >
       <Link
         href={`/zwbeter-worden/core/series/${suggestion.slug}`}
-        className="flex min-h-[44px] items-center justify-between gap-3 rounded-lg p-5 hover:bg-accent/40"
+        className="flex min-h-[44px] items-center justify-between gap-3 border-t px-5 py-3 text-sm hover:bg-accent/40"
       >
-        <div className="min-w-0">
-          <h3 className="flex items-center gap-2 font-semibold">
-            <Dumbbell className="size-5 text-primary" />
-            {suggestion.title}
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {doneToday
-              ? "Vandaag al gedaan."
-              : `${suggestion.duration_minutes} min · ${thisWeek} van ${MOBILITY_SESSIONS_PER_WEEK} deze week`}
-          </p>
-        </div>
-        <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 truncate font-medium">{suggestion.title}</span>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
       </Link>
       {strength ? (
         <Link
@@ -79,6 +78,6 @@ export async function CoreTodayCard({
           <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
         </Link>
       ) : null}
-    </div>
+    </TodayFold>
   );
 }

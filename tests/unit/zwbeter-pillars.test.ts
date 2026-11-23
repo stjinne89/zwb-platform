@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { ZWBETER_PILLARS, pillarForPath } from "@/lib/zwbeter-pillars";
 
+describe("ZWBETER_PILLARS", () => {
+  it("staat op volgorde van gebruik, met coachen op twee voor trainers", () => {
+    expect(ZWBETER_PILLARS.map((pillar) => pillar.id)).toEqual([
+      "trainen",
+      "coachen",
+      "voeden",
+      "kracht",
+      "racen",
+      "materiaal",
+    ]);
+  });
+});
+
 describe("pillarForPath", () => {
   it("legt elke route onder zijn eigen pijler", () => {
     for (const pillar of ZWBETER_PILLARS) {
