@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Hersteld — Pacingplanner: vermoeidheid, gewicht en watts (2026-11-23): gepusht
-   naar `main` (eigenaar: "Ja, push naar main").** Geen
+   naar `main` (`33148717`, eigenaar: "Ja, push naar main").** Geen
    migratie. Open: in de browser bekijken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Vaste sponsor in de overlay (2026-11-23): commit `762c210`, op
@@ -12818,7 +12818,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Pacingplanner: vermoeidheid, gewicht en watts
 
-**2026-11-23, gepusht naar `main` (eigenaar: "Ja, push naar main"). Geen
+**2026-11-23, gepusht naar `main` (`33148717`, eigenaar: "Ja, push naar main"). Geen
 migratie.** Na vragen van leden is nagerekend waar de planner zijn
 cijfers vandaan haalt, met de productiegegevens van 36 leden met een powerprofiel
 en 63 plannen. De eigenaar koos drie van de vier bevindingen om te herstellen.
