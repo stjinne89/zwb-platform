@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Bijgesteld — Vandaag: Trainingsruimte opent herstel en grafiek
-   (2026-11-23): lokaal, nog niet gecommit of gepusht.** Geen migratie. Open: op
+   (2026-11-23): gepusht naar `main` (`84737312`, eigenaar: "Ja, push naar main").** Geen migratie. Open: op
    de echte pagina met echte herstelwaarden nakijken. Zie de ronde "Bijgesteld —
    Vandaag: Trainingsruimte opent herstel en grafiek".
 
@@ -12792,7 +12792,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Bijgesteld — Vandaag: Trainingsruimte opent herstel en grafiek
 
-**2026-11-23, lokaal, nog niet gecommit (hash invullen bij de commit). Geen
+**2026-11-23, gepusht naar `main` (`84737312`, eigenaar: "Ja, push naar main"). Geen
 migratie.** De eigenaar wilde herstel en belastbaarheid openen vanuit de tegel
 Trainingsruimte, daar ook de fitnessgrafiek kunnen openen, en op mobiel geen
 aparte tegel Form, omdat die naar dezelfde grafiek leidt.
