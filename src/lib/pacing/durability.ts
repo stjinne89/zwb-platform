@@ -15,8 +15,12 @@
 // Beperking (wetenschappelijke toets fase 5, 2026-10-16): de intensiteit van het
 // eerdere werk telt zwaarder dan het aantal kilojoules (Spragg 2024;
 // Sánchez-Jiménez 2025). Deze correctie rekent alleen met kJ.
+//
+// Een vermoeide curve is het beste dat iemand ná die kilojoules toevallig reed,
+// niet het beste dat hij kon. Sinds 2026-11-23 mag het model daarom nooit lager
+// uitkomen dan wat de eigen beste inspanningen bewijzen; zie liftToMeasuredEfforts.
 
-import { fitCpWPrime, type CurvePoint } from "@/lib/pacing/cp";
+import { FIT_MAX_SECONDS, fitCpWPrime, type CurvePoint } from "@/lib/pacing/cp";
 
 export type FatigueCurve = {
   /** Hoeveel kJ er al gereden was toen deze curve gold. */
@@ -41,6 +45,19 @@ export type DurabilityModel = {
 export const MAX_FADE_FRACTION = 0.25;
 
 /**
+ * Versie van deze berekening, bewaard bij elk plan. Een plan met een oudere
+ * versie meldt zich één keer als verouderd. Versie 2: 2026-11-23, begrensd op de
+ * eigen beste inspanningen.
+ */
+export const DURABILITY_VERSION = 2;
+
+/** De verse vermogenscurve en W′ van het lid: wat het aantoonbaar gereden heeft. */
+export type MeasuredEfforts = {
+  curve: CurvePoint[] | null | undefined;
+  wPrimeJoules: number;
+};
+
+/**
  * Leidt uit de vermoeidheidscurves af hoe CP zakt met het verzette werk. Geeft
  * null als er te weinig te fitten valt — dan rekent het pacingplan gewoon met
  * één CP, zoals het daarvoor ook deed.
@@ -48,6 +65,7 @@ export const MAX_FADE_FRACTION = 0.25;
 export function buildDurabilityModel(
   fatigueCurves: FatigueCurve[] | null | undefined,
   baseCpWatts: number,
+  measured?: MeasuredEfforts,
 ): DurabilityModel | null {
   if (!Array.isArray(fatigueCurves) || fatigueCurves.length === 0) return null;
   if (baseCpWatts <= 0) return null;
@@ -76,13 +94,73 @@ export function buildDurabilityModel(
     anchors[i].factor = Math.min(anchors[i].factor, anchors[i - 1].factor);
   }
 
-  const lowest = anchors[anchors.length - 1].factor;
-  return { anchors, maxFadePct: (1 - lowest) * 100 };
+  const lifted = measured ? liftToMeasuredEfforts(anchors, baseCpWatts, measured) : anchors;
+  const lowest = lifted[lifted.length - 1].factor;
+  return { anchors: lifted, maxFadePct: (1 - lowest) * 100 };
 }
 
 function clampFactor(factor: number): number {
   if (!Number.isFinite(factor)) return 1;
   return Math.min(1, Math.max(1 - MAX_FADE_FRACTION, factor));
+}
+
+/**
+ * Tilt de afname op tot wat de eigen beste inspanningen bewijzen. Wie P watt
+ * reed gedurende t seconden, verzette P·t aan werk en had daarbij hoogstens W′
+ * aan reserve: CP lag aan het eind dus minstens op P − W′/t. CP zakt alleen met
+ * meer werk, dus die ondergrens geldt ook voor alles daarvóór.
+ *
+ * Alleen inspanningen vanaf twintig minuten: korter is het bereik van de fit
+ * zelf. De afname op de gemeten kJ-drempels blijft staan, tenzij een inspanning
+ * ze tegenspreekt.
+ */
+function liftToMeasuredEfforts(
+  anchors: DurabilityModel["anchors"],
+  baseCpWatts: number,
+  { curve, wPrimeJoules }: MeasuredEfforts,
+): DurabilityModel["anchors"] {
+  if (!Array.isArray(curve)) return anchors;
+
+  const measuredFade: DurabilityModel = { anchors, maxFadePct: 0 };
+  const factorAt = (kj: number) => cpAfterKj(measuredFade, 1, kj);
+  const floors = curve
+    .flatMap((point) => {
+      const seconds = Number(point.seconds);
+      const watts = Number(point.watts);
+      if (!(seconds >= FIT_MAX_SECONDS) || !(watts > 0)) return [];
+      const factor = Math.min(1, (watts - wPrimeJoules / seconds) / baseCpWatts);
+      return factor > 0 ? [{ kj: (watts * seconds) / 1000, factor }] : [];
+    })
+    .sort((a, b) => b.kj - a.kj);
+  if (floors.length === 0) return anchors;
+
+  const knots = [
+    ...new Set([
+      ...anchors.map((anchor) => anchor.kj),
+      ...floors.filter((floor) => floor.factor > factorAt(floor.kj)).map((floor) => floor.kj),
+    ]),
+  ].sort((a, b) => b - a);
+
+  // Van achter naar voren: elke knoop ligt minstens op de hoogste vloer erna.
+  let next = 0;
+  let highestFloor = 0;
+  const lifted = knots.map((kj) => {
+    while (next < floors.length && floors[next].kj >= kj) {
+      highestFloor = Math.max(highestFloor, floors[next].factor);
+      next++;
+    }
+    return { kj, factor: Math.max(factorAt(kj), highestFloor) };
+  });
+  lifted.reverse();
+
+  // Een vlak stuk heeft alleen zijn twee uiteinden nodig.
+  return lifted.filter(
+    (anchor, index) =>
+      index === 0 ||
+      index === lifted.length - 1 ||
+      anchor.factor !== lifted[index - 1].factor ||
+      anchor.factor !== lifted[index + 1].factor,
+  );
 }
 
 /**

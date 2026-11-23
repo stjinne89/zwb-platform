@@ -114,6 +114,9 @@ export type IntervalsActivity = {
   icu_intensity?: number; // IF
   average_watts?: number;
   weighted_average_watts?: number; // NP
+  // De namen die intervals.icu in de activiteitenlijst echt gebruikt.
+  icu_average_watts?: number | null;
+  icu_weighted_avg_watts?: number | null; // NP
   // Hartslag en cadans; alleen gevuld als het lid met de bijbehorende sensor
   // heeft gereden. intervals.icu gebruikt hier de Strava-veldnamen.
   average_heartrate?: number;

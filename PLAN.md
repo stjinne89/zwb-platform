@@ -7,6 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Hersteld — Pacingplanner: vermoeidheid, gewicht en watts (2026-11-23): gepusht
+   naar `main` (eigenaar: "Ja, push naar main").** Geen
+   migratie. Open: in de browser bekijken. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Vaste sponsor in de overlay (2026-11-23): commit `762c210`, op
    2026-11-23 gepusht naar `main` (eigenaar: "Ja, nu").** Migratie
    `0354_sponsor_overlay_fixed` vóór de push op productie toegepast en het
@@ -8459,7 +8463,8 @@ lid, ook buiten de kalender")*
 > intervals.icu niet bereiken. Onzeker zijn:
 > - `start_date` (UTC);
 > - `device_watts`;
-> - `icu_weighted_avg_watts` tegenover `weighted_average_watts`;
+> - `icu_weighted_avg_watts` tegenover `weighted_average_watts` (op 2026-11-23 in
+>   productie vastgesteld: de activiteitenlijst levert de `icu_`-naam);
 > - de vorm van het `latlng`-spoor;
 > - het id-formaat (`i…`).
 >
@@ -12810,6 +12815,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Pacingplanner: vermoeidheid, gewicht en watts
+
+**2026-11-23, gepusht naar `main` (eigenaar: "Ja, push naar main"). Geen
+migratie.** Na vragen van leden is nagerekend waar de planner zijn
+cijfers vandaan haalt, met de productiegegevens van 36 leden met een powerprofiel
+en 63 plannen. De eigenaar koos drie van de vier bevindingen om te herstellen.
+
+- **Vermoeidheid.** Bij 13 van de 25 leden met vermoeidheidscurves noemde het model
+  een inspanning onmogelijk die het lid zelf had gereden. Alle 12 plannen met "reserve
+  raakt op" kwamen van deze groep, 9 daarvan korter dan 90 minuten. Nu geldt een
+  ondergrens: wie P watt reed over t seconden had aan het eind een CP van minstens
+  P − W′/t, en die grens geldt ook voor alle eerdere kJ, omdat CP alleen daalt.
+- **Terugschalen.** `rebalancePlan` schaalde tegen de verse CP en kreeg een plan
+  daardoor niet altijd binnen de reserve. Het rekent nu met de vermoeide CP aan het
+  eind van elk stuk.
+- **Bestaande plannen.** `DURABILITY_VERSION` markeert plannen met een
+  vermoeidheidsmodel (51 van de 63) één keer als verouderd. Ze veranderen pas als het
+  lid opnieuw laat rekenen; de elk-uur-sync geeft geen extra melding.
+- **Gewicht.** Zonder gewicht rekende de planner stil met 75 kg (5 leden, 8 plannen,
+  grootste verschil 34 kg). Het scherm toont nu "gewicht ontbreekt" met een link
+  naar het profiel.
+- **Watts.** `average_watts` en `normalized_watts` waren in alle 10.028 rijen leeg,
+  omdat intervals.icu ze `icu_average_watts` en `icu_weighted_avg_watts` noemt. De
+  sync vult ze nu. Pacing leest voor oude ritten uit `raw`. De eventvoeding leest
+  dezelfde kolom en krijgt daardoor NP/FTP bij nieuw gesyncte ritten.
+- **Gemeten effect.** Door vermoeidheid onmogelijke eigen inspanningen: van 13 naar 0
+  van 25 leden; dat volgt deels uit de constructie. Mediaan CP-verlies op 500 kJ van
+  5,8 naar 2,9 %, op 1000 kJ van 11,5 naar 10,8 %, op 2000 kJ van 21,3 naar 16,3 %.
+  Van de 11 vastgelopen Zwift-plannen zijn er met de oude code 4 haalbaar, met de
+  nieuwe 11.
+- **Bewust niet gebouwd.** De startfracties voor lange ritten blijven staan: het model
+  plant 68 % van CP op 5 uur tegen een gemeten mediaan van 55 %, maar dat kan deels
+  seizoen zijn en de eigenaar vroeg er niet om. W′ uit intervals blijft ongebruikt
+  (5 leden, 24–66 % hoger dan de fit), omdat niet vaststaat welke waarde beter is. Het
+  gewicht wordt niet automatisch ingevuld, omdat dat een aanname zou blijven. Geen
+  backfill-migratie: pacing leest `raw` en de sync vult de laatste 120 dagen.
+- **Gecontroleerd.** Typecheck, ESLint op de gewijzigde bestanden, `next build`
+  (met neppe publieke Supabase-waarden, want de worktree heeft geen `.env.local`) en
+  de volledige testsuite. Daarin falen `omnium-live` (geen `.env.local` in de worktree) en
+  `club-texts-render` ("beheer noemt ZWB niet"), allebei ook op een schone `main`.
+  `admin-areas` liep eenmalig tegen een time-out en slaagt los.
+- **Niet lokaal te verifiëren.** Het scherm is niet in de browser bekeken. De replay
+  benadert de Zwift-routes: profiel op 400 m, referentiefiets, slipstream 0,7, geen
+  powerups. Het twaalfde plan (handmatige GPX) is niet herrekend.
 
 ### Bijgesteld — Herstelstand als balkje
 
@@ -41823,7 +41873,8 @@ eigenaar koos voor een rekenkundige omkering, en daarna de doeltijd ook naar de 
 **Gevonden tijdens het bouwen.** Een plan dat ver boven CP ligt, krijgt
 `rebalancePlan` (hoogstens 8 rondes) niet altijd binnen de reserve. "Zo hard
 mogelijk en dan terugschalen" was daarom geen betrouwbaar snelste plan; het zoeken
-gaat op haalbaarheid. `rebalancePlan` zelf is niet aangepast.
+gaat op haalbaarheid. `rebalancePlan` zelf is toen niet aangepast; sinds 2026-11-23
+schaalt het tegen de vermoeide CP aan het eind van elk stuk.
 
 **Bewust niet gebouwd.** Geen per-stuk optimalisatie (bijvoorbeeld meer op de
 klim, minder op het vlak voor dezelfde tijd): dat is een optimalisatieprobleem met
@@ -44578,7 +44629,8 @@ gedraaid. Tests: `tests/unit/zwift-route.test.ts` (18) en
 - `durability.ts` laat CP meezakken met het verzette werk, gefit op de
   vermoeidheidscurves die al in `rider_power_profiles.curve_points_fatigue`
   staan. Begrensd op 25 % afname: een curve op een hoge kJ-drempel steunt vaak
-  op een handvol ritten. Zonder die curves gebeurt er niets.
+  op een handvol ritten. Zonder die curves gebeurt er niets. Sinds 2026-11-23
+  kan het model ook niet lager uitkomen dan de eigen gereden inspanningen toelaten.
 - `plan.ts` vertaalt tussen planstukken en segmentraster, begrenst elk stuk op
   `CP + W′/t` (of lager, waar de gemeten curve dat zegt) en schaalt de pieken
   terug tot de reserve de finish haalt.

@@ -33,10 +33,12 @@ import {
 import {
   checkStaleness,
   planLayoutMatchesRoute,
+  withDurabilityStaleness,
   withLayoutStaleness,
   withRideStaleness,
   type Staleness,
 } from "@/lib/pacing/staleness";
+import { DURABILITY_VERSION } from "@/lib/pacing/durability";
 import {
   loadHeightCm,
   loadZwiftEventContext,
@@ -212,19 +214,23 @@ export async function loadPacingPage(
   }
 
   const ride = rideFor(ctx, plan.assumptions?.setup);
-  const staleness = withRideStaleness(
-    withLayoutStaleness(
-      checkStaleness(plan.assumptions, {
-        cpWatts: ctx.rider.model.cpWatts,
-        wPrimeJoules: ctx.rider.model.wPrimeJoules,
-        ftpWatts: ctx.rider.ftpWatts,
-        weightKg: ctx.rider.model.weightKg,
-        routeSyncedAt: ctx.loaded.routeSyncedAt,
-      }),
-      planLayoutMatchesRoute(plan.route_snapshot, plan.segments, ctx.loaded.route),
+  const staleness = withDurabilityStaleness(
+    withRideStaleness(
+      withLayoutStaleness(
+        checkStaleness(plan.assumptions, {
+          cpWatts: ctx.rider.model.cpWatts,
+          wPrimeJoules: ctx.rider.model.wPrimeJoules,
+          ftpWatts: ctx.rider.ftpWatts,
+          weightKg: ctx.rider.model.weightKg,
+          routeSyncedAt: ctx.loaded.routeSyncedAt,
+        }),
+        planLayoutMatchesRoute(plan.route_snapshot, plan.segments, ctx.loaded.route),
+      ),
+      plan.assumptions,
+      ride?.key ?? null,
     ),
     plan.assumptions,
-    ride?.key ?? null,
+    ctx.rider.durability ? DURABILITY_VERSION : null,
   );
 
   const [sharedPlans, similarRides] = await Promise.all([

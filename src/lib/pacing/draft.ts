@@ -101,6 +101,7 @@ export async function loadRiderContext(
     ? buildDurabilityModel(
         power.curve_points_fatigue as FatigueCurve[],
         model.cpWatts,
+        { curve, wPrimeJoules: model.wPrimeJoules },
       )
     : null;
 
@@ -172,7 +173,7 @@ export async function loadRideHistory(
     admin
       .from("intervals_activities")
       .select(
-        "intervals_id, name, start_date_local, distance_m, elevation_gain_m, moving_time_seconds, average_watts, normalized_watts",
+        "intervals_id, name, start_date_local, distance_m, elevation_gain_m, moving_time_seconds, average_watts, normalized_watts, icu_average_watts:raw->>icu_average_watts, icu_weighted_avg_watts:raw->>icu_weighted_avg_watts, device_watts:raw->>device_watts",
       )
       .eq("profile_id", profileId)
       .gte("start_date_local", since)
@@ -207,6 +208,8 @@ export async function loadRideHistory(
   for (const row of (intervalsRows.data ?? []) as Array<Record<string, unknown>>) {
     const distanceKm = Number(row.distance_m ?? 0) / 1000;
     if (!(distanceKm > 0)) continue;
+    // Tot 2026-11-23 bleven de wattkolommen leeg; oudere ritten lezen we uit raw.
+    const hasPower = row.device_watts !== "false";
     candidates.push({
       id: `intervals-${row.intervals_id}`,
       source: "intervals",
@@ -215,8 +218,10 @@ export async function loadRideHistory(
       distanceKm,
       elevationM: Number(row.elevation_gain_m ?? 0),
       movingSeconds: Number(row.moving_time_seconds ?? 0),
-      avgWatts: num(row.average_watts),
-      normalizedWatts: num(row.normalized_watts),
+      avgWatts: hasPower ? (num(row.average_watts) ?? num(row.icu_average_watts)) : null,
+      normalizedWatts: hasPower
+        ? (num(row.normalized_watts) ?? num(row.icu_weighted_avg_watts))
+        : null,
     });
   }
 

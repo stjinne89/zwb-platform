@@ -64,6 +64,58 @@ describe("buildDurabilityModel", () => {
   });
 });
 
+describe("buildDurabilityModel met de eigen beste inspanningen", () => {
+  // Echte vorm: de curve na 1000 kJ zakt 25 %, maar het lid reed wel 30 min op 310 W.
+  const WEARY: FatigueCurve[] = [{ afterKj: 1000, points: curve(226) }];
+  const BEST = [
+    { seconds: 1800, watts: 310 },
+    { seconds: 3600, watts: 262 },
+  ];
+
+  const survives = (model: ReturnType<typeof buildDurabilityModel>, watts: number, seconds: number) =>
+    wPrimeBalance([{ durationS: seconds, watts, endKm: 1 }], 302, 16_000, {
+      cpAfterKj: (kj) => cpAfterKj(model, 302, kj),
+    }).depletedAtKm === null;
+
+  it("noemt een inspanning die het lid echt reed niet onmogelijk", () => {
+    expect(survives(buildDurabilityModel(WEARY, 302), 310, 1800)).toBe(false);
+    const model = buildDurabilityModel(WEARY, 302, { curve: BEST, wPrimeJoules: 16_000 });
+    for (const effort of BEST) expect(survives(model, effort.watts, effort.seconds)).toBe(true);
+  });
+
+  it("houdt de gemeten afname op de kJ-drempel als niets die tegenspreekt", () => {
+    const model = buildDurabilityModel(WEARY, 302, { curve: BEST, wPrimeJoules: 16_000 })!;
+    expect(cpAfterKj(model, 302, 1000)).toBeCloseTo(302 * 0.75, 0);
+    expect(model.maxFadePct).toBeCloseTo(25, 0);
+  });
+
+  it("tilt de drempel op als een inspanning daar voorbij gaat", () => {
+    const model = buildDurabilityModel(WEARY, 302, {
+      curve: [{ seconds: 5400, watts: 270 }],
+      wPrimeJoules: 16_000,
+    })!;
+    // 270 W × 90 min = 1458 kJ, dus ook bij 1000 kJ lag CP minstens op 267 W.
+    expect(cpAfterKj(model, 302, 1000)).toBeGreaterThanOrEqual(267);
+    expect(survives(model, 270, 5400)).toBe(true);
+  });
+
+  it("laat CP dalend met het werk", () => {
+    const model = buildDurabilityModel(WEARY, 302, { curve: BEST, wPrimeJoules: 16_000 })!;
+    for (let i = 1; i < model.anchors.length; i++) {
+      expect(model.anchors[i].kj).toBeGreaterThan(model.anchors[i - 1].kj);
+      expect(model.anchors[i].factor).toBeLessThanOrEqual(model.anchors[i - 1].factor);
+    }
+  });
+
+  it("gaat nooit boven de verse CP", () => {
+    const model = buildDurabilityModel(WEARY, 302, {
+      curve: [{ seconds: 1800, watts: 400 }],
+      wPrimeJoules: 16_000,
+    })!;
+    expect(Math.max(...model.anchors.map((anchor) => anchor.factor))).toBeLessThanOrEqual(1);
+  });
+});
+
 describe("cpAfterKj", () => {
   const model = buildDurabilityModel(FATIGUE, 300)!;
 

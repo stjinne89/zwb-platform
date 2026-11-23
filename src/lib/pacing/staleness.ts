@@ -27,6 +27,8 @@ export type PlanAssumptions = {
    */
   setup?: RideSetup | null;
   rideKey?: string | null;
+  /** Versie van de vermoeidheidsberekening; afwezig zonder model of van vóór 2026-11-23. */
+  durabilityVersion?: number | null;
 };
 
 export type StaleReason =
@@ -36,7 +38,27 @@ export type StaleReason =
   | "ftp"
   | "route"
   | "indeling"
-  | "opzet";
+  | "opzet"
+  | "vermoeidheid";
+
+/**
+ * Een plan dat met een oudere vermoeidheidsberekening is gemaakt, meldt zich één
+ * keer: zijn "reserve raakt op" kan op de oude, te strenge afname berusten.
+ */
+export function withDurabilityStaleness(
+  staleness: Staleness,
+  assumptions: PlanAssumptions | null | undefined,
+  currentVersion: number | null,
+): Staleness {
+  if (!currentVersion || !assumptions || assumptions.durabilityVersion === currentVersion) {
+    return staleness;
+  }
+  return {
+    stale: true,
+    reasons: [...staleness.reasons, "vermoeidheid"],
+    messages: [...staleness.messages, "De berekening van je vermoeidheid is aangepast."],
+  };
+}
 
 /**
  * Voegt "de Zwift-opzet is veranderd" toe. Een Zwift-plan van vóór 21 september
@@ -251,6 +273,7 @@ export function buildAssumptions(current: {
   routeSyncedAt: string | null;
   setup?: RideSetup | null;
   rideKey?: string | null;
+  durabilityVersion?: number | null;
 }): PlanAssumptions {
   return { ...current, computedAt: new Date().toISOString() };
 }

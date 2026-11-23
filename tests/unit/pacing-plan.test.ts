@@ -195,6 +195,28 @@ describe("rebalancePlan", () => {
     expect(after.adjustments.length).toBeGreaterThan(0);
   });
 
+  it("schaalt ook terug onder de verse CP als de vermoeide CP lager ligt", () => {
+    const tired = {
+      anchors: [
+        { kj: 0, factor: 1 },
+        { kj: 300, factor: 0.8 },
+      ],
+      maxFadePct: 20,
+    };
+    const cpWkg = MODEL.cpWatts / MODEL.weightKg;
+    const plan: PlanSegment[] = [
+      { startKm: 0, endKm: 10, targetWkg: Math.round(cpWkg * 98) / 100, label: "Vol", effort: "drempel" },
+    ];
+    const options = { durability: tired };
+
+    expect(evaluatePlan(plan, route(), MODEL, options).feasible).toBe(false);
+    const after = rebalancePlan(plan, route(), MODEL, null, options);
+    expect(after.plan[0].targetWkg).toBeLessThan(plan[0].targetWkg);
+    expect(after.evaluation.deepestDrawPct).toBeLessThan(
+      evaluatePlan(plan, route(), MODEL, options).deepestDrawPct + 1e-9,
+    );
+  });
+
   it("laat een haalbaar plan ongemoeid", () => {
     const gentle: PlanSegment[] = [
       { startKm: 0, endKm: 8, targetWkg: 2.6, label: "Aanloop", effort: "duur" },

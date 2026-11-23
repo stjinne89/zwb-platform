@@ -36,6 +36,8 @@ export type CpModel = {
   wPrimeJoules: number;
   source: CpSource;
   weightKg: number;
+  /** Geen gewicht bekend: `weightKg` is de clubbrede aanname, geen meting. */
+  weightEstimated?: boolean;
 };
 
 /**
@@ -132,7 +134,9 @@ export type CpInput = {
  * hoort te zien of zijn plan op gemeten data of op een schatting rust.
  */
 export function resolveCpWPrime(input: CpInput): CpModel {
-  const weightKg = finite(input.weightKg) ?? FALLBACK_WEIGHT_KG;
+  const knownWeight = finite(input.weightKg);
+  const weight = { weightKg: knownWeight ?? FALLBACK_WEIGHT_KG, weightEstimated: knownWeight === null };
+  const { weightKg } = weight;
 
   const storedCp = finite(input.storedCpWatts);
   const storedWPrime = finite(input.storedWPrimeJoules);
@@ -141,12 +145,12 @@ export function resolveCpWPrime(input: CpInput): CpModel {
       cpWatts: Math.round(storedCp),
       wPrimeJoules: Math.round(storedWPrime),
       source: "intervals",
-      weightKg,
+      ...weight,
     };
   }
 
   const fitted = fitCpWPrime(input.curvePoints);
-  if (fitted) return { ...fitted, source: "curve", weightKg };
+  if (fitted) return { ...fitted, source: "curve", ...weight };
 
   const ftp = finite(input.ftpWatts);
   if (ftp) {
@@ -155,7 +159,7 @@ export function resolveCpWPrime(input: CpInput): CpModel {
       // Een los opgeslagen W′ zonder CP is nog steeds beter dan de aanname.
       wPrimeJoules: Math.round(storedWPrime ?? DEFAULT_W_PRIME_J),
       source: "ftp",
-      weightKg,
+      ...weight,
     };
   }
 
@@ -166,7 +170,7 @@ export function resolveCpWPrime(input: CpInput): CpModel {
     cpWatts: Math.round(estimatedFtp * CP_FTP_FRACTION),
     wPrimeJoules: Math.round(storedWPrime ?? DEFAULT_W_PRIME_J),
     source: "schatting",
-    weightKg,
+    ...weight,
   };
 }
 

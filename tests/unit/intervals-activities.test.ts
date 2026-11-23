@@ -1,6 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { kilojoulesFromActivity, type ActivityLoadRow } from "@/lib/intervals/activities";
+import { kilojoulesFromActivity, toRow, type ActivityLoadRow } from "@/lib/intervals/activities";
 import { weeklyLoad } from "@/lib/training/ride-metrics";
+
+describe("toRow", () => {
+  it("leest de wattvelden onder de namen van intervals.icu", () => {
+    const row = toRow("lid", {
+      id: "i1",
+      start_date_local: "2026-11-20T18:00:00",
+      icu_average_watts: 231,
+      icu_weighted_avg_watts: 262,
+    });
+    expect(row?.average_watts).toBe(231);
+    expect(row?.normalized_watts).toBe(262);
+  });
+
+  it("laat de watts leeg zonder vermogen", () => {
+    const row = toRow("lid", { id: "i2", start_date_local: "2026-11-20T18:00:00" });
+    expect(row?.average_watts).toBeNull();
+    expect(row?.normalized_watts).toBeNull();
+  });
+});
 
 describe("kilojoulesFromActivity", () => {
   it("rekent joules om naar kilojoules", () => {

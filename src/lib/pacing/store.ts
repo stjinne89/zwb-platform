@@ -14,6 +14,7 @@ import {
 } from "@/lib/pacing/ai";
 import { adoptGeneratedPlan } from "@/lib/pacing/adopt";
 import { buildBaselinePlan } from "@/lib/pacing/baseline";
+import { DURABILITY_VERSION } from "@/lib/pacing/durability";
 import {
   accentTimings,
   evaluatePlan,
@@ -239,6 +240,7 @@ export function assumptionsFor(
     cpSource: rider.model.source,
     routeSyncedAt,
     ...(ride ? { setup: ride.setup, rideKey: ride.key } : {}),
+    ...(rider.durability ? { durabilityVersion: DURABILITY_VERSION } : {}),
   });
 }
 

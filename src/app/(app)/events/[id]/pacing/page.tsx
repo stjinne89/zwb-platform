@@ -103,7 +103,21 @@ export default async function PacingPage({
         <p className="mt-1 text-sm text-muted-foreground">
           Gerekend met CP {rider.model.cpWatts} W en W′{" "}
           {Math.round(rider.model.wPrimeJoules / 100) / 10} kJ op{" "}
-          {rider.model.weightKg} kg — {CP_SOURCE_LABELS[rider.model.source]}
+          {rider.model.weightKg} kg
+          {rider.model.weightEstimated ? (
+            <>
+              {" ("}
+              <Link
+                href="/profiel?weergave=bewerken"
+                className="text-foreground underline underline-offset-2"
+              >
+                gewicht ontbreekt
+              </Link>
+              {")"}
+            </>
+          ) : null}
+          {" — "}
+          {CP_SOURCE_LABELS[rider.model.source]}
           {rider.durability
             ? `. Na een berg werk zakt je drempel volgens je vermoeidheidscurves met ${Math.round(rider.durability.maxFadePct)}%.`
             : "."}

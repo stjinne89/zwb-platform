@@ -23,13 +23,13 @@ export function kilojoulesFromActivity(activity: IntervalsActivity) {
   if (joules) return Math.round(joules / 1000);
   const kilojoules = positive(activity.kilojoules);
   if (kilojoules) return Math.round(kilojoules);
-  const watts = positive(activity.average_watts);
+  const watts = positive(activity.average_watts) ?? positive(activity.icu_average_watts);
   const seconds = positive(activity.moving_time);
   if (watts && seconds) return Math.round((watts * seconds) / 1000);
   return null;
 }
 
-function toRow(profileId: string, activity: IntervalsActivity) {
+export function toRow(profileId: string, activity: IntervalsActivity) {
   const startDate = String(activity.start_date_local ?? "").slice(0, 10);
   if (!activity.id || !startDate) return null;
   return {
@@ -43,8 +43,9 @@ function toRow(profileId: string, activity: IntervalsActivity) {
     elevation_gain_m: positive(activity.total_elevation_gain),
     training_load: positive(activity.icu_training_load),
     intensity: positive(activity.icu_intensity),
-    average_watts: positive(activity.average_watts),
-    normalized_watts: positive(activity.weighted_average_watts),
+    average_watts: positive(activity.average_watts) ?? positive(activity.icu_average_watts),
+    normalized_watts:
+      positive(activity.icu_weighted_avg_watts) ?? positive(activity.weighted_average_watts),
     average_hr: positive(activity.average_heartrate),
     max_hr: positive(activity.max_heartrate),
     average_cadence: positive(activity.average_cadence),

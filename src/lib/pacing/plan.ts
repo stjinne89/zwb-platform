@@ -597,25 +597,30 @@ export function rebalancePlan(
   let evaluation = evaluatePlan(current, route, model, options);
   const adjustments: string[] = [];
 
+  const segmentEnds = segmentEndKms(route.segments);
   for (let pass = 0; pass < MAX_REBALANCE_PASSES; pass++) {
     if (evaluation.feasible) break;
 
-    const cpWkg = model.cpWatts / model.weightKg;
+    // De grens is de CP op dat punt in de rit: met een duurzaamheidsmodel loopt
+    // de reserve ook leeg op een doel onder de verse CP.
+    const passEvaluation = evaluation;
+    const limitWkg = (segment: PlanSegment) =>
+      cpAtPieceEnd(segment, passEvaluation, segmentEnds, model, options.durability) / model.weightKg;
     // Start en sprint horen bij de wedstrijd; wat er te veel is, komt uit de
     // rest van het plan.
     const above = current.filter(
-      (segment) => !keepsOwnTarget(segment) && segment.targetWkg > cpWkg,
+      (segment) => !keepsOwnTarget(segment) && segment.targetWkg > limitWkg(segment),
     );
-    // Niets boven CP en tóch leeg: dan zit het in de klim-gradiënten zelf en
-    // valt er met terugschalen niets meer te winnen.
+    // Niets boven CP en tóch leeg: dan zit het in de vaste stukken en valt er
+    // met terugschalen niets meer te winnen.
     if (above.length === 0) break;
 
     current = current.map((segment) => {
-      if (keepsOwnTarget(segment) || segment.targetWkg <= cpWkg) return segment;
-      const excess = segment.targetWkg - cpWkg;
+      if (!above.includes(segment)) return segment;
+      const limit = limitWkg(segment);
       return {
         ...segment,
-        targetWkg: round2(cpWkg + excess * (1 - REDUCTION_STEP)),
+        targetWkg: round2(limit + (segment.targetWkg - limit) * (1 - REDUCTION_STEP)),
       };
     });
     evaluation = evaluatePlan(current, route, model, options);
@@ -666,6 +671,22 @@ export function rebalancePlan(
   }
 
   return { plan: current, evaluation, clampNotes: clamped.notes, adjustments };
+}
+
+/** CP aan het eind van een planstuk, na al het werk tot daar. */
+function cpAtPieceEnd(
+  piece: Pick<PlanSegment, "endKm">,
+  evaluation: PlanEvaluation,
+  endKms: number[],
+  model: CpModel,
+  durability: DurabilityModel | null | undefined,
+): number {
+  if (!durability) return model.cpWatts;
+  let joules = 0;
+  for (let i = 0; i < endKms.length && endKms[i] <= piece.endKm + 1e-9; i++) {
+    joules += evaluation.watts[i] * evaluation.estimate.segments[i].durationS;
+  }
+  return cpAfterKj(durability, model.cpWatts, joules / 1000);
 }
 
 /** Korter dan dit na het uitknippen van een vast stuk is geen stuk meer. */
