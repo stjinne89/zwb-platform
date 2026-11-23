@@ -7,10 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Omgebouwd — ZWBeter Vandaag: volgorde en dagstaten (2026-11-23): lokaal,
-   nog niet gecommit of gepusht.** Geen migratie. Open: na de push de echte
-   pagina nakijken op de telefoon, op een dag met training en op een dag die
-   al gereden is. Zie de ronde "Omgebouwd — ZWBeter Vandaag".
+0. **Omgebouwd — ZWBeter Vandaag: volgorde en dagstaten (2026-11-23): gepusht
+   naar `main` (`9553f9e6`, eigenaar: "Ja, push naar main").** Geen migratie.
+   Open: na de deploy de echte pagina nakijken op de telefoon, op een dag met
+   training en op een dag die al gereden is. Zie de ronde "Omgebouwd — ZWBeter
+   Vandaag".
 
 0. **Gebouwd — Teamindeling en Racefit voor ZRL A en C (2026-11-23):
    gepusht naar `main` (`c3eaa397`, eigenaar: "je mag dit gelijk committen en pushen naar main").** Geen migratie. Lokaal ingelogd bekeken tegen productiedata. Open:
@@ -12768,8 +12769,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Omgebouwd — ZWBeter Vandaag: volgorde en dagstaten
 
-**2026-11-23, lokaal op de branch `claude/zwbeter-vandaag-layout-d3678a`, nog
-niet gecommit (hash invullen bij de commit). Geen migratie.** De eigenaar vond de
+**2026-11-23, gepusht naar `main` (`9553f9e6`, eigenaar: "Ja, push naar main").
+Geen migratie.** De eigenaar vond de
 volgorde op `/zwbeter-worden` niet meer logisch nu er zoveel op staat, en koos
 uit het voorstel "Volgorde en dagstaten".
 
@@ -12807,9 +12808,9 @@ uit het voorstel "Volgorde en dagstaten".
   - Rustdag krijgt geen bevestigingsstap, afgekapte blokbreedtes ("5...") en
     kleine tikdoelen binnen de Zwift- en routeonderdelen zijn niet aangepakt.
 - **Gecontroleerd.** Typecheck, ESLint op de gewijzigde onderdelen en `next
-  build` zijn schoon. Van de 4.900 tests faalden er twee in de volledige run:
-  `club-texts-render` ("beheer noemt ZWB niet") faalt ook op een schone `main`,
-  en `admin-areas` slaagt los gedraaid. De dagstaten en het lage advies zijn
+  build` zijn schoon, ook na de rebase op `main`. In de volledige testrun faalt
+  daarna alleen `club-texts-render` ("beheer noemt ZWB niet"), en die faalt ook
+  op een schone `main`. De dagstaten en het lage advies zijn
   nagelopen met een tijdelijke proefpagina met voorbeelddata, die weer is
   verwijderd. Op 375px zijn ze bekeken, behalve `later`: daarvan is alleen de
   opbouw in de HTML gecontroleerd.
