@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   deriveReadiness,
+  hasRecoveryValues,
   hrvBand,
   refreshWellnessIfStale,
   restingHrBand,
@@ -22,6 +23,18 @@ type Row = {
   soreness: number | null;
   mood: number | null;
 };
+
+describe("hasRecoveryValues", () => {
+  it("één gemeten waarde is genoeg", () => {
+    expect(hasRecoveryValues({ hrv: null, restingHr: 48, sleepHours: null })).toBe(true);
+    expect(hasRecoveryValues({ hrv: 0, restingHr: null, sleepHours: null })).toBe(true);
+  });
+
+  it("zonder samenvatting of waarden is er niets binnen", () => {
+    expect(hasRecoveryValues(null)).toBe(false);
+    expect(hasRecoveryValues({ hrv: null, restingHr: null, sleepHours: null })).toBe(false);
+  });
+});
 
 function row(date: string, readiness: number | null): Row {
   return {

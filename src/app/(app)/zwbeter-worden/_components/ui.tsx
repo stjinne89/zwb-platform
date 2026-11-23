@@ -9,12 +9,14 @@ export function MetricCard({
   value,
   hint,
   className = "",
+  iconClassName = "",
 }: {
   icon: typeof Activity;
   label: string;
   value: React.ReactNode;
   hint?: string;
   className?: string;
+  iconClassName?: string;
 }) {
   return (
     <div className={`tg-metric rounded-md border bg-card p-4 ${className}`}>
@@ -23,7 +25,7 @@ export function MetricCard({
           <p className="text-sm text-muted-foreground">{label}</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
         </div>
-        <Icon className="size-5 text-primary" />
+        <Icon className={`size-5 text-primary ${iconClassName}`} />
       </div>
       {hint && <p className="mt-2 text-xs text-muted-foreground">{hint}</p>}
     </div>

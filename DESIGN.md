@@ -550,6 +550,12 @@ vandaag aan" een outline-knop.
 Voeding, Bandendruk en Core zijn uitklapblokken (`TodayFold`) die dicht
 beginnen: pictogram, naam en de kern op één regel.
 
+"Hoe je ervoor staat" (`TodayStand`) heeft op de telefoon vier tegels, twee bij
+twee: Fitness, Trainingsruimte, eFTP en 7 dagen. Vanaf `lg` komt Form erbij, op
+één rij. De teal tegels klappen één vlak onder de tegels open, met een pijltje:
+Trainingsruimte toont herstel en de grafiek, Fitness en Form alleen de grafiek.
+Zonder herstelwaarden begint het vlak open met alleen herstel.
+
 ### Lijstlinks en tweede menurij (`tg-link`, `tg-subnav`)
 Een link in een lijst (races, opgeslagen plannen) of een tab onder de pijlers
 is een gevuld vlak in de kleur van de soort; met `tg-here` in de kleur van de

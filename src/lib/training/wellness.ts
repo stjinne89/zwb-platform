@@ -724,6 +724,16 @@ export function summarizeWellness(
   };
 }
 
+/** Zijn er herstelwaarden binnen? Zo niet, dan stokt meestal de koppeling. */
+export function hasRecoveryValues(
+  summary: Pick<WellnessSummary, "hrv" | "restingHr" | "sleepHours"> | null,
+): boolean {
+  return (
+    summary != null &&
+    (summary.hrv != null || summary.restingHr != null || summary.sleepHours != null)
+  );
+}
+
 /**
  * Van welke dag de getoonde readiness is, als het niet vandaag is: "gisteren"
  * of een korte datum. Null bij een meting van vandaag en bij een berekende

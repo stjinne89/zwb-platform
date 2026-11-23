@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Bijgesteld — Vandaag: Trainingsruimte opent herstel en grafiek
+   (2026-11-23): lokaal, nog niet gecommit of gepusht.** Geen migratie. Open: op
+   de echte pagina met echte herstelwaarden nakijken. Zie de ronde "Bijgesteld —
+   Vandaag: Trainingsruimte opent herstel en grafiek".
+
 0. **Gebouwd — ZWBeter-blokken als veegrij op mobiel (2026-11-23): gepusht naar `main` (`269b8410`, eigenaar: "Ja, push naar main").** Geen migratie. Open: op een echte telefoon het
    vegen en het inschuiven van het actieve blok nakijken. Zie de ronde "Gebouwd
    — ZWBeter-blokken als veegrij".
@@ -12785,6 +12790,40 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Bijgesteld — Vandaag: Trainingsruimte opent herstel en grafiek
+
+**2026-11-23, lokaal, nog niet gecommit (hash invullen bij de commit). Geen
+migratie.** De eigenaar wilde herstel en belastbaarheid openen vanuit de tegel
+Trainingsruimte, daar ook de fitnessgrafiek kunnen openen, en op mobiel geen
+aparte tegel Form, omdat die naar dezelfde grafiek leidt.
+
+- **Eén uitklapvlak.** `today-stand.tsx` houdt de tegels en één vlak eronder bij.
+  Trainingsruimte opent herstel met de grafiek, Fitness alleen de grafiek. Het
+  losse blok Herstel & belastbaarheid is weg, dus de dagkaart staat hoger.
+- **Mobiel.** Vier tegels, twee bij twee: Fitness, Trainingsruimte, eFTP en 7
+  dagen. Form is daar geen tegel meer, maar blijft als lijn in de grafiek. Vanaf
+  `lg` blijven de vijf tegels op één rij staan. De pictogrammen vallen op mobiel
+  weg, omdat naam en getal anders afbreken.
+- **Grafiek.** `TrainingLoadMetrics` is gesplitst in `TrainingLoadButtons` en
+  `TrainingLoadPanel`. Op Vandaag opent de grafiek nu onder de tegels in plaats
+  van erboven, zodat de aangetikte tegel niet wegspringt.
+- **Herstel.** De waarden staan in het vlak meteen open; de extra uitklapregel is
+  weg. Zonder herstelwaarden begint het vlak open, zonder grafiek, zodat de
+  waarschuwing zichtbaar blijft en de training niet ver wegzakt.
+  `/zwbeter-worden#herstel` opent het vlak en scrolt ernaartoe.
+- **Bewust niet gedaan.** De pagina's Belasting en Trainer houden hun tegels en
+  grafiek, want daar is niet om gevraagd. Form is inhoudelijk niet vervallen:
+  het is CTL min ATL en zit dus niet in de CTL zelf.
+- **Gecontroleerd.** Typecheck, ESLint op de gewijzigde onderdelen en `next
+  build` zijn schoon. In de volledige testrun faalt `club-texts-render`, ook op
+  een schone `main`. Zes andere testbestanden liepen in die run tegen een
+  time-out en slagen los gedraaid. Op een tijdelijke proefpagina met voorbeelddata
+  zijn 320px, 375px en desktop nagelopen: openen en sluiten, geen waarden, geen
+  koppeling, de `#herstel`-link, geen horizontale overflow en donker. De
+  proefpagina is weer verwijderd.
+- **Niet lokaal te verifiëren.** De ingelogde pagina met echte gegevens. In de
+  proef was de herstelkaart een nabouw met dezelfde onderdelen.
+
 ### Gebouwd — ZWBeter-blokken als veegrij op mobiel
 
 **2026-11-23, gepusht naar `main` (`269b8410`, eigenaar: "Ja, push naar main"). Geen
@@ -12966,8 +13005,9 @@ uit het voorstel "Volgorde en dagstaten".
   bandendruk.
 - **Op de dagkaart.** De training, het advies (niveau 1 en 2 boven de blokken,
   anders een regel eronder), de aanpasknop en ingeklapt Zwift/buiten en "Waarom
-  dit schema". Het ritplan zit in de voedingskaart. De herstelwaarden staan
-  achter één regel en klappen vanzelf open als er waarden ontbreken.
+  dit schema". Het ritplan zit in de voedingskaart. De herstelwaarden stonden
+  achter één regel (**niet meer waar** sinds "Bijgesteld — Vandaag: Trainingsruimte
+  opent herstel en grafiek": ze staan nu in het vlak onder die tegel).
 - **FTP (besluit eigenaar).** De blokken blijven op de profiel-FTP rekenen. Die
   waarde staat nu bij de training; eFTP blijft de trend.
 - **Bug meegenomen.** `markTodayRestDay` pakte de eerste training van de dag,

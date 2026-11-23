@@ -2,12 +2,11 @@
 // daarop trainen. Hoort op de dagpagina en niet bij de belastingcijfers — het
 // gaat over de toestand van dit moment, niet over de opbouw van weken.
 //
-// De kop en de schakelaar blijven staan (`/zwbeter-worden#herstel` is de link naar
-// de instelling); de waarden klappen in, behalve als ze zijn stilgevallen.
+// Opent vanuit de tegel Trainingsruimte (today-stand.tsx), dus de waarden staan
+// hier meteen open. `/zwbeter-worden#herstel` is de link naar de instelling.
 
-import { ChevronDown } from "lucide-react";
 import type { ZwbAdvice } from "@/lib/training/zwbeterworden";
-import { readinessAgeLabel, type WellnessSummary } from "@/lib/training/wellness";
+import { hasRecoveryValues, readinessAgeLabel, type WellnessSummary } from "@/lib/training/wellness";
 import { RecoveryStat, recoveryStateLabel } from "./ui";
 import { WellnessOptInToggle } from "./wellness-optin-toggle";
 import { ClubShortName, ClubText } from "@/components/club-texts-provider";
@@ -25,9 +24,7 @@ export function RecoveryCard({
   /** Laatste dag met een echte meting, voor als de reeks stilstaat. */
   lastWellnessDay: string | null;
 }) {
-  const hasValues =
-    summary != null &&
-    (summary.hrv != null || summary.restingHr != null || summary.sleepHours != null);
+  const hasValues = hasRecoveryValues(summary);
 
   return (
     <section id="herstel" className="scroll-mt-4 rounded-lg border bg-card p-5">
@@ -39,63 +36,49 @@ export function RecoveryCard({
       {optIn &&
         (summary ? (
           <div className="mt-3 space-y-3">
-            <details className="group" open={!hasValues}>
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm [&::-webkit-details-marker]:hidden">
-                <span className="tabular-nums">
-                  <span className="font-medium">{recoveryStateLabel(summary.state)}</span>
-                  {summary.readiness != null ? ` · Readiness ${summary.readiness}` : ""}
-                </span>
-                <ChevronDown
-                  className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
-                  aria-hidden
-                />
-              </summary>
-              <div className="mt-2 space-y-3">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1">
-                  <RecoveryStat label="Status" value={recoveryStateLabel(summary.state)} />
-                  <RecoveryStat
-                    label="Readiness"
-                    value={summary.readiness != null ? `${summary.readiness}` : "-"}
-                    hint={
-                      summary.readinessSource === "afgeleid" ? (
-                        <>berekend door <ClubShortName /></>
-                      ) : (
-                        (readinessAgeLabel(summary) ?? undefined)
-                      )
-                    }
-                  />
-                  <RecoveryStat
-                    label="HRV (7d gem.)"
-                    value={summary.hrv != null ? `${summary.hrv}` : "—"}
-                  />
-                  <RecoveryStat
-                    label="Rust-HR (7d gem.)"
-                    value={summary.restingHr != null ? `${summary.restingHr}` : "—"}
-                  />
-                  <RecoveryStat
-                    label="Slaap (7d gem.)"
-                    value={
-                      summary.sleepHours != null
-                        ? `${summary.sleepHours.toLocaleString("nl-NL")}u`
-                        : "—"
-                    }
-                  />
-                </div>
-                {/* Zonder verse waarden de laatste dag waarop er wél iets
-                    binnenkwam, in rood: dan stokt meestal de koppeling. */}
-                {hasValues ? (
-                  <p className="text-xs text-muted-foreground">{summary.note}</p>
-                ) : (
-                  <p className="text-xs text-destructive">
-                    {lastWellnessDay
-                      ? `Geen herstelwaarden in de laatste 7 dagen; laatste meting ${new Date(
-                          `${lastWellnessDay}T12:00:00`,
-                        ).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}.`
-                      : "Nog geen herstelwaarden ontvangen uit intervals.icu."}
-                  </p>
-                )}
-              </div>
-            </details>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1">
+              <RecoveryStat label="Status" value={recoveryStateLabel(summary.state)} />
+              <RecoveryStat
+                label="Readiness"
+                value={summary.readiness != null ? `${summary.readiness}` : "-"}
+                hint={
+                  summary.readinessSource === "afgeleid" ? (
+                    <>berekend door <ClubShortName /></>
+                  ) : (
+                    (readinessAgeLabel(summary) ?? undefined)
+                  )
+                }
+              />
+              <RecoveryStat
+                label="HRV (7d gem.)"
+                value={summary.hrv != null ? `${summary.hrv}` : "—"}
+              />
+              <RecoveryStat
+                label="Rust-HR (7d gem.)"
+                value={summary.restingHr != null ? `${summary.restingHr}` : "—"}
+              />
+              <RecoveryStat
+                label="Slaap (7d gem.)"
+                value={
+                  summary.sleepHours != null
+                    ? `${summary.sleepHours.toLocaleString("nl-NL")}u`
+                    : "—"
+                }
+              />
+            </div>
+            {/* Zonder verse waarden de laatste dag waarop er wél iets
+                binnenkwam, in rood: dan stokt meestal de koppeling. */}
+            {hasValues ? (
+              <p className="text-xs text-muted-foreground">{summary.note}</p>
+            ) : (
+              <p className="text-xs text-destructive">
+                {lastWellnessDay
+                  ? `Geen herstelwaarden in de laatste 7 dagen; laatste meting ${new Date(
+                      `${lastWellnessDay}T12:00:00`,
+                    ).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}.`
+                  : "Nog geen herstelwaarden ontvangen uit intervals.icu."}
+              </p>
+            )}
             {advice ? (
               <div className={`rounded-md p-3 ${advice.block}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">

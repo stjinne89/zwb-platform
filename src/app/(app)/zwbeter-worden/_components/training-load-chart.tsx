@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Activity, TrendingUp } from "lucide-react";
+import { Activity, ChevronDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChartTooltip } from "@/components/charts/chart-tooltip";
 import { ResponsiveChart, useChartPointer } from "@/components/charts/responsive-chart";
@@ -15,9 +15,9 @@ import type { ProjectedLoadPoint } from "@/lib/training/load-projection";
 
 export type { TrainingLoadPoint };
 
-type RangeKey = "42d" | "90d" | "6m" | "1y" | "2y";
+export type LoadRange = "42d" | "90d" | "6m" | "1y" | "2y";
 
-const RANGES: Array<{ key: RangeKey; label: string; short: string; days: number }> = [
+const RANGES: Array<{ key: LoadRange; label: string; short: string; days: number }> = [
   { key: "42d", label: "42 dagen", short: "42d", days: 42 },
   { key: "90d", label: "90 dagen", short: "90d", days: 90 },
   { key: "6m", label: "6 maanden", short: "6m", days: 183 },
@@ -65,11 +65,14 @@ function enrichPoints(points: TrainingLoadPoint[]) {
   });
 }
 
-function MetricButton({
+export function MetricButton({
   icon: Icon,
   label,
   value,
   sub,
+  hint,
+  opens = false,
+  className,
   active,
   onClick,
 }: {
@@ -78,6 +81,11 @@ function MetricButton({
   value: string;
   /** Kleine regel onder de waarde, zoals de verwachte CTL. */
   sub?: string | null;
+  /** Regel onderaan de tegel, zoals bij een gewone MetricCard. */
+  hint?: string;
+  /** Toont een pijltje: de tegel klapt iets open. */
+  opens?: boolean;
+  className?: string;
   active: boolean;
   onClick: () => void;
 }) {
@@ -88,7 +96,9 @@ function MetricButton({
       onClick={onClick}
       className={cn(
         "tg-metric rounded-md border bg-card p-4 text-left transition hover:border-primary/40 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-ring",
+        opens && "relative",
         active && "border-primary/40 bg-primary/5",
+        className,
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -97,9 +107,79 @@ function MetricButton({
           <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
           {sub ? <p className="text-xs text-muted-foreground tabular-nums">{sub}</p> : null}
         </div>
-        <Icon className="size-5 text-primary" />
+        {/* Op de telefoon is de tegel te smal voor naam en pictogram; het pijltje blijft. */}
+        <Icon className={cn("size-5 text-primary", opens && "max-lg:hidden")} />
       </div>
+      {hint ? <p className={cn("mt-2 text-xs text-muted-foreground", opens && "pr-5")}>{hint}</p> : null}
+      {opens ? (
+        <ChevronDown
+          aria-hidden
+          className={cn(
+            "absolute bottom-3 right-3 size-4 text-primary transition-transform",
+            active && "rotate-180",
+          )}
+        />
+      ) : null}
     </button>
+  );
+}
+
+/** Het verwachte deel van de lijn: vanaf morgen, en alleen als vandaag gemeten is. */
+function futurePoints(
+  points: TrainingLoadPoint[],
+  projection: ProjectedLoadPoint[] | null | undefined,
+  today: string,
+) {
+  return points.some((point) => point.date === today)
+    ? (projection ?? []).filter((point) => point.date > today)
+    : [];
+}
+
+/** De tegels Fitness en Form; ze openen samen de grafiek. */
+export function TrainingLoadButtons({
+  points,
+  ctl,
+  tsb,
+  today,
+  projection,
+  active,
+  opens = false,
+  formClassName,
+  onToggle,
+}: {
+  points: TrainingLoadPoint[];
+  ctl: number | null | undefined;
+  tsb: number | null | undefined;
+  today: string;
+  projection?: ProjectedLoadPoint[] | null;
+  active: boolean;
+  opens?: boolean;
+  formClassName?: string;
+  onToggle: () => void;
+}) {
+  const future = futurePoints(points, projection, today);
+  const projectedEnd = future.at(-1) ?? null;
+  return (
+    <>
+      <MetricButton
+        icon={TrendingUp}
+        label="Fitness (CTL)"
+        value={formatMetric(finite(ctl))}
+        sub={projectedEnd ? `Over ${Math.round(future.length / 7)} wk ${formatMetric(projectedEnd.ctl)}` : null}
+        opens={opens}
+        active={active}
+        onClick={onToggle}
+      />
+      <MetricButton
+        icon={Activity}
+        label="Form"
+        value={formatMetric(finite(tsb))}
+        opens={opens}
+        className={formClassName}
+        active={active}
+        onClick={onToggle}
+      />
+    </>
   );
 }
 
@@ -127,18 +207,60 @@ export function TrainingLoadMetrics({
   idSuffix?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [range, setRange] = useState<RangeKey>("90d");
+  const [range, setRange] = useState<LoadRange>("90d");
 
+  return (
+    <>
+      {open && (
+        <TrainingLoadPanel
+          points={points}
+          today={today}
+          projection={projection}
+          className={panelClassName}
+          idSuffix={idSuffix}
+          range={range}
+          onRangeChange={setRange}
+        />
+      )}
+      <TrainingLoadButtons
+        points={points}
+        ctl={ctl}
+        tsb={tsb}
+        today={today}
+        projection={projection}
+        active={open}
+        onToggle={() => setOpen((value) => !value)}
+      />
+    </>
+  );
+}
+
+/** De grafiek zelf. De gekozen periode leeft bij de ouder, zodat hij blijft staan
+ * als de grafiek dicht en weer open gaat. */
+export function TrainingLoadPanel({
+  points,
+  today,
+  projection,
+  className,
+  idSuffix,
+  range,
+  onRangeChange,
+}: {
+  points: TrainingLoadPoint[];
+  today: string;
+  projection?: ProjectedLoadPoint[] | null;
+  className?: string;
+  idSuffix?: string;
+  range: LoadRange;
+  onRangeChange: (range: LoadRange) => void;
+}) {
   const series = useMemo(() => enrichPoints(points), [points]);
   const selectedRange = RANGES.find((item) => item.key === range) ?? RANGES[1];
   const todayMs = dateMs(today);
   // Het eerste verwachte punt is vandaag zelf; daar staat de gemeten waarde al.
   // De stippellijn vertrekt van die gemeten waarde.
   const future = useMemo(
-    () =>
-      series.some((point) => point.date === today)
-        ? (projection ?? []).filter((point) => point.date > today)
-        : [],
+    () => futurePoints(series, projection, today),
     [projection, series, today],
   );
   const visible = useMemo(() => {
@@ -163,7 +285,6 @@ export function TrainingLoadMetrics({
       })),
     ];
   }, [future, selectedRange.days, series, todayMs]);
-  const projectedEnd = future.at(-1) ?? null;
   // Gemeten tot en met vandaag; verwacht vanaf vandaag, zodat de lijnen aansluiten.
   const measuredValue = (value: number | null, point: { projected: boolean }) =>
     point.projected ? null : value;
@@ -177,308 +298,288 @@ export function TrainingLoadMetrics({
   const topGradientId = defsId("training-load-top", idSuffix);
 
   return (
-    <>
-      {open && (
-        <div className={panelClassName}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold">Load en Form</h3>
-              <p className="text-sm text-muted-foreground">
-                CTL is je fitness over langere tijd; ATL is je recente vermoeidheid. Form is CTL min ATL.
-              </p>
-            </div>
-            <div className="flex rounded-md border bg-background p-1 text-sm">
-              {RANGES.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => setRange(item.key)}
-                  className={cn(
-                    "min-h-9 rounded px-2.5 font-medium transition",
-                    range === item.key
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground",
+    <div className={className}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-semibold">Load en Form</h3>
+          <p className="text-sm text-muted-foreground">
+            CTL is je fitness over langere tijd; ATL is je recente vermoeidheid. Form is CTL min ATL.
+          </p>
+        </div>
+        <div className="flex rounded-md border bg-background p-1 text-sm">
+          {RANGES.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => onRangeChange(item.key)}
+              className={cn(
+                "min-h-9 rounded px-2.5 font-medium transition",
+                range === item.key
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <span className="sm:hidden">{item.short}</span>
+              <span className="hidden sm:inline">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {hasChart ? (
+        <div className="mt-4 overflow-hidden rounded-md border bg-background p-2 sm:p-4">
+          <ResponsiveChart
+            ariaLabel="Grafiek met trainingsbelasting, CTL, ATL en Form"
+            onPointerRatio={onPointerRatio}
+            heightOptions={{ compact: 0.9, comfortable: 0.42, min: 240, max: 420 }}
+            margin={withLoadAxis}
+          >
+            {({ width, height, metrics, plotWidth, plotHeight }) => {
+              const { margin, axisFontSize } = metrics;
+              const axes = zeroAlignedAxes({
+                primary: visible.flatMap((point) => [point.ctl, point.atl, point.tsb]),
+                secondary: visible.map((point) => point.load),
+                intervals: metrics.yTickCount + 1,
+              });
+              const top = margin.top;
+              const bottom = margin.top + plotHeight;
+              const right = width - margin.right;
+
+              const xFor = (index: number) =>
+                margin.left +
+                (visible.length <= 1 ? 0 : (index / (visible.length - 1)) * plotWidth);
+              const yFor = (value: number) =>
+                bottom - ((value - axes.min) / (axes.max - axes.min)) * plotHeight;
+              const zeroY = yFor(0);
+              // Rechteras: 0 op de nullijn, secondaryMax bovenaan.
+              const yLoad = (value: number) =>
+                zeroY - (value / axes.secondaryMax) * (zeroY - top);
+
+              const loadBarWidth = Math.max(
+                1,
+                Math.min(6, plotWidth / Math.max(visible.length, 1) - 1),
+              );
+              const dateTicks = tickIndices(visible.length, metrics.xTickCount);
+
+              return (
+                <>
+                  <defs>
+                    <linearGradient id={topGradientId} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.16" />
+                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0.02" />
+                    </linearGradient>
+                  </defs>
+
+                  <rect
+                    x={margin.left}
+                    y={top}
+                    width={plotWidth}
+                    height={zeroY - top}
+                    fill={`url(#${topGradientId})`}
+                  />
+                  {axes.min < 0 && (
+                    <rect
+                      x={margin.left}
+                      y={zeroY}
+                      width={plotWidth}
+                      height={bottom - zeroY}
+                      fill="var(--destructive)"
+                      opacity="0.08"
+                    />
                   )}
-                >
-                  <span className="sm:hidden">{item.short}</span>
-                  <span className="hidden sm:inline">{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {hasChart ? (
-            <div className="mt-4 overflow-hidden rounded-md border bg-background p-2 sm:p-4">
-              <ResponsiveChart
-                ariaLabel="Grafiek met trainingsbelasting, CTL, ATL en Form"
-                onPointerRatio={onPointerRatio}
-                heightOptions={{ compact: 0.9, comfortable: 0.42, min: 240, max: 420 }}
-                margin={withLoadAxis}
-              >
-                {({ width, height, metrics, plotWidth, plotHeight }) => {
-                  const { margin, axisFontSize } = metrics;
-                  const axes = zeroAlignedAxes({
-                    primary: visible.flatMap((point) => [point.ctl, point.atl, point.tsb]),
-                    secondary: visible.map((point) => point.load),
-                    intervals: metrics.yTickCount + 1,
-                  });
-                  const top = margin.top;
-                  const bottom = margin.top + plotHeight;
-                  const right = width - margin.right;
-
-                  const xFor = (index: number) =>
-                    margin.left +
-                    (visible.length <= 1 ? 0 : (index / (visible.length - 1)) * plotWidth);
-                  const yFor = (value: number) =>
-                    bottom - ((value - axes.min) / (axes.max - axes.min)) * plotHeight;
-                  const zeroY = yFor(0);
-                  // Rechteras: 0 op de nullijn, secondaryMax bovenaan.
-                  const yLoad = (value: number) =>
-                    zeroY - (value / axes.secondaryMax) * (zeroY - top);
-
-                  const loadBarWidth = Math.max(
-                    1,
-                    Math.min(6, plotWidth / Math.max(visible.length, 1) - 1),
-                  );
-                  const dateTicks = tickIndices(visible.length, metrics.xTickCount);
-
-                  return (
-                    <>
-                      <defs>
-                        <linearGradient id={topGradientId} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.16" />
-                          <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0.02" />
-                        </linearGradient>
-                      </defs>
-
-                      <rect
-                        x={margin.left}
-                        y={top}
-                        width={plotWidth}
-                        height={zeroY - top}
-                        fill={`url(#${topGradientId})`}
+                  {axes.ticks.map((tick) => (
+                    <g key={`tick-${tick}`}>
+                      <line
+                        x1={margin.left}
+                        x2={right}
+                        y1={yFor(tick)}
+                        y2={yFor(tick)}
+                        stroke="var(--border)"
+                        strokeDasharray={tick === 0 ? undefined : "4 5"}
                       />
-                      {axes.min < 0 && (
-                        <rect
-                          x={margin.left}
-                          y={zeroY}
-                          width={plotWidth}
-                          height={bottom - zeroY}
-                          fill="var(--destructive)"
-                          opacity="0.08"
-                        />
-                      )}
-
-                      {axes.ticks.map((tick) => (
-                        <g key={`tick-${tick}`}>
-                          <line
-                            x1={margin.left}
-                            x2={right}
-                            y1={yFor(tick)}
-                            y2={yFor(tick)}
-                            stroke="var(--border)"
-                            strokeDasharray={tick === 0 ? undefined : "4 5"}
-                          />
-                          <text
-                            x={margin.left - 6}
-                            y={yFor(tick) + axisFontSize / 3}
-                            textAnchor="end"
-                            fontSize={axisFontSize}
-                            fill="var(--muted-foreground)"
-                          >
-                            {tick}
-                          </text>
-                          {tick >= 0 && (
-                            <text
-                              x={right + 6}
-                              y={yFor(tick) + axisFontSize / 3}
-                              textAnchor="start"
-                              fontSize={axisFontSize}
-                              fill="var(--muted-foreground)"
-                            >
-                              {(tick / axes.step) * axes.secondaryStep}
-                            </text>
-                          )}
-                        </g>
-                      ))}
                       <text
-                        x={width - 2}
-                        y={top - 8}
+                        x={margin.left - 6}
+                        y={yFor(tick) + axisFontSize / 3}
                         textAnchor="end"
                         fontSize={axisFontSize}
                         fill="var(--muted-foreground)"
                       >
-                        Load
+                        {tick}
                       </text>
-
-                      {dateTicks.map((index) => (
-                        <g key={`date-${index}`}>
-                          <line
-                            x1={xFor(index)}
-                            x2={xFor(index)}
-                            y1={top}
-                            y2={bottom}
-                            stroke="var(--border)"
-                            strokeOpacity="0.55"
-                          />
-                          <text
-                            x={xFor(index)}
-                            y={height - Math.round(margin.bottom / 3)}
-                            textAnchor={
-                              index === 0
-                                ? "start"
-                                : index === visible.length - 1
-                                  ? "end"
-                                  : "middle"
-                            }
-                            fontSize={axisFontSize}
-                            fill="var(--muted-foreground)"
-                          >
-                            {formatTickDate(visible[index].date, metrics.density)}
-                          </text>
-                        </g>
-                      ))}
-
-                      {visible.map((point, index) => {
-                        if (point.load == null) return null;
-                        const y = yLoad(point.load);
-                        return (
-                          <rect
-                            key={`load-${point.date}`}
-                            x={xFor(index) - loadBarWidth / 2}
-                            y={y}
-                            width={loadBarWidth}
-                            height={Math.max(0, zeroY - y)}
-                            rx="1"
-                            fill="var(--muted-foreground)"
-                            opacity={point.projected ? "0.15" : "0.3"}
-                          />
-                        );
-                      })}
-
-                      {(
-                        [
-                          { key: "ctl", color: "var(--chart-1)", width: metrics.strokeWidth.primary, opacity: "1" },
-                          { key: "atl", color: "var(--chart-2)", width: metrics.strokeWidth.secondary, opacity: "0.9" },
-                          { key: "tsb", color: "var(--chart-3)", width: metrics.strokeWidth.secondary, opacity: "1" },
-                        ] as const
-                      ).flatMap((line) => [
-                        ...lineSegments(visible, (point) => measuredValue(point[line.key], point), xFor, yFor).map(
-                          (path, index) => (
-                            <path
-                              key={`${line.key}-${index}`}
-                              d={path}
-                              fill="none"
-                              stroke={line.color}
-                              strokeWidth={line.width}
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeOpacity={line.opacity}
-                            />
-                          ),
-                        ),
-                        ...lineSegments(visible, (point) => projectedValue(point[line.key], point), xFor, yFor).map(
-                          (path, index) => (
-                            <path
-                              key={`${line.key}-verwacht-${index}`}
-                              d={path}
-                              fill="none"
-                              stroke={line.color}
-                              strokeWidth={line.width}
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeOpacity={line.opacity}
-                              strokeDasharray="4 4"
-                            />
-                          ),
-                        ),
-                      ])}
-
-                      {hoverPoint && hoverIndex != null && (
-                        <g>
-                          <line
-                            x1={xFor(hoverIndex)}
-                            x2={xFor(hoverIndex)}
-                            y1={top}
-                            y2={bottom}
-                            stroke="var(--foreground)"
-                            strokeOpacity="0.5"
-                          />
-                          <ChartTooltip
-                            x={xFor(hoverIndex)}
-                            y={top + 4}
-                            chartWidth={width}
-                            title={
-                              hoverPoint.projected
-                                ? `${formatChartDate(hoverPoint.date)} · verwacht`
-                                : formatChartDate(hoverPoint.date)
-                            }
-                            rows={[
-                              {
-                                label: hoverPoint.projected ? "Gepland" : "Load",
-                                value: formatMetric(hoverPoint.load, 0),
-                                color: "var(--muted-foreground)",
-                              },
-                              { label: "CTL", value: formatMetric(hoverPoint.ctl), color: "var(--chart-1)" },
-                              { label: "ATL", value: formatMetric(hoverPoint.atl), color: "var(--chart-2)" },
-                              { label: "Form", value: formatMetric(hoverPoint.tsb), color: "var(--chart-3)" },
-                            ]}
-                          />
-                        </g>
+                      {tick >= 0 && (
+                        <text
+                          x={right + 6}
+                          y={yFor(tick) + axisFontSize / 3}
+                          textAnchor="start"
+                          fontSize={axisFontSize}
+                          fill="var(--muted-foreground)"
+                        >
+                          {(tick / axes.step) * axes.secondaryStep}
+                        </text>
                       )}
-                    </>
-                  );
-                }}
-              </ResponsiveChart>
-            </div>
-          ) : (
-            <div className="mt-4 rounded-md border bg-background p-4 text-sm text-muted-foreground">
-              Nog niet genoeg Intervals-data voor deze grafiek.
-            </div>
-          )}
+                    </g>
+                  ))}
+                  <text
+                    x={width - 2}
+                    y={top - 8}
+                    textAnchor="end"
+                    fontSize={axisFontSize}
+                    fill="var(--muted-foreground)"
+                  >
+                    Load
+                  </text>
 
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-2">
-              <span className="h-1 w-7 rounded bg-[var(--chart-1)]" />
-              CTL (fitness)
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-1 w-7 rounded bg-[var(--chart-2)]" />
-              ATL (vermoeidheid)
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-3 w-3 rounded-sm bg-[var(--muted-foreground)] opacity-40" />
-              Load (rechteras)
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-1 w-7 rounded bg-[var(--chart-3)]" />
-              Form
-            </span>
-            {future.length > 0 ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="w-7 border-t-2 border-dashed border-muted-foreground" />
-                Verwacht volgens schema
-              </span>
-            ) : null}
-          </div>
+                  {dateTicks.map((index) => (
+                    <g key={`date-${index}`}>
+                      <line
+                        x1={xFor(index)}
+                        x2={xFor(index)}
+                        y1={top}
+                        y2={bottom}
+                        stroke="var(--border)"
+                        strokeOpacity="0.55"
+                      />
+                      <text
+                        x={xFor(index)}
+                        y={height - Math.round(margin.bottom / 3)}
+                        textAnchor={
+                          index === 0
+                            ? "start"
+                            : index === visible.length - 1
+                              ? "end"
+                              : "middle"
+                        }
+                        fontSize={axisFontSize}
+                        fill="var(--muted-foreground)"
+                      >
+                        {formatTickDate(visible[index].date, metrics.density)}
+                      </text>
+                    </g>
+                  ))}
+
+                  {visible.map((point, index) => {
+                    if (point.load == null) return null;
+                    const y = yLoad(point.load);
+                    return (
+                      <rect
+                        key={`load-${point.date}`}
+                        x={xFor(index) - loadBarWidth / 2}
+                        y={y}
+                        width={loadBarWidth}
+                        height={Math.max(0, zeroY - y)}
+                        rx="1"
+                        fill="var(--muted-foreground)"
+                        opacity={point.projected ? "0.15" : "0.3"}
+                      />
+                    );
+                  })}
+
+                  {(
+                    [
+                      { key: "ctl", color: "var(--chart-1)", width: metrics.strokeWidth.primary, opacity: "1" },
+                      { key: "atl", color: "var(--chart-2)", width: metrics.strokeWidth.secondary, opacity: "0.9" },
+                      { key: "tsb", color: "var(--chart-3)", width: metrics.strokeWidth.secondary, opacity: "1" },
+                    ] as const
+                  ).flatMap((line) => [
+                    ...lineSegments(visible, (point) => measuredValue(point[line.key], point), xFor, yFor).map(
+                      (path, index) => (
+                        <path
+                          key={`${line.key}-${index}`}
+                          d={path}
+                          fill="none"
+                          stroke={line.color}
+                          strokeWidth={line.width}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeOpacity={line.opacity}
+                        />
+                      ),
+                    ),
+                    ...lineSegments(visible, (point) => projectedValue(point[line.key], point), xFor, yFor).map(
+                      (path, index) => (
+                        <path
+                          key={`${line.key}-verwacht-${index}`}
+                          d={path}
+                          fill="none"
+                          stroke={line.color}
+                          strokeWidth={line.width}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeOpacity={line.opacity}
+                          strokeDasharray="4 4"
+                        />
+                      ),
+                    ),
+                  ])}
+
+                  {hoverPoint && hoverIndex != null && (
+                    <g>
+                      <line
+                        x1={xFor(hoverIndex)}
+                        x2={xFor(hoverIndex)}
+                        y1={top}
+                        y2={bottom}
+                        stroke="var(--foreground)"
+                        strokeOpacity="0.5"
+                      />
+                      <ChartTooltip
+                        x={xFor(hoverIndex)}
+                        y={top + 4}
+                        chartWidth={width}
+                        title={
+                          hoverPoint.projected
+                            ? `${formatChartDate(hoverPoint.date)} · verwacht`
+                            : formatChartDate(hoverPoint.date)
+                        }
+                        rows={[
+                          {
+                            label: hoverPoint.projected ? "Gepland" : "Load",
+                            value: formatMetric(hoverPoint.load, 0),
+                            color: "var(--muted-foreground)",
+                          },
+                          { label: "CTL", value: formatMetric(hoverPoint.ctl), color: "var(--chart-1)" },
+                          { label: "ATL", value: formatMetric(hoverPoint.atl), color: "var(--chart-2)" },
+                          { label: "Form", value: formatMetric(hoverPoint.tsb), color: "var(--chart-3)" },
+                        ]}
+                      />
+                    </g>
+                  )}
+                </>
+              );
+            }}
+          </ResponsiveChart>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-md border bg-background p-4 text-sm text-muted-foreground">
+          Nog niet genoeg Intervals-data voor deze grafiek.
         </div>
       )}
 
-      <MetricButton
-        icon={TrendingUp}
-        label="Fitness (CTL)"
-        value={formatMetric(finite(ctl))}
-        sub={projectedEnd ? `Over ${Math.round(future.length / 7)} wk ${formatMetric(projectedEnd.ctl)}` : null}
-        active={open}
-        onClick={() => setOpen((value) => !value)}
-      />
-      <MetricButton
-        icon={Activity}
-        label="Form"
-        value={formatMetric(finite(tsb))}
-        active={open}
-        onClick={() => setOpen((value) => !value)}
-      />
-    </>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-2">
+          <span className="h-1 w-7 rounded bg-[var(--chart-1)]" />
+          CTL (fitness)
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-1 w-7 rounded bg-[var(--chart-2)]" />
+          ATL (vermoeidheid)
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-3 w-3 rounded-sm bg-[var(--muted-foreground)] opacity-40" />
+          Load (rechteras)
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-1 w-7 rounded bg-[var(--chart-3)]" />
+          Form
+        </span>
+        {future.length > 0 ? (
+          <span className="inline-flex items-center gap-2">
+            <span className="w-7 border-t-2 border-dashed border-muted-foreground" />
+            Verwacht volgens schema
+          </span>
+        ) : null}
+      </div>
+    </div>
   );
 }

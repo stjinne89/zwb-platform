@@ -1,5 +1,5 @@
 import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
-import { Calendar, Mountain, ShieldCheck } from "lucide-react";
+import { Calendar, Mountain } from "lucide-react";
 import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { SectionHeader } from "@/components/app-ui";
@@ -10,6 +10,7 @@ import { StravaAttribution } from "@/components/strava-brand";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { amsterdamDayKey, eftpTrend } from "@/lib/training/zwbeterworden";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
+import { hasRecoveryValues } from "@/lib/training/wellness";
 import { PROJECTION_DAYS, scheduleProjection } from "@/lib/training/load-projection";
 import { shiftDays } from "@/lib/training/season";
 import {
@@ -32,7 +33,7 @@ import { plannedSessions, ridesOnDay } from "@/lib/nutrition/recipes";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { RecoveryCard } from "./_components/recovery-card";
 import { TodayCard, type TodayHub } from "./_components/today-card";
-import { TrainingLoadMetrics } from "./_components/training-load-chart";
+import { TodayStand } from "./_components/today-stand";
 import { MetricCard } from "./_components/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isUpcomingRace, loadWarmupOptions, raceWarmupView } from "@/lib/training/race-warmup";
@@ -315,46 +316,58 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
     stand: (
       <TodayGroup key="stand" title="Hoe je ervoor staat">
         {!conn ? <ConnectIntervalsForm /> : null}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <TrainingLoadMetrics
-            points={loadPoints}
-            ctl={zwbStatus.ctl}
-            tsb={zwbStatus.tsb}
-            today={todayKey}
-            projection={scheduleProjection({ today: todayKey, points: loadPoints, planned: plannedLoads })}
-          />
-          <MetricCard
-            icon={ShieldCheck}
-            label="Trainingsruimte"
-            value={zwbStatus.readiness.score != null ? `${zwbStatus.readiness.score}` : "-"}
-            hint={advice.title}
-          />
-          <MetricCard
-            icon={Mountain}
-            label="eFTP"
-            value={eftpValue ? <Power watts={eftpValue} /> : "-"}
-            hint={eftpHint}
-          />
-          <MetricCard
-            icon={Calendar}
-            label="7 dagen totaal"
-            className="col-span-2 md:col-span-1"
-            value={formatKm(totals7.distance)}
-            hint={
-              activities.length > 0
-                ? `${activities.length} ritten - ${formatHours(totals7.time)} - ${formatMeters(totals7.elevation)}`
-                : "Nog geen recente Strava-ritten"
-            }
-          />
-        </div>
-        {conn && (
-          <RecoveryCard
-            optIn={Boolean(conn.wellness_opt_in)}
-            summary={zwbStatus.recoverySummary}
-            advice={cardAdvice ? null : advice}
-            lastWellnessDay={lastWellnessDayOf(snapshot.wellness)}
-          />
-        )}
+        <TodayStand
+          points={loadPoints}
+          ctl={zwbStatus.ctl}
+          tsb={zwbStatus.tsb}
+          today={todayKey}
+          projection={scheduleProjection({ today: todayKey, points: loadPoints, planned: plannedLoads })}
+          readiness={zwbStatus.readiness.score}
+          adviceTitle={advice.title}
+          recoveryNeedsAttention={
+            Boolean(conn?.wellness_opt_in) && !hasRecoveryValues(zwbStatus.recoverySummary)
+          }
+          recovery={
+            conn ? (
+              <RecoveryCard
+                optIn={Boolean(conn.wellness_opt_in)}
+                summary={zwbStatus.recoverySummary}
+                advice={cardAdvice ? null : advice}
+                lastWellnessDay={lastWellnessDayOf(snapshot.wellness)}
+              />
+            ) : null
+          }
+          eftp={
+            <MetricCard
+              icon={Mountain}
+              iconClassName="max-lg:hidden"
+              label="eFTP"
+              value={
+                <span className="block text-[1.75rem] leading-[1.1] lg:text-[2.5rem]">
+                  {eftpValue ? <Power watts={eftpValue} /> : "-"}
+                </span>
+              }
+              hint={eftpHint}
+            />
+          }
+          week={
+            <MetricCard
+              icon={Calendar}
+              iconClassName="max-lg:hidden"
+              label="7 dagen totaal"
+              value={
+                <span className="block text-[1.75rem] leading-[1.1] lg:text-[2.5rem]">
+                  {formatKm(totals7.distance)}
+                </span>
+              }
+              hint={
+                activities.length > 0
+                  ? `${activities.length} ritten - ${formatHours(totals7.time)} - ${formatMeters(totals7.elevation)}`
+                  : "Nog geen recente Strava-ritten"
+              }
+            />
+          }
+        />
       </TodayGroup>
     ),
     dag: (
