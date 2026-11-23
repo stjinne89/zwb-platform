@@ -7,7 +7,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Vaste sponsor in de overlay (2026-11-23): lokaal, nog niet
+0. **Gebouwd — Vaste sponsor in de overlay (2026-11-23): commit `762c210`, lokaal, nog niet
    gepusht.** Migratie `0354_sponsor_overlay_fixed` nog níét op productie:
    toepassen vóór de push (`/sponsors` leest de kolom), daarna bij NexReply het
    vinkje zetten. Open: in OBS bekijken. Zie de ronde met dezelfde naam.
@@ -12888,7 +12888,7 @@ aparte tegel Form, omdat die naar dezelfde grafiek leidt.
 
 ### Gebouwd — Vaste sponsor in de overlay
 
-**2026-11-23, lokaal, nog niet gepusht. Migratie `0354_sponsor_overlay_fixed`,
+**2026-11-23, commit `762c210`, lokaal, nog niet gepusht. Migratie `0354_sponsor_overlay_fixed`,
 nog niet op productie.**
 
 - **Waarom.** NexReply is de online sponsor van de club en moet tijdens een
