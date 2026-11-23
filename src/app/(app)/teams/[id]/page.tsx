@@ -473,7 +473,10 @@ export default async function TeamDetailPage({
   });
   const rosterRows = [...rows, ...unregisteredRows];
 
-  const candidates = (allProfiles ?? []).filter((profile) => !profileIds.includes(profile.id));
+  // Alleen echte leden vallen af: wie zich alleen beschikbaar meldde, moet nog
+  // toe te voegen zijn (2026-11-23).
+  const memberProfileIds = new Set(memberRows.map((member) => member.profile_id));
+  const candidates = (allProfiles ?? []).filter((profile) => !memberProfileIds.has(profile.id));
   const availabilityByEventProfile = new Map<string, AvailabilityRow["status"]>(
     ((availabilityRows ?? []) as AvailabilityRow[]).map((row) => [
       `${row.event_id}:${row.profile_id ?? row.roster_entry_id}`,

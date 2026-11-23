@@ -12767,6 +12767,26 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Beschikbare renner niet toe te voegen aan een team
+
+**2026-11-23, nog niet gecommit. Geen migratie.** Bart de Groot stond niet in de
+keuzelijst van ZRL A, ook niet nadat hij uit het team was gehaald. De keuzelijst
+sloot iedereen uit die in de rostertabel staat, en daar staan ook niet-leden die
+zich beschikbaar of misschien meldden. Bart had vijf komende raceweken op
+beschikbaar staan. De keuzelijst sluit nu alleen echte teamleden uit
+(`src/app/(app)/teams/[id]/page.tsx`).
+
+**Productiedata, op verzoek van de eigenaar:** Bart staat sinds 2026-11-23 weer
+als captain in ZRL A (`assignment_source = manual`) en zijn
+`manual_remove`-uitsluiting is weg, gelijk aan wat `addMember` doet. Dit is direct
+in de database gedaan, omdat de codefix nog niet live staat.
+
+**Bewust niet gedaan:** de beschikbaarheid van wie uit een team gaat wordt niet
+gewist. Die blijft staan, zodat de captain zo iemand nog kan indelen.
+
+**Niet geverifieerd:** de keuzelijst is niet in de browser met een echt
+captain-account bekeken.
+
 ### Omgebouwd — ZWBeter Vandaag: volgorde en dagstaten
 
 **2026-11-23, gepusht naar `main` (`9553f9e6`, eigenaar: "Ja, push naar main").
