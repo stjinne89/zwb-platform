@@ -117,16 +117,17 @@ describe("racepass", () => {
     expect(normalizeRacepassUrl("https://www.zwift.com/events/view/1")).toBeNull();
   });
 
-  it("kiest de pass van het team voor de ronde van de racedatum", () => {
+  it("kiest de pass van het team voor precies die race", () => {
     const passes = [
-      { team_id: "b1", url: "https://wtrl.racing/r1", valid_from: "2026-09-22", valid_until: "2026-10-27" },
-      { team_id: "b1", url: "https://wtrl.racing/r2", valid_from: "2026-11-17", valid_until: "2026-12-22" },
-      { team_id: "c", url: "https://wtrl.racing/c1", valid_from: "2026-09-22", valid_until: "2026-10-27" },
+      { team_id: "b1", url: "https://wtrl.racing/r1", race_date: "2026-11-17" },
+      { team_id: "b1", url: "https://wtrl.racing/r2", race_date: "2026-11-24" },
+      { team_id: "c", url: "https://wtrl.racing/c1", race_date: "2026-11-24" },
     ];
-    expect(racepassFor(passes, "b1", "2026-10-27")).toBe("https://wtrl.racing/r1");
+    expect(racepassFor(passes, "b1", "2026-11-17")).toBe("https://wtrl.racing/r1");
     expect(racepassFor(passes, "b1", "2026-11-24")).toBe("https://wtrl.racing/r2");
-    expect(racepassFor(passes, "b1", "2026-11-03")).toBeNull();
-    expect(racepassFor(passes, null, "2026-09-22")).toBeNull();
+    // De volgende race krijgt geen oude pass.
+    expect(racepassFor(passes, "b1", "2026-12-01")).toBeNull();
+    expect(racepassFor(passes, null, "2026-11-24")).toBeNull();
   });
 });
 

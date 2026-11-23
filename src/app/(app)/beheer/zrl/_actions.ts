@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeRacepassUrl } from "@/lib/events/race-links";
+import { importZrlRacepasses } from "@/lib/events/zrl-racepass-import";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { amsterdamDateKey } from "@/lib/birthdays";
 import {
   generateZrlRound,
   validateRoundSpec,
-  ZRL_2026_27_ROUNDS,
   type ZrlRoundSpec,
 } from "@/lib/teams/zrl-season";
 import { adminAreaPermission } from "@/lib/admin-areas";
@@ -183,12 +183,31 @@ export async function importZrlRound(input: ImportInput) {
   };
 }
 
+/** Haalt de passes van de komende race meteen van zwbcycling.nl. */
+export async function refreshRacepasses() {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has(adminAreaPermission("zrl"))) {
+    return { ok: false as const, error: "Geen recht om racepasses te zetten." };
+  }
+
+  const result = await importZrlRacepasses(createAdminClient(), {
+    deadline: Date.now() + 15000,
+  });
+  revalidatePath("/beheer/zrl");
+  revalidatePath("/events/[id]", "page");
+  if (!result.ok) return { ok: false as const, error: result.error ?? "Ophalen mislukt." };
+  return { ok: true as const, saved: result.saved, problems: result.problems };
+}
+
 /**
- * De WTRL-racepasses van één ronde, per team (migr. 0186). Een leeg veld haalt
- * de pass van dat team voor die ronde weg.
+ * De WTRL-racepasses van één racedatum, per team (migr. 0353). Een leeg veld
+ * haalt de pass weg; staat hij op de site, dan zet de volgende import hem terug.
+ * Een link gelijk aan die van de site volgt de site weer.
  */
 export async function saveRacepasses(input: {
-  round: number;
+  raceDate: string;
   passes: Array<{ teamId: string; url: string }>;
 }) {
   const supabase = await createClient();
@@ -198,8 +217,10 @@ export async function saveRacepasses(input: {
     return { ok: false as const, error: "Geen recht om racepasses te zetten." };
   }
 
-  const round = ZRL_2026_27_ROUNDS.find((r) => r.round === input.round);
-  if (!round) return { ok: false as const, error: "Onbekende ronde." };
+  const raceDate = String(input.raceDate ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raceDate)) {
+    return { ok: false as const, error: "Onbekende racedatum." };
+  }
 
   const rows: Array<{ teamId: string; url: string | null }> = [];
   for (const pass of input.passes ?? []) {
@@ -215,33 +236,47 @@ export async function saveRacepasses(input: {
   }
 
   const admin = createAdminClient();
-  const season = "2026/27";
-  const clear = rows.filter((row) => !row.url).map((row) => row.teamId);
+  const { data: existingRows, error: readError } = await admin
+    .from("zrl_race_passes")
+    .select("team_id, url, site_url")
+    .eq("race_date", raceDate);
+  if (readError) return { ok: false as const, error: readError.message };
+  const existing = new Map(
+    ((existingRows ?? []) as Array<{ team_id: string; url: string; site_url: string | null }>).map(
+      (row) => [row.team_id, row],
+    ),
+  );
+
+  const clear = rows
+    .filter((row) => !row.url && existing.has(row.teamId))
+    .map((row) => row.teamId);
   if (clear.length > 0) {
     const { error } = await admin
-      .from("team_racepasses")
+      .from("zrl_race_passes")
       .delete()
-      .eq("season", season)
-      .eq("round", round.round)
+      .eq("race_date", raceDate)
       .in("team_id", clear);
     if (error) return { ok: false as const, error: error.message };
   }
+  // Alleen wat echt veranderde, zodat een ongemoeid veld de site blijft volgen.
   const upserts = rows
-    .filter((row) => row.url)
-    .map((row) => ({
-      team_id: row.teamId,
-      season,
-      round: round.round,
-      valid_from: round.firstRaceDate,
-      valid_until: round.lastRaceDate,
-      url: row.url as string,
-      created_by: access.user!.id,
-      updated_at: new Date().toISOString(),
-    }));
+    .filter((row) => row.url && existing.get(row.teamId)?.url !== row.url)
+    .map((row) => {
+      const siteUrl = existing.get(row.teamId)?.site_url ?? null;
+      return {
+        team_id: row.teamId,
+        race_date: raceDate,
+        url: row.url as string,
+        source: row.url === siteUrl ? "site" : "manual",
+        site_url: siteUrl,
+        created_by: access.user!.id,
+        updated_at: new Date().toISOString(),
+      };
+    });
   if (upserts.length > 0) {
     const { error } = await admin
-      .from("team_racepasses")
-      .upsert(upserts, { onConflict: "team_id,season,round" });
+      .from("zrl_race_passes")
+      .upsert(upserts, { onConflict: "team_id,race_date" });
     if (error) return { ok: false as const, error: error.message };
   }
 

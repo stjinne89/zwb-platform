@@ -794,14 +794,13 @@ export default async function EventDetailPage({
       .select("id, event_id, kind, label, url")
       .in("event_id", lineupEventIds)
       .order("position"),
-    // WTRL-racepass van de ronde waarin deze race valt (migr. 0186).
+    // WTRL-racepass van deze race (migr. 0353).
     event.type === "zrl"
       ? supabase
-          .from("team_racepasses")
-          .select("team_id, url, valid_from, valid_until")
+          .from("zrl_race_passes")
+          .select("team_id, url, race_date")
           .in("team_id", raceTeamIds)
-          .lte("valid_from", raceDateKey)
-          .gte("valid_until", raceDateKey)
+          .eq("race_date", raceDateKey)
       : Promise.resolve({ data: [] }),
     // Discord-kanaal per team (migr. 0118): de teams van deze race plus elk team
     // met een kanaal, zodat een subteam dat van zijn hoofdteam kan overnemen.

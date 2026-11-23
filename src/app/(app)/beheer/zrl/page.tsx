@@ -5,9 +5,17 @@ import { EmptyState } from "@/components/app-ui";
 import { groupSubEvents } from "@/lib/events/sub-events";
 import { ZRL_2026_27_ROUNDS } from "@/lib/teams/zrl-season";
 import { ImportForm, type TeamOption } from "./_components/import-form";
-import { RacepassForm, type RacepassMap } from "./_components/racepass-form";
+import {
+  RacepassForm,
+  type RacepassImportStatus,
+  type RacepassMap,
+} from "./_components/racepass-form";
 import { adminAreaPermission } from "@/lib/admin-areas";
 import { getRequestAccess } from "@/lib/auth/request";
+import { amsterdamDateKey } from "@/lib/birthdays";
+import { getClub } from "@/lib/club";
+import { hasRacepassSite } from "@/lib/events/zrl-racepass-import";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -19,32 +27,59 @@ export default async function ZrlKalenderPage() {
     redirect("/dashboard");
   }
 
-  const [{ data: teams }, { data: upcoming }, { data: passRows }] = await Promise.all([
-    supabase
-      .from("teams")
-      .select("id, name, type, is_graveyard, parent_team_id")
-      .eq("type", "zrl")
-      .order("name"),
-    supabase
-      .from("events")
-      .select("id, title, start_at, parent_event_id, teams(name)")
-      .eq("type", "zrl")
-      .gte("start_at", new Date().toISOString())
-      .order("start_at")
-      .limit(120),
-    supabase
-      .from("team_racepasses")
-      .select("team_id, round, url")
-      .eq("season", "2026/27"),
-  ]);
+  const todayKey = amsterdamDateKey(new Date());
+  const [{ data: teams }, { data: upcoming }, { data: passRows }, { data: importStatus }] =
+    await Promise.all([
+      supabase
+        .from("teams")
+        .select("id, name, type, is_graveyard, parent_team_id")
+        .eq("type", "zrl")
+        .order("name"),
+      supabase
+        .from("events")
+        .select("id, title, start_at, parent_event_id, teams(name)")
+        .eq("type", "zrl")
+        .gte("start_at", new Date().toISOString())
+        .order("start_at")
+        .limit(120),
+      supabase
+        .from("zrl_race_passes")
+        .select("team_id, race_date, url, site_url")
+        .gte("race_date", todayKey),
+      // Na de rechtencheck hierboven; de tabel heeft geen leesrecht voor leden.
+      createAdminClient()
+        .from("zrl_racepass_import_status")
+        .select("last_success_at, last_error")
+        .maybeSingle(),
+    ]);
   const racepasses: RacepassMap = {};
-  for (const row of (passRows ?? []) as Array<{ team_id: string; round: number; url: string }>) {
-    (racepasses[row.round] ??= {})[row.team_id] = row.url;
+  for (const row of (passRows ?? []) as Array<{
+    team_id: string;
+    race_date: string;
+    url: string;
+    site_url: string | null;
+  }>) {
+    (racepasses[row.race_date] ??= {})[row.team_id] = { url: row.url, siteUrl: row.site_url };
   }
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const currentRound =
-    ZRL_2026_27_ROUNDS.find((r) => r.lastRaceDate >= todayKey)?.round ??
-    ZRL_2026_27_ROUNDS[ZRL_2026_27_ROUNDS.length - 1].round;
+  const raceDates = [
+    ...new Set(
+      ((upcoming ?? []) as Array<{ start_at: string }>).map((event) =>
+        amsterdamDateKey(new Date(event.start_at)),
+      ),
+    ),
+  ].sort();
+  const racepassStatus: RacepassImportStatus = {
+    lastSuccess: importStatus?.last_success_at
+      ? new Date(importStatus.last_success_at).toLocaleString("nl-NL", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Europe/Amsterdam",
+        })
+      : null,
+    lastError: importStatus?.last_error ?? null,
+  };
 
   const { topLevel: raceWeeks, childrenByParent } = groupSubEvents(
     (upcoming ?? []) as Array<{
@@ -95,8 +130,10 @@ export default async function ZrlKalenderPage() {
           </h2>
           <RacepassForm
             teams={teamOptions}
+            dates={raceDates}
             current={racepasses}
-            defaultRound={currentRound}
+            status={racepassStatus}
+            canImport={hasRacepassSite((await getClub()).settings.websiteUrl)}
           />
         </section>
       )}

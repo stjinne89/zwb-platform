@@ -12,6 +12,12 @@ gaat stabiliteit voor nieuwe features.
    de echte pagina met echte herstelwaarden nakijken. Zie de ronde "Bijgesteld —
    Vandaag: Trainingsruimte opent herstel en grafiek".
 
+0. **Gebouwd — Racepasses per race van de clubsite (2026-11-23): lokaal
+   gecommit, niet gepusht.** Migratie `0353_zrl_race_passes.sql` is nog niet
+   toegepast en moet vóór de push. Open: Ladies C van 24 november nakijken, en na
+   de deploy `/beheer/zrl` en één import controleren. Zie de ronde "Gebouwd —
+   Racepasses per race van de clubsite".
+
 0. **Gebouwd — ZWBeter-blokken als veegrij op mobiel (2026-11-23): gepusht naar `main` (`269b8410`, eigenaar: "Ja, push naar main").** Geen migratie. Open: op een echte telefoon het
    vegen en het inschuiven van het actieve blok nakijken. Zie de ronde "Gebouwd
    — ZWBeter-blokken als veegrij".
@@ -6542,9 +6548,10 @@ lid, ook buiten de kalender")*
 >   Vier dagen na de race van 6 oktober en drie dagen voor die van 13 oktober
 >   kwam hij terug op `/zrl/myteams/` met "Your Event is not available to join
 >   yet". Er staat geen route, starttijd of Zwift-event-id in.
-> - De pass geldt voor een hele ronde, dus hij wijst hooguit naar de
->   eerstvolgende race en pas zodra WTRL die openzet. Niet gemeten: waar hij
->   binnen dat venster precies naartoe gaat.
+> - ~~De pass geldt voor een hele ronde.~~ Onjuist (2026-11-23): de racekalender
+>   op zwbcycling.nl heeft per team voor elke race een andere link, zie de ronde
+>   "Gebouwd — Racepasses per race van de clubsite". Niet gemeten: of een oudere
+>   link nog werkt en waar een pass precies naartoe gaat.
 >
 > De gegevens van een race blijven dus uit de Zwift-eventlink komen (route,
 > ronden en starttijd per subgroep, zie de rondes van 2026-09-28 en 2026-10-06).
@@ -10103,7 +10110,8 @@ lid, ook buiten de kalender")*
 > Migratie `0186_team_racepasses.sql` (toegepast op productie, 2026-09-22).
 >
 > **Waarom.** De eigenaar: bij de ZRL meld je je niet aan via "Aanmelden op Zwift"
-> maar met de racepass van je team, die WTRL per ronde uitgeeft. Voor ronde 1 staan
+> maar met de racepass van je team, die WTRL per ronde uitgeeft (sinds 2026-11-23
+> achterhaald: elke race heeft een eigen link, migratie 0353). Voor ronde 1 staan
 > ze ook op de racepagina van zwbcycling.nl.
 >
 > **Nu.**
@@ -12823,6 +12831,58 @@ aparte tegel Form, omdat die naar dezelfde grafiek leidt.
   proefpagina is weer verwijderd.
 - **Niet lokaal te verifiëren.** De ingelogde pagina met echte gegevens. In de
   proef was de herstelkaart een nabouw met dezelfde onderdelen.
+
+### Gebouwd — Racepasses per race van de clubsite
+
+**2026-11-23, lokaal gecommit, niet gepusht. Commit: de commit die dit blok
+toevoegt. Migratie `0353_zrl_race_passes.sql`, nog niet toegepast.**
+
+**Waarom.** De eigenaar vroeg of de racepasses van de racekalender op
+zwbcycling.nl kunnen komen, omdat A/B en C daar op aparte pagina's staan. Bij het
+meten bleek dat elke race per team een andere link heeft, terwijl ZWB er één per
+ronde bewaarde. Na een race bleef ZWB daardoor de oude pass tonen. De eigenaar
+koos voor opslag per race.
+
+**Nu.**
+
+- Tabel `zrl_race_passes`: één pass per team per racedatum. Een race zonder pass
+  toont geen link, dus nooit meer die van een vorige race. `racepassFor` zoekt op
+  de exacte datum; de racepagina en de teamindeling lezen deze tabel.
+- `src/lib/events/zrl-racepass-import.ts` leest de kalender en de racepagina's van
+  vandaag tot en met acht dagen vooruit en voegt A/B en C op datum samen. Het
+  draait mee in de bestaande uurlijkse Zwift-eventsync (`zrlRacepasses` in het
+  antwoord), dus er is geen nieuwe cron-job of secret nodig.
+- `/beheer/zrl` kiest nu een race in plaats van een ronde en heeft de knop
+  **Ophalen van site**, de tijd van de laatste import en een eventuele fout.
+- Een met de hand gezette pass wordt niet overschreven. Wijkt de site af, dan
+  staat bij het veld **Site wijkt af, overnemen**.
+- Noemt de site twee verschillende links voor één team, dan kiest de import niet
+  en meldt hij dat in het beheer. Een onbekend label wordt ook gemeld.
+- De migratie neemt de passes van ronde 2 over voor de race van 24 november.
+
+**Te controleren door de eigenaar.** Voor 24 november staat bij Ladies C in ZWB een
+andere link dan op de site. Die blijft als handmatige pass staan tot iemand kiest.
+De rijen van "ronde 4" in `team_racepasses` zijn de links van ronde 1, race 4 en
+gaan bewust niet mee.
+
+**Bewust niet.**
+
+- De passlinks worden niet geopend en wtrl.racing wordt niet aangeroepen: WTRL
+  verbiedt scraping (zie `zrl-season.ts`). Alleen de eigen clubsite wordt gelezen.
+- `team_racepasses` is nog niet verwijderd, zodat de huidige deploy blijft werken
+  als de migratie eerder live gaat dan de code. Hij wordt niet meer gelezen en kan
+  in een latere migratie weg.
+- Geen eigen cron-job: dat vraagt een extra secret en handwerk op cron-job.org,
+  terwijl de uurlijkse sync er al is.
+- Andere clubs slaan de import over; kalender en labels zijn van ZWB.
+
+**Niet geverifieerd.** De migratie is niet lokaal uitgevoerd (geen Docker of
+Supabase-config). De schermen en de schrijfstap zijn niet in de browser of tegen
+de database getest, omdat de tabel nog niet bestaat. Wel getest: `tsc`, ESLint,
+de unit-tests en de parser tegen de echte site (acht teams voor 24 november).
+De volledige testrun heeft twee fouten die hier niet vandaan komen: "beheer noemt
+ZWB niet" (de tekst "ZWB TTT-plan" staat al op `main`) en `omnium-live` (vraagt
+een `.env.local`, die in deze worktree ontbreekt).
 
 ### Gebouwd — ZWBeter-blokken als veegrij op mobiel
 

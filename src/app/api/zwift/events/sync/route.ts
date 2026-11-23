@@ -9,9 +9,13 @@ import {
 import { syncZrlSubgroupRoutes } from "@/lib/events/zrl-route-sync";
 import { linkZrlEvents } from "@/lib/events/zrl-event-link";
 import { publishClubEvents } from "@/lib/events/club-calendar";
+import { importZrlRacepasses } from "@/lib/events/zrl-racepass-import";
 
 /** Eén publiek event-verzoek per Zwift-event van de komende raceweek. */
 const ZRL_ROUTE_BUDGET_MS = 8000;
+/** De racepass-import stopt hier, ruim binnen de maxDuration van 30 s. */
+const RACEPASS_BUDGET_MS = 6000;
+const RUN_LIMIT_MS = 27000;
 
 // Uurlijkse sync van de Zwift-kalender naar `zwift_events`, de bron onder de
 // eventvoorstellen bij een geplande training.
@@ -30,6 +34,7 @@ const ZRL_ROUTE_BUDGET_MS = 8000;
 export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now();
   const auth = checkCronSecret(request, "ZWIFT_EVENT_SYNC_SECRET");
   if (!auth.ok) return new NextResponse(auth.message, { status: 403 });
 
@@ -60,7 +65,18 @@ export async function POST(request: NextRequest) {
     const clubEvents = await publishClubEvents(admin).catch((err) => ({
       error: err instanceof Error ? err.message : "mislukt",
     }));
-    return NextResponse.json({ ok: true, ...result, zrlLinks, zrlRoutes, clubEvents });
+    // Racepasses van de komende race van zwbcycling.nl; krijgt de tijd die over is.
+    const zrlRacepasses = await importZrlRacepasses(admin, {
+      deadline: Math.min(Date.now() + RACEPASS_BUDGET_MS, startedAt + RUN_LIMIT_MS),
+    }).catch((err) => ({ error: err instanceof Error ? err.message : "mislukt" }));
+    return NextResponse.json({
+      ok: true,
+      ...result,
+      zrlLinks,
+      zrlRoutes,
+      clubEvents,
+      zrlRacepasses,
+    });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : "Zwift-eventsync mislukt." },

@@ -143,13 +143,13 @@ export default async function TeamIndelingPage({ params }: { params: Promise<{ i
           .select("id, parent_event_id, team_id, title, zwift_route_id, laps")
           .in("parent_event_id", raceParentIds)
       : Promise.resolve({ data: [] }),
-    // WTRL-racepass per subteam (migr. 0186), voor het WhatsApp-deelbericht.
+    // WTRL-racepass per team per race (migr. 0353), voor het WhatsApp-deelbericht.
     weekIds.length > 0
       ? supabase
-          .from("team_racepasses")
-          .select("team_id, url, valid_from, valid_until")
+          .from("zrl_race_passes")
+          .select("team_id, url, race_date")
           .in("team_id", rankingTeams.map((row) => row.id))
-          .gte("valid_until", amsterdamDateKey(new Date(weeks[0].start_at)))
+          .in("race_date", weeks.map((week) => amsterdamDateKey(new Date(week.start_at))))
       : Promise.resolve({ data: [] }),
   ]);
   const availability = (availabilityRows ?? []) as Array<{
