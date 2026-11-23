@@ -36,16 +36,20 @@ export function RecoveryStat({
   label,
   value,
   hint,
+  meter,
 }: {
   label: string;
   value: string;
   /** Bijschrift onder het label, bv. dat een waarde berekend is en niet gemeten. */
   hint?: React.ReactNode;
+  /** Onder het label, zodat getallen en namen in een rij gelijk blijven staan. */
+  meter?: React.ReactNode;
 }) {
   return (
     <div className="tg-stat rounded-md bg-muted/50 p-3 text-center">
       <div className="text-lg font-semibold tabular-nums">{value}</div>
       <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
+      {meter}
       {hint ? <div className="mt-0.5 text-[0.65rem] text-muted-foreground">{hint}</div> : null}
     </div>
   );
@@ -108,6 +112,31 @@ export function recoveryStateLabel(state?: WellnessSummary["state"]) {
   if (state === "fatigued") return "Vermoeid";
   if (state === "normal") return "Normaal";
   return "-";
+}
+
+const RECOVERY_METER = {
+  fatigued: { filled: 1, color: "bg-destructive" },
+  // In donker een gedempt teal: teal-400 is daar niet van het groen te onderscheiden.
+  normal: { filled: 2, color: "bg-[var(--tg-zwbeter)] dark:bg-[#8fbcc0]" },
+  fresh: { filled: 3, color: "bg-emerald-600 dark:bg-emerald-400" },
+} as const;
+
+/** De herstelstand als drie streepjes: het aantal zegt hetzelfde als de kleur,
+ * zodat rood en groen ook voor kleurenblinden uit elkaar te houden zijn. */
+export function RecoveryMeter({ state }: { state?: WellnessSummary["state"] }) {
+  if (state !== "fatigued" && state !== "normal" && state !== "fresh") return null;
+  const { filled, color } = RECOVERY_METER[state];
+  return (
+    <div
+      role="img"
+      aria-label={`Status: ${recoveryStateLabel(state)}`}
+      className="mx-auto mt-1.5 flex w-14 gap-1"
+    >
+      {[0, 1, 2].map((index) => (
+        <span key={index} className={`h-1.5 flex-1 ${index < filled ? color : "bg-foreground/15"}`} />
+      ))}
+    </div>
+  );
 }
 
 export function recoveryPillClass(state?: WellnessSummary["state"]) {

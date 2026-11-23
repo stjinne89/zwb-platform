@@ -7,7 +7,7 @@
 
 import type { ZwbAdvice } from "@/lib/training/zwbeterworden";
 import { hasRecoveryValues, readinessAgeLabel, type WellnessSummary } from "@/lib/training/wellness";
-import { RecoveryStat, recoveryStateLabel } from "./ui";
+import { RecoveryMeter, RecoveryStat } from "./ui";
 import { WellnessOptInToggle } from "./wellness-optin-toggle";
 import { ClubShortName, ClubText } from "@/components/club-texts-provider";
 
@@ -36,11 +36,11 @@ export function RecoveryCard({
       {optIn &&
         (summary ? (
           <div className="mt-3 space-y-3">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1">
-              <RecoveryStat label="Status" value={recoveryStateLabel(summary.state)} />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <RecoveryStat
                 label="Readiness"
                 value={summary.readiness != null ? `${summary.readiness}` : "-"}
+                meter={<RecoveryMeter state={summary.state} />}
                 hint={
                   summary.readinessSource === "afgeleid" ? (
                     <>berekend door <ClubShortName /></>

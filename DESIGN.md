@@ -556,6 +556,11 @@ twee: Fitness, Trainingsruimte, eFTP en 7 dagen. Vanaf `lg` komt Form erbij, op
 Trainingsruimte toont herstel, Fitness en Form de grafiek. Zonder herstelwaarden
 begint het herstelvlak open.
 
+De herstelstand staat als drie streepjes onder Readiness (`RecoveryMeter`): één
+rood is vermoeid, twee teal is normaal, drie groen is fris. Het aantal draagt de
+betekenis mee, zodat kleur niet het enige signaal is. De tegel zelf blijft een
+paneel, want hij is niet klikbaar.
+
 ### Lijstlinks en tweede menurij (`tg-link`, `tg-subnav`)
 Een link in een lijst (races, opgeslagen plannen) of een tab onder de pijlers
 is een gevuld vlak in de kleur van de soort; met `tg-here` in de kleur van de

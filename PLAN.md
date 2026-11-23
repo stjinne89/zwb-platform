@@ -7,6 +7,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Bijgesteld — Herstelstand als balkje (2026-11-23): lokaal, nog niet gecommit
+   of gepusht.** Geen migratie. Zie de ronde met dezelfde naam.
+
 0. **Bijgesteld — Trainingsruimte opent alleen herstel (2026-11-23): gepusht naar
    `main` (`1af24d17`, eigenaar: "Ja, push naar main").** Geen migratie. Zie de ronde met dezelfde naam.
 
@@ -12800,6 +12803,30 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Bijgesteld — Herstelstand als balkje
+
+**2026-11-23, lokaal, nog niet gecommit (hash invullen bij de commit). Geen
+migratie.** De eigenaar wilde de woorden in het herstelblok vervangen door kleuren,
+zodat de tegel Status wegvalt en het blok beter op mobiel past.
+
+- **Wijziging.** De tegel Status (Fris, Normaal, Vermoeid) is weg. Readiness krijgt
+  een balkje van drie streepjes: één rood is vermoeid, twee teal is normaal, drie
+  groen is fris. Zonder bekende stand is er geen balkje. Er blijven vier tegels
+  over: twee bij twee op mobiel, op één rij vanaf `sm`.
+- **Waarom streepjes.** Rood en groen zijn voor kleurenblinde leden lastig uit
+  elkaar te houden; het aantal streepjes zegt hetzelfde. Schermlezers krijgen de
+  stand als tekst. In donker is teal gedempt, omdat `teal-400` niet van het groen
+  te onderscheiden was.
+- **Bewust niet gedaan.** Geen hele gekleurde tegel, want volgens de Klikregel
+  betekent een gekleurd vlak dat je erop kunt tikken. Geen kleur per waarde: de
+  stand is één oordeel over alle waarden, en slaap heeft geen eigen grens. De
+  trainerpagina houdt het woord, omdat een trainer daar leden beoordeelt.
+- **Gecontroleerd.** Typecheck, ESLint op de gewijzigde onderdelen, de
+  wellness-tests en `next build`. De echte `RecoveryCard` is op een tijdelijke
+  proefpagina bekeken voor alle vier de standen, op 375px en 800px, licht en
+  donker; die pagina is weer verwijderd.
+- **Niet lokaal te verifiëren.** De ingelogde pagina met echte gegevens.
 
 ### Bijgesteld — Trainingsruimte opent alleen herstel
 
