@@ -7,10 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Vaste sponsor in de overlay (2026-11-23): commit `762c210`, lokaal, nog niet
-   gepusht.** Migratie `0354_sponsor_overlay_fixed` nog níét op productie:
-   toepassen vóór de push (`/sponsors` leest de kolom), daarna bij NexReply het
-   vinkje zetten. Open: in OBS bekijken. Zie de ronde met dezelfde naam.
+0. **Gebouwd — Vaste sponsor in de overlay (2026-11-23): commit `762c210`, op
+   2026-11-23 gepusht naar `main` (eigenaar: "Ja, nu").** Migratie
+   `0354_sponsor_overlay_fixed` vóór de push op productie toegepast en het
+   vinkje bij NexReply gezet. Open: in OBS bekijken. Zie de ronde met dezelfde naam.
 
 0. **Bijgesteld — Herstelstand als balkje (2026-11-23): gepusht naar `main`
    (`d933e834`, eigenaar: "Ja, push naar main").** Geen migratie. Zie de ronde met dezelfde naam.
@@ -1605,7 +1605,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0355`
-(`0354_sponsor_overlay_fixed` is van de vaste sponsor in de overlay, 2026-11-23, nog niet toegepast;
+(`0354_sponsor_overlay_fixed` is van de vaste sponsor in de overlay, 2026-11-23, toegepast op 2026-11-23;
 `0353_zrl_race_passes` is van de racepasses per race, toegepast op 2026-11-23;
 `0352_captain_availability_solo_team` is van het beschikbaarheidsvakje bij ZRL A en C, 2026-11-23, toegepast op 2026-11-23;
 `0351_bike_tire_setups` staat op main;
@@ -12888,8 +12888,10 @@ aparte tegel Form, omdat die naar dezelfde grafiek leidt.
 
 ### Gebouwd — Vaste sponsor in de overlay
 
-**2026-11-23, commit `762c210`, lokaal, nog niet gepusht. Migratie `0354_sponsor_overlay_fixed`,
-nog niet op productie.**
+**2026-11-23, commit `762c210`, op 2026-11-23 gepusht naar `main`. Migratie
+`0354_sponsor_overlay_fixed` vóór de push op productie toegepast; NexReply staat
+als enige op `overlay_fixed`. Gepusht terwijl een geplande stream mogelijk live
+was (keuze eigenaar, na de waarschuwing).**
 
 - **Waarom.** NexReply is de online sponsor van de club en moet tijdens een
   stream altijd in beeld staan. De andere sponsors mogen wisselen.
@@ -12909,7 +12911,7 @@ nog niet op productie.**
     werken zolang 0354 niet is toegepast. Cachesleutel naar `v2`.
 - **Bewust niet.**
   - Geen naam van een sponsor in de code of in de migratie: welke sponsor vast
-    staat is clubdata. Het vinkje bij NexReply wordt na het toepassen gezet.
+    staat is clubdata. Het vinkje bij NexReply is na het toepassen gezet.
   - Geen meerdere vaste sponsors: daar is in de balk geen plaats voor.
   - De thumbnail verandert niet: daar staan geen sponsors op.
 - **Niet geverifieerd.** `0354` in PGlite getest (twee keer uit te voeren,
