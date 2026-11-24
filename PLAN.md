@@ -7,12 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Eigen YouTube-stream aan een race koppelen (2026-11-24): de
-   commit die dit blok toevoegt, lokaal, niet gepusht.** Migratie
-   `0360_event_streams_source` is **nog niet toegepast**. Die moet vóór de push
-   op productie staan, want `linkOwnStream` schrijft `source`. Open: de
-   migratie toepassen, en met een echte eigen stream koppelen, afspelen en
-   weghalen. Zie de ronde met dezelfde naam.
+0. **Gebouwd — Eigen YouTube-stream aan een race koppelen (2026-11-24): commit
+   `8629425b`, lokaal, niet gepusht.** Migratie `0360_event_streams_source` op
+   2026-11-24 op productie toegepast (eigenaar: "Ja, toepassen"). Open: pushen
+   op verzoek, en met een echte eigen stream koppelen, afspelen en weghalen.
+   Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Streamcenter: alle streams van een race tegelijk (2026-11-24):
    commit `6407ef22`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja,
@@ -12899,8 +12898,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Eigen YouTube-stream aan een race koppelen
 
-**2026-11-24, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
-Migratie `0360_event_streams_source`, nog niet toegepast.**
+**2026-11-24, commit `8629425b`, lokaal, niet gepusht. Migratie
+`0360_event_streams_source` op 2026-11-24 op productie toegepast.**
 
 - **Waarom.** Vraag van de eigenaar: leden die al op hun eigen manier op
   YouTube streamen, willen die stream aan de race koppelen. Het voorstel was
@@ -12942,7 +12941,9 @@ Migratie `0360_event_streams_source`, nog niet toegepast.**
   - De titel of beschrijving op YouTube wordt niet aangepast.
 - **Niet geverifieerd.**
   - `0360` is in PGlite getest (twee keer uit te voeren, bestaande rijen op
-    `zwb`, alleen `zwb` en `eigen`), maar nog niet op productie toegepast.
+    `zwb`, alleen `zwb` en `eigen`). Op 2026-11-24 op productie toegepast; daar
+    nagekeken: de kolom staat niet-null met standaard `'zwb'`, de check staat
+    erop, en de 8 bestaande streams staan op `zwb`.
   - Unit-tests voor het lezen van de link en de controle van de video zijn
     schoon, net als typecheck en lint.
   - Niet gezien: het veld op de echte racepagina, een echte `videos.list` met
