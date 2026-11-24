@@ -10,10 +10,11 @@ gaat stabiliteit voor nieuwe features.
 0. **Databasecheck 2026-11-17: goedkeuringscheck onthouden, storage-policies
    (2026-11-20, gepusht 2026-11-24): gepusht naar `main` (`47c549ec`, eigenaar: "ja,
    hernummer maar en push de commit").** Migratie
-   `0355_storage_rls_initplan.sql` (geschreven als 0345, hernummerd) is
-   **niet toegepast**. Volgens de eigenaar staat de compute op Micro. Open: 0355
-   toepassen, en in de volgende check het aantal profielvragen van de
-   middleware meten. Zie de ronde "Databasecheck 2026-11-17: middleware,
+   `0355_storage_rls_initplan.sql` (geschreven als 0345, hernummerd) op
+   2026-11-24 op productie toegepast (eigenaar: "Ja, toepassen"). Volgens de
+   eigenaar staat de compute op Micro. Open: in de volgende check het aantal
+   profielvragen van de middleware meten, en een avatar of foto uploaden om de
+   storage-policies in de praktijk te zien werken. Zie de ronde "Databasecheck 2026-11-17: middleware,
    nawerk en storage-policies".
 
 0. **Bijgesteld — Dashboard: events zes dagen vooruit (2026-11-24): gepusht
@@ -1623,7 +1624,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0356`
-(`0355_storage_rls_initplan` is van de storage-policies uit de databasecheck, 2026-11-20 geschreven als `0345`, hernummerd en op 2026-11-24 gepusht, **niet toegepast**;
+(`0355_storage_rls_initplan` is van de storage-policies uit de databasecheck, 2026-11-20 geschreven als `0345`, hernummerd, op 2026-11-24 gepusht en toegepast;
 `0354_sponsor_overlay_fixed` is van de vaste sponsor in de overlay, 2026-11-23, toegepast op 2026-11-23;
 `0353_zrl_race_passes` is van de racepasses per race, toegepast op 2026-11-23;
 `0352_captain_availability_solo_team` is van het beschikbaarheidsvakje bij ZRL A en C, 2026-11-23, toegepast op 2026-11-23;
@@ -12834,7 +12835,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Databasecheck 2026-11-17: middleware, nawerk en storage-policies
 
 **2026-11-20 geschreven, 2026-11-24 gepusht naar `main` (`47c549ec`). Migratie
-0355 geschreven, niet toegepast.** Op verzoek van de
+0355 op 2026-11-24 op productie toegepast.** Op verzoek van de
 eigenaar, als uitvoering van het voorstel na de databasecheck van 2026-11-17
 (0 ACTIE; database 276 MB, disk 30%, egress 2,18 GB na 15 dagen, ~4,4 GB
 doorgerekend).
@@ -12890,8 +12891,13 @@ doorgerekend).
   `pg_policies` in productie. De advisor kijkt niet in `storage`, daarom
   stonden ze er nog.
 
-**Niet geverifieerd:** 0355 is niet uitgevoerd en lokaal niet te testen (geen
-Docker). De werking van het geheugen in de middleware op Netlify is niet
+**Toegepast 2026-11-24.** Vóór het toepassen de zestien policies in
+`pg_policies` naast de migratie gelegd: voorwaarden gelijk, alleen `auth.uid()`
+anders. Daarna: geen policy op `storage.objects` met een kale `auth.uid()` meer,
+zestien met `(select auth.uid())`, commando's en rollen ongewijzigd.
+
+**Niet geverifieerd:** geen upload of download als lid getest na 0355; lokaal
+niet te testen (geen Docker). De werking van het geheugen in de middleware op Netlify is niet
 gemeten; alleen de unit-tests (`tests/unit/gate-profile.test.ts`) en de
 typecheck zijn gedraaid. Niet in de browser nagekeken.
 
