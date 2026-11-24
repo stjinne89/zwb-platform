@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Databasecheck 2026-11-17: goedkeuringscheck onthouden, storage-policies
-   (2026-11-20, gepusht 2026-11-24): gepusht naar `main` (`HASH`, eigenaar: "ja,
+   (2026-11-20, gepusht 2026-11-24): gepusht naar `main` (`47c549ec`, eigenaar: "ja,
    hernummer maar en push de commit").** Migratie
    `0355_storage_rls_initplan.sql` (geschreven als 0345, hernummerd) is
    **niet toegepast**. Volgens de eigenaar staat de compute op Micro. Open: 0355
@@ -12833,7 +12833,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Databasecheck 2026-11-17: middleware, nawerk en storage-policies
 
-**2026-11-20 geschreven, 2026-11-24 gepusht naar `main` (`HASH`). Migratie
+**2026-11-20 geschreven, 2026-11-24 gepusht naar `main` (`47c549ec`). Migratie
 0355 geschreven, niet toegepast.** Op verzoek van de
 eigenaar, als uitvoering van het voorstel na de databasecheck van 2026-11-17
 (0 ACTIE; database 276 MB, disk 30%, egress 2,18 GB na 15 dagen, ~4,4 GB
