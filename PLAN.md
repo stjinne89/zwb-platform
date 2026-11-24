@@ -6567,6 +6567,10 @@ lid, ook buiten de kalender")*
 > stonden B1 en B2 fout) geeft het event van een andere divisie, met een andere
 > starttijd. Na een herindeling door WTRL dus eerst opnieuw plakken. Een fout
 > gekoppelde race herstel je door op Bewerk de goede link op te halen.
+> *(Opnieuw plakken helpt alleen voor races die nog geen Zwift-event hebben. Al
+> gekoppelde races blijven aan het oude event hangen; zo ging het op 2026-11-24
+> mis bij vier races. Zie "Hersteld — ZRL R2 W2: vier races aan het Zwift-event
+> van hun nieuwe divisie".)*
 >
 > **Getest.** `tsc`, ESLint en `tests/unit/zrl-event-link.test.ts` (7 cases) op
 > een ingekorte opname van de echte lijst van 10 oktober
@@ -12867,6 +12871,56 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — ZRL R2 W2: vier races aan het Zwift-event van hun nieuwe divisie
+
+**2026-11-24, geen code, geen migratie. Alleen data in productie**, met de
+Supabase-connector, op verzoek van de eigenaar. Eerst vroeg die: "Ik herken
+geen enkele van de namen in de Live stats met wat ik in WTRL zie". Na de
+controle zei die: "Ja, koppelen".
+
+- **Wat er mis was.** WTRL deelde op 2026-11-21 opnieuw in, na race 1 van R2
+  ("Division placement complete" op My Teams). Vier races van 24 november
+  hingen nog aan het Zwift-event van de oude divisie:
+  - B2 (Aqua B2) hing aan Aqua Division 1 (`5811092`) en hoort bij Division 2
+    (`5811083`).
+  - B3 (Aqua B4) hing aan Division 5 (`5811087`) en hoort bij Division 4
+    (`5811085`).
+  - Bdev (Aqua Dev B2) hing aan Dev Division 1 (`5811089`) en hoort bij Dev
+    Division 2 (`5811078`).
+  - ZRL C (Aqua C3) hing aan Division 2 (`5811083`) en hoort bij Division 3
+    (`5811081`).
+- **Gevolg.** De live stand toonde het veld van een andere divisie. B2 toonde
+  zelfs groep A, omdat er geen eigen renner in een groep van dat event stond
+  (zie de terugval hieronder).
+- **Hoe gecontroleerd.** Op wtrl.racing/zrl/myteams heb ik per team de
+  "Division" en "Next Race" (lokale tijd) gelezen. Die heb ik naast de
+  starttijden van de subgroepen in de publieke Zwift-API gelegd.
+  - Zwift "<League> Division N" hoort bij WTRL-divisie <categorie>N.
+  - ZRL A, B1, Zwiftladies B en Zwiftladies C klopten al.
+- **Wat aangepast.** Alleen `zwift_event_id`, `start_at` (de starttijd van de
+  eigen subgroep: B2 19:05, B3 19:06, Bdev 19:03, C 19:06 UTC) en
+  `external_url`.
+  - Route, ronden, regels en tags zijn in de nieuwe events gelijk aan de oude.
+  - De update keek ook naar het oude event-id, zodat hij niets anders
+    overschreef.
+  - Races van W3 en later hadden nog geen Zwift-event, dus die koppelt de
+    sync straks met de nieuwe divisies.
+- **Geverifieerd:** de vier rijen (`returning`). Daarnaast de live stand van
+  alle vier in de browser: B2 toont nu groep B met de WTRL-tegenstanders
+  (WCC, Wylde Green, Sunrise, Team Italy Ghost, WATT Wolves, Galaxy, Cowley
+  Road, Team NL B, Team Not Pogi, Fellowship, Islington). B3 en Bdev staan op
+  groep B, ZRL C op groep C.
+- **Bewust niet gebouwd, nog niet voorgelegd.**
+  - Opnieuw koppelen na een nieuwe import van `wtrl_teams`. `linkZrlEvents`
+    kiest alleen races zonder `zwift_event_id`, dus een herindeling herstelt
+    zich niet vanzelf.
+  - Een betere terugval in `pickSubgroup`. Zonder eigen renner of ZWB-tag in
+    het event kiest die de eerste bezette groep. Beter is de letter van de
+    divisie, of een melding "nog niemand ingeschreven".
+- **Valkuil bij controleren.** In de WTRL-uitslag van race 1 (`id5` per team)
+  lijkt één divisie over meerdere Zwift-events verspreid. Dat komt door de
+  herindeling achteraf, niet doordat een divisie over events verspreid rijdt.
 
 ### Gebouwd — Club Ladder: sessie plakken in beheer
 
