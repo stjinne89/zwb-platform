@@ -8,9 +8,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Eigen YouTube-stream aan een race koppelen (2026-11-24): commit
-   `8629425b`, lokaal, niet gepusht.** Migratie `0360_event_streams_source` op
-   2026-11-24 op productie toegepast (eigenaar: "Ja, toepassen"). Open: pushen
-   op verzoek, en met een echte eigen stream koppelen, afspelen en weghalen.
+   `8629425b`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja, push").**
+   Migratie `0360_event_streams_source` vóór de push op productie toegepast
+   (eigenaar: "Ja, toepassen"). Open: met een echte eigen stream koppelen,
+   afspelen en weghalen.
    Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Streamcenter: alle streams van een race tegelijk (2026-11-24):
@@ -12898,8 +12899,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Eigen YouTube-stream aan een race koppelen
 
-**2026-11-24, commit `8629425b`, lokaal, niet gepusht. Migratie
-`0360_event_streams_source` op 2026-11-24 op productie toegepast.**
+**2026-11-24, commit `8629425b`, op 2026-11-24 gepusht naar `main`. Migratie
+`0360_event_streams_source` op 2026-11-24 vóór de push op productie toegepast.**
 
 - **Waarom.** Vraag van de eigenaar: leden die al op hun eigen manier op
   YouTube streamen, willen die stream aan de race koppelen. Het voorstel was
