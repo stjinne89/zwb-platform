@@ -26,8 +26,8 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Bijgesteld — Dashboard: events zes dagen vooruit (2026-11-24): eventslijst
    gepusht naar `main` (`ce1d10cc`, eigenaar: "Ja, push"); Jouw races ook op
-   zes dagen, lokaal gecommit, niet gepusht.** Geen migratie. Open: pushen, en
-   na de deploy op een ZRL-avond nagaan dat er één ronde op het dashboard
+   zes dagen, gepusht (`404450e6`, eigenaar: "Ja, push").** Geen migratie.
+   Open: na de deploy op een ZRL-avond nagaan dat er één ronde op het dashboard
    staat. Zie de ronde met dezelfde naam.
 
 0. **Hersteld — Pacingplanner: vermoeidheid, gewicht en watts (2026-11-23): gepusht
@@ -12986,7 +12986,7 @@ typecheck zijn gedraaid. Niet in de browser nagekeken.
 - **Gebouwd.** Het venster van de eventsquery in
   `src/app/(app)/dashboard/page.tsx` stond op zeven dagen en is nu zes dagen
   (`plus6Iso`).
-- **Tweede stap, zelfde dag (lokaal gecommit, niet gepusht).** Na de eerste
+- **Tweede stap, zelfde dag (commit `404450e6`, gepusht naar `main`).** Na de eerste
   push stond de ronde van volgende week er nog. De eerste stap kon dat ook niet
   oplossen: de eventslijst filtert clubraces (`CLUB_RACE_TYPES`) er helemaal
   uit, dus de ZRL-races kwamen alleen uit het blok Jouw races
