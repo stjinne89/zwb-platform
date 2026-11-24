@@ -579,7 +579,7 @@ export default async function KalenderPage({
       sub: ["geweest", fillClubText(eventLabel(event.type, event.kind), clubTexts), event.location]
         .filter(Boolean)
         .join(" · "),
-      extra: streamButton(event.id) ?? undefined,
+      action: streamButton(event.id) ?? undefined,
     }));
 
   const upcomingRows: Array<AgendaRow & { sortKey: string }> = [
@@ -625,20 +625,18 @@ export default async function KalenderPage({
           .join(" · "),
         time: timeOf(event.start_at),
         riders,
+        action: streamButton(event.id) ?? undefined,
         extra:
-          subEvents.length > 0 || streamsByRow.has(event.id)
-            ? [
-                ...subEvents.map((sub) => (
-                  <Link
-                    key={sub.id}
-                    href={`/events/${sub.id}`}
-                    className="inline-flex min-h-9 items-center border bg-card px-3 text-xs font-medium hover:bg-muted"
-                  >
-                    {subEventLabel(sub.title, event.title)}
-                  </Link>
-                )),
-                streamButton(event.id),
-              ]
+          subEvents.length > 0
+            ? subEvents.map((sub) => (
+              <Link
+                key={sub.id}
+                href={`/events/${sub.id}`}
+                className="inline-flex min-h-9 items-center border bg-card px-3 text-xs font-medium hover:bg-muted"
+              >
+                {subEventLabel(sub.title, event.title)}
+              </Link>
+            ))
             : undefined,
       };
     }),

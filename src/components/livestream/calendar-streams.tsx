@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ChevronDown, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// De streams van een race op de kalender (2026-11-20): één knop onder de rij.
+// De streams van een race op de kalender (2026-11-20): één knop in het blok
+// van de rij (sinds 2026-11-24, eerst eronder).
 // Eén stream: meteen naar de speler op de racepagina, met die stream gekozen.
 // Meer streams (bij ZRL van alle teamraces van de raceweek): de knop klapt een
 // lijstje open en je kiest welke.

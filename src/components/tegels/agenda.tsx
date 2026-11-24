@@ -24,15 +24,18 @@ export type AgendaRow = {
   time?: string;
   /** Wie "ja" zei: avatars met de teller erachter. */
   riders?: Array<{ id: string; name: string; avatarUrl: string | null }>;
+  /** Knop in het blok zelf, onder de tekst: de stream van de race. */
+  action?: ReactNode;
   /** Extra regels onder de rij, zoals teamevents of badges. */
   extra?: ReactNode;
 };
 
 function Row({ row, past }: { row: AgendaRow; past?: boolean }) {
+  // De titel is de link; die spant met ::after het hele blok, zodat er een
+  // eigen knop (de stream) in het blok kan zonder link-in-link.
   return (
     <li>
-      <Link
-        href={row.href}
+      <div
         className={past ? "tg-row tg-row-past" : "tg-row"}
         style={{ "--row-bg": row.color.bg, "--row-ink": row.color.ink } as CSSProperties}
       >
@@ -50,7 +53,9 @@ function Row({ row, past }: { row: AgendaRow; past?: boolean }) {
           <b>{row.dayNumber}</b>
         </span>
         <span className="tg-row-body">
-          <strong className="block truncate text-base font-medium leading-tight">{row.title}</strong>
+          <Link href={row.href} className="tg-row-link block truncate text-base font-medium leading-tight">
+            {row.title}
+          </Link>
           {row.sub && (
             <span className="block truncate text-[0.8125rem] text-muted-foreground">{row.sub}</span>
           )}
@@ -71,9 +76,10 @@ function Row({ row, past }: { row: AgendaRow; past?: boolean }) {
               {row.riders.length} {row.riders.length === 1 ? "doet" : "doen"} mee
             </span>
           )}
+          {row.action && <span className="tg-row-action mt-1.5 flex flex-wrap items-center gap-2">{row.action}</span>}
         </span>
         {row.time ? <span className="tg-row-time">{row.time}</span> : <span />}
-      </Link>
+      </div>
       {row.extra && <div className="mt-1.5 flex flex-wrap items-center gap-2">{row.extra}</div>}
     </li>
   );

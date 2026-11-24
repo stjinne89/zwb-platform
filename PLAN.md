@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Streamknop in het blok van het event op de kalender
+   (2026-11-24): lokaal gecommit, niet gepusht.** Geen migratie. Open: op de
+   echte kalender ingelogd een race met een stream bekijken, ook op een
+   telefoon. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Teamindeling: zMAP en zFTP opnieuw geijkt (2026-11-24): de
    commit die dit blok toevoegt, op 2026-11-24 gepusht naar `main` (eigenaar:
    "Ja, push").** Geen migratie. Open: de fit
@@ -12878,6 +12883,34 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Streamknop in het blok van het event op de kalender
+
+**2026-11-24, lokaal gecommit, niet gepusht. Geen migratie.**
+
+- **Waarom.** Vraag van de eigenaar: de streamknop hoort in het blok van het
+  event, niet in een losse regel eronder.
+- **Wat.**
+  - `AgendaRow` heeft een nieuw veld `action`: een knop in het blok, onder de
+    tekst. De kalender zet daar de streamknop (`CalendarStreams`), bij komende
+    en bij de vijf voorbije races. De teamraces van een ZRL-raceweek blijven
+    in `extra`, onder het blok.
+  - Een knop in een link mag niet, dus de rij is geen `<a>` meer maar een
+    `div.tg-row`. De titel is de link en spant met `::after` het hele blok
+    (`.tg-row-link`); `.tg-row-action` ligt erboven en blijft zelf klikbaar.
+    Hover en focus van de rij volgen de link via `:has()`.
+  - Bij meer streams klapt de lijst nu in het blok open; het blok wordt dan
+    hoger.
+- **Bewust niet.** De knop staat niet naast de tijd rechts: op een telefoon is
+  daar geen ruimte, en de open lijst bij ZRL moet ergens heen.
+- **Niet meer waar.** De ronde "Gebouwd — Streams op de kalender, resolutie
+  per stream, helmkleur" zette de knop onder de rij; die zin is daar
+  aangepast.
+- **Niet geverifieerd.** Typecheck en lint schoon. Lokaal bekeken op
+  `/ontwerp-voorbeeld?scherm=kalender` met tijdelijk een streamknop op twee
+  voorbeeldrijen (daarna teruggedraaid): de knop staat in het blok, opent de
+  lijst met twee streams, en dagvak, tekst en tijd leiden nog naar het event.
+  Niet gezien: de echte kalender ingelogd, en een smal scherm.
+
 ### Gebouwd — Teamindeling: zMAP en zFTP opnieuw geijkt
 
 **2026-11-24, commit: de commit die dit blok toevoegt, op 2026-11-24 gepusht
@@ -14694,15 +14727,16 @@ toegepast (check en standaard nagekeken, vier streams op `1920x1080`).**
   dus de resolutie moet bij het klaarzetten in te stellen zijn. En de helm van
   de eigen kopman in een andere kleur.
 - **Wat.**
-  - Kalender: een race met een stream krijgt onder de rij een knop **Live**
-    (rode stip), **Stream** of **Terugkijken**, ook bij de laatste vijf
-    voorbije races. Eén stream: naar de racepagina met die stream gekozen
+  - Kalender: een race met een stream krijgt een knop **Live** (rode stip),
+    **Stream** of **Terugkijken**, ook bij de laatste vijf voorbije races. Eén stream: naar de racepagina met die stream gekozen
     (`/events/[id]?stream=…#stream`). Meer streams, bij een raceweek van alle
     teamraces: de knop klapt een lijst open ("ZRL B · Kees"), wie live is
     eerst. Eén extra query (`loadEventStreams`) voor alle races op de
     kalender, alleen met de module aan; een fout breekt de kalender niet.
     `calendarStreams` (puur) rekent de staat per regel uit, met de klok als
-    terugval, net als de racepagina.
+    terugval, net als de racepagina. (De knop stond eerst onder de rij; sinds
+    2026-11-24 in het blok zelf, zie "Gebouwd — Streamknop in het blok van
+    het event op de kalender".)
   - Racepagina: `?stream=` kiest de stream in de speler (`StreamPlayer`,
     `initialId`), en het streamblok heeft `id="stream"`.
   - `0348`: `event_streams.overlay_size` (`1280x720`, `1600x900`,

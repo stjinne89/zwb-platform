@@ -652,11 +652,11 @@ html.dark .app-shell[data-design="tegels"]::before {
   position: relative;
 }
 a.tg-tile:hover,
-a.tg-row:hover {
+.tg-row:has(.tg-row-link:hover) {
   filter: brightness(1.1);
 }
 a.tg-tile:focus-visible,
-a.tg-row:focus-visible,
+.tg-row:has(.tg-row-link:focus-visible),
 .tg-tab:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
@@ -698,6 +698,12 @@ a.tg-row:focus-visible,
 }
 .tg-row::before { display: none; }
 .dark .tg-row { box-shadow: none; }
+/* De titel is de link en spant het hele blok; een knop in het blok (de
+   stream) ligt erboven en blijft zelf klikbaar. */
+.tg-row > .tg-row-body { position: static; }
+.tg-row-link { outline: none; }
+.tg-row-link::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+.tg-row-action { position: relative; z-index: 2; }
 .tg-row-day {
   display: grid;
   place-content: center;
