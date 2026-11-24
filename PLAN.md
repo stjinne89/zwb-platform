@@ -12874,7 +12874,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL live: voorlopige scratchstand op de bogen
 
-**2026-11-24, commit: de commit die dit blok toevoegt, niet gepusht. Geen
+**2026-11-24, commit `de793046`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja, push"). Geen
 migratie.** Gevraagd door de eigenaar: "zou het mogelijk zijn om ook een
 voorlopige stand weergeeft op basis van de doorkomst van de bogen?". Na het
 voorstel kwam: "Ja bouw zo en kun je dan de tekst laten verspringen op het
