@@ -7,10 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Ultrawide Zwift-beeld in de overlay (2026-11-24): commit `523f9fa`, lokaal, nog
-   niet gepusht.** Migratie `0359_stream_overlay_ultrawide` (twee maten erbij in
-   de check op `event_streams.overlay_size`) nog níét op productie: toepassen
-   vóór de push, anders weigert de database de ultrawide maten. Open: in OBS
+0. **Gebouwd — Ultrawide Zwift-beeld in de overlay (2026-11-24): commit `523f9fa`, op
+   2026-11-24 gepusht naar `main` (eigenaar: "Ja, beide").** Migratie
+   `0359_stream_overlay_ultrawide` (twee maten erbij in de check op
+   `event_streams.overlay_size`) vóór de push op productie toegepast. Open: in OBS
    bekijken met een echt 3440×1440-scherm, en de stand met echte ploegen. Zie de
    ronde met dezelfde naam.
 
@@ -1658,7 +1658,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0360`
-(`0359_stream_overlay_ultrawide` is van het ultrawide Zwift-beeld, 2026-11-24, eerst als `0355` geschreven en hernummerd omdat `0355` tot en met `0358` intussen op main stonden, nog niet toegepast;
+(`0359_stream_overlay_ultrawide` is van het ultrawide Zwift-beeld, 2026-11-24, eerst als `0355` geschreven en hernummerd omdat `0355` tot en met `0358` intussen op main stonden, toegepast op 2026-11-24;
 `0355_storage_rls_initplan` is van de storage-policies uit de databasecheck, 2026-11-20 geschreven als `0345`, hernummerd, op 2026-11-24 gepusht en toegepast;
 `0354_sponsor_overlay_fixed` is van de vaste sponsor in de overlay, 2026-11-23, toegepast op 2026-11-23;
 `0353_zrl_race_passes` is van de racepasses per race, toegepast op 2026-11-23;
@@ -13291,8 +13291,10 @@ aparte tegel Form, omdat die naar dezelfde grafiek leidt.
 
 ### Gebouwd — Ultrawide Zwift-beeld in de overlay
 
-**2026-11-24, commit `523f9fa`, lokaal, nog niet gepusht. Migratie `0359_stream_overlay_ultrawide`,
-nog niet op productie.**
+**2026-11-24, commit `523f9fa`, op 2026-11-24 gepusht naar `main`. Migratie
+`0359_stream_overlay_ultrawide`, vóór de push op productie toegepast (de check
+noemt daarna de zeven maten; de bestaande streams staan op 1600x900, 1920x1080
+en 3200x1800 en bleven geldig).**
 
 - **Waarom.** De eigenaar rijdt op een scherm van 3440×1440 (21:9). In het kader
   past dat alleen bijgesneden. Eerst stelde ik voor om in OBS 440 px links en
