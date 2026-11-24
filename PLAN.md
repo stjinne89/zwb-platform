@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Ultrawide Zwift-beeld in de overlay (2026-11-24): lokaal, nog
+   niet gepusht.** Migratie `0359_stream_overlay_ultrawide` (twee maten erbij in
+   de check op `event_streams.overlay_size`) nog níét op productie: toepassen
+   vóór de push, anders weigert de database de ultrawide maten. Open: in OBS
+   bekijken met een echt 3440×1440-scherm, en de stand met echte ploegen. Zie de
+   ronde met dezelfde naam.
+
 0. **Gebouwd — Club Ladder: sessie plakken in beheer, healthcheck houdt hem
    warm (2026-11-24): gepusht naar `main` (`c52746ea`, eigenaar: "Ja, push").**
    Migratie
@@ -1650,8 +1657,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0356`
-(`0355_storage_rls_initplan` is van de storage-policies uit de databasecheck, 2026-11-20 geschreven als `0345`, hernummerd, op 2026-11-24 gepusht en toegepast;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0360`
+(`0359_stream_overlay_ultrawide` is van het ultrawide Zwift-beeld, 2026-11-24, eerst als `0355` geschreven en hernummerd omdat `0355` tot en met `0358` intussen op main stonden, nog niet toegepast;
+`0355_storage_rls_initplan` is van de storage-policies uit de databasecheck, 2026-11-20 geschreven als `0345`, hernummerd, op 2026-11-24 gepusht en toegepast;
 `0354_sponsor_overlay_fixed` is van de vaste sponsor in de overlay, 2026-11-23, toegepast op 2026-11-23;
 `0353_zrl_race_passes` is van de racepasses per race, toegepast op 2026-11-23;
 `0352_captain_availability_solo_team` is van het beschikbaarheidsvakje bij ZRL A en C, 2026-11-23, toegepast op 2026-11-23;
@@ -13280,6 +13288,52 @@ aparte tegel Form, omdat die naar dezelfde grafiek leidt.
   proefpagina is weer verwijderd.
 - **Niet lokaal te verifiëren.** De ingelogde pagina met echte gegevens. In de
   proef was de herstelkaart een nabouw met dezelfde onderdelen.
+
+### Gebouwd — Ultrawide Zwift-beeld in de overlay
+
+**2026-11-24, lokaal, nog niet gepusht. Migratie `0359_stream_overlay_ultrawide`,
+nog niet op productie.**
+
+- **Waarom.** De eigenaar rijdt op een scherm van 3440×1440 (21:9). In het kader
+  past dat alleen bijgesneden. Eerst stelde ik voor om in OBS 440 px links en
+  rechts weg te snijden; de eigenaar wilde liever een eigen indeling.
+- **Wat.**
+  - Twee maten erbij: Zwift 2560×1080 (canvas 2560×1440) en Zwift 3440×1440
+    (canvas 3440×1935). Het canvas blijft 16:9 en zo breed als Zwift, zodat de
+    stream naar YouTube 16:9 blijft (geen zwarte randen) en er niets van het
+    beeld wegvalt.
+  - Zwift staat op 100% over de volle breedte, op positie 0 en 200 (2560) of
+    0 en 270 (3440). Boven een balk van ongeveer 150 px in de maat van het
+    ontwerp met titel, logo en sponsors; onder een balk van 120 tot 126 px met
+    route, kilometers, hoogtemeters, rondes en het profiel, of bij ZRL de stand.
+  - De stand staat daar in twee rijen, de ploegen kolom voor kolom (1 en 2,
+    dan 3 en 4), hooguit 10 ploegen.
+  - Alle vier de stijlen houden hun eigen materiaal: tegels met de gouden lijn
+    boven en onder het beeld, rugnummer met de bies en de stiknaad boven en
+    onder en kleinere kilometerpaaltjes, zeefdruk met de vezel en de petrolpas
+    in de balk onder en de stoet tussen titel en sponsors, strip met de inktlijn
+    boven en onder het grote plaatje en de plaatjes als rij.
+  - `overlay-size.ts` kent per maat een indeling (`frame` of `wide`) en de
+    positie van Zwift; de overlay krijgt het gat als `--ov-top` en
+    `--ov-hole-h`. `?size=` achter de overlay-link toont een andere maat (ook
+    voor het voorbeeld).
+  - `/hulp`: de ultrawide maten in de lijst met canvas en positie, en een zin
+    over de balk eronder. DESIGN.md: het Zwift-gat bij ultrawide.
+- **Bewust niet.**
+  - Geen 21:9-canvas: YouTube toont dat met zwarte balken boven en onder.
+  - Geen plek voor het Sauce-venster bij een ladderrace: de kolom links is er
+    bij ultrawide niet. Wie de ladder wil tonen, kiest een kadermaat.
+  - De thumbnail verandert niet: die is 16:9 en heeft geen Zwift-gat.
+- **Niet meer waar.** "De volgende vrije is `0356`": `0356` tot en met `0358`
+  stonden al op main; nu `0360`.
+- **Niet geverifieerd.** De vier stijlen bekeken op 1920×1080 met
+  `?size=3440x1935` en `?size=2560x1440`, licht en donker bij zeefdruk, met
+  route en met een nagebootste stand van tien ploegen (ook een lange
+  ploegnaam): niets valt in het gat of buiten het beeld. Zonder `?preview` op
+  3440×1935 gemeten: balk boven 0 tot 270, Zwift 270 tot 1710, balk onder 1710
+  tot 1935. De kadermaten zien er nog hetzelfde uit. `0359` in PGlite getest
+  (twee keer uit te voeren, 3440x1935 en 2560x1440 mogen, 3440x1440 wordt
+  geweigerd). Niet gezien in OBS, en de stand niet met echte ploegen.
 
 ### Gebouwd — Vaste sponsor in de overlay
 

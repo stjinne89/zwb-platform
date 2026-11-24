@@ -891,7 +891,10 @@ door het lid per stream gekozen, zodat ieder lid zich binnen de ZWB-wereld
 onderscheidt. Ze gelden alleen daar: niets uit deze stijlen lekt naar de
 gewone schermen. Alle vier blijven in de tenue- of drukinkten van de club; een
 vrije kleur per lid is er bewust niet. Het Zwift-gat (384, 216; 1536×864)
-blijft in elke stijl leeg en doorzichtig. De bron is
+blijft in elke stijl leeg en doorzichtig. Bij een ultrawide Zwift-beeld (0359)
+is het gat de volle breedte, met een balk boven (titel, logo, sponsors) en een
+balk onder (route en stand, de stand in twee rijen) in plaats van de kolom
+links; elke stijl houdt daarin zijn eigen materiaal. De bron is
 `src/components/livestream/` (`stream-overlay-styles.tsx` en een CSS-bestand
 per stijl) en `src/lib/youtube-live/` (`overlay-styles.ts`, `thumbnail.tsx`).
 

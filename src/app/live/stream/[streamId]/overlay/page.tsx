@@ -5,7 +5,7 @@ import { overlayInfo, overlayStatus, overlayTitle } from "@/lib/youtube-live/bro
 import { streamRoute } from "@/lib/youtube-live/event-route";
 import { loadKopman } from "@/lib/youtube-live/kopman-store";
 import { overlayStyle } from "@/lib/youtube-live/overlay-styles";
-import { overlayScale, overlaySize } from "@/lib/youtube-live/overlay-size";
+import { overlayHole, overlayLayout, overlayScale, overlaySize } from "@/lib/youtube-live/overlay-size";
 import { overlayMode } from "@/lib/youtube-live/overlay-theme";
 import { loadZrlLive } from "@/lib/zrl-live/snapshot";
 
@@ -16,7 +16,9 @@ import { loadZrlLive } from "@/lib/zrl-live/snapshot";
 // de schakelaar aan. Elke 15 seconden ververst, dus de schakelaar werkt mee,
 // net als de stijl en donker of licht (?style= en ?theme= voor een voorbeeld).
 // ?preview: het voorbeeld in de stijlkeuze op de racepagina, zonder verversen
-// en altijd op 1920×1080. Anders op de resolutie van de stream (0348).
+// en altijd op 1920×1080. Anders op de resolutie van de stream (0348). Bij een
+// ultrawide Zwift-beeld (0359) de indeling met een balk boven en onder, ook in
+// het voorbeeld; ?size= toont een andere maat.
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -83,12 +85,16 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
   const preview = query.preview !== undefined;
   const refreshSeconds = preview ? null : 15;
   // De resolutie van de stream (0348); het voorbeeld in de app blijft 1920 breed.
-  const scale = preview ? 1 : overlayScale(overlaySize(stream.overlay_size));
+  const size = overlaySize(query.size ?? stream.overlay_size);
+  const scale = preview ? 1 : overlayScale(size);
+  // Ultrawide (0359): het gat over de volle breedte, de stand in de balk onder.
+  const wide = overlayLayout(size) === "wide";
+  const hole = wide ? overlayHole(size) : null;
   // De eigen kopman van het lid (0347), alleen bij strip.
   const kopman = look === "strip" ? await loadKopman(admin, stream.profile_id) : null;
   const title = overlayTitle(event.title);
   const status = overlayStatus({ type: event.type, startAt: event.start_at, endAt: event.end_at, distanceKm, now: new Date() });
-  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} look={look} route={route} stand={null} kopman={kopman} scale={scale} refreshSeconds={refreshSeconds} />;
+  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} look={look} route={route} stand={null} kopman={kopman} scale={scale} hole={hole} refreshSeconds={refreshSeconds} />;
 
   const hasStand = event.type === "zrl" && Boolean(event.team_id && event.zwift_event_id);
   if (!hasStand) return plain;
@@ -104,9 +110,10 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
       theme={theme}
       look={look}
       route={route}
-      stand={stream.overlay_stand !== false ? { view, teams: wantedTeams(query.teams) } : null}
+      stand={stream.overlay_stand !== false ? { view, teams: wide ? Math.min(wantedTeams(query.teams), 10) : wantedTeams(query.teams) } : null}
       kopman={kopman}
       scale={scale}
+      hole={hole}
       refreshSeconds={refreshSeconds}
     />
   );

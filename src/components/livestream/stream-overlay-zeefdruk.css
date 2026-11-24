@@ -104,3 +104,36 @@
 .stream-overlay[data-style="zeefdruk"] .stream-overlay-value { font-family: var(--font-wr-stencil), sans-serif; font-weight: 700; color: inherit; }
 .stream-overlay[data-style="zeefdruk"] .stream-overlay-team { font-weight: 700; }
 .stream-overlay[data-style="zeefdruk"] .stream-overlay-wait { background: none; border: 2px dashed var(--ovz-sage); color: var(--ovz-soft); }
+
+/* Ultrawide (0359): de vezel en de passen boven en onder het beeld, de
+   petrolpas achter de route in de balk onder, kleinere stencilcijfers. */
+.stream-overlay[data-style="zeefdruk"][data-layout="wide"] .ovz-fiber {
+  mask:
+    linear-gradient(#000, #000) 0 0 / 1920px var(--ov-top) no-repeat,
+    linear-gradient(#000, #000) 0 var(--ov-foot) / 1920px calc(1080px - var(--ov-foot)) no-repeat;
+}
+.stream-overlay[data-style="zeefdruk"][data-layout="wide"] .stream-overlay-frame-side { box-shadow: inset 0 1.5px 0 var(--ovz-ink); }
+.stream-overlay[data-layout="wide"] .ovz-head { top: 14px; height: calc(var(--ov-top) - 28px); }
+.stream-overlay[data-layout="wide"] .ovz-head::before { left: 216px; }
+.stream-overlay[data-layout="wide"] .ovz-slot { width: 230px; }
+.stream-overlay[data-layout="wide"] .ovz-logo img { height: 48px; }
+.stream-overlay[data-layout="wide"] .ovz-status { font-size: 17px; }
+.stream-overlay[data-layout="wide"] .ovz-head h1 { font-size: 44px; }
+.stream-overlay[data-layout="wide"] .ovz-stoet { top: -14px; }
+.stream-overlay[data-layout="wide"] .ovz-sponsors { top: 14px; height: calc(var(--ov-top) - 28px); }
+.stream-overlay[data-layout="wide"] .ovz-reg-left { top: calc(var(--ov-foot) + 14px); }
+.stream-overlay[data-layout="wide"] .ovz-reg-right { top: 60px; }
+.stream-overlay[data-layout="wide"] .ovz-side-pass { top: var(--ov-foot); width: 560px; height: calc(1080px - var(--ov-foot)); }
+.stream-overlay[data-layout="wide"] .ovz-side {
+  left: 40px; right: 40px; width: auto; top: calc(var(--ov-foot) + 12px); bottom: 12px;
+  display: flex; align-items: center; gap: 28px;
+}
+.stream-overlay[data-layout="wide"] .ovz-route { flex: none; max-width: 300px; font-size: 22px; }
+.stream-overlay[data-layout="wide"] .ovz-facts,
+.stream-overlay[data-layout="wide"] .ovz-laps { flex: none; }
+.stream-overlay[data-layout="wide"] .ovz-side[data-compact] .ovz-facts { margin: 0; }
+.stream-overlay[data-layout="wide"] .ovz-big { flex: none; }
+.stream-overlay[data-layout="wide"] .ovz-km { font-size: 66px; margin-top: 0; }
+.stream-overlay[data-layout="wide"] .ovz-hm { font-size: 46px; }
+.stream-overlay[data-layout="wide"] .ovz-profile-box { flex: none; width: 300px; height: 76px; margin-top: 0; }
+.stream-overlay[data-style="zeefdruk"][data-layout="wide"] .stream-overlay-stand { column-gap: 22px; }

@@ -91,3 +91,28 @@
 .stream-overlay[data-style="strip"] .stream-overlay-value { color: inherit; font-weight: 600; }
 .stream-overlay[data-style="strip"] .stream-overlay-team { font-weight: 700; }
 .stream-overlay[data-style="strip"] .stream-overlay-wait { background: var(--tn-paper); border: 3px solid var(--tn-ink); border-radius: var(--ovs-wobble); color: var(--tn-ink); }
+
+/* Ultrawide (0359): de inktlijn boven en onder het grote plaatje, de plaatjes
+   in de balk boven lager, de kolom als rij plaatjes in de balk onder. */
+.stream-overlay[data-layout="wide"] .ovs-window {
+  left: -10px; right: -10px; top: calc(var(--ov-top) - 7px); bottom: auto; height: calc(var(--ov-hole-h) + 14px);
+  border-radius: 0;
+}
+.stream-overlay[data-layout="wide"] .ovs-title { top: 12px; height: calc(var(--ov-top) - 24px); padding: 20px 32px 0 26px; }
+.stream-overlay[data-layout="wide"] .ovs-title h1 { font-size: 36px; -webkit-text-stroke-width: 6px; }
+.stream-overlay[data-layout="wide"] .ovs-caption { font-size: 18px; }
+.stream-overlay[data-layout="wide"] .ovs-badge img { height: 44px; }
+.stream-overlay[data-layout="wide"] .ovs-kopman { top: 12px; width: calc(var(--ov-top) - 24px); height: calc(var(--ov-top) - 24px); }
+.stream-overlay[data-style="strip"][data-layout="wide"]:has(.ovs-kopman) .ovs-title { left: calc(var(--ov-top) + 19px); }
+.stream-overlay[data-layout="wide"] .ovs-sponsors { top: 12px; height: calc(var(--ov-top) - 24px); padding: 8px 12px; }
+.stream-overlay[data-layout="wide"] .ovs-sponsors .stream-overlay-sponsor { height: 96px; }
+.stream-overlay[data-layout="wide"] .ovs-side {
+  left: 26px; right: 26px; width: auto; top: calc(var(--ov-foot) + 14px); bottom: 12px;
+  display: flex; align-items: stretch; gap: 17px;
+}
+.stream-overlay[data-layout="wide"] .ovs-route { flex: none; display: flex; align-items: center; gap: 22px; padding: 8px 24px; }
+.stream-overlay[data-layout="wide"] .ovs-route-name { max-width: 300px; font-size: 24px; margin-bottom: 0 !important; }
+.stream-overlay[data-layout="wide"] .ovs-km { font-size: 56px; }
+.stream-overlay[data-layout="wide"] .ovs-hm { font-size: 40px; }
+.stream-overlay[data-layout="wide"] .ovs-profile-panel { flex: none; width: 320px; height: auto; }
+.stream-overlay[data-layout="wide"] .ovs-side .stream-overlay-stand { align-self: center; }

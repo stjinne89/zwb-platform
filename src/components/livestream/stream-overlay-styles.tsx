@@ -8,6 +8,8 @@ import { OverlaySponsors, type RotatorSponsor } from "./sponsor-rotator";
 // De drie eigen stijlen van de OBS-overlay (0346), naast het tegelkader in
 // stream-overlay.tsx. Zelfde vakken op dezelfde plek: titel en sponsor in de
 // balk boven, parcours en stand in de kolom links, Zwift in het gat op 384,216.
+// Ultrawide (0359): dezelfde onderdelen, de kolom als balk onder het beeld; de
+// CSS doet de indeling, alleen het profiel krijgt hier een andere maat.
 // Gekozen door de eigenaar uit schetsen (2026-11-20). De CSS staat per stijl in
 // stream-overlay-<stijl>.css.
 
@@ -19,6 +21,8 @@ export type OverlayParts = {
   title: string;
   sponsors: RotatorSponsor[];
   route: StreamRoute | null;
+  /** Ultrawide (0359): de kolom wordt een balk onder het beeld. */
+  wide: boolean;
   /** De stand bij ZRL, al opgemaakt; dan wordt het parcours compact. */
   stand: ReactNode | null;
   /** De eigen kopman van het lid (0347), alleen bij strip. */
@@ -107,7 +111,7 @@ export function RugnummerOverlay({ parts }: { parts: OverlayParts }) {
           </div>
         )}
         {!compact && f.laps && <p className="ovr-laps">{f.laps}</p>}
-        {!compact && <Profile route={parts.route} width={300} height={92} />}
+        {!compact && <Profile route={parts.route} width={300} height={parts.wide ? 74 : 92} />}
         {parts.stand}
       </section>
     </>
@@ -230,7 +234,7 @@ export function ZeefdrukOverlay({ parts }: { parts: OverlayParts }) {
         {!compact && f.laps && <p className="ovz-laps">{f.laps}</p>}
         {!compact && (
           <div className="ovz-profile-box">
-            <Profile route={parts.route} width={300} height={96} />
+            <Profile route={parts.route} width={300} height={parts.wide ? 76 : 96} />
           </div>
         )}
         {parts.stand}
@@ -296,7 +300,7 @@ export function StripOverlay({ parts }: { parts: OverlayParts }) {
         )}
         {!compact && parts.route?.profile && parts.route.profile.length > 1 && (
           <div className="ovs-panel ovs-profile-panel">
-            <Profile route={parts.route} width={324} height={118} line />
+            <Profile route={parts.route} width={parts.wide ? 310 : 324} height={parts.wide ? 84 : 118} line />
           </div>
         )}
         {parts.stand}

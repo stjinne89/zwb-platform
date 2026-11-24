@@ -9,6 +9,7 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
 .stream-overlay {
   --ov-top: 216px;
   --ov-side: 384px;
+  --ov-hole-h: 864px;
   position: relative;
   width: 1920px;
   height: 1080px;
@@ -174,3 +175,57 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
 @media (prefers-reduced-motion: reduce) {
   .stream-overlay-sponsor img { transition: none; }
 }
+
+/* Ultrawide (0359): Zwift over de volle breedte. De balk boven houdt titel en
+   sponsors, de kolom wordt een balk onder het beeld. --ov-top en --ov-hole-h
+   komen per maat uit overlay-size.ts; --ov-foot is de bovenkant van de balk
+   onder. Dezelfde regels gelden in elke stijl voor de stand. */
+.stream-overlay[data-layout="wide"] { --ov-foot: calc(var(--ov-top) + var(--ov-hole-h)); }
+.stream-overlay[data-layout="wide"] .stream-overlay-frame-side {
+  top: var(--ov-foot);
+  width: 1920px;
+  height: calc(1080px - var(--ov-foot));
+  background-position: 0 calc(-1 * var(--ov-foot));
+}
+.stream-overlay[data-layout="wide"] .stream-overlay-window {
+  left: 0;
+  top: calc(var(--ov-top) - 2px);
+  bottom: auto;
+  height: calc(var(--ov-hole-h) + 4px);
+  border-left: 0;
+  border-bottom: 2px solid var(--ov-gold);
+}
+.stream-overlay[data-layout="wide"] .stream-overlay-head { top: 16px; height: calc(var(--ov-top) - 32px); padding-left: 22px; }
+.stream-overlay[data-layout="wide"] .stream-overlay-logo img { height: 52px; }
+.stream-overlay[data-layout="wide"] .stream-overlay-status { font-size: 22px; }
+.stream-overlay[data-layout="wide"] .stream-overlay-head h1 { font-size: 36px; }
+.stream-overlay[data-layout="wide"] .stream-overlay-sponsors { top: 16px; height: calc(var(--ov-top) - 32px); padding: 9px; }
+.stream-overlay[data-layout="wide"] .stream-overlay-sponsor { height: 100%; }
+.stream-overlay[data-layout="wide"] .stream-overlay-side {
+  left: 40px;
+  right: 40px;
+  width: auto;
+  top: calc(var(--ov-foot) + 14px);
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.stream-overlay[data-layout="wide"] .stream-overlay-info { flex: none; width: 400px; font-size: 20px; }
+
+/* De stand in twee rijen, de ploegen kolom voor kolom: 1 en 2, dan 3 en 4. */
+.stream-overlay[data-layout="wide"] .stream-overlay-stand {
+  flex: 1;
+  min-width: 0;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, auto);
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px 8px;
+}
+.stream-overlay[data-layout="wide"] .stream-overlay-stand li {
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 19px;
+}
+.stream-overlay[data-layout="wide"] .stream-overlay-wait { flex: 1; padding: 10px 12px; font-size: 20px; }

@@ -28,7 +28,9 @@ import "./stream-overlay-strip.css";
 // Sinds 2026-11-20 in donker (nachtpetrol) of licht (crème), per stream (0345),
 // en in een van vier stijlen (0346): tegels (dit kader), rugnummer, zeefdruk
 // of strip (stream-overlay-styles.tsx). Donker of licht geldt bij tegels en
-// zeefdruk. Sinds 0348 op de resolutie van het OBS-canvas van het lid.
+// zeefdruk. Sinds 0348 op de resolutie van het OBS-canvas van het lid. Sinds
+// 0359 ook ultrawide: Zwift over de volle breedte, met een balk boven (titel en
+// sponsors) en een balk onder (route en stand) in plaats van de kolom links.
 
 /** Waar het Zwift-beeld in het kader staat, bij 1920×1080 (andere maten: overlay-size.ts). */
 export const ZWIFT_WINDOW = { x: 384, y: 216, width: 1536, height: 864 } as const;
@@ -49,6 +51,7 @@ export async function StreamOverlay({
   stand,
   kopman = null,
   scale = 1,
+  hole = null,
   refreshSeconds,
 }: {
   title: string;
@@ -66,6 +69,8 @@ export async function StreamOverlay({
   kopman?: KopmanLook | null;
   /** De resolutie van de stream als deel van 1920 (0348): het hele kader schaalt mee. */
   scale?: number;
+  /** Ultrawide (0359): het gat over de volle breedte, in de maat van het ontwerp. */
+  hole?: { top: number; height: number } | null;
   /** null: niet meer verversen (de uitslag staat vast). */
   refreshSeconds: number | null;
 }) {
@@ -87,7 +92,9 @@ export async function StreamOverlay({
     // Ontworpen op 1920×1080; zoom schaalt ook de opmaak, dus de pagina wordt
     // precies het gekozen formaat (OBS draait op Chromium).
     ...(scale !== 1 ? { zoom: scale } : {}),
+    ...(hole ? { "--ov-top": `${hole.top}px`, "--ov-hole-h": `${hole.height}px` } : {}),
   } as CSSProperties;
+  const layout = hole ? "wide" : undefined;
   const rotator = sponsors.map(({ name, logoUrl, overlayFixed }) => ({ name, logoUrl, overlayFixed }));
 
   if (look !== "tegels") {
@@ -99,12 +106,13 @@ export async function StreamOverlay({
       title,
       sponsors: rotator,
       route,
+      wide: Boolean(hole),
       stand: stand ? <StandRows stand={stand} /> : null,
       kopman: look === "strip" && kopman ? { face: kopmanFace(kopman), colors: kopmanColors(tenueInks(settings.palette), kopman) } : null,
     };
     const fonts = `${tegelsFontVariables} ${overlayStencil.variable} ${overlayText.variable} ${overlayHand.variable}`;
     return (
-      <main className={`stream-overlay ${fonts}`} style={style} lang="nl" data-style={look} data-theme={mode}>
+      <main className={`stream-overlay ${fonts}`} style={style} lang="nl" data-style={look} data-theme={mode} data-layout={layout}>
         {refreshSeconds !== null && <AutoRefresh seconds={refreshSeconds} />}
         <div className="stream-overlay-frame stream-overlay-frame-top" aria-hidden />
         <div className="stream-overlay-frame stream-overlay-frame-side" aria-hidden />
@@ -116,7 +124,7 @@ export async function StreamOverlay({
   }
 
   return (
-    <main className={`stream-overlay ${tegelsFontVariables}`} style={style} lang="nl" data-style="tegels" data-theme={theme}>
+    <main className={`stream-overlay ${tegelsFontVariables}`} style={style} lang="nl" data-style="tegels" data-theme={theme} data-layout={layout}>
       {refreshSeconds !== null && <AutoRefresh seconds={refreshSeconds} />}
       <div className="stream-overlay-frame stream-overlay-frame-top" aria-hidden />
       <div className="stream-overlay-frame stream-overlay-frame-side" aria-hidden />
@@ -214,7 +222,8 @@ export function zrlStatus(view: ZrlLiveView): string {
 
 /**
  * ?teams=5 tot 15, standaard 15: de kolom links heeft er sinds het kader
- * (2026-11-19) ruimte voor. overlayRows begrenst de onderkant.
+ * (2026-11-19) ruimte voor. overlayRows begrenst de onderkant. Ultrawide
+ * (0359) toont er hooguit 10, in twee rijen in de balk onder.
  */
 export function wantedTeams(value: string | string[] | undefined): number {
   const n = Number(typeof value === "string" ? value : NaN);

@@ -102,3 +102,32 @@
 .ovr-side .ovs-profile-area { fill: var(--tn-gold); fill-opacity: 0.85; }
 
 .stream-overlay[data-style="rugnummer"] .stream-overlay-stand li { background: color-mix(in srgb, var(--tn-paper) 9%, transparent); }
+
+/* Ultrawide (0359): de bies boven en onder het beeld, het rugnummer en het
+   bordje lager in de balk, de kolom als balk onder met kleinere paaltjes. */
+.stream-overlay[data-style="rugnummer"][data-layout="wide"] .ovr-hem {
+  left: 0; top: calc(var(--ov-top) - 6px); bottom: auto; height: calc(var(--ov-hole-h) + 12px);
+  border-left: 0; border-bottom: 6px solid var(--tn-gold);
+}
+.stream-overlay[data-style="rugnummer"][data-layout="wide"] .ovr-hem::before {
+  left: 0; top: -16px; bottom: -16px;
+  border-left: 0; border-bottom: 2px dashed color-mix(in srgb, var(--tn-paper) 35%, transparent);
+}
+.stream-overlay[data-layout="wide"] .ovr-bib { top: 12px; height: calc(var(--ov-top) - 26px); grid-template-rows: 28px 1fr 10px; }
+.stream-overlay[data-layout="wide"] .ovr-bib-top { font-size: 18px; }
+.stream-overlay[data-layout="wide"] .ovr-bib h1 { font-size: 40px; }
+.stream-overlay[data-layout="wide"] .ovr-logo img { height: 52px; }
+.stream-overlay[data-layout="wide"] .ovr-plate { top: 16px; height: calc(var(--ov-top) - 32px); padding: 10px 16px; }
+.stream-overlay[data-layout="wide"] .ovr-side {
+  left: 44px; right: 44px; width: auto; top: calc(var(--ov-foot) + 12px); bottom: 10px;
+  display: flex; align-items: center; gap: 28px;
+}
+.stream-overlay[data-layout="wide"] .ovr-route { flex: none; max-width: 380px; font-size: 26px; }
+.stream-overlay[data-layout="wide"] .ovr-facts { flex: none; }
+.stream-overlay[data-layout="wide"] .ovr-laps { flex: none; margin-top: 0; }
+.stream-overlay[data-layout="wide"] .ovr-posts { flex: none; gap: 14px; }
+.stream-overlay[data-layout="wide"] .ovr-post { width: 112px; grid-template-rows: 28px auto; }
+.stream-overlay[data-layout="wide"] .ovr-post-cap { font-size: 15px; padding-bottom: 2px; border-radius: 56px 56px 0 0 / 28px 28px 0 0; }
+.stream-overlay[data-layout="wide"] .ovr-post-body,
+.stream-overlay[data-layout="wide"] .ovr-post + .ovr-post .ovr-post-body { font-size: 40px; padding: 8px 0 10px; }
+.stream-overlay[data-layout="wide"] .ovr-side .ovs-profile { flex: none; }
