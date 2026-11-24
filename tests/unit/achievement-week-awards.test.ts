@@ -7,7 +7,8 @@ import { fakeDb } from "./fake-db";
 const push = vi.hoisted(() => vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => null));
 vi.mock("@/lib/push/send", () => ({ sendNotificationToMembers: push }));
 
-const { awardCompletedAchievementWeeks } = await import("@/lib/achievements/awards");
+const { awardCompletedAchievementWeeks, BADGES } = await import("@/lib/achievements/awards");
+const { SCALE_VERSION } = await import("@/lib/briljant/norms");
 
 const A = "00000000-0000-0000-0000-00000000000a";
 const B = "00000000-0000-0000-0000-00000000000b";
@@ -34,7 +35,7 @@ function award(badge: string, profileId: string, week: string, id: string) {
 const T = "00000000-0000-0000-0000-00000000000f";
 
 function members() {
-  return [A, B].map((id) => ({ id, is_test: false }));
+  return [A, B].map((id) => ({ id, is_test: false, is_approved: true }));
 }
 
 beforeEach(() => {
@@ -173,5 +174,126 @@ describe("awardCompletedAchievementWeeks", () => {
     expect(new Set(db.tables.achievement_awards.map((row) => row.period_start))).toEqual(
       new Set(["2026-10-05"]),
     );
+  });
+
+  describe("elke ranglijst een badge (0356)", () => {
+    const C = "00000000-0000-0000-0000-00000000000c";
+    const D = "00000000-0000-0000-0000-00000000000d";
+    const facets = (level: number) => ({
+      sprint: level,
+      anaeroob: level,
+      vo2max: level,
+      drempel: level,
+      durability: level,
+      fitheid: level,
+      racen: level,
+    });
+    const snapshot = (profile: string, week: string, level: number) => ({
+      profile_id: profile,
+      week,
+      facets: facets(level),
+      consistency: null,
+      provenance: { scale: SCALE_VERSION },
+    });
+
+    function week(extra: Record<string, Array<Record<string, unknown>>> = {}) {
+      return fakeDb({
+        strava_activities: [
+          // A: één lange buitenrit. B: twee dagen op de rollenbank.
+          { ...rides(A, 1, "2026-10-06", 50_000, 1)[0], moving_time_seconds: 2 * 3600 },
+          { ...rides(B, 1, "2026-10-07", 30_000, 2)[0], moving_time_seconds: 5400, trainer: true },
+          { ...rides(B, 1, "2026-10-08", 10_000, 3)[0], moving_time_seconds: 1800, trainer: true },
+        ],
+        profiles: [
+          ...members(),
+          { id: C, is_test: false, is_approved: true },
+          { id: D, is_test: false, is_approved: false },
+        ],
+        events: [{ id: "e1", start_at: "2026-10-07T18:00:00.000Z" }],
+        event_rsvps: [
+          { event_id: "e1", profile_id: A, status: "yes" },
+          { event_id: "e1", profile_id: B, status: "no" },
+        ],
+        live_sessions: [
+          { id: "l1", profile_id: A, started_at: "2026-10-09T18:00:00.000Z", last_seen_at: null, ended_at: "2026-10-09T19:00:00.000Z" },
+          { id: "l2", profile_id: B, started_at: "2026-10-08T18:00:00.000Z", last_seen_at: null, ended_at: "2026-10-08T19:00:00.000Z" },
+        ],
+        zwbriljant_preferences: [
+          { profile_id: A, visible: true },
+          { profile_id: B, visible: true },
+          { profile_id: C, visible: false },
+          { profile_id: D, visible: true },
+        ],
+        zwbriljant_snapshots: [
+          snapshot(A, "2026-09-28", 3),
+          snapshot(A, "2026-10-05", 3.5),
+          snapshot(B, "2026-09-28", 4),
+          snapshot(B, "2026-10-05", 4.1),
+          // C groeit het meest maar deelt niet; D deelt maar is niet goedgekeurd.
+          snapshot(C, "2026-09-28", 2),
+          snapshot(C, "2026-10-05", 4),
+          snapshot(D, "2026-09-28", 2),
+          snapshot(D, "2026-10-05", 4),
+        ],
+        achievement_awards: [],
+        ...extra,
+      });
+    }
+
+    const winners = (db: ReturnType<typeof fakeDb>, badge: string, period = "2026-10-05") =>
+      db.tables.achievement_awards
+        .filter((row) => row.badge_id === badge && row.period_start === period)
+        .map((row) => row.profile_id)
+        .sort();
+
+    it("kent voor elke ranglijst een weekbadge toe", async () => {
+      const db = week();
+      await awardCompletedAchievementWeeks(db);
+      expect(BADGES).toHaveLength(10);
+      expect(winners(db, "longest_ride_week")).toEqual([A]);
+      expect(winners(db, "outdoor_week")).toEqual([A]);
+      expect(winners(db, "indoor_week")).toEqual([B]);
+      expect(winners(db, "days_week")).toEqual([B]);
+      // A: een event en een andere dag live; B zei nee en reed één keer live.
+      expect(winners(db, "clubmens_week")).toEqual([A]);
+      expect(winners(db, "growth_week")).toEqual([A]);
+      for (const badge of BADGES) expect(winners(db, badge.id).length).toBeGreaterThan(0);
+      const growth = db.tables.achievement_awards.find((row) => row.badge_id === "growth_week");
+      expect(Number(growth?.value)).toBeGreaterThan(0);
+      expect(growth?.metadata).toEqual({ unit: "punten" });
+    });
+
+    it("geeft bij gelijke stand iedereen op plek 1 de badge", async () => {
+      const db = fakeDb({
+        strava_activities: [...rides(A, 1, "2026-10-06", 40_000, 1), ...rides(B, 1, "2026-10-07", 40_000, 2)],
+        profiles: members(),
+        achievement_awards: [],
+      });
+      await awardCompletedAchievementWeeks(db);
+      expect(winners(db, "distance_week")).toEqual([A, B].sort());
+      expect(winners(db, "days_week")).toEqual([A, B].sort());
+    });
+
+    it("neemt een Groeibriljant-badge af van wie niet (meer) deelt", async () => {
+      const db = week({ achievement_awards: [award("growth_week", C, "2026-10-05", "groei-c")] });
+      await awardCompletedAchievementWeeks(db);
+      expect(winners(db, "growth_week")).toEqual([A]);
+      expect(db.tables.achievement_awards.map((row) => row.id)).not.toContain("groei-c");
+    });
+
+    it("laat de badges van een bron die niet te lezen is staan", async () => {
+      const db = week({ achievement_awards: [award("growth_week", B, "2026-10-05", "groei-b")] });
+      const broken = {
+        ...db,
+        from(table: string) {
+          if (table === "zwbriljant_preferences") throw new Error("tabel weg");
+          return db.from(table);
+        },
+      };
+      await awardCompletedAchievementWeeks(broken);
+      expect(db.tables.achievement_awards.map((row) => row.id)).toContain("groei-b");
+      expect(winners(db, "growth_week")).toEqual([B]);
+      expect(winners(db, "distance_week")).toEqual([A]);
+    });
   });
 });

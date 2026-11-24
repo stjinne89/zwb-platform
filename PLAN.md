@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Een weekbadge voor elke ranglijst (2026-11-24): commit op branch
+   `claude/rankings-badges`, niet gepusht.** Migratie
+   `0356_ranking_week_badges.sql` geschreven, niet toegepast en lokaal niet te
+   testen. Open: de privacytekst laten goedkeuren door de eigenaar, 0356
+   toepassen, pushen, en na de eerste toekenning de Hall of fame nakijken. Zie
+   de ronde met dezelfde naam.
+
 0. **Databasecheck 2026-11-17: goedkeuringscheck onthouden, storage-policies
    (2026-11-20, gepusht 2026-11-24): gepusht naar `main` (`47c549ec`, eigenaar: "ja,
    hernummer maar en push de commit").** Migratie
@@ -12831,6 +12838,70 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Een weekbadge voor elke ranglijst
+
+**2026-11-24, commit op branch `claude/rankings-badges`, niet gepusht.
+Migratie `0356_ranking_week_badges.sql`: geschreven, niet toegepast.**
+
+- **Waarom.** Op ZWB Rankings hadden vier van de tien ranglijsten een weekbadge
+  (Zitvleeskampioen, Kilometervreter, Klimmer van de week, Meest actief). De
+  eigenaar wil een badge voor elke ranglijst. Dat draait de beslissing van
+  2026-10-26 terug (ronde "Gebouwd — ZWB Rankings in plaats van Achievements",
+  bij "Bewust niet"); het bezwaar daar, een badge die de groei op je steen laat
+  zien terwijl je het delen kunt intrekken, is opgelost met het intrekken
+  hieronder. Voorstel goedgekeurd door de eigenaar ("Ja, bouwen").
+- **Nieuwe badges.** Lange adem (`longest_ride_week`), Buitenbeentje
+  (`outdoor_week`, in km), Binnenvetter (`indoor_week`, in uren), Metronoom
+  (`days_week`), Clubmens (`clubmens_week`) en Groeibriljant (`growth_week`).
+  Buitenbeentje en Binnenvetter tellen in de weergave waarmee hun kaart opent.
+  Elke badge heeft het icoon van zijn kaart; `AchievementBadge` kent daarvoor
+  `timer`, `sun`, `home`, `gem` en `calendar-check`.
+- **Winnaar is plek 1 op de kaart.** `lib/achievements/awards.ts` rekent niet
+  meer zelf per metriek, maar haalt per week dezelfde ranglijsten op als de
+  pagina (`lib/rankings/rankings.ts`). Iedereen op plek 1 krijgt de badge, ook
+  bij gelijke stand. Dat geldt ook voor de vier bestaande badges: tot nu toe
+  won bij gelijke stand één lid, en bij een herrekening (laatste 8 weken) kan
+  er nu een tweede winnaar bij komen, vooral bij Meest actief. De weekstanden
+  (`weeklyScores`) staan daarvoor in `lib/achievements/week-scores.ts`, zodat
+  awards en rankings elkaar gebruiken zonder kringimport; `awards.ts` exporteert
+  ze nog. `BadgeDefinition` heeft geen `metric` meer maar een `ranking`.
+- **Clubmens en Groeibriljant in de toekenning.** De toekenning leest de ja's
+  op events, de live-ritten en de stenen van wie deelt (voorkeur zichtbaar en
+  goedgekeurd, zoals `zwbriljant_shares`), zonder testaccounts. Dat moet met
+  de service-rol, dus de sync-knop en "Badges vastleggen" roepen de toekenning
+  nu met de admin-client aan (het recht voor vastleggen wordt eerst
+  gecontroleerd). Tot nu toe draaide de sync-knop met de sessie van het lid,
+  en mislukte het schrijven voor wie geen `achievements.finalize` heeft stil.
+  Lukt het lezen van een van die bronnen niet, dan blijven de badges van die
+  bron zoals ze waren en gaan de ritbadges door.
+- **Groeibriljant intrekken.** Zet een lid op zijn profiel het delen van zijn
+  steen uit, dan verwijdert `profiel/actions.ts` al zijn `growth_week`-badges.
+  Deelt hij weer, dan komen die van de laatste 8 weken bij de volgende run
+  terug; oudere niet.
+- **Hall of fame** toont 20 in plaats van 12 badges, ongeveer twee weken.
+- **Hulp en privacy.** `/hulp/club#rankings` zegt dat elke lijst een badge
+  heeft, wat er bij gelijke stand gebeurt, en dat de Groeibriljant-badge
+  verdwijnt als je het delen uitzet. `/privacy`: bij live tracking dat wie
+  bovenaan Clubmens staat de weekbadge met dat aantal krijgt; bij ZWBriljant
+  dat de grootste stijger de weekbadge met de punten erbij krijgt en dat die
+  verdwijnt als je het delen uitzet. **Zonder nieuwe privacyversie**: dezelfde
+  ontvangers (alle goedgekeurde leden) en gegevens die ze op Rankings al zien.
+  Nog niet goedgekeurd door de eigenaar.
+- **Bewust niet.** Geen badge per weergave (Buitenbeentje in uren,
+  Binnenvetter in km): één badge per kaart. Geen maandbadges voor Rider of the
+  month. Oude Groeibriljant-badges van vóór 8 weken worden niet nagerekend;
+  met `/api/achievements/finalize?weeks=all` kan dat wel.
+- **Gecontroleerd.** Vitest: `achievement-week-awards.test.ts` (nieuw: elke
+  ranglijst een badge, gelijke stand, Groeibriljant niet voor wie niet deelt of
+  niet is goedgekeurd en weg na stoppen met delen, een onleesbare bron laat zijn
+  badges staan) en `rankings.test.ts`. Volledige suite: alleen de bekende fouten
+  (`omnium-live.test.ts` zonder `.env.local`, `club-texts-render.test.ts` op
+  "ZWB TTT-plan" in de hulp, ook op `main`). `tsc` en ESLint schoon.
+- **Niet geverifieerd.** 0356 is niet toegepast en lokaal niet te testen (geen
+  Docker). Tot hij er is, slaat de toekenning de zes nieuwe badges over (foreign
+  key) en gaan de vier oude door. Niet in de browser bekeken (geen `.env.local`
+  in deze worktree); het intrekken bij het profiel opslaan alleen in code.
 
 ### Databasecheck 2026-11-17: middleware, nawerk en storage-policies
 
@@ -29612,7 +29683,7 @@ de meeste uren, meer ranglijsten, en lijstjes met alleen de top 3.
 - Weekbadges (`lib/achievements/awards.ts`): Kudo-magneet (`kudos_received_week`)
   wordt niet meer toegekend; **Zitvleeskampioen** (`hours_week`, meeste uren,
   icoon klok) neemt zijn plek in. Eerder gewonnen Kudo-magneten blijven op
-  profielen; de Hall of fame toont alleen de vier huidige weekbadges. De upsert
+  profielen; de Hall of fame toont alleen de huidige weekbadges (*sinds 2026-11-24 tien*). De upsert
   gaat per badge, en een foreign-key-fout (badge nog niet in `achievement_badges`)
   slaat alleen die badge over, zonder melding. Zo mag `0277` voor of na de deploy.
 - Ranglijsten (`lib/rankings/rankings.ts`, puur), uit ritten van elke bron en met
@@ -29654,7 +29725,9 @@ de meeste uren, meer ranglijsten, en lijstjes met alleen de top 3.
   eigen ranglijsten bij de segmenten.
 - Badges voor de nieuwe lijsten: alleen de vier weekbadges. Een badge is voor
   iedereen zichtbaar, ook de groei op je ZWBriljant-steen; dat past niet bij
-  delen dat je kunt intrekken.
+  delen dat je kunt intrekken. *Niet meer zo: sinds 2026-11-24 ("Gebouwd — Een
+  weekbadge voor elke ranglijst") heeft elke lijst een weekbadge; Groeibriljant
+  alleen voor wie deelt, en hij verdwijnt als je het delen uitzet.*
 - Kudo-magneten wissen: dat zijn verdiende badges.
 
 **Gecontroleerd.** Vitest: `rankings.test.ts` (nieuw: gelijke stand, ontdubbelen,

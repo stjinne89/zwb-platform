@@ -64,7 +64,9 @@ export async function syncMyStravaActivities(
     // Weekly awards + revalidate alleen wanneer we klaar zijn met de
     // volledige sync (anders draaien we dit 10x voor één UI-update).
     if (result.done) {
-      await awardCompletedAchievementWeeks(supabase).catch(() => null);
+      // Met de service-rol, zoals de cron: Clubmens en Groeibriljant moeten
+      // alle aanmeldingen en gedeelde stenen zien.
+      await awardCompletedAchievementWeeks(createAdminClient()).catch(() => null);
       revalidatePath("/stats/rankings");
       revalidatePath("/dashboard");
       revalidatePath("/leden");
@@ -592,7 +594,8 @@ export async function finalizeAchievementAwards() {
   }
 
   try {
-    const result = await awardCompletedAchievementWeeks(supabase);
+    // Het recht is hierboven gecontroleerd; de berekening zelf met de service-rol.
+    const result = await awardCompletedAchievementWeeks(createAdminClient());
     revalidatePath("/stats/rankings");
     revalidatePath("/leden");
     revalidatePath("/profiel");

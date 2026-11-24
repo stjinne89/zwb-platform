@@ -162,7 +162,8 @@ export default async function RankingsPage({
         )
         .in("badge_id", BADGES.map((badge) => badge.id))
         .order("period_start", { ascending: false })
-        .limit(12),
+        // Tien weekbadges per week: zo staan er ongeveer twee weken.
+        .limit(20),
     ]);
 
   // Testaccounts (0333): RLS verbergt hun profiel, dus ook hun aanmeldingen en live-ritten.

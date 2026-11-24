@@ -331,7 +331,7 @@ export type BriljantGrowth = {
   growth: number;
 };
 
-type GrowthRow = { profile_id: string; week: string; facets: unknown; consistency: number | string | null };
+export type GrowthRow = { profile_id: string; week: string; facets: unknown; consistency: number | string | null };
 
 /**
  * Per lid de laatste steen waarvoor `isTo` geldt tegen de laatste waarvoor

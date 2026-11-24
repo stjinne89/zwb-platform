@@ -515,7 +515,8 @@ export default function PrivacyPage() {
             hoeveel dagen je live reed (geen locatie of tijden) telt, samen met
             de events waar je ja op zei, mee voor de ranglijst Clubmens op <ClubShortName />{" "}
             Rankings en bij Rider of the month op het dashboard, die alle
-            goedgekeurde leden zien.
+            goedgekeurde leden zien. Sta je na afloop van de week bovenaan, dan
+            krijg je de weekbadge Clubmens, met dat aantal.
           </li>
           <li>
             <strong>Berichten op je fietscomputer:</strong> de maker van een
@@ -675,7 +676,9 @@ export default function PrivacyPage() {
             die naast hun eigen steen zetten. Op <ClubShortName />{" "}Rankings zien zij ook hoeveel
             punten je score sinds vorige week steeg, en bij Rider of the month op
             het dashboard hoeveel sinds vorige maand, met je score van toen en van
-            nu (Groeibriljant). Wil je dat niet, zet dan
+            nu (Groeibriljant). Steeg je in een week het meest, dan krijg je de
+            weekbadge Groeibriljant, met de punten die erbij kwamen; zet je het
+            delen uit, dan verdwijnen die badges. Wil je dat niet, zet dan
             &ldquo;Mijn <ModuleName module="rennersniveau" />-steen delen met leden&rdquo; in je profiel uit:
             dan is je steen meteen voor niemand anders meer te zien, en zie je
             zelf ook de stenen van andere leden niet. Voor het <ClubShortName />-gemiddelde tellen we de laatste score van

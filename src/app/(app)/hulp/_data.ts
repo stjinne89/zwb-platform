@@ -183,7 +183,8 @@ export const GUIDES = [
       "Verder: Metronoom (op hoeveel dagen je fietste), Clubmens (events waar je ja op zei, plus de dagen dat je live meereed via Samen fietsen) en Groeibriljant (hoeveel punten je {m:rennersniveau}-steen erbij kreeg sinds de steen van vorige week).",
       "Groeibriljant toont alleen leden die hun {m:rennersniveau}-steen delen. Verberg je je steen, dan sta je er niet in en zie je de lijst niet.",
       "Je ziet de top 3 en je eigen plek. Tik op een lijst voor de hele ranglijst.",
-      "De winnaars van Zitvleeskampioen, Kilometervreter, Klimmer van de week en Meest actief krijgen na afloop van de week een weekbadge.",
+      "Elke lijst heeft een weekbadge. Wie na afloop van de week bovenaan staat, krijgt hem; staan er meer op de eerste plek, dan krijgen ze hem allemaal. Buitenbeentje telt in kilometers, Binnenvetter in uren.",
+      "De Groeibriljant-badge krijg je alleen als je je {m:rennersniveau}-steen deelt. Zet je het delen uit, dan verdwijnen je Groeibriljant-badges.",
     ],
   },
   {

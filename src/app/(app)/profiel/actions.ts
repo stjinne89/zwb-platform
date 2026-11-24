@@ -14,6 +14,7 @@ import { HOUSEHOLD_MAX, HOUSEHOLD_MOMENTS } from "@/lib/nutrition/shopping";
 import { syncPowerProfileFor } from "@/lib/teams/power-sync";
 import { isDashboardPartKey } from "@/lib/dashboard-parts";
 import { isHideableKey } from "@/lib/member-view";
+import { GROWTH_BADGE_ID } from "@/lib/achievements/awards";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
@@ -240,6 +241,16 @@ export async function updateProfile(formData: FormData) {
         .from("zwbriljant_preferences")
         .upsert({ profile_id: user.id, visible: false }, { onConflict: "profile_id" });
   if (briljantError) return { ok: false as const, error: briljantError.message };
+  // Groeibriljant-weekbadges laten je groei zien; wie niet meer deelt, verliest
+  // ze. Deel je weer, dan komen die van de laatste weken bij de volgende run terug.
+  if (!shareBriljant) {
+    const { error: growthError } = await createAdminClient()
+      .from("achievement_awards")
+      .delete()
+      .eq("badge_id", GROWTH_BADGE_ID)
+      .eq("profile_id", user.id);
+    if (growthError) return { ok: false as const, error: growthError.message };
+  }
 
   // Dashboard: wat het formulier aanbood en niet aangevinkt is, is verborgen.
   // Zolang 0318 er niet is, blokkeert alleen iets verbergen het opslaan.

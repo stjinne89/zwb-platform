@@ -2,7 +2,7 @@
 // aanmeldingen, live-ritten en ZWBriljant-stenen. Alles telt uit elke bron
 // (Strava, intervals.icu, import), daarom geen kudos: die heeft alleen Strava.
 
-import { weeklyScores, type ActivityRow, type WeekScore } from "@/lib/achievements/awards";
+import { weeklyScores, type ActivityRow, type WeekScore } from "@/lib/achievements/week-scores";
 import { amsterdamDateKey } from "@/lib/birthdays";
 import type { BriljantGrowth } from "@/lib/briljant/compare";
 import { formatScore } from "@/lib/briljant/score";
