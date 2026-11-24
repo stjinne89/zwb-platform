@@ -8,7 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Streamknop in het blok van het event op de kalender
-   (2026-11-24): lokaal gecommit, niet gepusht.** Geen migratie. Open: op de
+   (2026-11-24): commits `4d367f80` en `1adc8000`, op 2026-11-24 gepusht naar
+   `main` (eigenaar: "Ja, push").** Geen migratie. Open: op de
    echte kalender ingelogd een race met een stream bekijken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Teamindeling: zMAP en zFTP opnieuw geijkt (2026-11-24): de
@@ -12884,7 +12885,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Streamknop in het blok van het event op de kalender
 
-**2026-11-24, lokaal gecommit, niet gepusht. Geen migratie.**
+**2026-11-24, commits `4d367f80` en `1adc8000`, op 2026-11-24 gepusht naar
+`main`. Geen migratie.**
 
 - **Waarom.** Vraag van de eigenaar: de streamknop hoort in het blok van het
   event, niet in een losse regel eronder.
