@@ -7,18 +7,16 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Club Ladder: ZWB logt zelf in (2026-11-24): lokaal gecommit
-   (`aff37f08`), niet gepusht.** Migratie `0357_club_ladder_session.sql` op
-   2026-11-24 op productie toegepast (eigenaar: "Ja, toepassen").
-   **Geblokkeerd:** de eigenaar kan niet met een wachtwoord inloggen. In Chrome
-   toont `/signin` alleen Google en Discord; het formulier staat nog wel in de
-   HTML, maar een script op de pagina haalt het weg, en "Forgotten password?"
-   ook. De eigenaar kiest hoe verder. Het oorspronkelijke plan was:
-   `LADDER_EMAIL` en `LADDER_PASSWORD` op Netlify zetten (account met
-   wachtwoord); pushen; na de eerste sync in `club_ladder_session` kijken of er
-   een cookie staat en geen `login_error`; daarna de geplande Chrome-taak
-   `club-ladder-sessie-warmhouden` verwijderen. Zie de ronde "Gebouwd — Club
-   Ladder: ZWB logt zelf in".
+0. **Gebouwd — Club Ladder: sessie plakken in beheer, healthcheck houdt hem
+   warm (2026-11-24): lokaal gecommit, niet gepusht.** Migratie
+   `0357_club_ladder_session.sql` op 2026-11-24 op productie toegepast
+   (eigenaar: "Ja, toepassen"). Eerst gebouwd als zelf inloggen met een
+   wachtwoord; dat bleek niet te kunnen (de ladder kent alleen Google en
+   Discord) en is in dezelfde ronde vervangen. Open, in deze volgorde: pushen;
+   een `connect.sid` plakken op Beheer → Koppelingen; na een paar uur in
+   `integration_health` zien dat `ladder` "sessie geldig" blijft; daarna de
+   geplande Chrome-taak `club-ladder-sessie-warmhouden` verwijderen. Zie de
+   ronde "Gebouwd — Club Ladder: sessie plakken in beheer".
 
 0. **Databasecheck 2026-11-24: demo-check en uitgesloten ritten (2026-11-24):
    gepusht naar `main` (`19d6659e`, eigenaar: "Ja, toepassen en push").**
@@ -186,9 +184,9 @@ gaat stabiliteit voor nieuwe features.
    Zie de ronde "Ingevuld — ZRL R2: routes vooraf uit Zwift Insider".
 
 0. **Ingericht — Club Ladder-sessie warm houden (2026-11-19): geplande taak
-   op de eigen pc, geen code en geen migratie.** Wordt overbodig zodra ZWB zelf
-   inlogt (ronde "Gebouwd — Club Ladder: ZWB logt zelf in", 2026-11-24); dan de
-   taak verwijderen. Zie de ronde "Ingericht — Club Ladder-sessie warm houden".
+   op de eigen pc, geen code en geen migratie.** Wordt overbodig zodra de cookie in
+   beheer staat en de healthcheck hem warm houdt (ronde "Gebouwd — Club Ladder:
+   sessie plakken in beheer", 2026-11-24); dan de taak verwijderen. Zie de ronde "Ingericht — Club Ladder-sessie warm houden".
 
 0. **Gebouwd — Club Ladder: uitdagers zoeken (2026-11-19): gepusht naar `main`
    (`e5e13173`).**
@@ -12862,14 +12860,14 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — Club Ladder: ZWB logt zelf in
+### Gebouwd — Club Ladder: sessie plakken in beheer
 
-**2026-11-24, commit `aff37f08`, lokaal gecommit, niet gepusht. Migratie
+**2026-11-24, lokaal gecommit, niet gepusht. Migratie
 `0357_club_ladder_session.sql` op 2026-11-24 op productie toegepast**
 (eigenaar: "Ja, toepassen"; nagekeken: RLS aan, geen policies, geen select
-voor anon of authenticated, service role mag schrijven, tabel leeg). Op vraag van de eigenaar
-("is daar niet een andere manier dat het zoals zwiftracing de data scraped?"),
-na een kort voorstel ("Ja, bouwen").
+voor anon of authenticated, service role mag schrijven, tabel leeg). Op vraag
+van de eigenaar ("is daar niet een andere manier dat het zoals zwiftracing de
+data scraped?").
 
 - **Waarom ZwiftRacing geen cookie nodig heeft.** Het leest alleen openbare
   pagina's, en kent een ladderrace pas achteraf uit de Zwift-uitslag. De
@@ -12877,67 +12875,79 @@ na een kort voorstel ("Ja, bouwen").
   zonder cookie op. Wat achter de login zit (aanmeldingen en startplekken op
   `/fixture/<id>`, de captain-directory, `/graveyard`, de teamhistorie) staat
   nergens openbaar. Een andere bron is er dus niet.
-- **Wat er nu gebeurt.** De HTML van `/signin` bevat naast Google en Discord
-  een gewoon formulier (e-mail, wachtwoord, `service=clubladder`), zonder
-  captcha of CSRF-token (met `curl` bekeken 2026-11-24). **Later die dag in
-  Chrome:** een script op de pagina haalt de velden en "Forgotten password?"
-  weg, zodat alleen Google en Discord overblijven. De eigenaar heeft geen
-  wachtwoord en kan er geen instellen. De wachtwoordlogin is dus door de ladder
-  zelf uitgezet, en deze route werkt niet zonder hun medewerking. `lib/club-ladder/session.ts`
-  logt daarmee in met `LADDER_EMAIL` en `LADDER_PASSWORD`, zoals
-  `events/zwift-club.ts` met het Zwift-account. Het haalt eerst `/signin` op
-  (dat zet al een `connect.sid`), post het formulier en controleert met
-  `/dashboard` (zonder login een 302 naar `/signin`). Zo hoeft de code niet te
-  weten hoe de ladder op een fout wachtwoord antwoordt.
-- **Opslag.** De cookie gaat naar `club_ladder_session` (0357, één rij, alleen
-  service role), niet naar de env: een env-waarde vraagt bij elke nieuwe
-  cookie een deploy. Volgorde bij lezen: geheugen van de instance, de tabel,
-  `LADDER_COOKIE`. Een andere instance die al opnieuw inlogde, wordt
-  overgenomen; gelijktijdige verzoeken delen één login. Zonder 0357 werkt het
-  ook, dan met alleen de cookie in het geheugen (elke koude start logt in).
-- **Wanneer.** Alleen als de ladder naar `/signin` doorstuurt
-  (`LadderLoginError`): één nieuwe login en dan nog één poging. Omdat elk
-  bezoek de sessie 24 uur verlengt, gebeurt dat alleen na een dag zonder sync.
-  Een mislukte login wordt een kwartier niet herhaald, ook niet door andere
-  instances (`login_error_at`): bij elke sync een fout wachtwoord proberen kan
-  het account blokkeren.
-- **Omgezet:** de sync van wedstrijden en teamhistorie (`fixture-sync.ts`
-  kreeg `renewCookie`, hooguit één keer per sync), het kerkhof
-  (`teams/_actions.ts`) en de captains (`club-ladder/_actions.ts`, via
-  `withLadderSession`). `LadderLoginError` staat nu in `lib/ladder.ts`, zodat
-  ook het kerkhof hem gooit; `fixture-page.ts` exporteert hem nog. De
-  foutmeldingen noemen `LADDER_COOKIE` niet meer. Inrichting en healthcheck
-  tellen de ladder als ingesteld met inloggegevens (of nog een geplakte
-  cookie).
-- **Tests:** `club-ladder-session.test.ts` (formulier, fout wachtwoord,
-  gedeelde login, overnemen, kwartier wachten, opnieuw proberen, alleen
-  `LADDER_COOKIE`) en twee in `club-ladder-fixtures.test.ts` (opnieuw inloggen
-  in de sync, en stoppen als dat mislukt).
+- **Eerste versie, vervangen: zelf inloggen** (`aff37f08`). Na een kort
+  voorstel ("Ja, bouwen") logde de server in met `LADDER_EMAIL` en
+  `LADDER_PASSWORD` via het formulier dat `curl` in de HTML van `/signin` vond.
+  De eigenaar kon niet met een wachtwoord inloggen ("Kijk maar in chrome"). In
+  Chrome haalt een script op de pagina de velden en "Forgotten password?" weg;
+  alleen Google en Discord blijven over. De ladder heeft de wachtwoordlogin dus
+  zelf uitgezet. Het verborgen formulier toch gebruiken is om hun keuze heen
+  werken; dat doen we niet. Gekozen uit twee voorstellen: "Cookie plakken in
+  beheer" (het andere was eerst de maker van de ladder vragen om een
+  API-sleutel of serviceaccount).
+- **Nu.** Een beheerder plakt de `connect.sid` bij Club Ladder op
+  `/beheer/koppelingen` (recht Koppelingen, alleen als de module Teams aan
+  staat). `saveLadderCookie` (`lib/club-ladder/session.ts`) bewaart hem alleen
+  als `/dashboard` er een 200 mee geeft (zonder login een 302 naar `/signin`),
+  in `club_ladder_session` (0357, één rij, alleen service role). Geen
+  env-waarde, dus geen deploy. De kaart toont Geldig (met wanneer geplakt),
+  Verlopen sinds, Uit LADDER_COOKIE of Geen sessie; de uitleg hoe je de cookie
+  kopieert staat op `/hulp` bij Koppelingen van leden.
+- **Warm houden.** De sessie loopt 24 uur na het laatste bezoek af. De
+  healthcheck (`ladder`, elk uur via cron-job.org; 24 runs in de 24 uur voor
+  deze ronde) bezoekt nu `/dashboard` met de cookie (`checkLadderSession`)
+  in plaats van alleen de voorpagina. Dat verlengt hem elk uur, zodat de
+  Chrome-taak weg kan. Verloopt hij toch, dan zegt de check "sessie verlopen",
+  zet `login_error_at`, en stuurt de bestaande melding "Integratie faalt" naar
+  de beheerders bij de overgang van goed naar fout.
+- **Lezen.** Geheugen van de instance, dan de tabel, dan `LADDER_COOKIE`
+  (terugval). Stuurt een pagina naar `/signin` (`LadderLoginError`), dan leest
+  `renewLadderSession` de tabel opnieuw (misschien is er net een nieuwe
+  geplakt) en probeert het één keer; anders "Ladder-sessie verlopen: plak een
+  nieuwe cookie op Beheer → Koppelingen". De sync van wedstrijden en
+  teamhistorie (`fixture-sync.ts`, optie `renewCookie`, hooguit één keer per
+  sync), het kerkhof (`teams/_actions.ts`) en de captains
+  (`club-ladder/_actions.ts`) lopen via `withLadderSession`. `LadderLoginError`
+  staat nu in `lib/ladder.ts`, zodat ook het kerkhof hem gooit.
+- **Gevonden bij de tests:** `ladderCookie(undefined)` valt via zijn
+  standaardwaarde terug op `LADDER_COOKIE`. Een lege rij uit de tabel gaf zo de
+  env-cookie terug als "beheer"; nu `rowCookie`.
+- **Inrichting:** de groep Ladder is uit `ENV_GROUPS`, want er hoort geen
+  env-waarde meer bij.
+- **Tests:** `club-ladder-session.test.ts` (bewaren alleen als ingelogd, een
+  net geplakte cookie overnemen, terugval op `LADDER_COOKIE`, de healthcheck
+  met verlopen en herstel) en twee in `club-ladder-fixtures.test.ts` (een
+  nieuwe sessie in de sync, en stoppen als die er niet is).
 
 **Bewust niet:**
-- **WTRL op dezelfde manier.** Technisch kan het, maar de WTRL-voorwaarden
-  verbieden het zonder schriftelijke toestemming (zie de ronde van 2026-09-21
-  over de resultatensync). Daar verandert deze ronde niets aan.
+- **Zelf inloggen via Google of Discord.** Dat is een inlogscherm in de
+  browser met tweestapsverificatie en botcontrole; een server hoort dat niet
+  na te bootsen.
+- **WTRL op dezelfde manier.** De WTRL-voorwaarden verbieden het aanroepen van
+  hun endpoints van buiten wtrl.racing zonder schriftelijke toestemming (zie de
+  ronde van 2026-09-21 over de resultatensync). Daar verandert deze ronde
+  niets aan.
 - **De aanmeldingen uit Zwift halen** (inschrijvers van het Zwift-event van de
   wedstrijd). Dat geeft wie zich bij Zwift inschreef, niet de startplekken die
   de captain op de ladder gaf, en vraagt alsnog de wedstrijdpagina voor het
   event-ID.
-- **Inloggen via Google of Discord.** Dat is een OAuth-scherm in de browser;
-  de server kan dat niet zelf. Het account heeft dus een wachtwoord nodig
-  ("Forgotten password?" op de ladder).
-- **`LADDER_COOKIE` weghalen.** Blijft als terugval voor een installatie
-  zonder inloggegevens.
+- **De kolommen van 0357 hernoemen.** `login_error` en `login_error_at` komen
+  uit de eerste versie en betekenen nu "verlopen sinds"; 0357 stond al op
+  productie, en een hernoeming is een migratie zonder winst.
+- **Eerst de maker vragen** blijft open als betere oplossing (een API-sleutel
+  of serviceaccount maakt het plakken overbodig); hoort in het plannenboek.
 
-**Niet geverifieerd:** de login tegen de echte ladder. Er is lokaal geen
-wachtwoord en niet geprobeerd; de vorm van het formulier en de doorverwijzing
-van `/dashboard` zijn met `curl` bekeken, zonder in te loggen. De migratie is
-niet lokaal te draaien (geen Docker of Supabase-config); op productie alleen
-de tabel en de rechten nagekeken, nog geen login. Of de ladder het
-goed vindt dat een server inlogt: er is geen voorwaardenpagina (`/terms`
-geeft 404); navragen bij de maker is netjes. Lokaal: typecheck, lint op de
-gewijzigde bestanden en de unittests groen, op één bestaande fout na in
-`club-texts-render.test.ts` ("ZWB TTT-plan" in de hulp bij beheer) en
-`omnium-live.test.ts` (zoekt `.env.local`, die in deze worktree ontbreekt).
+**Niet geverifieerd:** het opslaan tegen de echte ladder (lokaal geen cookie
+en geen `.env.local` in deze worktree). Of de ladder de sessie bij een bezoek
+aan `/dashboard` verlengt, rust op wat de eigenaar op 2026-11-19 in DevTools
+zag (Expires schoof op bij verversen); of de ladder een harde maximale
+sessieduur heeft, is niet bekend. Of het de ladder stoort dat de server elk
+uur `/dashboard` opent: één verzoek per uur, er is geen voorwaardenpagina
+(`/terms` geeft 404). Lokaal: typecheck, lint op de gewijzigde bestanden en
+de unittests groen. In de volle suite falen `club-texts-render.test.ts` ("ZWB
+TTT-plan" in de hulp bij beheer, al op `main`) en `omnium-live.test.ts` (zoekt
+`.env.local`), en wisselend een paar die los wel slagen (time-outs onder de
+last van de volle suite).
 
 ### Gebouwd — Een weekbadge voor elke ranglijst
 
@@ -14173,11 +14183,12 @@ taak klaarzetten die elke dag de club ladder cookie vernieuwt via Chrome").
 Claude-app open is. Staan ze meer dan 24 uur uit, dan verloopt de sessie. Of
 de ladder ook een harde maximale sessieduur heeft, is onbekend.
 
-**Ingehaald op 2026-11-24** door "Gebouwd — Club Ladder: ZWB logt zelf in": de
-server logt zelf in en bewaart de cookie in de database (0357). Daarmee
-vervallen twee "bewust niet"-punten hierboven: de cookie wordt nu wel
-automatisch vervangen, en staat wel in de database. De taak is alleen nog
-nodig tot `LADDER_EMAIL` en `LADDER_PASSWORD` op Netlify staan.
+**Ingehaald op 2026-11-24** door "Gebouwd — Club Ladder: sessie plakken in
+beheer": de cookie staat nu in de database (0357), een beheerder plakt hem op
+`/beheer/koppelingen` zonder deploy, en de healthcheck bezoekt de ladder elk
+uur met die cookie. Daarmee vervallen twee "bewust niet"-punten hierboven (geen
+deploy meer bij een nieuwe cookie, en de cookie staat wel in de database). De
+taak is alleen nog nodig tot er een cookie in beheer staat.
 
 ### Gebouwd — Club Ladder: uitdagers zoeken
 

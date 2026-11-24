@@ -616,6 +616,9 @@ export const ADMIN_GUIDES = [
       "De agenda-app haalt niet meer op: het abonnement staat waarschijnlijk niet meer in de agenda-app. Het lid voegt de link opnieuw toe, of maakt een nieuwe op zijn profiel.",
       "Bij meldingen staat per toestel wanneer er voor het laatst een melding heen ging. Geen toestel: het lid zet meldingen aan op zijn profiel; op een iPhone alleen als {kort} als app op het beginscherm staat.",
       "Sleutels, tokens, chatnummers en de links zelf staan niet op deze pagina.",
+      "Club Ladder: aanmeldingen, captains, het kerkhof en de teamhistorie staan op de ladder achter een login, en de ladder kent alleen inloggen met Google of Discord. Log in op ladder.cycleracing.club, open de ontwikkelaarstools (F12) → Application → Cookies → ladder.cycleracing.club en kopieer de waarde van connect.sid. Plak die bij Club Ladder en kies Opslaan; de app bewaart hem alleen als de ladder er echt mee inlogt.",
+      "Elk uur bezoekt de app de ladder met die sessie; zo blijft hij geldig. Log daarna niet uit op de ladder, want dan vervalt hij. Wil je in je eigen browser wel kunnen uitloggen, kopieer de cookie dan uit een incognitovenster en sluit dat zonder uit te loggen.",
+      "Verloopt de sessie toch, dan krijgen beheerders de melding Integratie faalt met ladder erin, en staat bij Club Ladder Verlopen. Plak dan een nieuwe cookie.",
     ],
   },
   {

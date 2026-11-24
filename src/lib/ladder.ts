@@ -1,7 +1,6 @@
 // Fetch + parse de Club Ladder graveyard-pagina (achter login).
-// De sessiecookie komt uit lib/club-ladder/session.ts: zelf ingelogd met
-// LADDER_EMAIL/LADDER_PASSWORD, of met de hand geplakt in LADDER_COOKIE
-// (bv. "connect.sid=s%3A...").
+// De sessiecookie komt uit lib/club-ladder/session.ts: geplakt op
+// /beheer/koppelingen, of in LADDER_COOKIE (bv. "connect.sid=s%3A...").
 
 const GRAVEYARD_URL = "https://ladder.cycleracing.club/graveyard";
 

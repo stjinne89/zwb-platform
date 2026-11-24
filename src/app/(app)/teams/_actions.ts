@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { syncTeamResults } from "@/lib/team-results/sync";
 import { fetchLadderGraveyard, normalizeTeamName } from "@/lib/ladder";
-import { ladderSessionConfigured, LADDER_SESSION_MISSING, withLadderSession } from "@/lib/club-ladder/session";
+import { withLadderSession } from "@/lib/club-ladder/session";
 import { getClub } from "@/lib/club";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 
@@ -41,8 +41,6 @@ export async function syncResultsNow() {
 }
 
 export async function syncLadderGraveyard() {
-  if (!ladderSessionConfigured()) return { ok: false as const, error: LADDER_SESSION_MISSING };
-
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };

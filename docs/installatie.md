@@ -101,7 +101,7 @@ Niet getest in fase 7.
   - `TOKEN_ENCRYPTION_KEY` (`openssl rand -base64 32`);
   - de `…_SECRET`-waarden van de crons die je aanzet (zie §6).
 - Clubwaarden die geheim of per installatie zijn, blijven env: het Zwift-club-ID
-  (`ZWIFT_CLUB_ID`), de Zwift-accounts, `WTRL_COOKIE`, `LADDER_EMAIL`/`LADDER_PASSWORD`, de
+  (`ZWIFT_CLUB_ID`), de Zwift-accounts, `WTRL_COOKIE`, de
   Instagram-token en `PODCAST_RSS_URL`. Zet ze nooit in de repository: de
   secrets-scan van Netlify laat de build dan falen.
 - Elke push naar `main` bouwt elke installatie opnieuw. Met meer clubs telt dat

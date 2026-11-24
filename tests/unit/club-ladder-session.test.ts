@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Eén rij club_ladder_session in het geheugen.
-const db = vi.hoisted(() => ({ row: null as Record<string, unknown> | null, writes: [] as Record<string, unknown>[] }));
+const db = vi.hoisted(() => ({ row: null as Record<string, unknown> | null }));
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
     from: () => ({
       select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: db.row, error: null }) }) }),
       upsert: async (values: Record<string, unknown>) => {
-        db.writes.push(values);
         db.row = { ...(db.row ?? {}), ...values };
         return { error: null };
       },
@@ -21,79 +20,27 @@ vi.mock("@/lib/club", () => ({
 
 import { LadderLoginError } from "@/lib/ladder";
 import {
-  ladderSessionConfigured,
-  loginLadder,
-  renewLadderSession,
+  checkLadderSession,
+  ladderSessionStatus,
   resetLadderSessionCache,
-  sessionCookieFrom,
+  saveLadderCookie,
   storedLadderCookie,
   withLadderSession,
 } from "@/lib/club-ladder/session";
 
-type Call = { url: string; init: RequestInit };
+const VALID = "connect.sid=s%3Ageldig";
 
-function response(status: number, cookie?: string) {
-  const headers = new Headers();
-  if (cookie) headers.append("set-cookie", `connect.sid=${cookie}; Path=/; HttpOnly; Secure; SameSite=Lax`);
-  if (status >= 300 && status < 400) headers.set("location", "/signin");
-  return new Response(status === 302 ? null : "<html></html>", { status, headers });
-}
-
-/** De ladder: /signin geeft een sessie, POST een nieuwe, /dashboard 200 bij het juiste wachtwoord. */
-function fakeLadder(options: { password?: string } = {}) {
-  const calls: Call[] = [];
-  let accepted = false;
+/** /dashboard: 200 met de geldige cookie, anders een doorverwijzing naar /signin. */
+function fakeLadder() {
+  const calls: Array<{ url: string; cookie: string | undefined }> = [];
   const impl = async (url: string, init: RequestInit = {}) => {
-    calls.push({ url, init });
-    if (url.endsWith("/signin") && (init.method ?? "GET") === "GET") return response(200, "s%3Avoor");
-    if (url.endsWith("/signin")) {
-      accepted = new URLSearchParams(String(init.body)).get("password") === (options.password ?? "geheim");
-      return response(302, accepted ? "s%3Ana" : undefined);
-    }
-    if (url.endsWith("/dashboard")) {
-      const cookie = (init.headers as Record<string, string>).Cookie;
-      return response(accepted && cookie === "connect.sid=s%3Ana" ? 200 : 302);
-    }
-    return response(404);
+    const cookie = (init.headers as Record<string, string> | undefined)?.Cookie;
+    calls.push({ url, cookie });
+    if (cookie === VALID) return new Response("<html>Logout</html>", { status: 200 });
+    return new Response(null, { status: 302, headers: { location: "/signin" } });
   };
   return { calls, impl };
 }
-
-describe("sessionCookieFrom", () => {
-  it("leest connect.sid uit de Set-Cookie-headers", () => {
-    const headers = new Headers();
-    headers.append("set-cookie", "andere=1; Path=/");
-    headers.append("set-cookie", "connect.sid=s%3Aabc.def; Path=/; HttpOnly");
-    expect(sessionCookieFrom(new Response(null, { headers }))).toBe("connect.sid=s%3Aabc.def");
-    expect(sessionCookieFrom(new Response(null))).toBeNull();
-  });
-});
-
-describe("loginLadder", () => {
-  it("post het formulier met de sessie van de inlogpagina en geeft de nieuwe cookie", async () => {
-    const ladder = fakeLadder();
-    const cookie = await loginLadder({ email: "captain@example.test", password: "geheim" }, { userAgent: "test", fetchImpl: ladder.impl });
-    expect(cookie).toBe("connect.sid=s%3Ana");
-
-    const post = ladder.calls[1];
-    expect(post.init.method).toBe("POST");
-    expect((post.init.headers as Record<string, string>).Cookie).toBe("connect.sid=s%3Avoor");
-    expect(Object.fromEntries(new URLSearchParams(String(post.init.body)))).toEqual({
-      email: "captain@example.test",
-      password: "geheim",
-      returnTo: "",
-      service: "clubladder",
-    });
-    expect(ladder.calls.map((call) => call.init.redirect)).toEqual(["manual", "manual", "manual"]);
-  });
-
-  it("meldt een fout wachtwoord als /dashboard naar /signin doorstuurt", async () => {
-    const ladder = fakeLadder({ password: "anders" });
-    await expect(
-      loginLadder({ email: "captain@example.test", password: "geheim" }, { userAgent: "test", fetchImpl: ladder.impl }),
-    ).rejects.toThrow(/wachtwoord klopt niet/);
-  });
-});
 
 describe("ladder-sessie", () => {
   let ladder: ReturnType<typeof fakeLadder>;
@@ -101,11 +48,8 @@ describe("ladder-sessie", () => {
   beforeEach(() => {
     resetLadderSessionCache();
     db.row = null;
-    db.writes = [];
     ladder = fakeLadder();
     vi.stubGlobal("fetch", vi.fn(ladder.impl));
-    vi.stubEnv("LADDER_EMAIL", "captain@example.test");
-    vi.stubEnv("LADDER_PASSWORD", "geheim");
     vi.stubEnv("LADDER_COOKIE", "");
   });
   afterEach(() => {
@@ -113,59 +57,65 @@ describe("ladder-sessie", () => {
     vi.unstubAllEnvs();
   });
 
-  it("logt in na een verlopen sessie en bewaart de nieuwe cookie", async () => {
-    db.row = { cookie: "connect.sid=s%3Aoud", login_error: null, login_error_at: null };
-    expect(await storedLadderCookie()).toBe("connect.sid=s%3Aoud");
+  it("bewaart een geplakte cookie alleen als de ladder ermee inlogt", async () => {
+    expect(await saveLadderCookie("s%3Afout")).toEqual({ ok: false, error: expect.stringMatching(/niet als ingelogd/) });
+    expect(db.row).toBeNull();
+    expect(await saveLadderCookie("iets anders=1")).toEqual({ ok: false, error: "Geen connect.sid-cookie." });
 
-    // Twee gelijktijdige verzoeken delen één login.
-    const [a, b] = await Promise.all([renewLadderSession("connect.sid=s%3Aoud"), renewLadderSession("connect.sid=s%3Aoud")]);
-    expect(a).toBe("connect.sid=s%3Ana");
-    expect(b).toBe("connect.sid=s%3Ana");
-    expect(ladder.calls.filter((call) => call.init.method === "POST")).toHaveLength(1);
-    expect(db.row).toMatchObject({ cookie: "connect.sid=s%3Ana", login_error: null });
-    expect(await storedLadderCookie()).toBe("connect.sid=s%3Ana");
+    // Alleen de waarde, zoals DevTools hem toont, is ook goed.
+    expect(await saveLadderCookie(" s%3Ageldig ")).toEqual({ ok: true });
+    expect(db.row).toMatchObject({ cookie: VALID, login_error: null, login_error_at: null });
+    expect(await storedLadderCookie()).toBe(VALID);
+    expect(await ladderSessionStatus()).toMatchObject({ source: "beheer", expiredAt: null });
+    expect(ladder.calls.every((call) => call.url.endsWith("/dashboard"))).toBe(true);
   });
 
-  it("neemt een cookie over die een andere instance al ververste", async () => {
-    db.row = { cookie: "connect.sid=s%3Aelders", login_error: null, login_error_at: null };
-    expect(await renewLadderSession("connect.sid=s%3Aoud")).toBe("connect.sid=s%3Aelders");
-    expect(ladder.calls).toHaveLength(0);
-  });
-
-  it("probeert een mislukte login een kwartier niet opnieuw", async () => {
-    vi.stubEnv("LADDER_PASSWORD", "fout");
-    await expect(renewLadderSession(null)).rejects.toThrow(/wachtwoord klopt niet/);
-    expect(db.row).toMatchObject({ login_error: expect.stringMatching(/wachtwoord/) });
-    const before = ladder.calls.length;
-
-    // Ook een nieuwe instance leest de fout uit de tabel.
-    resetLadderSessionCache();
-    await expect(renewLadderSession(null)).rejects.toBeInstanceOf(LadderLoginError);
-    expect(ladder.calls.length).toBe(before);
-  });
-
-  it("probeert met een verse sessie opnieuw als de pagina naar /signin stuurt", async () => {
-    db.row = { cookie: "connect.sid=s%3Aoud", login_error: null, login_error_at: null };
+  it("neemt een cookie die intussen in beheer is geplakt", async () => {
+    db.row = { cookie: "connect.sid=s%3Aoud", renewed_at: null, login_error: null, login_error_at: null };
     const used: string[] = [];
-    const result = await withLadderSession(async (cookie) => {
+    const run = (cookie: string) => {
       used.push(cookie);
-      if (cookie !== "connect.sid=s%3Ana") throw new LadderLoginError("Ladder-sessie verlopen.");
-      return "kerkhof";
-    });
-    expect(result).toBe("kerkhof");
-    expect(used).toEqual(["connect.sid=s%3Aoud", "connect.sid=s%3Ana"]);
+      if (cookie !== VALID) throw new LadderLoginError("Ladder-sessie verlopen.");
+      return Promise.resolve("kerkhof");
+    };
+    await expect(withLadderSession(run)).rejects.toThrow(/plak een nieuwe cookie/);
+    expect(db.row).toMatchObject({ login_error: "verlopen" });
+    expect((await ladderSessionStatus()).expiredAt).not.toBeNull();
+
+    db.row = { cookie: VALID, renewed_at: null, login_error: null, login_error_at: null };
+    expect(await withLadderSession(run)).toBe("kerkhof");
+    expect(used).toEqual(["connect.sid=s%3Aoud", VALID]);
+
+    // Een instance met de oude nog in het geheugen leest na de weigering de tabel.
+    db.row = { cookie: "connect.sid=s%3Aoud", renewed_at: null, login_error: null, login_error_at: null };
+    resetLadderSessionCache();
+    await storedLadderCookie();
+    db.row = { cookie: VALID, renewed_at: null, login_error: null, login_error_at: null };
+    used.length = 0;
+    expect(await withLadderSession(run)).toBe("kerkhof");
+    expect(used).toEqual(["connect.sid=s%3Aoud", VALID]);
   });
 
-  it("werkt zonder inloggegevens alleen met LADDER_COOKIE", async () => {
-    vi.stubEnv("LADDER_EMAIL", "");
-    vi.stubEnv("LADDER_PASSWORD", "");
-    expect(ladderSessionConfigured()).toBe(false);
-    await expect(withLadderSession(async () => "x")).rejects.toThrow(/LADDER_EMAIL/);
+  it("valt terug op LADDER_COOKIE", async () => {
+    await expect(withLadderSession(async () => "x")).rejects.toThrow(/Geen ladder-sessie/);
+    expect((await ladderSessionStatus()).source).toBeNull();
 
-    vi.stubEnv("LADDER_COOKIE", "s%3Ageplakt");
-    expect(ladderSessionConfigured()).toBe(true);
-    expect(await withLadderSession(async (cookie) => cookie)).toBe("connect.sid=s%3Ageplakt");
-    await expect(renewLadderSession("connect.sid=s%3Ageplakt")).rejects.toThrow(/verlopen/);
-    expect(ladder.calls).toHaveLength(0);
+    vi.stubEnv("LADDER_COOKIE", "s%3Ageldig");
+    resetLadderSessionCache();
+    expect(await withLadderSession(async (cookie) => cookie)).toBe(VALID);
+    expect((await ladderSessionStatus()).source).toBe("env");
+  });
+
+  it("healthcheck: bezoekt de ladder, meldt verlopen en herstelt", async () => {
+    expect(await checkLadderSession()).toEqual({ configured: false, ok: true, detail: "geen sessie" });
+
+    db.row = { cookie: "connect.sid=s%3Aoud", renewed_at: null, login_error: null, login_error_at: null };
+    expect(await checkLadderSession()).toMatchObject({ configured: true, ok: false, detail: "sessie verlopen" });
+    expect(db.row).toMatchObject({ login_error: "verlopen" });
+
+    db.row = { ...db.row, cookie: VALID };
+    expect(await checkLadderSession()).toMatchObject({ ok: true, detail: "sessie geldig" });
+    expect(db.row).toMatchObject({ login_error: null, login_error_at: null });
+    expect(ladder.calls.at(-1)).toEqual({ url: "https://ladder.cycleracing.club/dashboard", cookie: VALID });
   });
 });

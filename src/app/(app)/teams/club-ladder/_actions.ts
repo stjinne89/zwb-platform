@@ -8,7 +8,7 @@ import { fetchLadderCaptains } from "@/lib/club-ladder/directory";
 import { parseLadderBand, parseLadderRank } from "@/lib/club-ladder/puzzle";
 import { loadLadderRouteProfile } from "@/lib/club-ladder/route-profile";
 import { ladderRouteBySlug } from "@/lib/club-ladder/routes";
-import { ladderSessionConfigured, LADDER_SESSION_MISSING, withLadderSession } from "@/lib/club-ladder/session";
+import { withLadderSession } from "@/lib/club-ladder/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -508,7 +508,6 @@ export async function loadChallengeCaptains(
 ): Promise<{ ok: true; opponents: ChallengeOpponent[] } | { ok: false; error: string }> {
   const check = await guardAccess();
   if (!check.ok) return check;
-  if (!ladderSessionConfigured()) return { ok: false, error: LADDER_SESSION_MISSING };
 
   const teams = (Array.isArray(opponents) ? opponents : [])
     .slice(0, MAX_CHALLENGE_OPPONENTS)

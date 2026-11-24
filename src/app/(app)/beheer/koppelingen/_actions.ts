@@ -12,6 +12,7 @@ import { adminAreaPermission } from "@/lib/admin-areas";
 import { loadMemberIntegrationInputs } from "@/lib/integrations/load";
 import { memberIntegrations } from "@/lib/integrations/member-overview";
 import { cleanNoticeBody, isNoticeIntegration, NOTICE_BODY_MAX } from "@/lib/integrations/notices";
+import { saveLadderCookie } from "@/lib/club-ladder/session";
 
 /** Eén verzending; meer leden heeft de club niet. */
 const MAX_RECIPIENTS = 300;
@@ -88,4 +89,21 @@ export async function sendIntegrationNotice(input: {
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Versturen mislukt." };
   }
+}
+
+/**
+ * Club Ladder-sessie plakken (0357). De server bewaart hem alleen als de ladder
+ * er echt mee inlogt; daarna houdt de healthcheck hem warm.
+ */
+export async function saveLadderSession(raw: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false, error: "Niet ingelogd." };
+  if (!access.has(adminAreaPermission("koppelingen"))) {
+    return { ok: false, error: "Geen recht om koppelingen te beheren." };
+  }
+  if (typeof raw !== "string" || !raw.trim()) return { ok: false, error: "Geen cookie geplakt." };
+  const result = await saveLadderCookie(raw);
+  if (result.ok) revalidatePath("/beheer/koppelingen");
+  return result;
 }

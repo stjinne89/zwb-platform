@@ -243,11 +243,13 @@ export async function runIntegrationHealthChecks(): Promise<HealthCheckResult[]>
       const res = await withTimeout("https://zwiftpower.com/");
       return evaluateReachable("zwiftpower", res.status);
     }),
+    // Bezoekt de ladder met de bewaarde sessie: dat verlengt hem elk uur met
+    // 24 uur, en meldt het als hij toch verliep (club-ladder/session.ts).
     guard("ladder", async () => {
-      const configured = Boolean(process.env.LADDER_COOKIE?.trim() || (process.env.LADDER_EMAIL?.trim() && process.env.LADDER_PASSWORD));
-      if (!configured) return evaluateReachable("ladder", 0, false);
-      const res = await withTimeout("https://ladder.cycleracing.club/");
-      return evaluateReachable("ladder", res.status);
+      const { checkLadderSession } = await import("@/lib/club-ladder/session");
+      const session = await checkLadderSession();
+      if (!session.configured) return evaluateReachable("ladder", 0, false);
+      return { source: "ladder", ok: session.ok, detail: session.detail };
     }),
     guard("wtrl", async () => {
       const configured = Boolean(process.env.WTRL_COOKIE);
