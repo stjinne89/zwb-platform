@@ -29,6 +29,7 @@ import {
 } from "@/lib/youtube-live/connection";
 import { YouTubeGrantRevokedError, youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { ridesInEvent } from "@/lib/youtube-live/streams";
+import { checkOwnVideo, fetchOwnVideo, parseYouTubeVideoId } from "@/lib/youtube-live/own-stream";
 import { createHelperPairing, removeHelper, sendHelperCommand } from "@/lib/youtube-live/helper";
 import { siteOrigin, streamRoute, streamThumbnail, type ThumbnailEvent } from "@/lib/youtube-live/thumbnail";
 import { overlayMode, OVERLAY_MODES, type OverlayMode } from "@/lib/youtube-live/overlay-theme";
@@ -255,6 +256,85 @@ export async function prepareStream(
   return { ok: true };
 }
 
+/**
+ * Een eigen YouTube-stream aan de race koppelen (0360): een link plakken in
+ * plaats van klaarzetten. Zelfde regels (meerijden, het venster), maar zonder
+ * gekoppeld kanaal; ZWB maakt geen uitzending en zet er niets op.
+ */
+export async function linkOwnStream(eventId: string, link: string): Promise<Result> {
+  if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const { supabase, userId } = session;
+  const videoId = parseYouTubeVideoId(String(link ?? "").slice(0, 500));
+  if (!videoId) return { ok: false, error: "Plak de link van een YouTube-video." };
+
+  const { data } = await supabase
+    .from("events")
+    .select("id, type, title, start_at, team_id, parent_event_id, zwift_event_id, zwift_route_id, laps, distance_km, elevation_m")
+    .eq("id", eventId)
+    .maybeSingle();
+  const event = data as EventRow | null;
+  if (!event) return { ok: false, error: "Race niet gevonden." };
+  const { count: subEvents } = await supabase
+    .from("events")
+    .select("id", { count: "exact", head: true })
+    .eq("parent_event_id", event.id);
+  if (!eventTakesStreams(event, (subEvents ?? 0) > 0)) {
+    return { ok: false, error: "Bij deze race kan geen stream." };
+  }
+  if (!inPrepareWindow(event.start_at, new Date())) {
+    return { ok: false, error: "Koppelen kan vanaf twee weken voor de start." };
+  }
+  if (!(await ridesInEvent(supabase, userId, event))) {
+    return { ok: false, error: "Alleen wie zich aanmeldde of opgesteld is, kan streamen." };
+  }
+
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("event_streams")
+    .select("id, status")
+    .eq("event_id", event.id)
+    .eq("profile_id", userId)
+    .maybeSingle();
+  if ((existing as { status?: string } | null)?.status === "weg") {
+    await admin.from("event_streams").delete().eq("id", (existing as { id: string }).id);
+  } else if (existing) {
+    return { ok: false, error: "Je hebt al een stream bij deze race." };
+  }
+
+  const apiKey = process.env.YOUTUBE_API_KEY?.trim();
+  if (!apiKey) return { ok: false, error: "Koppelen kan nu niet." };
+  let check: ReturnType<typeof checkOwnVideo>;
+  try {
+    check = checkOwnVideo(await fetchOwnVideo(apiKey, videoId));
+  } catch (err) {
+    console.error("[livestream/link]", err);
+    return { ok: false, error: "YouTube gaf geen antwoord. Probeer het zo nog eens." };
+  }
+  if (!check.ok) return check;
+
+  // Een eigen stream krijgt de overlay van de vorige stream van het lid.
+  const last = await lastLook(admin, userId);
+  const { error } = await admin.from("event_streams").insert({
+    event_id: event.id,
+    profile_id: userId,
+    youtube_video_id: videoId,
+    channel_title: check.channelTitle,
+    // De cron kijkt rond de start van de race.
+    scheduled_start_at: event.start_at,
+    status: check.status,
+    source: "eigen",
+    ...last.columns,
+  });
+  if (error && error.code !== "23505") {
+    console.error("[livestream/link]", error);
+    return { ok: false, error: "De stream kon niet worden opgeslagen." };
+  }
+  revalidatePath(`/events/${event.id}`);
+  return { ok: true };
+}
+
 type ThumbnailStream = {
   id: string;
   event_id: string;
@@ -262,6 +342,8 @@ type ThumbnailStream = {
   youtube_video_id: string;
   overlay_theme?: string | null;
   overlay_style?: string | null;
+  /** 'eigen' (0360): gekoppeld met een link; daar zet ZWB geen thumbnail op. */
+  source?: string | null;
   events: ThumbnailEvent | null;
 };
 
@@ -275,6 +357,8 @@ async function pushStreamThumbnail(
   stream: ThumbnailStream,
   look: { theme: OverlayMode; look: OverlayStyle },
 ): Promise<string | null> {
+  // Een eigen video blijft van het lid, ook als zijn kanaal gekoppeld is.
+  if (stream.source === "eigen") return null;
   if (!stream.events) return "Stream niet gevonden.";
   const connection = await loadYouTubeConnection(admin, userId);
   if (!connection) return "Koppel eerst YouTube op je profiel.";
@@ -465,25 +549,24 @@ export async function removeStream(streamId: string): Promise<Result> {
   if (!session) return { ok: false, error: "Niet ingelogd." };
   const { access, userId } = session;
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("event_streams")
-    .select("id, event_id, profile_id, youtube_video_id, scheduled_start_at")
-    .eq("id", streamId)
-    .maybeSingle();
+  // "*" zodat dit ook werkt zolang 0360 nog niet is toegepast.
+  const { data } = await admin.from("event_streams").select("*").eq("id", streamId).maybeSingle();
   const stream = data as {
     id: string;
     event_id: string;
     profile_id: string;
     youtube_video_id: string;
     scheduled_start_at: string;
+    source?: string | null;
   } | null;
   if (!stream) return { ok: true };
   const own = stream.profile_id === userId;
   if (!own && !access.has("events.manage_all")) return { ok: false, error: "Geen recht." };
 
   // Alleen een eigen uitzending die nog niet begon, gaat ook op YouTube weg.
-  // Een opname van een gereden race blijft van het lid.
-  if (own && Date.parse(stream.scheduled_start_at) > Date.now()) {
+  // Een opname van een gereden race blijft van het lid. Een gekoppelde video
+  // (0360) maakte ZWB niet: die gaat alleen uit de app.
+  if (own && stream.source !== "eigen" && Date.parse(stream.scheduled_start_at) > Date.now()) {
     try {
       const connection = await loadYouTubeConnection(admin, userId);
       if (connection) await deleteBroadcast(await youtubeAccessToken(admin, connection), stream.youtube_video_id);

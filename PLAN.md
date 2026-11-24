@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Eigen YouTube-stream aan een race koppelen (2026-11-24): de
+   commit die dit blok toevoegt, lokaal, niet gepusht.** Migratie
+   `0360_event_streams_source` is **nog niet toegepast**. Die moet vóór de push
+   op productie staan, want `linkOwnStream` schrijft `source`. Open: de
+   migratie toepassen, en met een echte eigen stream koppelen, afspelen en
+   weghalen. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Streamcenter: alle streams van een race tegelijk (2026-11-24):
    commit `6407ef22`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja,
    push").** Geen migratie.
@@ -12889,6 +12896,60 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Eigen YouTube-stream aan een race koppelen
+
+**2026-11-24, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
+Migratie `0360_event_streams_source`, nog niet toegepast.**
+
+- **Waarom.** Vraag van de eigenaar: leden die al op hun eigen manier op
+  YouTube streamen, willen die stream aan de race koppelen. Het voorstel was
+  akkoord ("Ja, bouwen").
+- **Wat.**
+  - `0360` voegt `event_streams.source` toe (`'zwb'` of `'eigen'`,
+    standaard `'zwb'`, met een check). Bestaande rijen blijven `'zwb'`.
+  - In het streamblok van de race staat, voor wie mag klaarzetten (meerijden,
+    het venster van twee weken voor tot twee uur na de start) en nog geen
+    stream heeft, naast Stream klaarzetten een veld YouTube-link met
+    Koppelen (`LinkOwnStreamForm`). Een gekoppeld kanaal is niet nodig.
+  - `parseYouTubeVideoId` (puur) neemt `watch?v=`, `youtu.be/`, `/live/` en
+    `/embed/` op `youtube.com`, `www.`, `m.` en `music.`. Kanaallinks en andere
+    sites weigert hij.
+  - `linkOwnStream` controleert de video met één `videos.list` (API-sleutel,
+    1 eenheid; `checkOwnVideo`, puur). De video moet openbaar zijn, insluiten
+    moet aanstaan en er moeten `liveStreamingDetails` zijn. Daarna slaat hij
+    op: de status volgens YouTube, de kanaalnaam van YouTube, als geplande
+    start de start van de race (de cron kijkt daaromheen), `source = 'eigen'`
+    en de overlaykeuzes van de vorige stream. Dezelfde regels als klaarzetten
+    gelden: één stream per lid per race, en een stream met status `weg`
+    mag opnieuw.
+  - Bij `'eigen'` zet ZWB nooit iets op YouTube. `pushStreamThumbnail` slaat zo'n
+    stream over: dat geldt voor Thumbnail vernieuwen, de stijl en donker/licht,
+    en Kopman opslaan. Weghalen wist de video niet op YouTube, ook niet vóór de
+    start. Thumbnail vernieuwen staat er niet bij. Overlay-link, Stijl,
+    resolutie, de live stand en de stream-hulp blijven, want die staan los van
+    YouTube.
+  - Speler, kalenderknop, streamcenter, dashboard, statuscron en de melding
+    "gaat live" lezen `event_streams` en doen dus vanzelf mee.
+  - Op `/hulp`, bij livestreamen, staat een alinea over het koppelen.
+- **Bewust niet.**
+  - Geen kanaallink (`youtube.com/@naam/live`): omzetten kost een zoekopdracht
+    van 100 eenheden en pakt de verkeerde video als er niets live is.
+  - Geen niet-openbare (ook geen verborgen) video's, geen gewone video's, geen
+    Twitch.
+  - Geen koppelen voor wie niet meerijdt, zoals commentaar. Dat kan later met
+    de regel van eventbeheer.
+  - De titel of beschrijving op YouTube wordt niet aangepast.
+- **Niet geverifieerd.**
+  - `0360` is in PGlite getest (twee keer uit te voeren, bestaande rijen op
+    `zwb`, alleen `zwb` en `eigen`), maar nog niet op productie toegepast.
+  - Unit-tests voor het lezen van de link en de controle van de video zijn
+    schoon, net als typecheck en lint.
+  - Niet gezien: het veld op de echte racepagina, een echte `videos.list` met
+    een eigen stream, en Weghalen van een gekoppelde stream.
+  - Los hiervan faalt `club-texts-render` ("beheer noemt ZWB niet") al op
+    `main`: de beheertekst op `/hulp` noemt "ZWB TTT-plan" (Sauce-mod,
+    `b44b4bb6`).
 
 ### Gebouwd — Streamcenter: alle streams van een race tegelijk
 

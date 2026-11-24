@@ -27,6 +27,8 @@ export type EventStream = {
   overlayStyle: OverlayStyle;
   /** De resolutie van de overlay (0348). */
   overlaySize: OverlaySize;
+  /** Gekoppeld met een link (0360): geen thumbnail van ZWB. Zonder kolom ZWB. */
+  source: "zwb" | "eigen";
 };
 
 type StreamRow = {
@@ -41,6 +43,7 @@ type StreamRow = {
   overlay_theme?: string | null;
   overlay_style?: string | null;
   overlay_size?: string | null;
+  source?: string | null;
   profiles: { display_name: string | null } | { display_name: string | null }[] | null;
 };
 
@@ -75,6 +78,7 @@ export async function loadEventStreams(
         overlayTheme: overlayMode(row.overlay_theme),
         overlayStyle: overlayStyle(row.overlay_style),
         overlaySize: overlaySize(row.overlay_size),
+        source: row.source === "eigen" ? "eigen" : "zwb",
       };
     });
 }

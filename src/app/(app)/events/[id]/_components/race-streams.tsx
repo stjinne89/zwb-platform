@@ -20,6 +20,7 @@ import {
   OverlayLinkButton,
   OverlaySizeSelect,
   OverlayStandToggle,
+  LinkOwnStreamForm,
   OverlayLookPicker,
   PrepareStreamButton,
   ThumbnailButton,
@@ -147,7 +148,7 @@ export async function RaceStreams({
       {ownStream && overlayPath && (
         <div className="flex flex-wrap items-center gap-2">
           <OverlayLinkButton path={overlayPath} />
-          <ThumbnailButton streamId={ownStream.id} eventId={event.id} />
+          {ownStream.source !== "eigen" && <ThumbnailButton streamId={ownStream.id} eventId={event.id} />}
           <OverlaySizeSelect streamId={ownStream.id} initial={ownStream.overlaySize} />
         </div>
       )}
@@ -171,6 +172,8 @@ export async function RaceStreams({
             {connection?.needs_reconnect ? "YouTube opnieuw koppelen" : "YouTube koppelen om te streamen"}
           </a>
         ))}
+      {/* Of een eigen stream koppelen met een link (0360). */}
+      {showPrepare && <LinkOwnStreamForm eventId={event.id} />}
     </section>
   );
 }

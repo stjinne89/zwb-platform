@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Copy, ImageUp, Radio } from "lucide-react";
+import { Check, ChevronDown, Copy, ImageUp, Link2, Radio } from "lucide-react";
 import {
+  linkOwnStream,
   prepareStream,
   refreshStreamThumbnail,
   setOverlaySize,
@@ -52,6 +53,43 @@ export function PrepareStreamButton({ eventId, initialSize }: { eventId: string;
       </Button>
       {error && <span className="text-sm text-destructive">{error}</span>}
     </div>
+  );
+}
+
+/** Een eigen YouTube-stream koppelen met een link (0360), zonder gekoppeld kanaal. */
+export function LinkOwnStreamForm({ eventId }: { eventId: string }) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [link, setLink] = useState("");
+
+  return (
+    <form
+      className="flex flex-wrap items-center gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setError(null);
+        startTransition(async () => {
+          const res = await linkOwnStream(eventId, link);
+          if (!res.ok) setError(res.error);
+        });
+      }}
+    >
+      <input
+        type="url"
+        inputMode="url"
+        aria-label="YouTube-link"
+        placeholder="YouTube-link"
+        value={link}
+        disabled={pending}
+        onChange={(event) => setLink(event.target.value)}
+        className="h-8 min-w-0 flex-[1_1_14rem] rounded-md border bg-background px-2 text-sm"
+      />
+      <Button type="submit" size="sm" variant="outline" disabled={pending || !link.trim()}>
+        <Link2 className="size-3.5" />
+        {pending ? "Bezig…" : "Koppelen"}
+      </Button>
+      {error && <span className="basis-full text-sm text-destructive">{error}</span>}
+    </form>
   );
 }
 

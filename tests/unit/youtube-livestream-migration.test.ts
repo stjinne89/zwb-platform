@@ -182,3 +182,21 @@ describe("0346 overlay_style", () => {
     await expect(db.exec("update public.event_streams set overlay_style = null")).rejects.toThrow();
   });
 });
+
+describe("0360 source", () => {
+  it("zet bestaande streams op zwb, laat alleen zwb en eigen toe, en mag opnieuw", async () => {
+    const sql = (await readFile("supabase/migrations/0360_event_streams_source.sql", "utf8")).replace(
+      /notify pgrst[^;]*;/g,
+      "",
+    );
+    await db.exec(sql);
+    await db.exec(sql);
+    const { rows } = await db.query<{ source: string }>("select source from public.event_streams");
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.source === "zwb")).toBe(true);
+    await db.exec("update public.event_streams set source = 'eigen'");
+    await db.exec("update public.event_streams set source = 'zwb'");
+    await expect(db.exec("update public.event_streams set source = 'twitch'")).rejects.toThrow();
+    await expect(db.exec("update public.event_streams set source = null")).rejects.toThrow();
+  });
+});
