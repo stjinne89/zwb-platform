@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0357: demo_read_only() slaat GET en HEAD over (die zijn in PostgREST al
+// 0358: demo_read_only() slaat GET en HEAD over (die zijn in PostgREST al
 // alleen-lezen) en strava_activities krijgt een index voor uitgesloten ritten
 // (databasecheck 2026-11-24).
 let db: PGlite;
@@ -21,7 +21,7 @@ beforeAll(async () => {
       "create table strava_activities(id bigint primary key, profile_id uuid, training_excluded_at timestamptz);",
     ].join("\n"),
   );
-  await db.exec(await readFile("supabase/migrations/0357_demo_check_get_excluded_idx.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/0358_demo_check_get_excluded_idx.sql", "utf8"));
 });
 
 afterAll(async () => {
@@ -41,7 +41,7 @@ async function readOnlyAfter(method: string | null, uid: string | null) {
   }
 }
 
-describe("0357 demo_read_only", () => {
+describe("0358 demo_read_only", () => {
   it("slaat GET en HEAD over", async () => {
     expect(await readOnlyAfter("GET", DEMO)).toBe("off");
     expect(await readOnlyAfter("HEAD", DEMO)).toBe("off");
@@ -61,7 +61,7 @@ describe("0357 demo_read_only", () => {
   });
 });
 
-describe("0357 index", () => {
+describe("0358 index", () => {
   it("legt een partiële index op uitgesloten ritten", async () => {
     const { rows } = await db.query<{ indexdef: string }>(
       "select indexdef from pg_indexes where indexname = 'strava_activities_excluded_idx'",

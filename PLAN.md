@@ -8,10 +8,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Databasecheck 2026-11-24: demo-check en uitgesloten ritten (2026-11-24):
-   lokaal gecommit (`19d6659e`), niet gepusht.** Migratie
-   `0357_demo_check_get_excluded_idx.sql` is nog niet op productie toegepast.
-   Open: toepassen en pushen (vraagt een ja van de eigenaar), daarna in de
-   volgende check `demo_read_only` en `markExcludedRides` meten. Zie de ronde
+   gepusht naar `main` (`19d6659e`, eigenaar: "Ja, toepassen en push").**
+   Migratie `0358_demo_check_get_excluded_idx.sql` (geschreven als 0357,
+   hernummerd) op 2026-11-24 vóór de push op productie toegepast. Open: in de
+   volgende check `demo_read_only` en `markExcludedRides` meten, en als
+   demo-account in de app een schrijfactie proberen. Zie de ronde
    "Databasecheck 2026-11-24: demo-check en uitgesloten ritten".
 
 0. **Gebouwd — Een weekbadge voor elke ranglijst (2026-11-24): gepusht naar
@@ -12916,8 +12917,10 @@ vóór de push via de Supabase-connector toegepast en nagekeken: elf weekbadges
 
 ### Databasecheck 2026-11-24: demo-check en uitgesloten ritten
 
-**2026-11-24, lokaal gecommit (`19d6659e`), niet gepusht. Migratie `0357` nog niet op
-productie toegepast.** Gemeten in de wekelijkse check van 2026-11-24 (database
+**2026-11-24, gepusht naar `main` (`19d6659e`). Migratie `0358` op 2026-11-24
+via de connector op productie toegepast (eigenaar: "Ja, toepassen en push").**
+Geschreven als 0357; dat nummer was op productie al gebruikt door
+`0357_club_ladder_session` uit een andere worktree, dus hernummerd. Gemeten in de wekelijkse check van 2026-11-24 (database
 281 MB, disk 30% van 2 GB, egress 3,30 GB na 22 dagen van de cyclus, compute
 Micro). Eigenaar koos uit een voorstel: "GET overslaan" en "Alleen
 excluded-index".
@@ -12953,10 +12956,15 @@ excluded-index".
 - **Gecontroleerd.** Vitest `demo-check-get.test.ts` (PGlite: GET en HEAD
   overgeslagen, POST en PATCH van een demo-account alleen-lezen, zonder methode
   de oude controle, de index bestaat).
-- **Niet geverifieerd.** 0357 niet op productie of in Supabase-Postgres
-  getest (geen Docker). Dat PostgREST `request.method` vóór de pre-request zet
-  en GET alleen-lezen uitvoert, volgt uit de PostgREST-documentatie, niet uit
-  een meting hier. Na toepassen als demo-account een schrijfactie proberen.
+  Op productie na het toepassen: `explain` toont `strava_activities_excluded_idx`.
+  Met de claims van het demo-account in één select gezet, liet
+  `demo_read_only()` bij GET `transaction_read_only` op `off` en zette hij het
+  bij POST op `on`.
+- **Niet geverifieerd.** Dat PostgREST zelf `request.method` vóór de
+  pre-request zet en GET alleen-lezen uitvoert, volgt uit de
+  PostgREST-documentatie; met een echt verzoek is het niet nagekeken. Als
+  demo-account in de app een schrijfactie proberen (hoort "read-only
+  transaction" te geven). Lokaal niet in Supabase-Postgres getest (geen Docker).
 
 ### Databasecheck 2026-11-17: middleware, nawerk en storage-policies
 
