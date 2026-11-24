@@ -8,7 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Streamcenter: alle streams van een race tegelijk (2026-11-24):
-   de commit die dit blok toevoegt, lokaal, niet gepusht.** Geen migratie.
+   commit `6407ef22`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja,
+   push").** Geen migratie.
    Open: ingelogd een ZRL-raceweek met meer streams openen, het geluid
    wisselen, en het op een iPhone en een Android-telefoon bekijken. Zie de ronde
    met dezelfde naam.
@@ -12891,8 +12892,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Streamcenter: alle streams van een race tegelijk
 
-**2026-11-24, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
-Geen migratie.**
+**2026-11-24, commit `6407ef22`, op 2026-11-24 gepusht naar `main`. Geen
+migratie.**
 
 - **Waarom.** Bij een ZRL-raceweek streamen leden van meerdere teams. De
   eigenaar opperde een streamcenter waar je die allemaal tegelijk ziet. Het
