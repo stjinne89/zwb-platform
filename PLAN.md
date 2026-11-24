@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Bijgesteld — Dashboard: events zes dagen vooruit (2026-11-24): gepusht
-   naar `main` (`HASH`, eigenaar: "Ja, push").** Geen migratie. Open: na de
+   naar `main` (`ce1d10cc`, eigenaar: "Ja, push").** Geen migratie. Open: na de
    deploy op een ZRL-avond nagaan dat er één ronde op het dashboard staat. Zie
    de ronde met dezelfde naam.
 
@@ -12823,7 +12823,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Bijgesteld — Dashboard: events zes dagen vooruit
 
-**2026-11-24, commit `HASH`, gepusht naar `main`. Geen migratie.**
+**2026-11-24, commit `ce1d10cc`, gepusht naar `main`. Geen migratie.**
 
 - **Waarom.** Het dashboard toonde events tot zeven dagen vooruit. Een
   wekelijkse ZRL-ronde stond er daardoor op raceavond twee keer: die van
