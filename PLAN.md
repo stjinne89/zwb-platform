@@ -12872,6 +12872,67 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Sauce-mod voor leden: downloaden op /hulp en melding bij een nieuwe versie
+
+**2026-11-24, commit: de commit die dit blok toevoegt, niet gepusht. Geen
+migratie.** De eigenaar vroeg: "Ik wil deze nieuwe update ook voor de leden
+beschikbaar maken, kunnen we dit in de app hangen?". Na het voorstel kwam: "ja
+en een melding van de nieuwe mod en hoe te downloaden".
+
+- **Waarom.** De mod (`sauce-mod/zwb-zrl-live`) kwam alleen bij leden via de
+  installer van de TTT-bot. Wie alleen de ZRL-stand in Sauce wilde, moest dus
+  ook de Discord-bot met stem en spraakherkenning installeren. Een lid zag ook
+  niet dat er een nieuwe versie was.
+- **Leden: downloaden en bijwerken.**
+  - Een eigen installer: `public/downloads/Sauce-mod-ZRL-live-installeren.bat`.
+    Die haalt `sauce-mod/installeren.ps1` van main, net als de installers van de
+    TTT-bot en de stream-hulp.
+  - Het script zet alleen `sauce-mod/zwb-zrl-live` in `Documenten\SauceMods`.
+    Het downloadt eerst naar een tijdelijke map, zodat een afgebroken download
+    de oude mod laat staan. Opnieuw draaien werkt de mod bij.
+  - De bestandsnaam en de /hulp-tekst noemen de club niet, want
+    `club-texts-render` eist dat de hulp bij een andere club "ZWB" niet noemt.
+- **/hulp.** Op `/hulp/wedstrijden#sauce-mod` staat een kaart achter de module
+  `teams`, met drie korte punten en de knop "Download versie 0.4.0". De kaart
+  is ook te vinden via de zoekfunctie van /hulp.
+- **Melding in de mod.**
+  - De mod (0.4.0) vraagt bij het starten en daarna elk uur
+    `/api/live/sauce-mod` op. Dat endpoint is publiek via `/api/live`, met CORS,
+    en geeft `version` uit `manifest.json` en de hulplink.
+  - Is die versie nieuwer, dan staat onderaan in het venster "Nieuwe versie …
+    · downloaden", met een link naar de hulpkaart. Dat geldt in elke stand,
+    ook buiten een race.
+  - `pages/src/mod-version.mjs` vergelijkt de versies per deel ("0.10.0" is
+    nieuwer dan "0.9.1").
+  - `tests/unit/sauce-mod-version.test.ts` bewaakt dat mod, manifest en
+    platform dezelfde versie noemen.
+- **Leden met 0.2.0 of 0.3.0 zien die melding niet**, want die versies vragen
+  het niet op. Voor hen is er de app-update van donderdag. Die maakt Claude uit
+  de rondes van deze week, en deze ronde zit erin. Of de update de mod noemt,
+  beslist die stap; kijk op `/beheer/app-updates`. De update wordt vanaf
+  donderdag 14:00 gemaakt en verschijnt om 17:00.
+- **Bewust niet.**
+  - Een zip om zelf uit te pakken: die geeft meer kans op een map op de
+    verkeerde plek.
+  - Een mod die zichzelf bijwerkt: Sauce laat een mod geen bestanden
+    schrijven.
+  - Een losse pushmelding: de app-update is de plek voor nieuws aan leden.
+- **Getest.**
+  - `installeren.ps1` met `-Bron . -ModMap <scratch>`: een oud bestand in de
+    doelmap verdween en versie 0.3.0 stond erin.
+  - Zonder `-Bron`, tegen GitHub main: 7 bestanden, versie 0.3.0 (0.4.0 stond
+    toen nog niet op main).
+  - `tsc` en ESLint, plus de tests `sauce-mod-version`, `help-categories`,
+    `help-anchors` en `club-texts-render`. In die laatste faalt los hiervan
+    nog "beheer noemt ZWB niet".
+- **Niet geverifieerd:**
+  - de .bat zelf, want die haalt het script van main en dat staat er pas na de
+    push;
+  - de kaart op /hulp in de browser, want er is geen `.env.local` in deze
+    werkmap;
+  - de melding in een echt Sauce-venster;
+  - of een link met `target="_blank"` in Sauce een browser opent.
+
 ### Gebouwd — ZRL live: voorlopige scratchstand op de bogen
 
 **2026-11-24, commit `de793046`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja, push"). Geen

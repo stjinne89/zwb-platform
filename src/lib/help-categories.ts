@@ -75,7 +75,7 @@ export const HELP_CATEGORIES = [
     label: "Events en wedstrijden",
     text: "Kalender, teams, ZRL, FRR, SRC, {m:live_race}, {m:livestream}, {m:managerspel} en {m:voorspelspel}.",
     tone: "kalender",
-    anchors: ["events", "teams", "racefit", "zwb-ds", "livestreamen", "zwbgame", "voorzpwelbokaal"],
+    anchors: ["events", "teams", "racefit", "zwb-ds", "livestreamen", "zwbgame", "voorzpwelbokaal", "sauce-mod"],
   },
   {
     id: "live-volgen",
@@ -244,6 +244,7 @@ export function helpHrefForAnchor(anchor: string): string | null {
 export const HELP_ANCHOR_MODULES: Readonly<Record<string, ModuleKey>> = {
   teams: "teams",
   racefit: "teams",
+  "sauce-mod": "teams",
   "zwb-ds": "live_race",
   livestreamen: "livestream",
   zwbgame: "managerspel",

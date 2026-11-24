@@ -5,7 +5,7 @@
   "description": "Live WTRL-puntenstand van de ZRL-race die je bekijkt, en het TTT-plan uit ZwiftGopher, van het ZWB-platform",
   "author": "ZWB Cycling",
   "website_url": "https://zwb-platform.netlify.app",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "web_root": "pages",
   "windows": [
     {

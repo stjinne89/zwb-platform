@@ -6,10 +6,12 @@
 // toont alleen. Zie docs/live-zrl-dashboard.md.
 
 import * as common from '/pages/src/common.mjs';
+import {isNewer} from './mod-version.mjs';
 
 // ?server=http://localhost:3000 om tegen een lokale ontwikkelserver te testen.
 const SERVER = new URLSearchParams(location.search).get('server') || 'https://zwb-platform.netlify.app';
 const POLL_MS = 15_000;
+const VERSION_MS = 3_600_000;
 const TEAM_ROWS = 8;
 
 const app = document.getElementById('app');
@@ -18,8 +20,32 @@ let subgroupId = null;
 let target = null;
 let data = null;
 let timer = null;
+// Een nieuwere versie op het platform: {version, help}.
+let update = null;
 
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+function show(html) {
+    const notice = update ? `
+        <p class="update"><a href="${esc(SERVER + update.help)}" target="_blank" rel="noopener">` +
+        `Nieuwe versie ${esc(update.version)} · downloaden</a></p>` : '';
+    app.innerHTML = html + notice;
+}
+
+async function checkVersion() {
+    try {
+        const r = await fetch(`${SERVER}/api/live/sauce-mod`, {cache: 'no-store'});
+        const latest = await r.json();
+        const next = isNewer(latest.version) ? {version: latest.version, help: latest.help} : null;
+        if (next?.version !== update?.version) {
+            update = next;
+            render();
+        }
+    } catch {
+        // Niet bereikbaar: geen melding, de stand meldt dat al.
+    }
+    setTimeout(checkVersion, VERSION_MS);
+}
 
 // Racetijd vanaf de eigen start: "28:02.5".
 function raceTime(ms) {
@@ -59,16 +85,16 @@ function clock(ms) {
 
 function render() {
     if (!subgroupId) {
-        app.innerHTML = '<p class="empty">Geen race in beeld</p>';
+        show('<p class="empty">Geen race in beeld</p>');
         return;
     }
     if (!data) {
-        app.innerHTML = '<p class="empty">Stand laden…</p>';
+        show('<p class="empty">Stand laden…</p>');
         return;
     }
     if (data.status !== 'ok') {
         const text = data.status === 'error' ? 'Stand niet bereikbaar' : 'Geen ZWB-race';
-        app.innerHTML = `<p class="empty">${text}</p>`;
+        show(`<p class="empty">${text}</p>`);
         return;
     }
     const me = data.riders.find((r) => r.id === watchingId);
@@ -100,7 +126,7 @@ function render() {
         <ol>${data.lastPass.top.map((c) => `<li class="${c.id === watchingId ? 'watch' : ''}">` +
             `<span class="rank">${data.format === 'points' ? c.fal : c.place}</span><span class="name">${esc(c.name)}</span></li>`).join('')}</ol>` : '';
 
-    app.innerHTML = `
+    show(`
         <header>
             <h1>ZRL · ${esc(data.subgroup)}</h1>
             <span class="muted">${status} · ${data.starters} gestart</span>
@@ -108,7 +134,7 @@ function render() {
         ${teams ? `<h2>Teams</h2><ol>${teams}</ol>` : splits ? '' : `<p class="empty">${ttt ? 'Nog geen tijden' : 'Nog geen punten'}</p>`}
         ${splits}
         ${rider}
-        ${pass}`;
+        ${pass}`);
 }
 
 async function poll() {
@@ -157,3 +183,4 @@ common.subscribe('athlete/watching', (watching) => {
 });
 
 render();
+checkVersion();

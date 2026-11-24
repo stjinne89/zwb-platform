@@ -23,6 +23,13 @@ const HELP_INDEX: HelpResult[] = [
       "zwb ds directeur sportif ds live race overzicht raceoverzicht tweede scherm telefoon tablet ipad sauce groepen groep achterstand gat kop koersbalk sprint kom w/kg wkg watt zwift stand bijwerken",
   },
   {
+    title: "Sauce-mod: live ZRL-stand",
+    text: "De live ZRL-stand in Sauce for Zwift op je pc, met de download van de nieuwste versie.",
+    href: "/hulp/wedstrijden#sauce-mod",
+    terms:
+      "sauce for zwift mod saucemods venster overlay zrl live stand punten teams scratch boog bogen downloaden installeren bijwerken update nieuwe versie windows pc",
+  },
+  {
     title: "{m:livestream}",
     text: "Je race live uitzenden op je eigen YouTube-kanaal, met OBS of een screencast-app.",
     href: "/hulp/wedstrijden#livestreamen",

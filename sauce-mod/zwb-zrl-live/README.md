@@ -9,10 +9,22 @@ platform staan.
 
 ## Installeren
 
+Leden: download `Sauce-mod-ZRL-live-installeren.bat` op /hulp/wedstrijden#sauce-mod
+en dubbelklik erop. Dat draait `sauce-mod/installeren.ps1` van main, dat deze map
+in `Documenten\SauceMods` zet. Opnieuw draaien werkt de mod bij.
+
+Met de hand:
+
 1. Kopieer de map `zwb-zrl-live` naar `Documenten\SauceMods` op de computer met
    Sauce for Zwift.
 2. Start Sauce opnieuw en zet de mod aan onder Instellingen → Mods.
 3. Open het venster "ZWB ZRL Live" en sleep het naar een plek naast Zwift.
+
+**Nieuwe versie uitbrengen.** Hoog `version` op in `manifest.json` én
+`MOD_VERSION` in `pages/src/mod-version.mjs` (een test bewaakt dat ze gelijk
+zijn). Na de deploy geeft `/api/live/sauce-mod` die versie, en een oudere mod
+toont onderaan "Nieuwe versie … · downloaden". Dat kan pas vanaf 0.4.0; oudere
+mods vragen het niet op.
 
 Bij een ploegentijdrit toont de overlay de laatste tussentijd van de eigen ploeg,
 met de andere ploegen als verschil daarmee ("-0:25" is sneller dan wij). Na een
