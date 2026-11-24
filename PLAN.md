@@ -9,8 +9,12 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Club Ladder: ZWB logt zelf in (2026-11-24): lokaal gecommit
    (`aff37f08`), niet gepusht.** Migratie `0357_club_ladder_session.sql` op
-   2026-11-24 op productie toegepast (eigenaar: "Ja, toepassen"). Open, in deze
-   volgorde: `LADDER_EMAIL` en `LADDER_PASSWORD` op Netlify zetten (account met
+   2026-11-24 op productie toegepast (eigenaar: "Ja, toepassen").
+   **Geblokkeerd:** de eigenaar kan niet met een wachtwoord inloggen. In Chrome
+   toont `/signin` alleen Google en Discord; het formulier staat nog wel in de
+   HTML, maar een script op de pagina haalt het weg, en "Forgotten password?"
+   ook. De eigenaar kiest hoe verder. Het oorspronkelijke plan was:
+   `LADDER_EMAIL` en `LADDER_PASSWORD` op Netlify zetten (account met
    wachtwoord); pushen; na de eerste sync in `club_ladder_session` kijken of er
    een cookie staat en geen `login_error`; daarna de geplande Chrome-taak
    `club-ladder-sessie-warmhouden` verwijderen. Zie de ronde "Gebouwd — Club
@@ -12873,9 +12877,13 @@ na een kort voorstel ("Ja, bouwen").
   zonder cookie op. Wat achter de login zit (aanmeldingen en startplekken op
   `/fixture/<id>`, de captain-directory, `/graveyard`, de teamhistorie) staat
   nergens openbaar. Een andere bron is er dus niet.
-- **Wat er nu gebeurt.** De ladder heeft naast Google en Discord een gewoon
-  formulier op `/signin` (e-mail, wachtwoord, `service=clubladder`), zonder
-  captcha of CSRF-token (bekeken 2026-11-24). `lib/club-ladder/session.ts`
+- **Wat er nu gebeurt.** De HTML van `/signin` bevat naast Google en Discord
+  een gewoon formulier (e-mail, wachtwoord, `service=clubladder`), zonder
+  captcha of CSRF-token (met `curl` bekeken 2026-11-24). **Later die dag in
+  Chrome:** een script op de pagina haalt de velden en "Forgotten password?"
+  weg, zodat alleen Google en Discord overblijven. De eigenaar heeft geen
+  wachtwoord en kan er geen instellen. De wachtwoordlogin is dus door de ladder
+  zelf uitgezet, en deze route werkt niet zonder hun medewerking. `lib/club-ladder/session.ts`
   logt daarmee in met `LADDER_EMAIL` en `LADDER_PASSWORD`, zoals
   `events/zwift-club.ts` met het Zwift-account. Het haalt eerst `/signin` op
   (dat zet al een `connect.sid`), post het formulier en controleert met
