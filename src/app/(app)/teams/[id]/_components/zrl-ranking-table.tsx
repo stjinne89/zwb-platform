@@ -22,6 +22,7 @@ import {
   type RankingSortKey,
   type RankingTeam,
   type ZValue,
+  zValueSourceLabel,
 } from "@/lib/teams/zrl-ranking";
 import { cn } from "@/lib/utils";
 import { moveZrlLineup, setRiderAvailability, setZrlWeekLineups, type LineupRider } from "../_actions";
@@ -662,7 +663,7 @@ function ZCell({ value, status }: { value: ZValue | null; status: LimitStatus | 
       {value ? (
         <span
           className={cn(value.source === "wtrl" && "italic text-muted-foreground")}
-          title={value.source === "wtrl" ? "WTRL" : value.from ? `Geschat, ${SOURCE_LABEL[value.from]}` : undefined}
+          title={value.source === "wtrl" || value.from ? zValueSourceLabel(value) : undefined}
         >
           {wkg(value.value)}
         </span>

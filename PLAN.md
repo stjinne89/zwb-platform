@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Teamindeling: zMAP en zFTP opnieuw geijkt (2026-11-24): de
+   commit die dit blok toevoegt, op 2026-11-24 gepusht naar `main` (eigenaar:
+   "Ja, push").** Geen migratie. Open: de fit
+   nalopen bij de volgende WTRL-plak, want de beste zMAP-factor schoof in elf
+   dagen van 0,971 naar 0,99. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Ultrawide Zwift-beeld in de overlay (2026-11-24): commit `523f9fa`, op
    2026-11-24 gepusht naar `main` (eigenaar: "Ja, beide").** Migratie
    `0359_stream_overlay_ultrawide` (twee maten erbij in de check op
@@ -12872,6 +12878,90 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Teamindeling: zMAP en zFTP opnieuw geijkt
+
+**2026-11-24, commit: de commit die dit blok toevoegt, op 2026-11-24 gepusht
+naar `main` (eigenaar: "Ja, push"). Geen migratie.** De eigenaar vroeg hoe de schatting zich verhoudt tot de echte zMAP
+en zFTP en wat het dichtst bij Zwift komt. Op het voorstel: "Ik zou eigenlijk
+willen blijven bij de beste zones in de afgelopen 90 dagen bij de schattingen.
+Niet enkel zwiftracing", en daarna "Bouw maar".
+
+- **Waarom.** Tegen de WTRL-plak van 2026-11-24 zat de geschatte zMAP
+  (0,971 × 5 min) bij vrijwel iedereen te laag, gemiddeld 0,08 W/kg. Een renner
+  die echt over een zMAP-grens ging, kon zo oranje staan in plaats van rood.
+- **Wat Zwift zegt** ([Fitness Metrics FAQ](https://support.zwift.com/en_us/fitness-metrics-faq-Sk0Cebzti.md)):
+  - zFTP, zMAP en VO2max komen uit de beste pieken van de laatste 90 dagen, uit
+    Zwift-ritten.
+  - Inspanningen van 12 tot 50 minuten tellen het zwaarst voor zFTP. Zijn die
+    niet maximaal, dan weegt Zwift kortere inspanningen zwaarder.
+  - zMAP is het vermogen bij VO2max over 4 tot 6 minuten.
+  - De formule zelf is niet openbaar. zFTP is volgens ZwiftInsider geen vaste
+    95% van de 20 minuten.
+- **Wat.**
+  - `estimateZ` in `lib/teams/zrl-ranking.ts`:
+    - zMAP = 0,99 × beste 5 min.
+    - zFTP = 0,99 × critical power uit 5 en 20 min, (4 × 20 min − 5 min) / 3
+      (`criticalPower`). Zonder 5 minuten: 0,94 × 20 min.
+  - De invoer blijft `bestPower`: per duur de hoogste van ZwiftRacing en
+    intervals.icu over 90 dagen (eigenaar).
+  - Komen 5 en 20 minuten uit verschillende bronnen, dan zegt de tooltip van
+    zFTP "Geschat, ZwiftRacing en intervals.icu" (`zValueSourceLabel`, ook in de
+    Ladderpuzzel).
+  - Marges op het 90e percentiel, per waarde: oranje binnen 0,14 voor zFTP
+    (`ZFTP_ESTIMATE_MARGIN`) en 0,22 voor zMAP (`ZMAP_ESTIMATE_MARGIN`). Eerder
+    gold 0,22 voor allebei.
+  - Ladderpuzzel: geel binnen 0,09 van de rand (`ZMAP_RISK_MARGIN`, de
+    gemiddelde fout van de nieuwe zMAP; was 0,11).
+  - /hulp (Teamindeling en Ladderpuzzel) noemt de nieuwe formules en marges.
+- **Gefit** (SQL op productie, alleen lezend, 2026-11-24).
+  - 56 renners met een WTRL-plak van die dag (`wtrl_teams.imported_at`) en
+    vermogen, met dezelfde invoer als de app: ZwiftRacing `power_wkg` en
+    intervals.icu `wkg_5m`/`wkg_20m`. Bij 16 kwam de 5 minuten uit
+    intervals.icu, bij 10 de 20 minuten.
+  - Factoren met leave-one-out getoetst en daarna afgerond.
+
+  | | Gemiddelde fout | 9 op 10 binnen | Scheefheid |
+  |---|---|---|---|
+  | zMAP oud (0,971 × 5 min) | 0,117 | 0,18 | −0,08 |
+  | zMAP nieuw (0,99 × 5 min) | 0,092 | 0,22 | 0,00 |
+  | zFTP oud (0,937 × 20 min) | 0,083 | 0,14 | −0,01 |
+  | zFTP nieuw (0,99 × CP) | 0,075 | 0,135 | 0,00 |
+
+  - De juiste categorie (Open-grenzen) volgt bij 52 van de 56 renners, was 50.
+  - Bij zMAP wordt de staart iets breder: een paar renners hebben een sterke
+    5 minuten in intervals.icu (training of buiten) die Zwift niet meetelt.
+  - Op ZwiftRacing alleen was het verschil groter: zMAP 0,101 → 0,063 en zFTP
+    0,071 → 0,058.
+  - De beste 6 minuten uit intervals.icu kwam het dichtst bij zMAP (0,051 op 33
+    renners).
+  - Een CP-fit over 12 tot 50 minuten uit intervals.icu zat juist ver naast
+    zFTP (0,19–0,42): lange inspanningen in trainingen zijn zelden maximaal.
+- **Waarom de oude factor afweek, is niet na te gaan.** De fit van 2026-11-13
+  liep tegen een oudere WTRL-plak, en die is overschreven.
+- **Bewust niet.**
+  - Alleen ZwiftRacing gebruiken, hoewel dat beter scoort: de eigenaar wil de
+    beste waarden uit alle ritten.
+  - De W/kg van intervals.icu omrekenen met het Zwift-gewicht: bij de grootste
+    uitschieters was het gewicht niet de oorzaak.
+  - De beste 6 minuten voor zMAP: ZwiftRacing heeft geen 6 minuten.
+  - CP uit 2, 5 en 20 min: zat verder van WTRL dan CP uit 5 en 20 min.
+  - Een correctie per renner op zijn laatste WTRL-plak.
+- **Ongewijzigd.** Het fietsadvies van de Ladder-briefing houdt 0,95 × 20 min
+  (`FTP_FROM_20_MIN`, mediaan van de ploeg). Racebriefjes en de
+  opstellingsplanner gebruiken de WTRL-waarden zelf.
+- **Getest.**
+  - `tsc` en ESLint op de gewijzigde bestanden.
+  - `zrl-ranking.test.ts` en `club-ladder-zmap-rule.test.ts`, bijgewerkt op de
+    nieuwe factoren en marges, plus nieuw: de terugval zonder 5 minuten en de
+    gemengde bron.
+  - De volle unitsuite: 4966 van 4968 groen. Los hiervan falen
+    `club-texts-render` ("beheer noemt ZWB niet", al open bij de Sauce-mod),
+    `admin-areas` (time-out op de database) en `omnium-live` (geen `.env.local`
+    in deze werkmap).
+- **Niet geverifieerd.** De teamindeling en de Ladderpuzzel in de browser
+  (geen `.env.local` in deze werkmap). Of de factoren blijven kloppen bij een
+  volgende WTRL-plak.
+
 ### Gebouwd — Sauce-mod voor leden: downloaden op /hulp en melding bij een nieuwe versie
 
 **2026-11-24, commit: de commit die dit blok toevoegt, niet gepusht. Geen
@@ -15913,11 +16003,12 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
 >   spreiding (na de grenzen), mediaan (zonder grenzen), de ruimte waarbinnen een
 >   renner erbij past, de uitersten als het team te breed is en renners zonder
 >   zMAP. Rood boven 1,2; oranje boven 0,98 (1,2 min de foutmarge 0,22 van de
->   schatting, `ESTIMATE_MARGIN`) of bij een renner zonder zMAP.
+>   schatting, `ESTIMATE_MARGIN`, sinds 2026-11-24 gesplitst in een marge voor
+>   zFTP en een voor zMAP) of bij een renner zonder zMAP.
 > - zMAP per puzzelrenner: `withPuzzleZmap` in `teams/club-ladder/_lib/load.ts`
 >   gebruikt `bestPower` en `estimateZ` uit `teams/zrl-ranking.ts`, dus precies
->   de ZRL-schatting (0,971 × beste 5 min, per duur de hoogste van ZwiftRacing
->   en intervals.icu, anders de laatste WTRL-plak).
+>   de ZRL-schatting (0,971 × beste 5 min, sinds de ronde "Teamindeling: zMAP en zFTP opnieuw geijkt" (2026-11-24) 0,99 ×; per duur de hoogste van
+>   ZwiftRacing en intervals.icu, anders de laatste WTRL-plak).
 > - Ladderpuzzel: knoppen **Nu | Seizoen 8**, alleen voor wie indeelt
 >   (`canEditLadderPuzzle` of `canAssignLadderRiders`); voor anderen wordt de
 >   zMAP niet geladen. In Seizoen 8 staan de teams op mediaan (hoogste links),
@@ -15932,7 +16023,7 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
 > marge van 0,22 stonden alle vier de teams erop. Nu krijgt in Seizoen 8 elk
 > stukje een kleur (`status` in `checkLadderTeamZmap`): **groen** past;
 > **geel** = risico, binnen `ZMAP_RISK_MARGIN` 0,11 (de gemiddelde fout van
-> de schatting) van de rand van de ruimte, niet tegen de grens van 5,8 of
+> de schatting; sinds 2026-11-24 0,09) van de rand van de ruimte, niet tegen de grens van 5,8 of
 > 2,5; **rood** = valt buiten het venster van 1,2 dat de meeste renners bevat
 > (bij gelijkspel het venster met zijn midden het dichtst bij de mediaan), dus
 > wie eruit moet. Daarvoor kleurde een te breed team alleen de laagste en
@@ -16075,7 +16166,8 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
   met beide. Gemiddeld verschil met WTRL op die 25: zFTP 0,066 W/kg met alleen
   ZwiftRacing, 0,082 met de hoogste van beide; zMAP 0,099 tegen 0,104. De
   factoren 0,937 en 0,971 zijn gebleven (op intervals.icu alleen kwam zFTP op
-  0,938 uit, zMAP op 0,986).
+  0,938 uit, zMAP op 0,986). Niet meer waar sinds de ronde "Teamindeling: zMAP en zFTP opnieuw geijkt" (2026-11-24):
+  zMAP 0,99 × 5 min, zFTP 0,99 × de critical power uit 5 en 20 min.
 - **Privacy.** Op `/privacy`, in het blok over ZRL-teamgegevens, na "zoals
   ZwiftRacing.app dat openbaar toont, en een daaruit geschatte zFTP en zMAP":
   "Heb je intervals.icu gekoppeld, dan telt per duur de hoogste van die twee,
@@ -16706,7 +16798,8 @@ op productie.
   alleen ZwiftRacing, niet intervals.icu: de factoren zijn daarop gefit, en die
   waarden zijn er voor 22 van de 24 renners van ZRL B (intervals.icu voor 9).
   Niet meer waar sinds de ronde "Teamindeling: hoogste van ZwiftRacing en
-  intervals.icu" (2026-11-16): per duur telt nu de hoogste van de twee.
+  intervals.icu" (2026-11-16): per duur telt nu de hoogste van de twee. De
+  factoren en de marge van 0,22 gelden niet meer sinds de ronde "Teamindeling: zMAP en zFTP opnieuw geijkt" (2026-11-24).
 - **Kleuren.** Rood: zFTP of zMAP op of boven de grens van de categorie erboven
   (voor B de A-grens 4,2 / 5,1), of in het Dev-blok boven het Dev-plafond
   (3,74 / 4,53, beide eronder). Oranje: binnen 0,22 W/kg onder zo'n grens, of

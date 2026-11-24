@@ -10,7 +10,7 @@
 //   roster.
 //
 // De ladder rekent met de zMAP van Zwift. Die hebben wij alleen uit de WTRL-plak;
-// daarom de schatting van de ZRL-indeling (`estimateZ`, 0,971 × beste 5 minuten,
+// daarom de schatting van de ZRL-indeling (`estimateZ`, 0,99 × beste 5 minuten,
 // WTRL als terugval).
 //
 // Per renner een kleur (eigenaar, 2026-11-17, in plaats van "Past bijna" per
@@ -23,11 +23,11 @@ export const ZMAP_MAX_SPREAD = 1.2;
 export const ZMAP_CAP_HIGH = 5.8;
 export const ZMAP_CAP_LOW = 2.5;
 /**
- * Gemiddelde fout van de geschatte zMAP tegen WTRL (0,10–0,11, zie
+ * Gemiddelde fout van de geschatte zMAP tegen WTRL (0,09 op 2026-11-24, zie
  * `zrl-ranking.ts`). Zo dicht bij de rand is een renner een risico. Het 90e
  * percentiel (0,22) maakte op 2026-11-17 elk team "krap".
  */
-export const ZMAP_RISK_MARGIN = 0.11;
+export const ZMAP_RISK_MARGIN = 0.09;
 
 export type ZmapRider = { key: string; name: string; zmap?: ZValue | null };
 

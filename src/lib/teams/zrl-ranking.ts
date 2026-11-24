@@ -7,23 +7,31 @@
 // niet aan B1 of B4 maar alleen aan de grens van de categorie (te sterk voor B)
 // en aan het plafond van Development.
 //
-// zFTP en zMAP zijn geschat uit het vermogen van de laatste 90 dagen in Zwift
-// (ZwiftRacing). De factoren zijn gefit op de 51 renners met zowel een WTRL-plak
-// als ZwiftRacing-waarden (2026-11-13, opnieuw nagerekend 2026-11-15): gemiddeld
-// 0,10 W/kg ernaast voor zFTP en 0,11 voor zMAP, bij 9 op de 10 minder dan 0,22.
-// Sinds 2026-11-16 telt per duur de hoogste van ZwiftRacing en intervals.icu
-// (`bestPower`). Op de 25 renners met beide en een WTRL-plak zat de schatting
-// daarmee 0,082 W/kg naast WTRL voor zFTP (alleen ZwiftRacing: 0,066) en 0,104
-// voor zMAP (0,099); de factoren zijn gebleven.
+// zFTP en zMAP zijn geschat uit het beste W/kg van de laatste 90 dagen, per duur
+// de hoogste van ZwiftRacing en intervals.icu (`bestPower`; eigenaar, 2026-11-24:
+// de beste waarden, niet alleen uit races):
+// - zMAP = 0,99 × beste 5 minuten. Zwift noemt zMAP het vermogen bij VO2max over
+//   4 tot 6 minuten.
+// - zFTP = 0,99 × critical power uit 5 en 20 minuten, (4 × 20 min − 5 min) / 3.
+//   Zwift zegt dat zFTP geen vaste 95% van de 20 minuten is maar uit de curve
+//   komt. Zonder 5 minuten 0,94 × 20 minuten.
+// Gefit op 2026-11-24 op de 56 renners met een WTRL-plak van die dag en vermogen,
+// met dezelfde invoer als hier (leave-one-out): zMAP gemiddeld 0,092 W/kg naast
+// WTRL, bij 9 op de 10 minder dan 0,22; zFTP 0,075 en 0,14. De vorige factoren
+// (0,937 × 20 min, 0,971 × 5 min, gefit op 2026-11-13) zaten toen 0,083 en 0,117
+// ernaast, zMAP gemiddeld 0,08 te laag.
 // Zonder vermogen geldt de WTRL-plak van de vorige ronde.
 
 import { upperLimit, type Category } from "@/lib/teams/wtrl-roster";
 
 export const ZRL_BLOCK_SIZE = 5;
-export const ZFTP_FROM_20M = 0.937;
-export const ZMAP_FROM_5M = 0.971;
+export const ZMAP_FROM_5M = 0.99;
+export const ZFTP_FROM_CP = 0.99;
+/** Terugval voor zFTP zonder 5 minuten. */
+export const ZFTP_FROM_20M = 0.94;
 /** Zo ver kan de schatting ernaast zitten (90e percentiel); binnen deze marge is het krap. */
-export const ESTIMATE_MARGIN = 0.22;
+export const ZFTP_ESTIMATE_MARGIN = 0.14;
+export const ZMAP_ESTIMATE_MARGIN = 0.22;
 
 export type RankingSortKey = "zftp" | "zmap" | "m1" | "m5" | "m20" | "racefit";
 
@@ -53,8 +61,18 @@ export type PowerKey = "s15" | "m1" | "m5" | "m20";
 export type RankingPower = { s15?: number | null; m1: number | null; m5: number | null; m20: number | null };
 export type PowerSource = "zwiftracing" | "intervals";
 
-/** Bij een schatting: uit welke bron de 20 of 5 minuten kwam. */
-export type ZValue = { value: number; source: "estimate" | "wtrl"; from?: PowerSource };
+/** Bij een schatting: uit welke bron de 5 en 20 minuten kwamen; "mixed" als ze uit allebei kwamen. */
+export type ZValue = { value: number; source: "estimate" | "wtrl"; from?: PowerSource | "mixed" };
+
+const SOURCE_LABEL: Record<PowerSource, string> = { zwiftracing: "ZwiftRacing", intervals: "intervals.icu" };
+
+/** Tooltip van een zFTP of zMAP: "WTRL", "Geschat, intervals.icu", … */
+export function zValueSourceLabel(value: ZValue): string {
+  if (value.source === "wtrl") return "WTRL";
+  if (!value.from) return "Geschat";
+  if (value.from === "mixed") return `Geschat, ${SOURCE_LABEL.zwiftracing} en ${SOURCE_LABEL.intervals}`;
+  return `Geschat, ${SOURCE_LABEL[value.from]}`;
+}
 
 const POWER_KEYS: PowerKey[] = ["s15", "m1", "m5", "m20"];
 const usable = (value: number | null | undefined): value is number =>
@@ -108,28 +126,32 @@ export type RankingBlock = {
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
+/** Critical power (W/kg) uit de beste 5 en 20 minuten: de helling van arbeid tegen tijd. */
+export function criticalPower(m5: number, m20: number) {
+  return (m20 * 1200 - m5 * 300) / 900;
+}
+
 export function estimateZ(rider: RankingRider): { zftp: ZValue | null; zmap: ZValue | null } {
   const pick = (
     estimate: number | null | undefined,
     wtrl: number | null | undefined,
-    from?: PowerSource,
+    from?: ZValue["from"],
   ): ZValue | null =>
     estimate != null
       ? { value: round2(estimate), source: "estimate", ...(from ? { from } : {}) }
       : wtrl != null
         ? { value: wtrl, source: "wtrl" }
         : null;
+  const m5 = rider.power?.m5 ?? null;
+  const m20 = rider.power?.m20 ?? null;
+  const from5 = rider.powerSource?.m5;
+  const from20 = rider.powerSource?.m20;
+  const zftp =
+    m20 == null ? null : m5 != null ? ZFTP_FROM_CP * criticalPower(m5, m20) : ZFTP_FROM_20M * m20;
+  const zftpFrom = m5 != null && from5 && from20 && from5 !== from20 ? "mixed" : from20;
   return {
-    zftp: pick(
-      rider.power?.m20 != null ? rider.power.m20 * ZFTP_FROM_20M : null,
-      rider.wtrl?.zftpWkg,
-      rider.powerSource?.m20,
-    ),
-    zmap: pick(
-      rider.power?.m5 != null ? rider.power.m5 * ZMAP_FROM_5M : null,
-      rider.wtrl?.zmapWkg,
-      rider.powerSource?.m5,
-    ),
+    zftp: pick(zftp, rider.wtrl?.zftpWkg, zftpFrom),
+    zmap: pick(m5 != null ? m5 * ZMAP_FROM_5M : null, rider.wtrl?.zmapWkg, from5),
   };
 }
 
@@ -155,8 +177,8 @@ export function isWomenTeamName(name: string) {
 function judge(zftp: number | null, zmap: number | null, limit: { ftp: number; map: number }): LimitStatus {
   if ((zftp != null && zftp >= limit.ftp) || (zmap != null && zmap >= limit.map)) return "over";
   if (
-    (zftp != null && zftp >= limit.ftp - ESTIMATE_MARGIN) ||
-    (zmap != null && zmap >= limit.map - ESTIMATE_MARGIN)
+    (zftp != null && zftp >= limit.ftp - ZFTP_ESTIMATE_MARGIN) ||
+    (zmap != null && zmap >= limit.map - ZMAP_ESTIMATE_MARGIN)
   ) {
     return "near";
   }

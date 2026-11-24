@@ -12,6 +12,7 @@ import {
   sortRanking,
   splitIntoTeams,
   type RankingRider,
+  zValueSourceLabel,
 } from "@/lib/teams/zrl-ranking";
 
 function rider(
@@ -23,10 +24,17 @@ function rider(
 }
 
 describe("estimateZ", () => {
-  it("schat zFTP uit 20 min en zMAP uit 5 min", () => {
+  it("schat zFTP uit de critical power van 5 en 20 min en zMAP uit 5 min", () => {
+    // CP = (4 × 3,8 − 4,4) / 3 = 3,6; zFTP 0,99 × 3,6 = 3,56. zMAP 0,99 × 4,4 = 4,36.
     const z = estimateZ(rider("a", { m1: 7, m5: 4.4, m20: 3.8 }));
     expect(z.zftp).toEqual({ value: 3.56, source: "estimate" });
-    expect(z.zmap).toEqual({ value: 4.27, source: "estimate" });
+    expect(z.zmap).toEqual({ value: 4.36, source: "estimate" });
+  });
+
+  it("zonder 5 minuten zFTP 0,94 × 20 minuten", () => {
+    const z = estimateZ(rider("a", { m1: null, m5: null, m20: 3.8 }, { zftpWkg: 3.4, zmapWkg: 4.2 }));
+    expect(z.zftp).toEqual({ value: 3.57, source: "estimate" });
+    expect(z.zmap).toEqual({ value: 4.2, source: "wtrl" });
   });
 
   it("valt terug op WTRL zonder ZwiftRacing", () => {
@@ -41,20 +49,20 @@ describe("estimateZ", () => {
 });
 
 describe("grenzen in een B-hoofdteam", () => {
-  it("te sterk voor B vanaf de A-grens, krap binnen 0,22", () => {
-    // zFTP 4,22 ≥ 4,2.
+  it("te sterk voor B vanaf de A-grens, krap binnen 0,14 (zFTP) of 0,22 (zMAP)", () => {
+    // zFTP 4,29 ≥ 4,2.
     expect(rankRider(rider("a", { m1: 8, m5: 5, m20: 4.5 }), "B", false).category).toBe("over");
-    // zMAP 4,95: binnen 0,22 onder 5,1.
+    // zMAP 5,05: binnen 0,22 onder 5,1.
     expect(rankRider(rider("b", { m1: 8, m5: 5.1, m20: 4 }), "B", false).category).toBe("near");
     expect(rankRider(rider("c", { m1: 6, m5: 4.2, m20: 3.6 }), "B", false).category).toBe("ok");
   });
 
   it("Dev: beide onder 3,74 / 4,53", () => {
-    // zFTP 3,28 en zMAP 3,98: ruim eronder.
+    // zFTP 3,27 en zMAP 4,06: ruim eronder.
     expect(rankRider(rider("a", { m1: 6, m5: 4.1, m20: 3.5 }), "B", false).dev).toBe("ok");
-    // zMAP 4,47: krap.
-    expect(rankRider(rider("b", { m1: 6, m5: 4.6, m20: 3.5 }), "B", false).dev).toBe("near");
-    // zFTP 3,75: boven het plafond.
+    // zMAP 4,46: krap.
+    expect(rankRider(rider("b", { m1: 6, m5: 4.5, m20: 3.5 }), "B", false).dev).toBe("near");
+    // zFTP 3,89: boven het plafond.
     expect(rankRider(rider("c", { m1: 6, m5: 4.2, m20: 4 }), "B", false).dev).toBe("over");
     // Zonder zMAP onbekend.
     expect(rankRider(rider("d", null, { zftpWkg: 3, zmapWkg: null }), "B", false).dev).toBeNull();
@@ -105,7 +113,7 @@ describe("teams en blokken", () => {
     const blocks = splitIntoTeams(sortRanking(riders, "zftp"), teams);
     expect(blocks.map((block) => block.team?.id ?? "reserve")).toEqual(["b1", "dev", "reserve"]);
     expect(blocks.map((block) => block.riders.length)).toEqual([5, 5, 2]);
-    // Nummer 6: zFTP 0,937 × 3,70 = 3,47 (onder 3,74), zMAP 0,971 × 3,99 = 3,87 → ok.
+    // Nummer 6: zFTP 0,99 × CP(4,0; 3,7) = 3,56 (onder 3,74 − 0,14), zMAP 0,99 × 4,0 = 3,96 → ok.
     // Toch rood als er een te sterke in zit: maak nummer 6 sterker.
     const strong = rankRider(rider("x", { m1: 6, m5: 4.4, m20: 4.05 }), "B", false);
     const devBlock = splitIntoTeams([...blocks[0].riders, strong, ...blocks[1].riders.slice(1)], teams)[1];
@@ -139,7 +147,7 @@ describe("indeling per raceweek", () => {
       ["c", "4"],
     ]);
     expect([...assigned].sort()).toEqual(["a", "c", "g"]);
-    // a is de sterkste: zFTP 0,937 × 3,9 = 3,65, net onder het Dev-plafond van 3,74 → krap.
+    // a is de sterkste: zFTP 0,99 × CP(4,4; 3,9) = 3,70, net onder het Dev-plafond van 3,74 → krap.
     expect(blocks[1].level).toBe("near");
     expect(blocks[0].level).toBe("ok");
   });
@@ -197,7 +205,11 @@ describe("bestPower", () => {
   it("de schatting zegt uit welke bron hij komt", () => {
     const best = bestPower({ m5: 4.34, m20: 3.2 }, { m5: 4.29, m20: 3.4 })!;
     const z = estimateZ({ key: "s", name: "S", profileId: "s", power: best.power, powerSource: best.source, wtrl: null });
-    expect(z.zftp).toEqual({ value: 3.19, source: "estimate", from: "intervals" });
+    // 5 min uit ZwiftRacing, 20 min uit intervals.icu: zFTP komt uit allebei.
+    expect(z.zftp).toEqual({ value: 3.06, source: "estimate", from: "mixed" });
     expect(z.zmap?.from).toBe("zwiftracing");
+    expect(zValueSourceLabel(z.zftp!)).toBe("Geschat, ZwiftRacing en intervals.icu");
+    expect(zValueSourceLabel(z.zmap!)).toBe("Geschat, ZwiftRacing");
+    expect(zValueSourceLabel({ value: 4, source: "wtrl" })).toBe("WTRL");
   });
 });

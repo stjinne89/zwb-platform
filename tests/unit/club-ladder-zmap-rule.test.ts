@@ -59,7 +59,7 @@ describe("checkLadderTeamZmap", () => {
     expect(checkLadderTeamZmap([rider("a", 3)]).room).toEqual([2.5, 4.2]);
   });
 
-  it("is een risico binnen 0,11 van de rand, ook in het midden van de lijst", () => {
+  it("is een risico binnen 0,09 van de rand, ook in het midden van de lijst", () => {
     // ZWBandits op 2026-11-17: ruimte 3,64–4,90.
     const check = checkLadderTeamZmap([
       rider("george", 3.7),
@@ -75,7 +75,8 @@ describe("checkLadderTeamZmap", () => {
       "p:george": "risk",
       "p:jeroen": "ok",
       "p:stijn": "ok",
-      "p:harmen": "risk",
+      // Precies 0,09 onder de rand is geen risico meer.
+      "p:harmen": "ok",
       "p:gonda": "risk",
     });
     const roomy = checkLadderTeamZmap([rider("a", 4.2), rider("b", 5.24)]);

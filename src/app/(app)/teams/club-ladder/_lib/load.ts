@@ -264,7 +264,7 @@ export async function loadLadderPuzzle(
 
 /**
  * Geschatte zMAP per puzzelrenner voor seizoen 8, zoals de ZRL-indeling hem
- * rekent: per duur de hoogste van ZwiftRacing en intervals.icu, 0,971 × beste
+ * rekent: per duur de hoogste van ZwiftRacing en intervals.icu, 0,99 × beste
  * 5 minuten, anders de laatste WTRL-plak. Alleen voor wie mag indelen (zoals bij
  * de ZRL-indeling).
  */

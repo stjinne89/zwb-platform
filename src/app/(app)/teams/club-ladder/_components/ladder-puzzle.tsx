@@ -26,6 +26,7 @@ import {
   type ZmapRiderStatus,
   type ZmapTeamCheck,
 } from "@/lib/club-ladder/zmap-rule";
+import { zValueSourceLabel } from "@/lib/teams/zrl-ranking";
 import { cn } from "@/lib/utils";
 import {
   addLadderRosterRider,
@@ -88,8 +89,6 @@ const TONE_BAR: Record<ZmapRiderStatus, string> = {
   out: "bg-destructive",
   unknown: "bg-border",
 };
-
-const ZMAP_SOURCE: Record<string, string> = { zwiftracing: "ZwiftRacing", intervals: "intervals.icu" };
 
 /** "4,60–5,80", "vanaf 4,60", "tot 3,70" of "alles". */
 function roomText(room: [number, number]) {
@@ -645,13 +644,7 @@ function Piece({
                 "font-semibold tabular-nums text-foreground",
                 rider.zmap.source === "wtrl" && "italic",
               )}
-              title={
-                rider.zmap.source === "wtrl"
-                  ? "WTRL"
-                  : rider.zmap.from
-                    ? `Geschat, ${ZMAP_SOURCE[rider.zmap.from]}`
-                    : "Geschat"
-              }
+              title={zValueSourceLabel(rider.zmap)}
             >
               zMAP {formatWkg(rider.zmap.value)}
               {rider.zmap.value > ZMAP_CAP_HIGH && (
