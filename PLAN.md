@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Club Ladder: sessie plakken in beheer, healthcheck houdt hem
-   warm (2026-11-24): lokaal gecommit, niet gepusht.** Migratie
+   warm (2026-11-24): lokaal gecommit (`4d3dfee8`), niet gepusht.** Migratie
    `0357_club_ladder_session.sql` op 2026-11-24 op productie toegepast
    (eigenaar: "Ja, toepassen"). Eerst gebouwd als zelf inloggen met een
    wachtwoord; dat bleek niet te kunnen (de ladder kent alleen Google en
@@ -12862,7 +12862,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: sessie plakken in beheer
 
-**2026-11-24, lokaal gecommit, niet gepusht. Migratie
+**2026-11-24, commit `4d3dfee8`, lokaal gecommit, niet gepusht. Migratie
 `0357_club_ladder_session.sql` op 2026-11-24 op productie toegepast**
 (eigenaar: "Ja, toepassen"; nagekeken: RLS aan, geen policies, geen select
 voor anon of authenticated, service role mag schrijven, tabel leeg). Op vraag
