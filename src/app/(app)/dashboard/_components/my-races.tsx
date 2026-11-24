@@ -47,7 +47,9 @@ const EVENT_COLUMNS = "id, title, type, start_at, team_id, parent_event_id, zwif
 /** Een race die net begon blijft staan, zodat de live stand bereikbaar is. */
 const STARTED_GRACE_MS = 2 * 60 * 60 * 1000;
 const LIVE_LEAD_MS = 15 * 60 * 1000;
-const WINDOW_DAYS = 14;
+// Zes dagen, net als de eventslijst: anders staat de ZRL-ronde van volgende
+// week op raceavond er al bij (besluit eigenaar, 2026-11-24).
+const WINDOW_DAYS = 6;
 const MAX_RACES = 3;
 
 const STATUS_LABELS: Record<Exclude<RaceStatus, null>, string> = {

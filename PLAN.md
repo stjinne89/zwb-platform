@@ -24,10 +24,11 @@ gaat stabiliteit voor nieuwe features.
    storage-policies in de praktijk te zien werken. Zie de ronde "Databasecheck 2026-11-17: middleware,
    nawerk en storage-policies".
 
-0. **Bijgesteld — Dashboard: events zes dagen vooruit (2026-11-24): gepusht
-   naar `main` (`ce1d10cc`, eigenaar: "Ja, push").** Geen migratie. Open: na de
-   deploy op een ZRL-avond nagaan dat er één ronde op het dashboard staat. Zie
-   de ronde met dezelfde naam.
+0. **Bijgesteld — Dashboard: events zes dagen vooruit (2026-11-24): eventslijst
+   gepusht naar `main` (`ce1d10cc`, eigenaar: "Ja, push"); Jouw races ook op
+   zes dagen, lokaal gecommit, niet gepusht.** Geen migratie. Open: pushen, en
+   na de deploy op een ZRL-avond nagaan dat er één ronde op het dashboard
+   staat. Zie de ronde met dezelfde naam.
 
 0. **Hersteld — Pacingplanner: vermoeidheid, gewicht en watts (2026-11-23): gepusht
    naar `main` (`33148717`, eigenaar: "Ja, push naar main").** Geen
@@ -8996,7 +8997,8 @@ lid, ook buiten de kalender")*
 > onderhoud; zie "ZRL-uitslagen in Teams en scorebord".)*
 >
 > - **Jouw races** (`_components/my-races.tsx`, achter een Suspense): maximaal 3
->   clubraces in de komende 14 dagen. Het gaat om de races van je teams en om
+>   clubraces in de komende 14 dagen (sinds 2026-11-24 zes dagen; zie de ronde
+>   "Bijgesteld — Dashboard: events zes dagen vooruit"). Het gaat om de races van je teams en om
 >   clubraces waarvoor je ja zei (Omnium). "Clubrace" is `CLUB_RACE_TYPES` in
 >   `event-types.ts`: ZRL, Ladder, Flamme Rouge, Omnium en (sinds 2026-09-30) de
 >   Sunday Race Club van MyWhoosh. Wie in een paraplu zit,
@@ -12978,11 +12980,23 @@ typecheck zijn gedraaid. Niet in de browser nagekeken.
 
 **2026-11-24, commit `ce1d10cc`, gepusht naar `main`. Geen migratie.**
 
-- **Waarom.** Het dashboard toonde events tot zeven dagen vooruit. Een
-  wekelijkse ZRL-ronde stond er daardoor op raceavond twee keer: die van
-  vandaag en die van volgende week. Op verzoek van de eigenaar.
+- **Waarom.** Op raceavond stond de wekelijkse ZRL-ronde twee keer op het
+  dashboard: die van vandaag en die van volgende week. Op verzoek van de
+  eigenaar.
 - **Gebouwd.** Het venster van de eventsquery in
-  `src/app/(app)/dashboard/page.tsx` is nu zes dagen (`plus6Iso`).
+  `src/app/(app)/dashboard/page.tsx` stond op zeven dagen en is nu zes dagen
+  (`plus6Iso`).
+- **Tweede stap, zelfde dag (lokaal gecommit, niet gepusht).** Na de eerste
+  push stond de ronde van volgende week er nog. De eerste stap kon dat ook niet
+  oplossen: de eventslijst filtert clubraces (`CLUB_RACE_TYPES`) er helemaal
+  uit, dus de ZRL-races kwamen alleen uit het blok Jouw races
+  (`_components/my-races.tsx`). Dat had een eigen venster van 14 dagen en toont
+  tot drie races (in productie W2, W3 en W4). Ook dat venster is nu zes dagen
+  (`WINDOW_DAYS`), op besluit van de eigenaar. Gevolg: op raceavond staat de
+  race van volgende week niet meer op het dashboard, en de beschikbaarheid
+  daarvoor dus ook niet. Het geldt voor alle clubraces in Jouw races (ZRL,
+  Ladder, FRR, Omnium, SRC). De eerste stap blijft staan: de overige events
+  staan nu ook zes dagen vooruit.
 - **Bewust niet.** De andere zevendagenvensters (ZRL-koppeling, aanmeldingen
   van ZwiftRacing, Wahoo-upload) blijven zoals ze zijn: daar hoort een hele
   week bij.
