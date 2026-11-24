@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Streamcenter: alle streams van een race tegelijk (2026-11-24):
+   de commit die dit blok toevoegt, lokaal, niet gepusht.** Geen migratie.
+   Open: ingelogd een ZRL-raceweek met meer streams openen, het geluid
+   wisselen, en het op een iPhone en een Android-telefoon bekijken. Zie de ronde
+   met dezelfde naam.
+
 0. **Gebouwd — Streamknop in het blok van het event op de kalender
    (2026-11-24): commits `4d367f80` en `1adc8000`, op 2026-11-24 gepusht naar
    `main` (eigenaar: "Ja, push").** Geen migratie. Open: op de
@@ -12883,6 +12889,79 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Streamcenter: alle streams van een race tegelijk
+
+**2026-11-24, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
+Geen migratie.**
+
+- **Waarom.** Bij een ZRL-raceweek streamen leden van meerdere teams. De
+  eigenaar opperde een streamcenter waar je die allemaal tegelijk ziet. Het
+  voorstel was akkoord ("Ja, bouwen").
+- **Wat.**
+  - Nieuwe pagina `/events/[id]/streams` (alleen voor ingelogde leden, onder
+    `(app)`). Hij toont de streams van de race en van de teamraces eronder,
+    dezelfde data als de kalender (`loadEventStreams`). Zonder module of
+    YouTube-config: 404. Zonder streams: terug naar de race.
+  - De tegels staan in een vaste volgorde: de race zelf, dan de teamraces op
+    titel met getallen als getal (`streamCenterOrder`), en daarbinnen op het
+    moment van klaarzetten (`streamCenterTiles`, puur, met tests). Live gaan
+    verschuift niets.
+  - Het raster telt 1 kolom op een telefoon, 2 vanaf `md` (2 streams naast
+    elkaar, 3 of 4 in 2×2), en vanaf 5 streams 3 kolommen vanaf `xl`. Het
+    raster breekt vanaf `md` uit de 5xl-kolom van de app, tot 100rem breed.
+    Onder elke tegel staan de live-stip, het label ("ZRL A · Stijn"), een
+    luidspreker en een link naar de racepagina met die stream gekozen.
+  - Geluid (`components/livestream/stream-center.tsx`): de embeds krijgen
+    `enablejsapi=1`. De pagina stuurt `mute`, `unMute` en `playVideo` met
+    `postMessage`, zonder het script van YouTube, en luistert naar
+    `infoDelivery`. De luidspreker zet het geluid op één tegel en dempt de
+    rest. Zet iemand het geluid aan in een speler zelf (speelt en niet
+    gedempt), dan gaan de andere ook stil.
+  - Vanzelf starten (gedempt) gebeurt alleen op een breed scherm en niet bij
+    terugkijken. Op een telefoon (`< 768px`) start niets vanzelf, wegens de
+    mobiele data. De spelers komen pas na het laden in de pagina
+    (`useSyncExternalStore`, `null` op de server), anders zou de src na de
+    hydratatie wisselen.
+  - Ingangen:
+    - De kalenderknop gaat met 2 of meer streams als **Live · N** (of
+      Stream · N, Terugkijken · N) direct naar het streamcenter. Het
+      uitklaplijstje van dezelfde dag vervalt, en `CalendarStreams` is
+      geen client-component meer. `calendarStreams` geeft per regel
+      `centerHref` mee.
+    - Op de pagina van een raceweek staat dezelfde knop (`RaceWeekStreams`
+      in `race-streams.tsx`). Daar stond eerst niets, omdat een raceweek
+      zelf geen streams neemt.
+  - Op `/hulp`, bij livestreamen, staat een alinea over de knop en het
+    streamcenter.
+- **Bewust niet.**
+  - Geen synchronisatie tussen streams: elke YouTube-stream heeft zijn eigen
+    vertraging.
+  - Geen automatisch verversen: dat kost per kijker elke minuut een
+    serververzoek. Een later klaargezette stream zie je na herladen.
+  - Geen spotlight of indelingskiezer en geen keuze voor beeldkwaliteit
+    (YouTube kiest die naar de grootte van de tegel). Geen chat.
+  - Niet op de openbare `/live/zrl`-pagina: wie er streamt is niet openbaar.
+  - Weghalen en de overlayknoppen blijven op de racepagina.
+- **Niet meer waar.** Het uitklaplijstje van de kalenderknop (rondes
+  "Gebouwd — Streamknop in het blok van het event op de kalender" en
+  "Gebouwd — Streams op de kalender, resolutie per stream, helmkleur"): daar
+  bijgewerkt.
+- **Niet geverifieerd.** Typecheck, lint en de unit-tests (`stream-center`,
+  `calendar-streams`) zijn schoon. `StreamCenter` lokaal bekeken op een
+  tijdelijke pagina onder `/dev/`, met vier en zes kopieën van een openbare
+  24/7-livestream (daarna weggehaald). In Chromium:
+  - 2×2 op 800px, 3×2 op 1600px, zonder horizontaal scrollen; alles start
+    gedempt.
+  - De luidspreker geeft het geluid aan één tegel en dempt de rest, ook bij
+    wisselen.
+  - `unMute` in een speler zelf zette die tegel op geluid en de vorige op
+    gedempt.
+  - Op 375px één kolom zonder autoplay. De eerste tegel die je start krijgt
+    het geluid.
+
+  Niet gezien: de echte pagina ingelogd met streams uit de database, de knop
+  op de kalender en op de raceweek, iOS Safari en een echte Android-telefoon.
+
 ### Gebouwd — Streamknop in het blok van het event op de kalender
 
 **2026-11-24, commits `4d367f80` en `1adc8000`, op 2026-11-24 gepusht naar
@@ -12902,7 +12981,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
     `div.tg-row`. De titel is de link en spant met `::after` het hele blok
     (`.tg-row-link`); `.tg-row-action` ligt erboven en blijft zelf klikbaar.
     Hover en focus van de rij volgen de link via `:has()`.
-  - Bij meer streams klapt de lijst in het blok open, onder de knop.
+  - Bij meer streams klapt de lijst in het blok open, onder de knop. (Niet meer
+    waar sinds dezelfde dag: **Live · N** gaat naar het streamcenter, zie
+    "Gebouwd — Streamcenter".)
 - **Bewust niet.** Op een telefoon niet naast de tekst: de titel zou dan te
   kort worden.
 - **Niet meer waar.** De ronde "Gebouwd — Streams op de kalender, resolutie
@@ -14735,7 +14816,8 @@ toegepast (check en standaard nagekeken, vier streams op `1920x1080`).**
     **Stream** of **Terugkijken**, ook bij de laatste vijf voorbije races. Eén stream: naar de racepagina met die stream gekozen
     (`/events/[id]?stream=…#stream`). Meer streams, bij een raceweek van alle
     teamraces: de knop klapt een lijst open ("ZRL B · Kees"), wie live is
-    eerst. Eén extra query (`loadEventStreams`) voor alle races op de
+    eerst (sinds 2026-11-24 gaat **Live · N** naar het streamcenter, zie
+    "Gebouwd — Streamcenter"). Eén extra query (`loadEventStreams`) voor alle races op de
     kalender, alleen met de module aan; een fout breekt de kalender niet.
     `calendarStreams` (puur) rekent de staat per regel uit, met de klok als
     terugval, net als de racepagina. (De knop stond eerst onder de rij; sinds

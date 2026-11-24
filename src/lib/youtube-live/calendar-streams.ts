@@ -16,6 +16,8 @@ export type CalendarTarget = { rowId: string; startAt: string; label: string | n
 
 export type CalendarRowStreams = {
   state: "live" | "gepland" | "afgelopen";
+  /** Het streamcenter van de regel: alle streams tegelijk (2026-11-24). */
+  centerHref: string;
   streams: { id: string; href: string; label: string; live: boolean }[];
 };
 
@@ -28,7 +30,12 @@ export function calendarStreams(
   for (const stream of streams) {
     const target = targets.get(stream.eventId);
     if (!target) continue;
-    const row = rows.get(target.rowId) ?? { state: "gepland", streams: [], ended: [] };
+    const row: CalendarRowStreams & { ended: boolean[] } = rows.get(target.rowId) ?? {
+      state: "gepland",
+      centerHref: `/events/${target.rowId}/streams`,
+      streams: [],
+      ended: [],
+    };
     const live = stream.status === "live";
     // Zonder status van YouTube beslist de klok, net als op de racepagina.
     row.ended.push(stream.status === "afgelopen" || (!live && !streamsAreLive(target.startAt, now)));
@@ -45,7 +52,7 @@ export function calendarStreams(
     const state = row.streams.some((s) => s.live) ? "live" : row.ended.every(Boolean) ? "afgelopen" : "gepland";
     // Wie live is eerst; verder in de volgorde van klaarzetten.
     const streamsSorted = [...row.streams].sort((a, b) => Number(b.live) - Number(a.live));
-    out.set(rowId, { state, streams: streamsSorted });
+    out.set(rowId, { state, centerHref: row.centerHref, streams: streamsSorted });
   }
   return out;
 }

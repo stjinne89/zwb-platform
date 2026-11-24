@@ -565,7 +565,7 @@ export default async function KalenderPage({
       : new Map();
   const streamButton = (eventId: string) => {
     const found = streamsByRow.get(eventId);
-    return found ? <CalendarStreams key="streams" streams={found.streams} state={found.state} /> : null;
+    return found ? <CalendarStreams key="streams" streams={found.streams} state={found.state} centerHref={found.centerHref} /> : null;
   };
 
   const pastRows: AgendaRow[] = pastTop

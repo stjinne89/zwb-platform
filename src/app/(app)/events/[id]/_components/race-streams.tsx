@@ -25,6 +25,8 @@ import {
   ThumbnailButton,
 } from "./prepare-stream-button";
 import { overlaySize } from "@/lib/youtube-live/overlay-size";
+import { CalendarStreams } from "@/components/livestream/calendar-streams";
+import { calendarStreams, type CalendarRowStreams, type CalendarTarget } from "@/lib/youtube-live/calendar-streams";
 
 /**
  * Streams bij een race (livestreams, fase 1): de speler voor iedereen, en de
@@ -34,6 +36,7 @@ export async function RaceStreams({
   supabase,
   event,
   hasSubEvents,
+  subEvents = [],
   userId,
   canManage,
   selectedStreamId = null,
@@ -41,6 +44,8 @@ export async function RaceStreams({
   supabase: SupabaseClient;
   event: StreamableEvent & { id: string; zwift_event_id?: number | string | null };
   hasSubEvents: boolean;
+  /** De teamraces van een raceweek: hun streams staan in het streamcenter. */
+  subEvents?: { id: string; startAt: string }[];
   userId: string | null;
   canManage: boolean;
   /** Vanaf de kalender: deze stream eerst (?stream=). */
@@ -48,6 +53,7 @@ export async function RaceStreams({
 }) {
   const club = await getClub();
   if (!youtubeLiveConfigured() || !club.isEnabled("livestream")) return null;
+  if (hasSubEvents) return <RaceWeekStreams supabase={supabase} eventId={event.id} subEvents={subEvents} />;
   if (!eventTakesStreams(event, hasSubEvents)) return null;
 
   const now = new Date();
@@ -165,6 +171,37 @@ export async function RaceStreams({
             {connection?.needs_reconnect ? "YouTube opnieuw koppelen" : "YouTube koppelen om te streamen"}
           </a>
         ))}
+    </section>
+  );
+}
+
+/**
+ * Een raceweek heeft zelf geen speler (2026-11-24): de knop van de kalender, die
+ * met meer streams naar het streamcenter gaat en met één naar die teamrace.
+ */
+async function RaceWeekStreams({
+  supabase,
+  eventId,
+  subEvents,
+}: {
+  supabase: SupabaseClient;
+  eventId: string;
+  subEvents: { id: string; startAt: string }[];
+}) {
+  const targets = new Map<string, CalendarTarget>(
+    subEvents.map((sub) => [sub.id, { rowId: eventId, startAt: sub.startAt, label: null }]),
+  );
+  let row: CalendarRowStreams | undefined;
+  try {
+    row = calendarStreams(await loadEventStreams(supabase, [...targets.keys()]), targets, new Date()).get(eventId);
+  } catch (err) {
+    console.error("[race-streams]", err);
+    return null;
+  }
+  if (!row) return null;
+  return (
+    <section id="stream" className="scroll-mt-20 rounded-lg border bg-card p-4">
+      <CalendarStreams streams={row.streams} state={row.state} centerHref={row.centerHref} />
     </section>
   );
 }

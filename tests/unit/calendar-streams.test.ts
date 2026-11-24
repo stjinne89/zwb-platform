@@ -26,6 +26,7 @@ describe("calendarStreams", () => {
     expect(week?.state).toBe("live");
     expect(week?.streams.map((s) => s.label)).toEqual(["ZRL B · Kees", "ZRL A · Stijn"]);
     expect(week?.streams[0].href).toBe("/events/zrl-b?stream=s2#stream");
+    expect(week?.centerHref).toBe("/events/week/streams");
   });
 
   it("noemt een voorbije race Terugkijken, ook zonder status van YouTube", () => {

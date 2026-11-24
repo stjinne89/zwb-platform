@@ -1548,6 +1548,7 @@ export default async function EventDetailPage({
         supabase={supabase}
         event={event}
         hasSubEvents={isParentEvent}
+        subEvents={subEvents.map((sub) => ({ id: sub.id, startAt: sub.startAt }))}
         userId={user?.id ?? null}
         canManage={canManage}
         selectedStreamId={streamParam((await searchParams)?.stream)}
