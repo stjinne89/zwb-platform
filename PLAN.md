@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Databasecheck 2026-11-24: demo-check en uitgesloten ritten (2026-11-24):
+   lokaal gecommit, niet gepusht.** Migratie
+   `0357_demo_check_get_excluded_idx.sql` is nog niet op productie toegepast.
+   Open: toepassen en pushen (vraagt een ja van de eigenaar), daarna in de
+   volgende check `demo_read_only` en `markExcludedRides` meten. Zie de ronde
+   "Databasecheck 2026-11-24: demo-check en uitgesloten ritten".
+
 0. **Gebouwd — Een weekbadge voor elke ranglijst (2026-11-24): gepusht naar
    `main` (`7527676f`, eigenaar: "tekst is goed, draai migratie en push").**
    Migratie `0356_ranking_week_badges.sql` op 2026-11-24 vóór de push op
@@ -12906,6 +12913,50 @@ vóór de push via de Supabase-connector toegepast en nagekeken: elf weekbadges
   alleen de rijen nagekeken, nog geen toekenning gezien. Niet in de browser
   bekeken (geen `.env.local` in deze worktree); het intrekken bij het profiel
   opslaan alleen in code.
+
+### Databasecheck 2026-11-24: demo-check en uitgesloten ritten
+
+**2026-11-24, lokaal gecommit, niet gepusht. Migratie `0357` nog niet op
+productie toegepast.** Gemeten in de wekelijkse check van 2026-11-24 (database
+281 MB, disk 30% van 2 GB, egress 3,30 GB na 22 dagen van de cyclus, compute
+Micro). Eigenaar koos uit een voorstel: "GET overslaan" en "Alleen
+excluded-index".
+
+- **Gebouwd: demo-check slaat GET en HEAD over.** `demo_read_only()` (0334)
+  draait als `pgrst.db_pre_request` vóór elk verzoek: ~509.000 keer in een
+  week, 374 s, ~10% van alle databasetijd en de duurste query van het rapport.
+  Elke aanroep opent een subtransactie en zoekt `profiles.is_demo` op. GET en
+  HEAD voert PostgREST al alleen-lezen uit, dus daar is de controle overbodig.
+  Zonder `request.method` valt de functie terug op de oude controle.
+- **Gebouwd: index voor uitgesloten ritten.** `markExcludedRides`
+  (`src/lib/training/compliance.ts`) kostte ~6,5% (1.358 aanroepen, gemiddeld
+  116 ms). Met `explain analyze` op productie las Postgres 4.523 rijen voor 20
+  treffers. Nieuw: `strava_activities_excluded_idx (profile_id) where
+  training_excluded_at is not null`.
+- **Bewust niet:** de demo-vlag in `app_metadata` van het JWT (vraagt een
+  wijziging aan het demo-account via de Auth-admin en werkt pas na
+  tokenvernieuwing). De losse query in `markExcludedRides` schrappen (raakt
+  drie aanroepplekken; de index lost de kosten op zonder codewijziging). Geen
+  index voor de Zwift-sporenmelding (`src/lib/zwblokken/missing-tracks.ts`,
+  gemiddeld 514 ms, maar maar 309 aanroepen per week en hooguit één keer per
+  browsersessie).
+- **Ook gemeten.** 0325 werkt: `prune_superseded_training_workouts` draaide
+  7 keer in de week, gemiddeld ~250 ms, gebruikt `training_workouts_prune_idx`;
+  `auth_rls_initplan` staat op 0. live-cleanup: alle runs geslaagd, maar
+  ongeveer een derde duurt 9–10 s tegen ~1 s voor de rest. Het budget van 7 s
+  voor Garmin/Wahoo (`ROUND_BUDGET_MS` in `src/lib/live/external-refresh.ts`)
+  verklaart het niet: op 2026-11-24 stond er geen open Garmin- of
+  Wahoo-sessie, en zonder open sessie stopt die stap na één query.
+  Waarschijnlijk zijn het koude starts, want er starten tegelijk ~10 jobs op
+  het hele uur. Niet vast te stellen: Netlify toont op dit plan alleen live
+  logs zonder pad, dus geen historie. Geen ingreep: de job slaagt.
+- **Gecontroleerd.** Vitest `demo-check-get.test.ts` (PGlite: GET en HEAD
+  overgeslagen, POST en PATCH van een demo-account alleen-lezen, zonder methode
+  de oude controle, de index bestaat).
+- **Niet geverifieerd.** 0357 niet op productie of in Supabase-Postgres
+  getest (geen Docker). Dat PostgREST `request.method` vóór de pre-request zet
+  en GET alleen-lezen uitvoert, volgt uit de PostgREST-documentatie, niet uit
+  een meting hier. Na toepassen als demo-account een schrijfactie proberen.
 
 ### Databasecheck 2026-11-17: middleware, nawerk en storage-policies
 
