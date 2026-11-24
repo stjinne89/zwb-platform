@@ -1,11 +1,16 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-23)
+## Actieve volgorde (bijgewerkt 2026-11-24)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Bijgesteld — Dashboard: events zes dagen vooruit (2026-11-24): gepusht
+   naar `main` (`HASH`, eigenaar: "Ja, push").** Geen migratie. Open: na de
+   deploy op een ZRL-avond nagaan dat er één ronde op het dashboard staat. Zie
+   de ronde met dezelfde naam.
 
 0. **Hersteld — Pacingplanner: vermoeidheid, gewicht en watts (2026-11-23): gepusht
    naar `main` (`33148717`, eigenaar: "Ja, push naar main").** Geen
@@ -12815,6 +12820,20 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Bijgesteld — Dashboard: events zes dagen vooruit
+
+**2026-11-24, commit `HASH`, gepusht naar `main`. Geen migratie.**
+
+- **Waarom.** Het dashboard toonde events tot zeven dagen vooruit. Een
+  wekelijkse ZRL-ronde stond er daardoor op raceavond twee keer: die van
+  vandaag en die van volgende week. Op verzoek van de eigenaar.
+- **Gebouwd.** Het venster van de eventsquery in
+  `src/app/(app)/dashboard/page.tsx` is nu zes dagen (`plus6Iso`).
+- **Bewust niet.** De andere zevendagenvensters (ZRL-koppeling, aanmeldingen
+  van ZwiftRacing, Wahoo-upload) blijven zoals ze zijn: daar hoort een hele
+  week bij.
+- **Niet geverifieerd.** Niet in de browser nagekeken; alleen de typecheck.
 
 ### Hersteld — Pacingplanner: vermoeidheid, gewicht en watts
 

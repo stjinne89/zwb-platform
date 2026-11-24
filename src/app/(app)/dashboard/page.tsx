@@ -544,9 +544,11 @@ export default async function DashboardPage({
         .slice(0, 10),
       "00:00",
     ) ?? since7Iso;
-  const plus7 = new Date();
-  plus7.setDate(plus7.getDate() + 7);
-  const plus7Iso = plus7.toISOString();
+  // Zes dagen vooruit, niet zeven: anders staat een wekelijkse ZRL-ronde er
+  // op raceavond twee keer (vandaag en volgende week).
+  const plus6 = new Date();
+  plus6.setDate(plus6.getDate() + 6);
+  const plus6Iso = plus6.toISOString();
   const today = new Date().toISOString().slice(0, 10);
   // Amsterdam-datum: zo verdwijnt de workout van vandaag niet zodra het geplande
   // tijdstip voorbij is (zelfde keuze als de trainingspagina).
@@ -612,7 +614,7 @@ export default async function DashboardPage({
       // Teamevents staan onder hun hoofdevent (migr. 0178).
       .is("parent_event_id", null)
       .gte("start_at", nowIso)
-      .lte("start_at", plus7Iso)
+      .lte("start_at", plus6Iso)
       .order("start_at", { ascending: true })
       .limit(30),
     !on("teams") ? skip() : supabase
