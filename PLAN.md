@@ -7,7 +7,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Ultrawide Zwift-beeld in de overlay (2026-11-24): lokaal, nog
+0. **Gebouwd — Ultrawide Zwift-beeld in de overlay (2026-11-24): commit `523f9fa`, lokaal, nog
    niet gepusht.** Migratie `0359_stream_overlay_ultrawide` (twee maten erbij in
    de check op `event_streams.overlay_size`) nog níét op productie: toepassen
    vóór de push, anders weigert de database de ultrawide maten. Open: in OBS
@@ -13291,7 +13291,7 @@ aparte tegel Form, omdat die naar dezelfde grafiek leidt.
 
 ### Gebouwd — Ultrawide Zwift-beeld in de overlay
 
-**2026-11-24, lokaal, nog niet gepusht. Migratie `0359_stream_overlay_ultrawide`,
+**2026-11-24, commit `523f9fa`, lokaal, nog niet gepusht. Migratie `0359_stream_overlay_ultrawide`,
 nog niet op productie.**
 
 - **Waarom.** De eigenaar rijdt op een scherm van 3440×1440 (21:9). In het kader
