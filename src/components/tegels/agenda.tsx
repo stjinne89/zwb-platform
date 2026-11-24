@@ -24,7 +24,8 @@ export type AgendaRow = {
   time?: string;
   /** Wie "ja" zei: avatars met de teller erachter. */
   riders?: Array<{ id: string; name: string; avatarUrl: string | null }>;
-  /** Knop in het blok zelf, onder de tekst: de stream van de race. */
+  /** Knop in het blok zelf, naast de tekst (eronder als het niet past): de
+   * stream van de race. */
   action?: ReactNode;
   /** Extra regels onder de rij, zoals teamevents of badges. */
   extra?: ReactNode;
@@ -52,31 +53,35 @@ function Row({ row, past }: { row: AgendaRow; past?: boolean }) {
           {row.day}
           <b>{row.dayNumber}</b>
         </span>
-        <span className="tg-row-body">
-          <Link href={row.href} className="tg-row-link block truncate text-base font-medium leading-tight">
-            {row.title}
-          </Link>
-          {row.sub && (
-            <span className="block truncate text-[0.8125rem] text-muted-foreground">{row.sub}</span>
-          )}
-          {row.riders && row.riders.length > 0 && (
-            <span className="tg-riders">
-              <span className="tg-riders-stack">
-                {row.riders.slice(0, 6).map((rider) =>
-                  rider.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={rider.id} src={rider.avatarUrl} alt="" title={rider.name} />
-                  ) : (
-                    <span key={rider.id} title={rider.name}>
-                      {rider.name.slice(0, 1).toUpperCase()}
-                    </span>
-                  ),
-                )}
+        <span className="tg-row-body flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          {/* Met een knop: de tekst krijgt minstens 12rem, anders gaat de
+              knop eronder (telefoon). */}
+          <span className="block min-w-0 flex-[1_1_12rem]">
+            <Link href={row.href} className="tg-row-link block truncate text-base font-medium leading-tight">
+              {row.title}
+            </Link>
+            {row.sub && (
+              <span className="block truncate text-[0.8125rem] text-muted-foreground">{row.sub}</span>
+            )}
+            {row.riders && row.riders.length > 0 && (
+              <span className="tg-riders">
+                <span className="tg-riders-stack">
+                  {row.riders.slice(0, 6).map((rider) =>
+                    rider.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={rider.id} src={rider.avatarUrl} alt="" title={rider.name} />
+                    ) : (
+                      <span key={rider.id} title={rider.name}>
+                        {rider.name.slice(0, 1).toUpperCase()}
+                      </span>
+                    ),
+                  )}
+                </span>
+                {row.riders.length} {row.riders.length === 1 ? "doet" : "doen"} mee
               </span>
-              {row.riders.length} {row.riders.length === 1 ? "doet" : "doen"} mee
-            </span>
-          )}
-          {row.action && <span className="tg-row-action mt-1.5 flex flex-wrap items-center gap-2">{row.action}</span>}
+            )}
+          </span>
+          {row.action && <span className="tg-row-action flex flex-wrap items-center gap-2">{row.action}</span>}
         </span>
         {row.time ? <span className="tg-row-time">{row.time}</span> : <span />}
       </div>

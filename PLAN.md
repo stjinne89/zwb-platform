@@ -9,8 +9,7 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Streamknop in het blok van het event op de kalender
    (2026-11-24): lokaal gecommit, niet gepusht.** Geen migratie. Open: op de
-   echte kalender ingelogd een race met een stream bekijken, ook op een
-   telefoon. Zie de ronde met dezelfde naam.
+   echte kalender ingelogd een race met een stream bekijken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Teamindeling: zMAP en zFTP opnieuw geijkt (2026-11-24): de
    commit die dit blok toevoegt, op 2026-11-24 gepusht naar `main` (eigenaar:
@@ -12890,26 +12889,29 @@ link naar `/live/[eventId]`, zie de update hierboven).
 - **Waarom.** Vraag van de eigenaar: de streamknop hoort in het blok van het
   event, niet in een losse regel eronder.
 - **Wat.**
-  - `AgendaRow` heeft een nieuw veld `action`: een knop in het blok, onder de
-    tekst. De kalender zet daar de streamknop (`CalendarStreams`), bij komende
+  - `AgendaRow` heeft een nieuw veld `action`: een knop in het blok, naast de
+    tekst. De tekst krijgt minstens 12rem (`flex-[1_1_12rem]`); past de knop
+    er dan niet naast, zoals op een telefoon, dan gaat hij eronder. Zo kost
+    de knop op een breed scherm geen hoogte (eerst stond hij altijd onder de
+    tekst; de eigenaar vroeg dezelfde regel waar het past). De kalender zet daar de streamknop (`CalendarStreams`), bij komende
     en bij de vijf voorbije races. De teamraces van een ZRL-raceweek blijven
     in `extra`, onder het blok.
   - Een knop in een link mag niet, dus de rij is geen `<a>` meer maar een
     `div.tg-row`. De titel is de link en spant met `::after` het hele blok
     (`.tg-row-link`); `.tg-row-action` ligt erboven en blijft zelf klikbaar.
     Hover en focus van de rij volgen de link via `:has()`.
-  - Bij meer streams klapt de lijst nu in het blok open; het blok wordt dan
-    hoger.
-- **Bewust niet.** De knop staat niet naast de tijd rechts: op een telefoon is
-  daar geen ruimte, en de open lijst bij ZRL moet ergens heen.
+  - Bij meer streams klapt de lijst in het blok open, onder de knop.
+- **Bewust niet.** Op een telefoon niet naast de tekst: de titel zou dan te
+  kort worden.
 - **Niet meer waar.** De ronde "Gebouwd — Streams op de kalender, resolutie
   per stream, helmkleur" zette de knop onder de rij; die zin is daar
   aangepast.
 - **Niet geverifieerd.** Typecheck en lint schoon. Lokaal bekeken op
   `/ontwerp-voorbeeld?scherm=kalender` met tijdelijk een streamknop op twee
-  voorbeeldrijen (daarna teruggedraaid): de knop staat in het blok, opent de
-  lijst met twee streams, en dagvak, tekst en tijd leiden nog naar het event.
-  Niet gezien: de echte kalender ingelogd, en een smal scherm.
+  voorbeeldrijen (daarna teruggedraaid): breed staat de knop naast de tekst
+  vóór de tijd, op 375px eronder; de lijst met twee streams klapt open, en
+  dagvak, tekst en tijd leiden nog naar het event. Niet gezien: de echte
+  kalender ingelogd.
 
 ### Gebouwd — Teamindeling: zMAP en zFTP opnieuw geijkt
 
