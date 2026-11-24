@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Databasecheck 2026-11-24: demo-check en uitgesloten ritten (2026-11-24):
-   lokaal gecommit, niet gepusht.** Migratie
+   lokaal gecommit (`19d6659e`), niet gepusht.** Migratie
    `0357_demo_check_get_excluded_idx.sql` is nog niet op productie toegepast.
    Open: toepassen en pushen (vraagt een ja van de eigenaar), daarna in de
    volgende check `demo_read_only` en `markExcludedRides` meten. Zie de ronde
@@ -12916,7 +12916,7 @@ vóór de push via de Supabase-connector toegepast en nagekeken: elf weekbadges
 
 ### Databasecheck 2026-11-24: demo-check en uitgesloten ritten
 
-**2026-11-24, lokaal gecommit, niet gepusht. Migratie `0357` nog niet op
+**2026-11-24, lokaal gecommit (`19d6659e`), niet gepusht. Migratie `0357` nog niet op
 productie toegepast.** Gemeten in de wekelijkse check van 2026-11-24 (database
 281 MB, disk 30% van 2 GB, egress 3,30 GB na 22 dagen van de cyclus, compute
 Micro). Eigenaar koos uit een voorstel: "GET overslaan" en "Alleen
