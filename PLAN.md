@@ -7,10 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Club Ladder: ZWB logt zelf in (2026-11-24): lokaal gecommit,
-   niet gepusht.** Migratie `0357_club_ladder_session.sql` is geschreven en
-   **niet toegepast**. Open, in deze volgorde: 0357 toepassen;
-   `LADDER_EMAIL` en `LADDER_PASSWORD` op Netlify zetten (account met
+0. **Gebouwd — Club Ladder: ZWB logt zelf in (2026-11-24): lokaal gecommit
+   (`aff37f08`), niet gepusht.** Migratie `0357_club_ladder_session.sql` op
+   2026-11-24 op productie toegepast (eigenaar: "Ja, toepassen"). Open, in deze
+   volgorde: `LADDER_EMAIL` en `LADDER_PASSWORD` op Netlify zetten (account met
    wachtwoord); pushen; na de eerste sync in `club_ladder_session` kijken of er
    een cookie staat en geen `login_error`; daarna de geplande Chrome-taak
    `club-ladder-sessie-warmhouden` verwijderen. Zie de ronde "Gebouwd — Club
@@ -12861,7 +12861,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Club Ladder: ZWB logt zelf in
 
 **2026-11-24, commit `aff37f08`, lokaal gecommit, niet gepusht. Migratie
-`0357_club_ladder_session.sql`, niet toegepast.** Op vraag van de eigenaar
+`0357_club_ladder_session.sql` op 2026-11-24 op productie toegepast**
+(eigenaar: "Ja, toepassen"; nagekeken: RLS aan, geen policies, geen select
+voor anon of authenticated, service role mag schrijven, tabel leeg). Op vraag van de eigenaar
 ("is daar niet een andere manier dat het zoals zwiftracing de data scraped?"),
 na een kort voorstel ("Ja, bouwen").
 
@@ -12921,7 +12923,8 @@ na een kort voorstel ("Ja, bouwen").
 **Niet geverifieerd:** de login tegen de echte ladder. Er is lokaal geen
 wachtwoord en niet geprobeerd; de vorm van het formulier en de doorverwijzing
 van `/dashboard` zijn met `curl` bekeken, zonder in te loggen. De migratie is
-niet lokaal te draaien (geen Docker of Supabase-config). Of de ladder het
+niet lokaal te draaien (geen Docker of Supabase-config); op productie alleen
+de tabel en de rechten nagekeken, nog geen login. Of de ladder het
 goed vindt dat een server inlogt: er is geen voorwaardenpagina (`/terms`
 geeft 404); navragen bij de maker is netjes. Lokaal: typecheck, lint op de
 gewijzigde bestanden en de unittests groen, op één bestaande fout na in
