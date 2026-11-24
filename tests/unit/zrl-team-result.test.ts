@@ -64,6 +64,7 @@ function view({
       format,
       starters: 4,
       final,
+      standing: null,
       passes,
       riders,
       teams: [

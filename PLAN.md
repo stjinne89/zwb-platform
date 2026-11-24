@@ -12872,6 +12872,58 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZRL live: voorlopige scratchstand op de bogen
+
+**2026-11-24, commit: de commit die dit blok toevoegt, niet gepusht. Geen
+migratie.** Gevraagd door de eigenaar: "zou het mogelijk zijn om ook een
+voorlopige stand weergeeft op basis van de doorkomst van de bogen?". Na het
+voorstel kwam: "Ja bouw zo en kun je dan de tekst laten verspringen op het
+moment dat de boog van de finish is gepasseerd?"
+
+- **Waarom.** In een scratch telde de live stand alleen de finish. Tijdens de
+  race stond er dus "Nog geen punten", terwijl de doorkomsten bij de bogen al
+  binnen waren.
+- **Wat.**
+  - `scoreRace` maakt in een scratch die nog niet definitief is een
+    voorlopige finishvolgorde: eerst wie al binnen is, in finishvolgorde. Dan
+    de rest, op de verste boog en daar op doorkomst. Op die volgorde gaan de
+    FIN- en podiumpunten, en daaruit volgt de teamstand zoals voorheen.
+  - Nieuw veld `standing`: de basis van de stand, de verste boog of de
+    finish. `standingLabel` maakt daar "na Epic KOM" van, of "na Titans Grove
+    KOM Reverse 2" als het segment twee keer op de route ligt. Zodra de eerste
+    renner finisht, wordt dat "na de finish".
+  - Is de uitslag definitief, dan telt alleen de echte finish, zoals eerst.
+    Het vastzetten (`freezeZrlTeamResult`) eist een definitieve uitslag en
+    ziet de voorlopige punten dus nooit.
+- **Weergave.**
+  - De statusregel van `/live/zrl/[eventId]` krijgt het label: "Voorlopig · B
+    · Scratch · na Radio Tower KOM · …".
+  - Onder Segmenten staat nu ook bij een scratch per boog de top 3, met de
+    plek bij de doorkomst in plaats van FAL.
+  - De Sauce-API geeft `standing`, en `lastPass` nu ook bij een scratch, met
+    `place` per renner. De mod (0.3.0) toont het label en de plek. Een oude
+    mod toont bij een scratch een 0 als plek, tot hij is bijgewerkt.
+- **Wat je ervan moet weten.** De stand verspringt alleen bij een boog, en
+  die liggen ver uit elkaar. Op 24 november:
+  - A/B: 6,1, 16,0 en 33,3 km, finish op 39 km.
+  - C/D: 2,9, 19,4 en 24,3 km, finish op 27,7 km.
+
+  Wie afstapt, blijft op zijn laatste boog staan tot de uitslag definitief is.
+  Dit is onze schatting; de WTRL-uitslag blijft leidend.
+- **Bewust niet.**
+  - Een stand tussen de bogen in op basis van live posities. Die zijn er niet
+    voor het hele veld.
+  - Hetzelfde voor het FIN-deel van een puntenrace; dat heb ik voorgelegd,
+    de eigenaar koos voor alleen scratch.
+  - Het label in de OBS-overlay (`zrlStatus`): die toont alleen "Live · ZRL
+    B". De teamstand daar krijgt de voorlopige punten wel.
+- **Getest.** `tsc`, ESLint, en `tests/unit/zrl-live-scoring.test.ts` met vier
+  nieuwe gevallen: verste boog, herhaald segment, finish en vóór de eerste
+  boog. In de volle unit-suite faalde los hiervan
+  `club-texts-render` ("beheer noemt ZWB niet").
+- **Niet geverifieerd:** de pagina en de mod tijdens een echte scratch. Eerste
+  kans is de race van 24 november.
+
 ### Hersteld — ZRL R2 W2: vier races aan het Zwift-event van hun nieuwe divisie
 
 **2026-11-24, geen code, geen migratie. Alleen data in productie**, met de

@@ -6,7 +6,7 @@ import { BackLink } from "@/components/app-ui";
 import { ClubMark } from "@/components/club-mark";
 import { WTRL_ZRL_RESULTS_URL } from "@/lib/teams/wtrl-results";
 import { loadZrlLive, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
-import type { RiderScore, ZrlScoringFormat } from "@/lib/zrl-live/scoring";
+import { standingLabel, type RiderScore, type ZrlScoringFormat } from "@/lib/zrl-live/scoring";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -94,10 +94,12 @@ function Status({ view }: { view: ZrlLiveView }) {
     );
   }
   const started = view.fetchedAt >= view.startAt;
+  const standing = standingLabel(score.standing);
   return (
     <p className="text-sm text-muted-foreground">
       {started ? "Voorlopig" : `Start ${clock(view.startAt).slice(0, 5)}`} · {view.subgroupLabel} ·{" "}
       {FORMAT_LABEL[score.format] && `${FORMAT_LABEL[score.format]} · `}
+      {standing && `${standing} · `}
       {score.starters} gestart · bijgewerkt {clock(view.fetchedAt)}
     </p>
   );
@@ -153,8 +155,8 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
   const own = score.riders.filter((r) => view.ownRiders.includes(r.athleteId));
   const { format } = score;
   const ttt = format === "ttt";
-  // Alleen in een puntenrace leveren segmenten punten op.
-  const passes = format === "points" ? score.passes.filter((pass) => pass.crossings.length > 0).reverse() : [];
+  // Puntenrace: FAL per boog. Scratch: de doorkomst, waar de voorlopige stand op rust.
+  const passes = ttt ? [] : score.passes.filter((pass) => pass.crossings.length > 0).reverse();
   const splits = score.splits.filter((split) => split.teams.length > 0).reverse();
 
   return (
@@ -321,9 +323,9 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
                   </span>
                 </div>
                 <ol className="mt-1 space-y-0.5 text-muted-foreground">
-                  {pass.crossings.slice(0, 3).map((crossing) => (
+                  {pass.crossings.slice(0, 3).map((crossing, i) => (
                     <li key={crossing.athleteId} className="flex gap-2">
-                      <span className="w-8 tabular-nums">{crossing.fal}</span>
+                      <span className="w-8 tabular-nums">{format === "points" ? crossing.fal : i + 1}</span>
                       <span
                         className={cn(
                           "truncate",

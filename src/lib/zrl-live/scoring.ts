@@ -8,8 +8,9 @@
 //   - FIN: de eerste finisher krijgt het aantal starters, aflopend.
 //   - Podium: 10-8-6-4-2 voor de eerste vijf.
 //   - DNF/DQ: punten vervallen en schuiven niet door.
-// - Scratch: alleen FIN en podium. Segmentpassages tellen dan alleen nog om de
-//   starters te bepalen.
+// - Scratch: alleen FIN en podium. Tot de uitslag definitief is, telt een
+//   voorlopige finishvolgorde: eerst wie binnen is, dan de rest op de verste
+//   boog en wie daar eerder doorkwam. Dat is onze schatting, geen WTRL-regel.
 // - Ploegentijdrit: geen rennerspunten. De teamtijd is die van de vierde renner
 //   over de streep; met minder dan vier finishers geen tijd en geen leaguepunten.
 // - Teamvolgorde (punten en scratch): eerst teams met vier of meer starters, dan
@@ -130,10 +131,20 @@ export type SplitPoint = {
   teams: TeamSplit[];
 };
 
+/**
+ * Scratch vóór de definitieve uitslag: waar de voorlopige volgorde op rust. De
+ * finish zodra iemand binnen is, anders de verste boog van het veld.
+ */
+export type ScratchStanding =
+  | { basis: "finish" }
+  | { basis: "arch"; index: number; name: string; lap: number; /** Het segment ligt meer dan eens op de route. */ repeated: boolean };
+
 export type ScoreResult = {
   format: ZrlScoringFormat;
   starters: number;
   final: boolean;
+  /** Alleen in een scratch die nog niet definitief is en waar al gereden wordt. */
+  standing: ScratchStanding | null;
   passes: ScoredPass[];
   riders: RiderScore[];
   teams: TeamScore[];
@@ -214,14 +225,15 @@ export function scoreRace(input: ScoreInput): ScoreResult {
   }
 
   const finishers = (input.finish?.finishers ?? []).filter((id) => riderById.has(id));
+  const final = Boolean(input.finish?.final);
+  const scratch = format === "scratch" && !final ? scratchOrder(passes, finishers) : null;
   if (format !== "ttt") {
-    finishers.forEach((id, i) => {
+    (scratch?.order ?? finishers).forEach((id, i) => {
       add(id, "fin", Math.max(n - i, 0));
       if (i < PODIUM_POINTS.length) add(id, "podium", PODIUM_POINTS[i]);
     });
   }
 
-  const final = Boolean(input.finish?.final);
   const finished = new Set(finishers);
   const times = input.finish?.times ?? new Map<number, number>();
   const riders: RiderScore[] = [...starters].map((athleteId) => {
@@ -244,7 +256,49 @@ export function scoreRace(input: ScoreInput): ScoreResult {
 
   const splits =
     format === "ttt" ? tttSplits(passes, riderById, input.startAt, input.rowGapMs ?? DEFAULT_ROW_GAP_MS) : [];
-  return { format, starters: n, final, passes, riders, teams: rankTeams(format, riders), splits };
+  return {
+    format,
+    starters: n,
+    final,
+    standing: scratch?.standing ?? null,
+    passes,
+    riders,
+    teams: rankTeams(format, riders),
+    splits,
+  };
+}
+
+/** "na Epic KOM", "na Titans Grove KOM Reverse 2", "na de finish". */
+export function standingLabel(standing: ScratchStanding | null): string | null {
+  if (!standing) return null;
+  if (standing.basis === "finish") return "na de finish";
+  return `na ${standing.name}${standing.repeated ? ` ${standing.lap}` : ""}`;
+}
+
+/**
+ * Voorlopige finishvolgorde van een scratch: de finishers zoals ze binnen zijn,
+ * dan wie nog rijdt, op de verste boog en daar op doorkomst. Wie afstapt, blijft
+ * op zijn laatste boog staan tot de uitslag definitief is.
+ */
+function scratchOrder(passes: ScoredPass[], finishers: number[]): { order: number[]; standing: ScratchStanding | null } {
+  const done = new Set(finishers);
+  const reached = new Map<number, { index: number; ts: number }>();
+  for (const pass of passes) {
+    for (const crossing of pass.crossings) {
+      if (done.has(crossing.athleteId)) continue;
+      const current = reached.get(crossing.athleteId);
+      if (!current || pass.index > current.index) reached.set(crossing.athleteId, { index: pass.index, ts: crossing.ts });
+    }
+  }
+  const rest = [...reached]
+    .sort(([, a], [, b]) => b.index - a.index || a.ts - b.ts)
+    .map(([athleteId]) => athleteId);
+  const order = [...finishers, ...rest];
+  if (finishers.length > 0) return { order, standing: { basis: "finish" } };
+  const lead = rest.length > 0 ? passes[(reached.get(rest[0]) as { index: number }).index] : undefined;
+  if (!lead) return { order, standing: null };
+  const repeated = passes.filter((pass) => pass.segmentId === lead.segmentId).length > 1;
+  return { order, standing: { basis: "arch", index: lead.index, name: lead.name, lap: lead.lap, repeated } };
 }
 
 /**

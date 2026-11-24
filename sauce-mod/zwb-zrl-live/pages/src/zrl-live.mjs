@@ -75,7 +75,8 @@ function render() {
     const myRank = me ? data.riders.indexOf(me) + 1 : null;
     const started = data.fetchedAt >= data.startAt;
     const ttt = data.format === 'ttt';
-    const status = data.final ? 'Eindstand' : started ? 'Voorlopig' : `Start ${clock(data.startAt)}`;
+    const status = data.final ? 'Eindstand'
+        : started ? `Voorlopig${data.standing ? ` · ${esc(data.standing)}` : ''}` : `Start ${clock(data.startAt)}`;
 
     // In een TTT heeft een ploeg pas een tijd als de vierde renner binnen is.
     const teams = data.teams.filter((t) => !ttt || t.time != null).slice(0, TEAM_ROWS).map((t) => {
@@ -97,7 +98,7 @@ function render() {
     const pass = data.lastPass ? `
         <h2>${esc(data.lastPass.name)}${data.lastPass.lap > 1 ? ` ${data.lastPass.lap}` : ''}</h2>
         <ol>${data.lastPass.top.map((c) => `<li class="${c.id === watchingId ? 'watch' : ''}">` +
-            `<span class="rank">${c.fal}</span><span class="name">${esc(c.name)}</span></li>`).join('')}</ol>` : '';
+            `<span class="rank">${data.format === 'points' ? c.fal : c.place}</span><span class="name">${esc(c.name)}</span></li>`).join('')}</ol>` : '';
 
     app.innerHTML = `
         <header>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadZrlLiveForZwift } from "@/lib/zrl-live/snapshot";
+import { standingLabel } from "@/lib/zrl-live/scoring";
 
 // Live ZRL-stand als JSON voor de Sauce for Zwift-mod (sauce-mod/zwb-zrl-live).
 // De mod kent het Zwift-event en de subgroep van de renner in beeld. Dezelfde
@@ -26,9 +27,9 @@ export async function GET(
   const { view } = outcome;
   const { score } = view;
   const label = (team: string | null) => (team ? view.teamLabels[team] ?? team : null);
-  // Alleen in een puntenrace leveren segmenten punten op.
+  // Puntenrace: FAL op de laatste boog. Scratch: de doorkomst daar.
   const lastPass =
-    score.format === "points" ? [...score.passes].reverse().find((pass) => pass.crossings.length > 0) : undefined;
+    score.format === "ttt" ? undefined : [...score.passes].reverse().find((pass) => pass.crossings.length > 0);
   const nameById = new Map(view.entrants.map((rider) => [rider.athleteId, rider.name]));
 
   return NextResponse.json(
@@ -41,6 +42,8 @@ export async function GET(
       fetchedAt: view.fetchedAt,
       format: score.format,
       final: score.final,
+      /** Scratch, voorlopig: "na Epic KOM" of "na de finish". */
+      standing: standingLabel(score.standing),
       starters: score.starters,
       ownTeam: label(view.ownTeam),
       teams: score.teams.map((team) => ({
@@ -80,10 +83,12 @@ export async function GET(
       lastPass: lastPass && {
         name: lastPass.name,
         lap: lastPass.lap,
-        top: lastPass.crossings.slice(0, 3).map((c) => ({
+        top: lastPass.crossings.slice(0, 3).map((c, i) => ({
           id: c.athleteId,
           name: nameById.get(c.athleteId) ?? String(c.athleteId),
           fal: c.fal,
+          /** Plek bij de doorkomst. */
+          place: i + 1,
         })),
       },
     },

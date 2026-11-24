@@ -94,6 +94,49 @@ describe("scoreRace", () => {
       ["Bram", 0, 0, 0, 0, 0, true],
     ]);
     expect(result.teams.map((t) => [t.team, t.total])).toEqual([["bmtr", 13], ["zwb", 10]]);
+    expect(result.standing).toBeNull();
+  });
+});
+
+describe("voorlopige scratchstand", () => {
+  const scratch = (passages: Passage[], finishers: number[] = []) =>
+    scoreRace({ format: "scratch", route, riders, passages, startAt: 0, finish: { finishers, final: false } });
+  const order = (result: ReturnType<typeof scratch>) => result.riders.map((r) => [r.name, r.fin, r.podium]);
+
+  it("zet het veld op de verste boog, en daar op doorkomst", () => {
+    // Cees is als enige over de KOM; Anna was op de sprint eerder dan Bram.
+    const result = scratch([p(1, "S", 100, 20), p(2, "S", 101, 18), p(3, "S", 102, 25), p(3, "K", 200, 120)]);
+    expect(order(result)).toEqual([
+      ["Cees", 3, 10],
+      ["Anna", 2, 8],
+      ["Bram", 1, 6],
+    ]);
+    expect(result.standing).toEqual({ basis: "arch", index: 1, name: "KOM", lap: 1, repeated: false });
+    expect(result.teams.map((t) => [t.team, t.total])).toEqual([["zwb", 17], ["bmtr", 13]]);
+  });
+
+  it("noemt de doorkomst van een segment dat twee keer op de route ligt", () => {
+    const result = scratch([p(1, "S", 100, 20), p(1, "K", 200, 120), p(1, "S", 300, 19), p(2, "S", 101, 18)]);
+    expect(result.standing).toEqual({ basis: "arch", index: 2, name: "Sprint", lap: 2, repeated: true });
+  });
+
+  it("springt naar de finish zodra iemand binnen is, met de rest daarachter", () => {
+    // Bram finisht; Cees was verder dan Anna, die op de eerste sprint is blijven staan.
+    const result = scratch([p(1, "S", 100, 20), p(2, "S", 101, 18), p(3, "S", 102, 25), p(2, "K", 200, 120), p(3, "K", 210, 125)], [2]);
+    expect(order(result)).toEqual([
+      ["Bram", 3, 10],
+      ["Cees", 2, 8],
+      ["Anna", 1, 6],
+    ]);
+    expect(result.standing).toEqual({ basis: "finish" });
+    // Voorlopig: wie nog rijdt, houdt zijn punten.
+    expect(result.riders.every((r) => !r.void)).toBe(true);
+  });
+
+  it("heeft vóór de eerste boog nog geen stand", () => {
+    const result = scratch([]);
+    expect(result.standing).toBeNull();
+    expect(result.riders).toEqual([]);
   });
 });
 
