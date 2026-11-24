@@ -12860,7 +12860,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: ZWB logt zelf in
 
-**2026-11-24, lokaal gecommit, niet gepusht. Migratie
+**2026-11-24, commit `aff37f08`, lokaal gecommit, niet gepusht. Migratie
 `0357_club_ladder_session.sql`, niet toegepast.** Op vraag van de eigenaar
 ("is daar niet een andere manier dat het zoals zwiftracing de data scraped?"),
 na een kort voorstel ("Ja, bouwen").
