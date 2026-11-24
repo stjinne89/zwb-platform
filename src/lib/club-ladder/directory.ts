@@ -5,7 +5,7 @@ import { assertSafeUrl } from "@/lib/net/safe-fetch";
 import { parseDirectoryCaptains, type LadderCaptain } from "./challenge-post";
 import { LadderLoginError } from "./fixture-page";
 
-// Captain-directory van de ladder: alleen ingelogd, dus met LADDER_COOKIE. Per
+// Captain-directory van de ladder: alleen ingelogd (club-ladder/session.ts). Per
 // ploeg één zoekvraag op teamnaam; niets wordt bewaard.
 const DIRECTORY_SEARCH_URL = "https://ladder.cycleracing.club/directory/search?q=";
 
@@ -28,7 +28,7 @@ export async function fetchLadderCaptains(
     signal: AbortSignal.timeout(15000),
   });
   if (res.status >= 300 && res.status < 400) {
-    throw new LadderLoginError("Ladder-sessie verlopen: vernieuw LADDER_COOKIE.");
+    throw new LadderLoginError("Ladder-sessie verlopen.");
   }
   if (!res.ok) throw new Error(`Captains van ${team.name} gaven HTTP ${res.status}.`);
   return parseDirectoryCaptains(await res.json(), team);

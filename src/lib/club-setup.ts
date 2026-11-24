@@ -272,7 +272,7 @@ export const ENV_GROUPS: readonly EnvGroup[] = [
   { label: "Zwift-club", keys: ["ZWIFT_CLUB_ID"] },
   { label: "Zwift-account", keys: ["ZWIFT_USERNAME", "ZWIFT_PASSWORD"] },
   { label: "WTRL", keys: ["WTRL_COOKIE"], module: "teams" },
-  { label: "Ladder", keys: ["LADDER_COOKIE"], module: "teams" },
+  { label: "Ladder", keys: ["LADDER_EMAIL", "LADDER_PASSWORD"], module: "teams" },
   { label: "ZwiftRacing", keys: ["ZWIFTRACING_API_KEY"], module: "rennersniveau" },
   { label: "Strava", keys: ["STRAVA_CLIENT_ID", "STRAVA_CLIENT_SECRET", "STRAVA_WEBHOOK_VERIFY_TOKEN"] },
   { label: "Telegram", keys: ["TELEGRAM_BOT_TOKEN", "TELEGRAM_BOT_USERNAME"], module: "samen_fietsen" },

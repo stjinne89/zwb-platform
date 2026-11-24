@@ -82,7 +82,7 @@ Voeg er geen nieuwe toe; zet een nieuwe job op cron-job.org.
 | ↳ één afronding (poll bij OpenAI + schema opbouwen) kost al seconden, dus reken op 1 à 2 per run. Elke 15 min geeft ~96 runs per dag; heb je meer actieve schema's dan daar doorheen komen, verlaag dan niets maar kijk eerst of de achterstand écht oploopt | | | | |
 | ↳ maakt daarnaast AI-generaties af die zijn blijven hangen doordat niemand ze ophaalde (max. 10 per run); zonder deze stap bleef een kwart van alle generaties onafgemaakt | | | | |
 | Team-resultaten sync | cron-job.org | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
-| ↳ ook de Club Ladder: wedstrijden als event, met `LADDER_COOKIE` de aanmeldingen van beide ploegen en hun laatste acht gereden wedstrijden (voor de matchup). Zonder geldige cookie blijft dat deel leeg | | | | |
+| ↳ ook de Club Ladder: wedstrijden als event, met de ladder-sessie (`lib/club-ladder/session.ts`) de aanmeldingen van beide ploegen en hun laatste acht gereden wedstrijden (voor de matchup). Lukt inloggen niet, dan blijft dat deel leeg | | | | |
 | ZwiftRacing: 90-dagenvermogen, vELO1 en verwachtingen | cron-job.org | elke 30 minuten | `POST /api/zwiftracing/sync` | `BRILJANT_WEEKLY_SECRET` (gedeeld met de ZWBriljant-jobs) |
 | ↳ leest per renner de rennerpagina en de vermogenspagina van zwiftracing.app (`lib/zwiftracing/rider-sync.ts`; per duur de hoogste, `noCurve` telt wie geen bruikbare curve had) voor de aanmeldingen, de eigen ploeg en de recente renners van de tegenstander van ladderwedstrijden in de komende 8 dagen (na 20 uur opnieuw), daarna de renners die de afgelopen twee dagen in een racebriefje stonden (`zrs_fetched_at`, hooguit 400), daarna de renners in `zwift_legacy_velo` die een week niet zijn bijgewerkt. Zet `zwift_rider_metrics.power_wkg` en `phenotype`, en `zwift_legacy_velo`. Vóór de rennerpagina's haalt elke run hooguit twee uitslagpagina's (`/events/<id>`) van bewaarde races op (`zwiftracing/race-expectations.ts`, 0326): per race één keer, een nog niet definitieve uitslag na zes uur opnieuw, na drie dagen niet meer; `expectations` in het antwoord telt ze. Zonder 0326 slaat de run dat stil over. Eén pagina per seconde, hooguit 20 s per run; `remaining` zegt hoeveel er nog wachten. `stopped` met een status, "pagina niet herkend" of "eventpagina niet herkend" betekent dat zwiftracing.app ons weert of van opbouw veranderde: dan `rider-page.ts` of `tsr-data.ts`/`event-page.ts` nakijken. Vervangt de geplande Chrome-taak `ladder-vermogen-zwiftracing` op de pc van de eigenaar, die sinds 2026-11-11 uit staat | | | | |
 | Livestreams: live-status | cron-job.org | elke 2 minuten (mag alleen 's avonds en in het weekend, als er dan geraced wordt) | `POST /api/youtube/status` | `YOUTUBE_STATUS_SECRET` |
@@ -138,7 +138,7 @@ vangen, maar weet hier hoe je ze ververst:
 
 | Credential | Gebruikt voor | Vervalt? | Vernieuwen |
 |---|---|---|---|
-| `LADDER_COOKIE` | Club-ladder/graveyard scraper (`ladder.cycleracing.club`) | Na 24 uur zonder gebruik; elk bezoek verlengt hem. De geplande taak `club-ladder-sessie-warmhouden` opent de ladder om 07:00 en 19:00 in Chrome | Inloggen, `connect.sid`-cookie kopiëren via DevTools → Application → Cookies, met `connect.sid=` ervoor |
+| `LADDER_EMAIL` / `LADDER_PASSWORD` | Club Ladder achter login (`ladder.cycleracing.club`): aanmeldingen, captains, kerkhof, teamhistorie | Wachtwoord gewijzigd of account geblokkeerd. De sessie zelf (24 uur, elk bezoek verlengt hem) ververst de server: stuurt de ladder door naar /signin, dan logt hij opnieuw in en bewaart de cookie in `club_ladder_session` (0357). Een mislukte login wacht 15 minuten (`login_error`, `login_error_at`) | Wachtwoord op de ladder resetten en in Netlify zetten (deploy). `LADDER_COOKIE` (geplakte `connect.sid`) werkt nog als terugval zonder inloggegevens |
 | `WTRL_COOKIE` | ZRL/WTRL-data; alleen gebruikt als `WTRL_SYNC_ENABLED=true` (staat uit sinds 2026-09-21, WTRL-voorwaarden) | Ja, sessiecookie | Inloggen bij WTRL, sessiecookie kopiëren |
 | `ZWIFT_USERNAME` / `ZWIFT_PASSWORD` | Zwift-club-serviceaccount (event-feed + entrants) | Wachtwoord/lockout | Eigen ZWB-serviceaccount; bij lockout wachtwoord resetten. Verifieer met "Test clubkoppeling" op `/beheer/event-scan` |
 | `STRAVA_CLIENT_SECRET` | Strava OAuth | Nee (tenzij geroteerd) | Strava API-dashboard |
@@ -181,7 +181,7 @@ waarschuwing kunnen wijzigen:
 | Feature | Bron | Type | Breekt bij |
 |---|---|---|---|
 | ZRL-standings | WTRL | scraper + cookie | cookie verlopen / HTML-wijziging |
-| Club-ladder | ladder.cycleracing.club | scraper + cookie | cookie verlopen / HTML-wijziging |
+| Club-ladder | ladder.cycleracing.club | scraper + eigen login | inloggen mislukt / HTML-wijziging |
 | Event-scan Zwift | Zwift publieke + member-feed API | onofficiële API | endpoint/structuur-wijziging |
 | Zwift-eventvoorstellen | Zwift publieke events-API | onofficiële API | endpoint/structuur-wijziging, of Zwift die het datumvenster niet meer honoreert |
 | Buitenrondjes | BRouter (brouter.de) | publieke API, geen sleutel | brouter.de uit de lucht of traag; wijk uit met `BROUTER_BASE_URL` of `OUTDOOR_ROUTER=graphhopper` |

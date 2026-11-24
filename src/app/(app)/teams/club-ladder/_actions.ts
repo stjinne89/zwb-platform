@@ -8,7 +8,7 @@ import { fetchLadderCaptains } from "@/lib/club-ladder/directory";
 import { parseLadderBand, parseLadderRank } from "@/lib/club-ladder/puzzle";
 import { loadLadderRouteProfile } from "@/lib/club-ladder/route-profile";
 import { ladderRouteBySlug } from "@/lib/club-ladder/routes";
-import { ladderCookie } from "@/lib/ladder";
+import { ladderSessionConfigured, LADDER_SESSION_MISSING, withLadderSession } from "@/lib/club-ladder/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -508,8 +508,7 @@ export async function loadChallengeCaptains(
 ): Promise<{ ok: true; opponents: ChallengeOpponent[] } | { ok: false; error: string }> {
   const check = await guardAccess();
   if (!check.ok) return check;
-  const cookie = ladderCookie();
-  if (!cookie) return { ok: false, error: "LADDER_COOKIE ontbreekt." };
+  if (!ladderSessionConfigured()) return { ok: false, error: LADDER_SESSION_MISSING };
 
   const teams = (Array.isArray(opponents) ? opponents : [])
     .slice(0, MAX_CHALLENGE_OPPONENTS)
@@ -524,7 +523,7 @@ export async function loadChallengeCaptains(
   try {
     // Na elkaar: de ladder is een kleine site van vrijwilligers.
     for (const team of teams) {
-      result.push({ ...team, captains: await fetchLadderCaptains(team, cookie) });
+      result.push({ ...team, captains: await withLadderSession((cookie) => fetchLadderCaptains(team, cookie)) });
     }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Captains niet opgehaald." };

@@ -188,14 +188,19 @@ async function syncSignups(admin: Admin, match: LadderFixtureMatch, page: Ladder
 
 /**
  * Wedstrijden van de ladder als event in de kalender, met de opstelling van de
- * wedstrijdpagina als er een ladder-sessie (`LADDER_COOKIE`) is. Zet ook het
- * kerkhof van de ladderteams gelijk met de ladder.
+ * wedstrijdpagina als er een ladder-sessie is. Zet ook het kerkhof van de
+ * ladderteams gelijk met de ladder.
  */
 export async function syncLadderFixtures(
   admin: Admin,
   summary: ClubLadderSummary,
   options: {
     cookie?: string | null;
+    /**
+     * Nieuwe sessie als `cookie` ontbreekt of naar /signin doorstuurt
+     * (`renewLadderSession`). Hooguit één keer per sync.
+     */
+    renewCookie?: (stale: string | null) => Promise<string>;
     now?: Date;
     fetchPage?: typeof fetchLadderFixturePage;
     fetchTeamResults?: typeof fetchLadderTeamResults;
@@ -248,19 +253,46 @@ export async function syncLadderFixtures(
 
   const pages = new Map<number, LadderFixturePage | null>();
   let cookie = options.cookie ?? null;
-  if (!cookie && matches.some((match) => Date.parse(match.fixture.startsAt) > now.getTime())) {
-    result.lineupError = "LADDER_COOKIE ontbreekt: aanmeldingen niet gelezen.";
+  let renewed = false;
+  // Geen sessie meer te krijgen: de rest van de sync slaat de ladderpagina's over.
+  let sessionGone = !cookie && !options.renewCookie;
+  if (sessionGone && matches.some((match) => Date.parse(match.fixture.startsAt) > now.getTime())) {
+    result.lineupError = "Geen ladder-sessie: aanmeldingen niet gelezen.";
+  }
+  async function withSession<T>(run: (cookie: string) => Promise<T>): Promise<T> {
+    const renew = async (stale: string | null) => {
+      if (renewed || !options.renewCookie) return null;
+      renewed = true;
+      cookie = await options.renewCookie(stale);
+      return cookie;
+    };
+    const current = cookie ?? (await renew(null));
+    if (!current) throw new LadderLoginError("Geen ladder-sessie: aanmeldingen niet gelezen.");
+    try {
+      return await run(current);
+    } catch (err) {
+      if (!(err instanceof LadderLoginError)) throw err;
+      const fresh = await renew(current);
+      if (!fresh) throw err;
+      return run(fresh);
+    }
+  }
+  function failed(err: unknown, fallback: string) {
+    result.lineupError = err instanceof Error ? err.message : fallback;
+    if (err instanceof LadderLoginError) {
+      cookie = null;
+      sessionGone = true;
+    }
   }
   async function pageFor(match: LadderFixtureMatch) {
     const id = match.fixture.fixtureId;
     if (pages.has(id)) return pages.get(id) ?? null;
     let page: LadderFixturePage | null = null;
-    if (cookie && Date.parse(match.fixture.startsAt) > now.getTime()) {
+    if (!sessionGone && Date.parse(match.fixture.startsAt) > now.getTime()) {
       try {
-        page = await fetchPage(id, cookie);
+        page = await withSession((current) => fetchPage(id, current));
       } catch (err) {
-        result.lineupError = err instanceof Error ? err.message : "Wedstrijdpagina niet gelezen.";
-        if (err instanceof LadderLoginError) cookie = null;
+        failed(err, "Wedstrijdpagina niet gelezen.");
       }
     }
     pages.set(id, page);
@@ -341,16 +373,13 @@ export async function syncLadderFixtures(
     for (const name of [match.fixture.home, match.fixture.away]) historyTeams.set(normalizeTeamName(name), name);
   }
   for (const name of historyTeams.values()) {
-    if (!cookie) break;
+    if (sessionGone) break;
     try {
-      result.historyMatches += await storeLadderResults(admin, recentRacedResults(await fetchTeamResults(name, cookie)));
+      const results = await withSession((current) => fetchTeamResults(name, current));
+      result.historyMatches += await storeLadderResults(admin, recentRacedResults(results));
     } catch (err) {
-      if (err instanceof LadderLoginError) {
-        result.lineupError = err.message;
-        cookie = null;
-      } else {
-        result.warnings.push(`Uitslagen ${name}: ${err instanceof Error ? err.message : "niet gelezen"}`);
-      }
+      if (err instanceof LadderLoginError) failed(err, "Uitslagen niet gelezen.");
+      else result.warnings.push(`Uitslagen ${name}: ${err instanceof Error ? err.message : "niet gelezen"}`);
     }
   }
 

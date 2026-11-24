@@ -105,7 +105,7 @@ export async function fetchLadderTeamResults(team: string, cookie: string): Prom
     signal: AbortSignal.timeout(15000),
   });
   if (res.status >= 300 && res.status < 400) {
-    throw new LadderLoginError("Ladder-sessie verlopen: vernieuw LADDER_COOKIE.");
+    throw new LadderLoginError("Ladder-sessie verlopen.");
   }
   if (!res.ok) throw new Error(`Uitslagen van ${team} gaven HTTP ${res.status}.`);
   return parseLadderTeamResults(await res.text());

@@ -132,6 +132,7 @@ describe("env-sleutels", () => {
     expect(byLabel["Zwift-account"]).toEqual({ label: "Zwift-account", state: "deels", missing: ["ZWIFT_PASSWORD"] });
     expect(byLabel.AI).toEqual({ label: "AI", state: "ingesteld", missing: [] });
     expect(byLabel.WTRL.state).toBe("ingesteld");
+    expect(byLabel.Ladder).toEqual({ label: "Ladder", state: "niet ingesteld", missing: ["LADDER_EMAIL", "LADDER_PASSWORD"] });
     expect(JSON.stringify(status)).not.toContain('"x"');
   });
 

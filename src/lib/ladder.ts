@@ -1,8 +1,12 @@
 // Fetch + parse de Club Ladder graveyard-pagina (achter login).
-// Vereist LADDER_COOKIE env var met de ingelogde session cookie
+// De sessiecookie komt uit lib/club-ladder/session.ts: zelf ingelogd met
+// LADDER_EMAIL/LADDER_PASSWORD, of met de hand geplakt in LADDER_COOKIE
 // (bv. "connect.sid=s%3A...").
 
 const GRAVEYARD_URL = "https://ladder.cycleracing.club/graveyard";
+
+/** Een ladderpagina achter login stuurt zonder geldige sessie door naar /signin. */
+export class LadderLoginError extends Error {}
 
 /**
  * LADDER_COOKIE als Cookie-header. Ook goed als alleen de waarde is geplakt
@@ -60,9 +64,7 @@ export async function fetchLadderGraveyard(
 
   // Redirect naar /signin = cookie is verlopen of ongeldig.
   if (res.status === 302 || res.status === 301) {
-    throw new Error(
-      "Ladder session-cookie verlopen of ongeldig. Log opnieuw in op ladder.cycleracing.club en kopieer de connect.sid cookie naar LADDER_COOKIE.",
-    );
+    throw new LadderLoginError("Ladder-sessie verlopen of ongeldig.");
   }
   if (!res.ok) {
     throw new Error(`Ladder HTTP ${res.status}`);

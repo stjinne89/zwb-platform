@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
 import { getClub } from "@/lib/club";
+import { LadderLoginError } from "@/lib/ladder";
 
 export const CLUB_LADDER_FIXTURE_URL = "https://ladder.cycleracing.club/fixture/";
 
@@ -22,7 +23,7 @@ export type LadderFixturePage = {
 };
 
 /** De wedstrijdpagina stuurt zonder geldige sessie door naar /signin. */
-export class LadderLoginError extends Error {}
+export { LadderLoginError };
 
 function clean(value: string) {
   return value.replace(/\s+/g, " ").trim();
@@ -87,7 +88,7 @@ export async function fetchLadderFixturePage(fixtureId: number, cookie: string):
     signal: AbortSignal.timeout(15000),
   });
   if (res.status >= 300 && res.status < 400) {
-    throw new LadderLoginError("Ladder-sessie verlopen: vernieuw LADDER_COOKIE.");
+    throw new LadderLoginError("Ladder-sessie verlopen.");
   }
   if (!res.ok) throw new Error(`Ladderwedstrijd ${fixtureId} gaf HTTP ${res.status}.`);
   return parseLadderFixturePage(await res.text());

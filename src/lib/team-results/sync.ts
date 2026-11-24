@@ -3,7 +3,8 @@ import { parseClubLadderSummary, type ClubLadderResult, type ClubLadderSummary }
 import { storeLadderResults } from "@/lib/club-ladder/store";
 import { syncLadderFixtures, type LadderFixtureSyncResult } from "@/lib/club-ladder/fixture-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ladderCookie, normalizeTeamName } from "@/lib/ladder";
+import { normalizeTeamName } from "@/lib/ladder";
+import { renewLadderSession, storedLadderCookie } from "@/lib/club-ladder/session";
 import { getClub } from "@/lib/club";
 
 type SourceTeam = {
@@ -124,8 +125,8 @@ function fetchHeaders(provider: SourceRow["provider"], clubShort: string): Heade
     headers["X-Requested-With"] = "XMLHttpRequest";
   }
 
-  // Geen LADDER_COOKIE: ingelogd stuurt /summary door naar het persoonlijke
-  // dashboard, zonder stand en wedstrijden. De cookie is alleen voor /fixture.
+  // Geen ladder-sessie: ingelogd stuurt /summary door naar het persoonlijke
+  // dashboard, zonder stand en wedstrijden. De sessie is alleen voor /fixture.
   if (provider === "club_ladder") headers.Referer = "https://ladder.cycleracing.club/";
 
   return headers;
@@ -905,7 +906,8 @@ export async function syncTeamResults(
   if (ladder.summary) {
     try {
       ladderFixtures = await syncLadderFixtures(createAdminClient(), ladder.summary, {
-        cookie: ladderCookie(),
+        cookie: await storedLadderCookie(),
+        renewCookie: renewLadderSession,
       });
     } catch (err) {
       ladderFixtures = { error: err instanceof Error ? err.message : "Ladderwedstrijden niet gesynct." };

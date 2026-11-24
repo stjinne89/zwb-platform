@@ -382,7 +382,7 @@ describe("syncLadderFixtures", () => {
     const expired = await syncLadderFixtures(db, summary([fixture()]), {
       ...options,
       fetchPage: async () => {
-        throw new LadderLoginError("Ladder-sessie verlopen: vernieuw LADDER_COOKIE.");
+        throw new LadderLoginError("Ladder-sessie verlopen.");
       },
     });
     expect(expired.lineupError).toMatch(/verlopen/);
@@ -395,7 +395,69 @@ describe("syncLadderFixtures", () => {
 
     // Zonder cookie meldt de sync dat de aanmeldingen niet gelezen zijn.
     const noCookie = await syncLadderFixtures(db, summary([fixture()]), { ...options, cookie: null });
-    expect(noCookie.lineupError).toMatch(/LADDER_COOKIE ontbreekt/);
+    expect(noCookie.lineupError).toMatch(/Geen ladder-sessie/);
+  });
+
+  it("logt één keer opnieuw in als de sessie verlopen is", async () => {
+    const renewals: Array<string | null> = [];
+    const used: string[] = [];
+    const result = await syncLadderFixtures(db, summary([fixture()]), {
+      cookie: "connect.sid=oud",
+      now,
+      renewCookie: async (stale) => {
+        renewals.push(stale);
+        return "connect.sid=nieuw";
+      },
+      fetchPage: async (_id, cookie) => {
+        used.push(cookie);
+        if (cookie !== "connect.sid=nieuw") throw new LadderLoginError("Ladder-sessie verlopen.");
+        return page([[2650151, "Bart", 1]]);
+      },
+      fetchTeamResults: async (_team, cookie) => {
+        used.push(cookie);
+        return [];
+      },
+    });
+    expect(renewals).toEqual(["connect.sid=oud"]);
+    expect(used).toEqual(["connect.sid=oud", "connect.sid=nieuw", "connect.sid=nieuw", "connect.sid=nieuw"]);
+    expect(result.lineupError).toBeNull();
+    expect(result.lineupRiders).toBe(1);
+  });
+
+  it("logt zonder bewaarde sessie eerst in, en stopt als dat mislukt", async () => {
+    let fetched = 0;
+    const ok = await syncLadderFixtures(db, summary([fixture()]), {
+      cookie: null,
+      now,
+      renewCookie: async () => "connect.sid=vers",
+      fetchPage: async (_id, cookie) => {
+        expect(cookie).toBe("connect.sid=vers");
+        return page([[2650151, "Bart", 1]]);
+      },
+      fetchTeamResults: async () => [],
+    });
+    expect(ok.lineupError).toBeNull();
+
+    let tries = 0;
+    const failed = await syncLadderFixtures(db, summary([fixture()]), {
+      cookie: null,
+      now,
+      renewCookie: async () => {
+        tries += 1;
+        throw new LadderLoginError("Inloggen op de ladder mislukt: e-mail of wachtwoord klopt niet.");
+      },
+      fetchPage: async () => {
+        fetched += 1;
+        return page([]);
+      },
+      fetchTeamResults: async () => {
+        fetched += 1;
+        return [];
+      },
+    });
+    expect(tries).toBe(1);
+    expect(fetched).toBe(0);
+    expect(failed.lineupError).toMatch(/wachtwoord/);
   });
 
   it("laat de selectie van een captain staan tot de ladder een opstelling heeft", async () => {

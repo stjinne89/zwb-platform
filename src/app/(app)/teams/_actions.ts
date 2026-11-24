@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { syncTeamResults } from "@/lib/team-results/sync";
-import { fetchLadderGraveyard, ladderCookie, normalizeTeamName } from "@/lib/ladder";
+import { fetchLadderGraveyard, normalizeTeamName } from "@/lib/ladder";
+import { ladderSessionConfigured, LADDER_SESSION_MISSING, withLadderSession } from "@/lib/club-ladder/session";
 import { getClub } from "@/lib/club";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 
@@ -40,14 +41,7 @@ export async function syncResultsNow() {
 }
 
 export async function syncLadderGraveyard() {
-  const cookie = ladderCookie();
-  if (!cookie) {
-    return {
-      ok: false as const,
-      error:
-        "LADDER_COOKIE ontbreekt. Log in op ladder.cycleracing.club, kopieer de connect.sid cookie (DevTools → Application → Cookies) en zet hem in .env.local + Netlify env.",
-    };
-  }
+  if (!ladderSessionConfigured()) return { ok: false as const, error: LADDER_SESSION_MISSING };
 
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
@@ -59,10 +53,12 @@ export async function syncLadderGraveyard() {
   let result;
   try {
     const club = await getClub();
-    result = await fetchLadderGraveyard(cookie, {
-      shortName: club.texts.shortName,
-      websiteUrl: club.settings.websiteUrl,
-    });
+    result = await withLadderSession((cookie) =>
+      fetchLadderGraveyard(cookie, {
+        shortName: club.texts.shortName,
+        websiteUrl: club.settings.websiteUrl,
+      }),
+    );
   } catch (err) {
     return {
       ok: false as const,
