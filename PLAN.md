@@ -7,12 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Een weekbadge voor elke ranglijst (2026-11-24): commit op branch
-   `claude/rankings-badges`, niet gepusht.** Migratie
-   `0356_ranking_week_badges.sql` geschreven, niet toegepast en lokaal niet te
-   testen. Open: de privacytekst laten goedkeuren door de eigenaar, 0356
-   toepassen, pushen, en na de eerste toekenning de Hall of fame nakijken. Zie
-   de ronde met dezelfde naam.
+0. **Gebouwd — Een weekbadge voor elke ranglijst (2026-11-24): gepusht naar
+   `main` (`7527676f`, eigenaar: "tekst is goed, draai migratie en push").**
+   Migratie `0356_ranking_week_badges.sql` op 2026-11-24 vóór de push op
+   productie toegepast. Open: na de eerste toekenning (na de deploy of maandag)
+   de Hall of fame en een profiel met een nieuwe badge nakijken. Zie de ronde
+   met dezelfde naam.
 
 0. **Databasecheck 2026-11-17: goedkeuringscheck onthouden, storage-policies
    (2026-11-20, gepusht 2026-11-24): gepusht naar `main` (`47c549ec`, eigenaar: "ja,
@@ -12841,8 +12841,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Een weekbadge voor elke ranglijst
 
-**2026-11-24, commit op branch `claude/rankings-badges`, niet gepusht.
-Migratie `0356_ranking_week_badges.sql`: geschreven, niet toegepast.**
+**2026-11-24, commit `7527676f`, gepusht naar `main` (eigenaar: "tekst is goed,
+draai migratie en push"). Migratie `0356_ranking_week_badges.sql` op 2026-11-24
+vóór de push via de Supabase-connector toegepast en nagekeken: elf weekbadges
+(de tien van Rankings en Kudo-magneet), alle zes nieuwe als weekly/auto.**
 
 - **Waarom.** Op ZWB Rankings hadden vier van de tien ranglijsten een weekbadge
   (Zitvleeskampioen, Kilometervreter, Klimmer van de week, Meest actief). De
@@ -12887,7 +12889,7 @@ Migratie `0356_ranking_week_badges.sql`: geschreven, niet toegepast.**
   dat de grootste stijger de weekbadge met de punten erbij krijgt en dat die
   verdwijnt als je het delen uitzet. **Zonder nieuwe privacyversie**: dezelfde
   ontvangers (alle goedgekeurde leden) en gegevens die ze op Rankings al zien.
-  Nog niet goedgekeurd door de eigenaar.
+  Goedgekeurd door de eigenaar op 2026-11-24 ("tekst is goed").
 - **Bewust niet.** Geen badge per weergave (Buitenbeentje in uren,
   Binnenvetter in km): één badge per kaart. Geen maandbadges voor Rider of the
   month. Oude Groeibriljant-badges van vóór 8 weken worden niet nagerekend;
@@ -12898,10 +12900,10 @@ Migratie `0356_ranking_week_badges.sql`: geschreven, niet toegepast.**
   badges staan) en `rankings.test.ts`. Volledige suite: alleen de bekende fouten
   (`omnium-live.test.ts` zonder `.env.local`, `club-texts-render.test.ts` op
   "ZWB TTT-plan" in de hulp, ook op `main`). `tsc` en ESLint schoon.
-- **Niet geverifieerd.** 0356 is niet toegepast en lokaal niet te testen (geen
-  Docker). Tot hij er is, slaat de toekenning de zes nieuwe badges over (foreign
-  key) en gaan de vier oude door. Niet in de browser bekeken (geen `.env.local`
-  in deze worktree); het intrekken bij het profiel opslaan alleen in code.
+- **Niet geverifieerd.** 0356 lokaal niet te testen (geen Docker); op productie
+  alleen de rijen nagekeken, nog geen toekenning gezien. Niet in de browser
+  bekeken (geen `.env.local` in deze worktree); het intrekken bij het profiel
+  opslaan alleen in code.
 
 ### Databasecheck 2026-11-17: middleware, nawerk en storage-policies
 
