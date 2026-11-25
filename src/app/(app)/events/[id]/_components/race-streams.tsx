@@ -15,7 +15,7 @@ import {
   type StreamableEvent,
 } from "@/lib/youtube-live/broadcast";
 import { youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
-import { loadEventStreams, ridesInEvent } from "@/lib/youtube-live/streams";
+import { loadEventStreams, mayStreamInEvent } from "@/lib/youtube-live/streams";
 import {
   OverlayLinkButton,
   OverlaySizeSelect,
@@ -27,6 +27,7 @@ import {
 } from "./prepare-stream-button";
 import { overlaySize } from "@/lib/youtube-live/overlay-size";
 import { CalendarStreams } from "@/components/livestream/calendar-streams";
+import { AddExtraStreamForm } from "@/components/livestream/add-extra-stream";
 import { amsterdamDateKey } from "@/lib/birthdays";
 import { calendarStreams, type CalendarRowStreams, type CalendarTarget } from "@/lib/youtube-live/calendar-streams";
 
@@ -71,7 +72,7 @@ export async function RaceStreams({
     loaded = await Promise.all([
       loadEventStreams(supabase, [event.id]),
       userId && inPrepareWindow(event.start_at, now)
-        ? ridesInEvent(supabase, userId, event)
+        ? mayStreamInEvent(supabase, userId, event)
         : Promise.resolve(false),
       userId
         ? supabase
@@ -96,7 +97,8 @@ export async function RaceStreams({
     return null;
   }
   const [streams, mayPrepare, connection, helper] = loaded;
-  const ownStream = streams.find((stream) => stream.profileId === userId) ?? null;
+  // Een extra stream die het lid toevoegde (0370), is niet de zijne.
+  const ownStream = streams.find((stream) => stream.profileId === userId && stream.source !== "extra") ?? null;
   const showPrepare = mayPrepare && !ownStream;
   // Klaarzetten begint op de resolutie van de vorige stream van het lid (0348).
   const lastSize =
@@ -105,12 +107,15 @@ export async function RaceStreams({
           .from("event_streams")
           .select("*")
           .eq("profile_id", userId)
+          .neq("source", "extra")
           .order("scheduled_start_at", { ascending: false })
           .limit(1)
           .maybeSingle()
           .then(({ data }) => overlaySize((data as { overlay_size?: string | null } | null)?.overlay_size))
       : overlaySize(null);
-  if (streams.length === 0 && !showPrepare) return null;
+  // Een extra stream (0370) toevoegen mag elk lid, binnen hetzelfde venster.
+  const showExtra = Boolean(userId) && inPrepareWindow(event.start_at, now);
+  if (streams.length === 0 && !showPrepare && !showExtra) return null;
 
   const connected = Boolean(connection && !connection.needs_reconnect);
   // De status komt van de cron (0339); zonder die cron beslist de klok.
@@ -177,6 +182,7 @@ export async function RaceStreams({
         ))}
       {/* Of een eigen stream koppelen met een link (0360). */}
       {showPrepare && <LinkOwnStreamForm eventId={event.id} />}
+      {showExtra && <AddExtraStreamForm races={[{ id: event.id, label: "Race" }]} />}
     </section>
   );
 }

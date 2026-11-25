@@ -5,6 +5,7 @@ import { amsterdamDateKey } from "@/lib/birthdays";
 import { getClub } from "@/lib/club";
 import { subEventLabel } from "@/lib/events/sub-events";
 import { createClient } from "@/lib/supabase/server";
+import { eventTakesStreams, inPrepareWindow } from "@/lib/youtube-live/broadcast";
 import { youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
 import { loadEventStreams } from "@/lib/youtube-live/streams";
 import {
@@ -84,8 +85,17 @@ export default async function StreamCenterPage({ params }: { params: Promise<{ d
       { startAt: race.start_at, label: labelOf(race), order: order.get(race.id) ?? 0, links: streamCenterLinks(race) },
     ]),
   );
-  const tiles = streamCenterTiles(streams, targets, new Date());
+  const now = new Date();
+  const tiles = streamCenterTiles(streams, targets, now);
   if (tiles.length === 0) redirect("/kalender");
+
+  // Een extra stream toevoegen (0370): bij elke race die een stream kan
+  // krijgen en nog in het venster zit, in de volgorde van de tegels.
+  const parents = new Set(children.map((child) => child.parent_event_id));
+  const addRaces = races
+    .filter((race) => eventTakesStreams(race, parents.has(race.id)) && inPrepareWindow(race.start_at, now))
+    .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+    .map((race) => ({ id: race.id, label: labelOf(race) ?? race.title }));
 
   const label = tiles.some((tile) => tile.live)
     ? "Live"
@@ -107,7 +117,7 @@ export default async function StreamCenterPage({ params }: { params: Promise<{ d
     <div className="space-y-4">
       {only ? <BackLink href={`/events/${only.id}`} label="Event" /> : <BackLink href="/kalender" label="Kalender" />}
       <PageHeader eyebrow={label} title={only?.title ?? dayTitle.charAt(0).toUpperCase() + dayTitle.slice(1)} />
-      <StreamCenter tiles={tiles} />
+      <StreamCenter tiles={tiles} addRaces={addRaces} />
     </div>
   );
 }

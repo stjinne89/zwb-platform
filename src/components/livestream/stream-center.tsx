@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import Link from "next/link";
 import { Tv, Volume2, VolumeX, X } from "lucide-react";
 import type { StreamCenterTile } from "@/lib/youtube-live/stream-center";
+import { AddExtraStreamForm, type ExtraStreamRace } from "./add-extra-stream";
 import { cn } from "@/lib/utils";
 
 // Het streamcenter (2026-11-24): alle streams van een race tegelijk. Geluid van
@@ -65,7 +66,14 @@ const LINK = "inline-flex min-h-7 items-center rounded-md border bg-card px-2 te
 type PlayerInfo = { muted?: boolean; playing?: boolean };
 type WakeLock = { release: () => Promise<void> };
 
-export function StreamCenter({ tiles }: { tiles: StreamCenterTile[] }) {
+export function StreamCenter({
+  tiles,
+  addRaces = [],
+}: {
+  tiles: StreamCenterTile[];
+  /** Races waar nog een extra stream bij kan (0370). */
+  addRaces?: ExtraStreamRace[];
+}) {
   const wide = useWide();
   const frames = useRef(new Map<string, HTMLIFrameElement>());
   const info = useRef(new Map<string, PlayerInfo>());
@@ -300,6 +308,9 @@ export function StreamCenter({ tiles }: { tiles: StreamCenterTile[] }) {
           );
         })}
       </ul>
+      <div className={cn(tv && "hidden")}>
+        <AddExtraStreamForm races={addRaces} />
+      </div>
       <button
         type="button"
         aria-label="TV sluiten"

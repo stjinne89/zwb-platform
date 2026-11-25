@@ -77,8 +77,8 @@ export function LinkOwnStreamForm({ eventId }: { eventId: string }) {
       <input
         type="url"
         inputMode="url"
-        aria-label="YouTube-link"
-        placeholder="YouTube-link"
+        aria-label="Link van je eigen stream"
+        placeholder="Link van je eigen stream"
         value={link}
         disabled={pending}
         onChange={(event) => setLink(event.target.value)}

@@ -91,6 +91,10 @@ describe("wat er verandert", () => {
     ]);
     expect(planStatusChanges(streams, fetched, new Set(["race"]), NOW).notifyEvents).toEqual([]);
     const notified = [stream({ status: "live", live_notified_at: "2026-12-22T19:01:00Z" })];
+    // Een extra stream (0370) gaat wel op live, maar geeft geen melding.
+    const extra = planStatusChanges([stream({ source: "extra" })], fetched, new Set(), NOW);
+    expect(extra.updates.get("s1")).toBe("live");
+    expect(extra.notifyEvents).toEqual([]);
     expect(planStatusChanges(notified, fetched, new Set(), NOW).notifyEvents).toEqual([]);
   });
 

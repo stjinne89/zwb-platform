@@ -62,6 +62,8 @@ export type OpenStream = {
   scheduled_start_at: string;
   status: StreamStatus;
   live_notified_at: string | null;
+  /** 'extra' (0370): toegevoegd door een lid, niet van hem; geeft geen melding. */
+  source?: string | null;
 };
 
 export type StatusPlan = {
@@ -93,7 +95,8 @@ export function planStatusChanges(
       next = "afgelopen";
     }
     if (next !== stream.status) updates.set(stream.id, next);
-    if (next === "live") liveByEvent.add(stream.event_id);
+    // Een extra stream (0370), bv. van een tegenstander, geeft geen melding.
+    if (next === "live" && stream.source !== "extra") liveByEvent.add(stream.event_id);
   }
   const notifyEvents = [...liveByEvent].filter(
     (eventId) =>

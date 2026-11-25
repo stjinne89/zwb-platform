@@ -7,6 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 
 type Row = {
   event_id: string;
+  /** 'extra' (0370): niet van het lid dat hem toevoegde; dan de kanaalnaam. */
+  source?: string | null;
+  channel_title?: string | null;
   events: { title: string } | { title: string }[] | null;
   profiles: { display_name: string | null } | { display_name: string | null }[] | null;
 };
@@ -17,7 +20,7 @@ export async function LiveStreamTiles() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("event_streams")
-    .select("event_id, events(title), profiles(display_name)")
+    .select("event_id, source, channel_title, events(title), profiles(display_name)")
     .eq("status", "live")
     .order("created_at")
     .limit(30);
@@ -26,7 +29,7 @@ export async function LiveStreamTiles() {
   const byEvent = new Map<string, { title: string; names: string[] }>();
   for (const row of data as Row[]) {
     const entry = byEvent.get(row.event_id) ?? { title: first(row.events)?.title ?? "Race", names: [] };
-    const name = first(row.profiles)?.display_name?.trim();
+    const name = (row.source === "extra" ? row.channel_title : first(row.profiles)?.display_name)?.trim();
     if (name && !entry.names.includes(name)) entry.names.push(name);
     byEvent.set(row.event_id, entry);
   }

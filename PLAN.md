@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Extra streams met een link, en de captain streamt mee
+   (2026-11-25): de commit die dit blok toevoegt, lokaal, niet gepusht.**
+   Migratie `0370_event_streams_extra` is **nog niet toegepast**. Die moet vóór
+   de push op productie staan, want `addExtraStream` schrijft `source = 'extra'`.
+   Open: de migratie toepassen, en een extra stream toevoegen, laten afspelen en
+   weghalen. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Streamcenter per avond, links per stream en TV
    (2026-11-25): commit `0c4d2f1f`, op 2026-11-25 gepusht naar `main`
    (eigenaar: "Ja, push").** Geen migratie. Open: ingelogd de avond van vier Club Ladder-races openen, en
@@ -13023,6 +13030,79 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Extra streams met een link, en de captain streamt mee
+
+**2026-11-25, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
+Migratie `0370_event_streams_extra`, nog niet toegepast.**
+
+- **Waarom.** Vraag van de eigenaar:
+  - een lid moet met een link een extra stream kunnen toevoegen, ook van een
+    ander lid of van renners van een ander team;
+  - een teamcaptain moet ook kunnen streamen als hij niet rijdt.
+
+  Het voorstel was akkoord ("Ja, bouwen").
+- **Wat.**
+  - `0370`:
+    - `event_streams.source` krijgt `'extra'` (toegevoegd door `profile_id`,
+      maar niet van hem);
+    - de unieke sleutel `event_streams_one_per_rider` wordt een unieke index
+      met `where source <> 'extra'`;
+    - er komt een unieke index op `(event_id, youtube_video_id)`. Productie
+      had op 2026-11-25 geen dubbele video's per race.
+  - `addExtraStream`:
+    - elk goedgekeurd lid, bij een race die een stream kan krijgen, binnen het
+      venster (twee weken voor tot twee uur na de start);
+    - hooguit 10 extra streams per race;
+    - dezelfde controle bij YouTube als bij een eigen stream (`checkLinkedVideo`,
+      gedeeld met `linkOwnStream`);
+    - dezelfde video opnieuw geeft "Deze stream staat al bij de race."
+  - Koppelt iemand als eigen stream een video die er al als extra stond, dan
+    wordt die rij van hem (de extra rij gaat weg).
+  - Naam op de tegel: bij `'extra'` de kanaalnaam (`loadEventStreams`, en het
+    dashboard "Nu live").
+  - Een extra stream:
+    - geeft geen melding "gaat live" (`planStatusChanges`; de namen in de
+      melding ook zonder extra), maar krijgt wel zijn status;
+    - krijgt geen thumbnail (`pushStreamThumbnail` alleen bij `'zwb'`) en wordt
+      bij Weghalen nooit op YouTube gewist;
+    - telt niet als eigen stream: `ownStream`, de bestaande-stream-controle in
+      `prepareStream` en `linkOwnStream`, `lastLook` en de vorige resolutie
+      slaan `'extra'` over.
+  - `mayStreamInEvent`: meerijden (`ridesInEvent`), of captain of co-captain
+    zijn van het team van de race (`team_members.role`). Dit geldt voor
+    klaarzetten, koppelen en het streamblok.
+  - Velden:
+    - op de racepagina **Stream toevoegen** (`AddExtraStreamForm`), naast het
+      veld voor de eigen stream (nu "Link van je eigen stream");
+    - in het streamcenter van de avond hetzelfde veld, met een keuze voor de
+      race als er meer zijn. Na toevoegen ververst de pagina; bestaande tegels
+      herladen niet.
+  - Op `/hulp`, bij livestreamen: de captain bij klaarzetten, en een alinea
+    over extra streams.
+- **Bewust niet.**
+  - Niet controleren of een extra stream echt uit die race komt: dat kan
+    YouTube niet zeggen. Eventbeheer kan hem weghalen.
+  - De algemene communityrol "teamcaptain" geeft geen streamrecht voor alle
+    teams; alleen captain of co-captain van het team zelf.
+  - Geen kanaallinks en geen Twitch, net als bij een eigen stream.
+- **Niet meer waar.**
+  - "Eén stream per lid per race" (rondes over livestreams sinds 0338) geldt
+    alleen nog voor eigen streams.
+  - "Alleen wie meerijdt, kan streamen" geldt niet meer: ook de captain of
+    co-captain van het team van de race kan streamen.
+- **Niet geverifieerd.**
+  - `0370` is in PGlite getest:
+    - twee keer uit te voeren;
+    - twee extra streams naast een eigen stream mogen;
+    - een tweede eigen stream (`zwb` of `eigen`) niet;
+    - dezelfde video twee keer niet.
+
+    Nog niet op productie toegepast.
+  - Unit-test: een extra stream gaat op live zonder melding. Typecheck en lint
+    zijn schoon.
+  - Niet gezien: de velden op de echte racepagina en in het streamcenter, een
+    echte toevoeging bij YouTube, en de captain die niet rijdt.
 
 ### Gebouwd — Streamcenter per avond, links per stream en TV
 

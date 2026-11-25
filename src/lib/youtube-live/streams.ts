@@ -7,7 +7,8 @@ import { overlaySize, type OverlaySize } from "./overlay-size";
 import { overlayMode, type OverlayMode } from "./overlay-theme";
 
 // Streams bij races (migratie 0338): lezen voor de speler, en of een lid bij
-// een race mag streamen (ingeschreven of opgesteld; besluit eigenaar 2026-11-18).
+// een race mag streamen (ingeschreven of opgesteld; besluit eigenaar 2026-11-18;
+// sinds 2026-11-25 ook de captain of co-captain van het team van de race).
 
 export type EventStream = {
   id: string;
@@ -27,8 +28,12 @@ export type EventStream = {
   overlayStyle: OverlayStyle;
   /** De resolutie van de overlay (0348). */
   overlaySize: OverlaySize;
-  /** Gekoppeld met een link (0360): geen thumbnail van ZWB. Zonder kolom ZWB. */
-  source: "zwb" | "eigen";
+  /**
+   * Gekoppeld met een link (0360): geen thumbnail van ZWB. Extra (0370): door
+   * een lid toegevoegd, maar niet van hem; de naam is dan de kanaalnaam.
+   * Zonder kolom ZWB.
+   */
+  source: "zwb" | "eigen" | "extra";
 };
 
 type StreamRow = {
@@ -65,12 +70,14 @@ export async function loadEventStreams(
     .filter((row) => isVideoId(row.youtube_video_id) && row.status !== "weg")
     .map((row) => {
       const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+      const extra = row.source === "extra";
       return {
         id: row.id,
         eventId: row.event_id,
         profileId: row.profile_id,
         videoId: row.youtube_video_id,
-        name: profile?.display_name?.trim() || row.channel_title || "Stream",
+        // Een extra stream is niet van wie hem toevoegde: de kanaalnaam.
+        name: (extra ? row.channel_title?.trim() : profile?.display_name?.trim()) || row.channel_title || "Stream",
         channelTitle: row.channel_title,
         createdAt: row.created_at,
         status: row.status === "live" || row.status === "afgelopen" ? row.status : "gepland",
@@ -78,9 +85,35 @@ export async function loadEventStreams(
         overlayTheme: overlayMode(row.overlay_theme),
         overlayStyle: overlayStyle(row.overlay_style),
         overlaySize: overlaySize(row.overlay_size),
-        source: row.source === "eigen" ? "eigen" : "zwb",
+        source: row.source === "eigen" || row.source === "extra" ? row.source : "zwb",
       };
     });
+}
+
+/**
+ * Mag dit lid bij deze race een eigen stream klaarzetten of koppelen? Als hij
+ * meerijdt, of als hij captain of co-captain is van het team van de race, ook
+ * als hij zelf niet rijdt (besluit eigenaar 2026-11-25).
+ */
+export async function mayStreamInEvent(
+  supabase: SupabaseClient,
+  profileId: string,
+  event: { id: string; team_id: string | null; parent_event_id: string | null },
+): Promise<boolean> {
+  const [rides, captain] = await Promise.all([
+    ridesInEvent(supabase, profileId, event),
+    event.team_id
+      ? supabase
+          .from("team_members")
+          .select("team_id")
+          .eq("profile_id", profileId)
+          .eq("team_id", event.team_id)
+          .in("role", ["captain", "co-captain"])
+          .limit(1)
+          .then(({ data }) => (data ?? []).length > 0)
+      : Promise.resolve(false),
+  ]);
+  return rides || captain;
 }
 
 /**

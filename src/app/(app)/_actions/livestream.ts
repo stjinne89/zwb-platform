@@ -28,7 +28,7 @@ import {
   youtubeAccessToken,
 } from "@/lib/youtube-live/connection";
 import { YouTubeGrantRevokedError, youtubeLiveConfigured } from "@/lib/youtube-live/oauth";
-import { ridesInEvent } from "@/lib/youtube-live/streams";
+import { mayStreamInEvent } from "@/lib/youtube-live/streams";
 import { checkOwnVideo, fetchOwnVideo, parseYouTubeVideoId } from "@/lib/youtube-live/own-stream";
 import { createHelperPairing, removeHelper, sendHelperCommand } from "@/lib/youtube-live/helper";
 import { siteOrigin, streamRoute, streamThumbnail, type ThumbnailEvent } from "@/lib/youtube-live/thumbnail";
@@ -45,6 +45,8 @@ import { avatarPhoto, kopmanAvatarUrl } from "@/lib/avatar";
 // en ingeschreven of opgesteld bij de race.
 
 type Result = { ok: true } | { ok: false; error: string };
+
+const NOT_ALLOWED = "Alleen wie meerijdt of captain is van het team, kan streamen.";
 
 type EventRow = {
   id: string;
@@ -145,8 +147,8 @@ export async function prepareStream(
   if (!inPrepareWindow(event.start_at, now)) {
     return { ok: false, error: "Klaarzetten kan vanaf twee weken voor de start." };
   }
-  if (!(await ridesInEvent(supabase, userId, event))) {
-    return { ok: false, error: "Alleen wie zich aanmeldde of opgesteld is, kan streamen." };
+  if (!(await mayStreamInEvent(supabase, userId, event))) {
+    return { ok: false, error: NOT_ALLOWED };
   }
 
   const admin = createAdminClient();
@@ -155,6 +157,8 @@ export async function prepareStream(
     .select("id, status")
     .eq("event_id", event.id)
     .eq("profile_id", userId)
+    // Een extra stream die het lid toevoegde (0370), is niet de zijne.
+    .neq("source", "extra")
     .maybeSingle();
   // Een stream die van YouTube verdween (0339), mag opnieuw.
   if ((existing as { status?: string } | null)?.status === "weg") {
@@ -256,19 +260,11 @@ export async function prepareStream(
   return { ok: true };
 }
 
-/**
- * Een eigen YouTube-stream aan de race koppelen (0360): een link plakken in
- * plaats van klaarzetten. Zelfde regels (meerijden, het venster), maar zonder
- * gekoppeld kanaal; ZWB maakt geen uitzending en zet er niets op.
- */
-export async function linkOwnStream(eventId: string, link: string): Promise<Result> {
-  if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
-  const session = await approvedUser();
-  if (!session) return { ok: false, error: "Niet ingelogd." };
-  const { supabase, userId } = session;
-  const videoId = parseYouTubeVideoId(String(link ?? "").slice(0, 500));
-  if (!videoId) return { ok: false, error: "Plak de link van een YouTube-video." };
-
+/** Een race die een stream kan krijgen, binnen het venster. */
+async function streamableEventFor(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: string,
+): Promise<{ ok: true; event: EventRow } | { ok: false; error: string }> {
   const { data } = await supabase
     .from("events")
     .select("id, type, title, start_at, team_id, parent_event_id, zwift_event_id, zwift_route_id, laps, distance_km, elevation_m")
@@ -284,25 +280,17 @@ export async function linkOwnStream(eventId: string, link: string): Promise<Resu
     return { ok: false, error: "Bij deze race kan geen stream." };
   }
   if (!inPrepareWindow(event.start_at, new Date())) {
-    return { ok: false, error: "Koppelen kan vanaf twee weken voor de start." };
+    return { ok: false, error: "Dat kan vanaf twee weken voor de start." };
   }
-  if (!(await ridesInEvent(supabase, userId, event))) {
-    return { ok: false, error: "Alleen wie zich aanmeldde of opgesteld is, kan streamen." };
-  }
+  return { ok: true, event };
+}
 
-  const admin = createAdminClient();
-  const { data: existing } = await admin
-    .from("event_streams")
-    .select("id, status")
-    .eq("event_id", event.id)
-    .eq("profile_id", userId)
-    .maybeSingle();
-  if ((existing as { status?: string } | null)?.status === "weg") {
-    await admin.from("event_streams").delete().eq("id", (existing as { id: string }).id);
-  } else if (existing) {
-    return { ok: false, error: "Je hebt al een stream bij deze race." };
-  }
-
+/** De link lezen en de video bij YouTube nakijken (0360). */
+async function checkLinkedVideo(
+  link: string,
+): Promise<{ ok: true; videoId: string; channelTitle: string | null; status: "gepland" | "live" | "afgelopen" } | { ok: false; error: string }> {
+  const videoId = parseYouTubeVideoId(String(link ?? "").slice(0, 500));
+  if (!videoId) return { ok: false, error: "Plak de link van een YouTube-video." };
   const apiKey = process.env.YOUTUBE_API_KEY?.trim();
   if (!apiKey) return { ok: false, error: "Koppelen kan nu niet." };
   let check: ReturnType<typeof checkOwnVideo>;
@@ -313,22 +301,120 @@ export async function linkOwnStream(eventId: string, link: string): Promise<Resu
     return { ok: false, error: "YouTube gaf geen antwoord. Probeer het zo nog eens." };
   }
   if (!check.ok) return check;
+  return { ok: true, videoId, channelTitle: check.channelTitle, status: check.status };
+}
+
+/**
+ * Een eigen YouTube-stream aan de race koppelen (0360): een link plakken in
+ * plaats van klaarzetten. Zelfde regels (meerijden of captain, het venster),
+ * maar zonder gekoppeld kanaal; ZWB maakt geen uitzending en zet er niets op.
+ */
+export async function linkOwnStream(eventId: string, link: string): Promise<Result> {
+  if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const { supabase, userId } = session;
+  if (!parseYouTubeVideoId(String(link ?? "").slice(0, 500))) {
+    return { ok: false, error: "Plak de link van een YouTube-video." };
+  }
+  const found = await streamableEventFor(supabase, eventId);
+  if (!found.ok) return found;
+  const { event } = found;
+  if (!(await mayStreamInEvent(supabase, userId, event))) {
+    return { ok: false, error: NOT_ALLOWED };
+  }
+
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("event_streams")
+    .select("id, status")
+    .eq("event_id", event.id)
+    .eq("profile_id", userId)
+    .neq("source", "extra")
+    .maybeSingle();
+  if ((existing as { status?: string } | null)?.status === "weg") {
+    await admin.from("event_streams").delete().eq("id", (existing as { id: string }).id);
+  } else if (existing) {
+    return { ok: false, error: "Je hebt al een stream bij deze race." };
+  }
+
+  const video = await checkLinkedVideo(link);
+  if (!video.ok) return video;
+  // Stond hij er al als extra stream (0370), dan wordt hij nu van jou.
+  const { data: same } = await admin
+    .from("event_streams")
+    .select("id, source")
+    .eq("event_id", event.id)
+    .eq("youtube_video_id", video.videoId)
+    .maybeSingle();
+  if (same && (same as { source?: string }).source !== "extra") {
+    return { ok: false, error: "Deze stream staat al bij de race." };
+  }
+  if (same) await admin.from("event_streams").delete().eq("id", (same as { id: string }).id);
 
   // Een eigen stream krijgt de overlay van de vorige stream van het lid.
   const last = await lastLook(admin, userId);
   const { error } = await admin.from("event_streams").insert({
     event_id: event.id,
     profile_id: userId,
-    youtube_video_id: videoId,
-    channel_title: check.channelTitle,
+    youtube_video_id: video.videoId,
+    channel_title: video.channelTitle,
     // De cron kijkt rond de start van de race.
     scheduled_start_at: event.start_at,
-    status: check.status,
+    status: video.status,
     source: "eigen",
     ...last.columns,
   });
   if (error && error.code !== "23505") {
     console.error("[livestream/link]", error);
+    return { ok: false, error: "De stream kon niet worden opgeslagen." };
+  }
+  revalidatePath(`/events/${event.id}`);
+  return { ok: true };
+}
+
+/** Hooguit zoveel extra streams per race. */
+const MAX_EXTRA_STREAMS = 10;
+
+/**
+ * Een extra stream bij de race (0370): een stream die niet van dit lid is, van
+ * een ander lid of van een tegenstander. Elk goedgekeurd lid, binnen het
+ * venster. Geen melding, geen overlay of thumbnail; ZWB raakt de video nooit.
+ */
+export async function addExtraStream(eventId: string, link: string): Promise<Result> {
+  if (!(await livestreamsOn())) return { ok: false, error: "Livestreams staan uit." };
+  const session = await approvedUser();
+  if (!session) return { ok: false, error: "Niet ingelogd." };
+  const { supabase, userId } = session;
+  if (!parseYouTubeVideoId(String(link ?? "").slice(0, 500))) {
+    return { ok: false, error: "Plak de link van een YouTube-video." };
+  }
+  const found = await streamableEventFor(supabase, eventId);
+  if (!found.ok) return found;
+  const { event } = found;
+
+  const admin = createAdminClient();
+  const { count } = await admin
+    .from("event_streams")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", event.id)
+    .eq("source", "extra");
+  if ((count ?? 0) >= MAX_EXTRA_STREAMS) return { ok: false, error: "Er staan al genoeg streams bij deze race." };
+
+  const video = await checkLinkedVideo(link);
+  if (!video.ok) return video;
+  const { error } = await admin.from("event_streams").insert({
+    event_id: event.id,
+    profile_id: userId,
+    youtube_video_id: video.videoId,
+    channel_title: video.channelTitle,
+    scheduled_start_at: event.start_at,
+    status: video.status,
+    source: "extra",
+  });
+  if (error?.code === "23505") return { ok: false, error: "Deze stream staat al bij de race." };
+  if (error) {
+    console.error("[livestream/extra]", error);
     return { ok: false, error: "De stream kon niet worden opgeslagen." };
   }
   revalidatePath(`/events/${event.id}`);
@@ -342,7 +428,7 @@ type ThumbnailStream = {
   youtube_video_id: string;
   overlay_theme?: string | null;
   overlay_style?: string | null;
-  /** 'eigen' (0360): gekoppeld met een link; daar zet ZWB geen thumbnail op. */
+  /** 'eigen' (0360) of 'extra' (0370): niet door ZWB gemaakt, dus geen thumbnail. */
   source?: string | null;
   events: ThumbnailEvent | null;
 };
@@ -357,8 +443,9 @@ async function pushStreamThumbnail(
   stream: ThumbnailStream,
   look: { theme: OverlayMode; look: OverlayStyle },
 ): Promise<string | null> {
-  // Een eigen video blijft van het lid, ook als zijn kanaal gekoppeld is.
-  if (stream.source === "eigen") return null;
+  // Alleen wat ZWB zelf klaarzette: een gekoppelde of extra video blijft van
+  // wie hem maakte, ook als het kanaal van het lid gekoppeld is.
+  if (stream.source && stream.source !== "zwb") return null;
   if (!stream.events) return "Stream niet gevonden.";
   const connection = await loadYouTubeConnection(admin, userId);
   if (!connection) return "Koppel eerst YouTube op je profiel.";
@@ -392,6 +479,7 @@ async function lastLook(
     .from("event_streams")
     .select("*")
     .eq("profile_id", userId)
+    .neq("source", "extra")
     .order("scheduled_start_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -564,9 +652,9 @@ export async function removeStream(streamId: string): Promise<Result> {
   if (!own && !access.has("events.manage_all")) return { ok: false, error: "Geen recht." };
 
   // Alleen een eigen uitzending die nog niet begon, gaat ook op YouTube weg.
-  // Een opname van een gereden race blijft van het lid. Een gekoppelde video
-  // (0360) maakte ZWB niet: die gaat alleen uit de app.
-  if (own && stream.source !== "eigen" && Date.parse(stream.scheduled_start_at) > Date.now()) {
+  // Een opname van een gereden race blijft van het lid. Een gekoppelde of
+  // extra video (0360, 0370) maakte ZWB niet: die gaat alleen uit de app.
+  if (own && (stream.source ?? "zwb") === "zwb" && Date.parse(stream.scheduled_start_at) > Date.now()) {
     try {
       const connection = await loadYouTubeConnection(admin, userId);
       if (connection) await deleteBroadcast(await youtubeAccessToken(admin, connection), stream.youtube_video_id);

@@ -200,3 +200,26 @@ describe("0360 source", () => {
     await expect(db.exec("update public.event_streams set source = null")).rejects.toThrow();
   });
 });
+
+describe("0370 extra", () => {
+  it("laat extra streams toe naast de eigen, maar elke video één keer per race, en mag opnieuw", async () => {
+    const sql = (await readFile("supabase/migrations/0370_event_streams_extra.sql", "utf8")).replace(
+      /notify pgrst[^;]*;/g,
+      "",
+    );
+    await db.exec(sql);
+    await db.exec(sql);
+    const insert = (video: string, source: string) =>
+      db.exec(`insert into public.event_streams(event_id, profile_id, youtube_video_id, scheduled_start_at, source)
+        values ('${RACE}', '${STREAMER}', '${video}', now(), '${source}')`);
+    // STREAMER heeft al een eigen stream bij RACE: twee extra mogen erbij.
+    await insert("extraVideo01", "extra");
+    await insert("extraVideo02", "extra");
+    // Een tweede eigen stream niet, en dezelfde video ook niet.
+    await expect(insert("tweedeEigen1", "zwb")).rejects.toThrow();
+    await expect(insert("tweedeEigen2", "eigen")).rejects.toThrow();
+    await expect(insert("extraVideo01", "extra")).rejects.toThrow();
+    await expect(insert("andereBron01", "twitch")).rejects.toThrow();
+    await db.exec("delete from public.event_streams where source = 'extra'");
+  });
+});

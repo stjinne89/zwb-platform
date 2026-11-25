@@ -31,7 +31,7 @@ export async function runStreamStatusCheck(
 
   const { data, error } = await admin
     .from("event_streams")
-    .select("id, event_id, profile_id, youtube_video_id, scheduled_start_at, status, live_notified_at")
+    .select("id, event_id, profile_id, youtube_video_id, scheduled_start_at, status, live_notified_at, source")
     .in("status", ["gepland", "live"])
     .lte("scheduled_start_at", new Date(now.getTime() + CHECK_BEFORE_MS).toISOString())
     .order("scheduled_start_at")
@@ -87,7 +87,8 @@ export async function runStreamStatusCheck(
         .from("event_streams")
         .select("profile_id, profiles(display_name)")
         .eq("event_id", eventId)
-        .eq("status", "live"),
+        .eq("status", "live")
+        .neq("source", "extra"),
     ]);
     const rows = (live ?? []) as Array<{
       profile_id: string;
