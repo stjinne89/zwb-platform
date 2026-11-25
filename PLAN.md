@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Teams en resultaten ophalen haalt ook vELO1 (2026-11-25): lokaal
-   gecommit, niet gepusht, geen migratie.** Na de teamuitslagen draait de knop
+0. **Gebouwd — Teams en resultaten ophalen haalt ook vELO1 (2026-11-25): commit
+   `0d9bd42a`, lokaal, niet gepusht, geen migratie.** Na de teamuitslagen draait de knop
    de ZwiftRacing-sync van de cron (vELO1, vermogen, type) voor wie aan de beurt
    is, binnen 14 s. Open: op productie één klik en kijken of de melding binnen de
    tijd terugkomt. Zie de ronde met dezelfde naam.
@@ -12960,7 +12960,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Teams en resultaten ophalen haalt ook vELO1
 
-**2026-11-25.** Lokaal gecommit, niet gepusht. Geen migratie.
+**2026-11-25.** Commit `0d9bd42a`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: "Laat de knop ook de Velo legacy rating
 syncen". Tot nu toe deed alleen de cron op `POST /api/zwiftracing/sync`
