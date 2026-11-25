@@ -66,6 +66,20 @@ const LINK = "inline-flex min-h-7 items-center rounded-md border bg-card px-2 te
 
 type PlayerInfo = { muted?: boolean; playing?: boolean };
 type WakeLock = { release: () => Promise<void> };
+type LockableOrientation = { lock?: (type: "landscape") => Promise<void>; unlock?: () => void };
+
+/** screen.orientation met lock: niet in elke browser, en niet in de DOM-typen. */
+function orientation(): LockableOrientation | undefined {
+  return (screen as Screen & { orientation?: LockableOrientation }).orientation;
+}
+
+function unlockOrientation() {
+  try {
+    orientation()?.unlock?.();
+  } catch {
+    // Niet vergrendeld of niet ondersteund.
+  }
+}
 
 export function StreamCenter({
   tiles,
@@ -93,11 +107,17 @@ export function StreamCenter({
       command(tile.id, "playVideo");
     }
     // Lukt schermvullend niet (iPhone), dan blijft het raster over de pagina.
-    container.current?.requestFullscreen?.().catch(() => {});
+    // Lukt het wel, dan ligt een telefoon (Android) meteen dwars; dat mag
+    // alleen schermvullend, en een computer weigert het gewoon.
+    container.current
+      ?.requestFullscreen?.()
+      .then(() => orientation()?.lock?.("landscape"))
+      .catch(() => {});
   }
 
   function closeTv() {
     setTv(false);
+    unlockOrientation();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   }
 
@@ -105,7 +125,9 @@ export function StreamCenter({
   useEffect(() => {
     if (!tv) return;
     function onFullscreen() {
-      if (!document.fullscreenElement) setTv(false);
+      if (document.fullscreenElement) return;
+      setTv(false);
+      unlockOrientation();
     }
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") setTv(false);

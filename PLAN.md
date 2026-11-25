@@ -7,9 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — TV op de telefoon start alle streams (2026-11-25): de commit
-   die dit blok toevoegt, lokaal, niet gepusht.** Geen migratie. Open: op een
-   echte iPhone en Android-telefoon TV openen en naar een tv spiegelen. Zie de
+0. **Gebouwd — TV op de telefoon start alle streams (2026-11-25): commit
+   `53484af5` en de commit die dit bijwerkt (liggend op Android), lokaal, niet
+   gepusht.** Geen migratie. Open: op een echte iPhone en Android-telefoon TV
+   openen en naar een tv spiegelen. Zie de
    ronde met dezelfde naam.
 
 0. **Gebouwd — Verwachte ZRL-uitslag en teamplaats op de racepagina
@@ -13059,8 +13060,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — TV op de telefoon start alle streams
 
-**2026-11-25, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
-Geen migratie.**
+**2026-11-25, commits `53484af5` (alle streams starten) en de commit die
+dit bijwerkt (liggend), lokaal, niet gepusht. Geen migratie.**
 
 - **Waarom.** De eigenaar vroeg of hij vanaf zijn telefoon kon casten. Een
   webapp kan dat niet als tabblad; wel spiegelen. Maar op een smal scherm
@@ -13071,6 +13072,12 @@ Geen migratie.**
   afgelopen `mute` en `playVideo`, ook op een smal scherm. Wie al geluid had,
   houdt het. Buiten TV start op de telefoon nog steeds niets vanzelf (mobiele
   data). Op `/hulp` bij livestreamen: TV op de telefoon en spiegelen.
+- **Liggend (tweede commit, eigenaar: "Ja, bouwen").** Is TV schermvullend,
+  dan zet `openTv` het scherm vast op liggend (`screen.orientation.lock`).
+  Sluiten met het kruisje of het einde van schermvullend (Esc, de knop terug)
+  haalt de vergrendeling eraf. Dat werkt alleen op Android: Safari op een
+  iPhone kent die vergrendeling niet en maakt het raster niet schermvullend,
+  en een computer weigert hem; beide vangen we stil af.
 - **Bewust niet.**
   - Geen echte castknop (Google Cast Web Sender). Die werkt alleen in Chrome
     op Android en de pc, niet op een iPhone. Hij vraagt een eigen
@@ -13087,7 +13094,9 @@ Geen migratie.**
   - de luidspreker gaf het geluid aan één tegel.
 
   Niet gezien: een echte iPhone of Android-telefoon (of die vier spelers
-  tegelijk afspeelt), en spiegelen naar een tv.
+  tegelijk afspeelt), spiegelen naar een tv, en het liggend vastzetten: het
+  browservenster van de app weigert schermvullend, dus daar komt de
+  vergrendeling niet aan bod.
 
 ### Gebouwd — Verwachte ZRL-uitslag en teamplaats op de racepagina
 
