@@ -55,7 +55,7 @@ export function SyncResultsButton() {
                     ...fixtures.warnings.slice(0, 3),
                   ];
             details.unshift(...ladderProblems);
-            // vELO1 van ZwiftRacing: wat niet past, haalt de cron later op.
+            // vELO1 van de ladderrenners: wat niet past, volgt bij de volgende klik of de cron.
             const velo = res.legacyVelo;
             const veloProblem =
               "error" in velo
@@ -65,7 +65,7 @@ export function SyncResultsButton() {
                   : velo.stopped
                     ? `vELO1 gestopt: ${velo.stopped}`
                     : velo.remaining > 0
-                      ? `vELO1: nog ${velo.remaining} renners, volgen bij de volgende run`
+                      ? `vELO1: nog ${velo.remaining} ladderrenners, volgen bij de volgende klik`
                       : null;
             if (veloProblem) details.push(veloProblem);
             const rosterSynced = res.summary.sources.reduce(

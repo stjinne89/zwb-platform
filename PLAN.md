@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — vELO1 van de ladder voorrang (2026-11-25): lokaal, niet
+   gepusht, geen migratie.** De knop Teams en resultaten ophalen haalt alleen
+   nog de vELO1 van iedereen in de Ladderpuzzel op, de oudste eerst, en de cron
+   neemt die renners elke 6 uur in plaats van 20. Aanleiding: Sven Hund stond op
+   1367,8 terwijl ZwiftRacing 1570,3 gaf. Open: op productie een paar keer
+   klikken en de rating van Sven nakijken. Zie de ronde met dezelfde naam.
+
 0. **Hersteld — vELO1-sync liep vast op een onbekende renner (2026-11-25):
    commit `870541b2`, op 2026-11-25 gepusht naar `main` (eigenaar: "Push main"),
    geen migratie.** Sinds 2026-11-24 rond 19:00 stopten de
@@ -28,7 +35,8 @@ gaat stabiliteit voor nieuwe features.
    `0d9bd42a`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"), geen
    migratie.** Na de teamuitslagen draait de knop
    de ZwiftRacing-sync van de cron (vELO1, vermogen, type) voor wie aan de beurt
-   is, binnen 14 s. Open: op productie één klik en kijken of de melding binnen de
+   is, binnen 14 s. *Bijgesteld dezelfde dag:* de knop haalt alleen nog de vELO1
+   van de ladder op; zie "vELO1 van de ladder voorrang". Open: op productie één klik en kijken of de melding binnen de
    tijd terugkomt. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Dashboard: teamuitslagen voor ZRL en Ladder (2026-11-25): commit
@@ -12976,6 +12984,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — vELO1 van de ladder voorrang
+
+**2026-11-25.** Lokaal gecommit, niet gepusht. Geen migratie. Eerst een
+voorstel, door de eigenaar goedgekeurd ("Ja, bouwen").
+
+**Waarom.** Na de fix voor de onbekende renner gaf de knop drie keer "vELO1
+gestopt: The operation was aborted due to timeout". De vraag van de eigenaar:
+"kan hij voorkeur geven aan de velo1 rating in de ladder teams?" Uit productie
+gelezen: alle 34 leden van ladderteams waren minder dan 20 uur geleden
+opgehaald, dus de knop kwam meteen bij de 177 renners van het racebriefje en
+strandde op de time-out van 4 s. Een rennerpagina duurt meestal 0,2 s, de
+eerste soms bijna 3 s. De eigenaar wees op Sven Hund: in ZWB 1367,8, op
+ZwiftRacing 1570,3. Hij was op 2026-11-24 om 20:30 UTC opgehaald, 25 minuten na
+de start van zijn race; ZwiftRacing had die toen nog niet verwerkt, en de regel
+van 20 uur hield hem tot de volgende middag op de oude rating.
+
+**Wat.**
+- `ladderRiderZwiftIds` (`zwiftracing/rider-sync.ts`): iedereen in de
+  Ladderpuzzel, dus leden van teams met type `ladder` (ook in het archief), de
+  `ladder_pool` en de rosterrenners uit `ladder_roster_riders`. Op 2026-11-25
+  waren dat 34 + 17 + 5 renners, met overlap.
+- `runLadderVeloSync`, voor de knop: die ladderrenners, de oudste
+  `zwift_legacy_velo.fetched_at` eerst, behalve wie in het laatste uur is
+  opgehaald. Alleen de rennerpagina; schrijft alleen `zwift_legacy_velo`, zodat
+  het vermogen (`zwift_rider_metrics`) bij de cron blijft. Een onbekende renner
+  telt als onbekend; een 429, 5xx of onbekende pagina stopt met een reden.
+- Een time-out stopt de knop zonder melding (`FetchedPage.timeout`); de rest
+  volgt bij de volgende klik. De cron stopt bij een time-out nog steeds.
+- Time-out per pagina 8 s in plaats van 4. Aan een nieuwe renner begint de knop
+  tot 14 s na de klik; één pagina plus een seconde pauze per renner, dus
+  ongeveer 10 renners per klik en hooguit rond 22 s.
+- `dueZwiftIds` (de cron): na de renners van de ladderwedstrijden (20 uur) nu
+  ook alle ladderrenners na 6 uur, op `zwift_rider_metrics.velo_fetched_at`.
+  Dan loopt een rating na een race hooguit ongeveer 6 uur achter. Voor ruim 50
+  renners is dat zo'n 225 pagina's per dag extra, verspreid over 48 runs.
+- De melding noemt "nog N ladderrenners, volgen bij de volgende klik".
+
+**Bewust niet.**
+- De knop doet niet eerst de ladder en daarna de gewone wachtrij: dan blijft
+  hij bij het racebriefje op time-outs stranden. Die wachtrij is van de cron.
+- Geen controle of er sinds de vorige ophaal een race was: ZwiftRacing verwerkt
+  een race pas een tijd later, en een ladderrenner rijdt ook ZRL en andere races.
+  Om de 6 uur is eenvoudiger en dekt beide.
+- Het venster van 1 uur in de knop is op `zwift_legacy_velo.fetched_at`, niet op
+  het vermogen; de cron haalt een renner die de knop net deed dus nog steeds
+  binnen 6 uur op, voor het vermogen.
+
+**Niet geverifieerd.** Niet op productie geklikt; of de knop binnen de tijd
+van Netlify blijft en hoeveel renners per klik meekomen, is niet gemeten. Zes
+nieuwe unit-tests (`zwiftracing-ladder-velo-sync.test.ts`) met een nep-database
+en nep-`fetch`: selectie, de 6 uur van de cron, volgorde, alleen vELO1 schrijven,
+time-out en 429. Typecheck en lint schoon.
+
 ### Hersteld — vELO1-sync liep vast op een onbekende renner
 
 **2026-11-25.** Commit `870541b2`, op 2026-11-25 op verzoek van de eigenaar
@@ -13126,6 +13187,11 @@ groen) en `omnium-live`, dat `.env.local` nodig heeft.
 syncen". Tot nu toe deed alleen de cron op `POST /api/zwiftracing/sync`
 (elke 30 minuten) dat; de knop haalde alleen WTRL- en ladderuitslagen,
 roosters en ladderwedstrijden.
+
+*Bijgesteld dezelfde dag:* de knop gebruikt niet meer `runZwiftRacingSync`
+maar `runLadderVeloSync`, met alleen de ladderrenners, alleen de rennerpagina
+en 8 s time-out. De opties `resultPages` en `pageTimeoutMs` zijn weer weg. Zie
+"vELO1 van de ladder voorrang"; het blok hieronder beschrijft de eerste versie.
 
 **Wat.**
 - `syncResultsNow` (`teams/_actions.ts`) roept na `syncTeamResults` ook
@@ -20770,7 +20836,9 @@ een voorstel ("Ja, bouw het").
   (aanmeldingen, eigen teamleden en wie de laatste 8 wedstrijden voor de
   tegenstander reed, voor ladderwedstrijden in de komende 8 dagen; opnieuw na
   20 uur), daarna de renners in `zwift_legacy_velo` die een week niet zijn
-  bijgewerkt. Eén pagina per seconde. Schrijft `zwift_rider_metrics.power_wkg`
+  bijgewerkt. *Sinds 2026-11-25:* na de ladderwedstrijden ook iedereen in de
+  Ladderpuzzel (ladderteams, pool, rooster) na 6 uur; zie "vELO1 van de ladder
+  voorrang". Eén pagina per seconde. Schrijft `zwift_rider_metrics.power_wkg`
   en `velo_fetched_at` (zoals de Chrome-taak, `velo` blijft leeg) en
   `zwift_legacy_velo`. Een 429, 5xx, time-out of onbekende pagina stopt de run.
   *Bijgesteld 2026-11-25:* een renner die ZwiftRacing niet kent, krijgt geen

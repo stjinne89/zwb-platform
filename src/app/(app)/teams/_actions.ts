@@ -9,15 +9,16 @@ import { fetchLadderGraveyard, normalizeTeamName } from "@/lib/ladder";
 import { withLadderSession } from "@/lib/club-ladder/session";
 import { getClub } from "@/lib/club";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
-import { runZwiftRacingSync } from "@/lib/zwiftracing/rider-sync";
+import { runLadderVeloSync } from "@/lib/zwiftracing/rider-sync";
 
-// Na de teamuitslagen ververst de knop ook de legacy vELO (vELO1) van wie aan
-// de beurt is, net als de cron op /api/zwiftracing/sync. De pagina's hebben
-// `maxDuration = 30`; Netlify liet bij de FRR-kalender rond 25-28 s nog toe.
-// Na VELO_DEADLINE_MS begint hij aan geen nieuwe renner meer, en een renner
-// kost hooguit twee pagina's van VELO_PAGE_TIMEOUT_MS plus een seconde pauze.
+// Na de teamuitslagen ververst de knop de legacy vELO (vELO1) van iedereen in
+// de Ladderpuzzel, de oudste eerst (runLadderVeloSync); de rest doet de cron op
+// /api/zwiftracing/sync. De pagina's hebben `maxDuration = 30`; Netlify liet bij
+// de FRR-kalender rond 25-28 s nog toe. Na VELO_DEADLINE_MS begint hij aan geen
+// nieuwe renner meer, en een renner kost een pagina van hooguit
+// VELO_PAGE_TIMEOUT_MS plus een seconde pauze.
 const VELO_DEADLINE_MS = 14_000;
-const VELO_PAGE_TIMEOUT_MS = 4_000;
+const VELO_PAGE_TIMEOUT_MS = 8_000;
 /** Minder tijd over dan dit: de vELO1 laten wachten op de cron. */
 const VELO_MIN_MS = 2_000;
 
@@ -30,10 +31,7 @@ async function syncLegacyVelo(started: number): Promise<LegacyVeloSyncOutcome> {
   const deadline = started + VELO_DEADLINE_MS;
   if (deadline - Date.now() < VELO_MIN_MS) return { skipped: "geen tijd meer, volgt bij de volgende run" };
   try {
-    const result = await runZwiftRacingSync(createAdminClient(), deadline, {
-      resultPages: 0,
-      pageTimeoutMs: VELO_PAGE_TIMEOUT_MS,
-    });
+    const result = await runLadderVeloSync(createAdminClient(), deadline, VELO_PAGE_TIMEOUT_MS);
     return { legacy: result.legacy, fetched: result.fetched, remaining: result.remaining, stopped: result.stopped };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "onbekende fout" };

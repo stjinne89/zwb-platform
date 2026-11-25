@@ -45,6 +45,14 @@ const BRIEFING_MAX = 400;
 const RESULT_PAGES_PER_RUN = 2;
 const OPPONENT_RACES = 8;
 const POWER_STALE_MS = 20 * 60 * 60 * 1000;
+/**
+ * Ladderrenners vaker: op 2026-11-24 werd een renner 25 minuten na zijn race
+ * opgehaald, voordat ZwiftRacing die had verwerkt, en bleef 20 uur op de oude
+ * vELO1 staan. Om de 6 uur loopt een rating hooguit zo lang achter.
+ */
+const LADDER_STALE_MS = 6 * 60 * 60 * 1000;
+/** De knop slaat over wie in dit venster al is opgehaald. */
+const LADDER_BUTTON_FRESH_MS = 60 * 60 * 1000;
 const LEGACY_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 /** Tussen twee pagina's; de Chrome-taak deed 0,8 s zonder problemen. */
 const PAGE_SPACING_MS = 1_000;
@@ -135,7 +143,43 @@ export async function ladderFixtureZwiftIds(admin: Admin, now = new Date()): Pro
   return [...out].sort((a, b) => a - b);
 }
 
-const stale = (at: string | null | undefined, now: Date) => !at || now.getTime() - Date.parse(at) > POWER_STALE_MS;
+/**
+ * Zwift-ID's van iedereen in de Ladderpuzzel: leden van ladderteams (ook in het
+ * archief), de ladderpool en de rosterrenners zonder account.
+ */
+export async function ladderRiderZwiftIds(admin: Admin): Promise<number[]> {
+  const { data: teams, error } = await admin.from("teams").select("id").eq("type", "ladder");
+  if (error) throw new Error(`Ladderteams niet gelezen: ${error.message}`);
+  const teamIds = ((teams ?? []) as Array<{ id: string }>).map((team) => team.id);
+
+  // De pool (0285) en het rooster kunnen ontbreken; dan zijn ze gewoon leeg.
+  const [{ data: members }, { data: pool }, { data: roster }] = await Promise.all([
+    teamIds.length ? admin.from("team_members").select("profile_id").in("team_id", teamIds) : Promise.resolve({ data: [] }),
+    admin.from("ladder_pool").select("profile_id"),
+    admin.from("ladder_roster_riders").select("roster_entry_id"),
+  ]);
+  const profileIds = [
+    ...new Set(
+      [...((members ?? []) as Array<{ profile_id: string }>), ...((pool ?? []) as Array<{ profile_id: string }>)].map((row) => row.profile_id),
+    ),
+  ];
+  const entryIds = [...new Set(((roster ?? []) as Array<{ roster_entry_id: string }>).map((row) => row.roster_entry_id))];
+  const [{ data: profiles }, { data: entries }] = await Promise.all([
+    profileIds.length ? admin.from("profiles").select("zwift_id").in("id", profileIds) : Promise.resolve({ data: [] }),
+    entryIds.length ? admin.from("roster_entries").select("zwift_id").in("id", entryIds) : Promise.resolve({ data: [] }),
+  ]);
+
+  const out = new Set<number>();
+  for (const row of [...((profiles ?? []) as Array<{ zwift_id: string | null }>), ...((entries ?? []) as Array<{ zwift_id: string | null }>)]) {
+    const raw = row.zwift_id?.trim() ?? "";
+    const id = /^\d+$/.test(raw) ? validId(raw) : null;
+    if (id) out.add(id);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+const staleAfter = (at: string | null | undefined, now: Date, ms: number) => !at || now.getTime() - Date.parse(at) > ms;
+const stale = (at: string | null | undefined, now: Date) => staleAfter(at, now, POWER_STALE_MS);
 
 /** Renners van een racebriefje van de laatste twee dagen, zonder verse rennerpagina. */
 async function briefingZwiftIds(admin: Admin, now: Date): Promise<number[]> {
@@ -151,14 +195,20 @@ async function briefingZwiftIds(admin: Admin, now: Date): Promise<number[]> {
     .filter((id): id is number => id != null);
 }
 
-/** Wie nu aan de beurt is: eerst de ladderwedstrijden, dan de racebriefjes, dan verouderde vELO1. */
+/**
+ * Wie nu aan de beurt is: eerst de ladderwedstrijden (na 20 uur), dan iedereen
+ * in de Ladderpuzzel (na 6 uur), dan de racebriefjes, dan verouderde vELO1.
+ */
 export async function dueZwiftIds(admin: Admin, now = new Date()): Promise<number[]> {
-  const fixtureIds = await ladderFixtureZwiftIds(admin, now);
+  const [fixtureIds, ladderIds] = await Promise.all([ladderFixtureZwiftIds(admin, now), ladderRiderZwiftIds(admin)]);
   const due: number[] = [];
-  if (fixtureIds.length) {
-    const { data } = await admin.from("zwift_rider_metrics").select("zwift_id, velo_fetched_at").in("zwift_id", fixtureIds);
+  const lookup = [...new Set([...fixtureIds, ...ladderIds])];
+  if (lookup.length) {
+    const { data } = await admin.from("zwift_rider_metrics").select("zwift_id, velo_fetched_at").in("zwift_id", lookup);
     const fetchedAt = new Map(((data ?? []) as Array<{ zwift_id: number; velo_fetched_at: string | null }>).map((row) => [Number(row.zwift_id), row.velo_fetched_at]));
     for (const id of fixtureIds) if (stale(fetchedAt.get(id), now)) due.push(id);
+    const queued = new Set(due);
+    for (const id of ladderIds) if (!queued.has(id) && staleAfter(fetchedAt.get(id), now, LADDER_STALE_MS)) due.push(id);
   }
   const seen = new Set(due);
   for (const id of await briefingZwiftIds(admin, now)) {
@@ -183,8 +233,8 @@ type Fetched =
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function fetchRiderPage(zwiftId: number, userAgent: string, deadline: number, pageTimeoutMs?: number): Promise<Fetched> {
-  const page = await fetchZwiftRacingPage(`/riders/${zwiftId}`, userAgent, pageTimeoutMs);
+async function fetchRiderPage(zwiftId: number, userAgent: string, deadline: number): Promise<Fetched> {
+  const page = await fetchZwiftRacingPage(`/riders/${zwiftId}`, userAgent);
   if (page.kind !== "ok") return page;
   if (isRiderNotFound(page.html, zwiftId)) return { kind: "unknown" };
   const data = parseRiderPage(page.html, zwiftId);
@@ -193,30 +243,17 @@ async function fetchRiderPage(zwiftId: number, userAgent: string, deadline: numb
   // Geen tijd meer voor de curve: niets opslaan, de volgende run begint met hem.
   if (Date.now() > deadline) return { kind: "later" };
   await pause(PAGE_SPACING_MS);
-  const powerPage = await fetchZwiftRacingPage(`/riders/${zwiftId}/power`, userAgent, Math.min(CURVE_TIMEOUT_MS, pageTimeoutMs ?? CURVE_TIMEOUT_MS));
+  const powerPage = await fetchZwiftRacingPage(`/riders/${zwiftId}/power`, userAgent, CURVE_TIMEOUT_MS);
   if (powerPage.kind === "stop") return powerPage;
   const curve = powerPage.kind === "ok" ? parseRiderPowerCurve(powerPage.html, zwiftId) : null;
   return { kind: "ok", data: { ...data, powerWkg: highestPower(data.powerWkg, curve) }, hasCurve: curve != null };
 }
 
-export type ZwiftRacingSyncOptions = {
-  /** Uitslagpagina's voor de renners; 0 slaat ze over. */
-  resultPages?: number;
-  /** Time-out per rennerpagina, zodat een korte run niet ver over `deadline` loopt. */
-  pageTimeoutMs?: number;
-};
-
 /** Haalt op wie aan de beurt is tot `deadline` (ms sinds epoch). */
-export async function runZwiftRacingSync(
-  admin: Admin,
-  deadline: number,
-  { resultPages = RESULT_PAGES_PER_RUN, pageTimeoutMs }: ZwiftRacingSyncOptions = {},
-): Promise<ZwiftRacingSyncResult> {
+export async function runZwiftRacingSync(admin: Admin, deadline: number): Promise<ZwiftRacingSyncResult> {
   const userAgent = await zwiftRacingUserAgent();
   // Eerst een paar uitslagpagina's: een klein, vast deel van het budget.
-  const expectations: RaceExpectationResult = resultPages > 0
-    ? await harvestRaceExpectations(admin, deadline, userAgent, resultPages)
-    : { done: 0, unknown: 0, none: 0, stopped: null };
+  const expectations = await harvestRaceExpectations(admin, deadline, userAgent, RESULT_PAGES_PER_RUN);
   const due = await dueZwiftIds(admin);
   const result: ZwiftRacingSyncResult = { due: due.length, fetched: 0, power: 0, legacy: 0, empty: 0, unknown: 0, noCurve: 0, remaining: 0, stopped: expectations.stopped, expectations };
   // Weert ZwiftRacing ons op de uitslagpagina, dan ook geen rennerpagina's.
@@ -230,7 +267,7 @@ export async function runZwiftRacingSync(
     if (Date.now() > deadline) break;
     if (index > 0) await pause(PAGE_SPACING_MS);
     const zwiftId = due[index];
-    const page = await fetchRiderPage(zwiftId, userAgent, deadline, pageTimeoutMs);
+    const page = await fetchRiderPage(zwiftId, userAgent, deadline);
     if (page.kind === "later") break;
     if (page.kind === "stop") {
       result.stopped = page.reason;
@@ -274,6 +311,83 @@ export async function runZwiftRacingSync(
     if (!powerWkg && !legacy) result.empty += 1;
   }
   // Bij een stop telt de renner waar het misging ook nog mee.
+  result.remaining = due.length - index;
+  return result;
+}
+
+export type LadderVeloSyncResult = {
+  /** Ladderrenners die nu aan de beurt waren. */
+  due: number;
+  fetched: number;
+  legacy: number;
+  unknown: number;
+  /** Niet opgehaald omdat de tijd op was of een pagina te traag was. */
+  remaining: number;
+  /** Waarom de run stopte (429, 5xx, onbekende pagina), of null. */
+  stopped: string | null;
+};
+
+/**
+ * Voor de knop "Teams en resultaten ophalen": alleen de vELO1 van iedereen in
+ * de Ladderpuzzel, de oudste eerst, zonder de 20 uur van de cron. Alleen de
+ * rennerpagina, want daar staat de vELO1; het vermogen blijft bij de cron, dus
+ * `zwift_rider_metrics` blijft onaangeroerd.
+ */
+export async function runLadderVeloSync(admin: Admin, deadline: number, pageTimeoutMs?: number): Promise<LadderVeloSyncResult> {
+  const now = new Date();
+  const ids = await ladderRiderZwiftIds(admin);
+  const { data } = ids.length
+    ? await admin.from("zwift_legacy_velo").select("zwift_id, fetched_at").in("zwift_id", ids)
+    : { data: [] };
+  const fetchedAt = new Map(((data ?? []) as Array<{ zwift_id: number; fetched_at: string | null }>).map((row) => [Number(row.zwift_id), row.fetched_at]));
+  const due = ids
+    .filter((id) => staleAfter(fetchedAt.get(id), now, LADDER_BUTTON_FRESH_MS))
+    .sort((a, b) => (Date.parse(fetchedAt.get(a) ?? "") || 0) - (Date.parse(fetchedAt.get(b) ?? "") || 0));
+
+  const result: LadderVeloSyncResult = { due: due.length, fetched: 0, legacy: 0, unknown: 0, remaining: 0, stopped: null };
+  const userAgent = await zwiftRacingUserAgent();
+  let index = 0;
+  for (; index < due.length; index++) {
+    if (Date.now() > deadline) break;
+    if (index > 0) await pause(PAGE_SPACING_MS);
+    const zwiftId = due[index];
+    const page = await fetchZwiftRacingPage(`/riders/${zwiftId}`, userAgent, pageTimeoutMs);
+    // Te traag: stoppen zonder melding, de volgende klik of de cron neemt hem.
+    if (page.kind === "stop" && page.timeout) break;
+    if (page.kind === "stop") {
+      result.stopped = page.reason;
+      break;
+    }
+    const at = new Date().toISOString();
+    if (page.kind === "unknown" || isRiderNotFound(page.html, zwiftId)) {
+      result.unknown += 1;
+      await admin.from("zwift_legacy_velo").update({ fetched_at: at }).eq("zwift_id", zwiftId);
+      continue;
+    }
+    const parsed = parseRiderPage(page.html, zwiftId);
+    if (!parsed) {
+      result.stopped = "pagina niet herkend";
+      break;
+    }
+    result.fetched += 1;
+    if (parsed.legacy) {
+      const { error } = await admin.from("zwift_legacy_velo").upsert({
+        zwift_id: zwiftId,
+        velo_live: parsed.legacy.live,
+        velo_max30: parsed.legacy.max30,
+        velo_max90: parsed.legacy.max90,
+        fetched_at: at,
+      });
+      if (error) {
+        result.stopped = `opslaan mislukt: ${error.message}`;
+        break;
+      }
+      result.legacy += 1;
+    } else {
+      // Geen vELO1 meer: de laatste rating blijft staan, zoals in de cron.
+      await admin.from("zwift_legacy_velo").update({ fetched_at: at }).eq("zwift_id", zwiftId);
+    }
+  }
   result.remaining = due.length - index;
   return result;
 }

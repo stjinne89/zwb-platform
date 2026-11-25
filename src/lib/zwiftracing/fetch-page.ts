@@ -10,7 +10,8 @@ import { getClub } from "@/lib/club";
 const BASE = "https://zwiftracing.app";
 const TIMEOUT_MS = 10_000;
 
-export type FetchedPage = { kind: "ok"; html: string } | { kind: "unknown" } | { kind: "stop"; reason: string };
+/** `timeout`: de pagina kwam niet binnen de tijd; geen teken dat de site ons weert. */
+export type FetchedPage = { kind: "ok"; html: string } | { kind: "unknown" } | { kind: "stop"; reason: string; timeout?: boolean };
 
 export async function zwiftRacingUserAgent(): Promise<string> {
   return `${(await getClub()).texts.shortName} Platform`;
@@ -25,6 +26,7 @@ export async function fetchZwiftRacingPage(path: string, userAgent?: string, tim
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (err) {
+    if (err instanceof Error && err.name === "TimeoutError") return { kind: "stop", reason: "time-out", timeout: true };
     return { kind: "stop", reason: err instanceof Error ? err.message : "geen verbinding" };
   }
   if (response.status === 404) return { kind: "unknown" };
