@@ -7,12 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Aero Lightning Socks in de Zwift-garage (2026-11-25): lokaal
-   gecommit op `claude/zwift-aero-sokken-garage-849258`, niet gepusht.
-   Migratie `0368_member_zwift_socks` geschreven, niet toegepast.** Wie de sokken
+0. **Gebouwd — Aero Lightning Socks in de Zwift-garage (2026-11-25): commit
+   `7fe52819`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, toepassen en
+   push"), migratie `0368_member_zwift_socks` vóór de push toegepast.** Wie de sokken
    aanvinkt op `/mijn-garage/zwift`, krijgt in het pacingplan op elke fiets
-   0,0033 m² minder CdA, zo'n 12 s per uur op 300 W. Open: `0368` toepassen,
-   pushen en op productie aanvinken. Zie de ronde met dezelfde naam.
+   0,0033 m² minder CdA, zo'n 12 s per uur op 300 W. Open: op productie
+   aanvinken, opslaan en de plantijd nakijken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — vELO1 van de ladder voorrang (2026-11-25): commit
    `198e84d8`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"), geen
@@ -1789,7 +1789,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0369`
-(`0368_member_zwift_socks` is van de Aero Lightning Socks in de Zwift-garage, 2026-11-25, nog niet toegepast;
+(`0368_member_zwift_socks` is van de Aero Lightning Socks in de Zwift-garage, 2026-11-25, toegepast op 2026-11-25;
 `0364` tot en met `0367` staan bij de ZWBlokken-rondes van 2026-11-25;
 `0363_zrl_wtrl_results` is van de ZRL-uitslagen op de teampagina, toegepast op 2026-11-25;
 `0362_zrl_wtrl_standings` is van de ZRL-competitiestand, toegepast op 2026-11-25;
@@ -13011,9 +13011,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Aero Lightning Socks in de Zwift-garage
 
-**2026-11-25.** Lokaal gecommit op `claude/zwift-aero-sokken-garage-849258`,
-niet gepusht. Migratie `0368_member_zwift_socks.sql` geschreven, **niet
-toegepast** (op `origin/main` was `0367` de laatste). Eerst een voorstel, door
+**2026-11-25.** Commit `7fe52819`, op 2026-11-25 op verzoek van de eigenaar
+("Ja, toepassen en push") naar `main` gepusht. Migratie
+`0368_member_zwift_socks.sql` vóór de push op productie toegepast (op
+`origin/main` en in `schema_migrations` was `0367` de laatste); de check staat
+nu op frame, wheel en socks. Eerst een voorstel, door
 de eigenaar goedgekeurd ("Ja, bouwen").
 
 **Waarom.** De eigenaar vroeg de aero-sokken als Zwift-onderdeel in de garage,
@@ -13052,10 +13054,9 @@ CdA, ruim 1 %.
 de winst overal even groot is, ook in de groep en op elk frame, is niet
 gemeten.
 
-**Niet geverifieerd.** `0368` niet toegepast en niet lokaal te testen (geen
-Docker/Supabase-config). Tot hij toegepast is, faalt Opslaan zodra de sokken
-aangevinkt zijn; zonder vinkje werkt de garage gewoon. Pas daarom eerst `0368`
-toe en push daarna. Niet in de browser bekeken. Unit-tests: de afgeleide winst
+**Niet geverifieerd.** `0368` niet lokaal te testen (geen
+Docker/Supabase-config); op productie alleen de nieuwe check nagekeken. Niet in
+de browser bekeken: aanvinken, opslaan en de plantijd na de deploy nog niet. Unit-tests: de afgeleide winst
 valt tussen 11 en 13 s per uur, de CdA en de vingerafdruk veranderen, en
 `hasAeroSocks` telt alleen de aero-versie. Typecheck en lint schoon. De volledige
 suite: alleen `club-texts-render` ("beheer noemt ZWB niet") faalt, en dat doet
