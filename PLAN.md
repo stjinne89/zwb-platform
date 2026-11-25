@@ -11,7 +11,7 @@ gaat stabiliteit voor nieuwe features.
    (2026-11-25): de commit die dit toevoegt, niet gepusht, geen migratie.** Op
    elk ledenprofiel (ook je eigen) een blok met de titels die het lid draagt en
    een puzzel van twaalf stukken, één per Zwift-wereld, die inkleurt bij 100%.
-   Open: pushen op verzoek; daarna kleurt France pas bij `0368` voor wie het
+   Open: pushen op verzoek; daarna kleurt France pas bij `0369` voor wie het
    meer bij Ven-Top miste. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Aero Lightning Socks in de Zwift-garage (2026-11-25): commit
@@ -13074,7 +13074,7 @@ alleen op ZWBlokken zelf, niet op het profiel.
 
 **Niet geverifieerd.** Lokaal bekeken met een dev-server op productiedata, op
 `/profiel` (Stijn, 11 van 12, twee keer Gouverneur) en `/leden/…` (Karen, 11 van
-12 tot `0368` er is), licht en donker, smal en breed; de link van een stuk
+12 tot `0369` er is), licht en donker, smal en breed; de link van een stuk
 opende ZWBlokken op Zwift, Karen en London. De cache van tien minuten en de
 service-rol op Netlify zijn niet op productie bekeken.
 
@@ -13362,7 +13362,8 @@ foutjes, onder meer in Innsbruck, en zag ook dat hij zelf een startvak niet had.
 
 **Vervolg: dekking tot 100%, en het meer bij Ven-Top (2026-11-25).** Commit: de
 commit die dit blok toevoegt, niet gepusht. Migratie
-`0368_zwift_blocks_ventop_lake.sql`, nog niet toegepast.
+`0369_zwift_blocks_ventop_lake.sql` (eerst 0368 genoemd; dat nummer kreeg op
+main de sokken van de Zwift-garage), nog niet toegepast.
 - *Dekking:* de eigenaar vroeg waarom Innsbruck hooguit 98% haalde. De noemer
   is routevormen plus clubblokken. Drie routevormen (InnsbruckConti, Achterbahn
   en Lutscher CCW) snijden net als de ritten de hoek bij het meer af. Daardoor
@@ -13378,7 +13379,7 @@ commit die dit blok toevoegt, niet gepusht. Migratie
 - *Test:* een routevorm door het meerblok in Innsbruck levert dat blok niet op.
 - *Niet lokaal te verifiëren:* de migratie (geen Docker of Supabase-config
   hier), en de 100% in de app zelf.
-- *Volgorde:* eerst de code live, dan `0368`. Nagerekend: France 96, en Karen
+- *Volgorde:* eerst de code live, dan `0369`. Nagerekend: France 96, en Karen
   houdt 96.
 
 **Tests.** `tests/unit/zwblokken-zwift.test.ts`: een portalklim die de kaart uit
