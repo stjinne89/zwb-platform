@@ -13,7 +13,8 @@
 -- De code (src/lib/zwblokken/zwift.ts) slaat nu een stuk rit over dat bij de
 -- portal begint of de kaart uit gaat, en ritten waarvan de naam een portalklim
 -- noemt. Hij gebruikt de volledige routelijn als Strava die gaf, en knipt
--- daarin al bij 300 m. Over alle ritten: France 148 -> 99 blokken, Watopia
+-- daarin al bij 300 m. Met de hand uitgezonderd (EXCLUDED_RIDES, NO_ROAD_BLOCKS):
+-- een verschoven race in Crit City en acht blokken zonder weg in Watopia. Over alle ritten: France 148 -> 99 blokken, Watopia
 -- 220 -> 195, en geen enkel blok verdwijnt waar een bekende route doorheen loopt.
 --
 -- Zoals in 0364: alles opnieuw, de blokken weg en de cursor terug. De sync

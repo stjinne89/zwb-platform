@@ -78,6 +78,31 @@ const PORTALS: Record<string, { lat: number; lon: number }> = {
   watopia: { lat: -11.64, lon: 166.944 },
 };
 const PORTAL_RADIUS_KM = 0.5;
+
+/**
+ * Losse uitzonderingen, met de hand (besluit eigenaar, 2026-11-25), na een
+ * kaartcontrole van alle twaalf werelden.
+ *
+ * Ritten die niet meetellen: Harmens race "Velos Monument Races (C)" van
+ * 09-10-2026 in Crit City, via intervals.icu. De hele ronde ligt ~250 m
+ * oostelijk van het echte rondje; geen enkele andere clubrit doet dat. Een
+ * regel die zo'n rit vangt (ver van elke bekende route), vangt ook de nieuwe
+ * wegen in het noordwesten van Watopia, die `zwift_routes` nog niet kent.
+ */
+const EXCLUDED_RIDES = new Set<number>([-1000195547777]);
+
+/**
+ * Blokken zonder weg die na alle regels hierboven nog overbleven: hooguit twee
+ * leden en geen bekende route erdoor. In Watopia rond de portal aan de
+ * noordrand, één samenvattingssprong in een ZRL-TTT, een hernoemde rit op
+ * Trebiac en één aan de rand van het nieuwe noordwesten.
+ */
+const NO_ROAD_BLOCKS: Record<string, Set<string>> = {
+  watopia: new Set([
+    "63151/34901", "63156/34899", "63156/34900", "63156/34901",
+    "63157/34900", "63158/34900", "63158/34904", "63166/34902",
+  ]),
+};
 const PORTAL_CLIMBS = [
   "Alto de Patios", "Bealach na Ba", "Cheddar Gorge", "Cipressa", "Col d'Aspin",
   "Col de la Croix Saint-Robert", "Col de la Madeleine", "Col de Peyresourde",
@@ -297,6 +322,8 @@ export function splitOnJumps(points: GpxPoint[], maxKm = jumpThresholdKm(points)
 export function zwiftBlocksForRide(ride: {
   points: GpxPoint[];
   fullPoints?: GpxPoint[] | null;
+  /** strava_activities.id, voor EXCLUDED_RIDES. */
+  id?: number | null;
   name?: string | null;
   deviceName?: string | null;
   externalId?: string | null;
@@ -306,13 +333,15 @@ export function zwiftBlocksForRide(ride: {
   if (!world) return null;
   const blocks = new Set<string>();
   if (isPortalClimbName(ride.name)) return { world, blocks };
+  if (ride.id != null && EXCLUDED_RIDES.has(Number(ride.id))) return { world, blocks };
+  const noRoad = NO_ROAD_BLOCKS[world.slug];
   const full = ride.fullPoints && ride.fullPoints.length >= 2 ? ride.fullPoints : null;
   const points = full ?? ride.points;
   const maxKm = jumpThresholdKm(points, full ? JUMP_MIN_KM_FULL : JUMP_MIN_KM);
   for (const run of splitOnJumps(points, maxKm)) {
     if (startsAtPortal(world, run) || leavesWorld(world, run)) continue;
     for (const key of blocksForPolyline(run, ZWIFT_BLOCK_ZOOM)) {
-      if (blockInWorld(world, key)) blocks.add(key);
+      if (blockInWorld(world, key) && !noRoad?.has(key)) blocks.add(key);
     }
   }
   return { world, blocks };

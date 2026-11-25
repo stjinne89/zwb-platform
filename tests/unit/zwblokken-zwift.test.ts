@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blockKey, lonLatToBlock } from "@/lib/zwblokken/grid";
+import { blockCentre, blockKey, lonLatToBlock } from "@/lib/zwblokken/grid";
 import { addBlock, pickRulers, type RegionStandings } from "@/lib/zwblokken/titles";
 import {
   ZWIFT_BLOCK_ZOOM,
@@ -68,7 +68,7 @@ describe("isZwiftRide", () => {
 });
 
 describe("zwiftBlocksForRide", () => {
-  const watopia = line([-11.64, 166.93], [-11.66, 166.97]);
+  const watopia = line([-11.66, 166.93], [-11.68, 166.97]);
 
   it("geeft de wereld en blokken op zoom 16, zonder start of einde weg te laten", () => {
     const ride = zwiftBlocksForRide({ points: watopia, deviceName: "Zwift" });
@@ -135,6 +135,22 @@ describe("zwiftBlocksForRide", () => {
     });
     expect(ride?.world.slug).toBe("watopia");
     expect(ride!.blocks.size).toBe(0);
+  });
+
+  it("telt Harmens verschoven race in Crit City niet, en andere ritten daar wel", () => {
+    const crit = line([-10.3838, 165.8005], [-10.3838, 165.8030], 20);
+    const harmen = zwiftBlocksForRide({ id: -1000195547777, points: crit, deviceName: "Zwift" });
+    expect(harmen?.world.slug).toBe("crit-city");
+    expect(harmen!.blocks.size).toBe(0);
+    expect(zwiftBlocksForRide({ id: 1, points: crit, deviceName: "Zwift" })!.blocks.size).toBeGreaterThan(0);
+  });
+
+  it("slaat de blokken zonder weg over die met de hand zijn vastgesteld", () => {
+    // 63158/34904 in Watopia: een rit op Trebiac die de naam niet noemt.
+    const [lon, lat] = blockCentre(63158, 34904, ZWIFT_BLOCK_ZOOM);
+    const ride = zwiftBlocksForRide({ points: line([lat, lon - 0.012], [lat, lon], 30), deviceName: "Zwift" });
+    expect(ride!.blocks.size).toBeGreaterThan(0);
+    expect(ride!.blocks.has("63158/34904")).toBe(false);
   });
 
   it("gebruikt de volledige lijn als die er is, en knipt daarin al bij 300 m", () => {

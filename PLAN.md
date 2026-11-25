@@ -28,8 +28,9 @@ gaat stabiliteit voor nieuwe features.
    toegepast.** Na 0364 wees de eigenaar blokken zonder weg eronder aan in Crit
    City, France en London. Alle twaalf werelden nagekeken. Climb
    Portal-klimmen tellen nu nergens, ook niet binnen de kaart; de volledige
-   routelijn gaat voor de samenvatting, en knipt al bij 300 m. Open: Harmens
-   verschoven rit in Crit City. Zie de ronde met dezelfde naam.
+   routelijn gaat voor de samenvatting, en knipt al bij 300 m. Harmens
+   verschoven rit in Crit City en de laatste acht rode blokken in Watopia staan
+   met de hand op een uitzonderingslijst. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — ZWBlokken Zwift: sprongen geknipt, gedraaide minimaps recht
    (2026-11-25): commit `005eb5b7`, op 2026-11-25 gepusht naar `main` (eigenaar:
@@ -13095,6 +13096,11 @@ portal, geen klim.
   voor, met een ondergrens van 300 m voor een sprong (mediane puntafstand ~20 m).
   De samenvattingslijn houdt 1,5 km.
 - `/hulp` (Club): portalklimmen leveren geen blokken op, ook binnen de kaart.
+- Met de hand, op verzoek van de eigenaar ("Harmen's rit mag dan verwijderd
+  worden en die paar kleine rode blokken ook"): `EXCLUDED_RIDES` (alleen Harmens
+  race, `-1000195547777`; de rit zelf blijft in de database) en `NO_ROAD_BLOCKS`
+  (de acht rode blokken die in Watopia overbleven). Daarna nul rode blokken in
+  Watopia en Crit City: Watopia 187 blokken, Karen 185, Stijn 186.
 
 Gemeten met de echte code over alle Zwift-ritten, oud → nieuw:
 
@@ -13106,7 +13112,8 @@ Gemeten met de echte code over alle Zwift-ritten, oud → nieuw:
 | Makuri | 73 → 72 | 1 → 0 | 73 → 71 | 70 → 70 |
 | Yorkshire | 44 → 44 | 0 → 0 | 43 → 44 | 43 → 43 |
 
-De andere zeven werelden blijven gelijk. In geen enkele wereld verdwijnt een blok
+De tabel is vóór de uitzonderingslijst; zie hierboven voor Watopia en Crit City
+daarna. De andere zeven werelden blijven gelijk. In geen enkele wereld verdwijnt een blok
 waar een bekende route doorheen loopt. Wat in Watopia rood blijft: rond de
 portal zelf (onder meer een pacer-rit op Volcano Flat), Karens hernoemde rit op
 Trebiac, één samenvattingssprong in een ZRL-TTT en een blok aan de rand van het
@@ -13117,9 +13124,12 @@ nieuwe noordwesten.
   wegen in het noordwesten, waar de hele club nu rijdt.
 - Niet "alleen blokken op een bekende route": `zwift_routes` mist die nieuwe
   wegen, en in London snijdt een routevorm een hoek af die alle 27 leden reden.
-- Harmens verschoven rit niet uitgezonderd. Een regel die zo'n rit vangt (te ver
-  van elke route) vangt ook ritten op de nieuwe wegen in Watopia. Een uitzondering
-  op rit-id is een besluit voor de eigenaar.
+- Geen regel voor ritten als die van Harmen (te ver van elke route): die vangt ook
+  ritten op de nieuwe wegen in Watopia. Daarom een uitzondering op rit-id, met
+  toestemming van de eigenaar.
+- De rode blokken buiten Watopia niet op de lijst: in New York, Paris en
+  Innsbruck liggen ze in de stad, waar wel straten zijn, en in France op de
+  kustweg bij Mont Saint-Michel. Niet om gevraagd.
 - Geen detailroute ophalen bij Strava voor de ritten met alleen een
   samenvattingslijn: ~9.500 ritten tegen de rate limit.
 

@@ -108,6 +108,7 @@ async function processBatch(
     const points = decodePolyline(activity.encoded_polyline);
     if (!points) continue;
     const ride = zwiftBlocksForRide({
+      id: activity.id,
       points,
       fullPoints: activity.full_polyline ? decodePolyline(activity.full_polyline) : null,
       name: activity.name,
