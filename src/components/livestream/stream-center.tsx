@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Volume2, VolumeX } from "lucide-react";
+import { Tv, Volume2, VolumeX, X } from "lucide-react";
 import type { StreamCenterTile } from "@/lib/youtube-live/stream-center";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,10 @@ import { cn } from "@/lib/utils";
 // postMessage naar de embed (enablejsapi), zonder het script van YouTube.
 // Op een smal scherm (telefoon) start niets vanzelf: vier livestreams tegelijk
 // kosten te veel mobiele data. Daar tik je een tegel zelf aan.
+// TV (2026-11-25): het raster schermvullend op zwart, zonder app eromheen en
+// zonder scrollen, voor casten of HDMI; het scherm blijft dan aan. Dezelfde
+// elementen blijven staan, alleen de klassen wisselen: een iframe dat React
+// opnieuw neerzet, laadt de stream opnieuw.
 
 const YT_ORIGIN = "https://www.youtube-nocookie.com";
 const WIDE = "(min-width: 768px)";
@@ -48,7 +52,18 @@ function gridClass(count: number) {
   return "md:grid-cols-2 xl:grid-cols-3";
 }
 
+/** Kolommen in TV: 4 in 2×2 vult een 16:9-scherm precies, 5 en 6 in 3×2. */
+function tvColumns(count: number) {
+  if (count <= 1) return 1;
+  if (count <= 4) return 2;
+  if (count <= 9) return 3;
+  return 4;
+}
+
+const LINK = "inline-flex min-h-7 items-center rounded-md border bg-card px-2 text-xs hover:bg-muted";
+
 type PlayerInfo = { muted?: boolean; playing?: boolean };
+type WakeLock = { release: () => Promise<void> };
 
 export function StreamCenter({ tiles }: { tiles: StreamCenterTile[] }) {
   const wide = useWide();
@@ -56,6 +71,63 @@ export function StreamCenter({ tiles }: { tiles: StreamCenterTile[] }) {
   const info = useRef(new Map<string, PlayerInfo>());
   const [soundId, setSoundId] = useState<string | null>(null);
   const soundRef = useRef<string | null>(null);
+  const container = useRef<HTMLDivElement>(null);
+  const [tv, setTv] = useState(false);
+
+  function openTv() {
+    setTv(true);
+    // Lukt schermvullend niet (iPhone), dan blijft het raster over de pagina.
+    container.current?.requestFullscreen?.().catch(() => {});
+  }
+
+  function closeTv() {
+    setTv(false);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }
+
+  // Esc of de knop van de browser sluit schermvullend: dan ook TV uit.
+  useEffect(() => {
+    if (!tv) return;
+    function onFullscreen() {
+      if (!document.fullscreenElement) setTv(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setTv(false);
+    }
+    document.addEventListener("fullscreenchange", onFullscreen);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreen);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [tv]);
+
+  // Het scherm blijft aan zolang TV open is.
+  useEffect(() => {
+    if (!tv) return;
+    const wakeLock = (navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLock> } })
+      .wakeLock;
+    if (!wakeLock) return;
+    let lock: WakeLock | null = null;
+    let stopped = false;
+    const request = () => {
+      if (document.visibilityState !== "visible") return;
+      wakeLock
+        .request("screen")
+        .then((next) => {
+          if (stopped) next.release().catch(() => {});
+          else lock = next;
+        })
+        .catch(() => {});
+    };
+    request();
+    document.addEventListener("visibilitychange", request);
+    return () => {
+      stopped = true;
+      document.removeEventListener("visibilitychange", request);
+      lock?.release().catch(() => {});
+    };
+  }, [tv]);
 
   const command = useCallback((id: string, func: string) => {
     frames.current.get(id)?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args: [] }), YT_ORIGIN);
@@ -117,15 +189,59 @@ export function StreamCenter({ tiles }: { tiles: StreamCenterTile[] }) {
     }, 1000);
   }
 
+  const columns = tvColumns(tiles.length);
   return (
-    // Breder dan de rest van de app: de tegels hebben de ruimte nodig.
-    <div className="md:relative md:left-1/2 md:w-[min(100vw-2rem,100rem)] md:-translate-x-1/2">
-      <ul className={cn("grid grid-cols-1 gap-3", gridClass(tiles.length))}>
+    <div
+      ref={container}
+      className={cn(
+        tv
+          ? "fixed inset-0 z-50 bg-black p-1"
+          : // Breder dan de rest van de app: de tegels hebben de ruimte nodig.
+            "space-y-2 md:relative md:left-1/2 md:w-[min(100vw-2rem,100rem)] md:-translate-x-1/2",
+      )}
+    >
+      <div className={cn("flex justify-end", tv && "hidden")}>
+        <button
+          type="button"
+          onClick={openTv}
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-md border bg-card px-3 text-xs font-medium hover:bg-muted"
+        >
+          <Tv className="size-3.5" aria-hidden />
+          TV
+        </button>
+      </div>
+      <ul
+        className={cn("grid", tv ? "h-full gap-1" : cn("grid-cols-1 gap-3", gridClass(tiles.length)))}
+        style={
+          tv
+            ? {
+                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${Math.ceil(tiles.length / columns)}, minmax(0, 1fr))`,
+              }
+            : undefined
+        }
+      >
         {tiles.map((tile) => {
           const hasSound = soundId === tile.id;
+          const soundButton = (className: string) => (
+            <button
+              type="button"
+              aria-pressed={hasSound}
+              aria-label={hasSound ? `Geluid uit: ${tile.label}` : `Geluid aan: ${tile.label}`}
+              onClick={() => giveSound(hasSound ? null : tile.id)}
+              className={cn("inline-flex size-9 items-center justify-center rounded-md", className)}
+            >
+              {hasSound ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+            </button>
+          );
           return (
-            <li key={tile.id} className="min-w-0 space-y-1.5">
-              <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
+            <li key={tile.id} className={cn("min-w-0", tv ? "min-h-0" : "space-y-1.5")}>
+              <div
+                className={cn(
+                  "relative w-full overflow-hidden",
+                  tv ? "h-full rounded-sm bg-black" : "aspect-video rounded-md bg-muted",
+                )}
+              >
                 {wide !== null && (
                   <iframe
                     ref={(frame) => {
@@ -141,34 +257,60 @@ export function StreamCenter({ tiles }: { tiles: StreamCenterTile[] }) {
                     referrerPolicy="strict-origin-when-cross-origin"
                   />
                 )}
-              </div>
-              <div className="flex items-center gap-1 text-sm">
-                {tile.live && <span className="size-2 shrink-0 rounded-full bg-red-600" aria-label="live" />}
-                <span className="min-w-0 flex-1 truncate">{tile.label}</span>
-                <button
-                  type="button"
-                  aria-pressed={hasSound}
-                  aria-label={hasSound ? `Geluid uit: ${tile.label}` : `Geluid aan: ${tile.label}`}
-                  onClick={() => giveSound(hasSound ? null : tile.id)}
+                {/* In TV: label en luidspreker over het beeld. */}
+                <div
                   className={cn(
-                    "inline-flex size-9 items-center justify-center rounded-md hover:bg-muted",
-                    hasSound ? "text-primary" : "text-muted-foreground",
+                    "pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-1.5",
+                    !tv && "hidden",
                   )}
                 >
-                  {hasSound ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
-                </button>
-                <Link
-                  href={tile.href}
-                  aria-label={`Racepagina: ${tile.label}`}
-                  className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
-                >
-                  <ArrowUpRight className="size-4" />
-                </Link>
+                  <span className="inline-flex min-w-0 items-center gap-1.5 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white">
+                    {tile.live && <span className="size-2 shrink-0 rounded-full bg-red-600" aria-hidden />}
+                    <span className="truncate">{tile.label}</span>
+                  </span>
+                  {soundButton(
+                    cn("pointer-events-auto bg-black/70 hover:bg-black/90", hasSound ? "text-white" : "text-white/60"),
+                  )}
+                </div>
+              </div>
+              <div className={cn("space-y-1", tv && "hidden")}>
+                <div className="flex items-center gap-1 text-sm">
+                  {tile.live && <span className="size-2 shrink-0 rounded-full bg-red-600" aria-label="live" />}
+                  <span className="min-w-0 flex-1 truncate">{tile.label}</span>
+                  {soundButton(cn("hover:bg-muted", hasSound ? "text-primary" : "text-muted-foreground"))}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Link href={tile.href} className={LINK}>
+                    Race
+                  </Link>
+                  {tile.links.map((link) =>
+                    link.external ? (
+                      <a key={link.key} href={link.href} target="_blank" rel="noopener noreferrer" className={LINK}>
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link key={link.key} href={link.href} className={LINK}>
+                        {link.label}
+                      </Link>
+                    ),
+                  )}
+                </div>
               </div>
             </li>
           );
         })}
       </ul>
+      <button
+        type="button"
+        aria-label="TV sluiten"
+        onClick={closeTv}
+        className={cn(
+          "absolute right-2 bottom-2 z-10 inline-flex size-9 items-center justify-center rounded-md bg-black/60 text-white/70 hover:text-white",
+          !tv && "hidden",
+        )}
+      >
+        <X className="size-4" />
+      </button>
     </div>
   );
 }

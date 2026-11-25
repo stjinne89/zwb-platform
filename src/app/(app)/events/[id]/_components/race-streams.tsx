@@ -27,6 +27,7 @@ import {
 } from "./prepare-stream-button";
 import { overlaySize } from "@/lib/youtube-live/overlay-size";
 import { CalendarStreams } from "@/components/livestream/calendar-streams";
+import { amsterdamDateKey } from "@/lib/birthdays";
 import { calendarStreams, type CalendarRowStreams, type CalendarTarget } from "@/lib/youtube-live/calendar-streams";
 
 /**
@@ -54,7 +55,9 @@ export async function RaceStreams({
 }) {
   const club = await getClub();
   if (!youtubeLiveConfigured() || !club.isEnabled("livestream")) return null;
-  if (hasSubEvents) return <RaceWeekStreams supabase={supabase} eventId={event.id} subEvents={subEvents} />;
+  if (hasSubEvents) {
+    return <RaceWeekStreams supabase={supabase} eventId={event.id} startAt={event.start_at} subEvents={subEvents} />;
+  }
   if (!eventTakesStreams(event, hasSubEvents)) return null;
 
   const now = new Date();
@@ -185,14 +188,18 @@ export async function RaceStreams({
 async function RaceWeekStreams({
   supabase,
   eventId,
+  startAt,
   subEvents,
 }: {
   supabase: SupabaseClient;
   eventId: string;
+  startAt: string;
   subEvents: { id: string; startAt: string }[];
 }) {
+  // De dag van de raceweek, net als op de kalender.
+  const dayKey = amsterdamDateKey(new Date(startAt));
   const targets = new Map<string, CalendarTarget>(
-    subEvents.map((sub) => [sub.id, { rowId: eventId, startAt: sub.startAt, label: null }]),
+    subEvents.map((sub) => [sub.id, { rowId: eventId, startAt: sub.startAt, label: null, dayKey }]),
   );
   let row: CalendarRowStreams | undefined;
   try {

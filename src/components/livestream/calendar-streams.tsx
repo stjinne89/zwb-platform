@@ -5,9 +5,10 @@ import { Radio } from "lucide-react";
 // van de rij (sinds 2026-11-24, eerst eronder). Ook op de pagina van een
 // raceweek.
 // Eén stream: meteen naar de speler op de racepagina, met die stream gekozen.
-// Meer streams (bij ZRL van alle teamraces van de raceweek): naar het
-// streamcenter, waar ze allemaal tegelijk spelen (2026-11-24; daarvoor klapte
-// de knop een lijstje open).
+// Meer streams die avond (van deze race of van andere, zoals vier Club
+// Ladder-races): naar het streamcenter van de avond, waar ze allemaal tegelijk
+// spelen (2026-11-24 per raceweek, sinds 2026-11-25 per dag; daarvoor klapte de
+// knop een lijstje open).
 
 export type CalendarStream = {
   id: string;
@@ -31,18 +32,16 @@ export function CalendarStreams({
 }: {
   streams: CalendarStream[];
   state: "live" | "gepland" | "afgelopen";
-  /** /events/[id]/streams */
-  centerHref: string;
+  /** /streams/[datum], bij 2 of meer streams die dag; anders null. */
+  centerHref: string | null;
 }) {
   if (streams.length === 0) return null;
   const label = state === "live" ? "Live" : state === "afgelopen" ? "Terugkijken" : "Stream";
   const icon = state === "live" ? <LiveDot /> : <Radio className="size-3.5" aria-hidden />;
-  const single = streams.length === 1;
-
   return (
-    <Link href={single ? streams[0].href : centerHref} className={CHIP}>
+    <Link href={centerHref ?? streams[0].href} className={CHIP}>
       {icon}
-      {single ? label : `${label} · ${streams.length}`}
+      {streams.length === 1 ? label : `${label} · ${streams.length}`}
     </Link>
   );
 }

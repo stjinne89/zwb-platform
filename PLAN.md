@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Streamcenter per avond, links per stream en TV
+   (2026-11-25): de commit die dit blok toevoegt, lokaal, niet gepusht.** Geen
+   migratie. Open: ingelogd de avond van vier Club Ladder-races openen, en
+   TV echt schermvullend casten naar een tv. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — ZWBlokken op het profiel: titels en de Zwiftpuzzel
    (2026-11-25): commit `19eb973d`, op 2026-11-25 gepusht naar `main`
    (eigenaar: "Push and apply"), geen migratie.** Op elk ledenprofiel (ook je
@@ -13019,6 +13024,76 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Streamcenter per avond, links per stream en TV
+
+**2026-11-25, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
+Geen migratie.**
+
+- **Waarom.** Op 2026-11-26 rijden vier Club Ladder-teams tussen 19:32 en
+  20:01. Dat zijn losse races zonder raceweek, dus het streamcenter per
+  raceweek vond ze niet samen. De eigenaar vroeg ook om de links van het
+  event bij elke stream, en om iets dat goed op een tv te casten is. Het
+  voorstel was akkoord ("Ja, bouwen").
+- **Wat.**
+  - Nieuwe pagina `/streams/[datum]` (JJJJ-MM-DD, onder `(app)`). Hij neemt de
+    races zonder raceweek die die dag in Amsterdam beginnen, met de teamraces
+    van een raceweek erbij (ook als die op een andere dag vallen), dus
+    dezelfde indeling als de kalender. Zonder streams: naar de kalender.
+  - Labels:
+    - een teamrace van een raceweek: `subEventLabel` ("ZRL A");
+    - een race met een team: de teamnaam ("ZWBullets");
+    - anders de titel, maar alleen als er die avond meer races met een stream
+      zijn.
+
+    De volgorde is op starttijd, dan op label (`streamCenterOrder`), dan op
+    klaarzetten.
+  - `/events/[id]/streams` stuurt nu door naar de avond van de race, of van
+    zijn raceweek, zodat oude links blijven werken.
+  - Kalender en raceweek: `calendarStreams` telt de streams per dag
+    (`CalendarTarget.dayKey`). Vanaf 2 streams die dag gaat de knop naar het
+    streamcenter van die avond (`centerHref`); met 1 naar de racepagina. Het
+    getal in **Live · N** blijft dat van de race zelf.
+  - Links per stream (`streamCenterLinks`): Race (de racepagina met die stream
+    gekozen), bij de Ladder de Ladder-site (`external_url`), bij een
+    ZRL-teamrace met Zwift-event de live stand, en Zwift, ZwiftPower en
+    ZwiftRacing (`derivedZwiftLinks`).
+  - TV: een knop zet het raster schermvullend (`requestFullscreen`) op zwart:
+    - 4 in 2×2, 5 tot 9 drie breed, meer vier breed;
+    - zonder scrollen en zonder app;
+    - label en luidspreker over het beeld, de links weg;
+    - Screen Wake Lock houdt het scherm aan;
+    - Esc of het kruisje sluit.
+
+    Lukt schermvullend niet (iPhone, of een ingesloten browser), dan ligt het
+    raster vast over de pagina. Dezelfde elementen blijven staan, alleen de
+    klassen wisselen, zodat de iframes niet herladen.
+  - Op `/hulp`, bij livestreamen: de alinea over de knop en het streamcenter
+    is herschreven, met de links en TV.
+- **Bewust niet.**
+  - Geen eigen Chromecast-app (Google Cast-ontvanger): die moet bij Google
+    geregistreerd worden, en een tabblad casten doet hetzelfde.
+  - Geen tv-link zonder inloggen: wie streamt is alleen voor leden, en een
+    openbare link vraagt een eigen toegangssleutel.
+  - Geen streams van meer dagen op één pagina.
+- **Niet meer waar.** De ronde "Gebouwd — Streamcenter: alle streams van een
+  race tegelijk": de pagina `/events/[id]/streams` en de knop naar het
+  streamcenter van de raceweek. Daar bijgewerkt.
+- **Niet geverifieerd.**
+  - Typecheck, lint en de unit-tests (`stream-center`, `calendar-streams`)
+    zijn schoon.
+  - Op een tijdelijke pagina onder `/dev/` (daarna weggehaald), met 4 en 6
+    kopieën van een openbare livestream, in het browserpaneel op 1280×800:
+    - de links staan onder elke tegel;
+    - TV vult het scherm in 2×2 en 3×2 met het label over het beeld;
+    - de iframes herladen niet bij aan- en uitzetten (geen `load`);
+    - de luidspreker in TV geeft het geluid aan één tegel;
+    - Esc en het kruisje sluiten.
+
+    Schermvullend weigerde het paneel, dus alleen de terugval is gezien.
+  - Niet gezien: `/streams/[datum]` ingelogd met echte races, de doorverwijzing
+    van `/events/[id]/streams`, echt schermvullend in Chrome, casten naar een
+    tv, en de wake lock.
+
 ### Gebouwd — ZWBlokken op het profiel: titels en de Zwiftpuzzel
 
 **2026-11-25.** Commit `19eb973d`, op 2026-11-25 op verzoek van de eigenaar
@@ -14073,7 +14148,8 @@ migratie.**
   voorstel was akkoord ("Ja, bouwen").
 - **Wat.**
   - Nieuwe pagina `/events/[id]/streams` (alleen voor ingelogde leden, onder
-    `(app)`). Hij toont de streams van de race en van de teamraces eronder,
+    `(app)`; sinds 2026-11-25 een doorverwijzing naar het streamcenter van de
+    avond, zie "Gebouwd — Streamcenter per avond, links per stream en TV"). Hij toont de streams van de race en van de teamraces eronder,
     dezelfde data als de kalender (`loadEventStreams`). Zonder module of
     YouTube-config: 404. Zonder streams: terug naar de race.
   - De tegels staan in een vaste volgorde: de race zelf, dan de teamraces op

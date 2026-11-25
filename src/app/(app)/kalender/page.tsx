@@ -550,9 +550,15 @@ export default async function KalenderPage({
   // eronder (ZRL). Mag de kalender nooit breken.
   const streamTargets = new Map<string, CalendarTarget>();
   for (const top of [...events, ...pastTop]) {
-    streamTargets.set(top.id, { rowId: top.id, startAt: top.start_at, label: null });
+    const dayKey = amsterdamDateKey(new Date(top.start_at));
+    streamTargets.set(top.id, { rowId: top.id, startAt: top.start_at, label: null, dayKey });
     for (const child of childrenByParent.get(top.id) ?? []) {
-      streamTargets.set(child.id, { rowId: top.id, startAt: child.start_at, label: subEventLabel(child.title, top.title) });
+      streamTargets.set(child.id, {
+        rowId: top.id,
+        startAt: child.start_at,
+        label: subEventLabel(child.title, top.title),
+        dayKey,
+      });
     }
   }
   const streamsByRow =

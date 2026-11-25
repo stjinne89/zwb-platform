@@ -1,6 +1,9 @@
-// Het streamcenter (2026-11-24): alle streams van een race of raceweek
-// tegelijk. Puur, voor de tests. Zie app/(app)/events/[id]/streams.
+// Het streamcenter (2026-11-24): alle streams van een avond tegelijk, sinds
+// 2026-11-25 per dag in plaats van per raceweek, zodat ook losse races die
+// overlappen (vier Club Ladder-races op één avond) samen te zien zijn. Puur,
+// voor de tests. Zie app/(app)/streams/[datum].
 
+import { derivedZwiftLinks, normalizeLinkUrl } from "@/lib/events/race-links";
 import { streamsAreLive } from "./broadcast";
 
 export type StreamCenterInput = {
@@ -11,25 +14,34 @@ export type StreamCenterInput = {
   status: "gepland" | "live" | "afgelopen";
 };
 
-/** Per race: de start, het label van de teamrace en de plek in de rij. */
-export type StreamCenterTarget = { startAt: string; label: string | null; order: number };
+/** Een link van het event van een stream: de Ladder-site, Zwift, de live stand. */
+export type StreamCenterLink = { key: string; label: string; href: string; external: boolean };
+
+/** Per race: de start, het label (team of teamrace), de plek in de rij en de links. */
+export type StreamCenterTarget = {
+  startAt: string;
+  label: string | null;
+  order: number;
+  links: StreamCenterLink[];
+};
 
 export type StreamCenterTile = {
   id: string;
   videoId: string;
-  /** "ZRL A · Stijn" */
+  /** "ZWBullets · Stijn" */
   label: string;
   /** De speler op de racepagina, met deze stream gekozen. */
   href: string;
+  links: StreamCenterLink[];
   live: boolean;
   /** Voorbij: terugkijken, dus niet vanzelf starten. */
   ended: boolean;
 };
 
 /**
- * Vaste volgorde: de race zelf, dan teamrace A, B, C…, en daarbinnen wie het
- * eerst klaarzette (zo komen ze uit loadEventStreams). Live gaan verschuift
- * niets, anders springt een tegel weg terwijl je kijkt.
+ * Vaste volgorde: op de plek van de race, daarbinnen wie het eerst klaarzette
+ * (zo komen ze uit loadEventStreams). Live gaan verschuift niets, anders
+ * springt een tegel weg terwijl je kijkt.
  */
 export function streamCenterTiles(
   streams: StreamCenterInput[],
@@ -50,6 +62,7 @@ export function streamCenterTiles(
             videoId: stream.videoId,
             label: [target.label, stream.name].filter(Boolean).join(" · "),
             href: `/events/${stream.eventId}?stream=${stream.id}#stream`,
+            links: target.links,
             live,
             // Zonder status van YouTube beslist de klok, net als op de kalender.
             ended: stream.status === "afgelopen" || (!live && !streamsAreLive(target.startAt, now)),
@@ -61,8 +74,35 @@ export function streamCenterTiles(
     .map((item) => item.tile);
 }
 
-/** Teamraces op titel, met getallen als getal: ZRL A, ZRL B, … ZRL 10. */
-export function streamCenterOrder(titles: { id: string; title: string }[]): Map<string, number> {
-  const sorted = [...titles].sort((a, b) => a.title.localeCompare(b.title, "nl", { numeric: true }));
-  return new Map(sorted.map((item, index) => [item.id, index + 1]));
+/** De races op starttijd, dan op label met getallen als getal: ZRL A, ZRL B, … ZRL 10. */
+export function streamCenterOrder(races: { id: string; startAt: string; label: string | null }[]): Map<string, number> {
+  const sorted = [...races].sort(
+    (a, b) =>
+      Date.parse(a.startAt) - Date.parse(b.startAt) ||
+      (a.label ?? "").localeCompare(b.label ?? "", "nl", { numeric: true }),
+  );
+  return new Map(sorted.map((race, index) => [race.id, index]));
+}
+
+/**
+ * De links van een race bij zijn streams: de Ladder-site, de live stand van een
+ * ZRL-teamrace, en Zwift, ZwiftPower en ZwiftRacing.
+ */
+export function streamCenterLinks(event: {
+  id: string;
+  type: string;
+  team_id: string | null;
+  zwift_event_id: number | string | null;
+  external_url: string | null;
+}): StreamCenterLink[] {
+  const links: StreamCenterLink[] = [];
+  const ladderSite = event.type === "ladder" ? normalizeLinkUrl(event.external_url) : null;
+  if (ladderSite) links.push({ key: "ladder", label: "Ladder-site", href: ladderSite, external: true });
+  if (event.type === "zrl" && event.team_id && event.zwift_event_id) {
+    links.push({ key: "stand", label: "Live stand", href: `/live/zrl/${event.id}`, external: false });
+  }
+  for (const link of derivedZwiftLinks(event.zwift_event_id)) {
+    links.push({ key: link.key, label: link.label, href: link.url, external: true });
+  }
+  return links;
 }
