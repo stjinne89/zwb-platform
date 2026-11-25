@@ -92,6 +92,8 @@ export type VandaagStanding = {
   mine?: boolean;
   /** De ronde of het event, zoals "ZRL ronde 4 · TTT". */
   round?: string | null;
+  /** Een duel (Club Ladder): de score in plaats van de plek. */
+  score?: { ours: number; theirs: number; won: boolean } | null;
 };
 
 /** De laatste score van ZWBriljant, als de steen er al is. */
@@ -278,14 +280,23 @@ export function StandingTile({ standing }: { standing: VandaagStanding }) {
       {standing.round && (
         <span className="mt-1 line-clamp-1 text-[0.9375rem]">{standing.round}</span>
       )}
-      <span className="tg-tile-num">
-        {standing.position}e
-        {standing.totalTeams ? (
+      {standing.score ? (
+        <span className="tg-tile-num">
+          {standing.score.ours}–{standing.score.theirs}
           <span className="ml-1.5 text-base font-normal tracking-normal opacity-85">
-            van {standing.totalTeams}
+            {standing.score.won ? "winst" : "verlies"}
           </span>
-        ) : null}
-      </span>
+        </span>
+      ) : (
+        <span className="tg-tile-num">
+          {standing.position}e
+          {standing.totalTeams ? (
+            <span className="ml-1.5 text-base font-normal tracking-normal opacity-85">
+              van {standing.totalTeams}
+            </span>
+          ) : null}
+        </span>
+      )}
     </Link>
   );
 }

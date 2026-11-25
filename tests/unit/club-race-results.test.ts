@@ -33,6 +33,8 @@ const calendar = [
   { id: "e2", title: "Tour Ignite", start_at: "2026-11-08T18:00:00Z", zwift_event_id: "2", parent_event_id: null },
   { id: "e3", title: "Oude race", start_at: "2026-10-01T18:00:00Z", zwift_event_id: "3", parent_event_id: null },
   { id: "e4", title: "Groepsrit", start_at: "2026-11-09T18:00:00Z", zwift_event_id: "4", parent_event_id: null },
+  { id: "e6", title: "ZRL · B1", start_at: "2026-11-09T19:00:00Z", zwift_event_id: "6", parent_event_id: "week5", type: "zrl" },
+  { id: "e7", title: "Club Ladder: ZWBeasts – X", start_at: "2026-11-09T19:00:00Z", zwift_event_id: "7", parent_event_id: null, type: "ladder" },
 ];
 
 describe("clubRaceResults", () => {
@@ -47,6 +49,8 @@ describe("clubRaceResults", () => {
       snapshot("4", Date.parse("2026-11-09T18:00:00Z"), [["A", [[102, 1]]]], "GROUP_RIDE"),
       snapshot("9", Date.parse("2026-11-09T18:00:00Z"), [["A", [[102, 1]]]]),
       snapshot("5", Date.parse("2026-11-09T18:00:00Z"), [["A", [[900, 1]]]]),
+      snapshot("6", Date.parse("2026-11-09T19:00:00Z"), [["B", [[101, 2]]]]),
+      snapshot("7", Date.parse("2026-11-09T19:00:00Z"), [["A", [[103, 1]]]]),
     ],
     calendar,
     members,
@@ -54,7 +58,8 @@ describe("clubRaceResults", () => {
   );
 
   it("houdt alleen recente races uit de kalender met een ZWB'er in de uitslag", () => {
-    // 3 is te oud, 4 een groepsrit, 9 staat niet in de kalender, 5 zonder lid.
+    // 3 is te oud, 4 een groepsrit, 9 staat niet in de kalender, 5 zonder lid,
+    // 6 (ZRL) en 7 (Club Ladder) hebben een teamtegel.
     expect(races.map((race) => race.key)).toEqual(["2", "1"]);
   });
 

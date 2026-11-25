@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Dashboard: teamuitslagen voor ZRL en Ladder (2026-11-25): lokaal
+   gecommit, niet gepusht, geen migratie.** De ledentegels slaan ZRL- en
+   Ladder-races over. Ladderteams krijgen een eigen teamtegel met de score van
+   hun nieuwste wedstrijd, en er passen 8 teamtegels in plaats van 4. Open: het
+   echte dashboard is niet ingelogd bekeken. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Pacingplan na ZRL R2 W2 (2026-11-25): commit `eb1e6bc1`, op
    2026-11-25 gepusht naar `main`, geen migratie.** Voorstel 1 tot en met 4 uit
    [het onderzoek](docs/pacingplan-race-analyse-2026-11-25.md): W′ uit
@@ -12945,6 +12951,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Dashboard: teamuitslagen voor ZRL en Ladder
+
+**2026-11-25.** Lokaal gecommit in de worktree
+`dashboard-team-results-zrl-ladder`, niet gepusht. Geen migratie. Eerst een
+voorstel, door de eigenaar goedgekeurd ("Ja, bouwen").
+
+**Waarom.** De eigenaar zag bij de uitslagen van teams buiten zijn eigen team
+individuele uitslagen staan, waar bij ZRL en Ladder de teamuitslag hoort. De
+oorzaak: de ledentegels (`clubRaceResults`) toonden elke bevroren race uit de
+kalender, ook teamraces. De teamtegels stopten na 4. Op productie
+(2026-11-25) waren er die week 7 ZRL-teamuitslagen, dus de overige ZRL-races
+kwamen als ledentegel terug met "beste ZWB'er per categorie". Ladder stond er
+nooit als team: de teamtegels lezen `team_results`, en daarin staat voor de
+ladder alleen de positie (zonder `round_at`, dus nooit binnen de week). De
+wedstrijden zelf staan in `club_ladder_matches`.
+
+**Wat er veranderde.**
+- **Ledentegels** (`lib/racen/club-results.ts`): een race waarvan het
+  kalenderevent `type` `zrl` of `ladder` heeft, telt niet meer mee. Daar blijven
+  losse races over, zoals een crit of een Benelux-clash.
+- **Ladder-teamtegel**: `lib/club-ladder/dashboard-results.ts`.
+  `latestLadderResults` (puur, getest) geeft per ladderteam (niet het
+  kerkhof) de nieuwste wedstrijd van de afgelopen 7 dagen. Daarvoor gebruikt
+  het `ladderTeamResults`, dezelfde koppeling aan het event als op de
+  teampagina. `loadLadderDashboardResults` leest met de admin-client en is 10
+  minuten gedeeld gecachet, net als de uitslagen van leden. Namen zijn de
+  teamnaam plus `team_result_sources.match_name`. Het dashboard zet de wedstrijd om
+  naar een teamuitslag (`ladderStandings`). De tegel heet "Ladder", met
+  "tegen <tegenstander>" en de score met "winst" of "verlies" (gelijk: de
+  uitdager verliest). Met event linkt hij naar `/events/[id]#uitslag`, anders
+  naar de teampagina op de ladder. `StandingTile` kreeg een optionele `score`.
+- **Teamtegels**: hooguit 8 in plaats van 4, eigen teams eerst, daarna de
+  nieuwste, daarna "Alle teams".
+- `/hulp` (Dashboard) en `/ontwerp-voorbeeld` (de ladder-tegel) bijgewerkt.
+
+**Bewust niet.** Geen samenvattende tegel per ZRL-ronde met alle teams erin. Eén
+tegel per team past bij de bestaande tegels en bij de "Jouw team"-markering.
+Handmatige `team_results` met competitie "Club Ladder" en een datum zouden
+naast de nieuwe tegel een tweede tegel geven. Die zijn er nu niet, dus niet
+weggefilterd.
+
+**Gevolg om te kennen.** Een ZRL-race met een bevroren uitslag maar zonder
+`zrl_team_results`-rij valt nu helemaal van het dashboard. Op 2026-11-25 gold
+dat voor ZRL Zwiftladies C (R2 W2, Zwift-event 5811091). Waarom die teamuitslag
+ontbreekt, is niet onderzocht.
+
+**Getest.** `tests/unit/club-race-results.test.ts` (ZRL en Ladder vallen af) en
+`tests/unit/club-ladder-dashboard-results.test.ts` (nieuwste per team, buiten de
+week, dubbele rijen, score voorop, link, gelijke stand). Typecheck en lint
+schoon. De tegel is lokaal bekeken op `/ontwerp-voorbeeld`, breed en op
+telefoonbreedte. Het echte dashboard is niet ingelogd bekeken, dus de
+productiedata in de tegels is niet in de browser gecontroleerd. `club-texts-render`
+("beheer noemt ZWB niet") faalde al zonder deze wijziging; hij gaat over het blok
+Beheer op `/hulp`.
+
 ### Gebouwd — Pacingplan na ZRL R2 W2: te voorzichtig voor wie voluit rijdt
 
 **2026-11-25, commit `eb1e6bc1`, op 2026-11-25 gepusht naar `main`. Geen migratie.**
@@ -22743,7 +22804,9 @@ met ZWB'ers in de uitslag; de rest is buiten de kalender bevroren.
   bevroren race uit de kalender van de afgelopen 7 dagen hoeveel leden een plek
   hebben en de beste ZWB'er per categorie ("4e B Anna", hooguit 3 regels),
   nieuwste eerst, hooguit 4. De titel linkt naar het event (bij een teamevent de
-  raceweek erboven), de namen via `MemberLink` naar het profiel.
+  raceweek erboven), de namen via `MemberLink` naar het profiel. *Sinds
+  2026-11-25 zonder ZRL- en Ladder-races, en hooguit 8 teamtegels met de
+  ladder erbij; zie "Dashboard: teamuitslagen voor ZRL en Ladder".*
   `lib/racen/club-results.ts`: `clubRaceResults` (puur, getest) en
   `loadClubRaceResults`, met de admin-client en 10 minuten gedeeld gecachet
   (`unstable_cache`), want de uitslag is voor de hele club gelijk. Groepsritten

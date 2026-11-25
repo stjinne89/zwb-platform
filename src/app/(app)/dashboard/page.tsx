@@ -99,6 +99,7 @@ import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { liveRidersLabel } from "@/lib/live/riders-label";
 import { loadWeightMissing } from "@/lib/teams/missing-weight";
 import { loadWtrlRanks } from "@/lib/teams/wtrl-ranks";
+import { loadLadderDashboardResults, type LadderDashboardResult } from "@/lib/club-ladder/dashboard-results";
 import type { WtrlTeamRank } from "@/lib/teams/zrl-standings";
 import { MissingWeightNotice } from "@/components/missing-weight-notice";
 import {
@@ -163,6 +164,8 @@ type TeamStanding = {
   source_url: string | null;
   /** Alleen ZRL: de hele ronde in plaats van het teamevent. */
   round_url?: string;
+  /** Alleen Club Ladder: een duel heeft een score en geen plek. */
+  score?: { ours: number; theirs: number; won: boolean };
   teams: TeamRef | TeamRef[] | null;
 };
 
@@ -318,6 +321,25 @@ function zrlStandings(
   return standings;
 }
 
+// De nieuwste ladderwedstrijd per team, in dezelfde vorm als de andere teamuitslagen.
+function ladderStandings(results: LadderDashboardResult[]): TeamStanding[] {
+  return results.map((result) => ({
+    id: `ladder:${result.resultId}`,
+    team_id: result.teamId,
+    competition: "Club Ladder",
+    round_label: `tegen ${result.opponent}`,
+    round_at: result.racedAt,
+    position: null,
+    points: null,
+    total_teams: null,
+    created_at: result.racedAt,
+    source_url: null,
+    round_url: result.href,
+    score: { ours: result.ourScore, theirs: result.theirScore, won: result.won },
+    teams: { id: result.teamId, name: result.teamName, type: "ladder", division: result.division },
+  }));
+}
+
 // Eén regel per team per competitie: de nieuwste uitslag.
 function latestStandings(results: TeamStanding[]): TeamStandingWithTeam[] {
   const byTeam = new Map<string, TeamStandingWithTeam>();
@@ -327,7 +349,7 @@ function latestStandings(results: TeamStanding[]): TeamStandingWithTeam[] {
 
   for (const result of sorted) {
     const team = relatedTeam(result);
-    if (!result.position || !team) continue;
+    if ((!result.position && !result.score) || !team) continue;
     const key = `${result.competition}|${result.team_id}`;
     if (byTeam.has(key)) continue;
     const href = result.id.startsWith("zrl:")
@@ -552,6 +574,12 @@ export default async function DashboardPage({
       : Promise.resolve(null)
   ).catch(() => null);
 
+  // Ladderwedstrijden van de afgelopen week; gedeeld gecachet, loopt mee.
+  const ladderPromise =
+    on("teams") && !hidden.has("standen")
+      ? loadLadderDashboardResults().catch(() => [])
+      : Promise.resolve([]);
+
   const nowIso = new Date().toISOString();
   const since7 = new Date();
   since7.setDate(since7.getDate() - 7);
@@ -756,6 +784,7 @@ export default async function DashboardPage({
   const standings = latestStandings([
     ...((standingRows ?? []) as unknown as TeamStanding[]),
     ...zrlStandings(zrlRows, since7Iso, wtrlRanks),
+    ...ladderStandings(await ladderPromise),
   ]);
   const activities = (clubActivities ?? []) as unknown as ClubActivityRow[];
   const awards = (awardRows ?? []) as unknown as AwardRow[];
@@ -881,7 +910,7 @@ export default async function DashboardPage({
     .slice(0, 3)
     .map((event) => toTile(event, "kalender"));
   // Uitslagen: de teamuitslagen van de afgelopen week (een per team per
-  // competitie), eigen teams eerst en dan de nieuwste. Wie in een paraplu zit,
+  // competitie, ZRL en Club Ladder), eigen teams eerst en dan de nieuwste. Wie in een paraplu zit,
   // telt de subteams als eigen team (zelfde regel als MyRaces en de kalender,
   // migr. 0179).
   let ownTeamIds = new Set<string>();
@@ -907,7 +936,8 @@ export default async function DashboardPage({
           (y.round_at ?? y.created_at).localeCompare(x.round_at ?? x.created_at),
       )
     : [];
-  const MAX_TEAM_RESULTS = 4;
+  // Ruim genoeg voor de ZRL-teams en de ladderteams van een week.
+  const MAX_TEAM_RESULTS = 8;
 
   // ZWBriljant: de score van de laatste snapshot (die van deze week komt bij het
   // openen van de pagina of uit de wekelijkse job). Zonder snapshot of zonder
@@ -1060,8 +1090,13 @@ export default async function DashboardPage({
                   team: standing.team.name,
                   // Kort, anders valt de kleine regel naast "Jouw team" weg.
                   competition:
-                    standing.competition === "Zwift Racing League" ? "ZRL" : standing.competition,
+                    standing.competition === "Zwift Racing League"
+                      ? "ZRL"
+                      : standing.competition === "Club Ladder"
+                        ? "Ladder"
+                        : standing.competition,
                   position: standing.position ?? 0,
+                  score: standing.score ?? null,
                   totalTeams: standing.total_teams ?? null,
                   mine: ownTeamIds.has(standing.team_id),
                   round: standing.round_label ?? null,

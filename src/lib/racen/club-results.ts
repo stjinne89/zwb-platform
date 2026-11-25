@@ -3,6 +3,8 @@
 // per categorie. De bron is zrl_race_snapshots (de freeze-cron bewaart daar ZRL-
 // en andere Zwift-races uit de kalender, migr. 0197). Races buiten de kalender
 // (zwift_race_scores) hebben geen plek en staan er dus niet in.
+// ZRL en Club Ladder zijn teamraces: die staan als teamtegel op het dashboard,
+// dus niet nog eens met de plekken van leden (wens eigenaar, 2026-11-25).
 
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -43,12 +45,16 @@ type CalendarRow = {
   start_at: string;
   zwift_event_id: string | number | null;
   parent_event_id: string | null;
+  type?: string | null;
 };
 
 type Member = { id: string; name: string };
 
 /** Groepsritten hebben een volgorde maar geen uitslag. */
 const NOT_A_RACE = new Set(["GROUP_RIDE", "GROUP_WORKOUT"]);
+
+/** Eventtypes met een teamuitslag; die tellen hier niet. */
+const TEAM_RACE_TYPES = new Set(["zrl", "ladder"]);
 
 export function clubRaceResults(
   snapshots: SnapshotRow[],
@@ -68,7 +74,7 @@ export function clubRaceResults(
   for (const snapshot of snapshots) {
     if (snapshot.type && NOT_A_RACE.has(snapshot.type)) continue;
     const event = byZwift.get(String(snapshot.zwift_event_id));
-    if (!event) continue;
+    if (!event || TEAM_RACE_TYPES.has(event.type ?? "")) continue;
     const subgroups = snapshot.subgroups ?? [];
     const starts = subgroups.map((group) => group.startAt).filter((at): at is number => Number.isFinite(at));
     const startMs = starts.length > 0 ? Math.min(...starts) : Date.parse(event.start_at);
@@ -120,7 +126,7 @@ export const loadClubRaceResults = unstable_cache(
     const [{ data: events }, { data: profiles }] = await Promise.all([
       admin
         .from("events")
-        .select("id, title, start_at, zwift_event_id, parent_event_id")
+        .select("id, title, start_at, zwift_event_id, parent_event_id, type")
         .in("zwift_event_id", ids),
       admin
         .from("profiles")

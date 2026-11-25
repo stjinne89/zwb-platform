@@ -240,11 +240,12 @@ export default async function OntwerpVoorbeeldPage({
               <StandingTile
                 standing={{
                   href: "#",
-                  team: "ZWB Ladies",
-                  competition: "Club Ladder",
-                  position: 1,
-                  totalTeams: 2,
-                  round: "Ronde 7",
+                  team: "ZWBeasts",
+                  competition: "Ladder",
+                  position: 0,
+                  totalTeams: null,
+                  round: "tegen Vikings Valgrind",
+                  score: { ours: 28, theirs: 27, won: true },
                 }}
               />
               <MemberResultTiles
