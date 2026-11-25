@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — vELO1 van de ladder voorrang (2026-11-25): lokaal, niet
-   gepusht, geen migratie.** De knop Teams en resultaten ophalen haalt alleen
+0. **Gebouwd — vELO1 van de ladder voorrang (2026-11-25): commit
+   `3ca0b8fa`, lokaal, niet gepusht, geen migratie.** De knop Teams en resultaten ophalen haalt alleen
    nog de vELO1 van iedereen in de Ladderpuzzel op, de oudste eerst, en de cron
    neemt die renners elke 6 uur in plaats van 20. Aanleiding: Sven Hund stond op
    1367,8 terwijl ZwiftRacing 1570,3 gaf. Open: op productie een paar keer
@@ -12986,7 +12986,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — vELO1 van de ladder voorrang
 
-**2026-11-25.** Lokaal gecommit, niet gepusht. Geen migratie. Eerst een
+**2026-11-25.** Commit `3ca0b8fa`, lokaal, niet gepusht. Geen migratie. Eerst een
 voorstel, door de eigenaar goedgekeurd ("Ja, bouwen").
 
 **Waarom.** Na de fix voor de onbekende renner gaf de knop drie keer "vELO1
