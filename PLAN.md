@@ -7,13 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — zMAP van de Club Ladder in de Ladderpuzzel (2026-11-25): commit:
-   de commit die dit blok toevoegt, nog niet gepusht. Migratie
-   `0372_ladder_rider_zmap` nog niet toegepast.** In Seizoen 8 staat de echte
+0. **Gebouwd — zMAP van de Club Ladder in de Ladderpuzzel (2026-11-25): commit
+   `27702cf7`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, toepassen en
+   push"). Migratie `0372_ladder_rider_zmap` vóór de push op productie
+   toegepast.** In Seizoen 8 staat de echte
    zMAP van de ladder (de live-waarde, die de ladder bij de wissel zet) in
    plaats van onze schatting; de schatting blijft schuin als terugval. Open:
-   0372 toepassen, na de deploy op Teams en resultaten ophalen klikken en de
-   waarden naast het ladderprofiel leggen. Zie de ronde met dezelfde naam.
+   na de deploy op Teams en resultaten ophalen klikken en de waarden naast het
+   ladderprofiel leggen. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Ladderpuzzel: concept voor seizoen 8 (2026-11-25): commit
    `c6c92f6b`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, toepassen en
@@ -13085,8 +13086,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — zMAP van de Club Ladder in de Ladderpuzzel
 
 > **2026-11-25 — gebouwd, lokaal getest (unit en migraties op PGlite), niet in
-> de browser bekeken.** Commit: de commit die dit blok toevoegt. Migratie
-> `0372_ladder_rider_zmap.sql`, nog niet toegepast.
+> de browser bekeken.** Commit `27702cf7`, op 2026-11-25 gepusht naar `main`.
+> Migratie `0372_ladder_rider_zmap.sql` op 2026-11-25 via de
+> Supabase-connector op productie toegepast; controle: RLS aan, 0 policies.
 >
 > **Waarom.** De eigenaar zag op zijn eigen ladderprofiel zijn live zMAP en
 > vroeg of de puzzel van seizoen 8 die kan gebruiken. In Chrome nagekeken: met
