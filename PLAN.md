@@ -13069,7 +13069,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Live ladderstand in de stream-overlay
 
-**2026-11-25, commit `7a3822e8`, niet gepusht. Geen migratie.**
+**2026-11-25, commit `7a3822e8`, op 2026-11-25 gepusht naar `main`. Geen
+migratie.**
 
 - **Waarom.** Vraag van de eigenaar, direct na de live ladderstand. Voorstel
   met twee keuzes; de eigenaar koos alle tien renners met naam (ook de
