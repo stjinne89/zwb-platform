@@ -7,9 +7,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — TV op de telefoon start alle streams (2026-11-25): commit
-   `53484af5` en de commit die dit bijwerkt (liggend op Android), lokaal, niet
-   gepusht.** Geen migratie. Open: op een echte iPhone en Android-telefoon TV
+0. **Gebouwd — TV op de telefoon start alle streams (2026-11-25): commits
+   `2ce0f4c3` en `a30e405d` (liggend op Android), op 2026-11-25 gepusht naar
+   `main` (eigenaar: "Ja, push").** Geen migratie. Open: op een echte iPhone en Android-telefoon TV
    openen en naar een tv spiegelen. Zie de
    ronde met dezelfde naam.
 
@@ -13060,8 +13060,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — TV op de telefoon start alle streams
 
-**2026-11-25, commits `53484af5` (alle streams starten) en de commit die
-dit bijwerkt (liggend), lokaal, niet gepusht. Geen migratie.**
+**2026-11-25, commits `2ce0f4c3` (alle streams starten) en `a30e405d`
+(liggend), op 2026-11-25 gepusht naar `main`. Geen migratie.**
 
 - **Waarom.** De eigenaar vroeg of hij vanaf zijn telefoon kon casten. Een
   webapp kan dat niet als tabblad; wel spiegelen. Maar op een smal scherm
