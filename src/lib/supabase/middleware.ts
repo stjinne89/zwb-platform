@@ -42,6 +42,8 @@ const PUBLIC_PATHS = [
   "/api/zwblokken/backfill",
   "/api/zwift/events/sync",
   "/api/zrl/freeze",
+  // Geen cron: het WTRL-script op de pc van de eigenaar (bearer, 0361).
+  "/api/zrl/wtrl-import",
   "/api/frr/sync",
   "/api/src/sync",
   "/api/intervals/rides/sync",

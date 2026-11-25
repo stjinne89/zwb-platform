@@ -8,6 +8,10 @@
 // A/B en C staan soms op aparte pagina's van dezelfde datum. Een met de hand
 // gezette pass blijft staan; wijkt de site af, dan bewaart de import de sitelink
 // ernaast en toont het beheer het verschil.
+//
+// Sinds 2026-11-25 kan ook het WTRL-script van de eigenaar een pass zetten
+// (bron 'wtrl', src/lib/wtrl/run.ts). Die gaat voor; deze import vult aan waar
+// WTRL geen pass gaf.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { amsterdamDateKey } from "@/lib/birthdays";
@@ -133,7 +137,7 @@ export type StoredRacepass = {
   team_id: string;
   race_date: string;
   url: string;
-  source: "site" | "manual";
+  source: "site" | "manual" | "wtrl";
   site_url: string | null;
 };
 
@@ -141,7 +145,7 @@ export type RacepassUpsert = {
   team_id: string;
   race_date: string;
   url: string;
-  source: "site" | "manual";
+  source: "site" | "manual" | "wtrl";
   site_url: string;
 };
 
@@ -163,6 +167,12 @@ export function planRacepassImport(
       source: "site",
       site_url: pass.url,
     };
+    // Een pass uit WTRL My Teams (0361) gaat voor de site; de site vult alleen
+    // aan waar WTRL niets gaf. Wel bewaren wat de site zegt.
+    if (current?.source === "wtrl") {
+      if (current.site_url !== pass.url) upserts.push({ ...fromSite, url: current.url, source: "wtrl" });
+      continue;
+    }
     if (!current || current.url === pass.url || current.source === "site") {
       const same =
         current?.url === pass.url && current.source === "site" && current.site_url === pass.url;

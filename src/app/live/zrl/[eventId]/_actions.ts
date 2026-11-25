@@ -30,6 +30,8 @@ export async function saveZrlTeamAssignment(formData: FormData) {
       league_key: leagueKey,
       zwift_id: zwiftId,
       team_label: team,
+      // Gaat voor de WTRL-import (0361), die alleen eigen 'wtrl'-rijen bijwerkt.
+      source: "manual",
       updated_by: access.user.id,
       updated_at: new Date().toISOString(),
     });

@@ -1,11 +1,20 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-24)
+## Actieve volgorde (bijgewerkt 2026-11-25)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Gebouwd — WTRL-import vanaf de eigen pc (2026-11-25): de commit die dit
+   blok toevoegt, op branch `claude/zrl-team-koppeling-auto-aa7742`, niet
+   gepusht.** Migratie `0361_wtrl_import` op 2026-11-25 op productie toegepast
+   (eigenaar: "Ja, beide"). Het script `npm run wtrl`
+   vervangt de My Teams-plak, zet de racepass uit WTRL (de clubsite blijft de
+   terugval) en deelt tegenstanders in de live stand in via de WTRL-uitslag.
+   Daarnaast is de leaguesleutel van de live stand hersteld. Open: pushen,
+   `WTRL_IMPORT_SECRET` op Netlify zetten, het script een keer echt draaien. Zie de ronde "Gebouwd — WTRL-import vanaf de eigen pc".
 
 0. **Gebouwd — Eigen YouTube-stream aan een race koppelen (2026-11-24): commit
    `8629425b`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja, push").**
@@ -1682,8 +1691,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0360`
-(`0359_stream_overlay_ultrawide` is van het ultrawide Zwift-beeld, 2026-11-24, eerst als `0355` geschreven en hernummerd omdat `0355` tot en met `0358` intussen op main stonden, toegepast op 2026-11-24;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0362`
+(`0361_wtrl_import` is van de WTRL-import vanaf de eigen pc, toegepast op 2026-11-25;
+`0360_event_streams_source` is van de eigen YouTube-stream, toegepast op 2026-11-24;
+`0359_stream_overlay_ultrawide` is van het ultrawide Zwift-beeld, 2026-11-24, eerst als `0355` geschreven en hernummerd omdat `0355` tot en met `0358` intussen op main stonden, toegepast op 2026-11-24;
 `0355_storage_rls_initplan` is van de storage-policies uit de databasecheck, 2026-11-20 geschreven als `0345`, hernummerd, op 2026-11-24 gepusht en toegepast;
 `0354_sponsor_overlay_fixed` is van de vaste sponsor in de overlay, 2026-11-23, toegepast op 2026-11-23;
 `0353_zrl_race_passes` is van de racepasses per race, toegepast op 2026-11-23;
@@ -12897,6 +12908,96 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — WTRL-import vanaf de eigen pc
+
+**2026-11-25, de commit die deze ronde toevoegt, op branch
+`claude/zrl-team-koppeling-auto-aa7742`, niet gepusht. Migratie
+`0361_wtrl_import.sql` op 2026-11-25 op productie toegepast (eigenaar: "Ja,
+beide"), vóór de code: de huidige live code schrijft de standaardbron `manual`.
+Gecontroleerd: de 220 bestaande indelingen staan op `manual`. Niet lokaal getest
+(geen Docker of Supabase-config).**
+
+- **Waarom.** De eigenaar zag dat de live stand tegenstanders slecht aan hun team
+  koppelt. Gemeten op de races van 24 november: in Bdev C had 17 van de 36
+  renners een teamtag in zijn naam, in Aqua B4 C 35 van de 60. Teams staan er
+  ook in meer spellingen ("BZR L13", "BZR Lions 13"). Daarbij las de
+  leaguesleutel (`zrlLeagueKey`) de eventnaam van ronde 2 niet ("Zwift Racing
+  League 2026/27 Round 2: Team Tempo - Open Aqua League Division 4 - Race 2").
+  Elke bijstelling van een ploegleider kwam daardoor onder `event:<id>:<groep>`
+  en gold maar één week.
+- **Leaguesleutel.** Nieuwe vorm `26/27|r2|open|aqua|4|B`: seizoen, ronde,
+  competitie (open, open dev, women, women dev), league, divisie, groep. Een
+  bijstelling geldt zo de hele ronde voor die divisie en loopt niet door naar de
+  volgende ronde. Namen zonder rondenummer (ronde 1 van 26/27) houden de oude
+  sleutel. De bijstellingen die in ronde 2 al gedaan waren, staan nog onder de
+  oude sleutels per event en tellen niet meer mee.
+- **WTRL op rittijd.** De WTRL-uitslag geeft per renner team, korte naam,
+  `timeResult` en `zid` (het Zwift-event), maar geen Zwift-ID. De rittijd is tot
+  op de milliseconde gelijk aan `durationMs` in de Zwift-uitslag die we al
+  bevriezen (`zrl_race_snapshots`, 0197). Getoetst op ZWB B3 in Aqua B4, race 2:
+  18 van 19 renners met één treffer en hetzelfde vermogen, ook renners zonder
+  tag; de misser reed 108 W. Bij dezelfde tijd beslist het vermogen; blijft het
+  dubbelzinnig, dan geen koppeling.
+- **Waarom een script op de eigen pc.** WTRL vraagt een login (401 zonder sessie).
+  Een sessie op de server is in september al geprobeerd en gaf vanaf Netlify
+  meteen een 429 (ronde van 2026-09-21). Vanaf de pc van de eigenaar gaf WTRL op
+  2026-11-25 zonder login gewoon 401, en met zijn sessie in Chrome kwamen alle
+  verzoeken door. De voorwaarden van WTRL verbieden aanroepen van buiten
+  wtrl.racing zonder schriftelijke toestemming; ook een script op de eigen pc
+  valt daaronder. De eigenaar heeft WTRL op 2026-11-25 om toestemming gevraagd
+  en koos ervoor het script nu al te bouwen en het zelf te starten.
+- **Zo werkt het.** `npm run wtrl` (`scripts/wtrl-sync.mjs`) leest `WTRL_SID`,
+  `WTRL_IMPORT_SECRET` en `WTRL_IMPORT_URL` uit `.env.local`. Het platform
+  (`/api/zrl/wtrl-import`, `src/lib/wtrl/run.ts`) zegt in stappen welke
+  pagina's het nodig heeft; het script haalt alleen die op, met 3 seconden
+  ertussen en hoogstens 40 per run, en stuurt ze terug. De WTRL-cookie verlaat
+  de pc niet. Stappen: My Teams (HTML), dan per team `/api/zrl/{seizoen}/teams/{trc}`
+  (JSON) en het uitslagmenu, dan de uitslagen van de ronde die nog niet
+  definitief verwerkt zijn. Een run kost ongeveer 9 + 1 + het aantal nieuwe
+  uitslagen.
+- **Wat het vervangt.**
+  - *De My Teams-plak.* De teamgegevens komen als JSON en gaan door dezelfde
+    opslag als de plak (`src/lib/teams/wtrl-save.ts`, uit de server action
+    gehaald): roster, divisie, zFTP/zMAP en de indeling van leden. De koppeling
+    TRC naar ZWB-team blijft zoals ingesteld; een nieuw WTRL-team meldt het
+    script en koppel je één keer op `/beheer/zrl/teams`. Een bijgewerkte divisie
+    helpt ook `linkZrlEvents` aan het juiste Zwift-event, maar alleen voor races
+    die nog geen event hebben; een fout gekoppelde race zet het niet recht.
+  - *De racepass.* My Teams heeft per team een knop met
+    `copyRacePass('<link>')`. Die pass komt op de racedatum van
+    `divisionStartUTC` met bron `wtrl` (0361). Een handmatige pass blijft staan.
+    Een link die het team al bij een eerdere race had, wordt overgeslagen: dat
+    is de oude pass die WTRL nog toont. De import van de clubsite overschrijft
+    een WTRL-pass niet meer, maar bewaart wat de site zegt in `site_url` en vult
+    aan waar WTRL niets gaf.
+  - *De teams in de live stand.* Gevonden renners komen in
+    `zrl_team_assignments` met bron `wtrl` (0361), onder de sleutel van de
+    divisie. Een bijstelling van een ploegleider (`manual`) gaat altijd voor.
+    `zrl_wtrl_result_imports` onthoudt welke uitslagen klaar zijn: "Finalized" en
+    de Zwift-uitslag van ons eigen event was bewaard. Die worden niet opnieuw
+    opgehaald.
+- **Bewust niet.**
+  - Geen Zwift-aanroepen om renners uit andere events te vinden: alleen bevroren
+    Zwift-data. Race 1 van een ronde reden de tegenstanders vóór de herindeling
+    in andere events, dus die vindt de import meestal niet; vanaf race 2 rijdt de
+    hele divisie in ons event.
+  - Geen geplande taak en geen sessie op de server: de eigenaar start het
+    script zelf, tot WTRL antwoordt.
+  - Geen scherm in de app: het script meldt in de terminal wat het deed.
+  - De oude sleutels van ronde 2 zijn niet overgezet.
+- **Niet geverifieerd.** Het script is niet gedraaid: dat vraagt de WTRL-sessie van de eigenaar. Niet getest is dus of
+  WTRL alleen met `wtrl_sid` (zonder de andere cookies uit de browser) inlogt,
+  of de sessie bij gebruik verlengd wordt, en hoe de racepass-knop eruitziet als
+  hij gevuld is: op 2026-11-25 was hij bij alle negen teams leeg. Wel getest:
+  `tsc`, ESLint en de unit-tests (`wtrl-import.test.ts`, de leaguesleutel in
+  `zrl-live-scoring.test.ts`). Dezelfde vormen van My Teams, teamgegevens, menu
+  en uitslag zijn gemeten in de Chrome van de eigenaar. De volledige suite heeft
+  twee fouten die hier los van staan (`club-texts-render`: beheer in /hulp noemt
+  ZWB, en `omnium-live` zonder `.env.local`).
+- **Claims die niet meer kloppen.** In de ronde "Racepasses per race van de
+  clubsite" staat dat wtrl.racing nooit wordt aangeroepen. Het platform doet dat
+  nog steeds niet, maar het script van de eigenaar wel. Dat is daar aangepast.
+
 ### Gebouwd — Eigen YouTube-stream aan een race koppelen
 
 **2026-11-24, commit `8629425b`, op 2026-11-24 gepusht naar `main`. Migratie
@@ -13849,6 +13950,9 @@ gaan bewust niet mee.
 
 - De passlinks worden niet geopend en wtrl.racing wordt niet aangeroepen: WTRL
   verbiedt scraping (zie `zrl-season.ts`). Alleen de eigen clubsite wordt gelezen.
+  *Bijgewerkt 2026-11-25:* het platform roept WTRL nog steeds niet aan, maar het
+  script `npm run wtrl` op de pc van de eigenaar haalt de pass uit My Teams en
+  die gaat voor de site. Zie de ronde "Gebouwd — WTRL-import vanaf de eigen pc".
 - `team_racepasses` is nog niet verwijderd, zodat de huidige deploy blijft werken
   als de migratie eerder live gaat dan de code. Hij wordt niet meer gelezen en kan
   in een latere migratie weg.

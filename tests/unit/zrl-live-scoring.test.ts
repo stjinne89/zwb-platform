@@ -348,6 +348,22 @@ describe("zrlLeagueKey", () => {
     expect(zrlLeagueKey(race3, "C", "2")).toBe(zrlLeagueKey(race1, "C", "1"));
     expect(zrlLeagueKey("Club ride", "B", "99")).toBe("event:99:B");
   });
+
+  it("leest de naam van ronde 2, met het rondenummer erin (2026-11-25)", () => {
+    const race2 = "Zwift Racing League 2026/27 Round 2: Team Tempo - Open Aqua League Division 4 - Race 2";
+    const race3 = "Zwift Racing League 2026/27 Round 2: Team Tempo - Open Aqua League Division 4 - Race 3";
+    expect(zrlLeagueKey(race2, "B", "5811085")).toBe("26/27|r2|open|aqua|4|B");
+    expect(zrlLeagueKey(race3, "B", "5821000")).toBe(zrlLeagueKey(race2, "B", "5811085"));
+    expect(
+      zrlLeagueKey("Zwift Racing League 2026/27 Round 2: Team Tempo - Open Aqua Dev League Division 2 - Race 2", "C", "1"),
+    ).toBe("26/27|r2|open dev|aqua|2|C");
+    expect(
+      zrlLeagueKey("Zwift Racing League 2026/27 Round 2: Team Tempo - Womens Mint League Division 1 - Race 2", "B", "1"),
+    ).toBe("26/27|r2|women|mint|1|B");
+    expect(zrlLeagueKey("Zwift Racing League 2026/27 Round 3: X - Open Aqua League Division 4 - Race 1", "B", "1")).not.toBe(
+      zrlLeagueKey(race2, "B", "5811085"),
+    );
+  });
 });
 
 describe("pickSubgroup", () => {
