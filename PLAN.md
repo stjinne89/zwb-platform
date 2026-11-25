@@ -33,7 +33,8 @@ gaat stabiliteit voor nieuwe features.
    verschoven rit in Crit City en de laatste acht rode blokken in Watopia staan
    met de hand op een uitzonderingslijst. Daarna ook de twaalf losse blokken
    buiten Watopia (commit `62331daa`, migratie `0366_zwift_blocks_corner_cuts`,
-   allebei live). Zie de ronde met dezelfde naam.
+   allebei live), en de startvakken plus zeven blokken zonder weg (`0367`, nog
+   niet gepusht of toegepast). Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — ZWBlokken Zwift: sprongen geknipt, gedraaide minimaps recht
    (2026-11-25): commit `005eb5b7`, op 2026-11-25 gepusht naar `main` (eigenaar:
@@ -13183,6 +13184,37 @@ France 98, Innsbruck 60, London 104, New York 89, Paris 34, Scotland 33.
   precies de nagerekende aantallen: France 98, Innsbruck 60, London 104, New
   York 89, Paris 34 en Scotland 33. De andere werelden zijn ongewijzigd, en er
   zijn nul onverwerkte `VirtualRide`-ritten.
+
+**Vervolg: startvakken en blokken zonder weg van meer leden (2026-11-25).**
+Commit: de commit die dit blok toevoegt, niet gepusht. Migratie
+`0367_zwift_blocks_start_pens.sql`, nog niet toegepast. De eigenaar zag nog
+foutjes, onder meer in Innsbruck, en zag ook dat hij zelf een startvak niet had.
+- *Gemeten:* geen enkel lid raakte sinds 0364 een routeblok kwijt, behalve door
+  een portalklim. Het ontbrekende startvak telde dus nooit. In dezelfde ZRL-race
+  in London (10-12-2024) starten Stijn, Tino, Bart en Tako in hetzelfde vak.
+  De plek in het vak scheelt per renner een paar meter, en het vak ligt op de
+  grens van twee blokken. Wiens eerste punt net over die grens valt, krijgt het
+  blok.
+- *Alle blokken zonder bekende route nagelopen:* zeven zijn startvakken (France,
+  London, Makuri, New York x2, Watopia en Yorkshire). Bijna elk lid met zo'n blok
+  kreeg het van het eerste stuk van zijn rit. Zes andere blokken van 3 tot 19
+  leden hebben geen weg op de kaart: het park in London, gras in Makuri, een
+  gebouw in Paris, en in Watopia een meer, een helling en de woestijnrand. De
+  eigenaar koos op een kaart per blok: "Nobody gets them" voor de startvakken,
+  en de zes mogen weg. Daarna wees hij in Innsbruck nog `34847/22993` aan (5
+  leden): het gras naast het keerpunt bij het meer boven op de KOM. Daar snijden
+  ritten en routevorm de hoek af.
+- Alle veertien blokken staan in `NO_ROAD_BLOCKS`; `0367` haalt alleen die rijen
+  weg. Nagerekend: France 97, Innsbruck 59, London 102, Makuri 70, New York 87,
+  Paris 33, Watopia 183 en Yorkshire 43. Karen en Stijn hebben in Watopia
+  allebei 183, en in Innsbruck allebei 59.
+- *Bewust niet gebouwd:* geen regel "het eerste stuk van een rit telt niet".
+  Met een samenvattingslijn (een punt per ~250 m) valt dan ook echte weg weg.
+  Ook niet het startvak aan iedereen geven die er start: uit de lijn is niet te
+  zien wie in het vak begon en wie in het blok ernaast. Nieuwe startvakken
+  (nieuwe werelden of routes) moeten dus met de hand op de lijst.
+- *Niet lokaal te verifiëren:* de migratie (geen Docker of Supabase-config hier).
+- *Volgorde:* eerst de code live, dan `0367`.
 
 **Tests.** `tests/unit/zwblokken-zwift.test.ts`: een portalklim die de kaart uit
 loopt levert geen blok op, ook binnen de kaart; een France-klim vanaf de portal

@@ -98,18 +98,29 @@ const EXCLUDED_RIDES = new Set<number>([-1000195547777]);
  * Trebiac en één aan de rand van het nieuwe noordwesten. In de andere werelden
  * (2026-11-25, besluit eigenaar: "allemaal net kleine routefouten"): een
  * grove routelijn die net de hoek van een blok naast de weg afsnijdt.
+ *
+ * Daarna (2026-11-25, besluit eigenaar) ook de startvakken: blokken naast de
+ * route waar een rit begint. Of je er een krijgt, hangt af van een paar meter in
+ * je plek in het vak; het vak zelf is geen weg. Ze tellen voor niemand. Plus zes
+ * blokken van meer leden zonder bekende route en zonder weg op de kaart, en in
+ * Innsbruck het gras naast het keerpunt bij het meer boven op de KOM, waar ook
+ * de routevorm de hoek afsnijdt.
  */
 const NO_ROAD_BLOCKS: Record<string, Set<string>> = {
   watopia: new Set([
     "63151/34901", "63156/34899", "63156/34900", "63156/34901",
     "63157/34900", "63158/34900", "63158/34904", "63166/34902",
+    "63161/34900", // startvak
+    "63156/34914", "63158/34910", "63169/34901",
   ]),
-  france: new Set(["63014/36819"]),
-  innsbruck: new Set(["34841/22979", "34843/22977", "34844/22976", "34845/22989"]),
-  london: new Set(["32744/21791", "32752/21795"]),
-  "new-york": new Set(["19298/24631", "19301/24623"]),
-  paris: new Set(["33189/22541", "33189/22542"]),
+  france: new Set(["63014/36819", "63015/36818" /* startvak */]),
+  innsbruck: new Set(["34841/22979", "34843/22977", "34844/22976", "34845/22989", "34847/22993"]),
+  london: new Set(["32744/21791", "32752/21795", "32754/21790" /* startvak */, "32739/21794"]),
+  "makuri-islands": new Set(["62958/34747" /* startvak */, "62957/34741"]),
+  "new-york": new Set(["19298/24631", "19301/24623", "19300/24633", "19300/24634" /* startvak */]),
+  paris: new Set(["33189/22541", "33189/22542", "33185/22540"]),
   scotland: new Set(["31817/20521"]),
+  yorkshire: new Set(["32486/21045" /* startvak */]),
 };
 const PORTAL_CLIMBS = [
   "Alto de Patios", "Bealach na Ba", "Cheddar Gorge", "Cipressa", "Col d'Aspin",
