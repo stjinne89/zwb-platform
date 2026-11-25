@@ -13014,9 +13014,16 @@ Gecontroleerd: de 220 bestaande indelingen staan op `manual`. Niet lokaal getest
   - *Race 1 kwam nooit aan de beurt.* De voorlopige uitslag van race 2 blijft
     open tot WTRL hem definitief maakt en vulde zo elke run de 8 plaatsen. Nu
     gaat wat nog nooit is opgehaald voor.
-- **Niet geverifieerd.** Of de cron de data van B1, B2 en C alsnog bewaart: dat
-  kan tot 24 uur na de start, dus tot 25 november rond 20:05–20:20 Nederlandse
-  tijd. Ook niet of die drie daarna koppelen. Niet
+  Commit `b68540cd`, op 2026-11-25 gepusht naar `main`.
+- **Vierde run (2026-11-25), na `b68540cd`.** De cron bewaarde de Zwift-data van
+  B1, B2 en C dezelfde ochtend (10:40–10:46). Race 1 kwam binnen en is bij alle
+  acht klassen klaar: A 52 van 54, B1 57 van 63, B2 58 van 71, Zwiftladies 55
+  van 61, Zwiftladies C 33 van 39; B3 11 van 44, B Dev 18 van 57 en C 17 van 51
+  (die reden in race 1 deels in andere events). Daarna stonden er 431
+  indelingen met bron `wtrl` onder acht sleutels van ronde 2, dezelfde als die
+  van de live stand (de bijstellingen van ploegleiders staan ernaast).
+- **Niet geverifieerd.** Race 2 van B1, B2 en C koppelt pas bij de volgende run;
+  de data staat er nu wel. Niet
   getest is ook of de sessie bij gebruik verlengd wordt, en hoe de
   racepass-knop eruitziet als hij gevuld is: op 2026-11-25 was hij bij alle
   negen teams leeg. Wel getest:
