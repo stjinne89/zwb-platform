@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Hersteld — vELO1-sync liep vast op een onbekende renner (2026-11-25):
-   commit `5533a740`, lokaal, niet gepusht, geen migratie.** Sinds 2026-11-24 rond 19:00 stopten de
+   commit `870541b2`, lokaal, niet gepusht, geen migratie.** Sinds 2026-11-24 rond 19:00 stopten de
    cron en de knop bij renner nummer één van het racebriefje met "pagina niet
    herkend": ZwiftRacing kent hem niet en geeft dan een gewone pagina. Daardoor
    wachtten er 177 briefingrenners en 36 verouderde vELO1's. Open: na de deploy
@@ -12968,7 +12968,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — vELO1-sync liep vast op een onbekende renner
 
-**2026-11-25.** Commit `5533a740`, lokaal, niet gepusht. Geen migratie.
+**2026-11-25.** Commit `870541b2`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar kreeg na de nieuwe knop "Teams en resultaten
 ophalen" de melding "0 vELO1-ratings … vELO1 gestopt: pagina niet herkend".
@@ -12985,7 +12985,7 @@ en 36 vELO1's waren ouder dan een week (de oudste van 2026-11-17).
 **Wat.**
 - `isRiderNotFound` (`zwiftracing/rider-page.ts`): waar is het alleen als het
   geen pagina van deze renner is en zijn route-match `l:null` heeft. De delen
-  van die route-ID staan tussen NUL-tekens (` riders $riderId …`), niet
+  van die route-ID staan tussen NUL-tekens (`\0riders\0$riderId\0…`), niet
   tussen spaties; daar ging de eerste versie van de test op mis.
 - `fetchRiderPage` behandelt dat als een 404: `velo_fetched_at` schuift, zodat
   hij niet elke run terugkomt, en de run gaat door met de volgende renner.
