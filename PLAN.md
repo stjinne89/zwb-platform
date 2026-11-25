@@ -8,7 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Hersteld — vELO1-sync liep vast op een onbekende renner (2026-11-25):
-   commit `870541b2`, lokaal, niet gepusht, geen migratie.** Sinds 2026-11-24 rond 19:00 stopten de
+   commit `870541b2`, op 2026-11-25 gepusht naar `main` (eigenaar: "Push main"),
+   geen migratie.** Sinds 2026-11-24 rond 19:00 stopten de
    cron en de knop bij renner nummer één van het racebriefje met "pagina niet
    herkend": ZwiftRacing kent hem niet en geeft dan een gewone pagina. Daardoor
    wachtten er 177 briefingrenners en 36 verouderde vELO1's. Open: na de deploy
@@ -12968,7 +12969,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — vELO1-sync liep vast op een onbekende renner
 
-**2026-11-25.** Commit `870541b2`, lokaal, niet gepusht. Geen migratie.
+**2026-11-25.** Commit `870541b2`, op 2026-11-25 op verzoek van de eigenaar
+("Push main") naar `main` gepusht. Geen migratie.
 
 **Waarom.** De eigenaar kreeg na de nieuwe knop "Teams en resultaten
 ophalen" de melding "0 vELO1-ratings … vELO1 gestopt: pagina niet herkend".
