@@ -23,7 +23,8 @@ gaat stabiliteit voor nieuwe features.
    op `/teams/club-ladder` bekijken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd, lokaal gecommit — WTRL-uitslag leidend in het ZRL-overzicht
-   (2026-11-25).** Plaats en beker in het hoofdevent komen uit WTRL zodra die
+   (2026-11-25).** Plaats en beker in het hoofdevent, de "Teamresultaten" op de
+   teampagina en de uitslagtegel op het dashboard komen uit WTRL zodra die
    uitslag er is, met een link naar de uitslag op de teampagina. De live stand
    blijft zoals hij is. Zie de ronde.
 
@@ -12950,7 +12951,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — WTRL-uitslag leidend in het ZRL-overzicht
 
-**2026-11-25, lokaal gecommit, nog niet gepusht. Geen migratie.**
+**2026-11-25, commits `dc661775` (hoofdevent) en de commit die
+"Teamresultaten" en het dashboard toevoegt; lokaal, nog niet gepusht. Geen
+migratie.**
 
 - **Waarom.** De eigenaar zag dat de WTRL-uitslag en de live stand uit de pas
   lopen. Vergeleken op race 2 van ronde 2 (alle zeven divisies met een
@@ -12976,13 +12979,31 @@ link naar `/live/[eventId]`, zie de update hierboven).
   teamrace (twee ZWB-teams kunnen één event delen). Een DQ-team heeft geen
   WTRL-plaats; dan blijft die van de live stand. Het blok linkt dan naar
   `/teams/<team>?uitslag=<race>#uitslagen`; de teampagina opent die race.
+  Het opzoeken staat in `loadWtrlRanks` (`src/lib/teams/wtrl-ranks.ts`), één
+  zoekvraag per Zwift-event.
+- **Teamresultaten (vervolg, eigenaar: "ja teamresulaten ook mee nemen").** Dit
+  blok op de teampagina toonde voor ZRL niet de live plaats, maar de divisie uit
+  de naam van het Zwift-event (`fetchZrlPlacement`). Nu staat er per team de
+  nieuwste WTRL-uitslag ("Race 2 · 8e van 10 · 94 punten", met "(voorlopig)"
+  tot WTRL hem vastzet), als link naar die race in de uitslagen. Zonder
+  WTRL-uitslag blijft de divisietekst. `latestWtrlResult` in
+  `zrl-standings.ts`; de pagina haalt de uitslagen van alle divisies van het
+  team en zijn subteams in één keer op.
+- **Dashboard (vervolg, eigenaar: "Ook op het dashboard moet geschakeld
+  worden").** De uitslagtegel leest `zrl_team_results` (de live plaats). Met een
+  WTRL-uitslag voor die teamrace komen plaats en aantal teams uit WTRL en linkt
+  de tegel naar de uitslag op de teampagina; anders blijft de live plaats en de
+  link naar de raceweek.
 - **Bewust niet.** De WTRL-regels (DQ's, aantal starters uit WTRL) niet in de
   eigen telling nabouwen: dat blijft namaak en loopt bij de volgende WTRL-gril
-  weer uit de pas. `zrl_team_results` niet overschrijven met WTRL; de
-  "Teamresultaten" op de teampagina blijven dus de live plaats tonen.
+  weer uit de pas. `zrl_team_results` niet overschrijven met WTRL: elke plek
+  die een plaats toont, kiest zelf de WTRL-uitslag als die er is, zodat de live
+  pagina zijn eigen stand houdt. De punten op het dashboard blijven de live
+  punten; de tegel toont ze niet.
 - **Niet geverifieerd.** Niet in de browser bekeken. Wel: `tsc`, ESLint, de
-  unit-test van `wtrlRankFor`, en de JSON-zoekvraag op productie (B3, race 2:
-  8e van 10).
+  unit-tests van `wtrlRankFor` en `latestWtrlResult`, en de zoekvraag op
+  productie: alle zeven teamraces van race 2 hebben een WTRL-plaats (B3 8e van
+  10, B2 8e van 15 tegen 10e van 16 live, C 5e van 13 tegen 7e van 14).
 
 ### Gebouwd — ZRL-uitslagen uitklapbaar op de teampagina
 
@@ -41612,7 +41633,10 @@ verdween het blok dus altijd.
 **Wat er veranderde.**
 - Het dashboard leest ook `zrl_team_results` met het teamevent en het team. Een
   regel heet "Zwift Racing League", toont de eventtitel, `#plaats/teams` en de
-  punten, en linkt naar het teamevent in plaats van de teampagina. Dezelfde
+  punten, en linkt naar het teamevent in plaats van de teampagina.
+  *Bijgewerkt 2026-11-25:* met een WTRL-uitslag komen plaats en aantal teams uit
+  WTRL en linkt de tegel naar de uitslag op de teampagina; zie de ronde
+  "Gebouwd — WTRL-uitslag leidend in het ZRL-overzicht". Dezelfde
   7-dagengrens als de rest van het blok, op de startdatum van de race;
   `computed_at` beperkt alleen de query.
 - Eén regel per team **per competitie** (was: per team). Een team dat zowel in

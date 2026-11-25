@@ -23,7 +23,13 @@ import {
 import { ZrlStandingsSummary, ZrlStandingsTable } from "./_components/zrl-standings";
 import { ZrlResults, type ZrlResultRace } from "./_components/zrl-results";
 import type { WtrlResultTableTeam } from "@/lib/wtrl/import";
-import { standingsPerTeam, type StandingsWtrlTeam, type StoredStandings } from "@/lib/teams/zrl-standings";
+import {
+  latestWtrlResult,
+  standingsPerTeam,
+  type LatestWtrlResult,
+  type StandingsWtrlTeam,
+  type StoredStandings,
+} from "@/lib/teams/zrl-standings";
 import { AdminPanel, DeleteResultButton } from "./_components/admin-panel";
 import { GraveyardToggle } from "./_components/graveyard-toggle";
 import { DeleteTeamButton } from "./_components/delete-team-button";
@@ -251,16 +257,31 @@ export default async function TeamDetailPage({
     (storedStandings ?? []) as StoredStandings[],
   );
   const ownStandings = standingsByTeam.get(team.id) ?? null;
-  // De WTRL-uitslagen van deze divisie (0363), nieuwste race eerst.
-  const { data: storedResults } = ownStandings
-    ? await supabase
-        .from("zrl_wtrl_results")
-        .select("race, final, teams")
-        .eq("season", ownStandings.season)
-        .eq("class", ownStandings.class)
-        .order("race", { ascending: false })
-    : { data: null };
-  const resultRows = (storedResults ?? []) as Array<{ race: number; final: boolean; teams: WtrlResultTableTeam[] }>;
+  // De WTRL-uitslagen (0363) van de divisies van dit team en zijn subteams,
+  // nieuwste race eerst: de uitklapbare uitslag en "Teamresultaten".
+  const standingsList = [...standingsByTeam.values()];
+  const { data: storedResults } =
+    standingsList.length > 0
+      ? await supabase
+          .from("zrl_wtrl_results")
+          .select("class, race, final, teams")
+          .eq("season", standingsList[0].season)
+          .in("class", [...new Set(standingsList.map((row) => row.class))])
+          .order("race", { ascending: false })
+      : { data: null };
+  const allResultRows = (storedResults ?? []) as Array<{
+    class: string;
+    race: number;
+    final: boolean;
+    teams: WtrlResultTableTeam[];
+  }>;
+  const resultRows = ownStandings ? allResultRows.filter((row) => row.class === ownStandings.class) : [];
+  const latestWtrlByTeam = new Map<string, LatestWtrlResult>(
+    standingsList.flatMap((row): Array<[string, LatestWtrlResult]> => {
+      const latest = latestWtrlResult(allResultRows, row.class, row.ownName);
+      return latest ? [[row.teamId, latest]] : [];
+    }),
+  );
   const ownResultTeams = resultRows.flatMap((row) =>
     row.teams.filter((entry) => entry.name === ownStandings?.ownName),
   );
@@ -317,6 +338,19 @@ export default async function TeamDetailPage({
       }),
     )
   ).filter((row): row is NonNullable<typeof row> => row != null);
+  // Per team de nieuwste WTRL-uitslag; zonder die de divisie uit Zwift.
+  type ResultLine = {
+    teamId: string;
+    teamName: string;
+    wtrl: LatestWtrlResult | null;
+    placement: (typeof zrlPlacements)[number]["placement"] | null;
+  };
+  const resultLines = scopeTeams.flatMap((row): ResultLine[] => {
+    const wtrl = latestWtrlByTeam.get(row.id);
+    const placement = zrlPlacements.find((entry) => entry.teamId === row.id)?.placement;
+    if (wtrl) return [{ teamId: row.id, teamName: row.name, wtrl, placement: null }];
+    return placement ? [{ teamId: row.id, teamName: row.name, wtrl: null, placement }] : [];
+  });
 
   // Bij een hoofdteam met subteams is de raceweek (het hoofdevent, migr. 0178)
   // de eenheid: daar meld je je beschikbaar en daar verdeelt de captain over de
@@ -856,7 +890,7 @@ export default async function TeamDetailPage({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Teamresultaten
         </h2>
-        {zrlPlacements.length > 0 && (
+        {resultLines.length > 0 && (
           <div className="space-y-1 text-sm">
             <a
               href={WTRL_ZRL_RESULTS_URL}
@@ -868,19 +902,28 @@ export default async function TeamDetailPage({
               <ArrowUpRight className="size-3.5" />
             </a>
             <ul className="text-muted-foreground">
-              {zrlPlacements.map((row) => (
+              {resultLines.map((row) => (
                 <li key={row.teamId}>
-                  {zrlPlacements.length > 1 && (
+                  {resultLines.length > 1 && (
                     <span className="font-medium text-foreground">{row.teamName}: </span>
                   )}
-                  {formatZrlPlacement(row.placement)}
+                  {row.wtrl ? (
+                    <Link
+                      href={`/teams/${row.teamId}?uitslag=${row.wtrl.race}#uitslagen`}
+                      className="hover:text-foreground hover:underline"
+                    >
+                      {`Race ${row.wtrl.race} · ${row.wtrl.rank != null ? `${row.wtrl.rank}e van ${row.wtrl.teams}` : "DQ"} · ${row.wtrl.points} punten${row.wtrl.final ? "" : " (voorlopig)"}`}
+                    </Link>
+                  ) : (
+                    row.placement && formatZrlPlacement(row.placement)
+                  )}
                 </li>
               ))}
             </ul>
           </div>
         )}
         {!results || results.length === 0 ? (
-          zrlPlacements.length > 0 ? null : (
+          resultLines.length > 0 ? null : (
           <p className="text-sm text-muted-foreground">Nog geen resultaten ingevoerd.</p>
           )
         ) : (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { standingsPerTeam, wtrlRankFor, wtrlTeamIdOf, type StoredStandings } from "@/lib/teams/zrl-standings";
+import { latestWtrlResult, standingsPerTeam, wtrlRankFor, wtrlTeamIdOf, type StoredStandings } from "@/lib/teams/zrl-standings";
 
 // Namen en ID's verzonnen.
 const row = (rank: number, teamId: string, name: string) => ({
@@ -70,3 +70,20 @@ describe("wtrlRankFor", () => {
   });
 });
 
+
+describe("latestWtrlResult", () => {
+  const rows = [
+    { class: "2420B40", race: 1, final: true, teams: [{ name: "ZWB B3", rank: 4, points: 120 }, { name: "X", rank: 1, points: 200 }] },
+    { class: "2420B40", race: 2, final: false, teams: [{ name: "ZWB B3", rank: 8, points: 94 }, { name: "X", rank: 1, points: 210 }, { name: "Y", rank: 2, points: 190 }] },
+    { class: "2420C30", race: 3, final: false, teams: [{ name: "ZWB B3", rank: 1, points: 300 }] },
+  ];
+
+  it("neemt de nieuwste race in de eigen klasse", () => {
+    expect(latestWtrlResult(rows, "2420B40", "ZWB B3")).toEqual({ race: 2, rank: 8, teams: 3, points: 94, final: false });
+  });
+
+  it("slaat races zonder het team over en geeft null zonder uitslag", () => {
+    expect(latestWtrlResult(rows.slice(0, 1), "2420B40", "ZWB B3")?.race).toBe(1);
+    expect(latestWtrlResult(rows, "2420B40", "Onbekend")).toBeNull();
+  });
+});

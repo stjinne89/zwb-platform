@@ -94,3 +94,22 @@ export function wtrlRankFor(
   }
   return null;
 }
+
+export type LatestWtrlResult = { race: number; rank: number | null; teams: number; points: number; final: boolean };
+
+/**
+ * De nieuwste WTRL-uitslag van een team in zijn divisie, voor "Teamresultaten"
+ * op de teampagina. `rank` is null bij een gediskwalificeerd team. Puur.
+ */
+export function latestWtrlResult(
+  rows: Array<{ class: string; race: number; final: boolean; teams: Array<{ name: string; rank: number | null; points: number }> }>,
+  wtrlClass: string,
+  ownName: string,
+): LatestWtrlResult | null {
+  const sorted = rows.filter((row) => row.class === wtrlClass).sort((a, b) => b.race - a.race);
+  for (const row of sorted) {
+    const own = row.teams.find((team) => team.name === ownName);
+    if (own) return { race: row.race, rank: own.rank, teams: row.teams.length, points: own.points, final: row.final };
+  }
+  return null;
+}

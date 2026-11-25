@@ -98,6 +98,8 @@ import { getMemberModules } from "@/lib/member-modules";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { liveRidersLabel } from "@/lib/live/riders-label";
 import { loadWeightMissing } from "@/lib/teams/missing-weight";
+import { loadWtrlRanks } from "@/lib/teams/wtrl-ranks";
+import type { WtrlTeamRank } from "@/lib/teams/zrl-standings";
 import { MissingWeightNotice } from "@/components/missing-weight-notice";
 import {
   isEventRunning,
@@ -188,7 +190,12 @@ type ZrlTeamResultRow = {
   events: ZrlResultEvent | ZrlResultEvent[] | null;
   team: TeamRef | TeamRef[] | null;
 };
-type ZrlResultEvent = { title: string; start_at: string; parent_event_id: string | null };
+type ZrlResultEvent = {
+  title: string;
+  start_at: string;
+  parent_event_id: string | null;
+  zwift_event_id: number | string | null;
+};
 
 type AwardRow = {
   id: string;
@@ -273,24 +280,38 @@ function relatedTeam(result: TeamStanding) {
   return Array.isArray(result.teams) ? result.teams[0] : result.teams;
 }
 
-function zrlStandings(rows: ZrlTeamResultRow[], sinceIso: string): TeamStanding[] {
-  const standings: TeamStanding[] = [];
-  for (const row of rows) {
+function zrlRecentRows(rows: ZrlTeamResultRow[], sinceIso: string) {
+  return rows.flatMap((row) => {
     const event = Array.isArray(row.events) ? row.events[0] : row.events;
-    if (!row.team_id || !event || event.start_at < sinceIso) continue;
+    return row.team_id && event && event.start_at >= sinceIso ? [{ row, event, teamId: row.team_id }] : [];
+  });
+}
+
+// De live plaats uit Zwift, tot de WTRL-uitslag via het script binnen is: dan
+// plaats en aantal teams uit WTRL en de link naar de uitslag op de teampagina.
+function zrlStandings(
+  rows: ZrlTeamResultRow[],
+  sinceIso: string,
+  wtrlRanks: Map<string, WtrlTeamRank>,
+): TeamStanding[] {
+  const standings: TeamStanding[] = [];
+  for (const { row, event, teamId } of zrlRecentRows(rows, sinceIso)) {
+    const wtrl = wtrlRanks.get(row.event_id);
     standings.push({
       id: `zrl:${row.event_id}`,
-      team_id: row.team_id,
+      team_id: teamId,
       competition: "Zwift Racing League",
       round_label: event.title,
       round_at: event.start_at,
-      position: row.rank,
+      position: wtrl?.rank ?? row.rank,
       points: row.points,
-      total_teams: row.total_teams,
+      total_teams: wtrl?.teams ?? row.total_teams,
       created_at: row.computed_at,
       source_url: `/events/${row.event_id}`,
       // De raceweek zelf (het hoofdevent, migr. 0178), met alle teams van die ronde.
-      round_url: `/events/${event.parent_event_id ?? row.event_id}`,
+      round_url: wtrl
+        ? `/teams/${teamId}?uitslag=${wtrl.race}#uitslagen`
+        : `/events/${event.parent_event_id ?? row.event_id}`,
       teams: row.team,
     });
   }
@@ -682,7 +703,7 @@ export default async function DashboardPage({
     !on("teams") ? skip() : supabase
       .from("zrl_team_results")
       .select(
-        "event_id, team_id, rank, total_teams:teams, points, computed_at, events(title, start_at, parent_event_id), team:team_id(id, name, type, division)",
+        "event_id, team_id, rank, total_teams:teams, points, computed_at, events(title, start_at, parent_event_id, zwift_event_id), team:team_id(id, name, type, division)",
       )
       .gte("computed_at", since7Iso)
       .order("computed_at", { ascending: false })
@@ -723,9 +744,18 @@ export default async function DashboardPage({
   const benefits = ((benefitRows ?? []) as unknown as BenefitRow[]).filter(
     (benefit) => benefit.active && (!benefit.valid_until || benefit.valid_until >= today),
   );
+  const zrlRows = (zrlResultRows ?? []) as unknown as ZrlTeamResultRow[];
+  const wtrlRanks = await loadWtrlRanks(
+    supabase,
+    zrlRecentRows(zrlRows, since7Iso).map(({ row, event, teamId }) => ({
+      id: row.event_id,
+      teamId,
+      zwiftEventId: event.zwift_event_id != null ? String(event.zwift_event_id) : null,
+    })),
+  );
   const standings = latestStandings([
     ...((standingRows ?? []) as unknown as TeamStanding[]),
-    ...zrlStandings((zrlResultRows ?? []) as unknown as ZrlTeamResultRow[], since7Iso),
+    ...zrlStandings(zrlRows, since7Iso, wtrlRanks),
   ]);
   const activities = (clubActivities ?? []) as unknown as ClubActivityRow[];
   const awards = (awardRows ?? []) as unknown as AwardRow[];
