@@ -16,12 +16,13 @@ gaat stabiliteit voor nieuwe features.
    kijken of de wachtrij leegloopt. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — ZWBlokken Zwift: sprongen geknipt, gedraaide minimaps recht
-   (2026-11-25): niet gepusht, migratie `0364_zwift_blocks_jumps` nog niet
-   toegepast.** Een sprong binnen een wereld (startvak, portal) telt niet meer als
-   gereden weg. De minimaps van Makuri, France en Scotland liggen een kwartslag
-   gedraaid recht. Open: pushen, dan `0364` toepassen, dan de Zwift-backfill
-   herhalen tot hij klaar is (in die volgorde). Daarna de kaarten ingelogd
-   bekijken. Zie de ronde met dezelfde naam.
+   (2026-11-25): commit `005eb5b7`, op 2026-11-25 gepusht naar `main` (eigenaar:
+   "Ja push main"), migratie `0364_zwift_blocks_jumps` daarna toegepast en de
+   Zwift-backfill gedraaid tot hij klaar was.** Een sprong binnen een wereld
+   (startvak, portal) telt niet meer als gereden weg. De minimaps van Makuri,
+   France en Scotland liggen een kwartslag gedraaid recht. Live nagekeken: de
+   aantallen in de tabel zijn gelijk aan de meting vooraf, en de Makuri-kaart
+   valt op de blokken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Teams en resultaten ophalen haalt ook vELO1 (2026-11-25): commit
    `0d9bd42a`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"), geen
@@ -13013,8 +13014,10 @@ leegloopt, blijkt uit `zwift_rider_metrics.velo_fetched_at`.
 
 ### Gebouwd — ZWBlokken Zwift: sprongen geknipt, gedraaide minimaps recht
 
-**2026-11-25.** Commit: de commit die dit blok toevoegt, niet gepusht. Migratie
-`0364_zwift_blocks_jumps.sql`, nog niet toegepast (volgorde hieronder).
+**2026-11-25.** Commit `005eb5b7`, op 2026-11-25 gepusht naar `main` (eigenaar:
+"Ja push main en voer na deploy de andere taken uit"). Migratie
+`0364_zwift_blocks_jumps.sql` toegepast nadat de deploy live stond, daarna de
+backfill gedraaid (zie "Volgorde bij livegang").
 
 **Aanleiding.** Stijn vroeg waarom Karen van de Rakt bijna alle Zwift-werelden
 bezit, terwijl hij zelf alle wegen in Watopia gereden meent te hebben. Daarna zag
@@ -13098,6 +13101,14 @@ hij dat de kaarten niet op de blokken passen. Op het voorstel: "Ja, bouw het".
 `/api/zwblokken/backfill?zwift=1` herhalen tot `remaining` false is. Andersom
 rekent de sync met de oude regel. Tot de backfill klaar is, zijn de Zwift-kaarten
 en -titels leeg of onvolledig.
+
+*Uitgevoerd 2026-11-25:* de deploy was live (nieuwe zin op `/hulp/club`), daarna
+`0364` toegepast en de backfill in 13 aanroepen van hoogstens 4 leden en 400
+ritten gedraaid. Geen fouten. Daarna nul onverwerkte `VirtualRide`-ritten en
+17.144 Zwift-blokken. De aantallen van Karen en Stijn zijn per wereld precies die
+uit de meting hierboven, bijvoorbeeld Watopia 217 en 197. De Makuri-kaart live
+bekeken: de blokken liggen op het land en de wegen van Neokyo, noord boven.
+France en Scotland niet apart bekeken; ze gebruiken dezelfde draaiing.
 
 **Tests.** `tests/unit/zwblokken-zwift.test.ts`: een sprong binnen de wereld wordt
 geknipt, de uitgedunde lijn van een lange rit niet, de grens volgt de puntafstand,
