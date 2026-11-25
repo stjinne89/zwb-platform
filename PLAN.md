@@ -31,7 +31,9 @@ gaat stabiliteit voor nieuwe features.
    Portal-klimmen tellen nu nergens, ook niet binnen de kaart; de volledige
    routelijn gaat voor de samenvatting, en knipt al bij 300 m. Harmens
    verschoven rit in Crit City en de laatste acht rode blokken in Watopia staan
-   met de hand op een uitzonderingslijst. Zie de ronde met dezelfde naam.
+   met de hand op een uitzonderingslijst. Daarna ook de twaalf losse blokken
+   buiten Watopia (commit `62331daa`, migratie `0366_zwift_blocks_corner_cuts`,
+   allebei live). Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — ZWBlokken Zwift: sprongen geknipt, gedraaide minimaps recht
    (2026-11-25): commit `005eb5b7`, op 2026-11-25 gepusht naar `main` (eigenaar:
@@ -13153,9 +13155,10 @@ Yorkshire 44, Paris 36, Scotland 34, Richmond 27, Bologna 22, Crit City 4. Karen
 185 en Stijn 186 in Watopia. Geen blok van Harmens race, geen van de acht
 uitgezonderde blokken.
 
-**Vervolg: de twaalf losse blokken buiten Watopia (2026-11-25).** Commit: de
-commit die dit blok toevoegt, niet gepusht. Migratie
-`0366_zwift_blocks_corner_cuts.sql`, nog niet toegepast. Na de backfill bleven
+**Vervolg: de twaalf losse blokken buiten Watopia (2026-11-25).** Commit
+`62331daa`, op 2026-11-25 gepusht naar `main` (eigenaar: "Yes, push and
+apply"). Migratie `0366_zwift_blocks_corner_cuts.sql` toegepast nadat de deploy
+live stond. Na de backfill bleven
 er buiten Watopia twaalf blokken over met hooguit twee leden en geen bekende
 route erdoor: France 1, Innsbruck 4, London 2, New York 2, Paris 2 en Scotland 1.
 De eigenaar bekeek ze op een uitvergrote kaart per blok, met de ritlijn erover:
@@ -13175,6 +13178,11 @@ France 98, Innsbruck 60, London 104, New York 89, Paris 34, Scotland 33.
 - *Volgorde:* eerst de code live, dan `0366`. Andersom legt een sync van een
   nieuwe rit door dezelfde hoek het blok weer neer.
 - *Test:* een lijn in Paris levert blokken op, maar niet `33189/22541`.
+- *Uitgevoerd 2026-11-25:* de deploy was live, want de Netlify-cache was geleegd
+  en de chunknamen waren nieuw. Daarna is `0366` toegepast. In de tabel staan nu
+  precies de nagerekende aantallen: France 98, Innsbruck 60, London 104, New
+  York 89, Paris 34 en Scotland 33. De andere werelden zijn ongewijzigd, en er
+  zijn nul onverwerkte `VirtualRide`-ritten.
 
 **Tests.** `tests/unit/zwblokken-zwift.test.ts`: een portalklim die de kaart uit
 loopt levert geen blok op, ook binnen de kaart; een France-klim vanaf de portal
