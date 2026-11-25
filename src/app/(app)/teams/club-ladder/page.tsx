@@ -28,6 +28,8 @@ import { ClubShortName } from "@/components/club-texts-provider";
 export const dynamic = "force-dynamic";
 
 export const revalidate = 0;
+// "Teams en resultaten ophalen" haalt ook vELO1 op (teams/_actions.ts).
+export const maxDuration = 30;
 
 export default async function ClubLadderPage({
   searchParams,

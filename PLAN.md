@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Teams en resultaten ophalen haalt ook vELO1 (2026-11-25): lokaal
+   gecommit, niet gepusht, geen migratie.** Na de teamuitslagen draait de knop
+   de ZwiftRacing-sync van de cron (vELO1, vermogen, type) voor wie aan de beurt
+   is, binnen 14 s. Open: op productie één klik en kijken of de melding binnen de
+   tijd terugkomt. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Dashboard: teamuitslagen voor ZRL en Ladder (2026-11-25): commit
    `3282c52c`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"), geen
    migratie.** De ledentegels slaan ZRL- en
@@ -12951,6 +12957,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Teams en resultaten ophalen haalt ook vELO1
+
+**2026-11-25.** Lokaal gecommit, niet gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: "Laat de knop ook de Velo legacy rating
+syncen". Tot nu toe deed alleen de cron op `POST /api/zwiftracing/sync`
+(elke 30 minuten) dat; de knop haalde alleen WTRL- en ladderuitslagen,
+roosters en ladderwedstrijden.
+
+**Wat.**
+- `syncResultsNow` (`teams/_actions.ts`) roept na `syncTeamResults` ook
+  `runZwiftRacingSync` aan, met dezelfde selectie als de cron: aanmeldingen,
+  eigen teamleden en tegenstanders van ladderwedstrijden in de komende 8 dagen
+  (opnieuw na 20 uur), renners van een racebriefje, en vELO1 die een week oud
+  is. Naast vELO1 ververst dat dus ook het 90-dagenvermogen en het type.
+- `runZwiftRacingSync` kreeg opties: `resultPages` (de knop zet 0, de
+  uitslagpagina's voor de verwachting blijven bij de cron) en `pageTimeoutMs`.
+- Tijd: aan een nieuwe renner begint de knop tot 14 s na de klik, met 4 s
+  time-out per pagina. Een renner kost hooguit 4 + 1 + 4 s, dus de actie blijft
+  rond 23 s, onder wat Netlify bij de FRR-kalender nog toeliet (zie daar). Zijn
+  de uitslagen zelf al bijna 14 s bezig, dan slaat de knop vELO1 over.
+  `/teams` en `/teams/club-ladder` kregen `maxDuration = 30`.
+- De melding telt de vELO1-ratings mee; wat niet paste, een stop (429) of een
+  fout staat eronder en maakt de melding een notitie, geen fout.
+
+**Bewust niet.**
+- Geen eigen selectie voor de knop, zoals alle leden van alle teams: dan zijn
+  het tientallen renners van twee pagina's met een seconde pauze, dat past niet
+  in één klik. Per klik komen er een paar renners bij (ongeveer 3 à 4 s per
+  renner); de rest volgt bij de cron.
+- Geen lock tegen een cron-run die tegelijk loopt: dan halen beide dezelfde
+  renner hooguit een keer dubbel op.
+
+**Niet geverifieerd.** Niet in de browser of op productie geklikt; hoe lang
+`syncTeamResults` op productie duurt en hoeveel renners er per klik meekomen,
+is niet gemeten. Typecheck en lint schoon; de unit-tests van `zwiftracing` en
+`team-results` slagen. In de volledige suite faalt `club-texts-render`
+("beheer noemt ZWB niet") los van deze wijziging (raakt de hulptekst, niet deze
+code); de rest waren time-outs onder belasting en een ontbrekende `.env.local`
+in de worktree.
 
 ### Gebouwd — Dashboard: teamuitslagen voor ZRL en Ladder
 
@@ -27386,7 +27433,7 @@ een renner die sindsdien van Platinum naar Amethyst steeg.
   is er nog niet. Verversen = opnieuw via Chrome ophalen. *Niet meer waar
   sinds 2026-11-11:* `POST /api/zwiftracing/sync` ververst de renners in
   `zwift_legacy_velo` wekelijks; zie "ZwiftRacing: 90 dagen en vELO1 door de
-  server".
+  server". Sinds 2026-11-25 doet de knop Teams en resultaten ophalen dat ook.
 - `ladder_ranks` niet overschreven: de vastgezette ranks blijven, de vELO1
   promoveert alleen. Een captain die een lagere rank kiest dan de vELO1 geeft,
   ziet de hogere terug.

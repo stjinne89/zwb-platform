@@ -183,8 +183,8 @@ type Fetched =
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function fetchRiderPage(zwiftId: number, userAgent: string, deadline: number): Promise<Fetched> {
-  const page = await fetchZwiftRacingPage(`/riders/${zwiftId}`, userAgent);
+async function fetchRiderPage(zwiftId: number, userAgent: string, deadline: number, pageTimeoutMs?: number): Promise<Fetched> {
+  const page = await fetchZwiftRacingPage(`/riders/${zwiftId}`, userAgent, pageTimeoutMs);
   if (page.kind !== "ok") return page;
   const data = parseRiderPage(page.html, zwiftId);
   if (!data) return { kind: "stop", reason: "pagina niet herkend" };
@@ -192,17 +192,30 @@ async function fetchRiderPage(zwiftId: number, userAgent: string, deadline: numb
   // Geen tijd meer voor de curve: niets opslaan, de volgende run begint met hem.
   if (Date.now() > deadline) return { kind: "later" };
   await pause(PAGE_SPACING_MS);
-  const powerPage = await fetchZwiftRacingPage(`/riders/${zwiftId}/power`, userAgent, CURVE_TIMEOUT_MS);
+  const powerPage = await fetchZwiftRacingPage(`/riders/${zwiftId}/power`, userAgent, Math.min(CURVE_TIMEOUT_MS, pageTimeoutMs ?? CURVE_TIMEOUT_MS));
   if (powerPage.kind === "stop") return powerPage;
   const curve = powerPage.kind === "ok" ? parseRiderPowerCurve(powerPage.html, zwiftId) : null;
   return { kind: "ok", data: { ...data, powerWkg: highestPower(data.powerWkg, curve) }, hasCurve: curve != null };
 }
 
+export type ZwiftRacingSyncOptions = {
+  /** Uitslagpagina's voor de renners; 0 slaat ze over. */
+  resultPages?: number;
+  /** Time-out per rennerpagina, zodat een korte run niet ver over `deadline` loopt. */
+  pageTimeoutMs?: number;
+};
+
 /** Haalt op wie aan de beurt is tot `deadline` (ms sinds epoch). */
-export async function runZwiftRacingSync(admin: Admin, deadline: number): Promise<ZwiftRacingSyncResult> {
+export async function runZwiftRacingSync(
+  admin: Admin,
+  deadline: number,
+  { resultPages = RESULT_PAGES_PER_RUN, pageTimeoutMs }: ZwiftRacingSyncOptions = {},
+): Promise<ZwiftRacingSyncResult> {
   const userAgent = await zwiftRacingUserAgent();
   // Eerst een paar uitslagpagina's: een klein, vast deel van het budget.
-  const expectations = await harvestRaceExpectations(admin, deadline, userAgent, RESULT_PAGES_PER_RUN);
+  const expectations: RaceExpectationResult = resultPages > 0
+    ? await harvestRaceExpectations(admin, deadline, userAgent, resultPages)
+    : { done: 0, unknown: 0, none: 0, stopped: null };
   const due = await dueZwiftIds(admin);
   const result: ZwiftRacingSyncResult = { due: due.length, fetched: 0, power: 0, legacy: 0, empty: 0, unknown: 0, noCurve: 0, remaining: 0, stopped: expectations.stopped, expectations };
   // Weert ZwiftRacing ons op de uitslagpagina, dan ook geen rennerpagina's.
@@ -216,7 +229,7 @@ export async function runZwiftRacingSync(admin: Admin, deadline: number): Promis
     if (Date.now() > deadline) break;
     if (index > 0) await pause(PAGE_SPACING_MS);
     const zwiftId = due[index];
-    const page = await fetchRiderPage(zwiftId, userAgent, deadline);
+    const page = await fetchRiderPage(zwiftId, userAgent, deadline, pageTimeoutMs);
     if (page.kind === "later") break;
     if (page.kind === "stop") {
       result.stopped = page.reason;

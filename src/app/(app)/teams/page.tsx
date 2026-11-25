@@ -23,6 +23,8 @@ import { compareLadderTeams } from "@/lib/club-ladder/team-order";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+// "Teams en resultaten ophalen" haalt ook vELO1 op (teams/_actions.ts).
+export const maxDuration = 30;
 
 type ProfileRow = {
   id: string;

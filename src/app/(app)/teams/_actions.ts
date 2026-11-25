@@ -9,6 +9,36 @@ import { fetchLadderGraveyard, normalizeTeamName } from "@/lib/ladder";
 import { withLadderSession } from "@/lib/club-ladder/session";
 import { getClub } from "@/lib/club";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
+import { runZwiftRacingSync } from "@/lib/zwiftracing/rider-sync";
+
+// Na de teamuitslagen ververst de knop ook de legacy vELO (vELO1) van wie aan
+// de beurt is, net als de cron op /api/zwiftracing/sync. De pagina's hebben
+// `maxDuration = 30`; Netlify liet bij de FRR-kalender rond 25-28 s nog toe.
+// Na VELO_DEADLINE_MS begint hij aan geen nieuwe renner meer, en een renner
+// kost hooguit twee pagina's van VELO_PAGE_TIMEOUT_MS plus een seconde pauze.
+const VELO_DEADLINE_MS = 14_000;
+const VELO_PAGE_TIMEOUT_MS = 4_000;
+/** Minder tijd over dan dit: de vELO1 laten wachten op de cron. */
+const VELO_MIN_MS = 2_000;
+
+export type LegacyVeloSyncOutcome =
+  | { legacy: number; fetched: number; remaining: number; stopped: string | null }
+  | { skipped: string }
+  | { error: string };
+
+async function syncLegacyVelo(started: number): Promise<LegacyVeloSyncOutcome> {
+  const deadline = started + VELO_DEADLINE_MS;
+  if (deadline - Date.now() < VELO_MIN_MS) return { skipped: "geen tijd meer, volgt bij de volgende run" };
+  try {
+    const result = await runZwiftRacingSync(createAdminClient(), deadline, {
+      resultPages: 0,
+      pageTimeoutMs: VELO_PAGE_TIMEOUT_MS,
+    });
+    return { legacy: result.legacy, fetched: result.fetched, remaining: result.remaining, stopped: result.stopped };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "onbekende fout" };
+  }
+}
 
 export async function syncResultsNow() {
   const supabase = await createClient();
@@ -19,18 +49,21 @@ export async function syncResultsNow() {
     return { ok: false as const, error: "Geen recht om teambronnen te syncen." };
   }
 
+  const started = Date.now();
   try {
     // Geen indeling op categorie meer (migr. 0172), niet voor leden en niet voor
     // rosternamen: lid word je door je aan te melden voor een race, door je
     // rosternaam te claimen of doordat een teambeheerder je toevoegt. De
     // teamkoppeling van een rosternaam komt hieronder uit de bron zelf.
     const summary = await syncTeamResults(supabase);
+    const legacyVelo = await syncLegacyVelo(started);
     revalidatePath("/teams");
     revalidatePath("/dashboard");
     revalidatePath("/");
     return {
       ok: true as const,
       summary,
+      legacyVelo,
     };
   } catch (err) {
     return {

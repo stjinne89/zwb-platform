@@ -55,13 +55,32 @@ export function SyncResultsButton() {
                     ...fixtures.warnings.slice(0, 3),
                   ];
             details.unshift(...ladderProblems);
+            // vELO1 van ZwiftRacing: wat niet past, haalt de cron later op.
+            const velo = res.legacyVelo;
+            const veloProblem =
+              "error" in velo
+                ? `vELO1: ${velo.error}`
+                : "skipped" in velo
+                  ? `vELO1: ${velo.skipped}`
+                  : velo.stopped
+                    ? `vELO1 gestopt: ${velo.stopped}`
+                    : velo.remaining > 0
+                      ? `vELO1: nog ${velo.remaining} renners, volgen bij de volgende run`
+                      : null;
+            if (veloProblem) details.push(veloProblem);
             const rosterSynced = res.summary.sources.reduce(
               (total, source) => total + source.rosterSynced,
               0,
             );
-            const resultText = `${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} teamleden`;
+            const veloCount = "legacy" in velo ? velo.legacy : 0;
+            const resultText = `${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} teamleden, ${veloCount} vELO1-ratings`;
             setState({
-              kind: failed > 0 || ladderProblems.length > 0 ? "error" : skipped > 0 ? "notice" : "success",
+              kind:
+                failed > 0 || ladderProblems.length > 0
+                  ? "error"
+                  : skipped > 0 || veloProblem
+                    ? "notice"
+                    : "success",
               details,
               message:
                 failed > 0
