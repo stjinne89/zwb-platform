@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Teams en subteams bewerken (2026-11-25): commit `443c789d`, lokaal,
-   niet gepusht. Geen migratie.** Een knop Bewerken op de teampagina en op de
+0. **Gebouwd — Teams en subteams bewerken (2026-11-25): commit `443c789d`, op
+   2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.** Een knop Bewerken op de teampagina en op de
    Club Ladder-teampagina. Open: in de app een (sub)team hernoemen en een leeg
    subteam van hoofdteam laten wisselen. Zie de ronde met dezelfde naam.
 
@@ -13037,7 +13037,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Teams en subteams bewerken
 
-**2026-11-25, commit `443c789d`, lokaal en niet gepusht. Geen migratie.**
+**2026-11-25, commit `443c789d`, op 2026-11-25 gepusht naar `main`
+(eigenaar: "Ja, push"). Geen migratie.**
 
 - **Waarom.** De eigenaar meldde dat teams en subteams na het aanmaken niet
   meer te bewerken waren. Naam, type, divisie, omschrijving en hoofdteam
