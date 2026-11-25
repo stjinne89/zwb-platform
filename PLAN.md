@@ -7,14 +7,15 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — WTRL-import vanaf de eigen pc (2026-11-25): de commit die dit
-   blok toevoegt, op branch `claude/zrl-team-koppeling-auto-aa7742`, niet
-   gepusht.** Migratie `0361_wtrl_import` op 2026-11-25 op productie toegepast
+0. **Gebouwd — WTRL-import vanaf de eigen pc (2026-11-25): commit `5cc0cc2b`,
+   op 2026-11-25 gepusht naar `main` (eigenaar: secret "staat op netlify en in
+   de env. local").** Migratie `0361_wtrl_import` op 2026-11-25 op productie toegepast
    (eigenaar: "Ja, beide"). Het script `npm run wtrl`
    vervangt de My Teams-plak, zet de racepass uit WTRL (de clubsite blijft de
    terugval) en deelt tegenstanders in de live stand in via de WTRL-uitslag.
-   Daarnaast is de leaguesleutel van de live stand hersteld. Open: pushen,
-   `WTRL_IMPORT_SECRET` op Netlify zetten, het script een keer echt draaien. Zie de ronde "Gebouwd — WTRL-import vanaf de eigen pc".
+   Daarnaast is de leaguesleutel van de live stand hersteld. `WTRL_IMPORT_SECRET`
+   staat op Netlify en in `.env.local` van de eigenaar. Open: na de deploy het
+   script een keer echt draaien. Zie de ronde "Gebouwd — WTRL-import vanaf de eigen pc".
 
 0. **Gebouwd — Eigen YouTube-stream aan een race koppelen (2026-11-24): commit
    `8629425b`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja, push").**
@@ -12910,8 +12911,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — WTRL-import vanaf de eigen pc
 
-**2026-11-25, de commit die deze ronde toevoegt, op branch
-`claude/zrl-team-koppeling-auto-aa7742`, niet gepusht. Migratie
+**2026-11-25, commit `5cc0cc2b`, op 2026-11-25 gepusht naar `main`. Migratie
 `0361_wtrl_import.sql` op 2026-11-25 op productie toegepast (eigenaar: "Ja,
 beide"), vóór de code: de huidige live code schrijft de standaardbron `manual`.
 Gecontroleerd: de 220 bestaande indelingen staan op `manual`. Niet lokaal getest
