@@ -33,6 +33,8 @@ export const WTRL_PATHS = {
   team: /^\/api\/zrl\/(\d{1,4})\/teams\/(\d{1,9})$/,
   menu: /^\/api\/zrl\/results\/(\d{1,4})$/,
   results: /^\/api\/zrl\/results\/(\d{1,4})\/(\d{4}[A-E]\d{1,2}\d)\/(\d{1,2})$/,
+  /** De competitiestand van een divisie na die race (0362). */
+  league: /^\/api\/zrl\/league\/(\d{1,4})\/(\d{4}[A-E]\d{1,2}\d)\/(\d{1,2})$/,
 } as const;
 
 export function wtrlPathKind(path: string): keyof typeof WTRL_PATHS | null {
@@ -334,23 +336,92 @@ export function planWtrlRacepasses(
   return { upserts, skipped };
 }
 
-/**
- * Uitslagen per run. Op 2026-11-25 gaf WTRL na 16 verzoeken een 429; met
- * negen teams, het menu en dit maximum blijft een run rond de 19. De nieuwste
- * race gaat voor, de rest volgt bij een volgende run.
- */
-export const MAX_RESULTS_PER_RUN = 8;
+// ── Competitiestand ─────────────────────────────────────────────────────────
 
-export type WantedResult = { path: string; race: number; /** Al eens opgehaald, nog niet klaar. */ imported: boolean };
+export type WtrlStanding = {
+  rank: number;
+  /** WTRL-team-ID: het tweede deel van de TRC-referentie. */
+  teamId: string;
+  name: string;
+  /** League points. */
+  points: number;
+  /** League points per race, R1 tot en met de laatste race met punten. */
+  perRace: number[];
+  races: number;
+  fin: number;
+  fal: number;
+  fts: number;
+  pbp: number;
+};
 
 /**
- * Hoogstens MAX_RESULTS_PER_RUN: eerst wat nog nooit is opgehaald, dan de
- * nieuwste race. Anders vulde de voorlopige uitslag van race 2 elke run en kwam
- * race 1 nooit aan de beurt (2026-11-25).
+ * `/api/zrl/league/{seizoen}/{klasse}/{race}`, gemeten 2026-11-25: per team
+ * `c` plaats, `d` naam, `teamId`, `j` league points, `r1`..`r8` per race,
+ * `l` aantal races, `i` FIN, `e` FAL, `k` FTS en `pbp` (de kolomtitels van
+ * WTRL's eigen tabel).
  */
-export function pickResultPaths(wanted: WantedResult[]): string[] {
+export function parseStandings(json: unknown): WtrlStanding[] {
+  const payload = obj(json).payload;
+  const rows = (Array.isArray(payload) ? payload : []).flatMap((raw) => {
+    const row = obj(raw);
+    const rank = num(row.c);
+    const teamId = str(row.teamId);
+    const name = str(row.d);
+    if (!rank || !teamId || !/^\d{1,9}$/.test(teamId) || !name) return [];
+    const perRace = Array.from({ length: 8 }, (_, i) => num(row[`r${i + 1}`]) ?? 0);
+    const races = Math.max(0, Math.min(8, num(row.l) ?? 0));
+    let last = perRace.length;
+    while (last > races && perRace[last - 1] === 0) last -= 1;
+    return [{
+      rank,
+      teamId,
+      name: name.slice(0, 80),
+      points: num(row.j) ?? 0,
+      perRace: perRace.slice(0, last),
+      races,
+      fin: num(row.i) ?? 0,
+      fal: num(row.e) ?? 0,
+      fts: num(row.k) ?? 0,
+      pbp: num(row.pbp) ?? 0,
+    }];
+  });
+  return rows.sort((a, b) => a.rank - b.rank);
+}
+
+/**
+ * Moet de stand van een divisie opnieuw? Als er een nieuwere race is dan de
+ * bewaarde, of als de bewaarde race sindsdien definitief werd. Een voorlopige
+ * stand halen we niet elke run opnieuw: dat kost een verzoek per divisie.
+ */
+export function standingsWanted(
+  stored: { race: number; final: boolean } | null,
+  latest: { race: number; status: WtrlRaceStatus },
+): boolean {
+  if (!stored || stored.race < latest.race) return true;
+  return stored.race === latest.race && !stored.final && latest.status === "final";
+}
+
+// ── Wat een run ophaalt ─────────────────────────────────────────────────────
+
+/**
+ * Pagina's per divisie (uitslagen en standen samen) per run. Op 2026-11-25 gaf
+ * WTRL na 16 verzoeken een 429; met negen teams, het menu en dit maximum blijft
+ * een run rond de 19. De rest volgt bij een volgende run.
+ */
+export const MAX_DIVISION_PAGES_PER_RUN = 8;
+
+/** 0 = uitslag die nog nooit binnen was, 1 = stand, 2 = voorlopige uitslag opnieuw. */
+export type WantedPage = { path: string; race: number; priority: 0 | 1 | 2 };
+
+/**
+ * Hoogstens MAX_DIVISION_PAGES_PER_RUN: eerst uitslagen die nog nooit binnen
+ * waren, dan standen, dan voorlopige uitslagen opnieuw; binnen elk de nieuwste
+ * race eerst. Zonder die volgorde vulde de voorlopige uitslag van race 2 elke
+ * run en kwam race 1 nooit aan de beurt (2026-11-25).
+ */
+export function pickDivisionPaths(wanted: WantedPage[]): string[] {
   return [...wanted]
-    .sort((a, b) => Number(a.imported) - Number(b.imported) || b.race - a.race)
-    .slice(0, MAX_RESULTS_PER_RUN)
+    .sort((a, b) => a.priority - b.priority || b.race - a.race)
+    .slice(0, MAX_DIVISION_PAGES_PER_RUN)
     .map((row) => row.path);
 }

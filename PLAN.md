@@ -14,8 +14,14 @@ gaat stabiliteit voor nieuwe features.
    vervangt de My Teams-plak, zet de racepass uit WTRL (de clubsite blijft de
    terugval) en deelt tegenstanders in de live stand in via de WTRL-uitslag.
    Daarnaast is de leaguesleutel van de live stand hersteld. `WTRL_IMPORT_SECRET`
-   staat op Netlify en in `.env.local` van de eigenaar. Open: na de deploy het
-   script een keer echt draaien. Zie de ronde "Gebouwd — WTRL-import vanaf de eigen pc".
+   staat op Netlify en in `.env.local` van de eigenaar. Het script draaide op
+   2026-11-25 vier keer; tegenstanders koppelen (zie de ronde). Zie de ronde
+   "Gebouwd — WTRL-import vanaf de eigen pc".
+
+0. **Gebouwd — ZRL-competitiestand op de teampagina (2026-11-25).** Het
+   WTRL-script haalt ook de stand per divisie op; de teampagina toont hem
+   bovenaan. Migratie `0362_zrl_wtrl_standings` is geschreven, niet toegepast.
+   Open: migratie toepassen en het script draaien. Zie de ronde.
 
 0. **Gebouwd — Eigen YouTube-stream aan een race koppelen (2026-11-24): commit
    `8629425b`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja, push").**
@@ -1692,8 +1698,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0362`
-(`0361_wtrl_import` is van de WTRL-import vanaf de eigen pc, toegepast op 2026-11-25;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0363`
+(`0362_zrl_wtrl_standings` is van de ZRL-competitiestand, 2026-11-25, nog niet toegepast;
+`0361_wtrl_import` is van de WTRL-import vanaf de eigen pc, toegepast op 2026-11-25;
 `0360_event_streams_source` is van de eigen YouTube-stream, toegepast op 2026-11-24;
 `0359_stream_overlay_ultrawide` is van het ultrawide Zwift-beeld, 2026-11-24, eerst als `0355` geschreven en hernummerd omdat `0355` tot en met `0358` intussen op main stonden, toegepast op 2026-11-24;
 `0355_storage_rls_initplan` is van de storage-policies uit de databasecheck, 2026-11-20 geschreven als `0345`, hernummerd, op 2026-11-24 gepusht en toegepast;
@@ -12909,9 +12916,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZRL-competitiestand op de teampagina
+
+**2026-11-25. Migratie `0362_zrl_wtrl_standings.sql` geschreven, niet toegepast
+en niet lokaal getest (geen Docker of Supabase-config).**
+
+- **Waarom.** Vraag van de eigenaar: de stand van de ZRL per team bovenaan de
+  teampagina, opgehaald met het WTRL-script. Voorstel akkoord ("ja bouwen en
+  daarna pushen").
+- **Bron.** De tabel "League Standings" op wtrl.racing komt uit
+  `/api/zrl/league/{seizoen}/{klasse}/{race}`: de stand na die race. Per team
+  `c` plaats, `d` naam, `teamId`, `j` league points, `r1`..`r8` per race, `l`
+  aantal races, `i` FIN, `e` FAL, `k` FTS en `pbp`. Zo uitgelezen uit de
+  kolomtitels in de pagina van WTRL en één verzoek op 2026-11-25 (Aqua B4,
+  race 2: ZWB B3 9e van 11, 8 punten). `teamId` is het WTRL-team-ID, het
+  tweede deel van `wtrl_teams.trc_ref`: geen koppeling op naam nodig.
+- **Script.** Per gekoppelde divisie de stand na de nieuwste race met uitslag.
+  Uitslagen en standen delen het maximum van 8 per run
+  (`MAX_DIVISION_PAGES_PER_RUN`, was `MAX_RESULTS_PER_RUN`): eerst uitslagen die
+  nog nooit binnen waren, dan standen, dan voorlopige uitslagen opnieuw. Een
+  stand komt alleen opnieuw na een nieuwere race of als de race definitief
+  werd (`standingsWanted`), niet elke run: dat kost een verzoek per divisie.
+  Na een raceweek zijn het zo meestal twee runs.
+- **Data.** `zrl_wtrl_standings` (0362): per seizoen en klasse de hele tabel als
+  jsonb, met de race en of die definitief was. Lezen mag elk ingelogd lid,
+  zoals `wtrl_teams`; schrijven alleen de import.
+- **Teampagina.** Een subteam toont de hele divisie onder de kop, met het eigen
+  team gemarkeerd: plaats, team, punten per race en totaal. Het hoofdteam toont
+  per subteam één regel met plaats, punten en divisie, met een link naar het
+  subteam. Zonder stand (of zonder 0362) staat er niets.
+- **Bewust niet.** Geen geschiedenis van eerdere rondes en geen FIN/FAL/FTS op
+  de pagina; ze worden wel bewaard.
+- **Niet geverifieerd.** De migratie is niet toegepast en het script niet
+  gedraaid met de stand erbij. De teampagina is niet in de browser bekeken.
+  Wel: `tsc`, ESLint en de unit-tests (`wtrl-import.test.ts`,
+  `zrl-standings.test.ts`). De volledige suite: dezelfde twee losstaande
+  fouten (`club-texts-render`, `omnium-live`), plus `admin-areas` dat in de
+  volle run faalde en los slaagt.
+
 ### Gebouwd — Plaats in het ZRL-overzicht linkt naar de live stand
 
-**2026-11-25, lokaal gecommit, nog niet gepusht. Geen migratie.**
+**2026-11-25, commit `25062d72`, op 2026-11-25 gepusht naar `main`. Geen migratie.**
 
 - **Waarom.** Vraag van de eigenaar: in het overkoepelende ZRL-event wil hij met
   één klik van de plaats van een team naar de live stand van die race.

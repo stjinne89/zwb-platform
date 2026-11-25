@@ -20,6 +20,8 @@ import {
   TeamRosterTable,
   type TeamRosterRow,
 } from "../_components/team-roster-table";
+import { ZrlStandingsSummary, ZrlStandingsTable } from "./_components/zrl-standings";
+import { standingsPerTeam, type StandingsWtrlTeam, type StoredStandings } from "@/lib/teams/zrl-standings";
 import { AdminPanel, DeleteResultButton } from "./_components/admin-panel";
 import { GraveyardToggle } from "./_components/graveyard-toggle";
 import { DeleteTeamButton } from "./_components/delete-team-button";
@@ -232,6 +234,23 @@ export default async function TeamDetailPage({
     .order("start_at", { ascending: false })
     .limit(50);
   const zrlEventPerTeam = pickZrlEventPerTeam((zrlEvents ?? []) as ZrlTeamEvent[]);
+  // Competitiestand uit het WTRL-script (0362); zonder die tabel staat er niets.
+  const [{ data: standingsWtrlTeams }, { data: storedStandings }] = await Promise.all([
+    supabase.from("wtrl_teams").select("trc_ref, team_id, division").in("team_id", scopeIds),
+    supabase.from("zrl_wtrl_standings").select("season, class, race, final, rows"),
+  ]);
+  const standingsByTeam = standingsPerTeam(
+    scopeIds,
+    (standingsWtrlTeams ?? []) as StandingsWtrlTeam[],
+    (storedStandings ?? []) as StoredStandings[],
+  );
+  const ownStandings = standingsByTeam.get(team.id) ?? null;
+  const subteamStandings = ((childTeams ?? []) as TeamRow[])
+    .filter(() => team.parent_team_id == null)
+    .flatMap((child) => {
+      const standings = standingsByTeam.get(child.id);
+      return standings ? [{ id: child.id, name: child.name, standings }] : [];
+    });
   const zrlPlacements = (
     await Promise.all(
       scopeTeams.map(async (row) => {
@@ -589,6 +608,12 @@ export default async function TeamDetailPage({
           </div>
         )}
       </header>
+
+      {ownStandings ? (
+        <ZrlStandingsTable standings={ownStandings} />
+      ) : (
+        subteamStandings.length > 0 && <ZrlStandingsSummary teams={subteamStandings} />
+      )}
 
       {team.parent_team_id == null && (
         <section className="space-y-3 rounded-lg border bg-card p-4">

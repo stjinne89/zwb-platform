@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // WTRL-import vanaf je eigen pc: `npm run wtrl`.
 //
-// Haalt met jouw WTRL-sessie My Teams, de teamgegevens en de uitslagen van de
-// lopende ronde op en stuurt ze naar het platform (/api/zrl/wtrl-import). Het
-// platform zegt welke pagina's nodig zijn; dit script haalt alleen die op, één
-// voor één met een paar seconden ertussen, en nooit meer dan MAX_REQUESTS.
+// Haalt met jouw WTRL-sessie My Teams, de teamgegevens, de uitslagen en de
+// competitiestand van de lopende ronde op en stuurt ze naar het platform
+// (/api/zrl/wtrl-import). Het platform zegt welke pagina's nodig zijn; dit
+// script haalt alleen die op, één voor één met vijf seconden ertussen, en nooit
+// meer dan MAX_REQUESTS.
 // Het platform zelf roept WTRL niet aan (zie src/lib/wtrl/import.ts).
 //
 // Nodig in .env.local (staat niet in git):
@@ -33,6 +34,7 @@ const ALLOWED = [
   /^\/api\/zrl\/(\d{1,4})\/teams\/(\d{1,9})$/,
   /^\/api\/zrl\/results\/(\d{1,4})$/,
   /^\/api\/zrl\/results\/(\d{1,4})\/(\d{4}[A-E]\d{1,2}\d)\/(\d{1,2})$/,
+  /^\/api\/zrl\/league\/(\d{1,4})\/(\d{4}[A-E]\d{1,2}\d)\/(\d{1,2})$/,
 ];
 
 function fail(message) {

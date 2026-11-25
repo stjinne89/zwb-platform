@@ -5,8 +5,10 @@ import {
   parseResults,
   parseResultsMenu,
   parseTeamDetails,
-  MAX_RESULTS_PER_RUN,
-  pickResultPaths,
+  MAX_DIVISION_PAGES_PER_RUN,
+  parseStandings,
+  pickDivisionPaths,
+  standingsWanted,
   planAssignments,
   planWtrlRacepasses,
   wtrlDivisionKey,
@@ -293,24 +295,51 @@ describe("cleanCarry", () => {
   });
 });
 
-describe("pickResultPaths", () => {
+describe("pickDivisionPaths", () => {
   it("neemt de nieuwste race eerst en houdt het maximum aan", () => {
     const wanted = Array.from({ length: 12 }, (_, n) => ({
       path: `/r/${(n % 4) + 1}/${n}`,
       race: (n % 4) + 1,
-      imported: false,
+      priority: 0 as const,
     }));
-    const picked = pickResultPaths(wanted);
-    expect(picked).toHaveLength(MAX_RESULTS_PER_RUN);
+    const picked = pickDivisionPaths(wanted);
+    expect(picked).toHaveLength(MAX_DIVISION_PAGES_PER_RUN);
     expect(picked.slice(0, 3).every((path) => path.startsWith("/r/4/"))).toBe(true);
     expect(picked.some((path) => path.startsWith("/r/1/"))).toBe(false);
   });
 
-  it("laat een voorlopige uitslag die al binnen is de oudere race niet verdringen", () => {
+  it("nieuwe uitslagen, dan standen, dan voorlopige uitslagen opnieuw", () => {
     const wanted = [
-      ...Array.from({ length: 8 }, (_, n) => ({ path: `/r/2/${n}`, race: 2, imported: true })),
-      ...Array.from({ length: 8 }, (_, n) => ({ path: `/r/1/${n}`, race: 1, imported: false })),
+      ...Array.from({ length: 6 }, (_, n) => ({ path: `/again/${n}`, race: 2, priority: 2 as const })),
+      ...Array.from({ length: 4 }, (_, n) => ({ path: `/league/${n}`, race: 2, priority: 1 as const })),
+      ...Array.from({ length: 5 }, (_, n) => ({ path: `/new/${n}`, race: 1, priority: 0 as const })),
     ];
-    expect(pickResultPaths(wanted).every((path) => path.startsWith("/r/1/"))).toBe(true);
+    const picked = pickDivisionPaths(wanted);
+    expect(picked.filter((path) => path.startsWith("/new/"))).toHaveLength(5);
+    expect(picked.filter((path) => path.startsWith("/league/"))).toHaveLength(3);
+    expect(picked.some((path) => path.startsWith("/again/"))).toBe(false);
+  });
+});
+
+describe("competitiestand", () => {
+  it("leest de tabel van /api/zrl/league", () => {
+    const rows = parseStandings({
+      success: true,
+      payload: [
+        { c: 2, d: "Team Twee", teamId: "222", j: 16, r1: "9", r2: "7", r3: "0", l: 2, i: 130, e: 0, k: 0, pbp: 2 },
+        { c: 1, d: "Team Een", teamId: "111", j: 17, r1: "7", r2: "10", r3: "0", l: 2, i: 149, e: 0, k: 0, pbp: 10 },
+        { c: 3, d: "Zonder ID", j: 1 },
+      ],
+    });
+    expect(rows.map((row) => row.name)).toEqual(["Team Een", "Team Twee"]);
+    expect(rows[0]).toMatchObject({ rank: 1, teamId: "111", points: 17, perRace: [7, 10], races: 2, fin: 149, pbp: 10 });
+  });
+
+  it("haalt een stand alleen opnieuw na een nieuwe race of als hij definitief werd", () => {
+    expect(standingsWanted(null, { race: 2, status: "provisional" })).toBe(true);
+    expect(standingsWanted({ race: 1, final: true }, { race: 2, status: "provisional" })).toBe(true);
+    expect(standingsWanted({ race: 2, final: false }, { race: 2, status: "provisional" })).toBe(false);
+    expect(standingsWanted({ race: 2, final: false }, { race: 2, status: "final" })).toBe(true);
+    expect(standingsWanted({ race: 2, final: true }, { race: 2, status: "final" })).toBe(false);
   });
 });
