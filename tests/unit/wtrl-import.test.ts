@@ -5,6 +5,8 @@ import {
   parseResults,
   parseResultsMenu,
   parseTeamDetails,
+  MAX_RESULTS_PER_RUN,
+  pickResultPaths,
   planAssignments,
   planWtrlRacepasses,
   wtrlDivisionKey,
@@ -288,5 +290,15 @@ describe("cleanCarry", () => {
       status: { "2420B40/1": "final" },
     });
     expect(cleanCarry(null)).toEqual({ season: null, passes: {}, classes: {}, status: {} });
+  });
+});
+
+describe("pickResultPaths", () => {
+  it("neemt de nieuwste race eerst en houdt het maximum aan", () => {
+    const wanted = Array.from({ length: 12 }, (_, n) => ({ path: `/r/${(n % 4) + 1}/${n}`, race: (n % 4) + 1 }));
+    const picked = pickResultPaths(wanted);
+    expect(picked).toHaveLength(MAX_RESULTS_PER_RUN);
+    expect(picked.slice(0, 3).every((path) => path.startsWith("/r/4/"))).toBe(true);
+    expect(picked.some((path) => path.startsWith("/r/1/"))).toBe(false);
   });
 });

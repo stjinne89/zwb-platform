@@ -10,6 +10,7 @@ import {
   parseResultsMenu,
   parseTeamDetails,
   planAssignments,
+  pickResultPaths,
   planWtrlRacepasses,
   WTRL_PATHS,
   wtrlClassCategory,
@@ -116,14 +117,15 @@ export async function runWtrlImport(admin: Admin, pages: WtrlPage[], rawCarry: u
   const details = ofKind("team")
     .map((page) => parseTeamDetails(parseJson(page.body)))
     .filter((row): row is WtrlTeamDetails => Boolean(row));
-  if (details.length > 0) await saveTeams(admin, details, carry, report);
+  const mapping = details.length > 0 ? await saveTeams(admin, details, carry, report) : {};
 
   // 3. Menu: welke uitslagen er zijn, en welke nog niet verwerkt.
   const menuPage = ofKind("menu")[0];
   if (menuPage && carry.season) {
     const ownClasses = new Map<string, string[]>();
+    // Alleen teams die aan een ZWB-team hangen: van de andere toont ZWB geen live stand.
     for (const row of details) {
-      if (row.wtrlClass) ownClasses.set(row.wtrlClass, [...(ownClasses.get(row.wtrlClass) ?? []), row.team.name]);
+      if (row.wtrlClass && mapping[row.team.trcRef]) ownClasses.set(row.wtrlClass, [...(ownClasses.get(row.wtrlClass) ?? []), row.team.name]);
     }
     fetch.push(...(await planResults(admin, parseJson(menuPage.body), carry, ownClasses, report)));
   }
@@ -136,7 +138,13 @@ export async function runWtrlImport(admin: Admin, pages: WtrlPage[], rawCarry: u
   return { fetch: [...new Set(fetch)].slice(0, MAX_FETCH), carry, report };
 }
 
-async function saveTeams(admin: Admin, details: WtrlTeamDetails[], carry: WtrlCarry, report: string[]) {
+/** Slaat de teams op en geeft TRC-referentie → ZWB-team terug. */
+async function saveTeams(
+  admin: Admin,
+  details: WtrlTeamDetails[],
+  carry: WtrlCarry,
+  report: string[],
+): Promise<Record<string, string | null>> {
   const { data: stored } = await admin.from("wtrl_teams").select("trc_ref, team_id");
   const teamIdByRef = new Map(
     ((stored ?? []) as Array<{ trc_ref: string; team_id: string | null }>).map((row) => [row.trc_ref, row.team_id]),
@@ -145,7 +153,7 @@ async function saveTeams(admin: Admin, details: WtrlTeamDetails[], carry: WtrlCa
   const saved = await saveWtrlTeams(admin, { teams: details.map((row) => row.team), mapping, importedBy: null });
   if (!saved.ok) {
     report.push(`Teams niet opgeslagen: ${saved.error}`);
-    return;
+    return mapping;
   }
   report.push(
     `Teams: ${saved.teams} bijgewerkt, ${saved.riders} renners; ${saved.added} leden erbij, ${saved.removed} eraf.`,
@@ -161,14 +169,14 @@ async function saveTeams(admin: Admin, details: WtrlTeamDetails[], carry: WtrlCa
     const raceDate = amsterdamDateKey(new Date(row.nextStartAt));
     return raceDate >= today ? [{ teamId, raceDate, url }] : [];
   });
-  if (passes.length === 0) return;
+  if (passes.length === 0) return mapping;
   const { data: existing, error } = await admin
     .from("zrl_race_passes")
     .select("team_id, race_date, url, source, site_url")
     .in("team_id", [...new Set(passes.map((pass) => pass.teamId))]);
   if (error) {
     report.push(`Racepasses niet gelezen: ${error.message}`);
-    return;
+    return mapping;
   }
   const plan = planWtrlRacepasses((existing ?? []) as StoredPass[], passes);
   if (plan.upserts.length > 0) {
@@ -178,11 +186,12 @@ async function saveTeams(admin: Admin, details: WtrlTeamDetails[], carry: WtrlCa
       .upsert(plan.upserts.map((row) => ({ ...row, updated_at: updatedAt })), { onConflict: "team_id,race_date" });
     if (writeError) {
       report.push(`Racepasses niet opgeslagen: ${writeError.message}`);
-      return;
+      return mapping;
     }
   }
   report.push(`Racepasses: ${plan.upserts.length} bijgewerkt.`);
   for (const note of plan.skipped) report.push(`Racepass overgeslagen, ${note}.`);
+  return mapping;
 }
 
 async function planResults(
@@ -205,7 +214,7 @@ async function planResults(
     .eq("done", true);
   const done = new Set(((doneRows ?? []) as Array<{ class: string; race: number }>).map((row) => `${row.class}/${row.race}`));
 
-  const paths: string[] = [];
+  const wanted: Array<{ path: string; race: number }> = [];
   for (const [wtrlClass, ownTeams] of ownClasses) {
     const division = menu.divisions.find((row) => row.wtrlClass === wtrlClass);
     const key = division ? wtrlDivisionKey(wtrlClass, division.league, menu.seasonText) : null;
@@ -217,10 +226,15 @@ async function planResults(
     for (const { race, status } of division.races) {
       if (done.has(`${wtrlClass}/${race}`)) continue;
       carry.status[`${wtrlClass}/${race}`] = status;
-      paths.push(`/api/zrl/results/${season}/${wtrlClass}/${race}`);
+      wanted.push({ path: `/api/zrl/results/${season}/${wtrlClass}/${race}`, race });
     }
   }
-  report.push(`Uitslagen op te halen: ${paths.length}.`);
+  const paths = pickResultPaths(wanted);
+  report.push(
+    paths.length < wanted.length
+      ? `Uitslagen op te halen: ${paths.length} van ${wanted.length}; de rest bij een volgende run.`
+      : `Uitslagen op te halen: ${paths.length}.`,
+  );
   return paths;
 }
 

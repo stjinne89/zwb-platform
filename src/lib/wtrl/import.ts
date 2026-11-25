@@ -333,3 +333,18 @@ export function planWtrlRacepasses(
   }
   return { upserts, skipped };
 }
+
+/**
+ * Uitslagen per run. Op 2026-11-25 gaf WTRL na 16 verzoeken een 429; met
+ * negen teams, het menu en dit maximum blijft een run rond de 19. De nieuwste
+ * race gaat voor, de rest volgt bij een volgende run.
+ */
+export const MAX_RESULTS_PER_RUN = 8;
+
+/** Nieuwste race eerst, hoogstens MAX_RESULTS_PER_RUN. */
+export function pickResultPaths(wanted: Array<{ path: string; race: number }>): string[] {
+  return [...wanted]
+    .sort((a, b) => b.race - a.race)
+    .slice(0, MAX_RESULTS_PER_RUN)
+    .map((row) => row.path);
+}

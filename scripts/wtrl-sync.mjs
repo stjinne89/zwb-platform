@@ -19,7 +19,10 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const ENV_FILE = ".env.local";
 const WTRL = "https://www.wtrl.racing";
-const DELAY_MS = 3000;
+// Op 2026-11-25 gaf WTRL na 16 verzoeken met 3 s ertussen een 429.
+const DELAY_MS = 5000;
+/** Langer dan dit wachten we niet op een Retry-After. */
+const MAX_RETRY_WAIT_S = 90;
 const MAX_REQUESTS = 40;
 const MAX_ROUNDS = 6;
 const USER_AGENT = "ZWB-WTRL-script/1.0 (handmatig gestart door de teambeheerder)";
@@ -57,8 +60,9 @@ function saveSid(value) {
 }
 
 let requests = 0;
+const RATE_LIMITED = Symbol("429");
 
-async function fromWtrl(path) {
+async function fromWtrl(path, retried = false) {
   if (!ALLOWED.some((pattern) => pattern.test(path))) fail(`Het platform vroeg een onbekend pad: ${path}`);
   if (requests >= MAX_REQUESTS) fail(`Meer dan ${MAX_REQUESTS} verzoeken; gestopt.`);
   if (requests > 0) await sleep(DELAY_MS);
@@ -86,7 +90,17 @@ async function fromWtrl(path) {
   if (res.status === 401 || (res.status >= 300 && res.status < 400)) {
     fail("De WTRL-sessie is verlopen. Log in op wtrl.racing in Chrome en zet de nieuwe wtrl_sid in .env.local.");
   }
-  if (res.status === 429) fail("WTRL gaf 429 (te veel verzoeken). Probeer het later opnieuw.");
+  if (res.status === 429) {
+    const hint = res.headers.get("retry-after");
+    const wait = Number(hint);
+    if (!retried && Number.isFinite(wait) && wait > 0 && wait <= MAX_RETRY_WAIT_S) {
+      console.log(`  WTRL 429, wacht ${wait} s zoals gevraagd`);
+      await sleep((wait + 1) * 1000);
+      return fromWtrl(path, true);
+    }
+    console.log(`  WTRL 429 ${path}${hint ? ` (Retry-After: ${hint})` : ""}`);
+    return RATE_LIMITED;
+  }
   console.log(`  WTRL ${res.status} ${path}`);
   return { path, status: res.status, body };
 }
@@ -105,10 +119,26 @@ async function toPlatform(pages, carry) {
 
 console.log("WTRL-import gestart.");
 let step = await toPlatform([], null);
-for (let round = 1; round <= MAX_ROUNDS && step.fetch?.length; round += 1) {
+let limited = false;
+for (let round = 1; round <= MAX_ROUNDS && step.fetch?.length && !limited; round += 1) {
   const pages = [];
-  for (const path of step.fetch) pages.push(await fromWtrl(path));
-  step = await toPlatform(pages, step.carry);
-  for (const line of step.report ?? []) console.log(`• ${line}`);
+  for (const path of step.fetch) {
+    const page = await fromWtrl(path);
+    if (page === RATE_LIMITED) {
+      limited = true;
+      break;
+    }
+    pages.push(page);
+  }
+  // Ook na een 429: wat al binnen is, gaat naar het platform.
+  if (pages.length > 0) {
+    step = await toPlatform(pages, step.carry);
+    for (const line of step.report ?? []) console.log(`• ${line}`);
+  }
+}
+if (limited) {
+  console.log(
+    "\n! WTRL gaf 429 (te veel verzoeken). Wat al binnen was, is verwerkt. Draai het later nog eens;\n  verwerkte uitslagen worden dan overgeslagen.",
+  );
 }
 console.log(`\nKlaar: ${requests} verzoeken aan WTRL.`);

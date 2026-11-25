@@ -12949,12 +12949,14 @@ Gecontroleerd: de 220 bestaande indelingen staan op `manual`. Niet lokaal getest
 - **Zo werkt het.** `npm run wtrl` (`scripts/wtrl-sync.mjs`) leest `WTRL_SID`,
   `WTRL_IMPORT_SECRET` en `WTRL_IMPORT_URL` uit `.env.local`. Het platform
   (`/api/zrl/wtrl-import`, `src/lib/wtrl/run.ts`) zegt in stappen welke
-  pagina's het nodig heeft; het script haalt alleen die op, met 3 seconden
+  pagina's het nodig heeft; het script haalt alleen die op, met 5 seconden
   ertussen en hoogstens 40 per run, en stuurt ze terug. De WTRL-cookie verlaat
   de pc niet. Stappen: My Teams (HTML), dan per team `/api/zrl/{seizoen}/teams/{trc}`
   (JSON) en het uitslagmenu, dan de uitslagen van de ronde die nog niet
-  definitief verwerkt zijn. Een run kost ongeveer 9 + 1 + het aantal nieuwe
-  uitslagen.
+  definitief verwerkt zijn. Alleen de divisies van teams die aan een ZWB-team
+  hangen; de nieuwste race eerst en hoogstens 8 uitslagen per run
+  (`MAX_RESULTS_PER_RUN`), de rest bij een volgende run. Een run kost zo
+  hoogstens 9 + 1 + 8 + 1 verzoeken.
 - **Wat het vervangt.**
   - *De My Teams-plak.* De teamgegevens komen als JSON en gaan door dezelfde
     opslag als de plak (`src/lib/teams/wtrl-save.ts`, uit de server action
@@ -12985,10 +12987,21 @@ Gecontroleerd: de 220 bestaande indelingen staan op `manual`. Niet lokaal getest
     script zelf, tot WTRL antwoordt.
   - Geen scherm in de app: het script meldt in de terminal wat het deed.
   - De oude sleutels van ronde 2 zijn niet overgezet.
-- **Niet geverifieerd.** Het script is niet gedraaid: dat vraagt de WTRL-sessie van de eigenaar. Niet getest is dus of
-  WTRL alleen met `wtrl_sid` (zonder de andere cookies uit de browser) inlogt,
-  of de sessie bij gebruik verlengd wordt, en hoe de racepass-knop eruitziet als
-  hij gevuld is: op 2026-11-25 was hij bij alle negen teams leeg. Wel getest:
+- **Eerste echte run (2026-11-25).** Inloggen met alleen `wtrl_sid` werkt. De
+  negen teams en 77 renners zijn opgeslagen; ZWB Cycling A2 hangt aan geen
+  ZWB-team. Daarna gaf WTRL na 16 verzoeken met 3 seconden ertussen een 429,
+  en de 5 al opgehaalde uitslagen gingen verloren: het script stopte zonder ze
+  door te sturen. Het vroeg er ook te veel (18, ook die van A2). Bijgesteld:
+  5 seconden ertussen; bij een 429 met `Retry-After` tot 90 s één keer wachten
+  en opnieuw; anders stoppen, maar wat al binnen is eerst naar het platform
+  sturen; geen uitslagen van niet-gekoppelde teams; hoogstens 8 per run, de
+  nieuwste race eerst.
+- **Niet geverifieerd.** Of de bijgestelde run onder de grens van WTRL blijft,
+  en of de koppeling van tegenstanders echt landt (`zrl_wtrl_result_imports`,
+  `zrl_team_assignments` met bron `wtrl`): de eerste run kwam niet zover. Niet
+  getest is ook of de sessie bij gebruik verlengd wordt, en hoe de
+  racepass-knop eruitziet als hij gevuld is: op 2026-11-25 was hij bij alle
+  negen teams leeg. Wel getest:
   `tsc`, ESLint en de unit-tests (`wtrl-import.test.ts`, de leaguesleutel in
   `zrl-live-scoring.test.ts`). Dezelfde vormen van My Teams, teamgegevens, menu
   en uitslag zijn gemeten in de Chrome van de eigenaar. De volledige suite heeft
