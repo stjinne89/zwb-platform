@@ -18,8 +18,10 @@ import {
   AdoptButton,
   RecomputeButton,
   ShareToggle,
+  TargetDayToggle,
   TargetTimeForm,
 } from "./_components/plan-controls";
+import { TARGET_DAY_PCT } from "@/lib/pacing/target-day";
 import { getRequestAccess } from "@/lib/auth/request";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -101,8 +103,8 @@ export default async function PacingPage({
             : ""}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Gerekend met CP {rider.model.cpWatts} W en W′{" "}
-          {Math.round(rider.model.wPrimeJoules / 100) / 10} kJ op{" "}
+          Gerekend met CP {rider.targetDay?.baseCpWatts ?? rider.model.cpWatts} W en W′{" "}
+          {Math.round((rider.targetDay?.baseWPrimeJoules ?? rider.model.wPrimeJoules) / 100) / 10} kJ op{" "}
           {rider.model.weightKg} kg
           {rider.model.weightEstimated ? (
             <>
@@ -118,10 +120,17 @@ export default async function PacingPage({
           ) : null}
           {" — "}
           {CP_SOURCE_LABELS[rider.model.source]}
+          {rider.model.wPrimeSource === "intervals" && rider.model.source !== "intervals"
+            ? ", W′ uit intervals.icu"
+            : ""}
+          {rider.targetDay ? `, doeldag +${rider.targetDay.pct} %` : ""}
           {rider.durability
             ? `. Na een berg werk zakt je drempel volgens je vermoeidheidscurves met ${Math.round(rider.durability.maxFadePct)}%.`
             : "."}
         </p>
+        <div className="mt-3">
+          <TargetDayToggle eventId={id} on={rider.targetDay != null} pct={TARGET_DAY_PCT} />
+        </div>
         {loaded.route.leadInApproximated && (
           <p className="mt-1 text-xs text-muted-foreground">
             De lead-in is als gelijkmatige helling benaderd.

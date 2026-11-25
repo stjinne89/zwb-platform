@@ -3,7 +3,12 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { estimateRide, solveSpeedMs, DRIVETRAIN_EFF, AIR_DENSITY } from "@/lib/ride-estimate";
 import { adoptGeneratedPlan } from "@/lib/pacing/adopt";
-import { buildBaselinePlan } from "@/lib/pacing/baseline";
+import {
+  buildBaselinePlan,
+  drawBeforeFinalePct,
+  fillRaceAccents,
+  RACE_FILL_DRAW_PCT,
+} from "@/lib/pacing/baseline";
 import type { GeneratedPacingPlan } from "@/lib/pacing/ai";
 import type { CpModel } from "@/lib/pacing/cp";
 import { validateEditedPlan } from "@/lib/pacing/edit";
@@ -414,6 +419,36 @@ describe("start en sprint in een wedstrijd", () => {
     expect(result.evaluation.feasible).toBe(true);
     expect(result.plan.map((piece) => piece.kind).filter(Boolean)).toEqual(["start", "sprint"]);
     expect(result.plan.filter((piece) => piece.label === "Start")).toHaveLength(1);
+  });
+
+  it("hoogt in een wedstrijd de klim op tot de reserve vóór de sprint op 80 % zakt", () => {
+    const r = route();
+    const filled = buildBaselinePlan({ route: r, model: MODEL, ride: physics() });
+    const draw = drawBeforeFinalePct(filled.evaluation, filled.plan, r, MODEL.wPrimeJoules);
+    expect(filled.evaluation.feasible).toBe(true);
+    expect(draw).toBeLessThanOrEqual(RACE_FILL_DRAW_PCT + 1e-6);
+    // Doelen gaan per 0,01 w/kg; op deze klim is dat al 2–4 % van W′.
+    expect(draw).toBeGreaterThan(RACE_FILL_DRAW_PCT - 10);
+    expect(filled.adjustments.some((line) => line.startsWith("De klimmen zijn opgehoogd"))).toBe(true);
+  });
+
+  it("vult een tijdrit niet op", () => {
+    const tt = physics({ setup: { ...defaultSetup(STANDARD), format: "tt" } });
+    const result = buildBaselinePlan({ route: route(), model: MODEL, ride: tt });
+    expect(result.adjustments.some((line) => line.startsWith("De klimmen zijn opgehoogd"))).toBe(false);
+  });
+
+  it("vult niet op boven de gemeten curve", () => {
+    const r = route();
+    const ride = physics();
+    const base = buildBaselinePlan({ route: r, model: MODEL, ride });
+    const climb = base.plan.find((item) => item.accentId && !item.kind)!;
+    const capWatts = climb.targetWkg * MODEL.weightKg;
+    const curve = [1, 60, 300, 600, 1200, 3600].map((seconds) => ({ seconds, watts: capWatts }));
+    const result = fillRaceAccents(base, r, MODEL, curve, { ride });
+    for (const piece of result.plan.filter((item) => item.accentId && !item.kind)) {
+      expect(piece.targetWkg * MODEL.weightKg).toBeLessThanOrEqual(capWatts + 1);
+    }
   });
 });
 

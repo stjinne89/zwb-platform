@@ -29,6 +29,11 @@ export type PlanAssumptions = {
   rideKey?: string | null;
   /** Versie van de vermoeidheidsberekening; afwezig zonder model of van vóór 2026-11-23. */
   durabilityVersion?: number | null;
+  /**
+   * Opslag van de doeldag in procenten, al verwerkt in cpWatts en wPrimeJoules.
+   * 0: uitgezet. Afwezig: van vóór 2026-11-25, gerekend zonder opslag.
+   */
+  targetDayPct?: number | null;
 };
 
 export type StaleReason =
@@ -39,7 +44,30 @@ export type StaleReason =
   | "route"
   | "indeling"
   | "opzet"
-  | "vermoeidheid";
+  | "vermoeidheid"
+  | "doeldag";
+
+/**
+ * Een plan van vóór de doeldag rekende zonder opslag, terwijl hij nu standaard
+ * aan staat: dat plan meldt zich één keer.
+ */
+export function withTargetDayStaleness(
+  staleness: Staleness,
+  assumptions: PlanAssumptions | null | undefined,
+  currentPct: number,
+): Staleness {
+  if (!assumptions || (assumptions.targetDayPct ?? 0) === currentPct) return staleness;
+  return {
+    stale: true,
+    reasons: [...staleness.reasons, "doeldag"],
+    messages: [
+      ...staleness.messages,
+      currentPct > 0
+        ? `Dit plan rekende nog zonder doeldag (+${currentPct} %).`
+        : "Dit plan rekende nog met een doeldag.",
+    ],
+  };
+}
 
 /**
  * Een plan dat met een oudere vermoeidheidsberekening is gemaakt, meldt zich één
@@ -198,6 +226,7 @@ const W_PRIME_TOLERANCE_J = 1000;
 const WEIGHT_TOLERANCE_KG = 1;
 const FTP_TOLERANCE_W = 5;
 
+/** `current` is CP en W′ zonder doeldag, zoals gemeten. */
 export function checkStaleness(
   assumptions: PlanAssumptions | null | undefined,
   current: {
@@ -215,19 +244,21 @@ export function checkStaleness(
   const reasons: StaleReason[] = [];
   const messages: string[] = [];
 
-  if (Math.abs(current.cpWatts - assumptions.cpWatts) > CP_TOLERANCE_W) {
+  // Vergelijk zonder de opslag van de doeldag: `current` is gemeten, het plan
+  // bewaart CP en W′ met opslag.
+  const bonus = 1 + (assumptions.targetDayPct ?? 0) / 100;
+  const planCp = Math.round(assumptions.cpWatts / bonus);
+  const planWPrime = Math.round(assumptions.wPrimeJoules / bonus);
+
+  if (Math.abs(current.cpWatts - planCp) > CP_TOLERANCE_W) {
     reasons.push("cp");
-    messages.push(
-      `Je CP staat nu op ${current.cpWatts} W, het plan rekende met ${assumptions.cpWatts} W.`,
-    );
+    messages.push(`Je CP staat nu op ${current.cpWatts} W, het plan rekende met ${planCp} W.`);
   }
 
-  if (
-    Math.abs(current.wPrimeJoules - assumptions.wPrimeJoules) > W_PRIME_TOLERANCE_J
-  ) {
+  if (Math.abs(current.wPrimeJoules - planWPrime) > W_PRIME_TOLERANCE_J) {
     reasons.push("wprime");
     messages.push(
-      `Je anaerobe reserve staat nu op ${Math.round(current.wPrimeJoules / 100) / 10} kJ, het plan rekende met ${Math.round(assumptions.wPrimeJoules / 100) / 10} kJ.`,
+      `Je anaerobe reserve staat nu op ${Math.round(current.wPrimeJoules / 100) / 10} kJ, het plan rekende met ${Math.round(planWPrime / 100) / 10} kJ.`,
     );
   }
 
@@ -274,6 +305,7 @@ export function buildAssumptions(current: {
   setup?: RideSetup | null;
   rideKey?: string | null;
   durabilityVersion?: number | null;
+  targetDayPct?: number | null;
 }): PlanAssumptions {
   return { ...current, computedAt: new Date().toISOString() };
 }

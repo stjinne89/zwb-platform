@@ -1,7 +1,7 @@
 "use client";
 
-// De knoppen naast het plan: verversen bij veroudering, delen aan- of uitzetten,
-// en het plan van een clubgenoot overnemen.
+// De knoppen naast het plan: verversen bij veroudering, doeldag en delen aan- of
+// uitzetten, en het plan van een clubgenoot overnemen.
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import {
   planForTargetTime,
   recomputePacingPlan,
   setPacingPlanShared,
+  setPacingTargetDay,
 } from "../_actions";
 
 function hmm(seconds: number) {
@@ -124,6 +125,38 @@ export function ShareToggle({
         className="size-4 accent-[var(--color-zwb-teal)]"
       />
       Delen met de club
+    </label>
+  );
+}
+
+export function TargetDayToggle({
+  eventId,
+  on,
+  pct,
+}: {
+  eventId: string;
+  on: boolean;
+  pct: number;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <input
+        type="checkbox"
+        checked={on}
+        disabled={pending}
+        onChange={(event) => {
+          const next = event.target.checked;
+          start(async () => {
+            await setPacingTargetDay(eventId, next);
+            router.refresh();
+          });
+        }}
+        className="size-4 accent-[var(--color-zwb-teal)]"
+      />
+      Doeldag (+{pct} %)
     </label>
   );
 }

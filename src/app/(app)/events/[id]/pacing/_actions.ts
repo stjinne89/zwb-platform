@@ -92,6 +92,33 @@ export async function recomputePacingPlan(eventId: string): Promise<ActionResult
 }
 
 /**
+ * Doeldag aan of uit. Een basisvoorstel wordt opnieuw opgebouwd; een eigen of
+ * AI-verdeling wordt alleen opnieuw doorgerekend.
+ */
+export async function setPacingTargetDay(eventId: string, on: boolean): Promise<ActionResult> {
+  const result = await loadForUser(eventId, { targetDay: on === true });
+  if (!result.ok) return { ok: false, error: result.error };
+  const { ctx } = result;
+
+  const plan = await readPlan(ctx.admin, eventId, ctx.userId);
+  if (!plan) return { ok: false, error: "Er is nog geen plan om aan te passen." };
+
+  await recomputePlan(ctx.admin, {
+    eventId,
+    profileId: ctx.userId,
+    plan,
+    route: ctx.loaded.route,
+    rider: ctx.rider,
+    routeSyncedAt: ctx.loaded.routeSyncedAt,
+    ride: rideFor(ctx, plan.assumptions?.setup),
+  });
+
+  revalidatePath(`/events/${eventId}/pacing`);
+  revalidatePath(`/events/${eventId}`);
+  return { ok: true };
+}
+
+/**
  * Zwift: het lid kiest format, fiets, upgradeniveau, ploeggrootte of lengte. Het
  * plan wordt meteen doorgerekend met die opzet; doelen en indeling blijven, de
  * start en sprint van een wedstrijd komen erbij of gaan eraf.

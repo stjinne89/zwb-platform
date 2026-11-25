@@ -315,6 +315,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "pacing pacingplan verdeling vermogen w/kg klim klimmen event gran fondo neutralisatie neutraal wagen verouderd doorrekenen reserve afdaling afdalen uitrollen knippen splitsen samenvoegen stukken indeling eindtijd doeltijd finishtijd tijd haalbaar",
   },
   {
+    title: "Doeldag en reserve in het pacingplan",
+    text: "3% opslag op een doeldag, W′ uit intervals.icu, grens op vermoeidheid en klimmen opvullen.",
+    href: "/hulp/racen#pacing-doeldag",
+    terms: "doeldag taper record piek opslag bonus w-accent anaerobe reserve intervals vermoeidheid durability kilojoule kj voorzichtig te laag opvullen klimmen wedstrijd",
+  },
+  {
     title: "Pacingplan voor een Zwift-wedstrijd",
     text: "Format, fiets, snelste fiets, slipstream, wegdek, start, sprint en powerups.",
     href: "/hulp/racen#pacing-zwift",

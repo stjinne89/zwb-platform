@@ -36,9 +36,12 @@ import {
   withDurabilityStaleness,
   withLayoutStaleness,
   withRideStaleness,
+  withTargetDayStaleness,
+  type PlanAssumptions,
   type Staleness,
 } from "@/lib/pacing/staleness";
 import { DURABILITY_VERSION } from "@/lib/pacing/durability";
+import { applyTargetDay, targetDayChosen } from "@/lib/pacing/target-day";
 import {
   loadHeightCm,
   loadZwiftEventContext,
@@ -82,8 +85,13 @@ export function rideFor(ctx: Loaded, setup?: unknown): RideContext | null {
   return rideContextFor(ctx.zwift, setup, ctx.rider.model.weightKg, ctx.heightCm);
 }
 
+/**
+ * `targetDay`: met of zonder opslag van de doeldag rekenen. Zonder: de keuze die
+ * bij het opgeslagen plan hoort, en zonder plan de standaard (aan).
+ */
 async function loadForUser(
   eventId: string,
+  options: { targetDay?: boolean } = {},
 ): Promise<{ ok: true; ctx: Loaded } | { ok: false; error: string }> {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
@@ -111,12 +119,25 @@ async function loadForUser(
   if (!routeResult.ok) return { ok: false, error: routeResult.message };
 
   const zwiftRoute = routeResult.loaded.route.source === "zwift";
-  const [rider, profileRow, zwift, heightCm] = await Promise.all([
+  const [measuredRider, planRow, profileRow, zwift, heightCm] = await Promise.all([
     loadRiderContext(admin, access.user.id),
+    options.targetDay === undefined
+      ? admin
+          .from("event_pacing_plans")
+          .select("assumptions")
+          .eq("event_id", eventId)
+          .eq("profile_id", access.user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
     admin.from("profiles").select("display_name").eq("id", access.user.id).maybeSingle(),
     loadZwiftEventContext(admin, eventId, routeResult.loaded.route),
     zwiftRoute ? loadHeightCm(admin, access.user.id) : Promise.resolve(null),
   ]);
+  const rider = applyTargetDay(
+    measuredRider,
+    options.targetDay ??
+      targetDayChosen((planRow.data as { assumptions?: PlanAssumptions | null } | null)?.assumptions),
+  );
 
   return {
     ok: true,
@@ -214,12 +235,13 @@ export async function loadPacingPage(
   }
 
   const ride = rideFor(ctx, plan.assumptions?.setup);
-  const staleness = withDurabilityStaleness(
+  const staleness = withTargetDayStaleness(
+    withDurabilityStaleness(
     withRideStaleness(
       withLayoutStaleness(
         checkStaleness(plan.assumptions, {
-          cpWatts: ctx.rider.model.cpWatts,
-          wPrimeJoules: ctx.rider.model.wPrimeJoules,
+          cpWatts: ctx.rider.targetDay?.baseCpWatts ?? ctx.rider.model.cpWatts,
+          wPrimeJoules: ctx.rider.targetDay?.baseWPrimeJoules ?? ctx.rider.model.wPrimeJoules,
           ftpWatts: ctx.rider.ftpWatts,
           weightKg: ctx.rider.model.weightKg,
           routeSyncedAt: ctx.loaded.routeSyncedAt,
@@ -231,6 +253,9 @@ export async function loadPacingPage(
     ),
     plan.assumptions,
     ctx.rider.durability ? DURABILITY_VERSION : null,
+    ),
+    plan.assumptions,
+    ctx.rider.targetDay?.pct ?? 0,
   );
 
   const [sharedPlans, similarRides] = await Promise.all([
@@ -374,6 +399,7 @@ export async function startPacingDraft(
       targetSeconds,
       ride: rideFor(ctx, plan?.assumptions?.setup),
       constraints: ctx.zwift?.constraints ?? null,
+      rider: ctx.rider,
     });
 
     const { generationId } = await startGeneration(ctx.admin, {

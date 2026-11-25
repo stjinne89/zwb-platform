@@ -3,6 +3,7 @@ import {
   buildDurabilityModel,
   cpAfterKj,
   MAX_FADE_FRACTION,
+  maxFadeAt,
   type FatigueCurve,
 } from "@/lib/pacing/durability";
 import { wPrimeBalance, type PowerSegment } from "@/lib/pacing/w-prime";
@@ -84,9 +85,16 @@ describe("buildDurabilityModel met de eigen beste inspanningen", () => {
   });
 
   it("houdt de gemeten afname op de kJ-drempel als niets die tegenspreekt", () => {
+    const late: FatigueCurve[] = [{ afterKj: 2000, points: curve(240) }];
+    const model = buildDurabilityModel(late, 302, { curve: BEST, wPrimeJoules: 16_000 })!;
+    expect(cpAfterKj(model, 302, 2000)).toBeCloseTo(240, 0);
+    expect(model.maxFadePct).toBeCloseTo((1 - 240 / 302) * 100, 0);
+  });
+
+  it("begrenst een afname die sneller gaat dan maxFadeAt", () => {
     const model = buildDurabilityModel(WEARY, 302, { curve: BEST, wPrimeJoules: 16_000 })!;
-    expect(cpAfterKj(model, 302, 1000)).toBeCloseTo(302 * 0.75, 0);
-    expect(model.maxFadePct).toBeCloseTo(25, 0);
+    expect(cpAfterKj(model, 302, 1000)).toBeCloseTo(302 * 0.9, 0);
+    expect(model.maxFadePct).toBeCloseTo(10, 0);
   });
 
   it("tilt de drempel op als een inspanning daar voorbij gaat", () => {
@@ -178,5 +186,23 @@ describe("wPrimeBalance met duurzaamheid", () => {
       cpAfterKj: (kj) => cpAfterKj(model, 300, kj),
     });
     expect(met.finalBalanceJ).toBeCloseTo(zonder.finalBalanceJ, 5);
+  });
+});
+
+describe("maxFadeAt", () => {
+  it("loopt van 0 via 10 % bij 1000 kJ naar het plafond bij 2000 kJ", () => {
+    expect(maxFadeAt(0)).toBe(0);
+    expect(maxFadeAt(500)).toBeCloseTo(0.05, 5);
+    expect(maxFadeAt(1000)).toBeCloseTo(0.1, 5);
+    expect(maxFadeAt(1500)).toBeCloseTo(0.175, 5);
+    expect(maxFadeAt(2000)).toBeCloseTo(MAX_FADE_FRACTION, 5);
+    expect(maxFadeAt(5000)).toBe(MAX_FADE_FRACTION);
+  });
+
+  it("laat cpAfterKj tussen twee verre ankers niet onder de grens duiken", () => {
+    const model = buildDurabilityModel([{ afterKj: 2000, points: curve(226) }], 302)!;
+    // Lineair van 1 naar 0,75 over 2000 kJ gaf op 1000 kJ 12,5 %; de grens is 10 %.
+    expect(cpAfterKj(model, 302, 1000)).toBeCloseTo(302 * 0.9, 5);
+    expect(cpAfterKj(model, 302, 2000)).toBeCloseTo(302 * 0.75, 0);
   });
 });

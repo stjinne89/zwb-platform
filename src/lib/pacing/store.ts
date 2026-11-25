@@ -241,6 +241,7 @@ export function assumptionsFor(
     routeSyncedAt,
     ...(ride ? { setup: ride.setup, rideKey: ride.key } : {}),
     ...(rider.durability ? { durabilityVersion: DURABILITY_VERSION } : {}),
+    targetDayPct: rider.targetDay?.pct ?? 0,
   });
 }
 
@@ -282,28 +283,36 @@ export async function recomputePlan(
     input.plan.segments,
     input.route,
   );
-  const startSegments = layoutChanged
-    ? carryTargetsOver(
-        input.plan.segments,
-        buildBaselinePlan({
-          route: input.route,
-          model: input.rider.model,
-          riderType: input.rider.riderType,
-          curve: input.rider.curve,
-          durability: input.rider.durability,
-          ride,
-        }).plan,
-      )
-    : input.plan.segments;
+  const freshBaseline = () =>
+    buildBaselinePlan({
+      route: input.route,
+      model: input.rider.model,
+      riderType: input.rider.riderType,
+      curve: input.rider.curve,
+      durability: input.rider.durability,
+      ride,
+    });
+
+  // Een basisvoorstel waar het lid niets aan veranderde en geen doeltijd op zette,
+  // bouwen we opnieuw op: alleen terugschalen zou het nooit hoger laten uitkomen,
+  // ook niet als CP, W′, de doeldag of het format daarom vraagt.
+  const untouchedBaseline = input.plan.source === "baseline" && !input.plan.summary?.targetTime;
 
   const { imposeFixedPieces } = await import("@/lib/pacing/plan");
-  const rebalanced = rebalancePlan(
-    imposeFixedPieces(startSegments, input.route, input.rider.model, ride),
-    input.route,
-    input.rider.model,
-    input.rider.curve,
-    { durability: input.rider.durability, ride },
-  );
+  const rebalanced = untouchedBaseline
+    ? freshBaseline()
+    : rebalancePlan(
+        imposeFixedPieces(
+          layoutChanged ? carryTargetsOver(input.plan.segments, freshBaseline().plan) : input.plan.segments,
+          input.route,
+          input.rider.model,
+          ride,
+        ),
+        input.route,
+        input.rider.model,
+        input.rider.curve,
+        { durability: input.rider.durability, ride },
+      );
   const origin = recomputedOrigin(input.plan, layoutChanged);
 
   await savePlan(admin, {

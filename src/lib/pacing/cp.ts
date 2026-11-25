@@ -15,6 +15,11 @@
 // Wetenschappelijke toets fase 5 (2026-10-16, docs/wetenschappelijke-toets.md):
 // CP uit racedata klopt op een paar watt, W′ veel minder (Spragg 2023; Karsten
 // 2013: fout ~27 %). De curve is dus een goede bron voor CP en een zwakke voor W′.
+// Sinds 2026-11-25 komt W′ daarom eerst uit intervals.icu (`icu_rolling_w_prime`
+// van de laatste rit), daarna uit profile_sport_settings, en pas dan uit de fit.
+// De fit gaf bij 28 van 29 leden een lagere W′, in de mediaan 1,61 × zo laag,
+// en in de ZRL-race van 24 november verbruikten renners die voluit reden meer dan
+// de gefitte W′. Zie docs/pacingplan-race-analyse-2026-11-25.md.
 //  4. Niets: een clubbrede schatting, afgeleid van dezelfde constanten die het
 //     rit-weer gebruikt, zodat er niet twee verschillende "gemiddelde leden"
 //     rondlopen.
@@ -31,10 +36,15 @@ export type CurvePoint = { seconds: number; watts: number };
 
 export type CpSource = "intervals" | "curve" | "ftp" | "schatting";
 
+/** Waar W′ vandaan komt; kan van de bron van CP verschillen. */
+export type WPrimeSource = "intervals" | "fit" | "aanname";
+
 export type CpModel = {
   cpWatts: number;
   wPrimeJoules: number;
   source: CpSource;
+  /** Ontbreekt bij oudere aanroepen; dan geldt de bron van CP. */
+  wPrimeSource?: WPrimeSource;
   weightKg: number;
   /** Geen gewicht bekend: `weightKg` is de clubbrede aanname, geen meting. */
   weightEstimated?: boolean;
@@ -124,6 +134,8 @@ export type CpInput = {
   storedCpWatts?: number | null;
   /** profile_sport_settings.w_prime_joules */
   storedWPrimeJoules?: number | null;
+  /** `icu_rolling_w_prime` van de laatste rit in intervals_activities. */
+  intervalsWPrimeJoules?: number | null;
   curvePoints?: CurvePoint[] | null;
   ftpWatts?: number | null;
   weightKg?: number | null;
@@ -145,19 +157,28 @@ export function resolveCpWPrime(input: CpInput): CpModel {
       cpWatts: Math.round(storedCp),
       wPrimeJoules: Math.round(storedWPrime),
       source: "intervals",
+      wPrimeSource: "intervals",
       ...weight,
     };
   }
 
+  // Een W′ van intervals.icu, los of opgeslagen, gaat vóór de fit en de aanname.
+  const measuredWPrime = plausibleWPrime(input.intervalsWPrimeJoules) ?? plausibleWPrime(storedWPrime);
+  const wPrime = (fallback: number, fallbackSource: WPrimeSource) =>
+    measuredWPrime
+      ? { wPrimeJoules: Math.round(measuredWPrime), wPrimeSource: "intervals" as const }
+      : { wPrimeJoules: Math.round(fallback), wPrimeSource: fallbackSource };
+
   const fitted = fitCpWPrime(input.curvePoints);
-  if (fitted) return { ...fitted, source: "curve", ...weight };
+  if (fitted) {
+    return { cpWatts: fitted.cpWatts, ...wPrime(fitted.wPrimeJoules, "fit"), source: "curve", ...weight };
+  }
 
   const ftp = finite(input.ftpWatts);
   if (ftp) {
     return {
       cpWatts: Math.round(ftp * CP_FTP_FRACTION),
-      // Een los opgeslagen W′ zonder CP is nog steeds beter dan de aanname.
-      wPrimeJoules: Math.round(storedWPrime ?? DEFAULT_W_PRIME_J),
+      ...wPrime(DEFAULT_W_PRIME_J, "aanname"),
       source: "ftp",
       ...weight,
     };
@@ -168,10 +189,16 @@ export function resolveCpWPrime(input: CpInput): CpModel {
   const estimatedFtp = (FALLBACK_WKG / ENDURANCE_FTP_FRACTION) * weightKg;
   return {
     cpWatts: Math.round(estimatedFtp * CP_FTP_FRACTION),
-    wPrimeJoules: Math.round(storedWPrime ?? DEFAULT_W_PRIME_J),
+    ...wPrime(DEFAULT_W_PRIME_J, "aanname"),
     source: "schatting",
     ...weight,
   };
+}
+
+/** Binnen de grenzen van de fit, anders liever een bron lager. */
+function plausibleWPrime(value: unknown): number | null {
+  const n = finite(value);
+  return n !== null && n >= MIN_W_PRIME_J && n <= MAX_W_PRIME_J ? n : null;
 }
 
 export const CP_SOURCE_LABELS: Record<CpSource, string> = {

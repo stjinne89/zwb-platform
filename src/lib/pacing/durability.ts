@@ -1,8 +1,11 @@
 // Duurzaamheid: je CP na tweeduizend kilojoule is niet je CP bij de start.
 //
-// Voor een Zwift-race van een uur maakt dat weinig uit. Voor een Gran Fondo is
-// het het verschil tussen een plan dat klopt en een plan dat je op driekwart
-// laat ontploffen — precies het moment waarop de meeste ritten mislukken.
+// Voor een Gran Fondo is het het verschil tussen een plan dat klopt en een plan
+// dat je op driekwart laat ontploffen, precies het moment waarop de meeste ritten
+// mislukken. Ook een Zwift-race van ruim een uur haalt 1000 kJ. Tot 2026-11-25
+// stond hier dat het daar weinig uitmaakt, maar in de ZRL-race van 24 november
+// verbruikten plannen 90–95 % van de reserve met elke klim onder CP, alleen door
+// deze correctie. Sindsdien is de afname per kJ begrensd (maxFadeAt).
 //
 // De data ligt er al: `rider_power_profiles.curve_points_fatigue` bewaart per
 // kJ-drempel een eigen vermogenscurve (intervals.icu levert `after_kj0` en
@@ -45,11 +48,34 @@ export type DurabilityModel = {
 export const MAX_FADE_FRACTION = 0.25;
 
 /**
+ * De grootste afname die we bij een gegeven hoeveelheid werk accepteren. Na
+ * 1000 kJ verloren amateurs 6,5–12,5 % op 20 minuten (Barsumyan 2025); 10 % zit
+ * daartussen. Daarna oplopend tot het plafond van 25 % bij 2000 kJ. Een curve "na
+ * 1000 kJ" is het beste dat iemand daarna toevallig reed, en bij wie zelden lang
+ * en hard rijdt valt die laag uit.
+ */
+const FADE_LIMITS: Array<{ kj: number; fade: number }> = [
+  { kj: 0, fade: 0 },
+  { kj: 1000, fade: 0.1 },
+  { kj: 2000, fade: MAX_FADE_FRACTION },
+];
+
+export function maxFadeAt(kj: number): number {
+  if (!(kj > 0)) return 0;
+  for (let i = 1; i < FADE_LIMITS.length; i++) {
+    const a = FADE_LIMITS[i - 1];
+    const b = FADE_LIMITS[i];
+    if (kj <= b.kj) return a.fade + ((b.fade - a.fade) * (kj - a.kj)) / (b.kj - a.kj);
+  }
+  return MAX_FADE_FRACTION;
+}
+
+/**
  * Versie van deze berekening, bewaard bij elk plan. Een plan met een oudere
  * versie meldt zich één keer als verouderd. Versie 2: 2026-11-23, begrensd op de
- * eigen beste inspanningen.
+ * eigen beste inspanningen. Versie 3: 2026-11-25, begrensd per kJ (maxFadeAt).
  */
-export const DURABILITY_VERSION = 2;
+export const DURABILITY_VERSION = 3;
 
 /** De verse vermogenscurve en W′ van het lid: wat het aantoonbaar gereden heeft. */
 export type MeasuredEfforts = {
@@ -94,7 +120,9 @@ export function buildDurabilityModel(
     anchors[i].factor = Math.min(anchors[i].factor, anchors[i - 1].factor);
   }
 
-  const lifted = measured ? liftToMeasuredEfforts(anchors, baseCpWatts, measured) : anchors;
+  const lifted = (measured ? liftToMeasuredEfforts(anchors, baseCpWatts, measured) : anchors).map(
+    (anchor) => ({ kj: anchor.kj, factor: Math.max(anchor.factor, 1 - maxFadeAt(anchor.kj)) }),
+  );
   const lowest = lifted[lifted.length - 1].factor;
   return { anchors: lifted, maxFadePct: (1 - lowest) * 100 };
 }
@@ -166,7 +194,8 @@ function liftToMeasuredEfforts(
 /**
  * CP na `kj` kilojoule werk. Lineair tussen de ankerpunten; voorbij het laatste
  * ankerpunt blijft de afname staan in plaats van door te lopen — extrapoleren
- * op twee meetpunten is raden.
+ * op twee meetpunten is raden. Nooit meer afname dan maxFadeAt: tussen twee
+ * ankers ver uit elkaar zou de lijn er anders onder duiken.
  */
 export function cpAfterKj(
   model: DurabilityModel | null,
@@ -174,8 +203,14 @@ export function cpAfterKj(
   kj: number,
 ): number {
   if (!model || model.anchors.length === 0) return baseCpWatts;
-  const { anchors } = model;
+  return Math.max(interpolatedCp(model.anchors, baseCpWatts, kj), baseCpWatts * (1 - maxFadeAt(kj)));
+}
 
+function interpolatedCp(
+  anchors: DurabilityModel["anchors"],
+  baseCpWatts: number,
+  kj: number,
+): number {
   if (kj <= anchors[0].kj) return baseCpWatts * anchors[0].factor;
   const last = anchors[anchors.length - 1];
   if (kj >= last.kj) return baseCpWatts * last.factor;

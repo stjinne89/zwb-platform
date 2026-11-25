@@ -93,6 +93,37 @@ describe("resolveCpWPrime", () => {
     expect(model.wPrimeJoules).toBe(25_000);
   });
 
+  it("neemt W′ van intervals.icu boven de fit, CP uit de curve", () => {
+    const model = resolveCpWPrime({
+      intervalsWPrimeJoules: 24_500,
+      curvePoints: syntheticCurve(280, 14_000, [180, 300, 600, 1200]),
+      weightKg: 72,
+    });
+    expect(model).toMatchObject({
+      cpWatts: 280,
+      wPrimeJoules: 24_500,
+      source: "curve",
+      wPrimeSource: "intervals",
+    });
+  });
+
+  it("gebruikt de gefitte W′ als intervals er geen geloofwaardige heeft", () => {
+    for (const intervalsWPrimeJoules of [null, 0, 2_000, 80_000]) {
+      const model = resolveCpWPrime({
+        intervalsWPrimeJoules,
+        curvePoints: syntheticCurve(280, 14_000, [180, 300, 600, 1200]),
+        weightKg: 72,
+      });
+      expect(model.wPrimeJoules).toBe(14_000);
+      expect(model.wPrimeSource).toBe("fit");
+    }
+  });
+
+  it("neemt W′ van intervals.icu ook bij de FTP-terugval", () => {
+    const model = resolveCpWPrime({ ftpWatts: 300, intervalsWPrimeJoules: 21_000, weightKg: 72 });
+    expect(model).toMatchObject({ source: "ftp", wPrimeJoules: 21_000, wPrimeSource: "intervals" });
+  });
+
   it("levert ook zonder enige data een bruikbaar model", () => {
     const model = resolveCpWPrime({});
     expect(model.source).toBe("schatting");

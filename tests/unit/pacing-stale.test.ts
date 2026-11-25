@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAssumptions,
   checkStaleness,
+  withTargetDayStaleness,
   type PlanAssumptions,
 } from "@/lib/pacing/staleness";
 
@@ -88,5 +89,23 @@ describe("checkStaleness", () => {
 
   it("noemt een plan zonder aannames niet verouderd", () => {
     expect(checkStaleness(null, BASE).stale).toBe(false);
+  });
+});
+
+describe("doeldag", () => {
+  const withBonus = buildAssumptions({ ...BASE, cpWatts: 288, wPrimeJoules: 20_600, targetDayPct: 3 });
+
+  it("vergelijkt CP en W′ zonder de opslag", () => {
+    expect(checkStaleness(withBonus, BASE).stale).toBe(false);
+    const result = checkStaleness(withBonus, { ...BASE, cpWatts: 290 });
+    expect(result.reasons).toEqual(["cp"]);
+    expect(result.messages[0]).toContain("rekende met 280 W");
+  });
+
+  it("meldt een plan van vóór de doeldag één keer", () => {
+    expect(withTargetDayStaleness({ stale: false, reasons: [], messages: [] }, ASSUMPTIONS, 3).reasons).toEqual(["doeldag"]);
+    expect(withTargetDayStaleness({ stale: false, reasons: [], messages: [] }, withBonus, 3).stale).toBe(false);
+    const off = buildAssumptions({ ...BASE, targetDayPct: 0 });
+    expect(withTargetDayStaleness({ stale: false, reasons: [], messages: [] }, off, 0).stale).toBe(false);
   });
 });

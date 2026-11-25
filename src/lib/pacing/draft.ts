@@ -29,6 +29,7 @@ import type { PacingEventRow } from "@/lib/pacing/route-loader";
 import { RACE_RESERVE_FRACTION, raceFixedRanges } from "@/lib/pacing/plan";
 import type { RideContext } from "@/lib/pacing/ride-context";
 import type { EventConstraints } from "@/lib/pacing/zwift-setup";
+import type { TargetDay } from "@/lib/pacing/target-day";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -39,7 +40,12 @@ export type RiderContext = {
   curve: CurvePoint[] | null;
   riderType: RiderType;
   ftpWatts: number | null;
+  /** Gezet als de opslag van de doeldag erop ligt; zie target-day.ts. */
+  targetDay?: TargetDay | null;
 };
+
+/** Een W′ van een rit die ouder is, zegt weinig meer; zelfde venster als de sync. */
+const W_PRIME_LOOKBACK_DAYS = 120;
 
 function num(value: unknown): number | null {
   const parsed = Number(value);
@@ -54,7 +60,8 @@ export async function loadRiderContext(
   admin: Admin,
   profileId: string,
 ): Promise<RiderContext> {
-  const [powerRow, settingsRow, profileRow] = await Promise.all([
+  const wPrimeSince = new Date(Date.now() - W_PRIME_LOOKBACK_DAYS * 86400_000).toISOString().slice(0, 10);
+  const [powerRow, settingsRow, profileRow, wPrimeRow] = await Promise.all([
     admin
       .from("rider_power_profiles")
       .select(
@@ -71,6 +78,16 @@ export async function loadRiderContext(
       .from("profiles")
       .select("weight_kg, ftp_watts")
       .eq("id", profileId)
+      .maybeSingle(),
+    // De W′ die intervals.icu bij de laatste rit bijhield; zie cp.ts.
+    admin
+      .from("intervals_activities")
+      .select("w_prime:raw->>icu_rolling_w_prime")
+      .eq("profile_id", profileId)
+      .gte("start_date_local", wPrimeSince)
+      .not("raw->>icu_rolling_w_prime", "is", null)
+      .order("start_date_local", { ascending: false })
+      .limit(1)
       .maybeSingle(),
   ]);
 
@@ -92,6 +109,7 @@ export async function loadRiderContext(
   const model = resolveCpWPrime({
     storedCpWatts: num(settings.cp_watts),
     storedWPrimeJoules: num(settings.w_prime_joules),
+    intervalsWPrimeJoules: num((wPrimeRow.data as { w_prime?: unknown } | null)?.w_prime),
     curvePoints: curve,
     ftpWatts,
     weightKg,
@@ -252,12 +270,14 @@ export async function buildPacingContext(
     /** Zwift: de opzet van het lid en de regels van het event. */
     ride?: RideContext | null;
     constraints?: EventConstraints | null;
+    /** Al geladen, met of zonder doeldag; anders hier gelezen. */
+    rider?: RiderContext;
   },
 ): Promise<PacingContext> {
   const { route, event } = options;
 
   const [rider, rides, form] = await Promise.all([
-    loadRiderContext(admin, options.profileId),
+    options.rider ?? loadRiderContext(admin, options.profileId),
     loadRideHistory(admin, options.profileId),
     buildIntervalsLoad(admin, options.profileId),
   ]);

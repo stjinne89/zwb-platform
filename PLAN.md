@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Pacingplan na ZRL R2 W2 (2026-11-25): de commit die dit blok
+   toevoegt, niet gepusht, geen migratie.** Voorstel 1 tot en met 4 uit
+   [het onderzoek](docs/pacingplan-race-analyse-2026-11-25.md): W′ uit
+   intervals.icu, vermoeidheid begrensd per kJ, klimmen opvullen in een
+   Zwift-wedstrijd, en de doeldag. Open: in de browser bekijken. Zie de ronde
+   met dezelfde naam.
+
 0. **Gebouwd — WTRL-import vanaf de eigen pc (2026-11-25): commit `5cc0cc2b`,
    op 2026-11-25 gepusht naar `main` (eigenaar: secret "staat op netlify en in
    de env. local").** Migratie `0361_wtrl_import` op 2026-11-25 op productie toegepast
@@ -12938,6 +12945,74 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Pacingplan na ZRL R2 W2: te voorzichtig voor wie voluit rijdt
+
+**2026-11-25, de commit die dit blok toevoegt. Niet gepusht, geen migratie.**
+Leden reden in de scratchrace van 24 november voluit en vonden het plan te
+voorzichtig. De 13 plannen voor die race zijn naast vijf racebestanden gelegd en
+met dezelfde rekenkern opnieuw doorgerekend. Daarna koos de eigenaar: "build 1
+to 4". Details en cijfers:
+[docs/pacingplan-race-analyse-2026-11-25.md](docs/pacingplan-race-analyse-2026-11-25.md).
+
+- **Bevinding.** Drie renners die voluit reden, reden de hoofdklim op 103–112 %
+  van CP. Het plan zei 89–97 %. Twee anderen reden onder of rond hun plan.
+- **Oorzaken.** De gefitte W′ ligt bij 28 van 29 leden lager dan die van
+  intervals.icu (mediaan 1,61 ×), terwijl CP overeenkomt. De
+  vermoeidheidscorrectie haalde bij sommige leden 11–16 % CP af na 1000 kJ.
+  `rebalancePlan` schaalt alleen omlaag: 17 van de 42 wedstrijdplannen
+  gebruikten minder dan 60 % van de reserve.
+- **1. W′ uit intervals.icu** (`cp.ts`, `draft.ts`). `resolveCpWPrime` neemt
+  `icu_rolling_w_prime` van de laatste rit in 120 dagen, daarna
+  `profile_sport_settings.w_prime_joules`, en pas dan de fit. Alleen tussen 5
+  en 50 kJ. CP blijft uit de eigen bron. Nieuw veld `CpModel.wPrimeSource`; de
+  pacingpagina toont "W′ uit intervals.icu" als CP uit een andere bron komt.
+- **2. Vermoeidheid begrensd per kJ** (`durability.ts`). `maxFadeAt`: 0 % bij 0
+  kJ, 10 % bij 1000 kJ, 25 % bij 2000 kJ, lineair daartussen. Geldt op de
+  ankers en tussen de ankers, zodat een lijn naar een ver anker er niet onder
+  duikt. 10 % ligt in de 6,5–12,5 % na 1000 kJ uit Barsumyan 2025.
+  `DURABILITY_VERSION` 3: bestaande plannen met vermoeidheid melden zich één
+  keer als verouderd.
+- **3. Klimmen opvullen in een Zwift-wedstrijd** (`baseline.ts`,
+  `fillRaceAccents`). Alleen het basisvoorstel en alleen bij format
+  "Wedstrijd". Een binaire zoektocht (acht stappen, factor 1 tot 1,5) op de
+  accenten, tot de reserve vóór de sprint op 80 % zakt; zonder sprint over de
+  hele rit. Een factor telt alleen als `rebalancePlan` niets hoeft terug te
+  schalen, want dat schaalt in stappen te ver door en maakte de zoektocht
+  grillig. Het plafond uit de gemeten curve blijft gelden. `recomputePlan`
+  bouwt een basisvoorstel zonder doeltijd sindsdien opnieuw op in plaats van
+  het alleen terug te schalen.
+- **4. Doeldag** (`target-day.ts`). Een vinkje "Doeldag (+3 %)" op de
+  pacingpagina, standaard aan. Legt 3 % op CP, W′ en de gemeten curve. De keuze
+  staat in `assumptions.targetDayPct` (0 is uit); daar is geen migratie voor
+  nodig, `assumptions` is jsonb. `checkStaleness` vergelijkt zonder opslag. Een
+  plan van vóór vandaag meldt zich één keer met reden "doeldag". De AI krijgt
+  dezelfde renner mee (`buildPacingContext` met `rider`). Uitleg op
+  `/hulp/racen#pacing-doeldag`.
+- **Bewust niet gebouwd.** Meer watt op de tussenstukken (in de groep bepaalt de
+  groep het tempo). Opvullen bij een AI- of eigen verdeling: die blijft van de AI
+  of het lid. Een eigen percentage per lid, of de opslag afleiden uit de vorm
+  (die hing in de clubdata niet samen met records). De doeldag in de
+  doelvoorspelling van het trainingsschema (`goal-forecast.ts`): die rekent met
+  wat je nu kunt. De slipstream bijstellen: dat kan pas met streams en
+  officiële rittijden.
+- **Niet meer waar.** Het commentaar in `durability.ts` dat de correctie voor een
+  Zwift-race van een uur weinig uitmaakt, is herschreven. De regel in de ronde
+  van 2026-11-23 dat W′ uit intervals ongebruikt blijft, is bijgewerkt.
+- **Gevolg voor bestaande plannen.** Veel plannen melden zich na deze ronde één
+  keer als verouderd: om de W′, de vermoeidheidsversie of de doeldag. Er wordt
+  niets stil herberekend; het lid drukt zelf op de knop.
+- **Gecontroleerd.** Vitest op `tests/unit/pacing-*` (nieuw:
+  `pacing-target-day.test.ts`, en tests voor `maxFadeAt`, W′ uit intervals,
+  het opvullen en de doeldag in verouderd), de hulptests, `tsc --noEmit` en
+  ESLint op de gewijzigde mappen. De volledige run had daarnaast één falende
+  test, "beheer noemt ZWB niet" in `club-texts-render.test.ts`, in een deel van
+  `/hulp` dat deze ronde niet raakt.
+- **Niet geverifieerd.** Niet in de browser bekeken. De effecten op echte leden
+  zijn geschat in het onderzoek (de hoofdklim op 101–108 % van CP met doeldag),
+  niet opnieuw doorgerekend met de gebouwde code. Het onderzoek steunt op vijf
+  racebestanden; de klimwaarden komen uit de records van intervals.icu, niet uit
+  streams.
+
 ### Bijgesteld — Club Ladder: teamtegels op positie
 
 **2026-11-25, commit `1cc4f778`, op 2026-11-25 gepusht naar `main` (eigenaar:
@@ -13980,8 +14055,10 @@ en 63 plannen. De eigenaar koos drie van de vier bevindingen om te herstellen.
   nieuwe 11.
 - **Bewust niet gebouwd.** De startfracties voor lange ritten blijven staan: het model
   plant 68 % van CP op 5 uur tegen een gemeten mediaan van 55 %, maar dat kan deels
-  seizoen zijn en de eigenaar vroeg er niet om. W′ uit intervals blijft ongebruikt
-  (5 leden, 24–66 % hoger dan de fit), omdat niet vaststaat welke waarde beter is. Het
+  seizoen zijn en de eigenaar vroeg er niet om. W′ uit intervals bleef toen
+  ongebruikt (5 leden, 24–66 % hoger dan de fit), omdat niet vaststond welke waarde
+  beter is. Sinds 2026-11-25 wordt hij wel gebruikt: zie de ronde "Gebouwd —
+  Pacingplan na ZRL R2 W2". Het
   gewicht wordt niet automatisch ingevuld, omdat dat een aanname zou blijven. Geen
   backfill-migratie: pacing leest `raw` en de sync vult de laatste 120 dagen.
 - **Gecontroleerd.** Typecheck, ESLint op de gewijzigde bestanden, `next build`

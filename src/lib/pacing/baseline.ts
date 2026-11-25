@@ -13,13 +13,18 @@
 import type { RiderType } from "@/lib/teams/power-profile";
 import type { CpModel, CurvePoint } from "@/lib/pacing/cp";
 import type { DurabilityModel } from "@/lib/pacing/durability";
-import type { PacingAccent, PacingRoute } from "@/lib/pacing/route-profile";
+import { segmentEndKms, type PacingAccent, type PacingRoute } from "@/lib/pacing/route-profile";
 import type { RidePhysics } from "@/lib/pacing/zwift-setup";
 import {
+  clampPlan,
   evaluatePlan,
   imposeFixedPieces,
+  isFixedPiece,
+  RACE_RESERVE_FRACTION,
   rebalancePlan,
+  type EvaluateOptions,
   type PlanEffort,
+  type PlanEvaluation,
   type PlanSegment,
   type RebalanceResult,
 } from "@/lib/pacing/plan";
@@ -330,7 +335,106 @@ export function buildBaselinePlan(input: BaselineInput): RebalanceResult {
   const probe = evaluatePlan(draft(1), route, model, options);
   const fraction = durationIntensityFraction(probe.totalSeconds);
 
-  return rebalancePlan(draft(fraction), route, model, input.curve, options);
+  const balanced = rebalancePlan(draft(fraction), route, model, input.curve, options);
+  return input.ride?.format === "race"
+    ? fillRaceAccents(balanced, route, model, input.curve, options)
+    : balanced;
+}
+
+/** Tot hier mag een wedstrijdplan de reserve vóór de finale gebruiken. */
+export const RACE_FILL_DRAW_PCT = (1 - RACE_RESERVE_FRACTION) * 100;
+const FILL_MAX_FACTOR = 1.5;
+const FILL_STEPS = 8;
+/** Minder opslag dan dit is afronding, geen andere verdeling. */
+const FILL_MIN_FACTOR = 1.01;
+
+/**
+ * Hoe diep de reserve zakt vóór de finale. Met een sprint is dat tot het begin
+ * van de sprint, want daar mag hij op; zonder sprint (finish op een klim) over
+ * de hele rit.
+ */
+export function drawBeforeFinalePct(
+  evaluation: PlanEvaluation,
+  plan: PlanSegment[],
+  route: PacingRoute,
+  wPrimeJoules: number,
+): number {
+  const sprint = plan.find((piece) => piece.kind === "sprint");
+  if (!sprint || wPrimeJoules <= 0) return evaluation.deepestDrawPct;
+  const endKms = segmentEndKms(route.segments);
+  let lowest = wPrimeJoules;
+  evaluation.wPrime.balanceBySegment.forEach((balance, index) => {
+    if (endKms[index] <= sprint.startKm + 1e-9) lowest = Math.min(lowest, balance);
+  });
+  return ((wPrimeJoules - lowest) / wPrimeJoules) * 100;
+}
+
+/**
+ * Een Zwift-wedstrijd: hoog de accenten op tot de reserve vóór de finale op
+ * RACE_FILL_DRAW_PCT zakt. rebalancePlan schaalt alleen terug; zonder deze stap
+ * hield 17 van de 42 wedstrijdplannen meer dan 40 % reserve over (ZRL R2 W2,
+ * 2026-11-25). Alleen het basisvoorstel: een eigen of AI-verdeling blijft van
+ * het lid of de AI. Tussenstukken blijven staan; in de groep bepaalt de groep
+ * daar het tempo.
+ */
+export function fillRaceAccents(
+  base: RebalanceResult,
+  route: PacingRoute,
+  model: CpModel,
+  curve: CurvePoint[] | null | undefined,
+  options: EvaluateOptions,
+): RebalanceResult {
+  const fits = (result: RebalanceResult) =>
+    result.evaluation.feasible &&
+    drawBeforeFinalePct(result.evaluation, result.plan, route, model.wPrimeJoules) <= RACE_FILL_DRAW_PCT;
+  if (!fits(base) || !base.plan.some((piece) => piece.accentId && !isFixedPiece(piece))) return base;
+
+  // Een opslag past als rebalancePlan de stukken niet hoeft terug te schalen.
+  // Laat hem dat wel doen, dan schiet hij in stappen van 15 % van het overschot
+  // te ver door, en is "meer opslag" niet meer "diepere reserve".
+  const scaled = (factor: number): RebalanceResult | null => {
+    const plan = base.plan.map((piece) =>
+      piece.accentId && !isFixedPiece(piece)
+        ? { ...piece, targetWkg: Math.round(piece.targetWkg * factor * 100) / 100 }
+        : piece,
+    );
+    const clamped = clampPlan(plan, route, model, curve, options).plan;
+    const result = rebalancePlan(plan, route, model, curve, options);
+    const trimmed = result.plan.some(
+      (piece, index) => !isFixedPiece(piece) && piece.targetWkg < clamped[index].targetWkg - 1e-9,
+    );
+    return trimmed ? null : result;
+  };
+
+  // Meer opslag trekt de reserve dieper; zoek de grootste die nog past.
+  let low = 1;
+  let best: RebalanceResult | null = null;
+  let high = FILL_MAX_FACTOR;
+  for (let step = 0; step < FILL_STEPS; step++) {
+    const factor = (low + high) / 2;
+    const result = scaled(factor);
+    if (result && fits(result)) {
+      low = factor;
+      best = result;
+    } else {
+      high = factor;
+    }
+  }
+  if (!best || low < FILL_MIN_FACTOR) return base;
+
+  const cpWkg = model.cpWatts / model.weightKg;
+  const plan = best.plan.map((piece) =>
+    piece.accentId && !isFixedPiece(piece) ? { ...piece, effort: effortFor(piece.targetWkg, cpWkg) } : piece,
+  );
+  return {
+    ...best,
+    plan,
+    clampNotes: base.clampNotes,
+    adjustments: [
+      ...base.adjustments.filter((line) => !line.startsWith("De pieken zijn teruggeschaald")),
+      `De klimmen zijn opgehoogd tot je ${Math.round(RACE_RESERVE_FRACTION * 100)} % reserve overhoudt voor de finale.`,
+    ],
+  };
 }
 
 function partLabel(index: number, total: number): string {

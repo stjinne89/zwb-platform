@@ -304,6 +304,29 @@ export function RacenHelp() {
           </article>
 
           <article
+            id="pacing-doeldag"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Doeldag en reserve</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Je CP, je W′ en je vermogenscurve komen uit wat je de afgelopen
+              maanden reed, meestal niet uitgerust. Een plan voor een doel mag
+              daar iets boven: met Doeldag aan rekent het met 3% meer CP en W′, en
+              mag het ook 3% boven je beste waarden per duur. Dat is ongeveer wat
+              leden in clubraces boven hun eFTP uitkwamen als ze een record
+              reden. Plan je een gewone rit, zet Doeldag dan uit.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Je W′ komt van intervals.icu als die hem heeft, anders uit je
+              vermogenscurve. Na veel werk zakt je drempel volgens je
+              vermoeidheidscurves, maar nooit meer dan 10% na 1000 kJ en 25% na
+              2000 kJ. In een Zwift-wedstrijd zet het basisvoorstel de klimmen zo
+              hoog dat je vóór de sprint 20% van je W′ overhoudt. Wil je meer
+              bewaren, zet de klimmen dan zelf lager.
+            </p>
+          </article>
+
+          <article
             id="pacing-eindtijd"
             className="scroll-mt-20 rounded-md border bg-background p-4"
           >

@@ -196,24 +196,26 @@ describe("rebalancePlan", () => {
   });
 
   it("schaalt ook terug onder de verse CP als de vermoeide CP lager ligt", () => {
+    // Sinds 2026-11-25 begrensd op 10 % na 1000 kJ (maxFadeAt): een rit van een
+    // uur, niet een kwartier, om onder de verse CP leeg te lopen.
     const tired = {
       anchors: [
         { kj: 0, factor: 1 },
-        { kj: 300, factor: 0.8 },
+        { kj: 1000, factor: 0.85 },
       ],
-      maxFadePct: 20,
+      maxFadePct: 15,
     };
     const cpWkg = MODEL.cpWatts / MODEL.weightKg;
     const plan: PlanSegment[] = [
-      { startKm: 0, endKm: 10, targetWkg: Math.round(cpWkg * 98) / 100, label: "Vol", effort: "drempel" },
+      { startKm: 0, endKm: 40, targetWkg: Math.round(cpWkg * 98) / 100, label: "Vol", effort: "drempel" },
     ];
     const options = { durability: tired };
 
-    expect(evaluatePlan(plan, route(), MODEL, options).feasible).toBe(false);
-    const after = rebalancePlan(plan, route(), MODEL, null, options);
+    expect(evaluatePlan(plan, route(4), MODEL, options).feasible).toBe(false);
+    const after = rebalancePlan(plan, route(4), MODEL, null, options);
     expect(after.plan[0].targetWkg).toBeLessThan(plan[0].targetWkg);
     expect(after.evaluation.deepestDrawPct).toBeLessThan(
-      evaluatePlan(plan, route(), MODEL, options).deepestDrawPct + 1e-9,
+      evaluatePlan(plan, route(4), MODEL, options).deepestDrawPct + 1e-9,
     );
   });
 
