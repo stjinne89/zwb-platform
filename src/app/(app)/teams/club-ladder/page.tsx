@@ -12,6 +12,7 @@ import { LadderCaptains } from "./_components/ladder-captains";
 import { LadderPoolAdd } from "./_components/ladder-pool-add";
 import { LadderPuzzle } from "./_components/ladder-puzzle";
 import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
+import { compareLadderTeams } from "@/lib/club-ladder/team-order";
 import { getRequestAccess } from "@/lib/auth/request";
 import {
   latestResultFor,
@@ -64,14 +65,14 @@ export default async function ClubLadderPage({
   // Zelfde recht als syncResultsNow; met alleen manage_results faalde de knop.
   const canSync = access.has("teams.sync_sources");
   const firstTeam = teamRows.find((team) => !team.is_graveyard) ?? teamRows[0] ?? null;
-  // Tegels op ladderpositie (hoogste eerst); zonder positie en archief achteraan.
+  // Tegels op ladderpositie, net als het teamoverzicht op /teams.
   const teamTiles = teamRows
     .map((team) => ({ team, result: latestResultFor(team.id, resultRows) }))
-    .sort(
-      (a, b) =>
-        Number(Boolean(a.team.is_graveyard)) - Number(Boolean(b.team.is_graveyard)) ||
-        (a.result?.position ?? Infinity) - (b.result?.position ?? Infinity) ||
-        a.team.name.localeCompare(b.team.name, "nl"),
+    .sort((a, b) =>
+      compareLadderTeams(
+        { name: a.team.name, archived: a.team.is_graveyard, position: a.result?.position },
+        { name: b.team.name, archived: b.team.is_graveyard, position: b.result?.position },
+      ),
     );
 
   return (

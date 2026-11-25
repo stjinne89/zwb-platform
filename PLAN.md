@@ -18,9 +18,11 @@ gaat stabiliteit voor nieuwe features.
    2026-11-25 vier keer; tegenstanders koppelen (zie de ronde). Zie de ronde
    "Gebouwd — WTRL-import vanaf de eigen pc".
 
-0. **Bijgesteld — Club Ladder: teamtegels op positie (2026-11-25): op
-   2026-11-25 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie. Open: na de deploy de volgorde
-   op `/teams/club-ladder` bekijken. Zie de ronde met dezelfde naam.
+0. **Bijgesteld — Club Ladder: teamtegels op positie (2026-11-25): tegels op
+   `/teams/club-ladder` in commit `1cc4f778`, gepusht naar `main` (eigenaar:
+   "Ja, push"); dezelfde volgorde in het teamoverzicht op `/teams` ook op
+   2026-11-25 gepusht (eigenaar: "Push main").** Geen migratie. Open: na de deploy de volgorde op
+   beide pagina's bekijken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — WTRL-uitslag leidend in het ZRL-overzicht (2026-11-25): commits
    `673e5481` en `5a5c59e4`, gepusht naar `main` (eigenaar: "Yes, push").** Plaats en beker in het hoofdevent, de "Teamresultaten" op de
@@ -12938,8 +12940,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Bijgesteld — Club Ladder: teamtegels op positie
 
-**2026-11-25, de commit die dit blok toevoegt, op 2026-11-25 gepusht naar `main`
-(eigenaar: "Ja, push"). Geen migratie.**
+**2026-11-25, commit `1cc4f778`, op 2026-11-25 gepusht naar `main` (eigenaar:
+"Ja, push"). Vervolg voor `/teams` in de commit die dat vervolg hieronder
+toevoegt, op 2026-11-25 gepusht naar `main` (eigenaar: "Push main"). Geen
+migratie.**
 
 - **Waarom.** Vraag van de eigenaar: de teamtegels bovenaan `/teams/club-ladder`
   op ladderpositie in plaats van op alfabet.
@@ -12947,7 +12951,13 @@ link naar `/live/[eventId]`, zie de update hierboven).
   zonder positie daarna, archiefteams altijd achteraan; bij gelijke stand op
   naam. Alleen de tegels: `loadLadderTeams` blijft op naam, zodat de puzzel,
   de captainkeuze en het eerste team (`firstTeam`) niet verschuiven.
-- **Niet geverifieerd.** Alleen `tsc` en ESLint; niet in de browser bekeken.
+- **Vervolg: ook op `/teams`.** Vraag van de eigenaar: dezelfde volgorde in het
+  teamoverzicht. De Ladder-teams daar volgen nu dezelfde regel; de regel staat
+  in `compareLadderTeams` (`src/lib/club-ladder/team-order.ts`), die beide
+  pagina's gebruiken. De andere teamtypes blijven op naam. De teamfilter in de
+  rennerstabel blijft ook op naam.
+- **Niet geverifieerd.** `tsc`, ESLint en `club-ladder-team-order.test.ts`;
+  geen van beide pagina's in de browser bekeken.
 
 ### Gebouwd — WTRL-uitslag leidend in het ZRL-overzicht
 

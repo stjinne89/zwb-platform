@@ -19,6 +19,7 @@ import {
 } from "./_components/team-roster-table";
 import { getRequestAccess } from "@/lib/auth/request";
 import { teamHref } from "@/lib/teams/href";
+import { compareLadderTeams } from "@/lib/club-ladder/team-order";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -39,6 +40,7 @@ type TeamRow = {
   type: string;
   division: string | null;
   parent_team_id: string | null;
+  is_graveyard?: boolean | null;
 };
 
 type TeamMemberRow = {
@@ -132,6 +134,7 @@ export default async function TeamsPage() {
     { data: teams },
     { data: teamMembers },
     { data: powerRows },
+    { data: ladderResults },
   ] = await Promise.all([
     getRequestAccess(),
     supabase
@@ -142,7 +145,7 @@ export default async function TeamsPage() {
       .order("display_name"),
     supabase
       .from("teams")
-      .select("id, name, type, division, parent_team_id")
+      .select("id, name, type, division, parent_team_id, is_graveyard")
       .order("type")
       .order("name"),
     admin
@@ -153,6 +156,11 @@ export default async function TeamsPage() {
       .select(
         `profile_id, rider_type, sync_status, synced_at, ftp_watts, ftp_wkg, watts_15s, watts_30s, watts_1m, watts_2m, watts_5m, watts_10m, watts_20m, wkg_15s, wkg_30s, wkg_1m, wkg_2m, wkg_5m, wkg_10m, wkg_20m${powerScope === "indoor" ? ", indoor_profile" : ""}`,
       ),
+    supabase
+      .from("team_results")
+      .select("team_id, position")
+      .eq("competition", "Club Ladder")
+      .order("synced_at", { ascending: false, nullsFirst: false }),
   ]);
 
   const teamOptions: TeamOption[] = ((teams ?? []) as TeamRow[]).map((team) => ({
@@ -162,6 +170,14 @@ export default async function TeamsPage() {
     parentTeamId: team.parent_team_id,
   }));
   const parentTeamOptions = teamOptions.filter((team) => !team.parentTeamId);
+  // Ladderteams op positie, zoals de tegels op /teams/club-ladder.
+  const ladderPosition = new Map<string, number | null>();
+  for (const result of (ladderResults ?? []) as Array<{ team_id: string; position: number | null }>) {
+    if (!ladderPosition.has(result.team_id)) ladderPosition.set(result.team_id, result.position);
+  }
+  const archivedTeams = new Set(
+    ((teams ?? []) as TeamRow[]).filter((team) => team.is_graveyard).map((team) => team.id),
+  );
   const parentTeamsByType = new Map<string, TeamOption[]>();
   for (const team of parentTeamOptions) {
     parentTeamsByType.set(team.type, [
@@ -169,6 +185,12 @@ export default async function TeamsPage() {
       team,
     ]);
   }
+  parentTeamsByType.get("ladder")?.sort((a, b) =>
+    compareLadderTeams(
+      { name: a.name, archived: archivedTeams.has(a.id), position: ladderPosition.get(a.id) },
+      { name: b.name, archived: archivedTeams.has(b.id), position: ladderPosition.get(b.id) },
+    ),
+  );
   const orderedTeamTypes = [
     ...TEAM_TYPE_ORDER.filter((type) => parentTeamsByType.has(type)),
     ...Array.from(parentTeamsByType.keys()).filter(
