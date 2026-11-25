@@ -33,8 +33,9 @@ gaat stabiliteit voor nieuwe features.
    verschoven rit in Crit City en de laatste acht rode blokken in Watopia staan
    met de hand op een uitzonderingslijst. Daarna ook de twaalf losse blokken
    buiten Watopia (commit `62331daa`, migratie `0366_zwift_blocks_corner_cuts`,
-   allebei live), en de startvakken plus zeven blokken zonder weg (`0367`, nog
-   niet gepusht of toegepast). Zie de ronde met dezelfde naam.
+   allebei live), en de startvakken plus zeven blokken zonder weg (commit
+   `bda69bc3`, migratie `0367_zwift_blocks_start_pens`, allebei live). Zie de
+   ronde met dezelfde naam.
 
 0. **Gebouwd — ZWBlokken Zwift: sprongen geknipt, gedraaide minimaps recht
    (2026-11-25): commit `005eb5b7`, op 2026-11-25 gepusht naar `main` (eigenaar:
@@ -13186,8 +13187,9 @@ France 98, Innsbruck 60, London 104, New York 89, Paris 34, Scotland 33.
   zijn nul onverwerkte `VirtualRide`-ritten.
 
 **Vervolg: startvakken en blokken zonder weg van meer leden (2026-11-25).**
-Commit: de commit die dit blok toevoegt, niet gepusht. Migratie
-`0367_zwift_blocks_start_pens.sql`, nog niet toegepast. De eigenaar zag nog
+Commit `bda69bc3`, op 2026-11-25 gepusht naar `main` (eigenaar: "Yes, push and
+apply"). Migratie `0367_zwift_blocks_start_pens.sql` toegepast nadat de deploy
+live stond. De eigenaar zag nog
 foutjes, onder meer in Innsbruck, en zag ook dat hij zelf een startvak niet had.
 - *Gemeten:* geen enkel lid raakte sinds 0364 een routeblok kwijt, behalve door
   een portalklim. Het ontbrekende startvak telde dus nooit. In dezelfde ZRL-race
@@ -13215,6 +13217,10 @@ foutjes, onder meer in Innsbruck, en zag ook dat hij zelf een startvak niet had.
   (nieuwe werelden of routes) moeten dus met de hand op de lijst.
 - *Niet lokaal te verifiëren:* de migratie (geen Docker of Supabase-config hier).
 - *Volgorde:* eerst de code live, dan `0367`.
+- *Uitgevoerd 2026-11-25:* de deploy was live, want de Netlify-cache was geleegd
+  en er was een nieuwe chunk. Daarna is `0367` toegepast. In de tabel staan nu
+  precies de nagerekende aantallen, en Karen en Stijn staan in elke wereld
+  gelijk behalve France (96 en 90). Er zijn nul onverwerkte `VirtualRide`-ritten.
 
 **Tests.** `tests/unit/zwblokken-zwift.test.ts`: een portalklim die de kaart uit
 loopt levert geen blok op, ook binnen de kaart; een France-klim vanaf de portal
