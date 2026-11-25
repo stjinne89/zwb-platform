@@ -40,6 +40,8 @@ import { readPowerScope } from "@/lib/teams/power-scope-server";
 import { PowerScopeToggle } from "@/components/power-scope-toggle";
 import { cn } from "@/lib/utils";
 import { DeleteResultButton, TeamChatLinksForm, TeamResultForm } from "../../[id]/_components/admin-panel";
+import { EditTeamButton } from "../../[id]/_components/edit-team-button";
+import { isTeamEmpty, loadTeamUsage } from "@/lib/teams/usage";
 import { LadderRouteAdviceView } from "../_components/ladder-route-advice";
 import { LadderAdviceSelection } from "../_components/ladder-advice-selection";
 import { LadderChallengePost } from "../_components/ladder-challenge-post";
@@ -235,6 +237,10 @@ export default async function ClubLadderTeamPage({
   const canSelect = access.has("teams.manage_roster") || isCaptain;
   const canEditChat = access.has("teams.manage_roster") || isCaptain;
   const canEditResults = access.has("teams.manage_results") || isCaptain;
+  const canEditTeam = access.has("teams.manage_roster");
+  const structureLocked = canEditTeam
+    ? await loadTeamUsage(admin, team.id).then((usage) => !isTeamEmpty(usage), () => true)
+    : true;
   const opponent = tegen ? standings.find((row) => normalizeTeamName(row.name) === normalizeTeamName(tegen)) ?? null : null;
 
   const options = ladderRouteOptions();
@@ -350,6 +356,12 @@ export default async function ClubLadderTeamPage({
           <div className="flex flex-wrap items-center gap-2">
             <WhatsAppShareLink text={`${team.name} in de Club Ladder`} path={`/teams/club-ladder/${team.id}`} />
             <TeamChatLinks whatsappGroups={waGroups ?? []} discordUrl={team.discord_url} />
+            {canEditTeam && (
+              <EditTeamButton
+                team={{ ...team, type: "ladder", parent_team_id: null }}
+                structureLocked={structureLocked}
+              />
+            )}
           </div>
         }
       />

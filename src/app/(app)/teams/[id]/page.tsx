@@ -33,6 +33,8 @@ import {
 import { AdminPanel, DeleteResultButton } from "./_components/admin-panel";
 import { GraveyardToggle } from "./_components/graveyard-toggle";
 import { DeleteTeamButton } from "./_components/delete-team-button";
+import { EditTeamButton } from "./_components/edit-team-button";
+import { isTeamEmpty, loadTeamUsage } from "@/lib/teams/usage";
 import { TeamAvailabilityButtons } from "./_components/team-availability-buttons";
 import { loadWtrlSummaries } from "@/lib/teams/wtrl-summary";
 import {
@@ -475,6 +477,19 @@ export default async function TeamDetailPage({
       (member.role === "captain" || member.role === "co-captain"),
   );
   const canManage = canManageRoster || canManageResults || isCaptain;
+  // Bewerken: de hoofdteams om uit te kiezen, en of type en hoofdteam nog los zitten.
+  const [editParents, structureLocked] = canManageRoster
+    ? await Promise.all([
+        admin
+          .from("teams")
+          .select("id, name")
+          .is("parent_team_id", null)
+          .neq("type", "ladder")
+          .order("name")
+          .then(({ data }) => (data ?? []) as Array<{ id: string; name: string }>),
+        loadTeamUsage(admin, team.id).then((usage) => !isTeamEmpty(usage), () => true),
+      ])
+    : [[], true];
 
   const powerByProfile = new Map(
     // Alles of indoor (2026-11-19): de tabel en de opstelling volgen de gekozen curve.
@@ -679,6 +694,13 @@ export default async function TeamDetailPage({
               whatsappGroups={waGroups ?? []}
               discordUrl={team.discord_url}
             />
+            {canManageRoster && (
+              <EditTeamButton
+                team={team}
+                parentTeams={editParents}
+                structureLocked={structureLocked}
+              />
+            )}
             {canManageRoster && (
               <GraveyardToggle teamId={team.id} isGraveyard={team.is_graveyard ?? false} />
             )}

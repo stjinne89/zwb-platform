@@ -9,6 +9,9 @@ import { fetchWhatsAppGroupInfo, isChannelUrl, isValidInviteUrl } from "@/lib/wh
 import { syncEventWorkout } from "@/lib/training/events";
 import { requestReplan } from "@/lib/training/replan";
 import { syncZrlReservation } from "@/lib/training/zrl-reservation";
+import { teamHref } from "@/lib/teams/href";
+import { isTeamType } from "@/lib/teams/team-types";
+import { isTeamEmpty, loadTeamUsage } from "@/lib/teams/usage";
 
 const ROLES = ["member", "captain", "co-captain"] as const;
 type Role = (typeof ROLES)[number];
@@ -210,27 +213,12 @@ export async function deleteTeam(teamId: string) {
   if (teamError) return { ok: false as const, error: teamError.message };
   if (!team) return { ok: false as const, error: "Team niet gevonden." };
 
-  const count = async (table: string, column: string) => {
-    const { count: rows, error } = await admin
-      .from(table)
-      .select(column, { count: "exact", head: true })
-      .eq(column, teamId);
-    if (error) throw new Error(error.message);
-    return rows ?? 0;
-  };
   try {
-    const [subteams, members, races, results, riderResults, roster] = await Promise.all([
-      count("teams", "parent_team_id"),
-      count("team_members", "team_id"),
-      count("events", "team_id"),
-      count("team_results", "team_id"),
-      count("zrl_rider_results", "team_id"),
-      count("roster_entries", "team_id"),
-    ]);
-    if (subteams > 0) {
+    const usage = await loadTeamUsage(admin, teamId);
+    if (usage.subteams > 0) {
       return { ok: false as const, error: "Verwijder eerst de subteams." };
     }
-    if (members + races + results + riderResults + roster > 0) {
+    if (usage.history > 0) {
       return {
         ok: false as const,
         error: "Dit team heeft leden, races of uitslagen. Archiveer het.",
@@ -248,6 +236,101 @@ export async function deleteTeam(teamId: string) {
   revalidatePath("/kalender");
   revalidatePath("/dashboard");
   return { ok: true as const, redirectTo: team.parent_team_id ? `/teams/${team.parent_team_id}` : "/teams" };
+}
+
+/**
+ * Naam, divisie en omschrijving van een team of subteam wijzigen. Type en
+ * hoofdteam alleen bij een leeg team (zie loadTeamUsage). Een nieuwe naam gaat
+ * ook in de titels van de komende races van het team; gereden races houden hun
+ * titel. Wisselt het hoofdteam, dan zetten de triggers van 0179/0327 de races
+ * van oud en nieuw hoofdteam om.
+ */
+export async function updateTeam(teamId: string, formData: FormData) {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("teams.manage_roster")) {
+    return { ok: false as const, error: "Geen recht om teams te beheren." };
+  }
+
+  const name = String(formData.get("name") ?? "").trim();
+  const division = String(formData.get("division") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  if (!name) return { ok: false as const, error: "Naam is verplicht." };
+
+  const admin = createAdminClient();
+  const { data: team, error: teamError } = await admin
+    .from("teams")
+    .select("id, name, type, parent_team_id")
+    .eq("id", teamId)
+    .maybeSingle<{ id: string; name: string; type: string; parent_team_id: string | null }>();
+  if (teamError) return { ok: false as const, error: teamError.message };
+  if (!team) return { ok: false as const, error: "Team niet gevonden." };
+
+  // Ontbreekt een veld (vergrendeld), dan blijft de huidige waarde staan.
+  const type = formData.has("type") ? String(formData.get("type")) : team.type;
+  const parentTeamId = formData.has("parent_team_id")
+    ? String(formData.get("parent_team_id")).trim() || null
+    : team.parent_team_id;
+  if (!isTeamType(type)) return { ok: false as const, error: "Ongeldig type." };
+
+  const structural = type !== team.type || parentTeamId !== team.parent_team_id;
+  if (structural) {
+    try {
+      if (!isTeamEmpty(await loadTeamUsage(admin, teamId))) {
+        return {
+          ok: false as const,
+          error: "Type en hoofdteam liggen vast zodra een team subteams, leden, races of uitslagen heeft.",
+        };
+      }
+    } catch (error) {
+      return { ok: false as const, error: (error as Error).message };
+    }
+  }
+  if (parentTeamId) {
+    if (parentTeamId === teamId) {
+      return { ok: false as const, error: "Een team kan niet zijn eigen hoofdteam zijn." };
+    }
+    const { data: parent } = await admin
+      .from("teams")
+      .select("id, parent_team_id")
+      .eq("id", parentTeamId)
+      .maybeSingle();
+    if (!parent || parent.parent_team_id != null) {
+      return { ok: false as const, error: "Kies een hoofdteam." };
+    }
+  }
+
+  const { error } = await admin
+    .from("teams")
+    .update({ name, type, division, description, parent_team_id: parentTeamId })
+    .eq("id", teamId);
+  if (error) return { ok: false as const, error: error.message };
+
+  if (name !== team.name) {
+    const { data: races } = await admin
+      .from("events")
+      .select("id, title")
+      .eq("team_id", teamId)
+      .gte("start_at", new Date().toISOString());
+    for (const race of (races ?? []) as Array<{ id: string; title: string }>) {
+      if (!race.title.includes(team.name)) continue;
+      await admin
+        .from("events")
+        .update({ title: race.title.replaceAll(team.name, name) })
+        .eq("id", race.id);
+    }
+  }
+
+  revalidateTeam(teamId);
+  for (const id of new Set([team.parent_team_id, parentTeamId])) {
+    if (id) revalidateTeam(id);
+  }
+  revalidatePath("/teams");
+  revalidatePath("/teams/club-ladder");
+  revalidatePath("/kalender");
+  revalidatePath("/dashboard");
+  return { ok: true as const, redirectTo: teamHref({ id: teamId, type }) };
 }
 
 /**

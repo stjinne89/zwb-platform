@@ -3,18 +3,13 @@
 import { useState, useTransition } from "react";
 import { createTeam } from "./actions";
 import { Button } from "@/components/ui/button";
+import { TEAM_TYPES } from "@/lib/teams/team-types";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
 const LABEL = "mb-1 block text-sm font-medium";
 
-const TYPES = [
-  { value: "zrl", label: "ZRL" },
-  { value: "ladder", label: "Ladder" },
-  { value: "social", label: "Social" },
-  { value: "outdoor", label: "Outdoor" },
-];
 
 export function NewTeamForm({
   parentTeams = [],
@@ -67,7 +62,7 @@ export function NewTeamForm({
         <div>
           <label className={LABEL}>Type</label>
           <select name="type" defaultValue="zrl" className={FIELD}>
-            {TYPES.map((t) => (
+            {TEAM_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
               </option>

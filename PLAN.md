@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Teams en subteams bewerken (2026-11-25): commit `HASH`, lokaal,
+   niet gepusht. Geen migratie.** Een knop Bewerken op de teampagina en op de
+   Club Ladder-teampagina. Open: in de app een (sub)team hernoemen en een leeg
+   subteam van hoofdteam laten wisselen. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Extra streams met een link, en de captain streamt mee
    (2026-11-25): commit `6b8c15d7`, op 2026-11-25 gepusht naar `main`
    (eigenaar: "Ja, beide").** Migratie `0370_event_streams_extra` vóór de push
@@ -13029,6 +13034,56 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Teams en subteams bewerken
+
+**2026-11-25, commit `HASH`, lokaal en niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar meldde dat teams en subteams na het aanmaken niet
+  meer te bewerken waren. Naam, type, divisie, omschrijving en hoofdteam
+  stonden alleen in `/teams/nieuw`; achteraf kon je alleen de chatlinks
+  wijzigen. Het voorstel was akkoord ("Ja, bouwen").
+- **Wat.**
+  - Server action `updateTeam` in `teams/[id]/_actions.ts`, alleen met
+    `teams.manage_roster` (net als archiveren en verwijderen).
+  - Altijd te wijzigen: naam, divisie/poule, omschrijving.
+  - Type en hoofdteam alleen bij een leeg team: geen subteams, leden, races,
+    uitslagen, rennersuitslagen of rooster. Dat is dezelfde grens als bij
+    verwijderen. De telling staat nu in `src/lib/teams/usage.ts`
+    (`loadTeamUsage`) en `deleteTeam` gebruikt die ook. Bij een vergrendeld
+    team staan de twee velden uitgeschakeld en stuurt het formulier ze niet
+    mee. De action controleert het opnieuw.
+  - Een hoofdteam moet zelf een hoofdteam zijn (één niveau), niet het team
+    zelf en geen ladderteam. Het wisselen van hoofdteam vangen de bestaande
+    triggers `teams_become_umbrella` (0179) en `teams_leave_umbrella` (0327)
+    op.
+  - Bij een nieuwe naam wordt de oude naam in de titels van de **komende**
+    races van dat team (`events.team_id`, `start_at >= nu`) vervangen door de
+    nieuwe. Gereden races houden hun titel. De ZRL-import herkent races aan
+    team en dag, niet aan de titel, en dupliceert dus niets.
+  - UI: `EditTeamButton` (dialoogvenster) in de kop van `/teams/[id]` en van
+    `/teams/club-ladder/[teamId]`. Op de Club Ladder-pagina is er geen keuze
+    voor een hoofdteam.
+  - `TEAM_TYPES` staat nu in `src/lib/teams/team-types.ts`, gedeeld met het
+    aanmaakformulier.
+- **Club Ladder.** De ladderpagina zoekt de stand op de teamnaam én op
+  `team_result_sources.match_name`; de sync gebruikt alleen `match_name`. Op
+  2026-11-25 hadden alle vier de ladderteams een `match_name` (productie
+  uitgelezen), dus hernoemen in ZWB breekt de koppeling niet. Hernoemt het team
+  zich op de Ladder-site zelf, dan moet `match_name` nog steeds met de hand mee.
+- **Bewust niet.**
+  - Captains kunnen hun team niet bewerken. Dat recht volgt de RLS van `teams`
+    (`teams.create`/`teams.manage_roster`), en een captain houdt het
+    beheerpaneel (leden, chatlinks, uitslagen).
+  - Een team met geschiedenis kan niet van type of hoofdteam wisselen.
+    Opstellingen, beschikbaarheid en TTT-plannen hangen aan het oude hoofdteam
+    (`parent_team_id`) en zouden blijven hangen.
+  - Een hoofdteam met subteams kan geen subteam worden.
+- **Getest.** Typecheck en eslint schoon. Unittests: 5064 groen. Rood waren
+  `club-texts-render` ("beheer noemt ZWB niet", `/hulp`, hier niet
+  aangeraakt), `omnium-live` (geen `.env.local` in de worktree) en twee
+  time-outs die los wel slagen. **Niet** in de app geklikt: geen dev-server
+  met inlog in deze worktree.
 
 ### Gebouwd — Extra streams met een link, en de captain streamt mee
 

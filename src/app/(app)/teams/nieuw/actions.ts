@@ -7,8 +7,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { DISCORD_URL_ERROR, isValidDiscordUrl } from "@/lib/discord";
 import { fetchWhatsAppGroupInfo, isChannelUrl, isValidInviteUrl } from "@/lib/whatsapp";
 import { teamHref } from "@/lib/teams/href";
-
-const TYPES = ["zrl", "ladder", "social", "outdoor"];
+import { isTeamType } from "@/lib/teams/team-types";
 
 export async function createTeam(formData: FormData) {
   const supabase = await createClient();
@@ -27,7 +26,7 @@ export async function createTeam(formData: FormData) {
   const whatsappUrl = String(formData.get("whatsapp_url") ?? "").trim() || null;
 
   if (!name) return { ok: false as const, error: "Naam is verplicht." };
-  if (!TYPES.includes(type)) return { ok: false as const, error: "Ongeldig type." };
+  if (!isTeamType(type)) return { ok: false as const, error: "Ongeldig type." };
   if (discordUrl && !isValidDiscordUrl(discordUrl)) {
     return { ok: false as const, error: DISCORD_URL_ERROR };
   }
