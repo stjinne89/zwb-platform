@@ -8,10 +8,9 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Extra streams met een link, en de captain streamt mee
-   (2026-11-25): de commit die dit blok toevoegt, lokaal, niet gepusht.**
-   Migratie `0370_event_streams_extra` is **nog niet toegepast**. Die moet vóór
-   de push op productie staan, want `addExtraStream` schrijft `source = 'extra'`.
-   Open: de migratie toepassen, en een extra stream toevoegen, laten afspelen en
+   (2026-11-25): commit `6b8c15d7`, op 2026-11-25 gepusht naar `main`
+   (eigenaar: "Ja, beide").** Migratie `0370_event_streams_extra` vóór de push
+   op productie toegepast. Open: een extra stream toevoegen, laten afspelen en
    weghalen. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Streamcenter per avond, links per stream en TV
@@ -13033,8 +13032,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Extra streams met een link, en de captain streamt mee
 
-**2026-11-25, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
-Migratie `0370_event_streams_extra`, nog niet toegepast.**
+**2026-11-25, commit `6b8c15d7`, op 2026-11-25 gepusht naar `main`. Migratie
+`0370_event_streams_extra` op 2026-11-25 vóór de push op productie toegepast.**
 
 - **Waarom.** Vraag van de eigenaar:
   - een lid moet met een link een extra stream kunnen toevoegen, ook van een
@@ -13098,7 +13097,10 @@ Migratie `0370_event_streams_extra`, nog niet toegepast.**
     - een tweede eigen stream (`zwb` of `eigen`) niet;
     - dezelfde video twee keer niet.
 
-    Nog niet op productie toegepast.
+    Op 2026-11-25 op productie toegepast. Daar nagekeken: de oude unieke
+    sleutel is weg, `event_streams_one_per_rider` is een unieke index met
+    `where source <> 'extra'`, `event_streams_one_per_video` staat erop, de
+    check laat `zwb`, `eigen` en `extra` toe, en de 8 streams staan er nog.
   - Unit-test: een extra stream gaat op live zonder melding. Typecheck en lint
     zijn schoon.
   - Niet gezien: de velden op de echte racepagina en in het streamcenter, een
