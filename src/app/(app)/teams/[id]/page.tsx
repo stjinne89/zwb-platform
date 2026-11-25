@@ -136,10 +136,14 @@ function num(value: number | string | null | undefined) {
 
 export default async function TeamDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  /** `uitslag`: deze race staat open (link vanaf de raceweek). */
+  searchParams: Promise<{ uitslag?: string }>;
 }) {
-  const [{ id }, powerScope] = await Promise.all([params, readPowerScope()]);
+  const [{ id }, { uitslag }, powerScope] = await Promise.all([params, searchParams, readPowerScope()]);
+  const openRace = Number(uitslag) || null;
   const supabase = await createClient();
   const admin = createAdminClient();
 
@@ -666,7 +670,12 @@ export default async function TeamDetailPage({
         <>
           <ZrlStandingsTable standings={ownStandings} />
           {resultRaces.length > 0 && (
-            <ZrlResults races={resultRaces} ownName={ownStandings.ownName} profileByZwiftId={profileByZwiftId} />
+            <ZrlResults
+              races={resultRaces}
+              ownName={ownStandings.ownName}
+              profileByZwiftId={profileByZwiftId}
+              openRace={openRace}
+            />
           )}
         </>
       ) : (

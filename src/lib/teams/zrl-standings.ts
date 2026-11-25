@@ -67,3 +67,30 @@ export function standingsPerTeam(
   }
   return out;
 }
+
+export type StoredResultRace = {
+  season: number;
+  class: string;
+  race: number;
+  teams: Array<{ name: string; rank: number | null; zwiftEventId: string | null }>;
+};
+
+export type WtrlTeamRank = { rank: number; teams: number; race: number };
+
+/**
+ * De WTRL-plaats van een ZWB-team in een race (0363): de uitslag met een team
+ * van die naam in dat Zwift-event. Twee ZWB-teams kunnen één event delen (ronde
+ * 2 week 1: A en B2), daarom ook de naam. Een gediskwalificeerd team heeft geen
+ * plaats. Puur.
+ */
+export function wtrlRankFor(
+  results: StoredResultRace[],
+  wtrlNames: string[],
+  zwiftEventId: string,
+): WtrlTeamRank | null {
+  for (const row of [...results].sort((a, b) => b.season - a.season || b.race - a.race)) {
+    const own = row.teams.find((team) => team.zwiftEventId === zwiftEventId && wtrlNames.includes(team.name));
+    if (own) return own.rank != null ? { rank: own.rank, teams: row.teams.length, race: row.race } : null;
+  }
+  return null;
+}

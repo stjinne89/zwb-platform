@@ -22,6 +22,11 @@ gaat stabiliteit voor nieuwe features.
    2026-11-25 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie. Open: na de deploy de volgorde
    op `/teams/club-ladder` bekijken. Zie de ronde met dezelfde naam.
 
+0. **Gebouwd, lokaal gecommit — WTRL-uitslag leidend in het ZRL-overzicht
+   (2026-11-25).** Plaats en beker in het hoofdevent komen uit WTRL zodra die
+   uitslag er is, met een link naar de uitslag op de teampagina. De live stand
+   blijft zoals hij is. Zie de ronde.
+
 0. **Gebouwd — ZRL-uitslagen uitklapbaar op de teampagina (2026-11-25): commit
    `afa0fbff`, gepusht naar `main` (eigenaar: "Yes, both").** De import bewaart
    de hele WTRL-uitslag; de pagina van een subteam toont hem onder de stand.
@@ -12943,6 +12948,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
   de captainkeuze en het eerste team (`firstTeam`) niet verschuiven.
 - **Niet geverifieerd.** Alleen `tsc` en ESLint; niet in de browser bekeken.
 
+### Gebouwd — WTRL-uitslag leidend in het ZRL-overzicht
+
+**2026-11-25, lokaal gecommit, nog niet gepusht. Geen migratie.**
+
+- **Waarom.** De eigenaar zag dat de WTRL-uitslag en de live stand uit de pas
+  lopen. Vergeleken op race 2 van ronde 2 (alle zeven divisies met een
+  WTRL-uitslag, renner voor renner bij C en A). Drie oorzaken, geen rekenfout:
+  - *DQ's achteraf.* WTRL zet gediskwalificeerde renners onderaan; wie erachter
+    finishte, schuift op. In C drie DQ's vooraan: elke ZWB'er kreeg 3 FIN-punten
+    meer, ZWB C 134 bij WTRL tegen 119 live. Ook in B2, B1, B Dev en Zwiftladies
+    C DQ's.
+  - *Renners zonder WTRL-inschrijving.* FIN begint bij het aantal starters. In
+    het event van A reed één renner een segment die niet in de WTRL-uitslag
+    staat: live 55 starters, WTRL 54, dus elke renner 1 punt meer (A en
+    Zwiftladies +5). Zo'n renner staat live ook als team van één ("ATGNI 1 0"):
+    daardoor telt de live stand steeds één team meer.
+  - *Te vroeg vastgezet.* `zrl_team_results` werd de avond van de race
+    berekend met alleen de naamtags, vóór de WTRL-import de tegenstanders
+    indeelde, en wordt niet opnieuw berekend.
+- **Besluit eigenaar.** De live stand blijft zoals hij is. Staat de WTRL-uitslag
+  er, dan neemt het hoofdevent daarvan plaats en beker over, en leidt het blok
+  naar de uitslag op de teampagina. Dat past bij het besluit van 2026-09-25 om
+  DQ's en WTRL-fouten niet in de live score na te bootsen.
+- **Wat.** `wtrlRankFor` (`src/lib/teams/zrl-standings.ts`) zoekt in
+  `zrl_wtrl_results` het team met die WTRL-naam in het Zwift-event van de
+  teamrace (twee ZWB-teams kunnen één event delen). Een DQ-team heeft geen
+  WTRL-plaats; dan blijft die van de live stand. Het blok linkt dan naar
+  `/teams/<team>?uitslag=<race>#uitslagen`; de teampagina opent die race.
+- **Bewust niet.** De WTRL-regels (DQ's, aantal starters uit WTRL) niet in de
+  eigen telling nabouwen: dat blijft namaak en loopt bij de volgende WTRL-gril
+  weer uit de pas. `zrl_team_results` niet overschrijven met WTRL; de
+  "Teamresultaten" op de teampagina blijven dus de live plaats tonen.
+- **Niet geverifieerd.** Niet in de browser bekeken. Wel: `tsc`, ESLint, de
+  unit-test van `wtrlRankFor`, en de JSON-zoekvraag op productie (B3, race 2:
+  8e van 10).
+
 ### Gebouwd — ZRL-uitslagen uitklapbaar op de teampagina
 
 **2026-11-25, commit `afa0fbff`, op 2026-11-25 gepusht naar `main`. Migratie
@@ -13033,6 +13074,9 @@ kan niet lezen. Niet lokaal getest (geen Docker of Supabase-config).**
   link naar `/live/zrl/<race>`. Een plaats bestaat alleen voor een race met een
   Zwift-event, dus de live pagina is er altijd. De rest van de rij blijft naar
   de race in de kalender wijzen.
+  *Bijgewerkt 2026-11-25:* staat de WTRL-uitslag er, dan komen plaats en beker
+  uit WTRL en leidt het blok naar de uitslag op de teampagina. Zie de ronde
+  "Gebouwd — WTRL-uitslag leidend in het ZRL-overzicht".
 - **Niet geverifieerd.** Alleen `tsc` en ESLint; niet in de browser bekeken.
 
 ### Gebouwd — WTRL-import vanaf de eigen pc

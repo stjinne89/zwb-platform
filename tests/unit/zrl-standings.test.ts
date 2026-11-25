@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { standingsPerTeam, wtrlTeamIdOf, type StoredStandings } from "@/lib/teams/zrl-standings";
+import { standingsPerTeam, wtrlRankFor, wtrlTeamIdOf, type StoredStandings } from "@/lib/teams/zrl-standings";
 
 // Namen en ID's verzonnen.
 const row = (rank: number, teamId: string, name: string) => ({
@@ -44,3 +44,29 @@ describe("standingsPerTeam", () => {
     expect(wtrlTeamIdOf("79152")).toBeNull();
   });
 });
+
+describe("wtrlRankFor", () => {
+  const results = [
+    {
+      season: 21,
+      class: "2420A10",
+      race: 1,
+      teams: [
+        { name: "Ander", rank: 1, zwiftEventId: "900" },
+        { name: "Ons A", rank: 2, zwiftEventId: "900" },
+        { name: "Ons B", rank: 3, zwiftEventId: "900" },
+        { name: "Weg", rank: null, zwiftEventId: "900" },
+      ],
+    },
+  ];
+
+  it("kiest het team op naam als twee ZWB-teams één event delen", () => {
+    expect(wtrlRankFor(results, ["Ons B"], "900")).toEqual({ rank: 3, teams: 4, race: 1 });
+  });
+
+  it("geen plaats bij een ander event of een gediskwalificeerd team", () => {
+    expect(wtrlRankFor(results, ["Ons A"], "901")).toBeNull();
+    expect(wtrlRankFor(results, ["Weg"], "900")).toBeNull();
+  });
+});
+

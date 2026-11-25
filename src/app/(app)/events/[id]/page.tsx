@@ -38,6 +38,7 @@ import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
 import { RaceStreams } from "./_components/race-streams";
 import { isTeamRace, raceTeamIds as teamAndParentIds } from "@/lib/events/team-races";
 import { ZrlTeamRank } from "./_components/zrl-team-rank";
+import { wtrlRankFor, type StoredResultRace, type WtrlTeamRank } from "@/lib/teams/zrl-standings";
 import { LadderMatchupView } from "./_components/ladder-matchup";
 import { loadLadderEventMatchup } from "@/lib/club-ladder/event-matchup";
 import { loadLadderEventResult } from "@/lib/club-ladder/event-result-load";
@@ -369,6 +370,7 @@ export default async function EventDetailPage({
         startAt: row.start_at,
         name: isFrr || isSrc ? subEventLabel(row.title, event.title) : team?.name ?? row.title,
         teamId: row.team_id,
+        zwiftEventId: row.zwift_event_id != null ? String(row.zwift_event_id) : null,
         isMine: Boolean(row.team_id && myTeamIds.has(row.team_id)),
         hasRoute: hasOwnRoute(row),
         // Zonder eigen route rijdt een teamrace die van zijn raceweek.
@@ -487,6 +489,9 @@ export default async function EventDetailPage({
     isParentEvent && event.type === "zrl"
       ? await loadZrlTeamResults(subEvents.map((sub) => sub.id))
       : new Map<string, ZrlTeamResult>();
+  // Staat de WTRL-uitslag er (het WTRL-script, 0363), dan geldt die plaats en
+  // leidt hij naar de uitslag op de teampagina. De live stand blijft zoals hij is.
+  const wtrlRanks = isParentEvent && event.type === "zrl" ? await loadWtrlRanks(supabase, subEvents) : new Map<string, WtrlTeamRank>();
   const raceDateKey = amsterdamDateKey(new Date(event.start_at));
   const sharedDescription = String(parentEvent?.description ?? "").trim();
 
@@ -1735,7 +1740,10 @@ export default async function EventDetailPage({
           </h2>
           <ul className="divide-y overflow-hidden rounded-lg border bg-card">
             {subEvents.map((sub) => {
-              const result = teamResults.get(sub.id);
+              const wtrlRank = wtrlRanks.get(sub.id);
+              const result = wtrlRank ?? teamResults.get(sub.id);
+              const rankHref =
+                wtrlRank && sub.teamId ? `/teams/${sub.teamId}?uitslag=${wtrlRank.race}#uitslagen` : `/live/zrl/${sub.id}`;
               return (
                 <li key={sub.id} className="flex items-stretch">
                   <div className="min-w-0 flex-1 space-y-1">
@@ -1778,7 +1786,7 @@ export default async function EventDetailPage({
                       <LineupNames riders={lineupByTeam.get(sub.teamId) ?? []} className="px-3 pb-3" />
                     )}
                   </div>
-                  {result && <ZrlTeamRank rank={result.rank} teams={result.teams} href={`/live/zrl/${sub.id}`} />}
+                  {result && <ZrlTeamRank rank={result.rank} teams={result.teams} href={rankHref} />}
                 </li>
               );
             })}
@@ -2212,3 +2220,36 @@ export default async function EventDetailPage({
 function streamParam(value: string | string[] | undefined): string | null {
   return typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
 }
+
+/** Per teamrace de WTRL-plaats, als het WTRL-script de uitslag al binnenhaalde. */
+async function loadWtrlRanks(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  subs: Array<{ id: string; teamId: string | null; zwiftEventId: string | null }>,
+): Promise<Map<string, WtrlTeamRank>> {
+  const out = new Map<string, WtrlTeamRank>();
+  const withEvent = subs.filter((sub) => sub.teamId && sub.zwiftEventId);
+  if (withEvent.length === 0) return out;
+  const { data: wtrlTeams } = await supabase
+    .from("wtrl_teams")
+    .select("name, team_id")
+    .in("team_id", withEvent.map((sub) => sub.teamId as string));
+  const namesByTeam = new Map<string, string[]>();
+  for (const row of (wtrlTeams ?? []) as Array<{ name: string; team_id: string }>) {
+    namesByTeam.set(row.team_id, [...(namesByTeam.get(row.team_id) ?? []), row.name]);
+  }
+  await Promise.all(
+    withEvent.map(async (sub) => {
+      const names = namesByTeam.get(sub.teamId as string) ?? [];
+      if (names.length === 0) return;
+      // Zonder 0363 geeft dit een fout en blijft de plaats van de live stand staan.
+      const { data } = await supabase
+        .from("zrl_wtrl_results")
+        .select("season, class, race, teams")
+        .contains("teams", JSON.stringify([{ zwiftEventId: sub.zwiftEventId }]));
+      const rank = wtrlRankFor((data ?? []) as StoredResultRace[], names, sub.zwiftEventId as string);
+      if (rank) out.set(sub.id, rank);
+    }),
+  );
+  return out;
+}
+

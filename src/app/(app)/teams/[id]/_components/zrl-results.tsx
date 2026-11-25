@@ -46,20 +46,23 @@ export function ZrlResults({
   races,
   ownName,
   profileByZwiftId,
+  openRace = null,
 }: {
   races: ZrlResultRace[];
   ownName: string;
   profileByZwiftId: Record<string, string>;
+  /** Deze race staat open: de link vanaf de raceweek. */
+  openRace?: number | null;
 }) {
   return (
-    <section className="space-y-2 rounded-lg border bg-card p-4">
+    <section id="uitslagen" className="scroll-mt-4 space-y-2 rounded-lg border bg-card p-4">
       <h2 className="font-semibold">Uitslagen</h2>
       <ul className="divide-y">
         {races.map((race) => {
           const own = race.teams.find((team) => team.name === ownName);
           return (
             <li key={race.race}>
-              <details className="group">
+              <details className="group" open={race.race === openRace}>
                 <summary className="flex cursor-pointer list-none items-center gap-2 py-2 text-sm [&::-webkit-details-marker]:hidden">
                   <Chevron />
                   <span className="min-w-0 flex-1">
