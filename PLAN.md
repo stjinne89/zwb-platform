@@ -22,8 +22,8 @@ gaat stabiliteit voor nieuwe features.
    2026-11-25 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie. Open: na de deploy de volgorde
    op `/teams/club-ladder` bekijken. Zie de ronde met dezelfde naam.
 
-0. **Gebouwd, lokaal gecommit — WTRL-uitslag leidend in het ZRL-overzicht
-   (2026-11-25).** Plaats en beker in het hoofdevent, de "Teamresultaten" op de
+0. **Gebouwd — WTRL-uitslag leidend in het ZRL-overzicht (2026-11-25): commits
+   `673e5481` en `5a5c59e4`, gepusht naar `main` (eigenaar: "Yes, push").** Plaats en beker in het hoofdevent, de "Teamresultaten" op de
    teampagina en de uitslagtegel op het dashboard komen uit WTRL zodra die
    uitslag er is, met een link naar de uitslag op de teampagina. De live stand
    blijft zoals hij is. Zie de ronde.
@@ -12951,8 +12951,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — WTRL-uitslag leidend in het ZRL-overzicht
 
-**2026-11-25, commits `dc661775` (hoofdevent) en de commit die
-"Teamresultaten" en het dashboard toevoegt; lokaal, nog niet gepusht. Geen
+**2026-11-25, commits `673e5481` (hoofdevent) en `5a5c59e4` (Teamresultaten en
+dashboard), op 2026-11-25 gepusht naar `main` (eigenaar: "Yes, push"). Geen
 migratie.**
 
 - **Waarom.** De eigenaar zag dat de WTRL-uitslag en de live stand uit de pas
