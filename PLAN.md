@@ -8,7 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Verwachte ZRL-uitslag en teamplaats op de racepagina
-   (2026-11-25): commit `c5abdb82`, lokaal, niet gepusht. Geen migratie.** Het veld van
+   (2026-11-25): commit `2e57e836`, op 2026-11-25 gepusht naar `main`
+   (eigenaar: "Ja, push"). Geen migratie.** Het veld van
    de briefing (ploegen en renners met hun verwachte plek) staat op de
    racepagina van een ZRL-teamrace, op de plek van de uitslag; na de race staat
    daar de plaats van het team in de divisie. Open: ingelogd een ZRL-teamrace
@@ -16,7 +17,8 @@ gaat stabiliteit voor nieuwe features.
    ronde met dezelfde naam.
 
 0. **Gebouwd — Verwachte ladderuitslag op de racepagina (2026-11-25):
-   commit `4f736c03`, lokaal, niet gepusht. Geen migratie.** De tabel Verwachte uitslag
+   commit `921c2fa5`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, push").
+   Geen migratie.** De tabel Verwachte uitslag
    staat niet meer op de racebriefing maar op de racepagina, op de plek van de
    uitslag; zodra de ladder de uitslag heeft, neemt die de plek over. Open:
    ingelogd een ladderrace vóór en na de race openen. Zie de ronde met dezelfde
@@ -13052,8 +13054,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Verwachte ZRL-uitslag en teamplaats op de racepagina
 
-**2026-11-25, commit `c5abdb82` op `claude/expected-results-event-page-6313b8`,
-niet gepusht. Geen migratie.**
+**2026-11-25, commit `2e57e836`, op 2026-11-25 gepusht naar `main` (eigenaar:
+"Ja, push"). Geen migratie.**
 
 - **Waarom.** Vervolg op de ladderronde hieronder: de eigenaar wilde ook de
   ZRL-verwachting op de racepagina. Een ZRL-teamrace had daar geen uitslag
@@ -13096,8 +13098,8 @@ niet gepusht. Geen migratie.**
 
 ### Gebouwd — Verwachte ladderuitslag op de racepagina
 
-**2026-11-25, commit `4f736c03` op `claude/expected-results-event-page-6313b8`,
-niet gepusht. Geen migratie.**
+**2026-11-25, commit `921c2fa5`, op 2026-11-25 gepusht naar `main` (eigenaar:
+"Ja, push"). Geen migratie.**
 
 - **Waarom.** Vraag van de eigenaar: de verwachte uitslag van de racebriefing
   naar de eventpagina, op de plek waar de uitslag komt, en vervangen door de
