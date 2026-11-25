@@ -7,12 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Live ladderstand (2026-11-25): commit: de commit die dit blok
-   toevoegt, niet gepusht. Geen migratie.** Tijdens een ladderrace op
+0. **Gebouwd — Live ladderstand (2026-11-25): commit `8e2e29c5`, op
+   2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.** Tijdens een ladderrace op
    `/events/[id]/live` de score en de volgorde bij elke sprint, KOM en
    rondestreep, en daarna de finish. Open: morgen (2026-11-26, vier
    ladderraces vanaf 19:32) ingelogd live bekijken, vooral of vier races
-   tegelijk Zwift niet afknijpen; de privacyzin voorleggen. Zie de ronde met
+   tegelijk Zwift niet afknijpen. Zie de ronde met
    dezelfde naam.
 
 0. **Gebouwd — TV op de telefoon start alle streams (2026-11-25): commits
@@ -13068,8 +13068,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Live ladderstand
 
-**2026-11-25, commit: de commit die dit blok toevoegt, niet gepusht. Geen
-migratie.**
+**2026-11-25, commit `8e2e29c5`, op 2026-11-25 gepusht naar `main`
+(eigenaar: "Ja, push"). Geen migratie.**
 
 - **Waarom.** De eigenaar vroeg waarom de Club Ladder geen live stats heeft.
   De ladder telt alleen de finish (10 tot 1 punt), en onderweg is er dus niets
@@ -13115,8 +13115,9 @@ migratie.**
   zien ingelogde leden naam, plek en achterstand uit de startlijst, de
   doorkomsten en de finishtijden van Zwift, ook van renners van andere clubs;
   niet in de database, alleen even in de cache. Geen nieuwe privacyversie: het
-  is dezelfde soort Zwift-data als de matchup en de uitslag al tonen. Nog voor
-  te leggen aan de eigenaar.
+  is dezelfde soort Zwift-data als de matchup en de uitslag al tonen. Bewust
+  afwijkend van de regel in `privacy.ts`; voorgelegd en akkoord ("Ja, push",
+  op de vraag of het met deze privacyzin naar `main` mocht).
 - **Bewust niet.**
   - Geen live stand in de stream-overlay: daar blijft de kolom bij de ladder
     vrij voor het Sauce-venster (ronde "Streamcenter per avond").
