@@ -52,7 +52,7 @@ import {
 import { sharedPlanView, type SharedPlanView } from "@/lib/pacing/share";
 import { adviseBikes, REFERENCE_FRAME, steadySeconds, type BikeAdvice } from "@/lib/pacing/bike-advice";
 import { evaluatePlan } from "@/lib/pacing/plan";
-import { loadZwiftGarage, type ZwiftGarage } from "@/lib/pacing/zwift-garage";
+import { loadZwiftKit, type ZwiftGarage } from "@/lib/pacing/zwift-garage";
 import { defaultSetup, type RideSetup } from "@/lib/pacing/zwift-setup";
 
 const EVENT_COLUMNS =
@@ -75,6 +75,8 @@ type Loaded = {
   heightCm: number | null;
   /** Wat het lid in Zwift heeft; null zonder Zwift-route of zonder ingevulde frames. */
   garage: ZwiftGarage | null;
+  /** De Aero Lightning Socks uit de garage. */
+  aeroSocks: boolean;
 };
 
 /**
@@ -82,7 +84,7 @@ type Loaded = {
  * opgeslagen plan, anders de standaard van het event. Null bij een .gpx-route.
  */
 export function rideFor(ctx: Loaded, setup?: unknown): RideContext | null {
-  return rideContextFor(ctx.zwift, setup, ctx.rider.model.weightKg, ctx.heightCm);
+  return rideContextFor(ctx.zwift, setup, ctx.rider.model.weightKg, ctx.heightCm, ctx.aeroSocks);
 }
 
 /**
@@ -138,6 +140,9 @@ async function loadForUser(
     options.targetDay ??
       targetDayChosen((planRow.data as { assumptions?: PlanAssumptions | null } | null)?.assumptions),
   );
+  const kit = zwift
+    ? await loadZwiftKit(admin, access.user.id, zwift.parts)
+    : { garage: null, aeroSocks: false };
 
   return {
     ok: true,
@@ -151,7 +156,7 @@ async function loadForUser(
       rider,
       zwift,
       heightCm,
-      garage: zwift ? await loadZwiftGarage(admin, access.user.id, zwift.parts) : null,
+      ...kit,
     },
   };
 }
@@ -171,6 +176,7 @@ function startSetup(ctx: Loaded): RideSetup | undefined {
     heightCm: ctx.heightCm,
     garage: ctx.garage,
     garageOnly: true,
+    aeroSocks: ctx.aeroSocks,
     limit: 1,
     seconds: (physics) => steadySeconds(ctx.loaded.route, physics, ctx.rider.model.cpWatts, ctx.rider.model.weightKg),
   });
@@ -283,6 +289,7 @@ export async function loadPacingPage(
               heightCm: ctx.heightCm,
               garage: ctx.garage,
               garageOnly: options.garageOnly === true,
+              aeroSocks: ctx.aeroSocks,
               seconds: (physics) =>
                 evaluatePlan(plan.segments, ctx.loaded.route, ctx.rider.model, {
                   durability: ctx.rider.durability,

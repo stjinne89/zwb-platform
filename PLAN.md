@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Aero Lightning Socks in de Zwift-garage (2026-11-25): lokaal
+   gecommit op `claude/zwift-aero-sokken-garage-849258`, niet gepusht.
+   Migratie `0368_member_zwift_socks` geschreven, niet toegepast.** Wie de sokken
+   aanvinkt op `/mijn-garage/zwift`, krijgt in het pacingplan op elke fiets
+   0,0033 m² minder CdA, zo'n 12 s per uur op 300 W. Open: `0368` toepassen,
+   pushen en op productie aanvinken. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — vELO1 van de ladder voorrang (2026-11-25): commit
    `198e84d8`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"), geen
    migratie.** De knop Teams en resultaten ophalen haalt alleen
@@ -1781,8 +1788,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0364`
-(`0363_zrl_wtrl_results` is van de ZRL-uitslagen op de teampagina, toegepast op 2026-11-25;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0369`
+(`0368_member_zwift_socks` is van de Aero Lightning Socks in de Zwift-garage, 2026-11-25, nog niet toegepast;
+`0364` tot en met `0367` staan bij de ZWBlokken-rondes van 2026-11-25;
+`0363_zrl_wtrl_results` is van de ZRL-uitslagen op de teampagina, toegepast op 2026-11-25;
 `0362_zrl_wtrl_standings` is van de ZRL-competitiestand, toegepast op 2026-11-25;
 `0361_wtrl_import` is van de WTRL-import vanaf de eigen pc, toegepast op 2026-11-25;
 `0360_event_streams_source` is van de eigen YouTube-stream, toegepast op 2026-11-24;
@@ -12999,6 +13008,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Aero Lightning Socks in de Zwift-garage
+
+**2026-11-25.** Lokaal gecommit op `claude/zwift-aero-sokken-garage-849258`,
+niet gepusht. Migratie `0368_member_zwift_socks.sql` geschreven, **niet
+toegepast** (op `origin/main` was `0367` de laatste). Eerst een voorstel, door
+de eigenaar goedgekeurd ("Ja, bouwen").
+
+**Waarom.** De eigenaar vroeg de aero-sokken als Zwift-onderdeel in de garage,
+"zodat hij de winst meerekent" (zwiftinsider.com/lightning-socks). Zwift Insider
+mat met hun testrenner (75 kg, 183 cm, 300 W, vlak) ongeveer 12 s winst per uur.
+Met onze ijking (Zwift Carbon, CdA 0,3191, 24,5 mph) is dat 0,0033 m² minder
+CdA, ruim 1 %.
+
+**Wat.**
+- `AERO_SOCKS_CDA_DELTA = -0.0033` in `zwift-setup.ts`; `resolveRidePhysics`
+  krijgt `aeroSocks` en telt hem op bij frame en wielen, dus ook geschaald naar
+  lengte en gewicht en met de slipstreamfactor erover.
+- Opslag in `member_zwift_bikes` als `part = 'socks'`, naam "Aero Lightning
+  Socks", stage 0. `0368` verruimt alleen de check op `part`
+  (`member_zwift_bikes_part_check`, naam op productie nagekeken). De export nam
+  de tabel al mee.
+- `loadZwiftKit` laadt garage en sokken in één keer; de sokken tellen ook
+  zonder frames (`garageFromRows` blijft null zonder frames).
+- Pacingplan: `rideFor` en Snelste fiets rekenen met de sokken, dus plantijd en
+  fietsadvies spreken elkaar niet tegen. De sokken veranderen de CdA in de
+  vingerafdruk (`rideKey`), dus een plan van vóór het aanvinken wordt als
+  verouderd gemeld.
+- `/mijn-garage/zwift`: een blok Sokken met één vinkje. Uitleg op
+  `/hulp/racen#pacing-zwift`.
+
+**Bewust niet.**
+- De gewone Lightning Socks: volgens Zwift Insider geen voordeel.
+- De racebriefing rekent zonder sokken, anders dan in het voorstel. Die
+  vergelijkt fietsen op dezelfde renner ("zodat alleen de fiets verschilt"), en
+  de regel Jij zou met sokken sneller lijken dan dezelfde fiets erboven. De
+  sokken veranderen de volgorde van de fietsen niet.
+- Geen aparte kolom of tabel: aan- en uitvinken werkt nu precies als bij de
+  wielen.
+
+**Aanname.** Eén meting, van één partij, zonder slipstream of tijdritfiets. Dat
+de winst overal even groot is, ook in de groep en op elk frame, is niet
+gemeten.
+
+**Niet geverifieerd.** `0368` niet toegepast en niet lokaal te testen (geen
+Docker/Supabase-config). Tot hij toegepast is, faalt Opslaan zodra de sokken
+aangevinkt zijn; zonder vinkje werkt de garage gewoon. Pas daarom eerst `0368`
+toe en push daarna. Niet in de browser bekeken. Unit-tests: de afgeleide winst
+valt tussen 11 en 13 s per uur, de CdA en de vingerafdruk veranderen, en
+`hasAeroSocks` telt alleen de aero-versie. Typecheck en lint schoon. De volledige
+suite: alleen `club-texts-render` ("beheer noemt ZWB niet") faalt, en dat doet
+hij ook zonder deze wijziging; verder alleen time-outs onder belasting die
+los wel slagen.
 
 ### Gebouwd — vELO1 van de ladder voorrang
 
@@ -31154,7 +31216,8 @@ regel "Jouw snelste" in de briefing. ZWB kan de garage niet uit Zwift lezen; het
 lid vult hem zelf in.
 
 **Wat.**
-- Tabel `member_zwift_bikes` (`profile_id`, `part` frame of wheel, `name`,
+- Tabel `member_zwift_bikes` (`profile_id`, `part` frame of wheel, sinds
+  `0368_member_zwift_socks` ook socks, `name`,
   `stage` 0–5, alleen bij een frame). RLS: alleen het lid zelf. Namen zoals in
   `zwift_bike_parts`, zonder foreign key: een naam die na een nieuwe sheet
   verdwijnt, slaat de app over (`garageFromRows`). In de gegevensexport.

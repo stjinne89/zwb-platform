@@ -3,7 +3,7 @@ import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadBikeParts } from "@/lib/pacing/ride-context";
-import { loadGarageRows } from "@/lib/pacing/zwift-garage";
+import { hasAeroSocks, loadGarageRows } from "@/lib/pacing/zwift-garage";
 import type { BikeKind } from "@/lib/pacing/zwift-setup";
 import { ZwiftGarageForm } from "./_components/garage-form";
 
@@ -41,6 +41,7 @@ export default async function ZwiftGaragePage() {
           wheels={wheels}
           initialFrames={Object.fromEntries(rows.filter((row) => row.part === "frame").map((row) => [row.name, row.stage]))}
           initialWheels={rows.filter((row) => row.part === "wheel").map((row) => row.name)}
+          initialAeroSocks={hasAeroSocks(rows)}
         />
       )}
     </div>

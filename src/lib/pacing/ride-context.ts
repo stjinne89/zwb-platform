@@ -155,6 +155,7 @@ export function rideContextFor(
   setup: unknown,
   weightKg: number,
   heightCm: number | null = null,
+  aeroSocks = false,
 ): RideContext | null {
   if (!zwift) return null;
   const normalized = normalizeSetup(setup, defaultSetup(zwift.constraints));
@@ -165,10 +166,11 @@ export function rideContextFor(
       parts: zwift.parts,
       weightKg: kg,
       heightCm: cm,
+      aeroSocks,
     });
   // De vingerafdruk op de referentierenner: een ander gewicht meldt
   // checkStaleness al zelf, met een drempel, en lengte en gewicht horen hier
-  // geen tweede keer. Wat overblijft zijn fiets, format en spelregels.
+  // geen tweede keer. Wat overblijft zijn fiets, sokken, format en spelregels.
   return {
     setup: normalized,
     physics: resolve(weightKg, heightCm),

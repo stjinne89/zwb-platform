@@ -2,7 +2,8 @@
 // het in Zwift heeft. Snelste fiets rekent daarmee in het pacingplan en in de
 // racebriefing. ZWB kan de garage niet uit Zwift lezen; het lid vult hem in op
 // /mijn-garage/zwift. Tabel member_zwift_bikes, migratie 0278 (op productie
-// toegepast onder de naam 0277_member_zwift_bikes).
+// toegepast onder de naam 0277_member_zwift_bikes). Sinds migratie 0368 ook de
+// Aero Lightning Socks: die rekenen op elke fiets mee, ook zonder frames.
 
 import type { BikePart } from "@/lib/pacing/zwift-setup";
 
@@ -18,7 +19,15 @@ export type ZwiftGarage = {
   wheels: string[];
 };
 
-export type GarageRow = { part: "frame" | "wheel"; name: string; stage: number };
+export type GarageRow = { part: "frame" | "wheel" | "socks"; name: string; stage: number };
+
+/** De naam van de sokken in member_zwift_bikes (part 'socks'). */
+export const AERO_SOCKS = "Aero Lightning Socks";
+
+/** Of het lid de Aero Lightning Socks heeft aangevinkt. */
+export function hasAeroSocks(rows: GarageRow[]): boolean {
+  return rows.some((row) => row.part === "socks" && row.name === AERO_SOCKS);
+}
 
 /**
  * Van rijen naar een garage, met alleen namen die de fietslijst kent: een naam
@@ -57,4 +66,14 @@ export async function loadZwiftGarage(
   parts: BikePart[],
 ): Promise<ZwiftGarage | null> {
   return garageFromRows(await loadGarageRows(client, profileId), parts);
+}
+
+/** De garage en de sokken in één keer. */
+export async function loadZwiftKit(
+  client: Client,
+  profileId: string,
+  parts: BikePart[],
+): Promise<{ garage: ZwiftGarage | null; aeroSocks: boolean }> {
+  const rows = await loadGarageRows(client, profileId);
+  return { garage: garageFromRows(rows, parts), aeroSocks: hasAeroSocks(rows) };
 }

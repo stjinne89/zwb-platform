@@ -4,18 +4,19 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadBikeParts } from "@/lib/pacing/ride-context";
-import { loadGarageRows } from "@/lib/pacing/zwift-garage";
+import { AERO_SOCKS, loadGarageRows } from "@/lib/pacing/zwift-garage";
 
 type Result = { ok: true } | { ok: false; error: string };
 
 /**
  * Zet de Zwift-garage van het lid op deze lijst: wat erbij komt of een ander
  * niveau krijgt wordt opgeslagen, wat er niet meer in staat gaat eruit. Alleen
- * namen die de fietslijst kent.
+ * namen die de fietslijst kent, plus de Aero Lightning Socks.
  */
 export async function saveZwiftGarage(input: {
   frames: Array<{ name: string; stage: number }>;
   wheels: string[];
+  aeroSocks: boolean;
 }): Promise<Result> {
   const supabase = await createClient();
   const {
@@ -37,10 +38,13 @@ export async function saveZwiftGarage(input: {
     (Array.isArray(input?.wheels) ? input.wheels : []).map(String).filter((name) => wheelNames.has(name)),
   );
 
+  const socks = new Set(input?.aeroSocks === true ? [AERO_SOCKS] : []);
+
   const now = new Date().toISOString();
   const rows = [
     ...[...frames].map(([name, stage]) => ({ profile_id: user.id, part: "frame", name, stage, updated_at: now })),
     ...[...wheels].map((name) => ({ profile_id: user.id, part: "wheel", name, stage: 0, updated_at: now })),
+    ...[...socks].map((name) => ({ profile_id: user.id, part: "socks", name, stage: 0, updated_at: now })),
   ];
   if (rows.length > 0) {
     const { error } = await supabase.from("member_zwift_bikes").upsert(rows, { onConflict: "profile_id,part,name" });
@@ -48,8 +52,8 @@ export async function saveZwiftGarage(input: {
   }
 
   const existing = await loadGarageRows(supabase, user.id);
-  for (const part of ["frame", "wheel"] as const) {
-    const keep = part === "frame" ? new Set(frames.keys()) : wheels;
+  for (const part of ["frame", "wheel", "socks"] as const) {
+    const keep = part === "frame" ? new Set(frames.keys()) : part === "wheel" ? wheels : socks;
     const removed = existing.filter((row) => row.part === part && !keep.has(row.name)).map((row) => row.name);
     if (removed.length === 0) continue;
     const { error } = await supabase

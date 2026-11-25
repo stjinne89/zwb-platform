@@ -35,6 +35,7 @@ import {
   normalizeSetup,
   positionCdaFactor,
   resolveRidePhysics,
+  AERO_SOCKS_CDA_DELTA,
   ZWIFT_BASE_BIKE_KG,
   ZWIFT_BASE_CDA,
   type BikePart,
@@ -126,6 +127,13 @@ describe("ijking op de ZwiftInsider-referentie", () => {
   it("reproduceert de vlakke snelheid op Tempus Fugit binnen 1 %", () => {
     expect(Math.abs(mph(solveSpeedMs(300, 0, opts)) / 24.574 - 1)).toBeLessThan(0.01);
     expect(Math.abs(mph(solveSpeedMs(150, 0, opts)) / 18.964 - 1)).toBeLessThan(0.01);
+  });
+
+  it("de Aero Lightning Socks schelen zo'n 12 s per uur op 300 W op het vlak", () => {
+    const hour = solveSpeedMs(300, 0, opts) * 3600;
+    const withSocks = solveSpeedMs(300, 0, { ...opts, cda: ZWIFT_BASE_CDA + AERO_SOCKS_CDA_DELTA });
+    expect(3600 - hour / withSocks).toBeGreaterThan(11);
+    expect(3600 - hour / withSocks).toBeLessThan(13);
   });
 
   it("reproduceert de klimsnelheid op de Alpe binnen 1 %", () => {
@@ -220,6 +228,14 @@ describe("fiets en renner", () => {
     });
     expect(result.kind).toBe("road");
     expect(result.cda).toBeCloseTo(ZWIFT_BASE_CDA, 6);
+  });
+
+  it("de Aero Lightning Socks halen de CdA omlaag en tellen in de vingerafdruk", () => {
+    const without = physics({ weightKg: 75, heightCm: 183 });
+    const socks = physics({ weightKg: 75, heightCm: 183, aeroSocks: true });
+    expect(socks.cda - without.cda).toBeCloseTo(AERO_SOCKS_CDA_DELTA, 6);
+    const zwift = { constraints: STANDARD, parts: [] };
+    expect(rideContextFor(zwift, null, 70, null, true)!.key).not.toBe(rideContextFor(zwift, null, 70, null)!.key);
   });
 
   it("een grotere renner vangt meer wind", () => {

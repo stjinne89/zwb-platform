@@ -77,6 +77,8 @@ export function adviseBikes(input: {
   garage?: ZwiftGarage | null;
   /** Alleen frames en wielen uit de garage. Wielen leeg = alle wielen. */
   garageOnly?: boolean;
+  /** De Aero Lightning Socks: op elke fiets even veel winst. */
+  aeroSocks?: boolean;
 }): BikeAdvice | null {
   const { parts, constraints, setup } = input;
   const garage = input.garage ?? null;
@@ -100,6 +102,7 @@ export function adviseBikes(input: {
         parts,
         weightKg: input.weightKg,
         heightCm: input.heightCm,
+        aeroSocks: input.aeroSocks,
       }),
     );
 

@@ -440,6 +440,14 @@ export function RacenHelp() {
                 verschilt.
               </p>
               <p>
+                Heb je de Aero Lightning Socks uit de Factory Tour-challenge, vink ze
+                dan aan onder Sokken. Het pacingplan rekent dan op elke fiets met
+                ongeveer 1 % minder luchtweerstand: Zwift Insider mat zo&apos;n 12
+                seconden winst per uur op 300 W op een vlakke weg. De gewone
+                Lightning Socks geven geen voordeel. De racebriefing vergelijkt
+                alleen fietsen en rekent zonder sokken.
+              </p>
+              <p>
                 In een wedstrijd kies je per stuk In de groep of Alleen. In de groep
                 kost hetzelfde tempo ongeveer een derde minder luchtweerstand; op een
                 steile klim scheelt dat weinig. Een wedstrijd krijgt een vaste start

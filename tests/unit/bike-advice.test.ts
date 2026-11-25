@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { adviseBikes, steadySeconds } from "@/lib/pacing/bike-advice";
 import type { CpModel } from "@/lib/pacing/cp";
 import { evaluatePlan, type PlanSegment } from "@/lib/pacing/plan";
-import { garageFromRows, type ZwiftGarage } from "@/lib/pacing/zwift-garage";
+import { AERO_SOCKS, garageFromRows, hasAeroSocks, type ZwiftGarage } from "@/lib/pacing/zwift-garage";
 import type { PacingRoute, PacingSegment } from "@/lib/pacing/route-profile";
 import {
   constraintsFromZwiftEvent,
@@ -248,6 +248,13 @@ describe("adviseBikes met een Zwift-garage", () => {
     );
     expect(garage).toEqual({ frames: { Aerofiets: 5 }, wheels: ["Diep"] });
     expect(garageFromRows([{ part: "wheel", name: "Diep", stage: 0 }], PARTS)).toBeNull();
+  });
+
+  it("de sokken tellen los van de frames", () => {
+    const rows = [{ part: "socks" as const, name: AERO_SOCKS, stage: 0 }];
+    expect(hasAeroSocks(rows)).toBe(true);
+    expect(garageFromRows(rows, PARTS)).toBeNull();
+    expect(hasAeroSocks([{ part: "socks", name: "Lightning Socks", stage: 0 }])).toBe(false);
   });
 });
 

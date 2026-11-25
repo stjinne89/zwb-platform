@@ -1,6 +1,7 @@
 "use client";
 
-// De Zwift-garage invullen: frames met hun upgradeniveau, en wielen. Uitleg
+// De Zwift-garage invullen: frames met hun upgradeniveau, wielen en de Aero
+// Lightning Socks. Uitleg
 // staat op /hulp/racen#pacing-zwift.
 
 import { useMemo, useState, useTransition } from "react";
@@ -8,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { StagePicker } from "@/components/stage-picker";
 import type { BikeKind } from "@/lib/pacing/zwift-setup";
+import { AERO_SOCKS } from "@/lib/pacing/zwift-garage";
 import { saveZwiftGarage } from "../_actions";
 
 const KIND_LABELS: Record<BikeKind, string> = {
@@ -27,17 +29,20 @@ export function ZwiftGarageForm({
   wheels,
   initialFrames,
   initialWheels,
+  initialAeroSocks,
 }: {
   frames: Array<{ name: string; kind: BikeKind }>;
   wheels: string[];
   initialFrames: Record<string, number>;
   initialWheels: string[];
+  initialAeroSocks: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [owned, setOwned] = useState<Record<string, number>>(initialFrames);
   const [ownedWheels, setOwnedWheels] = useState<Set<string>>(new Set(initialWheels));
+  const [aeroSocks, setAeroSocks] = useState(initialAeroSocks);
   const [frameQuery, setFrameQuery] = useState("");
   const [wheelQuery, setWheelQuery] = useState("");
 
@@ -82,6 +87,7 @@ export function ZwiftGarageForm({
       const result = await saveZwiftGarage({
         frames: Object.entries(owned).map(([name, stage]) => ({ name, stage })),
         wheels: [...ownedWheels],
+        aeroSocks,
       });
       setMessage(result.ok ? { ok: true, text: "Opgeslagen." } : { ok: false, text: result.error });
       if (result.ok) router.refresh();
@@ -166,6 +172,22 @@ export function ZwiftGarageForm({
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="space-y-3 rounded-lg border bg-card p-4">
+        <h2 className="font-semibold">Sokken</h2>
+        <label className="flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm">
+          <input
+            type="checkbox"
+            checked={aeroSocks}
+            onChange={(event) => {
+              setMessage(null);
+              setAeroSocks(event.target.checked);
+            }}
+            className="size-4 shrink-0 accent-primary"
+          />
+          <span className="truncate">{AERO_SOCKS}</span>
+        </label>
       </section>
 
       <div className="flex items-center gap-3">

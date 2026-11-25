@@ -185,6 +185,16 @@ export const POWERUP_EFFECTS: Record<PowerupId, PowerupEffect> = {
   anvil: { durationS: 15, riderMassFraction: 0.1, maxGradient: -0.015 },
 };
 
+/**
+ * De Aero Lightning Socks uit de Factory Tour-challenge. Zwift Insider
+ * (zwiftinsider.com/lightning-socks, april 2025) mat met de referentierenner
+ * op 300 W op een vlakke weg ongeveer 12 s winst per uur. Met de ijking
+ * hierboven (24,5 mph op de referentiefiets) is dat 0,0033 m² minder CdA,
+ * ruim 1 %. Eén meting, zonder slipstream of tijdritfiets: dat de winst
+ * overal gelijk is, ook in de groep en op elk frame, is een AANNAME.
+ */
+export const AERO_SOCKS_CDA_DELTA = -0.0033;
+
 /** Wat een gewoon event zonder eigen verdeling uitdeelt. */
 const STANDARD_POWERUPS: PowerupId[] = ["feather", "draft", "aero"];
 
@@ -318,6 +328,8 @@ export function resolveRidePhysics(input: {
    * luchtweerstand ermee; zonder lengte Zwifts standaard van 175 cm.
    */
   heightCm: number | null;
+  /** Het lid heeft de Aero Lightning Socks (Zwift-garage). */
+  aeroSocks?: boolean;
 }): RidePhysics {
   const { setup, constraints, parts } = input;
   const stage = constraints.upgradesDisabled ? 0 : setup.stage;
@@ -330,7 +342,11 @@ export function resolveRidePhysics(input: {
 
   const refArea = frontalArea(ZWIFT_REF_HEIGHT_CM, ZWIFT_REF_WEIGHT_KG);
   const area = frontalArea(input.heightCm ?? ZWIFT_DEFAULT_HEIGHT_CM, input.weightKg);
-  const bikeCda = ZWIFT_BASE_CDA + (frame?.cdaDelta ?? 0) + (wheels?.cdaDelta ?? 0);
+  const bikeCda =
+    ZWIFT_BASE_CDA +
+    (frame?.cdaDelta ?? 0) +
+    (wheels?.cdaDelta ?? 0) +
+    (input.aeroSocks ? AERO_SOCKS_CDA_DELTA : 0);
 
   const format = setup.format;
   // In een ploegentijdrit drafting een tijdritfiets als een racefiets, ook
