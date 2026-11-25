@@ -83,7 +83,7 @@ describe("streamCenterTiles", () => {
 });
 
 describe("streamCenterLinks", () => {
-  it("geeft een Ladder-race de Ladder-site en de Zwift-links", () => {
+  it("geeft een Ladder-race de Ladder-site, de live stand en de Zwift-links", () => {
     const links = streamCenterLinks({
       id: "bullets",
       type: "ladder",
@@ -91,8 +91,9 @@ describe("streamCenterLinks", () => {
       zwift_event_id: 5123456,
       external_url: "ladder.example/fixture/1",
     });
-    expect(links.map((l) => l.label)).toEqual(["Ladder-site", "Zwift", "ZwiftPower", "ZwiftRacing"]);
+    expect(links.map((l) => l.label)).toEqual(["Ladder-site", "Live stand", "Zwift", "ZwiftPower", "ZwiftRacing"]);
     expect(links[0]).toMatchObject({ href: "https://ladder.example/fixture/1", external: true });
+    expect(links[1]).toEqual({ key: "stand", label: "Live stand", href: "/events/bullets/live", external: false });
   });
 
   it("geeft een ZRL-teamrace de live stand, en niets zonder Zwift-event", () => {

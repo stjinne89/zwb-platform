@@ -152,28 +152,37 @@ export type ScoreResult = {
   splits: SplitPoint[];
 };
 
-export function scoreRace(input: ScoreInput): ScoreResult {
-  const format = input.format ?? "points";
-  const riderById = new Map(input.riders.map((rider) => [rider.athleteId, rider]));
-  const passages = input.passages
-    .filter((p) => riderById.has(p.athleteId) && p.ts >= input.startAt)
-    .filter((p) => p.ts <= (input.finishedAt?.get(p.athleteId) ?? Infinity))
-    .sort((a, b) => a.ts - b.ts || a.id.localeCompare(b.id));
-
-  // Dezelfde passage kan in meerdere pollrondes binnenkomen.
+/**
+ * De passages die in de race vallen: van renners uit de lijst, na de start en
+ * vóór het eigen finishmoment, op tijd en zonder dubbele (dezelfde passage kan
+ * in meerdere pollrondes binnenkomen).
+ */
+export function racePassages(
+  input: Pick<ScoreInput, "riders" | "passages" | "startAt" | "finishedAt">,
+): Passage[] {
+  const riderIds = new Set(input.riders.map((rider) => rider.athleteId));
   const seen = new Set<string>();
-  const deduped = passages.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
-  const unique = format === "ttt" && input.route.length > 0 ? dropWarmup(deduped, input.route[0].segmentId) : deduped;
+  return input.passages
+    .filter((p) => riderIds.has(p.athleteId) && p.ts >= input.startAt)
+    .filter((p) => p.ts <= (input.finishedAt?.get(p.athleteId) ?? Infinity))
+    .sort((a, b) => a.ts - b.ts || a.id.localeCompare(b.id))
+    .filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+}
 
-  // Routeplekken per segment: Monceau op plek 1 en 3, bijvoorbeeld.
+/**
+ * Passages op hun plek in de route: de eerste passage van een renner over
+ * Monceau op de eerste plek waar Monceau ligt, de tweede op de tweede.
+ * `passages` staat op tijd (zie racePassages).
+ */
+export function routePasses(route: RouteSegment[], passages: Passage[]): ScoredPass[] {
   const slotsBySegment = new Map<string, number[]>();
-  input.route.forEach((segment, index) => {
+  route.forEach((segment, index) => {
     const slots = slotsBySegment.get(segment.segmentId) ?? [];
     slots.push(index);
     slotsBySegment.set(segment.segmentId, slots);
   });
 
-  const passes: ScoredPass[] = input.route.map((segment, index) => ({
+  const passes: ScoredPass[] = route.map((segment, index) => ({
     index,
     segmentId: segment.segmentId,
     name: segment.name,
@@ -182,7 +191,7 @@ export function scoreRace(input: ScoreInput): ScoreResult {
   }));
 
   const countByRiderSegment = new Map<string, number>();
-  for (const p of unique) {
+  for (const p of passages) {
     const slots = slotsBySegment.get(p.segmentId);
     if (!slots) continue;
     const key = `${p.athleteId}:${p.segmentId}`;
@@ -192,6 +201,16 @@ export function scoreRace(input: ScoreInput): ScoreResult {
     if (slot === undefined) continue; // Meer passages dan de route heeft: na de finish.
     passes[slot].crossings.push({ athleteId: p.athleteId, ts: p.ts, elapsed: p.elapsed, fal: 0 });
   }
+  return passes;
+}
+
+export function scoreRace(input: ScoreInput): ScoreResult {
+  const format = input.format ?? "points";
+  const riderById = new Map(input.riders.map((rider) => [rider.athleteId, rider]));
+  const deduped = racePassages(input);
+  const unique = format === "ttt" && input.route.length > 0 ? dropWarmup(deduped, input.route[0].segmentId) : deduped;
+  const passes = routePasses(input.route, unique);
+  const segmentIds = new Set(input.route.map((segment) => segment.segmentId));
 
   // Starters: wie over de startlijn ging. Live benaderd als wie minstens één
   // segment reed, aangevuld met de finishers.
@@ -215,7 +234,7 @@ export function scoreRace(input: ScoreInput): ScoreResult {
       });
     }
 
-    for (const segmentId of slotsBySegment.keys()) {
+    for (const segmentId of segmentIds) {
       const efforts = passes
         .filter((pass) => pass.segmentId === segmentId)
         .flatMap((pass) => pass.crossings)

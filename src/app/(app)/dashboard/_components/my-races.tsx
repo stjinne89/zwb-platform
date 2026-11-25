@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CLUB_RACE_TYPES } from "@/lib/event-types";
 import { zwiftDsConfigured } from "@/lib/events/zwift-club";
 import { inDsWindow } from "@/lib/ds/schedule";
+import { inLadderLiveWindow } from "@/lib/club-ladder/live";
 import { ModuleName } from "@/components/club-texts-provider";
 
 type RaceEvent = {
@@ -192,8 +193,10 @@ export async function MyRaces({ userId }: { userId: string }) {
   }
 
   function liveHref(event: RaceEvent) {
-    if (event.type !== "zrl" || !event.team_id || !event.zwift_event_id) return null;
-    return inLiveWindow(event) ? `/live/zrl/${event.id}` : null;
+    if (!event.team_id || !event.zwift_event_id) return null;
+    if (event.type === "zrl") return inLiveWindow(event) ? `/live/zrl/${event.id}` : null;
+    if (event.type === "ladder") return inLadderLiveWindow(new Date(event.start_at).getTime(), now.getTime()) ? `/events/${event.id}/live` : null;
+    return null;
   }
 
   const dsOn = zwiftDsConfigured();

@@ -171,7 +171,9 @@ function score(order: Array<{ own: boolean; points: number }>) {
   return { ours, theirs };
 }
 
-const wins = (ours: number, theirs: number, challenger: boolean) => ours > theirs || (ours === theirs && !challenger);
+/** Bij gelijke stand verliest de uitdager. */
+export const ladderWins = (ours: number, theirs: number, challenger: boolean) => ours > theirs || (ours === theirs && !challenger);
+const wins = ladderWins;
 
 /**
  * Verwachte uitslag: op sterkte, punten 10‥1. Een verwachting, geen

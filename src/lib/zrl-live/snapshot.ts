@@ -470,6 +470,17 @@ const fetchCachedRaceData = unstable_cache(fetchRaceData, ["zrl-live-race", "v4"
  */
 const MAX_CACHE_AGE_MS = 60 * 1000;
 
+/**
+ * Dezelfde Zwift-data als de live ZRL-stand, met dezelfde cache van 15 s per
+ * Zwift-event, maar zonder te bevriezen of iets te bewaren. Voor de live
+ * ladderstand (club-ladder/live-load.ts); daar geldt na de race de uitslag van
+ * de ladder.
+ */
+export async function loadLiveRaceData(zwiftEventId: string): Promise<RaceData> {
+  const data = await fetchCachedRaceData(zwiftEventId);
+  return Date.now() - data.fetchedAt > MAX_CACHE_AGE_MS ? fetchRaceData(zwiftEventId) : data;
+}
+
 export type ZrlLiveView = {
   event: { id: string; title: string; teamName: string | null; zwiftEventId: string };
   subgroupLabel: string;

@@ -86,7 +86,7 @@ export function streamCenterOrder(races: { id: string; startAt: string; label: s
 
 /**
  * De links van een race bij zijn streams: de Ladder-site, de live stand van een
- * ZRL-teamrace, en Zwift, ZwiftPower en ZwiftRacing.
+ * ZRL-teamrace of ladderrace, en Zwift, ZwiftPower en ZwiftRacing.
  */
 export function streamCenterLinks(event: {
   id: string;
@@ -100,6 +100,9 @@ export function streamCenterLinks(event: {
   if (ladderSite) links.push({ key: "ladder", label: "Ladder-site", href: ladderSite, external: true });
   if (event.type === "zrl" && event.team_id && event.zwift_event_id) {
     links.push({ key: "stand", label: "Live stand", href: `/live/zrl/${event.id}`, external: false });
+  }
+  if (event.type === "ladder" && event.team_id && event.zwift_event_id) {
+    links.push({ key: "stand", label: "Live stand", href: `/events/${event.id}/live`, external: false });
   }
   for (const link of derivedZwiftLinks(event.zwift_event_id)) {
     links.push({ key: link.key, label: link.label, href: link.url, external: true });

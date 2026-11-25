@@ -50,6 +50,7 @@ import { ZrlExpectedResultFallback, ZrlExpectedResultView, ZrlResultView } from 
 import { zrlFieldOpen } from "@/lib/race-briefing/load";
 import { keyDuration as ladderKeyDuration, ladderRiders, matchupWeights, projectLadder } from "@/lib/club-ladder/briefing";
 import { ladderChallengerFromTitle } from "@/lib/club-ladder/fixture-events";
+import { inLadderLiveWindow } from "@/lib/club-ladder/live";
 import { ZwiftRacingSignups } from "./_components/zwiftracing-signups";
 import { loadZwiftRacingSignups, startsWithinSignupWindow } from "@/lib/zwiftracing/event-signups";
 import { loadLadderEventRouteAdvice } from "@/lib/club-ladder/route-advice";
@@ -1582,7 +1583,13 @@ export default async function EventDetailPage({
       <RaceInfoCard
         pacingHref={pacingHref}
         briefingHref={(event.type === "zrl" || event.type === "ladder") && event.team_id ? `/events/${event.id}/briefing` : null}
-        liveHref={event.type === "zrl" && event.team_id && event.zwift_event_id ? `/live/zrl/${event.id}` : null}
+        liveHref={
+          event.type === "zrl" && event.team_id && event.zwift_event_id
+            ? `/live/zrl/${event.id}`
+            : event.type === "ladder" && event.team_id && event.zwift_event_id && inLadderLiveWindow(Date.parse(event.start_at))
+              ? `/events/${event.id}/live`
+              : null
+        }
         dsHref={dsHref}
         racepasses={ownRacepasses}
         signupUrl={event.type === "zrl" ? null : zwiftSignupUrl}

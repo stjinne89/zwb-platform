@@ -22,6 +22,8 @@ import { SeasonStand } from "../(app)/zwbeter-worden/jaarplan/_components/season
 import { DsSections } from "../(app)/ds/[eventId]/_components/ds-sections";
 import { PageHeader } from "@/components/app-ui";
 import { DS_VOORBEELD } from "./ds-voorbeeld";
+import { LADDER_LIVE_VOORBEELD } from "./ladder-live-voorbeeld";
+import { LadderLiveBoard } from "../(app)/events/[id]/live/_components/ladder-live-board";
 import { WEEK_VOORBEELD } from "./weekoverzicht-voorbeeld";
 import { WeekReviewPage } from "@/components/weekoverzicht/review-page";
 import { WeekReviewDashboardLink } from "@/components/weekoverzicht/dashboard-link";
@@ -41,7 +43,7 @@ import { standaardSetup } from "@/lib/materiaal/bandendruk";
 // te controleren zonder de productiedatabase; met echte data kijk je in de app
 // zelf.
 
-const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "weekoverzicht", "bokaal", "bandendruk", "inloggen"] as const;
+const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "ladder-live", "weekoverzicht", "bokaal", "bandendruk", "inloggen"] as const;
 
 // Bandendruk: een racefiets die is ingevuld, een gravelfiets die nog leeg is.
 const BANDENDRUK_FIETSEN = [
@@ -152,6 +154,11 @@ export default async function OntwerpVoorbeeldPage({
           <div className="mx-auto max-w-3xl space-y-4">
             <PageHeader eyebrow="ZWB DS" title={DS_VOORBEELD.event.title} />
             <DsSections view={DS_VOORBEELD} />
+          </div>
+        ) : scherm === "ladder-live" ? (
+          <div className="mx-auto max-w-2xl space-y-4">
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Club Ladder: ZWBeasts – Voorbeeld Racing</h1>
+            <LadderLiveBoard eventId="voorbeeld" initial={LADDER_LIVE_VOORBEELD} />
           </div>
         ) : scherm === "jaarplan" ? (
           <div className="max-w-2xl space-y-4">

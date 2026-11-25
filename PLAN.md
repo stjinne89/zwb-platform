@@ -7,6 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Live ladderstand (2026-11-25): commit: de commit die dit blok
+   toevoegt, niet gepusht. Geen migratie.** Tijdens een ladderrace op
+   `/events/[id]/live` de score en de volgorde bij elke sprint, KOM en
+   rondestreep, en daarna de finish. Open: morgen (2026-11-26, vier
+   ladderraces vanaf 19:32) ingelogd live bekijken, vooral of vier races
+   tegelijk Zwift niet afknijpen; de privacyzin voorleggen. Zie de ronde met
+   dezelfde naam.
+
 0. **Gebouwd — TV op de telefoon start alle streams (2026-11-25): commits
    `2ce0f4c3` en `a30e405d` (liggend op Android), op 2026-11-25 gepusht naar
    `main` (eigenaar: "Ja, push").** Geen migratie. Open: op een echte iPhone en Android-telefoon TV
@@ -13058,6 +13066,80 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Live ladderstand
+
+**2026-11-25, commit: de commit die dit blok toevoegt, niet gepusht. Geen
+migratie.**
+
+- **Waarom.** De eigenaar vroeg waarom de Club Ladder geen live stats heeft.
+  De ladder telt alleen de finish (10 tot 1 punt), en onderweg is er dus niets
+  om te tellen. Wel geeft Zwift via de segmentresultaten de passage van iedere
+  renner over elke sprint en KOM, net als bij de live ZRL-stand. Voorstel:
+  per boog een tussenstand met de score alsof de race daar eindigde, plus de
+  finish zodra renners binnen zijn; akkoord ("Ja, bouwen").
+- **Rechtzetting bij het voorstel.** Daarin stond dat er geen bron is voor live
+  posities. Dat klopt niet: ZWB DS (ronde "ZWB DS: raceoverzicht tijdens
+  Zwift-races", 2026-10-17) vraagt de afstand per renner op en werkt al voor
+  ladderraces. De live stand linkt daarom naar ZWB DS voor de plekken tussen
+  twee bogen, en ZWB DS terug naar de stand.
+- **Wat.**
+  - Rekenkern `src/lib/club-ladder/live.ts` (puur). Per punt, op het moment dat
+    de eerste erlangs kwam, de volgorde van de tien. Wie er nog niet langs is,
+    staat achter wie er wel langs is, op zijn vorige plek. Daarbij de punten
+    10‥1, de achterstand op de eerste en de score met de regel "gelijk is
+    verlies voor de uitdager" (`ladderWins`, nu geëxporteerd uit
+    `briefing.ts`). Een boog op de finishlijn valt samen met de finish. Na een
+    complete uitslag (`subgroupSettled`) krijgt wie niet binnen is 0 punten
+    (DNF). Daarvoor de toewijzing van passages aan routeplekken uit
+    `scoreRace` gehaald (`racePassages`, `routePasses` in
+    `zrl-live/scoring.ts`), zonder gedragsverandering voor de ZRL.
+  - Laden `src/lib/club-ladder/live-load.ts`: dezelfde Zwift-data en cache van
+    15 s per Zwift-event als de ZRL (`loadLiveRaceData` in
+    `zrl-live/snapshot.ts`), maar niets bevriezen of bewaren. Wie bij ons rijdt:
+    de aanmeldingen van de ladder voor die wedstrijd, dan de teamleden, dan de
+    clubtag; de rest is de tegenstander. Alleen van een kwartier voor tot drie
+    uur na de start vragen we Zwift; daarbuiten "Live vanaf …" of "De race is
+    voorbij" met een link naar de uitslag.
+  - Pagina `/events/[id]/live` (achter de login, module `live_race`) en
+    `/api/events/[id]/live`, die het bord elke 15 s opnieuw vraagt. Bovenaan de
+    score, dan de stand van het laatste punt, daaronder de eerdere
+    tussenstanden om open te klappen; vóór de eerste doorkomst de startlijst per
+    ploeg. Eigen renners met een streep (de tegels maken randen van rijen leeg)
+    en via `MemberLink` naar hun profiel.
+  - Ingangen: Live stand bij Raceinfo en bij Jouw races op het dashboard (in het
+    venster), onder elke stream in het streamcenter, en op ZWB DS. Op `/hulp` een
+    alinea bij de Club Ladder; de zin "de live stand hoort bij de ZRL" is weg.
+  - Designvoorbeeld `/ontwerp-voorbeeld?scherm=ladder-live` met verzonnen
+    renners.
+- **Privacy.** Een zin bij de Club Ladder in `/privacy`: tijdens een ladderrace
+  zien ingelogde leden naam, plek en achterstand uit de startlijst, de
+  doorkomsten en de finishtijden van Zwift, ook van renners van andere clubs;
+  niet in de database, alleen even in de cache. Geen nieuwe privacyversie: het
+  is dezelfde soort Zwift-data als de matchup en de uitslag al tonen. Nog voor
+  te leggen aan de eigenaar.
+- **Bewust niet.**
+  - Geen live stand in de stream-overlay: daar blijft de kolom bij de ladder
+    vrij voor het Sauce-venster (ronde "Streamcenter per avond").
+  - Geen JSON voor de Sauce-mod: niet gevraagd.
+  - Geen link in de YouTube-beschrijving, zoals bij de ZRL: de ZRL-stand is
+    openbaar, deze staat achter de login.
+  - Geen "stand nu" uit de afstanden van ZWB DS: die bestaan alleen als iemand
+    ZWB DS open heeft, en dan staan de plekken daar al.
+  - Niets bewaren of bevriezen: na de race geldt de ladderuitslag.
+- **Getest.** `club-ladder-live.test.ts` (10, nieuw), `stream-center` (de
+  ladder krijgt Live stand), `zrl-live-scoring` ongewijzigd groen, `tsc` en
+  ESLint schoon. Met echte data, via een tijdelijke proeftest die daarna weg
+  is: de ladderrace van 2026-11-25 (ZWBullets – Vikings Valgrind, Zwift-event
+  5808967). Die gaf 5 tegen 5, vier leden met profiel, zes tussenstanden en de
+  finish op 28–27 voor ZWBullets, in 1,8 s vers bij Zwift. De ladderuitslag was
+  toen nog niet gesynct, dus die 28–27 is nog niet tegen de ladder gelegd. Twee
+  andere races gaven zonder Zwift-aanroep "Live vanaf" en "voorbij". Het bord
+  bekeken in het designvoorbeeld, op 800 px donker en 375 px licht.
+- **Niet geverifieerd.** De echte pagina ingelogd (lokaal geen login), het
+  verversen tijdens een race, en vier ladderraces tegelijk: elk ververst om de
+  15 s met ongeveer zes Zwift-aanroepen, en of Zwift dat op 2026-11-26 zonder
+  429 toelaat, is niet gemeten.
+
 ### Gebouwd — TV op de telefoon start alle streams
 
 **2026-11-25, commits `2ce0f4c3` (alle streams starten) en `a30e405d`
@@ -16825,7 +16907,10 @@ toegepast (check en standaard nagekeken, vier streams op `1920x1080`).**
   - Hulp: de tekst over de overlay-link bijgewerkt (logo, sponsors,
     schakelaar, "gemarkeerd" in plaats van "oranje").
 - **Bewust niet.** Geen klok (eigenaar, bij het voorstel). Geen Club
-  Ladder-overlay nagebouwd: er is geen live positiedata op de server; de
+  Ladder-overlay nagebouwd: er is geen live positiedata op de server
+  (*bijgesteld 2026-11-25: die was er via ZWB DS al, en sinds de ronde "Live
+  ladderstand" is er ook een tussenstand per boog; de overlay toont geen van
+  beide*); de
   Sauce-mod `gazhay/sauce4clubLadder` kan naast onze overlay in OBS staan.
   Geen grotere of langere plek voor hogere sponsortiers (eigenaar: allemaal
   gelijk). Geen Nederlandse overlay: de kijkers zijn ook van andere clubs

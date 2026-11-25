@@ -174,6 +174,7 @@ async function eventProfile(subgroup: DsSubgroup, routeM: number | null): Promis
 }
 
 export type DsView = {
+  /** De live stand: van de ZRL, of van een ladderrace (`/events/[id]/live`). */
   event: { id: string; title: string; zrlLiveHref: string | null };
   subgroups: Array<{ id: string; label: string; riders: number; zwb: number }>;
   subgroup: { id: string; label: string; startAt: number };
@@ -400,7 +401,12 @@ export async function loadDsView(
       event: {
         id: String(event.id),
         title: String(event.title),
-        zrlLiveHref: event.type === "zrl" && event.team_id ? `/live/zrl/${event.id}` : null,
+        zrlLiveHref:
+          event.type === "zrl" && event.team_id
+            ? `/live/zrl/${event.id}`
+            : event.type === "ladder" && event.team_id
+              ? `/events/${event.id}/live`
+              : null,
       },
       subgroups: occupied.map((s) => ({
         id: s.id,

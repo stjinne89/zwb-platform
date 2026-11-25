@@ -140,6 +140,11 @@ export default function PrivacyPage() {
             rekenen we naast vermogen met de vELO1 van ZwiftRacing, zoals
             zwiftracing.app die openbaar toont, ook van renners van andere
             clubs; die leggen we vóór de start vast bij de verwachting.
+            Tijdens een ladderrace zien ingelogde leden een live stand uit de
+            startlijst, de doorkomsten bij sprints en klimmen en de finishtijden
+            van Zwift: per renner naam, plek en achterstand, ook van renners van
+            andere clubs. Dat bewaren we niet in de database, alleen even in een
+            cache; na de race geldt de uitslag van de ladder.
           </li>
           <li>
             <strong>ZRL-teamgegevens van WTRL:</strong> voor de ZRL-teams nemen

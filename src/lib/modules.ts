@@ -154,7 +154,7 @@ export const MODULES: readonly ModuleDef[] = [
     key: "live_race",
     label: "Live race",
     group: "zwift",
-    paths: ["/live/zrl", "/ds", "/api/live/zrl"],
+    paths: ["/live/zrl", "/ds", "/api/live/zrl", "/events/*/live", "/api/events/*/live"],
     requires: ["teams"],
   },
   // Leden streamen hun races op het eigen YouTube-kanaal (0338). Werkt pas met
