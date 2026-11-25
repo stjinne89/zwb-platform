@@ -8,8 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Streamcenter per avond, links per stream en TV
-   (2026-11-25): de commit die dit blok toevoegt, lokaal, niet gepusht.** Geen
-   migratie. Open: ingelogd de avond van vier Club Ladder-races openen, en
+   (2026-11-25): commit `0c4d2f1f`, op 2026-11-25 gepusht naar `main`
+   (eigenaar: "Ja, push").** Geen migratie. Open: ingelogd de avond van vier Club Ladder-races openen, en
    TV echt schermvullend casten naar een tv. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — ZWBlokken op het profiel: titels en de Zwiftpuzzel
@@ -13026,8 +13026,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Streamcenter per avond, links per stream en TV
 
-**2026-11-25, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
-Geen migratie.**
+**2026-11-25, commit `0c4d2f1f`, op 2026-11-25 gepusht naar `main`. Geen
+migratie.**
 
 - **Waarom.** Op 2026-11-26 rijden vier Club Ladder-teams tussen 19:32 en
   20:01. Dat zijn losse races zonder raceweek, dus het streamcenter per
