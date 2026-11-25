@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Pacingplan na ZRL R2 W2 (2026-11-25): de commit die dit blok
-   toevoegt, niet gepusht, geen migratie.** Voorstel 1 tot en met 4 uit
+0. **Gebouwd — Pacingplan na ZRL R2 W2 (2026-11-25): commit `eb1e6bc1`, op
+   2026-11-25 gepusht naar `main`, geen migratie.** Voorstel 1 tot en met 4 uit
    [het onderzoek](docs/pacingplan-race-analyse-2026-11-25.md): W′ uit
    intervals.icu, vermoeidheid begrensd per kJ, klimmen opvullen in een
    Zwift-wedstrijd, en de doeldag. Open: in de browser bekijken. Zie de ronde
@@ -12947,7 +12947,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Pacingplan na ZRL R2 W2: te voorzichtig voor wie voluit rijdt
 
-**2026-11-25, de commit die dit blok toevoegt. Niet gepusht, geen migratie.**
+**2026-11-25, commit `eb1e6bc1`, op 2026-11-25 gepusht naar `main`. Geen migratie.**
 Leden reden in de scratchrace van 24 november voluit en vonden het plan te
 voorzichtig. De 13 plannen voor die race zijn naast vijf racebestanden gelegd en
 met dezelfde rekenkern opnieuw doorgerekend. Daarna koos de eigenaar: "build 1
