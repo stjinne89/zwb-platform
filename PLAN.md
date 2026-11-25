@@ -12,9 +12,11 @@ gaat stabiliteit voor nieuwe features.
    push"). Migratie `0372_ladder_rider_zmap` vóór de push op productie
    toegepast.** In Seizoen 8 staat de echte
    zMAP van de ladder (de live-waarde, die de ladder bij de wissel zet) in
-   plaats van onze schatting; de schatting blijft schuin als terugval. Open:
-   na de deploy op Teams en resultaten ophalen klikken en de waarden naast het
-   ladderprofiel leggen. Zie de ronde met dezelfde naam.
+   plaats van onze schatting; de schatting blijft schuin als terugval. De
+   eerste klik gaf "profielpagina niet herkend": hersteld in de commit die
+   "Hersteld" aan de ronde toevoegt, nog niet gepusht. Open: na die deploy op
+   Teams en resultaten ophalen klikken en de waarden naast het ladderprofiel
+   leggen. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Ladderpuzzel: concept voor seizoen 8 (2026-11-25): commit
    `c6c92f6b`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, toepassen en
@@ -13127,6 +13129,18 @@ link naar `/live/[eventId]`, zie de update hierboven).
 >   voorstel en akkoord ("Ja, bouwen"), zonder nieuwe privacyversie: dezelfde
 >   kring ziet dezelfde soort waarde.
 > - Uitleg op /hulp bij de Ladderpuzzel.
+>
+> **Hersteld 2026-11-25: "profielpagina niet herkend".** De eerste klik na de
+> deploy gaf "4 resultaatupdates, 0 teamleden, 3 vELO1-ratings, 0 zMAP" en
+> "zMAP gestopt: profielpagina niet herkend". Oorzaak: de parser verwachtte de
+> koptekst direct na `<div class="card-header">`, maar de server zet er het
+> icoon vóór (`<i class="ti ti-bolt"></i> zMAP Spread Value`). De opbouw had ik
+> in Chrome uit de DOM gelezen, waar de volgorde van tekst en icoon niet te
+> zien was, en de test volgde die aanname. Nu mag de tekst ergens in de kop
+> staan, en de test gebruikt de opbouw zoals de server hem stuurt
+> (regeleinden, commentaar, icoon vooraan). Dezelfde regex in Chrome op vijf
+> echte profielen nagekeken, ook één zonder meting ("--"). Commit: de commit
+> die dit blok toevoegt.
 >
 > **Bewust niet.** Geen zMAP van renners van andere clubs. Geen
 > zMAP-geschiedenis in watt (die staat ook op het profiel). De risicomarge

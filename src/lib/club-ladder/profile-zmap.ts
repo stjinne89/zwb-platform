@@ -1,12 +1,15 @@
 // zMAP van een rennersprofiel op de Club Ladder (/profile/<Zwift-ID>, achter
-// login), gezien 2026-11-25. Twee kaarten:
+// login), gezien 2026-11-25. Twee kaarten, met het icoon vóór de tekst (eerst
+// verkeerd om aangenomen; de eerste sync gaf daardoor "niet herkend"):
 //
-//   <div class="card-header">zMAP Spread Value <i …></div>
-//   <div class="card-body"><span>4.35</span> …</div>
-//   <div class="card-footer small text-muted">zMAP/kg</div>
+//   <div class="card-header" ><i class="ti ti-bolt"></i> zMAP Spread Value</div>
+//   <div class="card-body" >
+//   <span style="…">4.35</span> …</div>
+//   <div class="card-footer small text-muted">
+//   zMAP/kg</div>
 //
-//   <div class="card-header">If Reset Today <i …></div>
-//   <div class="card-body"><span>4.30</span><span class="small text-danger">-0.05</span></div>
+//   <div class="card-header" ><i class="ti ti-eraser"></i> If Reset Today</div>
+//   <div class="card-body" ><span style="…">4.30</span><span class="small text-danger" …>-0.05</span></div>
 //   <div class="card-footer small text-muted">live from 1d ago</div>
 //
 // Zonder meting staat er "--" en "no live reading". Spread Value is de hoogste
@@ -23,7 +26,8 @@ export type LadderProfileZmap = {
 const WINDOW = 1_500;
 
 function card(html: string, header: string): { value: string; footer: string } | null {
-  const head = new RegExp(`class="[^"]*\\bcard-header\\b[^"]*"[^>]*>\\s*${header}`).exec(html);
+  // De tekst ergens in de kop, ook na een icoon, maar niet voorbij het eind van de kop.
+  const head = new RegExp(`class="[^"]*\\bcard-header\\b[^"]*"[^>]*>(?:(?!</div>)[\\s\\S]){0,300}?${header}`).exec(html);
   if (!head) return null;
   const rest = html.slice(head.index, head.index + WINDOW);
   const body = /class="[^"]*\bcard-body\b[^"]*"[^>]*>\s*<span[^>]*>\s*([^<]*?)\s*<\/span>/.exec(rest);

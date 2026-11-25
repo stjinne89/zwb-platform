@@ -2,23 +2,54 @@ import { describe, expect, it } from "vitest";
 import { parseLadderProfileZmap } from "@/lib/club-ladder/profile-zmap";
 import { zValueSourceLabel } from "@/lib/teams/zrl-ranking";
 
-// Opbouw van /profile/<Zwift-ID> op de Club Ladder, gezien 2026-11-25.
+// Opbouw van /profile/<Zwift-ID> op de Club Ladder, zoals de server hem
+// stuurt (2026-11-25): icoon vóór de koptekst, regeleinden en commentaar.
 function page(spread: string, live: string, footer: string, delta = "") {
-  return `<div class="mt-2 d-flex flex-row flex-wrap gap-1">
-    <div class="card flex-grow-1"><div class="card-header">Activity Save</div>
-      <div class="card-body"><span class="badge bg-success">PUBLIC</span></div></div>
-    <div class="card"><div class="card-header">zMAP Spread Value <i class="ti ti-bolt"></i></div>
-      <div class="card-body"><span>${spread}</span> <i class="ti ti-lock text-warning"></i></div>
-      <div class="card-footer small text-muted">zMAP/kg</div></div>
-    <div class="card"><div class="card-header">If Reset Today <i class="ti ti-eraser"></i></div>
-      <div class="card-body"><span>${live}</span>${delta}</div>
-      <div class="card-footer small text-muted">${footer}</div></div>
-  </div>`;
+  return `<div class="card-body">
+<span class='badge bg-success'>PUBLIC</span>
+</div>
+</div>
+
+
+<!-- zMAP/kg: value used for spread (HWM since window, or Live when not yet seeded) -->
+<div class="card" >
+<div class="card-header" ><i class="ti ti-bolt"></i> zMAP Spread Value</div>
+<div class="card-body" >
+
+<span style="font-size:1.4rem">${spread}</span>
+
+<i class="ti ti-lock text-warning" title="Locked"></i>
+
+
+</div>
+<div class="card-footer small text-muted">
+zMAP/kg
+
+</div>
+</div>
+<!-- zMAP/kg: what a transfer-window reset would set today (= the latest live value) -->
+<div class="card" >
+<div class="card-header" ><i class="ti ti-eraser"></i> If Reset Today</div>
+<div class="card-body" >
+
+<span style="font-size:1.4rem">${live}</span>
+
+${delta}
+
+
+</div>
+<div class="card-footer small text-muted">
+
+${footer}
+
+
+</div>
+</div>`;
 }
 
 describe("parseLadderProfileZmap", () => {
   it("leest Spread Value, live-waarde en hoe oud de meting is", () => {
-    const html = page("4.35", "4.30", "live from 1d ago", '<span class="small text-danger">-0.05</span>');
+    const html = page("4.35", "4.30", "live from 1d ago", '<span class="small text-danger" title="Versus spread">-0.05</span>');
     expect(parseLadderProfileZmap(html)).toEqual({ spread: 4.35, live: 4.3, liveAgeDays: 1 });
   });
 
