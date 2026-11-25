@@ -24,8 +24,9 @@ gaat stabiliteit voor nieuwe features.
    kijken of de wachtrij leegloopt. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — ZWBlokken Zwift: portalklimmen en korte sprongen eruit
-   (2026-11-25): niet gepusht, migratie `0365_zwift_blocks_portals` nog niet
-   toegepast.** Na 0364 wees de eigenaar blokken zonder weg eronder aan in Crit
+   (2026-11-25): commits `52cd54d0` en `fcbb7cc6`, op 2026-11-25 gepusht naar
+   `main` (eigenaar: "Yes, push and run"), migratie `0365_zwift_blocks_portals`
+   daarna toegepast en de Zwift-backfill gedraaid tot hij klaar was.** Na 0364 wees de eigenaar blokken zonder weg eronder aan in Crit
    City, France en London. Alle twaalf werelden nagekeken. Climb
    Portal-klimmen tellen nu nergens, ook niet binnen de kaart; de volledige
    routelijn gaat voor de samenvatting, en knipt al bij 300 m. Harmens
@@ -13051,8 +13052,9 @@ time-out en 429. Typecheck en lint schoon.
 
 ### Gebouwd — ZWBlokken Zwift: portalklimmen en korte sprongen eruit
 
-**2026-11-25.** Commit: de commit die dit blok toevoegt, niet gepusht. Migratie
-`0365_zwift_blocks_portals.sql`, nog niet toegepast (volgorde hieronder).
+**2026-11-25.** Commits `52cd54d0` (portalklimmen, volledige lijn) en `fcbb7cc6`
+(uitzonderingslijst), op 2026-11-25 gepusht naar `main`. Migratie
+`0365_zwift_blocks_portals.sql` daarna toegepast (zie "Uitgevoerd" onderaan).
 
 **Aanleiding.** Na 0364 zag de eigenaar nog blokken zonder weg eronder: Harmen
 had in Crit City een blok dat niemand anders heeft, en in France en London lagen
@@ -13139,6 +13141,15 @@ gelezen); in de tabel staat het pas na de backfill.
 
 **Volgorde bij livegang.** Eerst de code live, dan `0365` toepassen, dan
 `/api/zwblokken/backfill?zwift=1` herhalen tot `remaining` false is (zie 0364).
+
+*Uitgevoerd 2026-11-25:* `fcbb7cc6` stond live (een backfill van alleen Harmen
+gaf zijn verschoven Crit City-blok niet meer), daarna `0365` toegepast en de
+backfill in 14 aanroepen van hoogstens 4 leden en 400 ritten gedraaid, zonder
+fouten. Daarna nul onverwerkte `VirtualRide`-ritten. Per wereld precies de meting:
+Watopia 187, France 99, London 106, Makuri 72, Innsbruck 64, New York 91,
+Yorkshire 44, Paris 36, Scotland 34, Richmond 27, Bologna 22, Crit City 4. Karen
+185 en Stijn 186 in Watopia. Geen blok van Harmens race, geen van de acht
+uitgezonderde blokken.
 
 **Tests.** `tests/unit/zwblokken-zwift.test.ts`: een portalklim die de kaart uit
 loopt levert geen blok op, ook binnen de kaart; een France-klim vanaf de portal

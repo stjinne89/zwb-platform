@@ -15,7 +15,7 @@
 -- noemt. Hij gebruikt de volledige routelijn als Strava die gaf, en knipt
 -- daarin al bij 300 m. Met de hand uitgezonderd (EXCLUDED_RIDES, NO_ROAD_BLOCKS):
 -- een verschoven race in Crit City en acht blokken zonder weg in Watopia. Over alle ritten: France 148 -> 99 blokken, Watopia
--- 220 -> 195, en geen enkel blok verdwijnt waar een bekende route doorheen loopt.
+-- 220 -> 187 (195 voor de uitzonderingslijst), en geen enkel blok verdwijnt waar een bekende route doorheen loopt.
 --
 -- Zoals in 0364: alles opnieuw, de blokken weg en de cursor terug. De sync
 -- rekent elke Zwift-rit opnieuw door, van oud naar nieuw.
