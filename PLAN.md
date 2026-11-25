@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Verwachte ladderuitslag op de racepagina (2026-11-25):
-   lokaal gecommit, niet gepusht. Geen migratie.** De tabel Verwachte uitslag
+   commit `4f736c03`, lokaal, niet gepusht. Geen migratie.** De tabel Verwachte uitslag
    staat niet meer op de racebriefing maar op de racepagina, op de plek van de
    uitslag; zodra de ladder de uitslag heeft, neemt die de plek over. Open:
    ingelogd een ladderrace vóór en na de race openen. Zie de ronde met dezelfde
@@ -13044,7 +13044,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Verwachte ladderuitslag op de racepagina
 
-**2026-11-25, lokaal gecommit op `claude/expected-results-event-page-6313b8`,
+**2026-11-25, commit `4f736c03` op `claude/expected-results-event-page-6313b8`,
 niet gepusht. Geen migratie.**
 
 - **Waarom.** Vraag van de eigenaar: de verwachte uitslag van de racebriefing
