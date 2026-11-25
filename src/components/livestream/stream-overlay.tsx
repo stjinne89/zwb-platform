@@ -10,6 +10,7 @@ import type { StreamRoute } from "@/lib/youtube-live/route-facts";
 import { kopmanColors, kopmanFace, type KopmanLook } from "@/lib/youtube-live/kopman";
 import { overlayRows, overlayValue } from "@/lib/zrl-live/overlay";
 import type { ZrlLiveView } from "@/lib/zrl-live/snapshot";
+import type { LadderOverlayRow } from "@/lib/club-ladder/live";
 import { loadFooterSponsors } from "@/app/(app)/_components/sponsor-footer";
 import { overlayHand, overlayStencil, overlayText } from "./fonts";
 import { OverlaySponsors } from "./sponsor-rotator";
@@ -24,7 +25,9 @@ import "./stream-overlay-strip.css";
 // links (384px), met de tenuebanen van de app op nachtpetrol. Zwift staat er
 // rechtsonder in, op 80% (1536×864 op 384, 216), zodat niets meer over de HUD
 // van Zwift valt. Boven de titeltegel en de sponsors; links route en afstand,
-// en bij ZRL de stand. Bij de ladder blijft de kolom vrij voor het Sauce-venster.
+// en bij ZRL de stand. Bij de ladder sinds 2026-11-25 ook: de score en de tien
+// renners bij de laatste boog (club-ladder/live.ts); wie daar het Sauce-venster
+// wil, zet de stand uit.
 // Sinds 2026-11-20 in donker (nachtpetrol) of licht (crème), per stream (0345),
 // en in een van vier stijlen (0346): tegels (dit kader), rugnummer, zeefdruk
 // of strip (stream-overlay-styles.tsx). Donker of licht geldt bij tegels en
@@ -35,11 +38,18 @@ import "./stream-overlay-strip.css";
 /** Waar het Zwift-beeld in het kader staat, bij 1920×1080 (andere maten: overlay-size.ts). */
 export const ZWIFT_WINDOW = { x: 384, y: 216, width: 1536, height: 864 } as const;
 
-export type OverlayStand = {
-  view: ZrlLiveView;
-  /** Aantal ploegen, 5 tot 15 (?teams=). */
-  teams: number;
-};
+export type OverlayStand =
+  | {
+      kind?: "zrl";
+      view: ZrlLiveView;
+      /** Aantal ploegen, 5 tot 15 (?teams=). */
+      teams: number;
+    }
+  | {
+      kind: "ladder";
+      /** De score en de renners, al afgekapt (ladderOverlayRows). */
+      rows: LadderOverlayRow[];
+    };
 
 export async function StreamOverlay({
   title,
@@ -194,6 +204,7 @@ function styleVars(look: OverlayStyle, palette: Parameters<typeof tenueInks>[0],
 }
 
 function StandRows({ stand }: { stand: OverlayStand }) {
+  if (stand.kind === "ladder") return <LadderRows rows={stand.rows} />;
   const { view, teams } = stand;
   const { score } = view;
   const rows = overlayRows(score.teams, view.ownTeam, teams);
@@ -207,6 +218,22 @@ function StandRows({ stand }: { stand: OverlayStand }) {
           <span className="stream-overlay-rank">{team.rank}</span>
           <span className="stream-overlay-team">{view.teamLabels[team.team] ?? team.team}</span>
           <span className="stream-overlay-value">{overlayValue(team, score.format)}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** De ladder: de twee ploegen met de score, dan de renners met hun punten. */
+function LadderRows({ rows }: { rows: LadderOverlayRow[] }) {
+  if (rows.length === 0) return <p className="stream-overlay-wait">Wacht op de eerste boog</p>;
+  return (
+    <ol className="stream-overlay-stand">
+      {rows.map((row) => (
+        <li key={row.key} data-own={row.own ? "" : undefined} data-kind={row.kind}>
+          <span className="stream-overlay-rank">{row.rank}</span>
+          <span className="stream-overlay-team">{row.label}</span>
+          <span className="stream-overlay-value">{row.value}</span>
         </li>
       ))}
     </ol>

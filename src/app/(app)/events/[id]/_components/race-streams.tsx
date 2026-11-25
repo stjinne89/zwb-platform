@@ -125,7 +125,7 @@ export async function RaceStreams({
   // Overlay voor in OBS bij je eigen stream (0341): logo en sponsors altijd, de
   // live stand alleen in een ZRL-race en met de schakelaar aan.
   const overlayPath = ownStream ? `/live/stream/${ownStream.id}/overlay` : null;
-  const hasLiveStand = event.type === "zrl" && Boolean(event.team_id && event.zwift_event_id);
+  const hasLiveStand = (event.type === "zrl" || event.type === "ladder") && Boolean(event.team_id && event.zwift_event_id);
   const connectHref = `/api/youtube/connect?terug=${encodeURIComponent(`/events/${event.id}`)}`;
 
   return (

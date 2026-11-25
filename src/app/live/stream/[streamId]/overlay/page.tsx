@@ -8,12 +8,14 @@ import { overlayStyle } from "@/lib/youtube-live/overlay-styles";
 import { overlayHole, overlayLayout, overlayScale, overlaySize } from "@/lib/youtube-live/overlay-size";
 import { overlayMode } from "@/lib/youtube-live/overlay-theme";
 import { loadZrlLive } from "@/lib/zrl-live/snapshot";
+import { loadLadderLive } from "@/lib/club-ladder/live-load";
+import { ladderOverlayRows, ladderOverlayStatus } from "@/lib/club-ladder/live";
 
 // De OBS-overlay van één stream (0341). Openbaar, want OBS logt niet in; de
 // link bevat alleen de id van de stream. event_streams is niet voor iedereen
 // leesbaar, dus via de service-rol, en alleen titel, soort, route en schakelaar.
-// Kader, logo en sponsors staan er altijd; de stand alleen bij een ZRL-race met
-// de schakelaar aan. Elke 15 seconden ververst, dus de schakelaar werkt mee,
+// Kader, logo en sponsors staan er altijd; de stand alleen bij een ZRL-race of
+// ladderrace met de schakelaar aan. Elke 15 seconden ververst, dus de schakelaar werkt mee,
 // net als de stijl en donker of licht (?style= en ?theme= voor een voorbeeld).
 // ?preview: het voorbeeld in de stijlkeuze op de racepagina, zonder verversen
 // en altijd op 1920×1080. Anders op de resolutie van de stream (0348). Bij een
@@ -96,8 +98,32 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
   const status = overlayStatus({ type: event.type, startAt: event.start_at, endAt: event.end_at, distanceKm, now: new Date() });
   const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} look={look} route={route} stand={null} kopman={kopman} scale={scale} hole={hole} refreshSeconds={refreshSeconds} />;
 
-  const hasStand = event.type === "zrl" && Boolean(event.team_id && event.zwift_event_id);
+  const hasStand = (event.type === "zrl" || event.type === "ladder") && Boolean(event.team_id && event.zwift_event_id);
   if (!hasStand) return plain;
+
+  // Ladderrace: de score en de tien renners bij de laatste boog. Buiten het
+  // venster van de live stand (een kwartier voor tot drie uur na de start) het kader zonder stand.
+  if (event.type === "ladder") {
+    if (stream.overlay_stand === false) return plain;
+    const ladder = await loadLadderLive(event.id).catch(() => null);
+    if (ladder?.status !== "ok") return plain;
+    const { view } = ladder;
+    return (
+      <StreamOverlay
+        title={title}
+        status={ladderOverlayStatus(view.live, view.event.startAt, view.fetchedAt)}
+        info={info}
+        theme={theme}
+        look={look}
+        route={route}
+        stand={{ kind: "ladder", rows: ladderOverlayRows(view, wide ? 10 : wantedTeams(query.teams)) }}
+        kopman={kopman}
+        scale={scale}
+        hole={hole}
+        refreshSeconds={refreshSeconds}
+      />
+    );
+  }
 
   const outcome = await loadZrlLive(event.id);
   if (outcome.status !== "ok") return plain;

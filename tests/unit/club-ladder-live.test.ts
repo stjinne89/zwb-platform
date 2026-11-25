@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { inLadderLiveWindow, ladderLive, scoreOf, splitLadderRiders, type LadderLiveInput } from "@/lib/club-ladder/live";
+import {
+  inLadderLiveWindow,
+  ladderLive,
+  ladderOverlayRows,
+  ladderOverlayStatus,
+  scoreOf,
+  splitLadderRiders,
+  type LadderLiveInput,
+} from "@/lib/club-ladder/live";
 import type { Passage } from "@/lib/zrl-live/scoring";
 
 const START = Date.UTC(2026, 10, 25, 19, 0, 0);
@@ -191,5 +199,51 @@ describe("splitLadderRiders", () => {
       [4, "Dirk", true],
       [5, "Eva", false],
     ]);
+  });
+});
+
+describe("ladderOverlayRows", () => {
+  const live = ladderLive(
+    base({
+      passages: [pass(2, "10", 300), pass(4, "10", 300.5), pass(1, "10", 301), pass(3, "10", 305)],
+    }),
+  );
+
+  it("zet de winnende ploeg bovenaan en daaronder de renners", () => {
+    const rows = ladderOverlayRows({ ours: "ZWBeasts", theirs: "Valhalla", live }, 15);
+    expect(rows.map((r) => [r.kind, r.rank, r.label, r.value, r.own])).toEqual([
+      ["team", 1, "Valhalla", 19, false],
+      ["team", 2, "ZWBeasts", 15, true],
+      ["rider", 1, "Bram", 10, false],
+      ["rider", 2, "Dirk", 9, false],
+      ["rider", 3, "Anna", 8, true],
+      ["rider", 4, "Cor", 7, true],
+    ]);
+  });
+
+  it("knipt af op het aantal rijen, maar houdt de score", () => {
+    expect(ladderOverlayRows({ ours: "A", theirs: "B", live }, 4).map((r) => r.key)).toEqual([
+      "team-theirs", "team-ours", "rider-2", "rider-4",
+    ]);
+    expect(ladderOverlayRows({ ours: "A", theirs: "B", live }, 0)).toHaveLength(2);
+  });
+
+  it("is leeg zolang niemand langs een boog is", () => {
+    expect(ladderOverlayRows({ ours: "A", theirs: "B", live: ladderLive(base()) }, 15)).toEqual([]);
+  });
+
+  it("zet bij gelijke stand de ploeg bovenaan die dan wint", () => {
+    const tie = ladderLive(base({ passages: [pass(2, "10", 300), pass(1, "10", 301), pass(3, "10", 302), pass(4, "10", 303)] }));
+    expect(tie.current!.score).toEqual({ ours: 17, theirs: 17, win: false });
+    expect(ladderOverlayRows({ ours: "A", theirs: "B", live: tie }, 15)[0].label).toBe("B");
+  });
+});
+
+describe("ladderOverlayStatus", () => {
+  it("noemt het laatste punt, de finish of de uitslag", () => {
+    const live = ladderLive(base({ passages: [pass(1, "10", 300)] }));
+    expect(ladderOverlayStatus(live, START, s(400))).toBe("Live · Club Ladder · na Sprint 1");
+    expect(ladderOverlayStatus(ladderLive(base()), START, s(-60))).toBe("Begint zo · Club Ladder");
+    expect(ladderOverlayStatus({ ...live, final: true }, START, s(4000))).toBe("Uitslag · Club Ladder");
   });
 });

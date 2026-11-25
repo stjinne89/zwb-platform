@@ -115,6 +115,52 @@ export function scoreOf(places: LadderLivePlace[], challenger: boolean | null): 
   return { ours, theirs, win };
 }
 
+/** Een rij in de stand van de stream-overlay: een ploeg met de score, of een renner met zijn punten. */
+export type LadderOverlayRow = {
+  key: string;
+  kind: "team" | "rider";
+  rank: number;
+  label: string;
+  value: number;
+  own: boolean;
+};
+
+/**
+ * De stand voor de stream-overlay: eerst beide ploegen met de score (de
+ * winnaar bovenaan), dan de renners op volgorde bij het laatste punt, samen
+ * hooguit `limit` rijen. Leeg zolang niemand ergens langs is.
+ */
+export function ladderOverlayRows(
+  input: { ours: string; theirs: string; live: LadderLive },
+  limit: number,
+): LadderOverlayRow[] {
+  const current = input.live.current;
+  if (!current) return [];
+  const { ours, theirs, win } = current.score;
+  const oursFirst = win ?? ours >= theirs;
+  const teams: LadderOverlayRow[] = [
+    { key: "team-ours", kind: "team", rank: 0, label: input.ours, value: ours, own: true },
+    { key: "team-theirs", kind: "team", rank: 0, label: input.theirs, value: theirs, own: false },
+  ];
+  if (!oursFirst) teams.reverse();
+  teams.forEach((team, i) => (team.rank = i + 1));
+  const riders: LadderOverlayRow[] = current.places.flatMap((place) =>
+    place.place === null
+      ? []
+      : [{ key: `rider-${place.zwiftId}`, kind: "rider", rank: place.place, label: place.name, value: place.points, own: place.own }],
+  );
+  return [...teams, ...riders].slice(0, Math.max(2, limit));
+}
+
+/** De kleine regel boven de titel in de overlay. */
+export function ladderOverlayStatus(live: LadderLive, startAt: number, fetchedAt: number): string {
+  if (live.final) return "Uitslag · Club Ladder";
+  if (fetchedAt < startAt) return "Begint zo · Club Ladder";
+  const current = live.current;
+  if (!current) return "Live · Club Ladder";
+  return current.kind === "finish" ? "Live · Club Ladder · finish" : `Live · Club Ladder · na ${current.name}`;
+}
+
 export function ladderLive(input: LadderLiveInput): LadderLive {
   const riderIds = new Set(input.riders.map((rider) => rider.zwiftId));
   const results = input.results

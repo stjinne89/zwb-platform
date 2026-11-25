@@ -12,7 +12,8 @@ gaat stabiliteit voor nieuwe features.
    `/events/[id]/live` de score en de volgorde bij elke sprint, KOM en
    rondestreep, en daarna de finish. Open: morgen (2026-11-26, vier
    ladderraces vanaf 19:32) ingelogd live bekijken, vooral of vier races
-   tegelijk Zwift niet afknijpen. Zie de ronde met
+   tegelijk Zwift niet afknijpen. Sinds de ronde "Live ladderstand in de
+   stream-overlay" staat de stand ook in de OBS-overlay. Zie de ronde met
    dezelfde naam.
 
 0. **Gebouwd — TV op de telefoon start alle streams (2026-11-25): commits
@@ -13066,6 +13067,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Live ladderstand in de stream-overlay
+
+**2026-11-25, commit: de commit die dit blok toevoegt, niet gepusht. Geen
+migratie.**
+
+- **Waarom.** Vraag van de eigenaar, direct na de live ladderstand. Voorstel
+  met twee keuzes; de eigenaar koos alle tien renners met naam (ook de
+  tegenstander) en de stand standaard aan, met de bestaande schakelaar.
+- **Wat.**
+  - `ladderOverlayRows` en `ladderOverlayStatus` in `club-ladder/live.ts`
+    (puur): eerst beide ploegen met de score, de winnaar bovenaan (bij gelijke
+    stand wie dan wint), dan de renners op volgorde bij het laatste punt met
+    hun punten, samen hooguit `?teams=` rijen (standaard 15), bij ultrawide 10.
+    Daar staat de score als eerste kolom en volgen acht renners. De regel boven
+    de titel: "Live · Club Ladder · na Epic KOM", "… · finish", "Uitslag · Club
+    Ladder".
+  - `OverlayStand` in `stream-overlay.tsx` kent nu ook `kind: "ladder"`, met
+    dezelfde rijen (`.stream-overlay-stand`), dus in alle vier de stijlen. Eigen
+    renners en de eigen ploeg krijgen `data-own`, zoals de eigen ploeg bij de
+    ZRL. In de kolom wat lucht tussen score en renners. Vóór de eerste boog
+    "Wacht op de eerste boog"; buiten het venster van de live stand het kader
+    zonder stand.
+  - De overlaypagina laadt `loadLadderLive` (dezelfde Zwift-cache van 15 s),
+    en de schakelaar Live stand in de overlay staat nu ook bij een ladderrace.
+  - `/hulp` (overlay): de zin "bij een ladderrace is die kolom vrij" vervangen
+    door wat er nu staat, en dat je de stand uitzet als je daar het
+    Sauce-venster wilt.
+- **Privacy.** De zin bij de Club Ladder in `/privacy` noemt nu ook de overlay:
+  wie streamt, zet naam, plek en punten van de tien renners in beeld voor de
+  kijkers. Keuze van de eigenaar ("Ja, alle tien"); geen nieuwe privacyversie,
+  zelfde reden als in de ronde hieronder (de namen staan ook in het Zwift-beeld).
+- **Gevolg.** De schakelaar stond bij elke stream al aan (0341). De vier
+  ladderstreams die voor 2026-11-26 klaarstaan, krijgen de stand dus vanzelf;
+  wie daar het Sauce-venster heeft, moet hem uitzetten.
+- **Bewust niet.** Geen eigen schakelaar voor de ladder met standaard uit (zou
+  een migratie vragen; de eigenaar koos aan). Geen achterstand in de overlay:
+  de kolom is smal, en plek en punten zeggen genoeg.
+- **Getest.** `club-ladder-live.test.ts` (15, waarvan 5 nieuw), `tsc` en
+  ESLint. De overlay lokaal bekeken met de echte stream van de ladderrace van
+  2026-11-25, in alle vier stijlen en ultrawide (score als eerste kolom, dan
+  acht renners).
+- **Niet geverifieerd.** In OBS en op YouTube; vier overlays tegelijk tijdens
+  echte races.
+
 ### Gebouwd — Live ladderstand
 
 **2026-11-25, commit `8e2e29c5`, op 2026-11-25 gepusht naar `main`
@@ -13120,7 +13165,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   op de vraag of het met deze privacyzin naar `main` mocht).
 - **Bewust niet.**
   - Geen live stand in de stream-overlay: daar blijft de kolom bij de ladder
-    vrij voor het Sauce-venster (ronde "Streamcenter per avond").
+    vrij voor het Sauce-venster (ronde "Streamcenter per avond"). *Achterhaald
+    dezelfde avond: zie "Live ladderstand in de stream-overlay".*
   - Geen JSON voor de Sauce-mod: niet gevraagd.
   - Geen link in de YouTube-beschrijving, zoals bij de ZRL: de ZRL-stand is
     openbaar, deze staat achter de login.

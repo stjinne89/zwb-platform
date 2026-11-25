@@ -143,8 +143,10 @@ export default function PrivacyPage() {
             Tijdens een ladderrace zien ingelogde leden een live stand uit de
             startlijst, de doorkomsten bij sprints en klimmen en de finishtijden
             van Zwift: per renner naam, plek en achterstand, ook van renners van
-            andere clubs. Dat bewaren we niet in de database, alleen even in een
-            cache; na de race geldt de uitslag van de ladder.
+            andere clubs. Streamt een lid de race, dan staan naam, plek en
+            punten van de tien renners ook in de overlay van die stream, en zien
+            de kijkers ze dus ook. Dat bewaren we niet in de database, alleen
+            even in een cache; na de race geldt de uitslag van de ladder.
           </li>
           <li>
             <strong>ZRL-teamgegevens van WTRL:</strong> voor de ZRL-teams nemen
