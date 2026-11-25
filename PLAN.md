@@ -13,8 +13,8 @@ gaat stabiliteit voor nieuwe features.
    toegepast.** In Seizoen 8 staat de echte
    zMAP van de ladder (de live-waarde, die de ladder bij de wissel zet) in
    plaats van onze schatting; de schatting blijft schuin als terugval. De
-   eerste klik gaf "profielpagina niet herkend": hersteld in de commit die
-   "Hersteld" aan de ronde toevoegt, nog niet gepusht. Open: na die deploy op
+   eerste klik gaf "profielpagina niet herkend": hersteld in `e56a9b68`, op
+   2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"). Open: na die deploy op
    Teams en resultaten ophalen klikken en de waarden naast het ladderprofiel
    leggen. Zie de ronde met dezelfde naam.
 
@@ -13139,8 +13139,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 > zien was, en de test volgde die aanname. Nu mag de tekst ergens in de kop
 > staan, en de test gebruikt de opbouw zoals de server hem stuurt
 > (regeleinden, commentaar, icoon vooraan). Dezelfde regex in Chrome op vijf
-> echte profielen nagekeken, ook één zonder meting ("--"). Commit: de commit
-> die dit blok toevoegt.
+> echte profielen nagekeken, ook één zonder meting ("--"). Commit `e56a9b68`,
+> op 2026-11-25 gepusht naar `main`.
 >
 > **Bewust niet.** Geen zMAP van renners van andere clubs. Geen
 > zMAP-geschiedenis in watt (die staat ook op het profiel). De risicomarge
