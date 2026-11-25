@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 // het in de YouTube-speler zelf aanzet, dempt de rest ook. Dat gaat met
 // postMessage naar de embed (enablejsapi), zonder het script van YouTube.
 // Op een smal scherm (telefoon) start niets vanzelf: vier livestreams tegelijk
-// kosten te veel mobiele data. Daar tik je een tegel zelf aan.
+// kosten te veel mobiele data. Daar tik je een tegel zelf aan, of je tikt op
+// TV: dan starten ze allemaal gedempt, om je scherm naar de TV te spiegelen.
 // TV (2026-11-25): het raster schermvullend op zwart, zonder app eromheen en
 // zonder scrollen, voor casten of HDMI; het scherm blijft dan aan. Dezelfde
 // elementen blijven staan, alleen de klassen wisselen: een iframe dat React
@@ -84,6 +85,13 @@ export function StreamCenter({
 
   function openTv() {
     setTv(true);
+    // TV start alle streams, ook op de telefoon (spiegelen naar de TV); wie
+    // geluid had, houdt het. Terugkijken start niet vanzelf.
+    for (const tile of tiles) {
+      if (tile.ended) continue;
+      if (tile.id !== soundRef.current) command(tile.id, "mute");
+      command(tile.id, "playVideo");
+    }
     // Lukt schermvullend niet (iPhone), dan blijft het raster over de pagina.
     container.current?.requestFullscreen?.().catch(() => {});
   }

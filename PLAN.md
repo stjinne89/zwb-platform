@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — TV op de telefoon start alle streams (2026-11-25): de commit
+   die dit blok toevoegt, lokaal, niet gepusht.** Geen migratie. Open: op een
+   echte iPhone en Android-telefoon TV openen en naar een tv spiegelen. Zie de
+   ronde met dezelfde naam.
+
 0. **Gebouwd — Verwachte ZRL-uitslag en teamplaats op de racepagina
    (2026-11-25): commit `2e57e836`, op 2026-11-25 gepusht naar `main`
    (eigenaar: "Ja, push"). Geen migratie.** Het veld van
@@ -13051,6 +13056,38 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — TV op de telefoon start alle streams
+
+**2026-11-25, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
+Geen migratie.**
+
+- **Waarom.** De eigenaar vroeg of hij vanaf zijn telefoon kon casten. Een
+  webapp kan dat niet als tabblad; wel spiegelen. Maar op een smal scherm
+  startte het streamcenter niets vanzelf, dus op de tv stonden vier stilstaande
+  spelers. Gekozen uit twee routes: "Spiegelen verbeteren", niet de echte
+  castknop.
+- **Wat.** `openTv` in `stream-center.tsx` stuurt elke tegel die niet is
+  afgelopen `mute` en `playVideo`, ook op een smal scherm. Wie al geluid had,
+  houdt het. Buiten TV start op de telefoon nog steeds niets vanzelf (mobiele
+  data). Op `/hulp` bij livestreamen: TV op de telefoon en spiegelen.
+- **Bewust niet.**
+  - Geen echte castknop (Google Cast Web Sender). Die werkt alleen in Chrome
+    op Android en de pc, niet op een iPhone. Hij vraagt een eigen
+    ontvangstpagina die bij Google geregistreerd wordt (eenmalige kosten,
+    app-ID), en een TV-link met een geheime sleutel, omdat de Chromecast niet
+    ingelogd is. Of een Chromecast vier YouTube-spelers tegelijk aankan, is
+    onbekend.
+  - Ook geen TV-link met een sleutel voor de browser van een smart-tv: dat is
+    werk aan het datamodel, en spiegelen dekt de vraag.
+- **Niet geverifieerd.** In Chromium op 375×812 bekeken met een tijdelijke
+  proefpagina, die daarna weer weg is:
+  - zonder TV startte niets;
+  - na TV speelden de beschikbare streams gedempt (playerState 1);
+  - de luidspreker gaf het geluid aan één tegel.
+
+  Niet gezien: een echte iPhone of Android-telefoon (of die vier spelers
+  tegelijk afspeelt), en spiegelen naar een tv.
 
 ### Gebouwd — Verwachte ZRL-uitslag en teamplaats op de racepagina
 
