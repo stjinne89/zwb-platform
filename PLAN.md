@@ -8,7 +8,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Verwachte ZRL-uitslag en teamplaats op de racepagina
-   (2026-11-25): lokaal gecommit, niet gepusht. Geen migratie.** Het veld van
+   (2026-11-25): commit `c5abdb82`, lokaal, niet gepusht. Geen migratie.** Het veld van
    de briefing (ploegen en renners met hun verwachte plek) staat op de
    racepagina van een ZRL-teamrace, op de plek van de uitslag; na de race staat
    daar de plaats van het team in de divisie. Open: ingelogd een ZRL-teamrace
@@ -13052,7 +13052,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Verwachte ZRL-uitslag en teamplaats op de racepagina
 
-**2026-11-25, lokaal gecommit op `claude/expected-results-event-page-6313b8`,
+**2026-11-25, commit `c5abdb82` op `claude/expected-results-event-page-6313b8`,
 niet gepusht. Geen migratie.**
 
 - **Waarom.** Vervolg op de ladderronde hieronder: de eigenaar wilde ook de
