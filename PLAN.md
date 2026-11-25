@@ -8,11 +8,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — ZWBlokken op het profiel: titels en de Zwiftpuzzel
-   (2026-11-25): de commit die dit toevoegt, niet gepusht, geen migratie.** Op
-   elk ledenprofiel (ook je eigen) een blok met de titels die het lid draagt en
-   een puzzel van twaalf stukken, één per Zwift-wereld, die inkleurt bij 100%.
-   Open: pushen op verzoek; daarna kleurt France pas bij `0369` voor wie het
-   meer bij Ven-Top miste. Zie de ronde met dezelfde naam.
+   (2026-11-25): commit `19eb973d`, op 2026-11-25 gepusht naar `main`
+   (eigenaar: "Push and apply"), geen migratie.** Op elk ledenprofiel (ook je
+   eigen) een blok met de titels die het lid draagt en een puzzel van twaalf
+   stukken, één per Zwift-wereld, die inkleurt bij 100%. Samen gepusht met het
+   meer bij Ven-Top (`1cf6ffe9`, `7c145fa6`, migratie `0369` na de deploy
+   toegepast): Karen, Bart, Gonda en Tino hebben nu France helemaal. Open: op
+   productie een profiel openen en kijken of de titels binnen tien minuten
+   bijwerken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Aero Lightning Socks in de Zwift-garage (2026-11-25): commit
    `7fe52819`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, toepassen en
@@ -13018,8 +13021,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBlokken op het profiel: titels en de Zwiftpuzzel
 
-**2026-11-25.** De commit die dit blok toevoegt, niet gepusht. Geen migratie.
-Eerst voorstellen (via /impeccable), door de eigenaar gekozen: de puzzelstrook
+**2026-11-25.** Commit `19eb973d`, op 2026-11-25 op verzoek van de eigenaar
+("Push and apply") naar `main` gepusht. Geen migratie. Eerst voorstellen (via /impeccable), door de eigenaar gekozen: de puzzelstrook
 (variant C van legpuzzel, blokkenpuzzel en strook), met kleuren per soort
 wereld (variant "Per landschap" van drie kleurvarianten).
 
@@ -13073,8 +13076,8 @@ alleen op ZWBlokken zelf, niet op het profiel.
 - Geen eigen zichtbaarheidsknop: het blok volgt de badges.
 
 **Niet geverifieerd.** Lokaal bekeken met een dev-server op productiedata, op
-`/profiel` (Stijn, 11 van 12, twee keer Gouverneur) en `/leden/…` (Karen, 11 van
-12 tot `0369` er is), licht en donker, smal en breed; de link van een stuk
+`/profiel` (Stijn, 11 van 12, twee keer Gouverneur) en `/leden/…` (Karen, toen
+11 van 12; na `0369` heeft ze France 96 van 96), licht en donker, smal en breed; de link van een stuk
 opende ZWBlokken op Zwift, Karen en London. De cache van tien minuten en de
 service-rol op Netlify zijn niet op productie bekeken.
 
@@ -13360,10 +13363,11 @@ foutjes, onder meer in Innsbruck, en zag ook dat hij zelf een startvak niet had.
   precies de nagerekende aantallen, en Karen en Stijn staan in elke wereld
   gelijk behalve France (96 en 90). Er zijn nul onverwerkte `VirtualRide`-ritten.
 
-**Vervolg: dekking tot 100%, en het meer bij Ven-Top (2026-11-25).** Commit: de
-commit die dit blok toevoegt, niet gepusht. Migratie
-`0369_zwift_blocks_ventop_lake.sql` (eerst 0368 genoemd; dat nummer kreeg op
-main de sokken van de Zwift-garage), nog niet toegepast.
+**Vervolg: dekking tot 100%, en het meer bij Ven-Top (2026-11-25).** Commit
+`1cf6ffe9`, en `7c145fa6` voor het nummer, op 2026-11-25 gepusht naar `main`
+(eigenaar: "Push and apply"). Migratie `0369_zwift_blocks_ventop_lake.sql`
+(eerst 0368 genoemd; dat nummer kreeg op main de sokken van de Zwift-garage),
+na de deploy toegepast.
 - *Dekking:* de eigenaar vroeg waarom Innsbruck hooguit 98% haalde. De noemer
   is routevormen plus clubblokken. Drie routevormen (InnsbruckConti, Achterbahn
   en Lutscher CCW) snijden net als de ritten de hoek bij het meer af. Daardoor
@@ -13379,8 +13383,9 @@ main de sokken van de Zwift-garage), nog niet toegepast.
 - *Test:* een routevorm door het meerblok in Innsbruck levert dat blok niet op.
 - *Niet lokaal te verifiëren:* de migratie (geen Docker of Supabase-config
   hier), en de 100% in de app zelf.
-- *Volgorde:* eerst de code live, dan `0369`. Nagerekend: France 96, en Karen
-  houdt 96.
+- *Volgorde:* eerst de code live, dan `0369`. *Uitgevoerd:* daarna gemeten:
+  het meerblok is weg, France heeft 96 clubblokken, en Karen, Bart, Gonda en
+  Tino hebben er alle 96.
 
 **Tests.** `tests/unit/zwblokken-zwift.test.ts`: een portalklim die de kaart uit
 loopt levert geen blok op, ook binnen de kaart; een France-klim vanaf de portal
