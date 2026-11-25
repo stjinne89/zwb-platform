@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { highestPower, parseRiderPage, parseRiderPowerCurve, readObject } from "@/lib/zwiftracing/rider-page";
+import { highestPower, isRiderNotFound, parseRiderPage, parseRiderPowerCurve, readObject } from "@/lib/zwiftracing/rider-page";
 
 // Opbouw zoals de rennerpagina van zwiftracing.app hem op 2026-11-11 gaf
 // (TanStack Start, ingekort; verzonnen renner en waarden).
@@ -108,5 +108,36 @@ describe("readObject", () => {
 
   it("matcht geen veld dat alleen op de naam eindigt", () => {
     expect(readObject(`{maxpower:{wkg15:9}}`, "power")).toBeNull();
+  });
+});
+
+// Opbouw van "Rider not found" zoals de site hem op 2026-11-25 gaf: status 200,
+// de loader van de rennerroute geeft null; de delen van de route-ID staan
+// tussen NUL-tekens (ingekort).
+const notFound = (id: number) =>
+  `<!DOCTYPE html><html><head><title>Rider not found · ZwiftRacing.app</title></head><body><script>` +
+  `$_TSR.router=($R=>$R[0]={manifest:$R[1]={routes:$R[2]={"/riders/$riderId":$R[11]={preloads:$R[12]=["/assets/riders._riderId.js"]}}},` +
+  `matches:$R[15]=[$R[16]={i:"__root__ ",u:1795610704097,s:"success",ssr:!0},` +
+  `$R[20]={i:"\0riders\0$riderId\0riders\0${id}",u:1795610704109,s:"success",l:null,ssr:!0},` +
+  `$R[21]={i:"\0riders\0$riderId\0\0riders\0${id}\0",u:1795610704113,s:"success",l:null,ssr:!0}]})($R["tsr"]);</script></body></html>`;
+
+describe("isRiderNotFound", () => {
+  it("herkent de pagina van een onbekende renner", () => {
+    expect(isRiderNotFound(notFound(ID), ID)).toBe(true);
+    expect(parseRiderPage(notFound(ID), ID)).toBeNull();
+  });
+
+  it("niet bij een gewone rennerpagina", () => {
+    expect(isRiderNotFound(FULL, ID)).toBe(false);
+  });
+
+  it("niet als de lege loader bij een andere renner hoort", () => {
+    expect(isRiderNotFound(notFound(7654321), ID)).toBe(false);
+    expect(isRiderNotFound(notFound(12345678), 1234567)).toBe(false);
+  });
+
+  it("niet als de loader wel gegevens gaf maar de opbouw onbekend is", () => {
+    const html = notFound(ID).replaceAll("l:null", "l:$R[30]={x:1}");
+    expect(isRiderNotFound(html, ID)).toBe(false);
   });
 });

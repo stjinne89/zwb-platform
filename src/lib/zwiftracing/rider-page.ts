@@ -67,6 +67,18 @@ const round = (value: number | null | undefined, digits: number) => {
 const isPageOf = (html: string, zwiftId: number) => new RegExp(`riderId:(?:"${zwiftId}"|${zwiftId})(?!\\d)`).test(html);
 
 /**
+ * Kent ZwiftRacing deze renner niet? Dan geeft de site geen 404 maar status 200
+ * met "Rider not found": de loader van zijn rennerroute gaf `l:null` en er staat
+ * geen `riderId` in (gezien 2026-11-25). Zonder deze herkenning stopte de sync
+ * daar elke run met "pagina niet herkend" en kwam hij niet bij de renners erna.
+ */
+export function isRiderNotFound(html: string, zwiftId: number): boolean {
+  if (isPageOf(html, zwiftId)) return false;
+  // De delen van de route-ID staan tussen NUL-tekens: `i:"\0riders\0$riderId\0riders\0<id>"`.
+  return new RegExp(`i:"[^"]*\\$riderId[^"]*[^\\d"]${zwiftId}",[^{}]*?[{,]l:null[,}]`).test(html);
+}
+
+/**
  * Vermogen en legacy vELO van één renner, of null als dit niet zijn pagina is
  * of de pagina een opbouw heeft die we niet kennen.
  */

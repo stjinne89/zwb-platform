@@ -33,7 +33,7 @@ import "server-only";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { fetchZwiftRacingPage, zwiftRacingUserAgent } from "./fetch-page";
 import { harvestRaceExpectations, type RaceExpectationResult } from "./race-expectations";
-import { highestPower, parseRiderPage, parseRiderPowerCurve, type RiderPageData } from "./rider-page";
+import { highestPower, isRiderNotFound, parseRiderPage, parseRiderPowerCurve, type RiderPageData } from "./rider-page";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -186,6 +186,7 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function fetchRiderPage(zwiftId: number, userAgent: string, deadline: number, pageTimeoutMs?: number): Promise<Fetched> {
   const page = await fetchZwiftRacingPage(`/riders/${zwiftId}`, userAgent, pageTimeoutMs);
   if (page.kind !== "ok") return page;
+  if (isRiderNotFound(page.html, zwiftId)) return { kind: "unknown" };
   const data = parseRiderPage(page.html, zwiftId);
   if (!data) return { kind: "stop", reason: "pagina niet herkend" };
 
