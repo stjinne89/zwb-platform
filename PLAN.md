@@ -13285,6 +13285,27 @@ foutjes, onder meer in Innsbruck, en zag ook dat hij zelf een startvak niet had.
   precies de nagerekende aantallen, en Karen en Stijn staan in elke wereld
   gelijk behalve France (96 en 90). Er zijn nul onverwerkte `VirtualRide`-ritten.
 
+**Vervolg: dekking tot 100%, en het meer bij Ven-Top (2026-11-25).** Commit: de
+commit die dit blok toevoegt, niet gepusht. Migratie
+`0368_zwift_blocks_ventop_lake.sql`, nog niet toegepast.
+- *Dekking:* de eigenaar vroeg waarom Innsbruck hooguit 98% haalde. De noemer
+  is routevormen plus clubblokken. Drie routevormen (InnsbruckConti, Achterbahn
+  en Lutscher CCW) snijden net als de ritten de hoek bij het meer af. Daardoor
+  telde `34847/22993` nog mee, al kan niemand dat blok meer halen.
+  `roadBlocksFromShapes` slaat de blokken uit `NO_ROAD_BLOCKS` nu ook over
+  (`isNoRoadBlock`). Gemeten: Innsbruck was de enige wereld onder 100%, en nu
+  haalt het beste lid in elke wereld 100%.
+- *Ven-Top:* de eigenaar zag nog een foutje op de klim. Ik legde zeven
+  twijfelblokken voor (een haarspeld die net een blok in steekt, wegen langs of
+  over de rand van een blok, het meer, en het rondje op de top). Hij koos "alleen
+  2": `63030/36813`, het meer naast de weg (3 leden). De andere zes blijven
+  bewust staan, want de weg loopt er echt in, al is het maar een stukje.
+- *Test:* een routevorm door het meerblok in Innsbruck levert dat blok niet op.
+- *Niet lokaal te verifiëren:* de migratie (geen Docker of Supabase-config
+  hier), en de 100% in de app zelf.
+- *Volgorde:* eerst de code live, dan `0368`. Nagerekend: France 96, en Karen
+  houdt 96.
+
 **Tests.** `tests/unit/zwblokken-zwift.test.ts`: een portalklim die de kaart uit
 loopt levert geen blok op, ook binnen de kaart; een France-klim vanaf de portal
 evenmin, maar het stuk vóór de sprong naar de portal wel; `leavesWorld`; een rit

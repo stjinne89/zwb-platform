@@ -306,6 +306,17 @@ describe("bekende wegblokken", () => {
     expect(known.watopia).toBe(roadKeys.length + 1);
     expect(known.london).toBe(1);
   });
+
+  it("laat de uitgezonderde blokken ook uit de routevormen", () => {
+    // 34847/22993 in Innsbruck: de routevorm snijdt de hoek bij het meer af.
+    const [lon, lat] = blockCentre(34847, 22993, ZWIFT_BLOCK_ZOOM);
+    const shape = line([lat, lon - 0.006], [lat, lon], 20);
+    const roads = roadBlocksFromShapes([
+      { world: "innsbruck", shape: { lat: shape.map((p) => p.lat), lon: shape.map((p) => p.lon) } },
+    ]);
+    expect(roads.get("innsbruck")!.size).toBeGreaterThan(0);
+    expect(roads.get("innsbruck")!.has("34847/22993")).toBe(false);
+  });
 });
 
 describe("titels per wereld", () => {

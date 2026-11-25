@@ -104,7 +104,9 @@ const EXCLUDED_RIDES = new Set<number>([-1000195547777]);
  * je plek in het vak; het vak zelf is geen weg. Ze tellen voor niemand. Plus zes
  * blokken van meer leden zonder bekende route en zonder weg op de kaart, en in
  * Innsbruck het gras naast het keerpunt bij het meer boven op de KOM, waar ook
- * de routevorm de hoek afsnijdt.
+ * de routevorm de hoek afsnijdt. In France het meer naast de klim naar
+ * Ven-Top, waar de weg alleen de hoek raakt (de eigenaar koos alleen dit blok
+ * van zeven twijfelgevallen op die klim).
  */
 const NO_ROAD_BLOCKS: Record<string, Set<string>> = {
   watopia: new Set([
@@ -113,7 +115,7 @@ const NO_ROAD_BLOCKS: Record<string, Set<string>> = {
     "63161/34900", // startvak
     "63156/34914", "63158/34910", "63169/34901",
   ]),
-  france: new Set(["63014/36819", "63015/36818" /* startvak */]),
+  france: new Set(["63014/36819", "63015/36818" /* startvak */, "63030/36813"]),
   innsbruck: new Set(["34841/22979", "34843/22977", "34844/22976", "34845/22989", "34847/22993"]),
   london: new Set(["32744/21791", "32752/21795", "32754/21790" /* startvak */, "32739/21794"]),
   "makuri-islands": new Set(["62958/34747" /* startvak */, "62957/34741"]),
@@ -122,6 +124,15 @@ const NO_ROAD_BLOCKS: Record<string, Set<string>> = {
   scotland: new Set(["31817/20521"]),
   yorkshire: new Set(["32486/21045" /* startvak */]),
 };
+/**
+ * Blokken die met de hand zijn uitgezonderd. Ook de noemer van de dekking slaat
+ * ze over, anders blijft een routevorm die de hoek afsnijdt een blok tellen dat
+ * niemand kan halen.
+ */
+export function isNoRoadBlock(worldSlug: string, key: string): boolean {
+  return NO_ROAD_BLOCKS[worldSlug]?.has(key) ?? false;
+}
+
 const PORTAL_CLIMBS = [
   "Alto de Patios", "Bealach na Ba", "Cheddar Gorge", "Cipressa", "Col d'Aspin",
   "Col de la Croix Saint-Robert", "Col de la Madeleine", "Col de Peyresourde",

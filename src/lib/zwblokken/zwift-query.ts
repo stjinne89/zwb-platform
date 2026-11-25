@@ -5,7 +5,7 @@
 import { blockKey, blocksForPolyline } from "./grid";
 import type { PackedBlocks, PackedClubBlocks } from "./query";
 import { addBlock, type RegionStandings, type StandingRow } from "./titles";
-import { ZWIFT_BLOCK_ZOOM, zwiftRegionCode } from "./zwift";
+import { ZWIFT_BLOCK_ZOOM, isNoRoadBlock, zwiftRegionCode } from "./zwift";
 
 const PAGE = 1000;
 
@@ -147,7 +147,9 @@ export function roadBlocksFromShapes(routes: RouteShape[]): Map<string, Set<stri
     if (!route.world || !lat || !lon || lat.length < 2) continue;
     const points = lat.map((value, i) => ({ lat: value, lon: lon[i] }));
     const set = out.get(route.world) ?? new Set<string>();
-    for (const key of blocksForPolyline(points, ZWIFT_BLOCK_ZOOM)) set.add(key);
+    for (const key of blocksForPolyline(points, ZWIFT_BLOCK_ZOOM)) {
+      if (!isNoRoadBlock(route.world, key)) set.add(key);
+    }
     out.set(route.world, set);
   }
   return out;
