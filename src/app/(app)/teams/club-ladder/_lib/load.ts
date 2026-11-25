@@ -13,6 +13,7 @@ import {
 import {
   buildPuzzleRiders,
   parseLadderBand,
+  type LadderDraft,
   type LadderPuzzleRider,
   type LadderPuzzleTeam,
   type LadderRosterRow,
@@ -311,6 +312,24 @@ export async function withPuzzleZmap(
     });
     return { ...rider, zmap };
   });
+}
+
+/** Conceptindeling voor seizoen 8 (0371) op renner-key; leeg zolang 0371 niet is toegepast. */
+export async function loadLadderDraft(admin: ReturnType<typeof createAdminClient>): Promise<LadderDraft> {
+  const { data, error } = await admin
+    .from("ladder_draft_placements")
+    .select("profile_id, roster_entry_id, team_id");
+  if (error) return {};
+  const draft: LadderDraft = {};
+  for (const row of (data ?? []) as Array<{
+    profile_id: string | null;
+    roster_entry_id: string | null;
+    team_id: string | null;
+  }>) {
+    if (row.profile_id) draft[`p:${row.profile_id}`] = row.team_id;
+    else if (row.roster_entry_id) draft[`r:${row.roster_entry_id}`] = row.team_id;
+  }
+  return draft;
 }
 
 function zwiftIdOf(value: string | null) {

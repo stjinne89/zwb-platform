@@ -18,6 +18,7 @@ import {
   latestResultFor,
   loadLadderAddOptions,
   loadLadderCaptains,
+  loadLadderDraft,
   loadLadderPuzzle,
   withPuzzleZmap,
   loadLadderRiders,
@@ -57,7 +58,10 @@ export default async function ClubLadderPage({
   const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
   // Seizoen 8 (zMAP-regel) alleen voor wie indeelt, zoals de geschatte zMAP bij de ZRL.
   const season8 = puzzle && (canPuzzle || canAssign);
-  const puzzleRiders = puzzle ? (season8 ? await withPuzzleZmap(puzzle.riders, admin) : puzzle.riders) : [];
+  const [puzzleRiders, draft] = await Promise.all([
+    puzzle ? (season8 ? withPuzzleZmap(puzzle.riders, admin) : puzzle.riders) : [],
+    season8 ? loadLadderDraft(admin) : {},
+  ]);
   const [captainData, addOptions] = await Promise.all([
     canAssign ? loadLadderCaptains(teamRows, admin) : null,
     canAssign || canPuzzle ? loadLadderAddOptions(admin) : null,
@@ -136,6 +140,7 @@ export default async function ClubLadderPage({
               otherTeams={puzzle.otherTeams}
               canEdit={canPuzzle}
               season8={Boolean(season8)}
+              draft={draft}
             />
           )}
 

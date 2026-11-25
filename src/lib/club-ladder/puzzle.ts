@@ -226,3 +226,16 @@ export function checkLadderTeam(
 
   return out;
 }
+
+/** Conceptindeling voor seizoen 8 (0371): renner-key → puzzelteam, `null` = losse stukjes. */
+export type LadderDraft = Record<string, string | null>;
+
+/**
+ * De puzzel zoals het concept hem ziet: wie in het concept is verplaatst, ligt
+ * daar; de rest in zijn huidige team.
+ */
+export function applyLadderDraft(riders: LadderPuzzleRider[], draft: LadderDraft): LadderPuzzleRider[] {
+  return riders.map((rider) =>
+    Object.hasOwn(draft, rider.key) ? { ...rider, teamId: draft[rider.key] } : rider,
+  );
+}

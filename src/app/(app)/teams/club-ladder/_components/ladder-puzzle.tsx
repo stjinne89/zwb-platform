@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import {
   LADDER_RANKS,
   LADDER_ROSTER_SIZE,
+  applyLadderDraft,
   checkLadderTeam,
   ladderRankName,
   parseLadderRank,
   sortPuzzleRiders,
   type LadderBand,
   type LadderCheckLevel,
+  type LadderDraft,
   type LadderPuzzleRider,
   type LadderPuzzleTeam,
   type LadderTeamCheck,
@@ -30,7 +32,9 @@ import { zValueSourceLabel } from "@/lib/teams/zrl-ranking";
 import { cn } from "@/lib/utils";
 import {
   addLadderRosterRider,
+  moveLadderDraftRider,
   moveLadderPuzzleRider,
+  resetLadderDraft,
   withdrawLadderRider,
   setLadderRiderRank,
   setLadderTeamBand,
@@ -99,9 +103,11 @@ function roomText(room: [number, number]) {
   return `${formatWkg(from)}–${formatWkg(to)}`;
 }
 
-type State = { teams: LadderPuzzleTeam[]; riders: LadderPuzzleRider[] };
+type State = { teams: LadderPuzzleTeam[]; riders: LadderPuzzleRider[]; draft: LadderDraft };
 type Change =
   | { type: "move"; key: string; teamId: string | null }
+  | { type: "draft"; key: string; teamId: string | null }
+  | { type: "draftReset" }
   | { type: "rank"; zwiftId: string; rank: number | null }
   | { type: "band"; teamId: string; band: LadderBand | null }
   | { type: "remove"; key: string };
@@ -113,6 +119,10 @@ function apply(state: State, change: Change): State {
         ...state,
         riders: state.riders.map((r) => (r.key === change.key ? { ...r, teamId: change.teamId } : r)),
       };
+    case "draft":
+      return { ...state, draft: { ...state.draft, [change.key]: change.teamId } };
+    case "draftReset":
+      return { ...state, draft: {} };
     case "rank":
       return {
         ...state,
@@ -138,6 +148,7 @@ export function LadderPuzzle({
   otherTeams,
   canEdit,
   season8 = false,
+  draft = {},
 }: {
   teams: LadderPuzzleTeam[];
   riders: LadderPuzzleRider[];
@@ -146,8 +157,10 @@ export function LadderPuzzle({
   canEdit: boolean;
   /** Toggle naar de zMAP-regel van seizoen 8; de renners hebben dan een zMAP. */
   season8?: boolean;
+  /** Conceptindeling voor seizoen 8 (0371); slepen in Seizoen 8 verandert alleen dit. */
+  draft?: LadderDraft;
 }) {
-  const [state, applyOptimistic] = useOptimistic<State, Change>({ teams, riders }, apply);
+  const [state, applyOptimistic] = useOptimistic<State, Change>({ teams, riders, draft }, apply);
   const [mode, setMode] = useState<Mode>("nu");
   const s8 = season8 && mode === "s8";
   const [pending, startTransition] = useTransition();
@@ -165,26 +178,35 @@ export function LadderPuzzle({
     });
   }
 
+  // In Seizoen 8 ligt iedereen waar het concept hem legt; de echte teams blijven staan.
+  const board = s8 ? applyLadderDraft(state.riders, state.draft) : state.riders;
+  const hasDraft = Object.keys(state.draft).length > 0;
+
   function move(key: string, teamId: string | null) {
-    const rider = state.riders.find((r) => r.key === key);
+    const rider = board.find((r) => r.key === key);
     if (!rider || rider.teamId === teamId) return;
     setPlaced(key);
-    run({ type: "move", key, teamId }, () =>
-      moveLadderPuzzleRider({ kind: rider.kind, id: rider.id }, teamId),
-    );
+    const ref = { kind: rider.kind, id: rider.id };
+    if (s8) run({ type: "draft", key, teamId }, () => moveLadderDraftRider(ref, teamId));
+    else run({ type: "move", key, teamId }, () => moveLadderPuzzleRider(ref, teamId));
+  }
+
+  function resetDraft() {
+    if (!window.confirm("Concept terugzetten op de indeling van nu?")) return;
+    run({ type: "draftReset" }, () => resetLadderDraft());
   }
 
   const checks = new Map(
     state.teams.map((team) => [
       team.id,
-      checkLadderTeam(team, state.riders.filter((r) => r.teamId === team.id)),
+      checkLadderTeam(team, board.filter((r) => r.teamId === team.id)),
     ]),
   );
   const zChecks = new Map(
     s8
       ? state.teams.map((team) => [
           team.id,
-          checkLadderTeamZmap(state.riders.filter((r) => r.teamId === team.id)),
+          checkLadderTeamZmap(board.filter((r) => r.teamId === team.id)),
         ])
       : [],
   );
@@ -196,7 +218,7 @@ export function LadderPuzzle({
       )
     : state.teams;
   const teamIds = new Set(state.teams.map((t) => t.id));
-  const loose = state.riders.filter((r) => !r.teamId || !teamIds.has(r.teamId));
+  const loose = board.filter((r) => !r.teamId || !teamIds.has(r.teamId));
   const fits = state.teams.filter((t) => levelOf(t.id) === "ok").length;
   const done = state.teams.length > 0 && fits === state.teams.length && loose.length === 0;
 
@@ -286,6 +308,11 @@ export function LadderPuzzle({
               ))}
             </div>
           )}
+          {s8 && canEdit && hasDraft && (
+            <Button type="button" variant="outline" size="sm" disabled={pending} onClick={resetDraft}>
+              Opnieuw van Nu
+            </Button>
+          )}
         </div>
         {state.teams.length > 0 && (
           <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-3 py-1 text-xs font-semibold text-background">
@@ -311,7 +338,7 @@ export function LadderPuzzle({
 
       <div className="grid items-start gap-3 sm:grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))]">
         {shownTeams.map((team) => {
-          const inLane = state.riders.filter((r) => r.teamId === team.id);
+          const inLane = board.filter((r) => r.teamId === team.id);
           const laneRiders = s8 ? sortByZmap(inLane) : sortPuzzleRiders(inLane);
           const check = checks.get(team.id)!;
           const zCheck = zChecks.get(team.id) ?? null;
@@ -369,7 +396,7 @@ export function LadderPuzzle({
         {canEdit && <AddRider pending={pending} run={run} />}
       </section>
 
-      {canEdit && otherTeams.length > 0 && (
+      {canEdit && !s8 && otherTeams.length > 0 && (
         <AddTeam teams={otherTeams} pending={pending} run={run} />
       )}
     </section>
@@ -668,7 +695,7 @@ function Piece({
         {!rider.zwiftId && <span className="text-destructive">geen Zwift-ID</span>}
         {rider.sex && <span>{rider.sex}</span>}
         {rider.kind === "roster" && <span>geen account</span>}
-        {canEdit && (
+        {canEdit && !s8 && (
           <button
             type="button"
             disabled={pending}

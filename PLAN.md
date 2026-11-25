@@ -7,6 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Ladderpuzzel: concept voor seizoen 8 (2026-11-25): commit: de
+   commit die dit blok toevoegt, nog niet gepusht. Migratie
+   `0371_ladder_draft_placements` nog niet toegepast.** In de stand Seizoen 8
+   sleep je alleen nog in een concept; de echte teams in Nu blijven staan.
+   Open: 0371 toepassen (zonder 0371 faalt slepen in Seizoen 8 met een
+   foutmelding, de rest werkt), dan na de deploy in Seizoen 8 slepen en Nu
+   nakijken. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Live ladderstand (2026-11-25): commit `8e2e29c5`, op
    2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.** Tijdens een ladderrace op
    `/events/[id]/live` de score en de volgorde bij elke sprint, KOM en
@@ -13067,6 +13075,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderpuzzel: concept voor seizoen 8
+
+> **2026-11-25 — gebouwd, lokaal getest (unit en migraties op PGlite), niet in
+> de browser bekeken.** Commit: de commit die dit blok toevoegt. Migratie
+> `0371_ladder_draft_placements.sql`, nog niet toegepast.
+>
+> **Waarom.** De eigenaar wil alvast voorpuzzelen voor seizoen 8 ("Kun je de
+> ladderpuzzel van seizoen 8 loskoppelen van werkende puzzel van nu?"). Tot nu
+> toe was Seizoen 8 alleen een andere weergave: slepen verplaatste de renner
+> echt in zijn team. Aanleiding is de concept-indeling van dezelfde dag: drie
+> teams (ZWBeasts 11, ZWBullets 15, ZWBandits 15), ZWBeauties vervalt als naam,
+> en de 42e renner kiest de eigenaar eind december. Die indeling staat niet in
+> de code; hij gaat via het concept in de puzzel. Voorstel akkoord ("Ja,
+> bouwen").
+>
+> **Nu.**
+> - Tabel `ladder_draft_placements`: per verplaatste renner één rij, voor een
+>   lid (`profile_id`) of een rosternaam (`roster_entry_id`), met het team in
+>   het concept; leeg = losse stukjes. RLS aan zonder policies, alleen de
+>   server.
+> - `applyLadderDraft` (`lib/club-ladder/puzzle.ts`, puur): wie in het concept
+>   staat, ligt daar; de rest in zijn huidige puzzelteam.
+> - `loadLadderDraft` in `_lib/load.ts`, alleen geladen als Seizoen 8 te zien
+>   is (wie indeelt). Geeft een leeg concept zolang 0371 er niet is.
+> - Acties `moveLadderDraftRider` en `resetLadderDraft`, met dezelfde check als
+>   de puzzel (rol teamcaptain).
+> - Ladderpuzzel in Seizoen 8: slepen en team kiezen gaan naar het concept;
+>   Weghalen en Team toevoegen staan er niet (die veranderen de echte teams);
+>   rank en band stonden al alleen in Nu. Knop **Opnieuw van Nu** zodra het
+>   concept iets afwijkt, met een bevestiging. Renner toevoegen blijft: die
+>   komt in beide standen bij de losse stukjes.
+> - Uitleg op /hulp bij de Ladderpuzzel.
+>
+> **Bewust niet.** Geen captains in het concept: die zet de eigenaar bij de
+> wissel in Nu. Geen knop die het concept doorvoert naar de echte teams: de
+> wissel is eenmalig en een fout raakt dan alle teams tegelijk; bij de wissel
+> opnieuw bekijken. Eén concept, niet meerdere naast elkaar. Claimt iemand
+> zijn rosternaam nadat hij in het concept is verplaatst, dan valt hij in het
+> concept terug op zijn huidige team (de rij hangt aan de rosterregel).
+>
+> **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden,
+> `club-ladder-puzzle.test.ts` (nieuw: `applyLadderDraft`), en
+> `baseline.test.ts` speelt alle migraties met 0371 af op PGlite. Volle
+> suite: alleen `club-texts-render` ("beheer noemt ZWB niet", door de tekst
+> over het ZWB TTT-plan in Sauce, niet door deze ronde) faalt, en
+> `omnium-live` slaat over zonder live-omgeving. **Niet** getest: 0371 op
+> Supabase (geen Docker hier), en slepen in de browser (de lokale server
+> vraagt om in te loggen en de tabel bestaat nog niet op productie).
+
 ### Gebouwd — Live ladderstand in de stream-overlay
 
 **2026-11-25, commit `7a3822e8`, op 2026-11-25 gepusht naar `main`. Geen
@@ -17805,7 +17862,9 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
 >   de stukjes op zMAP met de bron in de tooltip (WTRL schuin, "telt als 5,80"
 >   boven de grens), per team Spreiding / Mediaan / Erbij in plaats van de
 >   rankladder en de band. Slepen en team kiezen werken in beide standen; rank
->   en band zetten alleen in Nu.
+>   en band zetten alleen in Nu. (Niet meer waar sinds de ronde "Ladderpuzzel:
+>   concept voor seizoen 8", 2026-11-25: in Seizoen 8 verandert slepen alleen
+>   het concept, niet de echte teams.)
 > - Uitleg op /hulp bij de Ladderpuzzel.
 >
 > **Bijgewerkt 2026-11-17: kleur per stukje in plaats van "Past bijna".** De

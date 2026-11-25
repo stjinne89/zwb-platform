@@ -276,6 +276,42 @@ export async function moveLadderPuzzleRider(rider: PuzzleRiderRef, teamId: strin
   return { ok: true as const };
 }
 
+/**
+ * Legt een renner in de conceptindeling van seizoen 8 (0371), of bij de losse
+ * stukjes (`null`). Raakt de echte teams niet.
+ */
+export async function moveLadderDraftRider(rider: PuzzleRiderRef, teamId: string | null) {
+  const check = await guardAccess(true);
+  if (!check.ok) return check;
+  const { admin } = check;
+  if (teamId && !(await puzzleTeamIds(admin)).includes(teamId)) {
+    return { ok: false as const, error: "Team staat niet in de puzzel." };
+  }
+  const column = rider.kind === "roster" ? "roster_entry_id" : "profile_id";
+  const { error } = await admin
+    .from("ladder_draft_placements")
+    .upsert(
+      { [column]: rider.id, team_id: teamId, updated_by: check.userId, updated_at: new Date().toISOString() },
+      { onConflict: column },
+    );
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/teams/club-ladder");
+  return { ok: true as const };
+}
+
+/** Opnieuw van Nu: wist de conceptindeling, iedereen staat weer in zijn huidige team. */
+export async function resetLadderDraft() {
+  const check = await guardAccess(true);
+  if (!check.ok) return check;
+  const { error } = await check.admin
+    .from("ladder_draft_placements")
+    .delete()
+    .not("id", "is", null);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/teams/club-ladder");
+  return { ok: true as const };
+}
+
 /** Ladderrank per Zwift-ID, tot de ZwiftRacing-API hem levert; `null` wist hem. */
 export async function setLadderRiderRank(zwiftId: string, rank: number | null) {
   const check = await guardAccess(true);

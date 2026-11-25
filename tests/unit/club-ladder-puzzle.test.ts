@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyLadderDraft,
   buildPuzzleRiders,
   checkLadderTeam,
   ladderRankName,
@@ -123,5 +124,19 @@ describe("hulpjes", () => {
   it("legt een lid in het eerste ladderteam dat in de puzzel staat", () => {
     expect(puzzleTeamFor(["oud", "t2", "t1"], new Set(["t1", "t2"]))).toBe("t2");
     expect(puzzleTeamFor(["oud"], new Set(["t1"]))).toBeNull();
+  });
+});
+
+describe("applyLadderDraft", () => {
+  it("legt verplaatste renners in hun conceptteam en laat de rest in hun huidige team", () => {
+    const riders = [rider("a", 4), rider("b", 5), rider("c", 6)];
+    const board = applyLadderDraft(riders, { "p:a": "t2", "p:b": null });
+    expect(board.map((r) => r.teamId)).toEqual(["t2", null, "t"]);
+  });
+
+  it("verandert de echte indeling niet", () => {
+    const riders = [rider("a", 4)];
+    applyLadderDraft(riders, { "p:a": "t2" });
+    expect(riders[0].teamId).toBe("t");
   });
 });
