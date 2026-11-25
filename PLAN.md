@@ -7,11 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Dashboard: teamuitslagen voor ZRL en Ladder (2026-11-25): lokaal
-   gecommit, niet gepusht, geen migratie.** De ledentegels slaan ZRL- en
+0. **Gebouwd — Dashboard: teamuitslagen voor ZRL en Ladder (2026-11-25): commit
+   `3282c52c`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"), geen
+   migratie.** De ledentegels slaan ZRL- en
    Ladder-races over. Ladderteams krijgen een eigen teamtegel met de score van
-   hun nieuwste wedstrijd, en er passen 8 teamtegels in plaats van 4. Open: het
-   echte dashboard is niet ingelogd bekeken. Zie de ronde met dezelfde naam.
+   hun nieuwste wedstrijd, en er passen 8 teamtegels in plaats van 4. Open: na de deploy
+   het dashboard ingelogd bekijken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Pacingplan na ZRL R2 W2 (2026-11-25): commit `eb1e6bc1`, op
    2026-11-25 gepusht naar `main`, geen migratie.** Voorstel 1 tot en met 4 uit
@@ -12953,8 +12954,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Dashboard: teamuitslagen voor ZRL en Ladder
 
-**2026-11-25.** Lokaal gecommit in de worktree
-`dashboard-team-results-zrl-ladder`, niet gepusht. Geen migratie. Eerst een
+**2026-11-25.** Commit `3282c52c`, op 2026-11-25 op verzoek van de eigenaar
+("Ja, push") naar `main` gepusht. Geen migratie. Eerst een
 voorstel, door de eigenaar goedgekeurd ("Ja, bouwen").
 
 **Waarom.** De eigenaar zag bij de uitslagen van teams buiten zijn eigen team
