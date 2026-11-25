@@ -341,10 +341,16 @@ export function planWtrlRacepasses(
  */
 export const MAX_RESULTS_PER_RUN = 8;
 
-/** Nieuwste race eerst, hoogstens MAX_RESULTS_PER_RUN. */
-export function pickResultPaths(wanted: Array<{ path: string; race: number }>): string[] {
+export type WantedResult = { path: string; race: number; /** Al eens opgehaald, nog niet klaar. */ imported: boolean };
+
+/**
+ * Hoogstens MAX_RESULTS_PER_RUN: eerst wat nog nooit is opgehaald, dan de
+ * nieuwste race. Anders vulde de voorlopige uitslag van race 2 elke run en kwam
+ * race 1 nooit aan de beurt (2026-11-25).
+ */
+export function pickResultPaths(wanted: WantedResult[]): string[] {
   return [...wanted]
-    .sort((a, b) => b.race - a.race)
+    .sort((a, b) => Number(a.imported) - Number(b.imported) || b.race - a.race)
     .slice(0, MAX_RESULTS_PER_RUN)
     .map((row) => row.path);
 }

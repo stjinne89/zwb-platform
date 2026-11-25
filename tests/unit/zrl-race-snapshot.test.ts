@@ -68,6 +68,31 @@ describe("bevriezen van de Zwift-data", () => {
     expect(raceSettled(race({ finishers: [1, 2, 3], segmentsOk: false }))).toBe(false);
   });
 
+  it("bevriest ook met een groep waarin een inschrijver niet reed (B1, 2026-11-24)", () => {
+    const withNoShow = (now: number, passageOf9?: number): RaceData => {
+      const data = race({ finishers: [1, 2, 3], now });
+      data.subgroups.push({
+        id: "3",
+        label: "E",
+        startAt: START,
+        routeId: "1",
+        laps: 1,
+        entrants: [{ zwiftId: "9", name: "Renner 9" }],
+        results: [],
+        resultsOk: true,
+      });
+      if (passageOf9 !== undefined) {
+        data.passages.push({ id: "9", athleteId: 9, segmentId: "S", ts: START + passageOf9, elapsed: 20 });
+      }
+      return data;
+    };
+    // Tijdens de race kan de uitslag nog komen.
+    expect(raceSettled(withNoShow(60 * MIN))).toBe(false);
+    expect(raceSettled(withNoShow(2 * 60 * MIN))).toBe(true);
+    // Reed hij wel, dan wachten we op zijn uitslag.
+    expect(raceSettled(withNoShow(2 * 60 * MIN, 20 * MIN))).toBe(false);
+  });
+
   it("laat doorfietsen na de finish de stand niet openhouden", () => {
     const data = race({ finishers: [1, 2, 3], now: 43 * MIN });
     // Renner 1 rijdt na de finish nog over de sprint.

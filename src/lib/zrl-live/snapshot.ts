@@ -28,7 +28,7 @@ import {
   type ZrlScoringFormat,
 } from "@/lib/zrl-live/scoring";
 import { extractTeamTag, pickTeamLabel, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
-import { freezeZrlTeamResult } from "@/lib/zrl-live/team-result";
+import { freezeZrlTeamResult, RACE_OVER_AFTER_MS } from "@/lib/zrl-live/team-result";
 import { getClub } from "@/lib/club";
 import { zrlFormatFromZwift } from "@/lib/events/zrl-format";
 
@@ -168,13 +168,27 @@ export function subgroupSettled(subgroup: RaceSubgroup, passages: Passage[], now
   return allIn && quiet > ALL_IN_QUIET_MS;
 }
 
+/**
+ * Ingeschreven maar niemand reed: geen uitslag, geen passage, en de race is al
+ * voorbij. Zo'n groep hield het hele event open; op 2026-11-24 bleven B1, B2 en
+ * C daardoor onbevroren (B1: groep E met één inschrijver, geen uitslag).
+ */
+function nobodyRode(subgroup: RaceSubgroup, passages: Passage[], now: number): boolean {
+  if (!subgroup.resultsOk || subgroup.results.length > 0) return false;
+  if (now - subgroup.startAt <= RACE_OVER_AFTER_MS) return false;
+  const riderIds = new Set(subgroup.entrants.map((e) => Number(e.zwiftId)));
+  return !passages.some((p) => riderIds.has(p.athleteId) && p.ts >= subgroup.startAt);
+}
+
 /** Alle Zwift-data compleet en elke bezette subgroep klaar: dan mag het event bevroren worden. */
 export function raceSettled(data: RaceData): boolean {
-  const occupied = data.subgroups.filter((s) => s.entrants.length > 0);
+  const ridden = data.subgroups.filter(
+    (s) => s.entrants.length > 0 && !nobodyRode(s, data.passages, data.fetchedAt),
+  );
   return (
     data.segmentsOk &&
-    occupied.length > 0 &&
-    occupied.every((subgroup) => subgroupSettled(subgroup, data.passages, data.fetchedAt))
+    ridden.length > 0 &&
+    ridden.every((subgroup) => subgroupSettled(subgroup, data.passages, data.fetchedAt))
   );
 }
 

@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
   const { data: events, error } = await admin
     .from("events")
-    .select("id, title, start_at")
+    .select("id, title, start_at, zwift_event_id")
     .eq("type", "zrl")
     .not("team_id", "is", null)
     .not("zwift_event_id", "is", null)
@@ -59,13 +59,22 @@ export async function POST(request: NextRequest) {
     ? await admin.from("zrl_team_results").select("event_id, computed_at").in("event_id", ids)
     : { data: [] };
   const startById = new Map((events ?? []).map((event) => [event.id as string, Date.parse(event.start_at as string)]));
+  // Ook de Zwift-data moet bewaard zijn (0197): de WTRL-import leest die. Op
+  // 2026-11-24 stond de teamuitslag van B1, B2 en C vast zonder bewaarde data, en
+  // dan sloeg deze cron ze over.
+  const zwiftIdById = new Map((events ?? []).map((event) => [event.id as string, String(event.zwift_event_id)]));
+  const { data: snapshots } = ids.length
+    ? await admin.from("zrl_race_snapshots").select("zwift_event_id").in("zwift_event_id", [...new Set(zwiftIdById.values())])
+    : { data: [] };
+  const storedIds = new Set((snapshots ?? []).map((row) => String(row.zwift_event_id)));
   // Klaar is alleen een uitslag van ná de 90 minuten; een eerdere wordt nog één keer nagerekend.
   const done = new Set(
     (frozen ?? [])
       .filter(
         (row) =>
           Date.parse(row.computed_at as string) >=
-          (startById.get(row.event_id as string) ?? Infinity) + RACE_OVER_AFTER_MS,
+            (startById.get(row.event_id as string) ?? Infinity) + RACE_OVER_AFTER_MS &&
+          storedIds.has(zwiftIdById.get(row.event_id as string) ?? ""),
       )
       .map((row) => row.event_id as string),
   );

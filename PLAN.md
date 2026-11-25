@@ -12954,8 +12954,8 @@ Gecontroleerd: de 220 bestaande indelingen staan op `manual`. Niet lokaal getest
   de pc niet. Stappen: My Teams (HTML), dan per team `/api/zrl/{seizoen}/teams/{trc}`
   (JSON) en het uitslagmenu, dan de uitslagen van de ronde die nog niet
   definitief verwerkt zijn. Alleen de divisies van teams die aan een ZWB-team
-  hangen; de nieuwste race eerst en hoogstens 8 uitslagen per run
-  (`MAX_RESULTS_PER_RUN`), de rest bij een volgende run. Een run kost zo
+  hangen; hoogstens 8 uitslagen per run (`MAX_RESULTS_PER_RUN`): eerst wat
+  nog nooit is opgehaald, dan de nieuwste race. De rest komt bij een volgende run. Een run kost zo
   hoogstens 9 + 1 + 8 + 1 verzoeken.
 - **Wat het vervangt.**
   - *De My Teams-plak.* De teamgegevens komen als JSON en gaan door dezelfde
@@ -12995,10 +12995,28 @@ Gecontroleerd: de 220 bestaande indelingen staan op `manual`. Niet lokaal getest
   5 seconden ertussen; bij een 429 met `Retry-After` tot 90 s één keer wachten
   en opnieuw; anders stoppen, maar wat al binnen is eerst naar het platform
   sturen; geen uitslagen van niet-gekoppelde teams; hoogstens 8 per run, de
-  nieuwste race eerst.
-- **Niet geverifieerd.** Of de bijgestelde run onder de grens van WTRL blijft,
-  en of de koppeling van tegenstanders echt landt (`zrl_wtrl_result_imports`,
-  `zrl_team_assignments` met bron `wtrl`): de eerste run kwam niet zover. Niet
+  nieuwste race eerst (commit `481d3655`).
+- **Tweede en derde run (2026-11-25).** 19 verzoeken, geen 429. Race 2 van vijf
+  teams gekoppeld: B3 44 van 47 renners, A 54 van 54, B Dev 51 van 53,
+  Zwiftladies 58 van 59, Zwiftladies C 39 van 40. B1, B2 en C 0: van hun
+  Zwift-events (5811090, 5811083, 5811081) was niets bewaard. Twee oorzaken:
+  - *Een groep waarin niemand reed, hield het event open.* `raceSettled` vroeg
+    een uitslag van elke groep met inschrijvers. In het event van B1 had groep E
+    één inschrijver en geen uitslag (gemeten met het serviceaccount); bij B3,
+    dat wel bevroren werd, had E geen inschrijvers. Nu telt een groep zonder
+    uitslag en zonder passages niet mee als de race 90 minuten voorbij is
+    (`RACE_OVER_AFTER_MS`). Reed er wel iemand, dan wacht het op de uitslag.
+    In ronde 1 week 6 ontbrak de data van C en B2 ook al, waarschijnlijk
+    om dezelfde reden.
+  - *De freeze-cron gaf het op.* Hij sloeg een event over zodra de teamuitslag
+    vaststond, ook als de Zwift-data niet bewaard was. Nu is een event pas klaar
+    met bewaarde data. Hij probeert het tot 24 uur na de start.
+  - *Race 1 kwam nooit aan de beurt.* De voorlopige uitslag van race 2 blijft
+    open tot WTRL hem definitief maakt en vulde zo elke run de 8 plaatsen. Nu
+    gaat wat nog nooit is opgehaald voor.
+- **Niet geverifieerd.** Of de cron de data van B1, B2 en C alsnog bewaart: dat
+  kan tot 24 uur na de start, dus tot 25 november rond 20:05–20:20 Nederlandse
+  tijd. Ook niet of die drie daarna koppelen. Niet
   getest is ook of de sessie bij gebruik verlengd wordt, en hoe de
   racepass-knop eruitziet als hij gevuld is: op 2026-11-25 was hij bij alle
   negen teams leeg. Wel getest:

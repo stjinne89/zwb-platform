@@ -11,6 +11,7 @@ import {
   parseTeamDetails,
   planAssignments,
   pickResultPaths,
+  type WantedResult,
   planWtrlRacepasses,
   WTRL_PATHS,
   wtrlClassCategory,
@@ -207,14 +208,15 @@ async function planResults(
     report.push(`Uitslagmenu: seizoen ${season} niet gevonden.`);
     return [];
   }
-  const { data: doneRows } = await admin
+  const { data: importRows } = await admin
     .from("zrl_wtrl_result_imports")
-    .select("class, race")
-    .eq("season", season)
-    .eq("done", true);
-  const done = new Set(((doneRows ?? []) as Array<{ class: string; race: number }>).map((row) => `${row.class}/${row.race}`));
+    .select("class, race, done")
+    .eq("season", season);
+  const rows = (importRows ?? []) as Array<{ class: string; race: number; done: boolean }>;
+  const done = new Set(rows.filter((row) => row.done).map((row) => `${row.class}/${row.race}`));
+  const imported = new Set(rows.map((row) => `${row.class}/${row.race}`));
 
-  const wanted: Array<{ path: string; race: number }> = [];
+  const wanted: WantedResult[] = [];
   for (const [wtrlClass, ownTeams] of ownClasses) {
     const division = menu.divisions.find((row) => row.wtrlClass === wtrlClass);
     const key = division ? wtrlDivisionKey(wtrlClass, division.league, menu.seasonText) : null;
@@ -226,7 +228,11 @@ async function planResults(
     for (const { race, status } of division.races) {
       if (done.has(`${wtrlClass}/${race}`)) continue;
       carry.status[`${wtrlClass}/${race}`] = status;
-      wanted.push({ path: `/api/zrl/results/${season}/${wtrlClass}/${race}`, race });
+      wanted.push({
+        path: `/api/zrl/results/${season}/${wtrlClass}/${race}`,
+        race,
+        imported: imported.has(`${wtrlClass}/${race}`),
+      });
     }
   }
   const paths = pickResultPaths(wanted);
