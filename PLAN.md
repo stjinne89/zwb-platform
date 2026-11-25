@@ -22,17 +22,19 @@ gaat stabiliteit voor nieuwe features.
    2026-11-25 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie. Open: na de deploy de volgorde
    op `/teams/club-ladder` bekijken. Zie de ronde met dezelfde naam.
 
-0. **Gebouwd, lokaal gecommit — ZRL-uitslagen uitklapbaar op de teampagina
-   (2026-11-25).** De import bewaart de hele WTRL-uitslag; de pagina van een
-   subteam toont hem onder de stand. Migratie `0363_zrl_wtrl_results`
-   geschreven, niet toegepast. Open: push, migratie, twee runs. Zie de ronde.
+0. **Gebouwd — ZRL-uitslagen uitklapbaar op de teampagina (2026-11-25): commit
+   `afa0fbff`, gepusht naar `main` (eigenaar: "Yes, both").** De import bewaart
+   de hele WTRL-uitslag; de pagina van een subteam toont hem onder de stand.
+   Migratie `0363_zrl_wtrl_results` ná de push op productie toegepast. Open: twee
+   runs om ronde 2 in te halen. Zie de ronde.
 
 0. **Gebouwd — ZRL-competitiestand op de teampagina (2026-11-25).** Het
    WTRL-script haalt ook de stand per divisie op; de teampagina toont hem
    bovenaan. Commit `6ec7c526`, op 2026-11-25 gepusht naar `main` (eigenaar: "ja
    bouwen en daarna pushen"). Migratie `0362_zrl_wtrl_standings` op 2026-11-25
    ná de push op productie toegepast (eigenaar: "Yes, apply it"); de code werkt
-   ook zonder de tabel. Open: het script draaien. Zie de ronde.
+   ook zonder de tabel. Op 2026-11-25 stond na een run de stand van alle acht
+   divisies erin. Zie de ronde.
 
 0. **Gebouwd — Eigen YouTube-stream aan een race koppelen (2026-11-24): commit
    `8629425b`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja, push").**
@@ -1710,7 +1712,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0364`
-(`0363_zrl_wtrl_results` is van de ZRL-uitslagen op de teampagina, 2026-11-25, nog niet toegepast;
+(`0363_zrl_wtrl_results` is van de ZRL-uitslagen op de teampagina, toegepast op 2026-11-25;
 `0362_zrl_wtrl_standings` is van de ZRL-competitiestand, toegepast op 2026-11-25;
 `0361_wtrl_import` is van de WTRL-import vanaf de eigen pc, toegepast op 2026-11-25;
 `0360_event_streams_source` is van de eigen YouTube-stream, toegepast op 2026-11-24;
@@ -12943,8 +12945,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL-uitslagen uitklapbaar op de teampagina
 
-**2026-11-25, lokaal gecommit, nog niet gepusht. Migratie `0363_zrl_wtrl_results.sql`
-geschreven, niet toegepast en niet lokaal getest (geen Docker of Supabase-config).**
+**2026-11-25, commit `afa0fbff`, op 2026-11-25 gepusht naar `main`. Migratie
+`0363_zrl_wtrl_results.sql` dezelfde dag ná de push op productie toegepast
+(eigenaar: "Yes, both"). Gecontroleerd: RLS aan, alleen de leespolicy, `anon`
+kan niet lezen. Niet lokaal getest (geen Docker of Supabase-config).**
 
 - **Waarom.** Vraag van de eigenaar: naast de stand de uitslagen op de
   teampagina, ingeklapt met titel en plaats, open voor de hele uitslag, en per
@@ -12972,8 +12976,8 @@ geschreven, niet toegepast en niet lokaal getest (geen Docker of Supabase-config
   dezelfde kolommen. Met `<details>`, zonder JavaScript.
 - **Bewust niet.** Geen uitslagen op de pagina van het hoofdteam (daar staat
   per subteam alleen de stand). Geen punten per segment en geen DQ-redenen.
-- **Niet geverifieerd.** Migratie niet toegepast, geen run met de nieuwe
-  import, de pagina niet in de browser bekeken. Wel: `tsc`, ESLint, de
+- **Niet geverifieerd.** Geen run met de nieuwe import, de pagina niet in de
+  browser bekeken. Wel: `tsc`, ESLint, de
   unit-tests (`wtrl-import.test.ts`, `zrl-standings.test.ts`) en één keer
   statisch gerenderd met voorbeelddata.
 
@@ -13010,7 +13014,10 @@ geschreven, niet toegepast en niet lokaal getest (geen Docker of Supabase-config
   subteam. Zonder stand (of zonder 0362) staat er niets.
 - **Bewust niet.** Geen geschiedenis van eerdere rondes en geen FIN/FAL/FTS op
   de pagina; ze worden wel bewaard.
-- **Niet geverifieerd.** Het script is nog niet gedraaid met de stand erbij. De teampagina is niet in de browser bekeken.
+- **Eerste run met de stand (2026-11-25).** Na `git pull` stonden de standen
+  van alle acht divisies in `zrl_wtrl_standings`. De run daarvoor stopte met
+  "onbekend pad": het script op de pc was nog de oude versie. Het stopte
+  zonder WTRL-verzoek; na `git pull` ging het goed. De teampagina is niet in de browser bekeken.
   Wel: `tsc`, ESLint en de unit-tests (`wtrl-import.test.ts`,
   `zrl-standings.test.ts`). De volledige suite: dezelfde twee losstaande
   fouten (`club-texts-render`, `omnium-live`), plus `admin-areas` dat in de
