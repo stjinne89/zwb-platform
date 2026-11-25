@@ -1778,7 +1778,7 @@ export default async function EventDetailPage({
                       <LineupNames riders={lineupByTeam.get(sub.teamId) ?? []} className="px-3 pb-3" />
                     )}
                   </div>
-                  {result && <ZrlTeamRank rank={result.rank} teams={result.teams} />}
+                  {result && <ZrlTeamRank rank={result.rank} teams={result.teams} href={`/live/zrl/${sub.id}`} />}
                 </li>
               );
             })}

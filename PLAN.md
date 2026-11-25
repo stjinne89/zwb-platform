@@ -12909,6 +12909,18 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Plaats in het ZRL-overzicht linkt naar de live stand
+
+**2026-11-25, lokaal gecommit, nog niet gepusht. Geen migratie.**
+
+- **Waarom.** Vraag van de eigenaar: in het overkoepelende ZRL-event wil hij met
+  één klik van de plaats van een team naar de live stand van die race.
+- **Wat.** Het blok met het getal of de beker/medaille (`ZrlTeamRank`) is een
+  link naar `/live/zrl/<race>`. Een plaats bestaat alleen voor een race met een
+  Zwift-event, dus de live pagina is er altijd. De rest van de rij blijft naar
+  de race in de kalender wijzen.
+- **Niet geverifieerd.** Alleen `tsc` en ESLint; niet in de browser bekeken.
+
 ### Gebouwd — WTRL-import vanaf de eigen pc
 
 **2026-11-25, commit `5cc0cc2b`, op 2026-11-25 gepusht naar `main`. Migratie
