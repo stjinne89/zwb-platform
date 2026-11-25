@@ -7,6 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Verwachte ZRL-uitslag en teamplaats op de racepagina
+   (2026-11-25): lokaal gecommit, niet gepusht. Geen migratie.** Het veld van
+   de briefing (ploegen en renners met hun verwachte plek) staat op de
+   racepagina van een ZRL-teamrace, op de plek van de uitslag; na de race staat
+   daar de plaats van het team in de divisie. Open: ingelogd een ZRL-teamrace
+   vóór en na de race openen, en meten hoe lang de verwachting laadt. Zie de
+   ronde met dezelfde naam.
+
 0. **Gebouwd — Verwachte ladderuitslag op de racepagina (2026-11-25):
    commit `4f736c03`, lokaal, niet gepusht. Geen migratie.** De tabel Verwachte uitslag
    staat niet meer op de racebriefing maar op de racepagina, op de plek van de
@@ -13042,6 +13050,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Verwachte ZRL-uitslag en teamplaats op de racepagina
+
+**2026-11-25, lokaal gecommit op `claude/expected-results-event-page-6313b8`,
+niet gepusht. Geen migratie.**
+
+- **Waarom.** Vervolg op de ladderronde hieronder: de eigenaar wilde ook de
+  ZRL-verwachting op de racepagina. Een ZRL-teamrace had daar geen uitslag
+  (geen van de acht laatste had een uitslag-URL of uitslagrijen), dus de
+  echte uitslag moest erbij. Voorstel akkoord ("Ja, bouwen").
+- **Wat.**
+  - `race-briefing/load.ts`: het laden van het veld (groep uit Zwift, ZRS,
+    vELO, eerdere races van de ronde, `projectField`) is losgemaakt in
+    `loadZrlField`. De briefing gebruikt hem zoals eerst; de racepagina via
+    `loadZrlExpectedResult`, zonder het ZRS-verversen na het antwoord
+    (`refresh: false`), zodat niet elk bezoek Zwift-profielen ververst. Die
+    verversing gebeurt nog alleen bij een bezoek aan de briefing.
+  - Racepagina van een ZRL-teamrace, op de plek van de uitslag
+    (`zrl-race-result.tsx`):
+    - **Vóór de race** (tot een kwartier na de start, `zrlFieldOpen`): de
+      sectie Verwachte uitslag met de ploegentabel en het veld
+      (`zrl-expected-tables.tsx`, verhuisd uit de briefing), en de verwachte
+      plek van ons team naast de titel. Hij staat in een Suspense-grens, zodat
+      de pagina niet wacht op Zwift.
+    - **Na de race**: de plaats van het team in de divisie met beker of
+      medaille (`ZrlTeamRank`). De WTRL-plaats (`loadWtrlRanks`) gaat voor,
+      met een link naar de uitslag op de teampagina; anders de vastgezette
+      plaats van de live stand (`zrl_team_results`) met de punten en een link
+      naar de live stand.
+    - Tussen een kwartier na de start en het vastzetten staat er niets.
+  - Briefing: de sectie Het veld is weg; Onze ploeg blijft (rollen, grenzen,
+    verwachte plek per eigen renner). Het briefje rekent nog met hetzelfde
+    veld.
+  - `/hulp`: de racebriefing noemt het veld nu op de racepagina.
+- **Bewust niet.** De WTRL-plaats heeft geen punten in de opgeslagen uitslag,
+  dus die staan er dan niet bij. Geen ZWB-renneruitslag per renner op de
+  racepagina: die zit in de live stand en op de teampagina.
+- **Niet meer waar.** In de ladderronde hieronder, "Bewust niet": de
+  ZRL-briefing blijft zoals hij is. En in de ronde over de opbouw van het
+  racebriefje: het veld onder het briefje. Daar bijgewerkt.
+- **Niet geverifieerd.** Typecheck, lint en de unit-tests (race-briefing,
+  club-ladder, privacy-version) zijn schoon. Niet ingelogd bekeken: de
+  verwachte uitslag vóór een ZRL-race, de teamplaats na de race (WTRL en live
+  stand), en hoe lang het laden van de groep bij Zwift op de racepagina duurt.
+
 ### Gebouwd — Verwachte ladderuitslag op de racepagina
 
 **2026-11-25, commit `4f736c03` op `claude/expected-results-event-page-6313b8`,
@@ -13068,10 +13120,11 @@ niet gepusht. Geen migratie.**
 - **Verschil met de briefing.** De racepagina rekent met de vermogensbron die
   de kijker koos (alles of indoor, `powerScope`), de briefing altijd met alles.
   Zonder renners in de matchup toont de racepagina geen lege sectie.
-- **Bewust niet.** De ZRL-briefing blijft zoals hij is: daar zit de
+- **Bewust niet.** ~~De ZRL-briefing blijft zoals hij is: daar zit de
   verwachting in de tabellen Onze ploeg en Het veld (plek, punten per ploeg),
   die het veld van Zwift live ophalen. Die naar de racepagina halen is een
-  eigen vraag.
+  eigen vraag.~~ *Dezelfde dag toch gedaan, op verzoek van de eigenaar: zie
+  "Verwachte ZRL-uitslag en teamplaats op de racepagina".*
 - **Niet meer waar.** In de ronde over het racebriefje van de ladder: "Op de
   pagina vervangt de tabel Verwachte uitslag Onze ploeg en Het veld". Daar
   bijgewerkt.
@@ -35521,8 +35574,8 @@ spiekbriefje van de TTT".
   bij het veld zijn opgegaan in het briefje. (Sinds 2026-11-11 is de volgorde
   anders en staan de fiets en de steilheid van elke klim erop: zie de ronde
   "Racebriefje: volgorde, belangrijke punten en de fiets".) Onder het briefje: het formulier
-  Plan en rollen (alleen voor wie mag bewerken), het parcours, onze ploeg en het
-  veld. Bij een ploegentijdrit staat onder het briefje de link naar de TTT
+  Plan en rollen (alleen voor wie mag bewerken), het parcours, onze ploeg en ~~het
+  veld~~ (sinds 2026-11-25 op de racepagina). Bij een ploegentijdrit staat onder het briefje de link naar de TTT
   Planner; papier heeft geen links (zoals bij de TTT).
 - `/hulp` beschrijft de nieuwe opbouw.
 

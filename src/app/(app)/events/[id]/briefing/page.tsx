@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ui/responsive-table";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
-import { loadRaceBriefing, type BriefingRider, type BriefingView, type OwnBriefingRider } from "@/lib/race-briefing/load";
+import { loadRaceBriefing, type BriefingView, type OwnBriefingRider } from "@/lib/race-briefing/load";
 import { loadLadderBriefing } from "@/lib/club-ladder/event-briefing";
 import { FORMAT_LABELS } from "@/lib/race-briefing/rules";
-import { cleanRiderName, ROLE_LABELS, TTT_COUNTING_RIDERS, type ProjectedTeam } from "@/lib/race-briefing/field";
+import { cleanRiderName, ROLE_LABELS } from "@/lib/race-briefing/field";
 import { climbSeconds } from "@/lib/race-briefing/route";
 import { climbLabel, durationLabel, km } from "@/lib/race-briefing/tips";
 import { cn } from "@/lib/utils";
+import { History } from "../_components/zrl-expected-tables";
 import { ZwiftRouteSection } from "../_components/zwift-route-section";
 import { BikeAdviceList, type BikeAdviceRow } from "../_components/bike-advice-list";
 import { saveRaceBriefing } from "./_actions";
@@ -53,19 +54,6 @@ const nl1 = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 1, maximumFr
 const nl2 = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const wkg = (value: number | null | undefined) => (value == null ? "—" : nl2.format(value));
 const pct = (gradient: number) => `${nl1.format(gradient * 100)} %`;
-
-function History({ labels, places }: { labels: string[]; places: Array<number | null> }) {
-  if (labels.length === 0) return <span className="text-muted-foreground">—</span>;
-  return (
-    <span className="tabular-nums">
-      {places.map((p, i) => (
-        <span key={labels[i]} className={cn("mr-1.5", p === 1 && "font-semibold")} title={labels[i]}>
-          {p ?? "·"}
-        </span>
-      ))}
-    </span>
-  );
-}
 
 /** Plan en rollen voor het racebriefje; alleen voor wie het team beheert. */
 function PlanForm({ view }: { view: BriefingView }) {
@@ -202,82 +190,6 @@ function OwnTable({ view }: { view: BriefingView }) {
   return <ResponsiveTable columns={columns} rows={view.own} rowKey={(r) => String(r.zwiftId)} minWidth={640} />;
 }
 
-function TeamsTable({ view }: { view: BriefingView }) {
-  const teams = view.projection?.teams ?? [];
-  if (teams.length === 0) return null;
-  const label = (t: ProjectedTeam) => view.teamLabels[t.team] ?? t.team;
-  if (view.format === "ttt") {
-    // Gecombineerde kracht: gemiddeld 20 minuten van de sterkste vier (field.ts, tttStrength).
-    const tttColumns: Array<ResponsiveColumn<ProjectedTeam>> = [
-      { key: "team", header: "Ploeg", cell: (t) => <span className={cn(t.own && "font-semibold")}>{label(t)}</span>, primary: true },
-      { key: "starters", header: "Renners", cell: (t) => t.starters, align: "right" },
-      {
-        key: "strength",
-        header: "Kracht (W/kg)",
-        cell: (t) =>
-          t.strength ? (
-            <span className="tabular-nums">
-              {wkg(t.strength.wkg)}
-              {t.strength.riders < TTT_COUNTING_RIDERS && <span className="text-muted-foreground"> ({t.strength.riders})</span>}
-            </span>
-          ) : (
-            "—"
-          ),
-        align: "right",
-      },
-    ];
-    return <ResponsiveTable columns={tttColumns} rows={teams} rowKey={(t) => t.team} rowClassName={(t) => (t.own ? "bg-primary/5" : undefined)} />;
-  }
-  const columns: Array<ResponsiveColumn<ProjectedTeam>> = [
-    { key: "team", header: "Ploeg", cell: (t) => <span className={cn(t.own && "font-semibold")}>{label(t)}</span>, primary: true },
-    { key: "starters", header: "Renners", cell: (t) => t.starters, align: "right" },
-    ...(view.projection?.basis
-      ? [{ key: "points", header: "Verwacht", cell: (t: ProjectedTeam) => t.points ?? "—", align: "right" as const }]
-      : []),
-    ...(view.projection?.basis
-      ? [{ key: "places", header: "Plekken", cell: (t: ProjectedTeam) => <span className="tabular-nums">{t.riders.map((r) => r.place).join(", ")}</span> }]
-      : []),
-  ];
-  return <ResponsiveTable columns={columns} rows={teams} rowKey={(t) => t.team} rowClassName={(t) => (t.own ? "bg-primary/5" : undefined)} />;
-}
-
-function FieldTable({ view }: { view: BriefingView }) {
-  const velo = view.zwiftRacing;
-  const ttt = view.format === "ttt";
-  const columns: Array<ResponsiveColumn<BriefingRider>> = [
-    ...(ttt ? [] : [{ key: "place", header: "#", cell: (r: BriefingRider) => r.expectedPlace ?? "—", secondary: true }]),
-    { key: "name", header: "Renner", cell: (r) => <span className={cn(r.own && "font-semibold")}>{r.name}</span>, primary: true },
-    { key: "team", header: "Ploeg", cell: (r) => r.teamLabel ?? "—" },
-    { key: "zrs", header: "ZRS", cell: (r) => r.racingScore ?? "—", align: "right" },
-    ...(velo ? [{ key: "velo", header: "vELO", cell: (r: BriefingRider) => (r.velo ? Math.round(r.velo) : "—"), align: "right" as const }] : []),
-    ...(ttt
-      ? [{ key: "m20", header: "20 min", cell: (r: BriefingRider) => wkg(r.power?.m20), align: "right" as const }]
-      : velo
-        ? [
-            { key: "m1", header: "1 min", cell: (r: BriefingRider) => wkg(r.power?.m1), align: "right" as const },
-            { key: "m5", header: "5 min", cell: (r: BriefingRider) => wkg(r.power?.m5), align: "right" as const },
-          ]
-        : []),
-    { key: "history", header: view.historyLabels.join(" · ") || "Eerder", cell: (r) => <History labels={view.historyLabels} places={r.history} />, align: "right" },
-  ];
-  return (
-    <ResponsiveTable
-      columns={columns}
-      rows={view.field}
-      rowKey={(r) => String(r.zwiftId)}
-      rowClassName={(r) => (r.own ? "bg-primary/5" : undefined)}
-      minWidth={velo ? 720 : 560}
-    />
-  );
-}
-
-const FIELD_MISSING: Record<NonNullable<BriefingView["fieldMissing"]>, string> = {
-  "no-zwift-event": "Aan deze race hangt nog geen Zwift-event.",
-  "no-entrants": "Er staat nog niemand in de groep bij Zwift.",
-  error: "Zwift gaf de groep nu niet. Probeer het later opnieuw.",
-  started: "De race is begonnen; het veld staat op de live stand.",
-};
-
 /** "racebriefje-bdev-2026-10-20.png" */
 function sheetFileName(view: BriefingView): string {
   const team = (view.event.teamName ?? "team").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -402,24 +314,10 @@ export default async function RaceBriefingPage({ params }: PageProps) {
       )}
 
       {view.kind !== "ladder" && (
-        <>
-          <section className="space-y-3">
-            <SectionHeader title="Onze ploeg" />
-            {view.own.length > 0 ? <OwnTable view={view} /> : <EmptyState>Nog geen renners van ons in de groep of de opstelling.</EmptyState>}
-          </section>
-
-          <section className="space-y-3">
-            <SectionHeader title="Het veld" />
-            {view.fieldMissing ? (
-              <EmptyState>{FIELD_MISSING[view.fieldMissing]}</EmptyState>
-            ) : (
-              <>
-                <TeamsTable view={view} />
-                <FieldTable view={view} />
-              </>
-            )}
-          </section>
-        </>
+        <section className="space-y-3">
+          <SectionHeader title="Onze ploeg" />
+          {view.own.length > 0 ? <OwnTable view={view} /> : <EmptyState>Nog geen renners van ons in de groep of de opstelling.</EmptyState>}
+        </section>
       )}
     </div>
   );

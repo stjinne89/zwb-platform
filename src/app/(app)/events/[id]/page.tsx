@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -45,6 +46,8 @@ import { loadLadderEventMatchup } from "@/lib/club-ladder/event-matchup";
 import { loadLadderEventResult } from "@/lib/club-ladder/event-result-load";
 import { LadderResultView } from "./_components/ladder-result";
 import { LadderExpectedResultView } from "./_components/ladder-expected-result";
+import { ZrlExpectedResultFallback, ZrlExpectedResultView, ZrlResultView } from "./_components/zrl-race-result";
+import { zrlFieldOpen } from "@/lib/race-briefing/load";
 import { keyDuration as ladderKeyDuration, ladderRiders, matchupWeights, projectLadder } from "@/lib/club-ladder/briefing";
 import { ladderChallengerFromTitle } from "@/lib/club-ladder/fixture-events";
 import { ZwiftRacingSignups } from "./_components/zwiftracing-signups";
@@ -575,6 +578,36 @@ export default async function EventDetailPage({
       opponent: matchup.theirs.name,
     };
   })();
+  // ZRL-teamrace: op de plek van de uitslag de plaats van het team (WTRL als die
+  // er is, anders de vastgezette live stand), en vóór de race de verwachting.
+  const isZrlTeamRace = event.type === "zrl" && Boolean(event.team_id) && !isParentEvent && Boolean(user);
+  const zrlRace = isZrlTeamRace
+    ? { id: event.id, teamId: event.team_id as string, zwiftEventId: event.zwift_event_id != null ? String(event.zwift_event_id) : null }
+    : null;
+  const [zrlFrozen, zrlWtrl] = zrlRace
+    ? await Promise.all([
+        loadZrlTeamResults([zrlRace.id]).then((map) => map.get(zrlRace.id) ?? null),
+        loadWtrlRanks(supabase, [zrlRace])
+          .then((map) => map.get(zrlRace.id) ?? null)
+          .catch(() => null),
+      ])
+    : [null, null];
+  // Een kwartier na de start laadt het veld niet meer (zoals op de briefing).
+  const zrlExpectedOpen = zrlFieldOpen(event.start_at);
+  const zrlResult = zrlRace
+    ? zrlWtrl
+      ? {
+          rank: zrlWtrl.rank,
+          teams: zrlWtrl.teams,
+          points: null,
+          href: `/teams/${zrlRace.teamId}?uitslag=${zrlWtrl.race}#uitslagen`,
+          linkLabel: "Uitslag op de teampagina",
+        }
+      : zrlFrozen
+        ? { rank: zrlFrozen.rank, teams: zrlFrozen.teams, points: zrlFrozen.points, href: `/live/zrl/${zrlRace.id}`, linkLabel: "Live stand" }
+        : null
+    : null;
+
   // Zolang het parcours nog niet vastligt: welk parcours past ons tegen deze tegenstander.
   // Stond tot 2026-11-11 alleen op de Club Ladder-teampagina. Na de matchup, die de
   // renners van de wedstrijden al ophaalt.
@@ -1855,6 +1888,17 @@ export default async function EventDetailPage({
       ) : (
         ladderExpected && <LadderExpectedResultView {...ladderExpected} />
       )}
+
+      {zrlRace &&
+        (zrlResult ? (
+          <ZrlResultView {...zrlResult} />
+        ) : (
+          zrlExpectedOpen && (
+            <Suspense fallback={<ZrlExpectedResultFallback />}>
+              <ZrlExpectedResultView eventId={zrlRace.id} />
+            </Suspense>
+          )
+        ))}
 
       <ZwiftRacingSignups rows={zwiftRacingSignups} />
 

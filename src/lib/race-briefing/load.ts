@@ -82,6 +82,10 @@ const REFRESH_UNTIL_AFTER_START_MS = 60 * 60 * 1000;
  * na de race zou dit de hele bevroren race-data ophalen (egress).
  */
 const FIELD_UNTIL_AFTER_START_MS = 15 * 60 * 1000;
+/** Of het veld van een race nog geladen wordt (tot een kwartier na de start). */
+export function zrlFieldOpen(startAt: string): boolean {
+  return Date.now() <= Date.parse(startAt) + FIELD_UNTIL_AFTER_START_MS;
+}
 /** Zoveel tijd krijgt het verversen van ZRS na het antwoord. */
 const REFRESH_BUDGET_MS = 20_000;
 /** Fietsadvies zonder zFTP van eigen renners. Keuze bij de bouw, 2026-10-20. */
@@ -459,64 +463,54 @@ export async function canEditBriefing(userId: string, access: Access, teamId: st
   return (await captainTeamIds(userId)).has(teamId);
 }
 
-export async function loadRaceBriefing(
-  eventId: string,
-  user: { id: string },
-  access: Access,
-  supabase: SupabaseClient,
-): Promise<BriefingOutcome> {
-  const clubTexts = (await getClub()).texts;
-  const admin = createAdminClient();
-  const { data: eventData } = await admin
-    .from("events")
-    .select("id, title, type, start_at, team_id, parent_event_id, zwift_event_id, zwift_route_id, laps, gpx_path, distance_km, elevation_m, teams(name)")
-    .eq("id", eventId)
-    .maybeSingle();
-  const event = eventData as unknown as EventRow | null;
-  if (!event || event.type !== "zrl" || !event.team_id) return { status: "not-found" };
-  const teamName = event.teams?.name ?? null;
-  const zwiftEventId = event.zwift_event_id ? String(event.zwift_event_id) : null;
-  const started = Date.now() > Date.parse(event.start_at) + FIELD_UNTIL_AFTER_START_MS;
+/** Het veld van een ZRL-race met de verwachting: voor de briefing en de racepagina. */
+export type ZrlField = {
+  view: ZrlLiveView | null;
+  zwiftEvent: Awaited<ReturnType<typeof cachedZwiftEvent>> | null;
+  history: { labels: string[]; places: Map<number, Array<number | null>> };
+  format: BriefingFormat;
+  ttt: boolean;
+  division: Division | null;
+  metrics: Map<number, RiderMetrics>;
+  startMs: number;
+  field: FieldRider[];
+  projection: Projection | null;
+  expectedPlace: (zwiftId: number) => number | null;
+  teamLabels: Record<string, string>;
+  /** Het veld in de volgorde van de verwachting (ploegentijdrit: per ploeg). */
+  briefingField: BriefingRider[];
+  zwiftRacing: boolean;
+  fieldMissing: BriefingView["fieldMissing"];
+};
 
-  const [live, zwiftEvent, routeResult, lineup, historyRows, power, planRow, canEdit, zrEvent] = await Promise.all([
+/**
+ * De groep uit Zwift (zoals de live stand), met ZRS, vELO, eerdere races van deze
+ * ronde en de verwachte uitslag. Met `refresh` ververst hij na het antwoord de
+ * ZRS bij Zwift (±20 s); dat doet alleen de briefing, niet elk bezoek aan de
+ * racepagina.
+ */
+async function loadZrlField(event: EventRow & { team_id: string }, options: { refresh: boolean }): Promise<ZrlField> {
+  const admin = createAdminClient();
+  const zwiftEventId = event.zwift_event_id ? String(event.zwift_event_id) : null;
+  const started = !zrlFieldOpen(event.start_at);
+  const [live, zwiftEvent, historyRows, zrEvent] = await Promise.all([
     zwiftEventId && !started ? loadZrlLive(event.id) : Promise.resolve(null),
     zwiftEventId ? cachedZwiftEvent(zwiftEventId).catch(() => null) : Promise.resolve(null),
-    loadPacingRoute(supabase, event),
-    loadLineup(event),
     roundHistory(event.id, event.team_id, event.start_at),
-    wtrlPower(event.team_id),
-    admin.from("race_briefings").select("plan, roles, updated_at").eq("event_id", event.id).maybeSingle(),
-    canEditBriefing(user.id, access, event.team_id),
     // De eventpagina van ZwiftRacing: het hele veld in één keer, als hij het event kent.
     zwiftEventId && !started ? loadZwiftRacingEvent(zwiftEventId) : Promise.resolve(null),
   ]);
 
   const view: ZrlLiveView | null = live?.status === "ok" ? live.view : null;
-  // Apart gelezen: zonder migratie 0263 bestaat de kolom niet, en dan moet de rest blijven werken.
-  const { data: sheetRow } = await admin.from("race_briefings").select("sheet").eq("event_id", event.id).maybeSingle();
   const history = { labels: historyRows.labels, places: new Map(historyRows.places) };
   const format = briefingFormatOf(zwiftEvent);
   const ttt = format === "ttt";
-  // Na het format: alleen een ploegentijdrit heeft een TTT-plan. Een fout laat de rest van de briefing staan.
-  const tttPlan = ttt ? await loadTttPlan(event, canEdit).catch(() => null) : null;
   const division = view ? divisionOf(view.eventName, view.subgroupLabel) : null;
-  const limits = division ? divisionLimits(division) : null;
-
-  const loadedRoute = routeResult.ok ? routeResult.loaded : null;
-  const keyPoints = loadedRoute
-    ? routeKeyPoints({
-        segments: loadedRoute.route.segments,
-        accents: loadedRoute.route.accents,
-        totalKm: loadedRoute.route.totalKm,
-        laps: event.laps ?? view?.laps ?? 1,
-        lapSegments: loadedRoute.lapSegments,
-      })
-    : null;
 
   const entrantIds = view?.entrants.map((e) => e.athleteId) ?? [];
   const metrics = await loadRiderMetrics(entrantIds);
   const startMs = view?.startAt ?? Date.parse(event.start_at);
-  if (entrantIds.length > 0 && Date.now() < startMs + REFRESH_UNTIL_AFTER_START_MS) {
+  if (options.refresh && entrantIds.length > 0 && Date.now() < startMs + REFRESH_UNTIL_AFTER_START_MS) {
     after(() => refreshRiderMetrics(entrantIds, metrics, { budgetMs: REFRESH_BUDGET_MS }));
   }
 
@@ -547,11 +541,119 @@ export async function loadRaceBriefing(
   // Een ploegentijdrit heeft geen plek per renner; de ploegen staan op hun gecombineerde kracht.
   const expectedPlace = (id: number) => (!ttt && projection?.basis ? placeOf.get(id) ?? null : null);
 
+  const teamLabels = view?.teamLabels ?? {};
+  // Ploegentijdrit: het veld per ploeg, in de volgorde van de ploegen, binnen de ploeg op 20 minuten.
+  const teamRank = new Map((projection?.teams ?? []).map((t, i) => [t.team, i]));
+  const fieldOrder = ttt
+    ? [...field].sort(
+        (a, b) =>
+          (teamRank.get(a.team ?? "") ?? Infinity) - (teamRank.get(b.team ?? "") ?? Infinity) ||
+          (a.team ?? "").localeCompare(b.team ?? "") ||
+          (b.power?.m20 ?? -1) - (a.power?.m20 ?? -1),
+      )
+    : (projection?.order ?? field);
+  const briefingField: BriefingRider[] = fieldOrder.map((r) => ({
+    ...r,
+    teamLabel: r.team ? teamLabels[r.team] ?? r.team : null,
+    metrics: metrics.get(r.zwiftId) ?? null,
+    expectedPlace: expectedPlace(r.zwiftId),
+  }));
+
+  return {
+    view,
+    zwiftEvent,
+    history,
+    format,
+    ttt,
+    division,
+    metrics,
+    startMs,
+    field,
+    projection,
+    expectedPlace,
+    teamLabels,
+    briefingField,
+    zwiftRacing: field.some((r) => r.velo != null),
+    fieldMissing: !zwiftEventId ? "no-zwift-event" : started ? "started" : live?.status === "ok" ? null : live?.status === "error" ? "error" : "no-entrants",
+  };
+}
+
+/** Verwachte uitslag van een ZRL-teamrace, voor de racepagina (sinds 2026-11-25 niet meer op de briefing). */
+export type ZrlExpectedResult = Pick<ZrlField, "format" | "projection" | "teamLabels" | "briefingField" | "zwiftRacing" | "fieldMissing"> & {
+  historyLabels: string[];
+};
+
+export async function loadZrlExpectedResult(eventId: string): Promise<ZrlExpectedResult | null> {
+  const { data } = await createAdminClient()
+    .from("events")
+    .select("id, title, type, start_at, team_id, parent_event_id, zwift_event_id, zwift_route_id, laps, gpx_path, distance_km, elevation_m, teams(name)")
+    .eq("id", eventId)
+    .maybeSingle();
+  const event = data as unknown as EventRow | null;
+  if (!event || event.type !== "zrl" || !event.team_id) return null;
+  const zrl = await loadZrlField({ ...event, team_id: event.team_id }, { refresh: false });
+  return {
+    format: zrl.format,
+    projection: zrl.projection,
+    teamLabels: zrl.teamLabels,
+    briefingField: zrl.briefingField,
+    zwiftRacing: zrl.zwiftRacing,
+    fieldMissing: zrl.fieldMissing,
+    historyLabels: zrl.history.labels,
+  };
+}
+
+export async function loadRaceBriefing(
+  eventId: string,
+  user: { id: string },
+  access: Access,
+  supabase: SupabaseClient,
+): Promise<BriefingOutcome> {
+  const clubTexts = (await getClub()).texts;
+  const admin = createAdminClient();
+  const { data: eventData } = await admin
+    .from("events")
+    .select("id, title, type, start_at, team_id, parent_event_id, zwift_event_id, zwift_route_id, laps, gpx_path, distance_km, elevation_m, teams(name)")
+    .eq("id", eventId)
+    .maybeSingle();
+  const event = eventData as unknown as EventRow | null;
+  if (!event || event.type !== "zrl" || !event.team_id) return { status: "not-found" };
+  const teamName = event.teams?.name ?? null;
+  const zwiftEventId = event.zwift_event_id ? String(event.zwift_event_id) : null;
+
+  const [zrl, routeResult, lineup, power, planRow, canEdit] = await Promise.all([
+    loadZrlField({ ...event, team_id: event.team_id }, { refresh: true }),
+    loadPacingRoute(supabase, event),
+    loadLineup(event),
+    wtrlPower(event.team_id),
+    admin.from("race_briefings").select("plan, roles, updated_at").eq("event_id", event.id).maybeSingle(),
+    canEditBriefing(user.id, access, event.team_id),
+  ]);
+  const { view, zwiftEvent, history, format, ttt, division, metrics, startMs, field, projection, expectedPlace } = zrl;
+
+  // Apart gelezen: zonder migratie 0263 bestaat de kolom niet, en dan moet de rest blijven werken.
+  const { data: sheetRow } = await admin.from("race_briefings").select("sheet").eq("event_id", event.id).maybeSingle();
+  // Na het format: alleen een ploegentijdrit heeft een TTT-plan. Een fout laat de rest van de briefing staan.
+  const tttPlan = ttt ? await loadTttPlan(event, canEdit).catch(() => null) : null;
+  const limits = division ? divisionLimits(division) : null;
+
+  const loadedRoute = routeResult.ok ? routeResult.loaded : null;
+  const keyPoints = loadedRoute
+    ? routeKeyPoints({
+        segments: loadedRoute.route.segments,
+        accents: loadedRoute.route.accents,
+        totalKm: loadedRoute.route.totalKm,
+        laps: event.laps ?? view?.laps ?? 1,
+        lapSegments: loadedRoute.lapSegments,
+      })
+    : null;
+
   // Eigen renners: wie in de groep staat, plus wie in de opstelling staat maar niet ingeschreven is.
   const lineupIds = new Set(lineup.map((l) => l.zwiftId).filter((id): id is number => id !== null));
   const savedRoles = ((planRow.data?.roles ?? {}) as Record<string, unknown>) ?? {};
   const ownEntrants = field.filter((r) => r.own);
-  const notSignedUp = lineup.filter((l) => l.zwiftId === null || !entrantIds.includes(l.zwiftId));
+  const entrantIds = new Set(field.map((r) => r.zwiftId));
+  const notSignedUp = lineup.filter((l) => l.zwiftId === null || !entrantIds.has(l.zwiftId));
   const ownBase = [
     ...ownEntrants.map((r) => ({ zwiftId: r.zwiftId, name: r.name, inPen: true })),
     ...notSignedUp.filter((l) => l.zwiftId !== null).map((l) => ({ zwiftId: l.zwiftId as number, name: l.name, inPen: false })),
@@ -670,23 +772,7 @@ export async function loadRaceBriefing(
     own: inPen.map((r) => ({ zwiftId: r.zwiftId, name: r.name, role: r.role, limits: r.limits })),
   });
 
-  const teamLabels = view?.teamLabels ?? {};
-  // Ploegentijdrit: het veld per ploeg, in de volgorde van de ploegen, binnen de ploeg op 20 minuten.
-  const teamRank = new Map((projection?.teams ?? []).map((t, i) => [t.team, i]));
-  const fieldOrder = ttt
-    ? [...field].sort(
-        (a, b) =>
-          (teamRank.get(a.team ?? "") ?? Infinity) - (teamRank.get(b.team ?? "") ?? Infinity) ||
-          (a.team ?? "").localeCompare(b.team ?? "") ||
-          (b.power?.m20 ?? -1) - (a.power?.m20 ?? -1),
-      )
-    : (projection?.order ?? field);
-  const briefingField: BriefingRider[] = fieldOrder.map((r) => ({
-    ...r,
-    teamLabel: r.team ? teamLabels[r.team] ?? r.team : null,
-    metrics: metrics.get(r.zwiftId) ?? null,
-    expectedPlace: expectedPlace(r.zwiftId),
-  }));
+  const { teamLabels, briefingField } = zrl;
 
   const watchView = watch.map((w) => ({
     zwiftId: w.rider.zwiftId,
@@ -741,8 +827,8 @@ export async function loadRaceBriefing(
       plan: planRow.data ? { text: (planRow.data.plan as string | null) ?? null, updatedAt: (planRow.data.updated_at as string | null) ?? null } : null,
       canEdit,
       tttPlan,
-      zwiftRacing: field.some((r) => r.velo != null),
-      fieldMissing: !zwiftEventId ? "no-zwift-event" : started ? "started" : live?.status === "ok" ? null : live?.status === "error" ? "error" : "no-entrants",
+      zwiftRacing: zrl.zwiftRacing,
+      fieldMissing: zrl.fieldMissing,
     },
   };
 }
