@@ -16,10 +16,12 @@ type ActivityRow = {
   device_name: string | null;
   external_id: string | null;
   encoded_polyline: string | null;
+  /** De volledige lijn, als Strava die gaf; zie zwiftBlocksForRide. */
+  full_polyline: string | null;
 };
 
 const SELECT_COLUMNS =
-  "id, start_date, name, device_name:raw->>device_name, external_id:raw->>external_id, encoded_polyline:raw->map->>summary_polyline";
+  "id, start_date, name, device_name:raw->>device_name, external_id:raw->>external_id, encoded_polyline:raw->map->>summary_polyline, full_polyline:raw->map->>polyline";
 
 const DEFAULT_MAX_ACTIVITIES = 500;
 const PAGE = 250;
@@ -107,6 +109,7 @@ async function processBatch(
     if (!points) continue;
     const ride = zwiftBlocksForRide({
       points,
+      fullPoints: activity.full_polyline ? decodePolyline(activity.full_polyline) : null,
       name: activity.name,
       deviceName: activity.device_name,
       externalId: activity.external_id,

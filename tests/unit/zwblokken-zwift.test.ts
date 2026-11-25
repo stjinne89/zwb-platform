@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { blockCentre, blockKey, lonLatToBlock } from "@/lib/zwblokken/grid";
+import { blockKey, lonLatToBlock } from "@/lib/zwblokken/grid";
 import { addBlock, pickRulers, type RegionStandings } from "@/lib/zwblokken/titles";
 import {
   ZWIFT_BLOCK_ZOOM,
   ZWIFT_WORLDS,
   blockInWorld,
+  isPortalClimbName,
   isZwiftRide,
   jumpThresholdKm,
+  leavesWorld,
   splitOnJumps,
+  startsAtPortal,
   worldBlockRange,
   zwiftBlocksForRide,
   zwiftRegionCode,
@@ -88,24 +91,66 @@ describe("zwiftBlocksForRide", () => {
     for (const key of ride!.blocks) expect(blockInWorld(ride!.world, key)).toBe(true);
   });
 
-  it("laat een Climb Portal weg: de klim ligt direct naast de wereld", () => {
+  it("laat een Climb Portal weg, ook het stuk binnen de kaart", () => {
     // Zoals "Climb Portal: Col du Tourmalet in Watopia" (10-12-2023): de lijn
     // loopt vanaf de portal bij de vulkaan ruim tien kilometer de kaart uit, naar
-    // het noorden. Zonder sprong, dus alleen de wereldgrens houdt hem tegen.
+    // het noorden, zonder sprong. Geen enkel blok, ook niet binnen de kaart.
+    const binnen = line([-11.64, 166.943], [-11.63, 166.92], 6);
+    const klim = line([-11.62, 166.915], [-11.537, 166.909], 12);
+    const ride = zwiftBlocksForRide({ points: [...binnen, ...klim], deviceName: "Zwift" });
+    expect(ride?.world.slug).toBe("watopia");
+    expect(ride!.blocks.size).toBe(0);
+
+    // Dezelfde lijn, maar zonder portal en binnen de kaart, telt gewoon.
+    const elders = line([-11.66, 166.96], [-11.65, 166.937], 6);
+    expect(zwiftBlocksForRide({ points: elders, deviceName: "Zwift" })!.blocks.size).toBeGreaterThan(2);
+  });
+
+  it("laat een portalklim binnen de kaart weg: hij begint bij de portal", () => {
+    // Zoals "Climb Portal: Bealach na Ba at 100% Elevation in France"
+    // (17-05-2026): alle France-portalklimmen beginnen bij -21.731, 166.154 en
+    // blijven op het gras aan de westkant, waar de kaart geen weg tekent.
+    const france = ZWIFT_WORLDS.find((w) => w.slug === "france")!;
+    const klim = line([-21.7285, 166.1538], [-21.7144, 166.1545], 30);
+    expect(startsAtPortal(france, klim)).toBe(true);
+    expect(zwiftBlocksForRide({ points: klim, deviceName: "Zwift" })!.blocks.size).toBe(0);
+
+    // Rijdt hij eerst gewoon en springt dan naar de portal, dan telt het eerste stuk wel.
+    const weg = line([-21.70, 166.20], [-21.70, 166.21], 15);
+    const ride = zwiftBlocksForRide({ points: [...weg, ...klim], deviceName: "Zwift" });
+    expect(ride!.blocks).toEqual(zwiftBlocksForRide({ points: weg, deviceName: "Zwift" })!.blocks);
+  });
+
+  it("laat een stuk rit dat de kaart uit gaat helemaal weg", () => {
     const watopiaWorld = ZWIFT_WORLDS.find((w) => w.slug === "watopia")!;
     const north = watopiaWorld.bbox[2];
-    const inWereld = line([-11.64, 166.943], [-11.63, 166.92], 6);
-    const klim = line([-11.62, 166.915], [-11.537, 166.909], 12);
-    const zonderKlim = zwiftBlocksForRide({ points: inWereld, deviceName: "Zwift" });
-    const metKlim = zwiftBlocksForRide({ points: [...inWereld, ...klim], deviceName: "Zwift" });
-    expect(metKlim?.world.slug).toBe("watopia");
-    expect(metKlim!.blocks.size).toBeGreaterThan(3);
-    for (const key of metKlim!.blocks) {
-      const [x, y] = key.split("/").map(Number);
-      expect(blockCentre(x, y, ZWIFT_BLOCK_ZOOM)[1]).toBeLessThanOrEqual(north);
-    }
-    // Twaalf kilometer klim levert hooguit het ene blok op waar hij de kaart verlaat.
-    expect(metKlim!.blocks.size).toBeLessThanOrEqual(zonderKlim!.blocks.size + 2);
+    expect(leavesWorld(watopiaWorld, line([-11.66, 166.96], [north + 0.01, 166.96], 10))).toBe(true);
+    expect(leavesWorld(watopiaWorld, line([-11.66, 166.96], [north - 0.001, 166.96], 10))).toBe(false);
+  });
+
+  it("geeft een rit op een portalklim wel de wereld, maar geen blokken", () => {
+    const ride = zwiftBlocksForRide({
+      points: watopia,
+      name: "Zwift - JOIN: 4x 8 min kracht on Cote de Trebiac in Watopia",
+    });
+    expect(ride?.world.slug).toBe("watopia");
+    expect(ride!.blocks.size).toBe(0);
+  });
+
+  it("gebruikt de volledige lijn als die er is, en knipt daarin al bij 300 m", () => {
+    // Zoals een groepsrit in London (01-02-2026): in de volledige lijn een sprong
+    // van ~600 m dwars door de stad. In de samenvatting blijft die onder 1,5 km.
+    const voor = line([51.495, -0.16], [51.495, -0.155], 30); // ~12 m per stap
+    const na = line([51.50, -0.15], [51.50, -0.145], 30);
+    const vol = [...voor, ...na];
+    const metVolledig = zwiftBlocksForRide({ points: vol, fullPoints: vol, deviceName: "Zwift" });
+    const losse = new Set([
+      ...zwiftBlocksForRide({ points: voor, fullPoints: voor, deviceName: "Zwift" })!.blocks,
+      ...zwiftBlocksForRide({ points: na, fullPoints: na, deviceName: "Zwift" })!.blocks,
+    ]);
+    expect(metVolledig!.blocks).toEqual(losse);
+    // Alleen de samenvatting: dezelfde stap blijft staan.
+    expect(zwiftBlocksForRide({ points: vol, deviceName: "Zwift" })!.blocks.size).toBeGreaterThan(losse.size);
   });
 
   it("worldBlockRange geeft hetzelfde antwoord als blockInWorld", () => {
@@ -169,6 +214,36 @@ describe("splitOnJumps", () => {
     expect(dun).toBeGreaterThan(8);
     expect(dun).toBeLessThanOrEqual(10);
     expect(jumpThresholdKm([])).toBe(10);
+    expect(jumpThresholdKm(line([-11.64, 166.93], [-11.64, 166.94], 80), 0.3)).toBe(0.3);
+  });
+});
+
+describe("isPortalClimbName", () => {
+  it("herkent ritnamen die een portalklim noemen", () => {
+    for (const name of [
+      "Zwift - Climb Portal: Col des Aravis at 100% Elevation in Watopia",
+      "Zwift - JOIN: 4x 8 min kracht on Cote de Trebiac in Watopia",
+      "Zwift - Cote de Trebiac in Watopia",
+      "Zwift - : VO2 Max Push 4 x (8x 30/30s) on Pla d'Adet in Watopia",
+      "Zwift - Climb Portal: Col d’Aspin",
+      "Zwift - : Vo2 5 x 1' 110% on Isola 2000 in France",
+    ]) {
+      expect(isPortalClimbName(name), name).toBe(true);
+    }
+  });
+
+  it("laat gewone routes staan, ook de wegen naar de portal", () => {
+    for (const name of [
+      "Zwift - Climb Portal - Volcano in Watopia",
+      "Zwift - Climb Portal - Mont Saint-Michel in France",
+      "Zwift - Group Ride: Stage 3 | Off the MAAP | Power to the Portal",
+      "Zwift - Seafoam Circuit in Watopia",
+      "Zwift - Pacer Group Ride: Volcano Flat in Watopia with Coco",
+      "Rapha 500 with Coco and Miquel",
+      null,
+    ]) {
+      expect(isPortalClimbName(name), String(name)).toBe(false);
+    }
   });
 });
 

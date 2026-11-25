@@ -41,9 +41,54 @@ const MAX_SEGMENT_KM = 10;
  * de mediaan: die verschuift niet door de sprongen zelf. Strava dunt de lijn
  * van een lange rit uit (de Rapha 500: één punt per ~2 km), en daar blijft de
  * grens zo vanzelf ruim.
+ *
+ * De ondergrens hangt af van de lijn. In Strava's samenvattingslijn kan ook een
+ * echte, rechte weg één lange stap zijn, dus daar 1,5 km. De volledige lijn
+ * heeft een punt per ~20 m (mediaan over 1.144 ritten, 2026-11-25); daar is
+ * 300 m al een sprong. Met 1,5 km bleef een sprong van 600 m dwars door London
+ * staan. Gemeten over alle Zwift-ritten verdween met 300 m geen enkel blok waar
+ * een bekende route doorheen loopt.
  */
 const JUMP_MIN_KM = 1.5;
+const JUMP_MIN_KM_FULL = 0.3;
 const JUMP_FACTOR = 4;
+
+/**
+ * Climb Portals tellen nergens mee (besluit eigenaar, 2026-11-25): ook niet als
+ * Zwift de klim binnen de kaart van een wereld legt, want daar tekent de minimap
+ * geen weg. Drie vangnetten, omdat geen van drieën alles vangt:
+ *
+ * - de portal zelf. Elke portalklim in een wereld begint op dezelfde plek: in
+ *   France alle 54 portalritten van de club binnen een paar honderd meter van
+ *   PORTALS.france, in Watopia van PORTALS.watopia. Een stuk rit (tussen twee
+ *   sprongen) dat daar begint, is de klim;
+ * - de kaartrand. In Watopia loopt een portalklim vanaf de portal de kaart uit.
+ *   Een stuk rit dat ergens buiten de kaart komt, telt helemaal niet, ook het
+ *   deel binnen de kaart: buiten de kaart ligt geen weg;
+ * - de naam. "Climb Portal: Col des Aravis" en "… on Pla d'Adet in Watopia"
+ *   noemen de klim. Niet "Climb Portal - Volcano" of "- Mont Saint-Michel": dat
+ *   zijn gewone wegen naar de portal (routes in zwift-data).
+ *
+ * Wat de club tot 2026-11-25 aan portalklimmen reed, staat in PORTAL_CLIMBS.
+ * Komt er een nieuwe klim bij, dan vangen de portal en de kaartrand hem meestal
+ * al; de naamlijst is het derde net.
+ */
+const PORTALS: Record<string, { lat: number; lon: number }> = {
+  france: { lat: -21.731, lon: 166.154 },
+  watopia: { lat: -11.64, lon: 166.944 },
+};
+const PORTAL_RADIUS_KM = 0.5;
+const PORTAL_CLIMBS = [
+  "Alto de Patios", "Bealach na Ba", "Cheddar Gorge", "Cipressa", "Col d'Aspin",
+  "Col de la Croix Saint-Robert", "Col de la Madeleine", "Col de Peyresourde",
+  "Col de Sarenne", "Col des Aravis", "Col du Galibier", "Col du Platzerwasel",
+  "Col du Rosier", "Col du Télégraphe", "Col du Tourmalet", "Coll d'Ordino",
+  "Côte de la Redoute", "Côte de Pike", "Côte de Trebiac", "Côte des Forche",
+  "Crow Road", "Gotthard Pass", "Hardknott Pass", "Hautacam", "Isola 2000",
+  "Koppenberg", "La Super Planche des Belles Filles", "Montée du Chinaillon",
+  "Mt Fuji", "Mur de Huy", "Mûr de Bretagne", "Old La Honda", "Old Willunga Hill",
+  "Oude Kwaremont", "Paterberg", "Pla d'Adet", "Poggio", "Puy de Dôme",
+];
 
 export type ZwiftWorld = {
   slug: string;
@@ -171,14 +216,45 @@ export function worldBlockRange(world: ZwiftWorld): { minX: number; maxX: number
  * Vanaf welke stap (km) deze routelijn springt: JUMP_FACTOR keer de mediane
  * puntafstand, minstens JUMP_MIN_KM en hooguit MAX_SEGMENT_KM. Puur, voor de test.
  */
-export function jumpThresholdKm(points: GpxPoint[]): number {
+export function jumpThresholdKm(points: GpxPoint[], minKm = JUMP_MIN_KM): number {
   const steps: number[] = [];
   for (let i = 1; i < points.length; i++) steps.push(haversineKm(points[i - 1], points[i]));
   if (steps.length === 0) return MAX_SEGMENT_KM;
   steps.sort((a, b) => a - b);
   const mid = Math.floor(steps.length / 2);
   const median = steps.length % 2 ? steps[mid] : (steps[mid - 1] + steps[mid]) / 2;
-  return Math.min(MAX_SEGMENT_KM, Math.max(JUMP_MIN_KM, JUMP_FACTOR * median));
+  return Math.min(MAX_SEGMENT_KM, Math.max(minKm, JUMP_FACTOR * median));
+}
+
+/** Kleine letters, zonder accenten en leestekens: "Côte d’Aspin" → "cote d aspin". */
+function normaliseName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+const PORTAL_NAME = new RegExp(
+  `(\\bclimb portal (?!(volcano|mont saint michel)\\b)|\\b(${PORTAL_CLIMBS.map(normaliseName).join("|")}) in\\b|\\bon (${PORTAL_CLIMBS.map(normaliseName).join("|")})\\b)`,
+);
+
+/** Noemt deze ritnaam een Climb Portal-klim? Puur, voor de test. */
+export function isPortalClimbName(name: string | null | undefined): boolean {
+  return Boolean(name) && PORTAL_NAME.test(normaliseName(name!));
+}
+
+/** Begint dit stuk rit bij de portal van de wereld? Puur, voor de test. */
+export function startsAtPortal(world: ZwiftWorld, run: GpxPoint[]): boolean {
+  const portal = PORTALS[world.slug];
+  return Boolean(portal && run.length > 0 && haversineKm(run[0], portal as GpxPoint) < PORTAL_RADIUS_KM);
+}
+
+/** Komt dit stuk rit ergens buiten de kaart van de wereld? Puur, voor de test. */
+export function leavesWorld(world: ZwiftWorld, run: GpxPoint[]): boolean {
+  const [south, west, north, east] = world.bbox;
+  return run.some((p) => p.lat < south || p.lat > north || p.lon < west || p.lon > east);
 }
 
 /**
@@ -203,15 +279,24 @@ export function splitOnJumps(points: GpxPoint[], maxKm = jumpThresholdKm(points)
  * Wereld en blokken van één rit, of null als het geen herkenbare Zwift-rit is.
  * De wereld volgt het startpunt: een rit wisselt in Zwift nooit van wereld.
  *
- * Twee vangnetten, want een routelijn blijft niet altijd binnen de wereld:
+ * `points` is Strava's samenvattingslijn; `fullPoints` de volledige lijn, als
+ * Strava die gaf. Die is veel dichter en snijdt geen bochten af, dus die gaat
+ * voor (de Rapha 500 van één lid: 220 punten in de samenvatting voor 347 km, en
+ * de rechte lijnen ertussen staken het water tussen de eilanden over).
+ *
+ * Vangnetten, want een routelijn blijft niet altijd op de weg:
  * - Zwift springt: binnen de wereld naar een startvak of portal, een enkel event
  *   zelfs naar een andere wereld. De lijn ertussen kleurde anders blokken die je
  *   nooit reed, tot duizenden over de oceaan. Vandaar `splitOnJumps`;
- * - een Climb Portal tekent Zwift direct naast de wereld. Die blokken, en al het
- *   andere buiten de kaart, vallen af via `blockInWorld`.
+ * - Climb Portals tellen niet, ook niet binnen de kaart: zie PORTALS;
+ * - wat toch buiten de kaart valt, valt af via `blockInWorld`.
+ *
+ * Een portalklim levert wel de wereld op (voor de kilometers per wereld), maar
+ * geen blokken.
  */
 export function zwiftBlocksForRide(ride: {
   points: GpxPoint[];
+  fullPoints?: GpxPoint[] | null;
   name?: string | null;
   deviceName?: string | null;
   externalId?: string | null;
@@ -220,7 +305,12 @@ export function zwiftBlocksForRide(ride: {
   const world = zwiftWorldAt(ride.points[0].lat, ride.points[0].lon);
   if (!world) return null;
   const blocks = new Set<string>();
-  for (const run of splitOnJumps(ride.points)) {
+  if (isPortalClimbName(ride.name)) return { world, blocks };
+  const full = ride.fullPoints && ride.fullPoints.length >= 2 ? ride.fullPoints : null;
+  const points = full ?? ride.points;
+  const maxKm = jumpThresholdKm(points, full ? JUMP_MIN_KM_FULL : JUMP_MIN_KM);
+  for (const run of splitOnJumps(points, maxKm)) {
+    if (startsAtPortal(world, run) || leavesWorld(world, run)) continue;
     for (const key of blocksForPolyline(run, ZWIFT_BLOCK_ZOOM)) {
       if (blockInWorld(world, key)) blocks.add(key);
     }

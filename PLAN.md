@@ -23,6 +23,14 @@ gaat stabiliteit voor nieuwe features.
    wachtten er 177 briefingrenners en 36 verouderde vELO1's. Open: na de deploy
    kijken of de wachtrij leegloopt. Zie de ronde met dezelfde naam.
 
+0. **Gebouwd — ZWBlokken Zwift: portalklimmen en korte sprongen eruit
+   (2026-11-25): niet gepusht, migratie `0365_zwift_blocks_portals` nog niet
+   toegepast.** Na 0364 wees de eigenaar blokken zonder weg eronder aan in Crit
+   City, France en London. Alle twaalf werelden nagekeken. Climb
+   Portal-klimmen tellen nu nergens, ook niet binnen de kaart; de volledige
+   routelijn gaat voor de samenvatting, en knipt al bij 300 m. Open: Harmens
+   verschoven rit in Crit City. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — ZWBlokken Zwift: sprongen geknipt, gedraaide minimaps recht
    (2026-11-25): commit `005eb5b7`, op 2026-11-25 gepusht naar `main` (eigenaar:
    "Ja push main"), migratie `0364_zwift_blocks_jumps` daarna toegepast en de
@@ -30,7 +38,8 @@ gaat stabiliteit voor nieuwe features.
    (startvak, portal) telt niet meer als gereden weg. De minimaps van Makuri,
    France en Scotland liggen een kwartslag gedraaid recht. Live nagekeken: de
    aantallen in de tabel zijn gelijk aan de meting vooraf, en de Makuri-kaart
-   valt op de blokken. Zie de ronde met dezelfde naam.
+   valt op de blokken. Zie de ronde met dezelfde naam. Vervolg: de ronde
+   hieronder.
 
 0. **Gebouwd — Teams en resultaten ophalen haalt ook vELO1 (2026-11-25): commit
    `0d9bd42a`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"), geen
@@ -13039,6 +13048,95 @@ nieuwe unit-tests (`zwiftracing-ladder-velo-sync.test.ts`) met een nep-database
 en nep-`fetch`: selectie, de 6 uur van de cron, volgorde, alleen vELO1 schrijven,
 time-out en 429. Typecheck en lint schoon.
 
+### Gebouwd — ZWBlokken Zwift: portalklimmen en korte sprongen eruit
+
+**2026-11-25.** Commit: de commit die dit blok toevoegt, niet gepusht. Migratie
+`0365_zwift_blocks_portals.sql`, nog niet toegepast (volgorde hieronder).
+
+**Aanleiding.** Na 0364 zag de eigenaar nog blokken zonder weg eronder: Harmen
+had in Crit City een blok dat niemand anders heeft, en in France en London lagen
+er ook. Zijn vraag: elke wereld nakijken.
+
+**Onderzoek (alleen gelezen, productie).** Een kaartcontrole per wereld: de
+minimap, de routevormen uit `zwift_routes`, en elk club-blok, rood als hooguit
+twee leden het hebben en er geen bekende route doorheen loopt. Daarna de ritten
+achter elk rood blok. Drie oorzaken:
+- **Climb Portal-klimmen binnen de kaart.** France: 25 rode blokken op het gras
+  aan de westkant (Trebiac, Pla d'Adet, Gotthard, Bealach na Ba, Crow Road, Isola
+  2000 …), en nog 26 zonder route maar door meer leden gereden. Watopia: een rij
+  aan de noordrand. Elke portalklim in een wereld begint op dezelfde plek: in
+  France alle 54 portalritten van de club bij -21.731, 166.154; in Watopia bij
+  -11.640, 166.944, en daar lopen ze vaak de kaart uit naar het noorden.
+- **Korte sprongen.** Karens groepsrit in London: ~600 m in één rechte lijn door
+  de stad. De ondergrens van 1,5 km uit 0364 liet die staan.
+- **De samenvattingslijn.** De sync las alleen `summary_polyline`. Bij een lange
+  rit is dat één punt per ~1,6 km (Rapha 500: 220 punten voor 347 km), en de
+  rechte stukken staken het water tussen de eilanden van Watopia over.
+
+Ook nagegaan en niet de oorzaak: intervals.icu-ritten liggen in elke kleine
+wereld even dicht op de routes als Strava-ritten (mediaan 4–13 m). Harmens race
+in Crit City (Velos Monument Races, 09-10-2026) is de enige uitschieter: de hele
+ronde ligt ~250 m oostelijk van de echte, met een mediaan van 169 m tot de route.
+
+Twee dingen die eerst op een fout leken, zijn echte wegen. Het noordwesten van
+Watopia heeft sinds eind oktober 2026 nieuwe routes (Seafoam Circuit, Caldera
+Coaster, California Roll, Tour of Watopia 2026), die de minimap tekent maar
+`zwift_routes` nog niet kent. En "Climb Portal - Volcano", "Power to the Portal"
+en "Climb Portal - Mont Saint-Michel" zijn in zwift-data gewone routes naar de
+portal, geen klim.
+
+**Wat veranderde** (`src/lib/zwblokken/zwift.ts`, `zwift-sync.ts`).
+- Climb Portals tellen nergens (besluit eigenaar, 2026-11-25). Een stuk rit
+  tussen twee sprongen telt niet als het binnen 500 m van `PORTALS` begint, of
+  ergens buiten de kaart komt. Een rit waarvan de naam een portalklim noemt
+  (`PORTAL_CLIMBS`, de 38 klimmen die de club tot nu reed) levert geen blokken
+  op, wel de wereld voor de kilometers.
+- De sync leest ook `raw.map.polyline`. Is die er (1.144 ritten), dan gaat die
+  voor, met een ondergrens van 300 m voor een sprong (mediane puntafstand ~20 m).
+  De samenvattingslijn houdt 1,5 km.
+- `/hulp` (Club): portalklimmen leveren geen blokken op, ook binnen de kaart.
+
+Gemeten met de echte code over alle Zwift-ritten, oud → nieuw:
+
+| Wereld | Club | Rood (≤ 2 leden, geen route) | Karen | Stijn |
+|---|---|---|---|---|
+| Watopia | 220 → 195 | 22 → 8 | 217 → 186 | 197 → 187 |
+| France | 148 → 99 | 25 → 1 | 123 → 97 | 97 → 90 |
+| London | 109 → 106 | 4 → 2 | 108 → 104 | 103 → 103 |
+| Makuri | 73 → 72 | 1 → 0 | 73 → 71 | 70 → 70 |
+| Yorkshire | 44 → 44 | 0 → 0 | 43 → 44 | 43 → 43 |
+
+De andere zeven werelden blijven gelijk. In geen enkele wereld verdwijnt een blok
+waar een bekende route doorheen loopt. Wat in Watopia rood blijft: rond de
+portal zelf (onder meer een pacer-rit op Volcano Flat), Karens hernoemde rit op
+Trebiac, één samenvattingssprong in een ZRL-TTT en een blok aan de rand van het
+nieuwe noordwesten.
+
+**Bewust niet gebouwd.**
+- Geen portalgebied per wereld als rechthoek: in Watopia valt dat over de nieuwe
+  wegen in het noordwesten, waar de hele club nu rijdt.
+- Niet "alleen blokken op een bekende route": `zwift_routes` mist die nieuwe
+  wegen, en in London snijdt een routevorm een hoek af die alle 27 leden reden.
+- Harmens verschoven rit niet uitgezonderd. Een regel die zo'n rit vangt (te ver
+  van elke route) vangt ook ritten op de nieuwe wegen in Watopia. Een uitzondering
+  op rit-id is een besluit voor de eigenaar.
+- Geen detailroute ophalen bij Strava voor de ritten met alleen een
+  samenvattingslijn: ~9.500 ritten tegen de rate limit.
+
+**Niet lokaal te verifiëren.** De migratie (geen Docker of Supabase-config hier).
+De meting is lokaal gedraaid met de nieuwe code op de productiedata (alleen
+gelezen); in de tabel staat het pas na de backfill.
+
+**Volgorde bij livegang.** Eerst de code live, dan `0365` toepassen, dan
+`/api/zwblokken/backfill?zwift=1` herhalen tot `remaining` false is (zie 0364).
+
+**Tests.** `tests/unit/zwblokken-zwift.test.ts`: een portalklim die de kaart uit
+loopt levert geen blok op, ook binnen de kaart; een France-klim vanaf de portal
+evenmin, maar het stuk vóór de sprong naar de portal wel; `leavesWorld`; een rit
+op een portalklim houdt de wereld zonder blokken; de volledige lijn knipt een
+sprong van ~600 m en de samenvatting niet; `isPortalClimbName` herkent de
+portalklimmen en laat de wegen naar de portal en gewone routes staan.
+
 ### Hersteld — vELO1-sync liep vast op een onbekende renner
 
 **2026-11-25.** Commit `870541b2`, op 2026-11-25 op verzoek van de eigenaar
@@ -13138,18 +13236,21 @@ hij dat de kaarten niet op de blokken passen. Op het voorstel: "Ja, bouw het".
   `ImageOverlay` kan dat niet. Het beeld komt nog steeds rechtstreeks van Zwift.
 - `/hulp` (Club, ZWBlokken): de zin "Een Climb Portal levert geen blokken op"
   klopte niet meer. Er staat nu dat een klim binnen de kaart meetelt en een sprong
-  niet.
+  niet. *Bijgewerkt 2026-11-25:* weer teruggedraaid, portalklimmen tellen nergens.
 
 **Bewust niet gebouwd.**
 - De kilometers blijven bij een gelijke stand beslissen. Dat is een eerder besluit
   (0166), en daar is niet om gevraagd.
-- Climb Portal-klimmen binnen de kaart blijven meetellen. Ze zijn echt gereden, en
-  iedereen kan ze rijden als de portal in de rotatie zit. Een portalrit is ook niet
-  betrouwbaar herkenbaar: een workout op Hautacam heet niet "Climb Portal".
+- ~~Climb Portal-klimmen binnen de kaart blijven meetellen.~~ *Achterhaald
+  2026-11-25:* de eigenaar zag de blokken zonder weg eronder en besloot dat
+  portalklimmen nergens meetellen. Herkenbaar bleken ze wel: aan de plek waar ze
+  beginnen. Zie de ronde "ZWBlokken Zwift: portalklimmen en korte sprongen eruit".
 - Geen eigen gedraaide kopie van de minimaps: het beeld komt van Zwifts CDN
   (besluit eigenaar, 2026-09-15).
 - Geen fijnere routelijn: van de 10.657 Zwift-ritten met een wereld hebben er
   1.144 de volledige lijn, de rest alleen Strava's uitgedunde `summary_polyline`.
+  *Bijgewerkt 2026-11-25:* waar de volledige lijn er is, gebruikt de sync die nu
+  wel (ronde "portalklimmen en korte sprongen eruit").
 - Het effect voor de hele club is niet vooraf gemeten: de controlevraag over alle
   ritten liep in SQL tegen de time-out aan. Na de backfill staat het in de tabel.
 
@@ -41090,9 +41191,9 @@ Kevin Plasmans met veel minder Zwift-kilometers dan hij gereden heeft.
   telt als zijn middelpunt binnen de grenzen uit zwift-data ligt. Die grenzen zijn
   die van de minimap, waar de kaart in ZWBlokken ook op ligt. *Bijgewerkt
   2026-11-25:* in Makuri, France en Scotland ligt het beeld binnen die grenzen
-  een kwartslag gedraaid. Portalklimmen die Zwift binnen de kaart tekent (Pla
-  d'Adet, Hautacam …), tellen wel mee. Zie de ronde "ZWBlokken Zwift: sprongen
-  geknipt, gedraaide minimaps recht".
+  een kwartslag gedraaid. ~~Portalklimmen die Zwift binnen de kaart tekent (Pla
+  d'Adet, Hautacam …), tellen wel mee.~~ Sinds 2026-11-25 tellen ze nergens: zie
+  de ronde "ZWBlokken Zwift: portalklimmen en korte sprongen eruit".
 - `0220` wist de bestaande blokken buiten die grenzen, per wereld. De bereiken
   komen uit de nieuwe `worldBlockRange`; een test bewaakt dat die hetzelfde
   antwoord geeft als `blockInWorld`. Ritten hoeven niet opnieuw door de sync.
