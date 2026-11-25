@@ -20,8 +20,10 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — ZRL-competitiestand op de teampagina (2026-11-25).** Het
    WTRL-script haalt ook de stand per divisie op; de teampagina toont hem
-   bovenaan. Migratie `0362_zrl_wtrl_standings` is geschreven, niet toegepast.
-   Open: migratie toepassen en het script draaien. Zie de ronde.
+   bovenaan. Commit `6ec7c526`, op 2026-11-25 gepusht naar `main` (eigenaar: "ja
+   bouwen en daarna pushen"). Migratie `0362_zrl_wtrl_standings` op 2026-11-25
+   ná de push op productie toegepast (eigenaar: "Yes, apply it"); de code werkt
+   ook zonder de tabel. Open: het script draaien. Zie de ronde.
 
 0. **Gebouwd — Eigen YouTube-stream aan een race koppelen (2026-11-24): commit
    `8629425b`, op 2026-11-24 gepusht naar `main` (eigenaar: "Ja, push").**
@@ -1699,7 +1701,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0363`
-(`0362_zrl_wtrl_standings` is van de ZRL-competitiestand, 2026-11-25, nog niet toegepast;
+(`0362_zrl_wtrl_standings` is van de ZRL-competitiestand, toegepast op 2026-11-25;
 `0361_wtrl_import` is van de WTRL-import vanaf de eigen pc, toegepast op 2026-11-25;
 `0360_event_streams_source` is van de eigen YouTube-stream, toegepast op 2026-11-24;
 `0359_stream_overlay_ultrawide` is van het ultrawide Zwift-beeld, 2026-11-24, eerst als `0355` geschreven en hernummerd omdat `0355` tot en met `0358` intussen op main stonden, toegepast op 2026-11-24;
@@ -12918,8 +12920,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL-competitiestand op de teampagina
 
-**2026-11-25. Migratie `0362_zrl_wtrl_standings.sql` geschreven, niet toegepast
-en niet lokaal getest (geen Docker of Supabase-config).**
+**2026-11-25, commit `6ec7c526`, op 2026-11-25 gepusht naar `main`. Migratie
+`0362_zrl_wtrl_standings.sql` dezelfde dag ná de push op productie toegepast
+(eigenaar: "Yes, apply it"). Gecontroleerd: RLS aan, alleen de leespolicy,
+`anon` kan niet lezen. Niet lokaal getest (geen Docker of Supabase-config).**
 
 - **Waarom.** Vraag van de eigenaar: de stand van de ZRL per team bovenaan de
   teampagina, opgehaald met het WTRL-script. Voorstel akkoord ("ja bouwen en
@@ -12947,8 +12951,7 @@ en niet lokaal getest (geen Docker of Supabase-config).**
   subteam. Zonder stand (of zonder 0362) staat er niets.
 - **Bewust niet.** Geen geschiedenis van eerdere rondes en geen FIN/FAL/FTS op
   de pagina; ze worden wel bewaard.
-- **Niet geverifieerd.** De migratie is niet toegepast en het script niet
-  gedraaid met de stand erbij. De teampagina is niet in de browser bekeken.
+- **Niet geverifieerd.** Het script is nog niet gedraaid met de stand erbij. De teampagina is niet in de browser bekeken.
   Wel: `tsc`, ESLint en de unit-tests (`wtrl-import.test.ts`,
   `zrl-standings.test.ts`). De volledige suite: dezelfde twee losstaande
   fouten (`club-texts-render`, `omnium-live`), plus `admin-areas` dat in de
