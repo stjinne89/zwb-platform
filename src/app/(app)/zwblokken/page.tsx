@@ -30,7 +30,12 @@ import { moduleName } from "@/lib/club";
 
 export const dynamic = "force-dynamic";
 
-export default async function ZwblokkenPage() {
+export default async function ZwblokkenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ lid?: string; wereld?: string }>;
+}) {
+  const { lid, wereld } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -183,6 +188,9 @@ export default async function ZwblokkenPage() {
           rulers={rulers}
           members={members}
           selectedId={user.id}
+          // Van de Zwiftpuzzel op een profiel; een onbekend lid of wereld valt weg.
+          startMemberId={lid && lid !== user.id && members.some((m) => m.id === lid) ? lid : undefined}
+          startWorld={wereld && zwiftWorlds.some((w) => w.slug === wereld) ? wereld : undefined}
           initial={{
             blocks: own.packed,
             regions: Object.fromEntries(own.regions),

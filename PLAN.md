@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — ZWBlokken op het profiel: titels en de Zwiftpuzzel
+   (2026-11-25): de commit die dit toevoegt, niet gepusht, geen migratie.** Op
+   elk ledenprofiel (ook je eigen) een blok met de titels die het lid draagt en
+   een puzzel van twaalf stukken, één per Zwift-wereld, die inkleurt bij 100%.
+   Open: pushen op verzoek; daarna kleurt France pas bij `0368` voor wie het
+   meer bij Ven-Top miste. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Aero Lightning Socks in de Zwift-garage (2026-11-25): commit
    `7fe52819`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, toepassen en
    push"), migratie `0368_member_zwift_socks` vóór de push toegepast.** Wie de sokken
@@ -13008,6 +13015,74 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBlokken op het profiel: titels en de Zwiftpuzzel
+
+**2026-11-25.** De commit die dit blok toevoegt, niet gepusht. Geen migratie.
+Eerst voorstellen (via /impeccable), door de eigenaar gekozen: de puzzelstrook
+(variant C van legpuzzel, blokkenpuzzel en strook), met kleuren per soort
+wereld (variant "Per landschap" van drie kleurvarianten).
+
+**Waarom.** De vraag van de eigenaar: "Zouden we dan ook op een mooie manier op
+het profiel kunnen weergeven dat iemand 100% van een zwift wereld heeft
+voltooid? … een soort van Zwiftpuzzel met de verschillende werelden daarin …
+die bij volledige voltooiing ingekleurd raken. Dit zou dan op het profiel
+kunnen komen net als de gouverneur en vorst status." Die titels stonden tot nu
+alleen op ZWBlokken zelf, niet op het profiel.
+
+**Wat.**
+- `ZwblokkenProfileSection` (`components/zwblokken/profile-section.tsx`) in
+  `MemberProfile`, dus op `/leden/[id]` en op de ledenweergave van `/profiel`,
+  vlak voor de bekers. Kop met de module-naam en "N / 12 werelden"; daaronder de
+  titels, één regel per titel (Karen draagt er 38, losse labels werden een
+  muur); daaronder de puzzel. Volgt, net als de bekers, de zichtbaarheid van de
+  badges, en verschijnt alleen als de kijker de module gebruikt en niet verborg
+  (`getMemberModules().shows("blokkenjacht")`). Zonder titels en zonder
+  Zwift-blokken geen blok.
+- De puzzel (`zwift-puzzle.tsx`, geometrie in `lib/zwblokken/puzzle.ts`): twaalf
+  in elkaar grijpende stukken met hoekige nokken (recht, zoals het
+  blokkenraster), op de telefoon twee rijen van zes. Elk stuk draagt de vorm van
+  de wereld in blokken. Af is: elk bekend wegblok (`knownRoadKeys`, dezelfde
+  noemer als de 100% op ZWBlokken) gereden; het percentage rondt naar beneden af.
+  Af kleurt naar het soort wereld (`ZWIFT_LANDSCAPE`): eilanden teal, steden
+  petrol, Alpen en Pyreneeën salie, Britse heuvels de aardetint van het
+  hoogteprofiel, korte circuits (Bologna, Crit City) tenuegoud, met de schuine
+  tenuebaan van de tegels erover. Niet af blijft paneel met de eigen blokken in
+  teal. De naden zijn een masker, zodat het paneel erdoorheen schijnt.
+- Kleur is klikbaar: een ingekleurd stuk leidt naar `/zwblokken?lid=…&wereld=…`.
+  ZWBlokken leest die twee nu en opent dan het tabblad Zwift met dat lid en die
+  wereld; een onbekend lid of wereld valt weg.
+- Is de hele puzzel af, dan krijgt het blok een gouden rand en het getal de
+  goudtint voor tekst. Het tegelgoud zit bewust niet in de puzzel zelf
+  (schaarsteregel).
+- `loadZwblokkenHonours` (`lib/zwblokken/honours.ts`): de titels van alle leden
+  en de bekende wegen per wereld, via de service-rol en `unstable_cache`, tien
+  minuten. Een titel vraagt een scan over alle 71k buitenblokken; per
+  profielweergave was dat te zwaar. Testaccounts vallen er met de hand uit. De
+  eigen Zwift-blokken van het lid komen per weergave, met de gewone client.
+- `/hulp` (ZWBlokken): een regel over de puzzel, dat een stuk weer leeg kan
+  worden als iemand een nieuwe weg rijdt, en dat het blok de badges volgt.
+
+**Bewust niet.**
+- Geen legpuzzel van 4 × 3 en geen blokkenpuzzel met grote vormen (varianten A
+  en B): de eigenaar koos de compacte strook.
+- Geen goud als wereldkleur: goud is "jij, nu", en kwam in de tegelvariant twee
+  keer voor.
+- Een stuk dat niet af is, linkt niet: zonder kleur is het inhoud (klikregel).
+- Niet op het deelbare profiel (`/profielen/[id]`): dat is voor buiten de club.
+- Geen eigen zichtbaarheidsknop: het blok volgt de badges.
+
+**Niet geverifieerd.** Lokaal bekeken met een dev-server op productiedata, op
+`/profiel` (Stijn, 11 van 12, twee keer Gouverneur) en `/leden/…` (Karen, 11 van
+12 tot `0368` er is), licht en donker, smal en breed; de link van een stuk
+opende ZWBlokken op Zwift, Karen en London. De cache van tien minuten en de
+service-rol op Netlify zijn niet op productie bekeken.
+
+**Tests.** `tests/unit/zwblokken-puzzle.test.ts`: af bij elk bekend blok,
+naar beneden afgerond, lege wereld weg, elke wereld een soort, rechte
+buitenrand, nok tegenover gat (ook in twee rijen), `knownRoadKeys` telt als
+`knownRoadCounts`, en de titels per lid (geslacht met toestemming, volgorde,
+kilometers bij gelijke blokken in Zwift).
 
 ### Gebouwd — Aero Lightning Socks in de Zwift-garage
 

@@ -165,14 +165,24 @@ export function knownRoadCounts(
   roads: Map<string, Set<string>>,
   club: Record<string, PackedClubBlocks>,
 ): Record<string, number> {
-  const worlds = new Set([...roads.keys(), ...Object.keys(club)]);
   const out: Record<string, number> = {};
+  for (const [world, keys] of knownRoadKeys(roads, club)) out[world] = keys.size;
+  return out;
+}
+
+/** De bekende wegblokken zelf, per wereld: de vorm van een stuk in de Zwiftpuzzel. */
+export function knownRoadKeys(
+  roads: Map<string, Set<string>>,
+  club: Record<string, PackedClubBlocks>,
+): Map<string, Set<string>> {
+  const worlds = new Set([...roads.keys(), ...Object.keys(club)]);
+  const out = new Map<string, Set<string>>();
   for (const world of worlds) {
     const keys = new Set(roads.get(world) ?? []);
     for (const [x, entries] of Object.entries(club[world] ?? {})) {
       for (const [y] of entries) keys.add(blockKey(Number(x), y));
     }
-    out[world] = keys.size;
+    out.set(world, keys);
   }
   return out;
 }

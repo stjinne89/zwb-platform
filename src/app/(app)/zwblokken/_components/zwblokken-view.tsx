@@ -54,6 +54,9 @@ type Props = {
   initial: MemberData;
   /** Leeg als nog niemand Zwift-blokken heeft (of 0165 nog niet gedraaid is). */
   zwift: ZwiftProps;
+  /** Uit de link van de Zwiftpuzzel op een profiel: dit lid, in deze wereld. */
+  startMemberId?: string;
+  startWorld?: string;
 };
 
 const EMPTY: MemberData = {
@@ -182,9 +185,11 @@ export function ZwblokkenView({
   selectedId,
   initial,
   zwift,
+  startMemberId,
+  startWorld,
 }: Props) {
-  const [memberId, setMemberId] = useState(selectedId);
-  const [mode, setMode] = useState<"buiten" | "zwift">("buiten");
+  const [memberId, setMemberId] = useState(startMemberId ?? selectedId);
+  const [mode, setMode] = useState<"buiten" | "zwift">(startWorld ? "zwift" : "buiten");
   const hasZwift = zwift.worlds.length > 0;
   // Opgehaalde sets per lid, zodat heen-en-weer wisselen niet opnieuw fetcht.
   const [fetched, setFetched] = useState<Record<string, MemberData>>({});
@@ -297,6 +302,7 @@ export function ZwblokkenView({
           leaderboards={zwift.leaderboards}
           memberId={memberId}
           memberName={memberName}
+          initialWorld={startWorld}
         />
       ) : (
         <>

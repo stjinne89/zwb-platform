@@ -42,6 +42,7 @@ type Props = {
   leaderboards: Record<string, ZwiftLeader[]>;
   memberId: string;
   memberName: string;
+  initialWorld?: string;
 };
 
 const nl = (n: number) => n.toLocaleString("nl-NL");
@@ -80,8 +81,9 @@ export function ZwiftView({
   leaderboards,
   memberId,
   memberName,
+  initialWorld,
 }: Props) {
-  const [slug, setSlug] = useState(worlds[0]?.slug ?? "");
+  const [slug, setSlug] = useState(initialWorld ?? worlds[0]?.slug ?? "");
   const [lines, setLines] = useState<Record<string, [number, number][][]>>({});
   // Werelden waarvan de minimap niet laadde; die krijgen de routelijnen.
   const [imageFailed, setImageFailed] = useState<Record<string, true>>({});

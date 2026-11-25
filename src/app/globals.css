@@ -217,6 +217,48 @@
   stroke: rgb(var(--zwblok-own));
 }
 
+/* De Zwiftpuzzel op het profiel (components/zwblokken/zwift-puzzle.tsx). Een
+   wereld die af is, kleurt naar het soort wereld (variant "Per landschap",
+   eigenaar 2026-11-25): eilanden teal, steden petrol, Alpen en Pyreneeën salie,
+   Britse heuvels de aardetint van het hoogteprofiel, korte circuits tenuegoud.
+   Het tegelgoud blijft voor de rand als de hele puzzel af is. */
+.zwift-puzzle {
+  --zp-eiland: #1f6068;
+  --zp-stad: #004653;
+  --zp-bergen: #7f9590;
+  --zp-heuvels: oklch(0.7 0.05 70);
+  --zp-circuit: #c3a06a;
+  --zp-paper: #fbfbf7;
+  --zp-ink: #0a2b34;
+  --zp-open: rgb(0 70 83 / 0.07);
+  --zp-ghost: rgb(0 70 83 / 0.16);
+  --zp-own: rgb(var(--zwblok-club));
+  --zp-band: rgb(255 255 255 / 0.1);
+}
+.dark .zwift-puzzle {
+  --zp-stad: #00505f;
+  --zp-bergen: #8ea39e;
+  --zp-heuvels: oklch(0.62 0.05 70);
+  --zp-paper: #f5f6f0;
+  --zp-ink: #061c22;
+  --zp-open: rgb(255 255 255 / 0.055);
+  --zp-ghost: rgb(255 255 255 / 0.13);
+  --zp-own: rgb(var(--zwblok-club-busy));
+}
+.zwift-puzzle .zp-eiland { fill: var(--zp-eiland); }
+.zwift-puzzle .zp-stad { fill: var(--zp-stad); }
+.zwift-puzzle .zp-bergen { fill: var(--zp-bergen); }
+.zwift-puzzle .zp-heuvels { fill: var(--zp-heuvels); }
+.zwift-puzzle .zp-circuit { fill: var(--zp-circuit); }
+.zwift-puzzle .zp-open { fill: var(--zp-open); }
+.zwift-puzzle .zp-paper { fill: var(--zp-paper); }
+.zwift-puzzle .zp-ink { fill: var(--zp-ink); }
+.zwift-puzzle .zp-own { fill: var(--zp-own); }
+.zwift-puzzle .zp-ghost { fill: var(--zp-ghost); }
+.zwift-puzzle .zp-band { fill: var(--zp-band); }
+.zwift-puzzle a:hover .zp-piece { filter: brightness(1.1); }
+.zwift-puzzle a:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
 /* Zwift-wereld zonder kaartondergrond: een effen vlak met de routes als lijnen. */
 .leaflet-container.zwift-map {
   background: var(--muted);

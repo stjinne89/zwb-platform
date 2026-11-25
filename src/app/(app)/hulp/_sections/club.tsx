@@ -115,6 +115,19 @@ export function ClubHelp() {
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
+              <strong className="text-foreground">Op je profiel staat de
+              Zwiftpuzzel,</strong> met een stuk per Zwift-wereld en de titels
+              die je draagt. Een stuk kleurt in als je 100% van die wereld hebt;
+              de kleur hoort bij het soort wereld: eilanden, steden, bergen,
+              heuvels of korte circuits. Tik op een ingekleurd stuk voor de kaart.
+              Rijdt iemand een nieuwe weg, dan kan een stuk weer leeg worden. Is
+              de hele puzzel af, dan krijgt het blok een gouden rand. Wie zijn
+              badges op het profiel verbergt, verbergt ook dit blok.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
               Om je privacy telt het blok waar een rit begint of
               eindigt nooit mee, en laten we ook de eerste en laatste kilometer
               van elke rit buiten beschouwing. Je woonadres komt dus niet als

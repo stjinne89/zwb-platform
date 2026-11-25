@@ -16,6 +16,12 @@ import { topicInfo } from "@/lib/zwbieb/topics";
 import { MemberKnowledgeSection } from "@/app/(app)/zwbieb/_components/member-knowledge-section";
 import { BekerShelf } from "@/components/zwbekers/beker-shelf";
 import { loadProfileBekers } from "@/lib/zwbekers/server";
+import { getMemberModules } from "@/lib/member-modules";
+import { loadZwblokkenHonours } from "@/lib/zwblokken/honours";
+import { puzzlePieces } from "@/lib/zwblokken/puzzle";
+import { blockKey } from "@/lib/zwblokken/grid";
+import { fetchOwnZwiftBlocks } from "@/lib/zwblokken/zwift-query";
+import { ZwblokkenProfileSection } from "@/components/zwblokken/profile-section";
 
 type ProfileRow = ReadonlyProfile & {
   share_birthday: boolean | null;
@@ -77,6 +83,9 @@ export async function MemberProfile({
     access,
     topicCatalog,
     bekers,
+    view,
+    honours,
+    zwiftOwn,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -125,6 +134,10 @@ export async function MemberProfile({
     loadTopicCatalog(supabase),
     // ZWBekers (0286); zonder de migratie of bij een storing gewoon geen plank.
     loadProfileBekers(supabase, profileId).catch(() => []),
+    getMemberModules(),
+    // Titels en de Zwiftpuzzel (2026-11-25); bij een storing gewoon geen blok.
+    loadZwblokkenHonours().catch(() => null),
+    fetchOwnZwiftBlocks(supabase, profileId),
   ]);
 
   if (!profile) notFound();
@@ -144,6 +157,15 @@ export async function MemberProfile({
     ? ((weeklyAwards ?? []) as unknown as WeeklyAwardView[])
     : [];
   const shownBikes = ((bikes ?? []) as StravaBikeRow[]).filter(bikeShownOnProfile);
+  // ZWBlokken volgt, net als de bekers, de zichtbaarheid van de badges.
+  const zwblokken =
+    showBadges && honours && view.shows("blokkenjacht") ? (
+      <ZwblokkenProfileSection
+        profileId={profileRow.id}
+        titles={honours.titles[profileRow.id] ?? []}
+        pieces={puzzlePieces(honours.worlds, ownZwiftKeys(zwiftOwn.blocks))}
+      />
+    ) : null;
 
   return (
     <ProfileReadonlyView
@@ -181,10 +203,22 @@ export async function MemberProfile({
               href={self ? "/stats/ik" : undefined}
             />
           )}
+          {zwblokken}
           {/* Vlak voor de badges. De bekers volgen de zichtbaarheid van badges: wie zijn badges verbergt, verbergt ook zijn bekers. */}
           {showBadges && <BekerShelf bekers={bekers} />}
         </>
       }
     />
   );
+}
+
+/** De eigen Zwift-blokken per wereld als sleutels, voor de puzzel. */
+function ownZwiftKeys(blocks: Record<string, Record<string, number[]>>): Record<string, Set<string>> {
+  const out: Record<string, Set<string>> = {};
+  for (const [world, columns] of Object.entries(blocks)) {
+    const keys = new Set<string>();
+    for (const [x, ys] of Object.entries(columns)) for (const y of ys) keys.add(blockKey(Number(x), y));
+    out[world] = keys;
+  }
+  return out;
 }
