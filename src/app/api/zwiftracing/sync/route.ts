@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { checkCronSecret } from "@/lib/cron/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runZwiftRacingSync } from "@/lib/zwiftracing/rider-sync";
+import { runLadderZmapSync, ZMAP_CRON_FRESH_MS } from "@/lib/club-ladder/zmap-sync";
 
 // Vermogen over 90 dagen, legacy vELO en rennerstype van zwiftracing.app voor
 // de Club Ladder en het racebriefje, plus de verwachte plek uit de uitslag van
@@ -17,6 +18,11 @@ export const maxDuration = 30;
 
 /** Na deze tijd begint de run aan geen nieuwe renner meer; ruim binnen `maxDuration`. */
 const BUDGET_MS = 20_000;
+/**
+ * Eerst de zMAP van de Club Ladder (0372), hooguit zo lang: wie langer dan 20
+ * uur geleden is opgehaald. Mag de ZwiftRacing-run niet tegenhouden.
+ */
+const LADDER_ZMAP_MS = 5_000;
 
 export async function POST(request: NextRequest) {
   const auth = checkCronSecret(request, "BRILJANT_WEEKLY_SECRET");
@@ -25,9 +31,17 @@ export async function POST(request: NextRequest) {
   const started = Date.now();
   try {
     const admin = createAdminClient();
+    const ladderZmap = await runLadderZmapSync(admin, {
+      deadline: started + LADDER_ZMAP_MS,
+      freshMs: ZMAP_CRON_FRESH_MS,
+      pageTimeoutMs: 4_000,
+    }).catch((err: unknown) => ({ stopped: err instanceof Error ? err.message : "onbekende fout" }));
     const result = await runZwiftRacingSync(admin, started + BUDGET_MS);
     // Geen namen in het antwoord, alleen aantallen.
-    return NextResponse.json({ ok: result.stopped == null, ...result, ms: Date.now() - started }, { status: result.stopped ? 207 : 200 });
+    return NextResponse.json(
+      { ok: result.stopped == null, ...result, ladderZmap, ms: Date.now() - started },
+      { status: result.stopped ? 207 : 200 },
+    );
   } catch (err) {
     return NextResponse.json({ ok: false, error: err instanceof Error ? err.message : "onbekende fout" }, { status: 500 });
   }

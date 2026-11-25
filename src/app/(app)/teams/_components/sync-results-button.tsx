@@ -68,17 +68,31 @@ export function SyncResultsButton() {
                       ? `vELO1: nog ${velo.remaining} ladderrenners, volgen bij de volgende klik`
                       : null;
             if (veloProblem) details.push(veloProblem);
+            // zMAP van de ladder: wat niet past, volgt bij de volgende klik of de cron.
+            const zmap = res.ladderZmap;
+            const zmapProblem =
+              "error" in zmap
+                ? `zMAP: ${zmap.error}`
+                : "skipped" in zmap
+                  ? `zMAP: ${zmap.skipped}`
+                  : zmap.stopped
+                    ? `zMAP gestopt: ${zmap.stopped}`
+                    : zmap.remaining > 0
+                      ? `zMAP: nog ${zmap.remaining} ladderrenners, volgen bij de volgende klik`
+                      : null;
+            if (zmapProblem) details.push(zmapProblem);
+            const zmapCount = "withZmap" in zmap ? zmap.withZmap : 0;
             const rosterSynced = res.summary.sources.reduce(
               (total, source) => total + source.rosterSynced,
               0,
             );
             const veloCount = "legacy" in velo ? velo.legacy : 0;
-            const resultText = `${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} teamleden, ${veloCount} vELO1-ratings`;
+            const resultText = `${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} teamleden, ${veloCount} vELO1-ratings, ${zmapCount} zMAP`;
             setState({
               kind:
                 failed > 0 || ladderProblems.length > 0
                   ? "error"
-                  : skipped > 0 || veloProblem
+                  : skipped > 0 || veloProblem || zmapProblem
                     ? "notice"
                     : "success",
               details,

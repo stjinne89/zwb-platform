@@ -669,7 +669,8 @@ function Piece({
             <span
               className={cn(
                 "font-semibold tabular-nums text-foreground",
-                rider.zmap.source === "wtrl" && "italic",
+                // Schuin: niet van de ladder zelf, maar geschat of uit WTRL.
+                rider.zmap.source !== "ladder" && "italic",
               )}
               title={zValueSourceLabel(rider.zmap)}
             >

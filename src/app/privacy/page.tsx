@@ -128,7 +128,9 @@ export default function PrivacyPage() {
             Ladder-pagina, tot ze hun naam claimen. Wie de ladderteams indeelt,
             ziet in de Ladderpuzzel per renner ook een geschatte zMAP, uit
             dezelfde gegevens als bij de ZRL-teamindeling hieronder; dat geldt
-            ook voor renners zonder account. Voor de matchup en het
+            ook voor renners zonder account. Waar de Club Ladder een zMAP van
+            een renner toont, halen we die op en gebruiken we hem in plaats van
+            de schatting. Voor de matchup en het
             route-advies rekenen we met het gewicht uit de Zwift-uitslag van
             bewaarde ladderraces en uit segmentpassages van de racebriefing, ook
             van renners van andere clubs; voor een <MemberNoun /> zonder die twee met

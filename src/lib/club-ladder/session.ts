@@ -23,7 +23,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // `renewLadderSession` de tabel opnieuw: misschien plakte iemand intussen een
 // nieuwe cookie.
 
-const LADDER_ORIGIN = "https://ladder.cycleracing.club";
+export const LADDER_ORIGIN = "https://ladder.cycleracing.club";
 const TIMEOUT_MS = 15_000;
 
 export const LADDER_SESSION_MISSING = "Geen ladder-sessie: plak een cookie op Beheer → Koppelingen.";
@@ -83,7 +83,8 @@ export function resetLadderSessionCache() {
   cached = null;
 }
 
-async function userAgent() {
+/** User agent voor verzoeken aan de ladder, ook voor `zmap-sync.ts`. */
+export async function ladderUserAgent() {
   const club = await getClub();
   const site = club.settings.websiteUrl ? `; +${club.settings.websiteUrl}` : "";
   return `Mozilla/5.0 (compatible; ${club.texts.shortName}-Platform Club Ladder${site})`;
@@ -101,7 +102,7 @@ export async function ladderCookieWorks(
   const res = await request(`${LADDER_ORIGIN}/dashboard`, {
     headers: {
       Accept: "text/html,application/xhtml+xml",
-      "User-Agent": options.userAgent ?? (await userAgent()),
+      "User-Agent": options.userAgent ?? (await ladderUserAgent()),
       Referer: `${LADDER_ORIGIN}/`,
       Cookie: cookie,
     },

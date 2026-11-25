@@ -10,6 +10,7 @@ import { withLadderSession } from "@/lib/club-ladder/session";
 import { getClub } from "@/lib/club";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 import { runLadderVeloSync } from "@/lib/zwiftracing/rider-sync";
+import { runLadderZmapSync, ZMAP_BUTTON_FRESH_MS, type LadderZmapSyncResult } from "@/lib/club-ladder/zmap-sync";
 
 // Na de teamuitslagen ververst de knop de legacy vELO (vELO1) van iedereen in
 // de Ladderpuzzel, de oudste eerst (runLadderVeloSync); de rest doet de cron op
@@ -38,6 +39,25 @@ async function syncLegacyVelo(started: number): Promise<LegacyVeloSyncOutcome> {
   }
 }
 
+// Daarna de zMAP van de ladder (0372) met de tijd die over is, tot
+// ZMAP_DEADLINE_MS; de cron doet de rest.
+const ZMAP_DEADLINE_MS = 20_000;
+const ZMAP_PAGE_TIMEOUT_MS = 5_000;
+
+async function syncLadderZmap(started: number): Promise<LadderZmapSyncResult | { skipped: string } | { error: string }> {
+  const deadline = started + ZMAP_DEADLINE_MS;
+  if (deadline - Date.now() < VELO_MIN_MS) return { skipped: "geen tijd meer, volgt bij de volgende run" };
+  try {
+    return await runLadderZmapSync(createAdminClient(), {
+      deadline,
+      freshMs: ZMAP_BUTTON_FRESH_MS,
+      pageTimeoutMs: ZMAP_PAGE_TIMEOUT_MS,
+    });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "onbekende fout" };
+  }
+}
+
 export async function syncResultsNow() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
@@ -55,13 +75,16 @@ export async function syncResultsNow() {
     // teamkoppeling van een rosternaam komt hieronder uit de bron zelf.
     const summary = await syncTeamResults(supabase);
     const legacyVelo = await syncLegacyVelo(started);
+    const ladderZmap = await syncLadderZmap(started);
     revalidatePath("/teams");
+    revalidatePath("/teams/club-ladder");
     revalidatePath("/dashboard");
     revalidatePath("/");
     return {
       ok: true as const,
       summary,
       legacyVelo,
+      ladderZmap,
     };
   } catch (err) {
     return {

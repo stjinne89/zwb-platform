@@ -62,13 +62,26 @@ export type RankingPower = { s15?: number | null; m1: number | null; m5: number 
 export type PowerSource = "zwiftracing" | "intervals";
 
 /** Bij een schatting: uit welke bron de 5 en 20 minuten kwamen; "mixed" als ze uit allebei kwamen. */
-export type ZValue = { value: number; source: "estimate" | "wtrl"; from?: PowerSource | "mixed" };
+/**
+ * `ladder`: de zMAP van de Club Ladder zelf (0372), alleen in de Ladderpuzzel;
+ * `spread` is dan de Spread Value waar de ladder nu mee rekent.
+ */
+export type ZValue = {
+  value: number;
+  source: "estimate" | "wtrl" | "ladder";
+  from?: PowerSource | "mixed";
+  spread?: number | null;
+};
 
 const SOURCE_LABEL: Record<PowerSource, string> = { zwiftracing: "ZwiftRacing", intervals: "intervals.icu" };
 
 /** Tooltip van een zFTP of zMAP: "WTRL", "Geschat, intervals.icu", … */
 export function zValueSourceLabel(value: ZValue): string {
   if (value.source === "wtrl") return "WTRL";
+  if (value.source === "ladder") {
+    const spread = value.spread != null && value.spread !== value.value ? `, telt nu ${value.spread.toFixed(2).replace(".", ",")}` : "";
+    return `Club Ladder, live${spread}`;
+  }
   if (!value.from) return "Geschat";
   if (value.from === "mixed") return `Geschat, ${SOURCE_LABEL.zwiftracing} en ${SOURCE_LABEL.intervals}`;
   return `Geschat, ${SOURCE_LABEL[value.from]}`;

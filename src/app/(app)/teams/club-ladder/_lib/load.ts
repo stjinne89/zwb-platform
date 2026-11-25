@@ -264,10 +264,11 @@ export async function loadLadderPuzzle(
 }
 
 /**
- * Geschatte zMAP per puzzelrenner voor seizoen 8, zoals de ZRL-indeling hem
- * rekent: per duur de hoogste van ZwiftRacing en intervals.icu, 0,99 × beste
- * 5 minuten, anders de laatste WTRL-plak. Alleen voor wie mag indelen (zoals bij
- * de ZRL-indeling).
+ * zMAP per puzzelrenner voor seizoen 8: eerst die van de Club Ladder zelf
+ * (0372, de live-waarde die de ladder bij de wissel zet). Zonder ladderwaarde de
+ * schatting van de ZRL-indeling: per duur de hoogste van ZwiftRacing en
+ * intervals.icu, 0,99 × beste 5 minuten, anders de laatste WTRL-plak. Alleen
+ * voor wie mag indelen (zoals bij de ZRL-indeling).
  */
 export async function withPuzzleZmap(
   riders: LadderPuzzleRider[],
@@ -275,7 +276,7 @@ export async function withPuzzleZmap(
 ): Promise<LadderPuzzleRider[]> {
   const zwiftIds = [...new Set(riders.map((rider) => rider.zwiftId).filter((id): id is string => !!id && /^\d+$/.test(id)))];
   const profileIds = riders.filter((rider) => rider.kind === "profile").map((rider) => rider.id);
-  const [{ data: metricRows }, { data: intervalsRows }, wtrl] = await Promise.all([
+  const [{ data: metricRows }, { data: intervalsRows }, wtrl, { data: ladderRows }] = await Promise.all([
     zwiftIds.length > 0
       ? admin.from("zwift_rider_metrics").select("zwift_id, power_wkg").in("zwift_id", zwiftIds.map(Number))
       : Promise.resolve({ data: [] }),
@@ -283,7 +284,16 @@ export async function withPuzzleZmap(
       ? admin.from("rider_power_profiles").select("profile_id, wkg_5m").in("profile_id", profileIds)
       : Promise.resolve({ data: [] }),
     loadWtrlSummaries(admin, null),
+    // zMAP van de Club Ladder zelf (0372); zonder 0372 geen rijen.
+    zwiftIds.length > 0
+      ? admin.from("ladder_rider_zmap").select("zwift_id, spread_wkg, live_wkg").in("zwift_id", zwiftIds.map(Number))
+      : Promise.resolve({ data: [] }),
   ]);
+  const ladder = new Map(
+    ((ladderRows ?? []) as Array<{ zwift_id: number | string; spread_wkg: number | string | null; live_wkg: number | string | null }>).map(
+      (row) => [String(row.zwift_id), { spread: row.spread_wkg == null ? null : Number(row.spread_wkg), live: row.live_wkg == null ? null : Number(row.live_wkg) }],
+    ),
+  );
   const zwiftracing = new Map(
     ((metricRows ?? []) as Array<{ zwift_id: number | string; power_wkg: PowerWkg | null }>).map((row) => [
       String(row.zwift_id),
@@ -297,6 +307,12 @@ export async function withPuzzleZmap(
     ]),
   );
   return riders.map((rider) => {
+    // De ladder zet bij de wissel de live-waarde; zonder live de Spread Value.
+    const fromLadder = rider.zwiftId ? ladder.get(rider.zwiftId) : null;
+    const ladderValue = fromLadder?.live ?? fromLadder?.spread ?? null;
+    if (ladderValue != null) {
+      return { ...rider, zmap: { value: ladderValue, source: "ladder" as const, spread: fromLadder?.spread ?? null } };
+    }
     const best = bestPower(
       rider.zwiftId ? zwiftracing.get(rider.zwiftId) : null,
       rider.kind === "profile" ? intervals.get(rider.id) : null,

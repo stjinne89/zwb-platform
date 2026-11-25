@@ -7,6 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — zMAP van de Club Ladder in de Ladderpuzzel (2026-11-25): commit:
+   de commit die dit blok toevoegt, nog niet gepusht. Migratie
+   `0372_ladder_rider_zmap` nog niet toegepast.** In Seizoen 8 staat de echte
+   zMAP van de ladder (de live-waarde, die de ladder bij de wissel zet) in
+   plaats van onze schatting; de schatting blijft schuin als terugval. Open:
+   0372 toepassen, na de deploy op Teams en resultaten ophalen klikken en de
+   waarden naast het ladderprofiel leggen. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Ladderpuzzel: concept voor seizoen 8 (2026-11-25): commit
    `c6c92f6b`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, toepassen en
    push"). Migratie `0371_ladder_draft_placements` vóór de push op productie
@@ -13074,6 +13082,65 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — zMAP van de Club Ladder in de Ladderpuzzel
+
+> **2026-11-25 — gebouwd, lokaal getest (unit en migraties op PGlite), niet in
+> de browser bekeken.** Commit: de commit die dit blok toevoegt. Migratie
+> `0372_ladder_rider_zmap.sql`, nog niet toegepast.
+>
+> **Waarom.** De eigenaar zag op zijn eigen ladderprofiel zijn live zMAP en
+> vroeg of de puzzel van seizoen 8 die kan gebruiken. In Chrome nagekeken: met
+> een inlog toont `/profile/<Zwift-ID>` voor elke renner twee kaarten, **zMAP
+> Spread Value** (de hoogste sinds de transferperiode, daar rekent de ladder
+> nu de spreiding mee) en **If Reset Today** (de laatste meting, "live from Nd
+> ago"; die zet de ladder bij een reset, dus ook bij seizoen 8). Zonder inlog
+> stuurt hij door naar /signin. Een JSON-route is er alleen voor je eigen
+> profiel (`/myprofile/spread`); `/team/<id>` geeft per team alleen
+> `zmapMedian` en `wkgSpread` (min, max, mediaan), geen renners. Van de 42
+> Zwift-ID's in de puzzel hadden er 41 een waarde; één had "--" en "no live
+> reading". Onze schatting zat er bij de vijf vergeleken renners hooguit 0,1
+> naast (Femke 4,40 tegen 4,30 live). Voorstel akkoord ("Ja, bouwen").
+>
+> **Nu.**
+> - Tabel `ladder_rider_zmap` (Zwift-ID, Spread Value, live, leeftijd van de
+>   meting, gevonden, `fetched_at`). RLS aan zonder policies.
+> - `parseLadderProfileZmap` (`lib/club-ladder/profile-zmap.ts`, puur) leest de
+>   twee kaarten; geen kaarten = pagina niet herkend.
+> - `runLadderZmapSync` (`lib/club-ladder/zmap-sync.ts`): iedereen met een
+>   Zwift-ID in de puzzel (`ladderRiderZwiftIds`), de oudste eerst, één pagina
+>   per 0,7 s, met `withLadderSession`. De knop Teams en resultaten ophalen
+>   neemt na de vELO1 wie meer dan een uur oud is, tot 20 s na de start; de
+>   cron op `/api/zwiftracing/sync` neemt eerst, hooguit 5 s, wie meer dan 20
+>   uur oud is (zie `docs/runbook.md`). Een 404 wordt opgeslagen als niet
+>   gevonden, zodat hij niet elke run terugkomt.
+> - Puzzel in Seizoen 8: `withPuzzleZmap` neemt eerst de live-waarde van de
+>   ladder (zonder live de Spread Value), als `ZValue` met bron `ladder`; de
+>   tooltip zegt "Club Ladder, live" en ", telt nu x" als de Spread Value
+>   anders is. Alles wat niet van de ladder komt (schatting of WTRL) staat
+>   schuin; tot nu toe was alleen WTRL schuin.
+> - De knop meldt het aantal zMAP-waarden en wat er nog wacht.
+> - Privacy: in het ladderblok op `/privacy` na "…ook voor renners zonder
+>   account.": "Waar de Club Ladder een zMAP van een renner toont, halen we die
+>   op en gebruiken we hem in plaats van de schatting." Voorgelegd in het
+>   voorstel en akkoord ("Ja, bouwen"), zonder nieuwe privacyversie: dezelfde
+>   kring ziet dezelfde soort waarde.
+> - Uitleg op /hulp bij de Ladderpuzzel.
+>
+> **Bewust niet.** Geen zMAP van renners van andere clubs. Geen
+> zMAP-geschiedenis in watt (die staat ook op het profiel). De risicomarge
+> voor geel (0,09) blijft: de live zMAP kan tot de wissel nog veranderen, en
+> daarna telt de hoogste. Geen eigen cron: het past in de bestaande run van
+> elke 30 minuten.
+>
+> **Geverifieerd:** `tsc --noEmit`, eslint op de gewijzigde bestanden, nieuw
+> `club-ladder-profile-zmap.test.ts` (opbouw van de pagina zoals op
+> 2026-11-25), de puzzel- en zMAP-tests, en `baseline.test.ts` speelt alle
+> migraties met 0372 af op PGlite. Volle suite: alleen `club-texts-render`
+> ("beheer noemt ZWB niet", al eerder, niet door deze ronde); drie
+> PGlite-tests liepen onder de load vast en waren los groen. **Niet** getest:
+> de sync tegen de echte ladder vanaf de server (de parser is getest op de
+> opbouw die Chrome liet zien), en de puzzel in de browser.
+
 ### Gebouwd — Ladderpuzzel: concept voor seizoen 8
 
 > **2026-11-25 — gebouwd, lokaal getest (unit en migraties op PGlite), niet in
@@ -17853,7 +17920,9 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
 >   zFTP en een voor zMAP) of bij een renner zonder zMAP.
 > - zMAP per puzzelrenner: `withPuzzleZmap` in `teams/club-ladder/_lib/load.ts`
 >   gebruikt `bestPower` en `estimateZ` uit `teams/zrl-ranking.ts`, dus precies
->   de ZRL-schatting (0,971 × beste 5 min, sinds de ronde "Teamindeling: zMAP en zFTP opnieuw geijkt" (2026-11-24) 0,99 ×; per duur de hoogste van
+>   de ZRL-schatting (sinds de ronde "zMAP van de Club Ladder in de
+>   Ladderpuzzel", 2026-11-25, alleen nog als terugval: eerst de zMAP van de
+>   ladder zelf) (0,971 × beste 5 min, sinds de ronde "Teamindeling: zMAP en zFTP opnieuw geijkt" (2026-11-24) 0,99 ×; per duur de hoogste van
 >   ZwiftRacing en intervals.icu, anders de laatste WTRL-plak).
 > - Ladderpuzzel: knoppen **Nu | Seizoen 8**, alleen voor wie indeelt
 >   (`canEditLadderPuzzle` of `canAssignLadderRiders`); voor anderen wordt de
@@ -17899,7 +17968,9 @@ de poort in de ingelogde app (geen `.env.local` in de worktree).
 > **Open.** Over welke periode de ladder de zMAP neemt en of hij in het seizoen
 > wordt bijgewerkt, staat niet in de aankondiging (rulebook niet gelezen).
 > Zodra de ladder zMAP op renner- en rosterpagina's toont, de schatting daarmee
-> vergelijken. Privacy: de geschatte zMAP zagen alleen captains en beheerders
+> vergelijken. (Bijgewerkt 2026-11-25: het rennersprofiel toont hem, en de
+> puzzel gebruikt hem nu; zie de ronde "zMAP van de Club Ladder in de
+> Ladderpuzzel". De Spread Value is de hoogste sinds de transferperiode.) Privacy: de geschatte zMAP zagen alleen captains en beheerders
 > op een ZRL-hoofdteam; nu ook wie de ladder indeelt, ook van renners zonder
 > account. Daarvoor staat in het ladderblok op `/privacy` na "…tot ze hun naam
 > claimen.": "Wie de ladderteams indeelt, ziet in de Ladderpuzzel per renner ook
