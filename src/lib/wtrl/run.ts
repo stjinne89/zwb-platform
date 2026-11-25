@@ -10,7 +10,9 @@ import {
   parseResultsMenu,
   parseTeamDetails,
   planAssignments,
+  parseResultTable,
   parseStandings,
+  withZwiftIds,
   pickDivisionPaths,
   standingsWanted,
   type WantedPage,
@@ -216,14 +218,20 @@ async function planResults(
     report.push(`Uitslagmenu: seizoen ${season} niet gevonden.`);
     return [];
   }
-  const [{ data: importRows }, { data: standingRows }] = await Promise.all([
+  const [{ data: importRows }, { data: standingRows }, { data: resultRows }] = await Promise.all([
     admin.from("zrl_wtrl_result_imports").select("class, race, done").eq("season", season),
     // Zonder 0362 is er geen tabel: dan alleen de uitslagen.
     admin.from("zrl_wtrl_standings").select("class, race, final").eq("season", season),
+    // Zonder 0363 ook niet; dan wordt een verwerkte uitslag niet opnieuw opgehaald.
+    admin.from("zrl_wtrl_results").select("class, race").eq("season", season),
   ]);
   const rows = (importRows ?? []) as Array<{ class: string; race: number; done: boolean }>;
   const done = new Set(rows.filter((row) => row.done).map((row) => `${row.class}/${row.race}`));
   const imported = new Set(rows.map((row) => `${row.class}/${row.race}`));
+  // Uitslagen die klaar waren vóór 0363 staan nog niet op de teampagina: die één keer opnieuw.
+  const stored = resultRows
+    ? new Set((resultRows as Array<{ class: string; race: number }>).map((row) => `${row.class}/${row.race}`))
+    : null;
   const standings = new Map(
     ((standingRows ?? []) as Array<{ class: string; race: number; final: boolean }>).map((row) => [row.class, row]),
   );
@@ -238,12 +246,14 @@ async function planResults(
     }
     carry.classes[wtrlClass] = { key, ownTeams };
     for (const { race, status } of division.races) {
-      if (done.has(`${wtrlClass}/${race}`)) continue;
-      carry.status[`${wtrlClass}/${race}`] = status;
+      const id = `${wtrlClass}/${race}`;
+      const missingTable = stored !== null && !stored.has(id);
+      if (done.has(id) && !missingTable) continue;
+      carry.status[id] = status;
       wanted.push({
         path: `/api/zrl/results/${season}/${wtrlClass}/${race}`,
         race,
-        priority: imported.has(`${wtrlClass}/${race}`) ? 2 : 0,
+        priority: imported.has(id) && !missingTable ? 2 : 0,
       });
     }
     const latest = division.races.reduce<(typeof division.races)[number] | null>(
@@ -294,11 +304,26 @@ async function importResults(admin: Admin, page: WtrlPage, carry: WtrlCarry, rep
   }
 
   const found = new Map<number, string>();
+  const allMatched = new Map<(typeof riders)[number], number>();
   for (const eventId of eventIds) {
     const results = resultsByEvent.get(eventId);
     if (!results) continue;
     const matched = matchResultRiders(riders.filter((rider) => rider.zwiftEventId === eventId), results);
-    for (const [rider, profileId] of matched) found.set(profileId, rider.team);
+    for (const [rider, profileId] of matched) {
+      found.set(profileId, rider.team);
+      allMatched.set(rider, profileId);
+    }
+  }
+
+  // De hele uitslag voor de teampagina (0363). Zonder die tabel geeft dit een
+  // fout die we laten liggen: het indelen gaat gewoon door.
+  const final = carry.status[`${wtrlClass}/${race}`] === "final";
+  const table = withZwiftIds(parseResultTable(parseJson(page.body)), allMatched);
+  if (table.length > 0) {
+    await admin.from("zrl_wtrl_results").upsert(
+      { season, class: wtrlClass, race, final, teams: table, imported_at: new Date().toISOString() },
+      { onConflict: "season,class,race" },
+    );
   }
 
   // Ons eigen event moet bevroren zijn; anders later opnieuw.
@@ -329,7 +354,6 @@ async function importResults(admin: Admin, page: WtrlPage, carry: WtrlCarry, rep
     }
   }
 
-  const final = carry.status[`${wtrlClass}/${race}`] === "final";
   await admin.from("zrl_wtrl_result_imports").upsert(
     {
       season,

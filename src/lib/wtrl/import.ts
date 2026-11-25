@@ -247,6 +247,110 @@ export function parseResults(json: unknown): WtrlResultRider[] {
   });
 }
 
+export type WtrlResultTableRider = {
+  rank: number | null;
+  name: string;
+  points: number;
+  fal: number;
+  fts: number;
+  fin: number;
+  pbp: number;
+  /** Rittijd in ms, zoals `durationMs` bij Zwift; null zonder finish. */
+  timeMs: number | null;
+  wkg: number | null;
+  dq: boolean;
+  /** Alleen bij renners die op rittijd in de Zwift-uitslag gevonden zijn. */
+  zwiftId: number | null;
+};
+
+export type WtrlResultTableTeam = {
+  /** Null bij een gediskwalificeerd team (WTRL geeft dan plaats 9999). */
+  rank: number | null;
+  name: string;
+  points: number;
+  fal: number;
+  fts: number;
+  fin: number;
+  pbp: number;
+  leaguePoints: number;
+  dq: boolean;
+  /** Het Zwift-event van het team (`id5`). */
+  zwiftEventId: string | null;
+  riders: WtrlResultTableRider[];
+};
+
+const WTRL_DQ_RANK = 9999;
+
+/**
+ * De hele uitslag voor de teampagina (0363), gemeten 2026-11-25. Per team `p1`
+ * plaats, `totp` punten, `falp`/`ftsp`/`finp`/`pbp`, `lpoints` league points,
+ * `dq`, `id5` het Zwift-event; per renner in `a` `p1`, `name`, `totrp`,
+ * `falrp`/`ftsrp`/`finrp`/`pbprp`, `timeResult` (s), `wkg`, `dq`.
+ */
+export function parseResultTable(json: unknown): WtrlResultTableTeam[] {
+  const payload = obj(json).payload;
+  const rank = (value: unknown) => {
+    const n = num(value);
+    return n && n > 0 && n < WTRL_DQ_RANK ? n : null;
+  };
+  const teams = (Array.isArray(payload) ? payload : []).flatMap((teamRaw) => {
+    const team = obj(teamRaw);
+    const name = str(team.teamname);
+    if (!name) return [];
+    const riders = (Array.isArray(team.a) ? (team.a as unknown[]) : []).flatMap((riderRaw) => {
+      const rider = obj(riderRaw);
+      const riderName = str(rider.name);
+      if (!riderName) return [];
+      const seconds = num(rider.timeResult);
+      return [{
+        rank: rank(rider.p1),
+        name: riderName.slice(0, 60),
+        points: num(rider.totrp) ?? 0,
+        fal: num(rider.falrp) ?? 0,
+        fts: num(rider.ftsrp) ?? 0,
+        fin: num(rider.finrp) ?? 0,
+        pbp: num(rider.pbprp) ?? 0,
+        timeMs: seconds && seconds > 0 ? Math.round(seconds * 1000) : null,
+        wkg: num(rider.wkg),
+        dq: Boolean(num(rider.dq)),
+        zwiftId: null,
+      }];
+    });
+    riders.sort((x, y) => (x.rank ?? Infinity) - (y.rank ?? Infinity) || y.points - x.points);
+    const zid = num(team.id5);
+    return [{
+      rank: rank(team.p1),
+      name: name.slice(0, 60),
+      points: num(team.totp) ?? 0,
+      fal: num(team.falp) ?? 0,
+      fts: num(team.ftsp) ?? 0,
+      fin: num(team.finp) ?? 0,
+      pbp: num(team.pbp) ?? 0,
+      leaguePoints: num(team.lpoints) ?? 0,
+      dq: Boolean(num(team.dq)),
+      zwiftEventId: zid ? String(zid) : null,
+      riders,
+    }];
+  });
+  return teams.sort((x, y) => (x.rank ?? Infinity) - (y.rank ?? Infinity) || y.points - x.points);
+}
+
+/** Zet het gevonden Zwift-ID bij de renners van de uitslag (team, naam en rittijd gelijk). Puur. */
+export function withZwiftIds(
+  teams: WtrlResultTableTeam[],
+  matched: Map<WtrlResultRider, number>,
+): WtrlResultTableTeam[] {
+  const byKey = new Map<string, number>();
+  for (const [rider, profileId] of matched) byKey.set(`${rider.team}|${rider.name}|${rider.durationMs}`, profileId);
+  return teams.map((team) => ({
+    ...team,
+    riders: team.riders.map((rider) => ({
+      ...rider,
+      zwiftId: rider.timeMs != null ? (byKey.get(`${team.name}|${rider.name}|${rider.timeMs}`) ?? null) : null,
+    })),
+  }));
+}
+
 export type ZwiftResultRow = { profileId: number; durationMs: number | null; avgWatts?: number | null };
 
 /**

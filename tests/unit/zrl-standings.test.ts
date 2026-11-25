@@ -25,18 +25,18 @@ describe("standingsPerTeam", () => {
     const map = standingsPerTeam(
       ["team-a", "team-b"],
       [
-        { trc_ref: "10/500", team_id: "team-a", division: "Open Aqua League Division B4" },
-        { trc_ref: "11/999", team_id: "team-b", division: null },
+        { trc_ref: "10/500", team_id: "team-a", division: "Open Aqua League Division B4", name: "Ons" },
+        { trc_ref: "11/999", team_id: "team-b", division: null, name: "Ander" },
       ],
       standings,
     );
-    expect(map.get("team-a")).toMatchObject({ race: 2, final: false, ownTeamId: "500" });
+    expect(map.get("team-a")).toMatchObject({ race: 2, final: false, ownTeamId: "500", class: "2420B40", season: 21, ownName: "Ons" });
     expect(map.get("team-a")?.rows.map((r) => r.name)).toEqual(["Een", "Ons"]);
     expect(map.has("team-b")).toBe(false);
   });
 
   it("zonder standen is er niets", () => {
-    expect(standingsPerTeam(["team-a"], [{ trc_ref: "10/500", team_id: "team-a", division: null }], []).size).toBe(0);
+    expect(standingsPerTeam(["team-a"], [{ trc_ref: "10/500", team_id: "team-a", division: null, name: "Ons" }], []).size).toBe(0);
   });
 
   it("leest het WTRL-team-ID uit de TRC-referentie", () => {

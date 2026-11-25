@@ -11,10 +11,15 @@ export type StoredStandings = {
   rows: WtrlStanding[];
 };
 
-export type StandingsWtrlTeam = { trc_ref: string; team_id: string | null; division: string | null };
+export type StandingsWtrlTeam = { trc_ref: string; team_id: string | null; division: string | null; name: string };
 
 export type TeamStandings = {
   teamId: string;
+  season: number;
+  /** WTRL-klasse: dezelfde sleutel als de uitslagen (0363). */
+  class: string;
+  /** De naam van dit team bij WTRL, zoals in de uitslag. */
+  ownName: string;
   division: string | null;
   race: number;
   final: boolean;
@@ -48,6 +53,9 @@ export function standingsPerTeam(
       if (!ownTeamId || !table) continue;
       out.set(teamId, {
         teamId,
+        season: table.season,
+        class: table.class,
+        ownName: wtrl.name,
         division: wtrl.division,
         race: table.race,
         final: table.final,

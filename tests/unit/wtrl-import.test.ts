@@ -6,12 +6,14 @@ import {
   parseResultsMenu,
   parseTeamDetails,
   MAX_DIVISION_PAGES_PER_RUN,
+  parseResultTable,
   parseStandings,
   pickDivisionPaths,
   standingsWanted,
   planAssignments,
   planWtrlRacepasses,
   wtrlDivisionKey,
+  withZwiftIds,
   wtrlPathKind,
   type WtrlResultRider,
 } from "@/lib/wtrl/import";
@@ -343,3 +345,40 @@ describe("competitiestand", () => {
     expect(standingsWanted({ race: 2, final: true }, { race: 2, status: "final" })).toBe(false);
   });
 });
+
+describe("uitslag voor de teampagina", () => {
+  const json = {
+    success: true,
+    payload: [
+      {
+        p1: 9999, teamname: "Uit de race", totp: 41, falp: 0, ftsp: 0, finp: 41, pbp: 0, lpoints: 0, dq: 1, id5: 7001,
+        a: [{ p1: 1, name: "D. Eén", totrp: 41, falrp: 0, ftsrp: 0, finrp: 41, pbprp: 0, timeResult: "4000.5", wkg: 3, dq: 1, zid: 7001 }],
+      },
+      {
+        p1: 1, teamname: "Ons Team", totp: 94, falp: 4, ftsp: 6, finp: 80, pbp: 4, lpoints: 10, dq: 0, id5: 7001,
+        a: [
+          { p1: 2, name: "B. Twee", totrp: 26, falrp: 2, ftsrp: 2, finrp: 20, pbprp: 2, timeResult: "4100.25", wkg: 3.2, dq: 0, zid: 7001 },
+          { p1: 1, name: "A. Een", totrp: 39, falrp: 2, ftsrp: 4, finrp: 30, pbprp: 3, timeResult: "4000.125", wkg: 3.5, dq: 0, zid: 7001 },
+        ],
+      },
+    ],
+  };
+
+  it("leest teams en renners met hun punten, DQ achteraan", () => {
+    const teams = parseResultTable(json);
+    expect(teams.map((team) => [team.rank, team.name, team.dq])).toEqual([[1, "Ons Team", false], [null, "Uit de race", true]]);
+    expect(teams[0]).toMatchObject({ points: 94, fal: 4, fts: 6, fin: 80, pbp: 4, leaguePoints: 10, zwiftEventId: "7001" });
+    expect(teams[0].riders.map((rider) => [rider.rank, rider.name, rider.points, rider.timeMs])).toEqual([
+      [1, "A. Een", 39, 4000125],
+      [2, "B. Twee", 26, 4100250],
+    ]);
+  });
+
+  it("zet het Zwift-ID bij renners die op rittijd gevonden zijn", () => {
+    const riders = parseResults(json);
+    const found = riders.find((rider) => rider.name === "A. Een")!;
+    const teams = withZwiftIds(parseResultTable(json), new Map([[found, 123]]));
+    expect(teams[0].riders.map((rider) => rider.zwiftId)).toEqual([123, null]);
+  });
+});
+

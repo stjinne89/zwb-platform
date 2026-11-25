@@ -18,6 +18,11 @@ gaat stabiliteit voor nieuwe features.
    2026-11-25 vier keer; tegenstanders koppelen (zie de ronde). Zie de ronde
    "Gebouwd — WTRL-import vanaf de eigen pc".
 
+0. **Gebouwd, lokaal gecommit — ZRL-uitslagen uitklapbaar op de teampagina
+   (2026-11-25).** De import bewaart de hele WTRL-uitslag; de pagina van een
+   subteam toont hem onder de stand. Migratie `0363_zrl_wtrl_results`
+   geschreven, niet toegepast. Open: push, migratie, twee runs. Zie de ronde.
+
 0. **Gebouwd — ZRL-competitiestand op de teampagina (2026-11-25).** Het
    WTRL-script haalt ook de stand per divisie op; de teampagina toont hem
    bovenaan. Commit `6ec7c526`, op 2026-11-25 gepusht naar `main` (eigenaar: "ja
@@ -1700,8 +1705,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0363`
-(`0362_zrl_wtrl_standings` is van de ZRL-competitiestand, toegepast op 2026-11-25;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0364`
+(`0363_zrl_wtrl_results` is van de ZRL-uitslagen op de teampagina, 2026-11-25, nog niet toegepast;
+`0362_zrl_wtrl_standings` is van de ZRL-competitiestand, toegepast op 2026-11-25;
 `0361_wtrl_import` is van de WTRL-import vanaf de eigen pc, toegepast op 2026-11-25;
 `0360_event_streams_source` is van de eigen YouTube-stream, toegepast op 2026-11-24;
 `0359_stream_overlay_ultrawide` is van het ultrawide Zwift-beeld, 2026-11-24, eerst als `0355` geschreven en hernummerd omdat `0355` tot en met `0358` intussen op main stonden, toegepast op 2026-11-24;
@@ -12917,6 +12923,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZRL-uitslagen uitklapbaar op de teampagina
+
+**2026-11-25, lokaal gecommit, nog niet gepusht. Migratie `0363_zrl_wtrl_results.sql`
+geschreven, niet toegepast en niet lokaal getest (geen Docker of Supabase-config).**
+
+- **Waarom.** Vraag van de eigenaar: naast de stand de uitslagen op de
+  teampagina, ingeklapt met titel en plaats, open voor de hele uitslag, en per
+  team de punten van elk lid, "zoals het op wtrl ook werkt". Voorstel akkoord
+  ("Yes, build it").
+- **Bron.** Dezelfde `/api/zrl/results/{seizoen}/{klasse}/{race}` die de import
+  al ophaalt; geen extra verzoeken. Per team `p1` plaats (9999 bij DQ), `totp`,
+  `falp`/`ftsp`/`finp`/`pbp`, `lpoints`, `dq`, `id5` (het Zwift-event); per renner
+  in `a` `p1` (plaats binnen het team), `name`, `totrp`, `falrp`/`ftsrp`/`finrp`/`pbprp`,
+  `timeResult`, `wkg`, `dq`. Gemeten op 2026-11-25 (Aqua B4, race 2). `zwid`
+  van de renner is een getal van één cijfer, geen Zwift-ID.
+- **Data.** `zrl_wtrl_results` (0363): per seizoen, klasse en race de hele
+  uitslag als jsonb (`parseResultTable`). Eigen renners en tegenstanders die op
+  rittijd gevonden zijn, krijgen hun Zwift-ID mee (`withZwiftIds`), zodat de
+  pagina naar het ledenprofiel linkt (`MemberLink`). Lezen mag elk ingelogd lid.
+- **Inhalen.** Uitslagen die vóór 0363 klaar waren, staan nog niet in de tabel.
+  Die haalt de import één keer opnieuw op, met dezelfde voorrang als een nieuwe
+  uitslag. Voor de 16 uitslagen van ronde 2 zijn dat twee runs. Zonder de tabel
+  slaat de import dit over.
+- **Teampagina.** Alleen bij een subteam met een stand: "Uitslagen" onder de
+  competitiestand, per race een ingeklapte rij met de titel uit de eigen
+  kalender (gezocht op het Zwift-event), de datum en "8e van 10 · 94 punten".
+  Open je een race, dan alle teams met FAL, FTS, FIN, PBP, totaal en league
+  points, het eigen team gemarkeerd. Open je een team, dan zijn renners met
+  dezelfde kolommen. Met `<details>`, zonder JavaScript.
+- **Bewust niet.** Geen uitslagen op de pagina van het hoofdteam (daar staat
+  per subteam alleen de stand). Geen punten per segment en geen DQ-redenen.
+- **Niet geverifieerd.** Migratie niet toegepast, geen run met de nieuwe
+  import, de pagina niet in de browser bekeken. Wel: `tsc`, ESLint, de
+  unit-tests (`wtrl-import.test.ts`, `zrl-standings.test.ts`) en één keer
+  statisch gerenderd met voorbeelddata.
 
 ### Gebouwd — ZRL-competitiestand op de teampagina
 

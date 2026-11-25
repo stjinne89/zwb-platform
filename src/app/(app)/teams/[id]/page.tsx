@@ -21,6 +21,8 @@ import {
   type TeamRosterRow,
 } from "../_components/team-roster-table";
 import { ZrlStandingsSummary, ZrlStandingsTable } from "./_components/zrl-standings";
+import { ZrlResults, type ZrlResultRace } from "./_components/zrl-results";
+import type { WtrlResultTableTeam } from "@/lib/wtrl/import";
 import { standingsPerTeam, type StandingsWtrlTeam, type StoredStandings } from "@/lib/teams/zrl-standings";
 import { AdminPanel, DeleteResultButton } from "./_components/admin-panel";
 import { GraveyardToggle } from "./_components/graveyard-toggle";
@@ -236,7 +238,7 @@ export default async function TeamDetailPage({
   const zrlEventPerTeam = pickZrlEventPerTeam((zrlEvents ?? []) as ZrlTeamEvent[]);
   // Competitiestand uit het WTRL-script (0362); zonder die tabel staat er niets.
   const [{ data: standingsWtrlTeams }, { data: storedStandings }] = await Promise.all([
-    supabase.from("wtrl_teams").select("trc_ref, team_id, division").in("team_id", scopeIds),
+    supabase.from("wtrl_teams").select("trc_ref, team_id, division, name").in("team_id", scopeIds),
     supabase.from("zrl_wtrl_standings").select("season, class, race, final, rows"),
   ]);
   const standingsByTeam = standingsPerTeam(
@@ -245,6 +247,57 @@ export default async function TeamDetailPage({
     (storedStandings ?? []) as StoredStandings[],
   );
   const ownStandings = standingsByTeam.get(team.id) ?? null;
+  // De WTRL-uitslagen van deze divisie (0363), nieuwste race eerst.
+  const { data: storedResults } = ownStandings
+    ? await supabase
+        .from("zrl_wtrl_results")
+        .select("race, final, teams")
+        .eq("season", ownStandings.season)
+        .eq("class", ownStandings.class)
+        .order("race", { ascending: false })
+    : { data: null };
+  const resultRows = (storedResults ?? []) as Array<{ race: number; final: boolean; teams: WtrlResultTableTeam[] }>;
+  const ownResultTeams = resultRows.flatMap((row) =>
+    row.teams.filter((entry) => entry.name === ownStandings?.ownName),
+  );
+  const resultEventIds = [
+    ...new Set(ownResultTeams.flatMap((entry) => (entry.zwiftEventId ? [entry.zwiftEventId] : []))),
+  ];
+  const resultZwiftIds = [
+    ...new Set(
+      resultRows.flatMap((row) =>
+        row.teams.flatMap((entry) => entry.riders.flatMap((rider) => (rider.zwiftId != null ? [String(rider.zwiftId)] : []))),
+      ),
+    ),
+  ];
+  const [{ data: resultEvents }, { data: resultProfiles }] = await Promise.all([
+    resultEventIds.length > 0
+      ? supabase
+          .from("events")
+          .select("title, start_at, zwift_event_id")
+          .eq("team_id", team.id)
+          .in("zwift_event_id", resultEventIds.map(Number))
+      : Promise.resolve({ data: [] }),
+    resultZwiftIds.length > 0
+      ? supabase.from("profiles").select("id, zwift_id").in("zwift_id", resultZwiftIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const eventByZwiftId = new Map(
+    ((resultEvents ?? []) as Array<{ title: string; start_at: string; zwift_event_id: number | string }>).map((row) => [
+      String(row.zwift_event_id),
+      row,
+    ]),
+  );
+  const profileByZwiftId = Object.fromEntries(
+    ((resultProfiles ?? []) as Array<{ id: string; zwift_id: string | number | null }>).flatMap((row) =>
+      row.zwift_id != null ? [[String(row.zwift_id), row.id]] : [],
+    ),
+  );
+  const resultRaces: ZrlResultRace[] = resultRows.map((row) => {
+    const ownEntry = row.teams.find((entry) => entry.name === ownStandings?.ownName);
+    const event = ownEntry?.zwiftEventId ? eventByZwiftId.get(ownEntry.zwiftEventId) : undefined;
+    return { race: row.race, final: row.final, title: event?.title ?? null, startAt: event?.start_at ?? null, teams: row.teams };
+  });
   const subteamStandings = ((childTeams ?? []) as TeamRow[])
     .filter(() => team.parent_team_id == null)
     .flatMap((child) => {
@@ -610,7 +663,12 @@ export default async function TeamDetailPage({
       </header>
 
       {ownStandings ? (
-        <ZrlStandingsTable standings={ownStandings} />
+        <>
+          <ZrlStandingsTable standings={ownStandings} />
+          {resultRaces.length > 0 && (
+            <ZrlResults races={resultRaces} ownName={ownStandings.ownName} profileByZwiftId={profileByZwiftId} />
+          )}
+        </>
       ) : (
         subteamStandings.length > 0 && <ZrlStandingsSummary teams={subteamStandings} />
       )}
