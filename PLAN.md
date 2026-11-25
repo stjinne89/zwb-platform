@@ -18,6 +18,10 @@ gaat stabiliteit voor nieuwe features.
    2026-11-25 vier keer; tegenstanders koppelen (zie de ronde). Zie de ronde
    "Gebouwd — WTRL-import vanaf de eigen pc".
 
+0. **Bijgesteld — Club Ladder: teamtegels op positie (2026-11-25): op
+   2026-11-25 gepusht naar `main` (eigenaar: "Ja, push").** Geen migratie. Open: na de deploy de volgorde
+   op `/teams/club-ladder` bekijken. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd, lokaal gecommit — ZRL-uitslagen uitklapbaar op de teampagina
    (2026-11-25).** De import bewaart de hele WTRL-uitslag; de pagina van een
    subteam toont hem onder de stand. Migratie `0363_zrl_wtrl_results`
@@ -12923,6 +12927,19 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Bijgesteld — Club Ladder: teamtegels op positie
+
+**2026-11-25, de commit die dit blok toevoegt, op 2026-11-25 gepusht naar `main`
+(eigenaar: "Ja, push"). Geen migratie.**
+
+- **Waarom.** Vraag van de eigenaar: de teamtegels bovenaan `/teams/club-ladder`
+  op ladderpositie in plaats van op alfabet.
+- **Wat.** De tegels sorteren op de laatst gesyncte positie (1 eerst). Teams
+  zonder positie daarna, archiefteams altijd achteraan; bij gelijke stand op
+  naam. Alleen de tegels: `loadLadderTeams` blijft op naam, zodat de puzzel,
+  de captainkeuze en het eerste team (`firstTeam`) niet verschuiven.
+- **Niet geverifieerd.** Alleen `tsc` en ESLint; niet in de browser bekeken.
 
 ### Gebouwd — ZRL-uitslagen uitklapbaar op de teampagina
 

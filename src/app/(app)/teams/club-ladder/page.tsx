@@ -64,6 +64,15 @@ export default async function ClubLadderPage({
   // Zelfde recht als syncResultsNow; met alleen manage_results faalde de knop.
   const canSync = access.has("teams.sync_sources");
   const firstTeam = teamRows.find((team) => !team.is_graveyard) ?? teamRows[0] ?? null;
+  // Tegels op ladderpositie (hoogste eerst); zonder positie en archief achteraan.
+  const teamTiles = teamRows
+    .map((team) => ({ team, result: latestResultFor(team.id, resultRows) }))
+    .sort(
+      (a, b) =>
+        Number(Boolean(a.team.is_graveyard)) - Number(Boolean(b.team.is_graveyard)) ||
+        (a.result?.position ?? Infinity) - (b.result?.position ?? Infinity) ||
+        a.team.name.localeCompare(b.team.name, "nl"),
+    );
 
   return (
     <div className="space-y-6">
@@ -92,8 +101,7 @@ export default async function ClubLadderPage({
           <section className="rounded-lg border bg-card p-4">
             <h2 className="font-semibold"><ClubShortName /> teams</h2>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {teamRows.map((team) => {
-                const result = latestResultFor(team.id, resultRows);
+              {teamTiles.map(({ team, result }) => {
                 const source = sourcesByTeam.get(team.id) ?? null;
                 return (
                   <Link
