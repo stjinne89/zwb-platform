@@ -13129,9 +13129,11 @@ nieuwe noordwesten.
 - Geen regel voor ritten als die van Harmen (te ver van elke route): die vangt ook
   ritten op de nieuwe wegen in Watopia. Daarom een uitzondering op rit-id, met
   toestemming van de eigenaar.
-- De rode blokken buiten Watopia niet op de lijst: in New York, Paris en
+- ~~De rode blokken buiten Watopia niet op de lijst: in New York, Paris en
   Innsbruck liggen ze in de stad, waar wel straten zijn, en in France op de
-  kustweg bij Mont Saint-Michel. Niet om gevraagd.
+  kustweg bij Mont Saint-Michel. Niet om gevraagd.~~ *Achterhaald 2026-11-25:*
+  de eigenaar bekeek ze alsnog en liet ze alle twaalf weghalen (`0366`, zie
+  hieronder).
 - Geen detailroute ophalen bij Strava voor de ritten met alleen een
   samenvattingslijn: ~9.500 ritten tegen de rate limit.
 
@@ -13150,6 +13152,29 @@ Watopia 187, France 99, London 106, Makuri 72, Innsbruck 64, New York 91,
 Yorkshire 44, Paris 36, Scotland 34, Richmond 27, Bologna 22, Crit City 4. Karen
 185 en Stijn 186 in Watopia. Geen blok van Harmens race, geen van de acht
 uitgezonderde blokken.
+
+**Vervolg: de twaalf losse blokken buiten Watopia (2026-11-25).** Commit: de
+commit die dit blok toevoegt, niet gepusht. Migratie
+`0366_zwift_blocks_corner_cuts.sql`, nog niet toegepast. Na de backfill bleven
+er buiten Watopia twaalf blokken over met hooguit twee leden en geen bekende
+route erdoor: France 1, Innsbruck 4, London 2, New York 2, Paris 2 en Scotland 1.
+De eigenaar bekeek ze op een uitvergrote kaart per blok, met de ritlijn erover:
+"Al deze rode blokken mogen weg, allemaal net kleine route fouten". Nagemeten
+per rit: elf van de twaalf ritten hebben alleen een grove lijn (intervals.icu-
+imports met ~480 punten, of Strava's samenvatting). Een recht stuk van 150 m tot
+1 km snijdt dan net de hoek af van een blok naast de weg. In Paris is het één
+recht stuk van 1,48 km, net onder de drempel van 1,5 km. Karens blok in France
+komt van de laatste 200 m van een rit met de volledige lijn: echt gereden, maar
+naast de kustweg bij Mont Saint-Michel. Alle twaalf staan nu per wereld in `NO_ROAD_BLOCKS`. `0366` haalt alleen
+deze twaalf blokken uit de tabel; een backfill is niet nodig. Nagerekend:
+France 98, Innsbruck 60, London 104, New York 89, Paris 34, Scotland 33.
+- *Bewust niet gebouwd:* geen algemene regel tegen afgesneden hoekjes, zoals
+  "een blok telt pas als de lijn er minstens X m in ligt". Dan vallen ook echte
+  blokken weg waar een weg net een hoek raakt, en die zijn er veel meer.
+- *Niet lokaal te verifiëren:* de migratie (geen Docker of Supabase-config hier).
+- *Volgorde:* eerst de code live, dan `0366`. Andersom legt een sync van een
+  nieuwe rit door dezelfde hoek het blok weer neer.
+- *Test:* een lijn in Paris levert blokken op, maar niet `33189/22541`.
 
 **Tests.** `tests/unit/zwblokken-zwift.test.ts`: een portalklim die de kaart uit
 loopt levert geen blok op, ook binnen de kaart; een France-klim vanaf de portal

@@ -153,6 +153,15 @@ describe("zwiftBlocksForRide", () => {
     expect(ride!.blocks.has("63158/34904")).toBe(false);
   });
 
+  it("slaat ook buiten Watopia de afgesneden hoekjes over", () => {
+    // 33189/22541 in Paris: een lijn die de hoek naast de weg afsnijdt.
+    const [lon, lat] = blockCentre(33189, 22541, ZWIFT_BLOCK_ZOOM);
+    const ride = zwiftBlocksForRide({ points: line([lat, lon - 0.006], [lat, lon], 30), deviceName: "Zwift" });
+    expect(ride!.world.slug).toBe("paris");
+    expect(ride!.blocks.size).toBeGreaterThan(0);
+    expect(ride!.blocks.has("33189/22541")).toBe(false);
+  });
+
   it("gebruikt de volledige lijn als die er is, en knipt daarin al bij 300 m", () => {
     // Zoals een groepsrit in London (01-02-2026): in de volledige lijn een sprong
     // van ~600 m dwars door de stad. In de samenvatting blijft die onder 1,5 km.

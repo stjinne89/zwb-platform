@@ -95,13 +95,21 @@ const EXCLUDED_RIDES = new Set<number>([-1000195547777]);
  * Blokken zonder weg die na alle regels hierboven nog overbleven: hooguit twee
  * leden en geen bekende route erdoor. In Watopia rond de portal aan de
  * noordrand, één samenvattingssprong in een ZRL-TTT, een hernoemde rit op
- * Trebiac en één aan de rand van het nieuwe noordwesten.
+ * Trebiac en één aan de rand van het nieuwe noordwesten. In de andere werelden
+ * (2026-11-25, besluit eigenaar: "allemaal net kleine routefouten"): een
+ * grove routelijn die net de hoek van een blok naast de weg afsnijdt.
  */
 const NO_ROAD_BLOCKS: Record<string, Set<string>> = {
   watopia: new Set([
     "63151/34901", "63156/34899", "63156/34900", "63156/34901",
     "63157/34900", "63158/34900", "63158/34904", "63166/34902",
   ]),
+  france: new Set(["63014/36819"]),
+  innsbruck: new Set(["34841/22979", "34843/22977", "34844/22976", "34845/22989"]),
+  london: new Set(["32744/21791", "32752/21795"]),
+  "new-york": new Set(["19298/24631", "19301/24623"]),
+  paris: new Set(["33189/22541", "33189/22542"]),
+  scotland: new Set(["31817/20521"]),
 };
 const PORTAL_CLIMBS = [
   "Alto de Patios", "Bealach na Ba", "Cheddar Gorge", "Cipressa", "Col d'Aspin",
