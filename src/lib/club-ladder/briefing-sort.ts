@@ -1,4 +1,4 @@
-// Sorteren van de verwachte uitslag op het racebriefje van een ladderrace,
+// Sorteren van de verwachte uitslag op de racepagina van een ladderrace,
 // per kolom, in watt of W/kg (2026-11-09). Licht gehouden: dit gaat mee naar de browser.
 
 import type { LadderPlace } from "./briefing";

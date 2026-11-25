@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Verwachte ladderuitslag op de racepagina (2026-11-25):
+   lokaal gecommit, niet gepusht. Geen migratie.** De tabel Verwachte uitslag
+   staat niet meer op de racebriefing maar op de racepagina, op de plek van de
+   uitslag; zodra de ladder de uitslag heeft, neemt die de plek over. Open:
+   ingelogd een ladderrace vóór en na de race openen. Zie de ronde met dezelfde
+   naam.
+
 0. **Gebouwd — Teams en subteams bewerken (2026-11-25): commit `dcf272bf`, op
    2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.** Een knop Bewerken op de teampagina en op de
    Club Ladder-teampagina. Open: in de app een (sub)team hernoemen en een leeg
@@ -13034,6 +13041,43 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Verwachte ladderuitslag op de racepagina
+
+**2026-11-25, lokaal gecommit op `claude/expected-results-event-page-6313b8`,
+niet gepusht. Geen migratie.**
+
+- **Waarom.** Vraag van de eigenaar: de verwachte uitslag van de racebriefing
+  naar de eventpagina, op de plek waar de uitslag komt, en vervangen door de
+  echte uitslag zodra die er is.
+- **Wat.**
+  - De racepagina van een ladderrace rekent de verwachting uit de matchup die
+    hij al laadt (`matchupWeights`, `ladderRiders`, `projectLadder`, uitdager
+    uit de titel), dus zonder extra verzoeken. Nieuwe sectie
+    `LadderExpectedResultView` (`id="uitslag"`) met de score naast de titel,
+    op de plek van `LadderResultView`. Staat de ladderuitslag er, dan alleen
+    die (die toont zelf "verwacht x–y" en de kolommen Verwacht en ±).
+  - De tabel (duren kiezen, sorteren, W/kg of watt) is verhuisd van
+    `briefing/_components/ladder-result-table.tsx` naar
+    `_components/ladder-expected-table.tsx` (`LadderExpectedTable`).
+  - Op de briefing van een ladderrace is de sectie Verwachte uitslag weg. Het
+    briefje zelf (stand, Volgen, rollen) rekent nog met dezelfde verwachting.
+  - `/hulp` en de privacyverklaring noemen de verwachte uitslag nu op de
+    racepagina. Zelfde gegevens en zelfde publiek (ingelogde leden), dus geen
+    nieuwe privacyversie.
+- **Verschil met de briefing.** De racepagina rekent met de vermogensbron die
+  de kijker koos (alles of indoor, `powerScope`), de briefing altijd met alles.
+  Zonder renners in de matchup toont de racepagina geen lege sectie.
+- **Bewust niet.** De ZRL-briefing blijft zoals hij is: daar zit de
+  verwachting in de tabellen Onze ploeg en Het veld (plek, punten per ploeg),
+  die het veld van Zwift live ophalen. Die naar de racepagina halen is een
+  eigen vraag.
+- **Niet meer waar.** In de ronde over het racebriefje van de ladder: "Op de
+  pagina vervangt de tabel Verwachte uitslag Onze ploeg en Het veld". Daar
+  bijgewerkt.
+- **Niet geverifieerd.** Typecheck, lint en de unit-tests (club-ladder,
+  race-briefing, privacy-version) zijn schoon. Niet ingelogd bekeken: een
+  ladderrace vóór de race (verwachte uitslag) en na de race (uitslag).
 
 ### Gebouwd — Teams en subteams bewerken
 
@@ -27589,8 +27633,10 @@ bij de ZRL. Eerst als voorstel voorgelegd en goedgekeurd ("Ja, bouwen").
   parcours: per duur de W/kg tegenover het meetkundig gemiddelde van wie die duur
   heeft, gewogen met de gewichten van het parcours (zonder parcours gelijk). Zo
   telt een ontbrekende duur niet als zwak en weegt 15 s niet zwaarder dan 20 min
-  door de schaal. Zonder vermogen achteraan, zonder punten. Op de pagina vervangt
-  de tabel Verwachte uitslag "Onze ploeg" en "Het veld".
+  door de schaal. Zonder vermogen achteraan, zonder punten. ~~Op de pagina vervangt
+  de tabel Verwachte uitslag "Onze ploeg" en "Het veld".~~ *Sinds 2026-11-25
+  staat die tabel op de racepagina, op de plek van de uitslag (ronde
+  "Verwachte ladderuitslag op de racepagina").*
 - **Volgen**: ~~de drie sterkste tegenstanders met hun W/kg op de duur die het
   zwaarst telt.~~ *Vervangen dezelfde dag, op aanwijzing van de eigenaar ("echt
   specifiek op laddertelling"):* de tegenstanders die vlak voor of vlak achter

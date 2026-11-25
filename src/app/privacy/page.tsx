@@ -134,7 +134,7 @@ export default function PrivacyPage() {
             van renners van andere clubs; voor een <MemberNoun /> zonder die twee met
             het gewicht uit intervals.icu. Het gewicht staat nergens los: wel het
             gemiddelde van een ploeg vanaf drie renners, en in de matchup en de
-            verwachte uitslag van het racebriefje per renner het vermogen in
+            verwachte uitslag op de racepagina per renner het vermogen in
             watt naast W/kg, waaruit het gewicht af te leiden is, ook van
             renners van andere clubs. Voor de verwachting bij een ladderrace
             rekenen we naast vermogen met de vELO1 van ZwiftRacing, zoals

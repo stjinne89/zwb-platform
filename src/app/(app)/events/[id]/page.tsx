@@ -44,6 +44,9 @@ import { LadderMatchupView } from "./_components/ladder-matchup";
 import { loadLadderEventMatchup } from "@/lib/club-ladder/event-matchup";
 import { loadLadderEventResult } from "@/lib/club-ladder/event-result-load";
 import { LadderResultView } from "./_components/ladder-result";
+import { LadderExpectedResultView } from "./_components/ladder-expected-result";
+import { keyDuration as ladderKeyDuration, ladderRiders, matchupWeights, projectLadder } from "@/lib/club-ladder/briefing";
+import { ladderChallengerFromTitle } from "@/lib/club-ladder/fixture-events";
 import { ZwiftRacingSignups } from "./_components/zwiftracing-signups";
 import { loadZwiftRacingSignups, startsWithinSignupWindow } from "@/lib/zwiftracing/event-signups";
 import { loadLadderEventRouteAdvice } from "@/lib/club-ladder/route-advice";
@@ -556,6 +559,22 @@ export default async function EventDetailPage({
     event.type === "ladder" && event.team_id && user
       ? await loadLadderEventResult(createAdminClient(), event.id, event).catch(() => null)
       : null;
+  // Vóór de uitslag staat op zijn plek de verwachte uitslag uit de matchup, zoals
+  // het racebriefje rekent (briefing.ts). Stond tot 2026-11-25 op de briefing.
+  const ladderExpected = (() => {
+    if (ladderResult || !ladderMatchup) return null;
+    const { matchup } = ladderMatchup;
+    const weights = matchupWeights(matchup);
+    const riders = ladderRiders(matchup, weights);
+    if (riders.length === 0) return null;
+    const challenger = ladderChallengerFromTitle(event.title, matchup.ours.name) === true;
+    return {
+      projection: projectLadder(riders, challenger),
+      keyDuration: ladderKeyDuration(weights),
+      ownTeam: matchup.ours.name,
+      opponent: matchup.theirs.name,
+    };
+  })();
   // Zolang het parcours nog niet vastligt: welk parcours past ons tegen deze tegenstander.
   // Stond tot 2026-11-11 alleen op de Club Ladder-teampagina. Na de matchup, die de
   // renners van de wedstrijden al ophaalt.
@@ -1831,7 +1850,11 @@ export default async function EventDetailPage({
         </section>
       )}
 
-      {ladderResult && <LadderResultView result={ladderResult} />}
+      {ladderResult ? (
+        <LadderResultView result={ladderResult} />
+      ) : (
+        ladderExpected && <LadderExpectedResultView {...ladderExpected} />
+      )}
 
       <ZwiftRacingSignups rows={zwiftRacingSignups} />
 

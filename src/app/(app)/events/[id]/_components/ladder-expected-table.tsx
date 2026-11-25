@@ -10,12 +10,12 @@ import { heatHue, ladderPower, ladderPowerRange, nextLadderSort, sortLadderPlace
 import type { PowerDuration } from "@/lib/club-ladder/routes";
 import { DURATION_LABELS, DURATIONS } from "@/lib/club-ladder/team-power";
 import { cn } from "@/lib/utils";
-import { useMatchupUnit } from "../../_components/ladder-matchup-riders";
+import { useMatchupUnit } from "./ladder-matchup-riders";
 
 const nl2 = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /** Verwachte uitslag van een ladderrace: kies de duren, sorteer per kolom. */
-export function LadderResultTable({
+export function LadderExpectedTable({
   rows,
   keyDuration,
   ownTeam,

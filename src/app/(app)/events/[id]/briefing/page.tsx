@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { BackLink, EmptyState, SectionHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ui/responsive-table";
-import { PowerUnitProvider } from "@/components/power-unit";
-import { POWER_UNIT_COOKIE } from "@/lib/training/power-unit";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadRaceBriefing, type BriefingRider, type BriefingView, type OwnBriefingRider } from "@/lib/race-briefing/load";
@@ -19,7 +16,6 @@ import { cn } from "@/lib/utils";
 import { ZwiftRouteSection } from "../_components/zwift-route-section";
 import { BikeAdviceList, type BikeAdviceRow } from "../_components/bike-advice-list";
 import { saveRaceBriefing } from "./_actions";
-import { LadderResultTable } from "./_components/ladder-result-table";
 import { RaceSheet } from "./_components/race-sheet";
 import { ShareableSheet } from "./_components/share-sheet";
 import { SheetEditor } from "./_components/sheet-editor";
@@ -275,19 +271,6 @@ function FieldTable({ view }: { view: BriefingView }) {
   );
 }
 
-function LadderTable({ view }: { view: BriefingView }) {
-  const ladder = view.ladder;
-  if (!ladder?.projection) return <EmptyState>Nog geen aanmeldingen van de ladder.</EmptyState>;
-  return (
-    <LadderResultTable
-      rows={ladder.projection.order}
-      keyDuration={ladder.keyDuration}
-      ownTeam={view.event.teamName}
-      opponent={ladder.opponent}
-    />
-  );
-}
-
 const FIELD_MISSING: Record<NonNullable<BriefingView["fieldMissing"]>, string> = {
   "no-zwift-event": "Aan deze race hangt nog geen Zwift-event.",
   "no-entrants": "Er staat nog niemand in de groep bij Zwift.",
@@ -337,8 +320,6 @@ export default async function RaceBriefingPage({ params }: PageProps) {
   const eventRidePlan = await loadBriefingRidePlan(supabase, view.event.id);
   const loaded = view.route?.loaded ?? null;
   const ladder = view.ladder;
-  // Watt alleen als iemand dat elders (Teams, ZWBeter Worden, de matchup) koos; anders W/kg zoals de ladder.
-  const unitCookie = ladder ? (await cookies()).get(POWER_UNIT_COOKIE)?.value : undefined;
   const meta = ladder
     ? [
         "Club Ladder",
@@ -420,30 +401,7 @@ export default async function RaceBriefingPage({ params }: PageProps) {
         </section>
       )}
 
-      {view.kind === "ladder" ? (
-        <section className="space-y-3">
-          <SectionHeader
-            title={
-              view.ladder?.projection ? (
-                <>
-                  Verwachte uitslag{" "}
-                  <span
-                    className={cn("ml-1 tabular-nums", view.ladder.projection.win ? "text-primary" : "text-muted-foreground")}
-                    aria-label={`${view.event.teamName ?? "Wij"} ${view.ladder.projection.ours}, ${view.ladder.opponent} ${view.ladder.projection.theirs}`}
-                  >
-                    {view.ladder.projection.ours}–{view.ladder.projection.theirs}
-                  </span>
-                </>
-              ) : (
-                "Verwachte uitslag"
-              )
-            }
-          />
-          <PowerUnitProvider initialUnit={unitCookie === "w" ? "w" : "wkg"} weightKg={null}>
-            <LadderTable view={view} />
-          </PowerUnitProvider>
-        </section>
-      ) : (
+      {view.kind !== "ladder" && (
         <>
           <section className="space-y-3">
             <SectionHeader title="Onze ploeg" />
