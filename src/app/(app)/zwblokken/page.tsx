@@ -100,6 +100,7 @@ export default async function ZwblokkenPage() {
         [w.bbox[2], w.bbox[3]],
       ] as [[number, number], [number, number]],
       imageUrl: w.imageUrl,
+      imageRotation: w.imageRotation,
       known: knownRoads[w.slug] ?? zwiftClub.counts[w.slug],
       club: zwiftClub.counts[w.slug],
     }))

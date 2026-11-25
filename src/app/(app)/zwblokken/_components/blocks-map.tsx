@@ -30,10 +30,7 @@ const Polyline = dynamic(
   () => import("react-leaflet").then((m) => m.Polyline),
   { ssr: false },
 );
-const ImageOverlay = dynamic(
-  () => import("react-leaflet").then((m) => m.ImageOverlay),
-  { ssr: false },
-);
+const ZwiftMinimap = dynamic(() => import("./zwift-minimap"), { ssr: false });
 const BlockClick = dynamic(() => import("./block-click"), { ssr: false });
 
 /** Compacte transportvorm: x → lijst van y's (plus rider_count voor de club). */
@@ -55,6 +52,8 @@ type Props = {
     /** [[zuid, west], [noord, oost]]: ook de plek van de minimap. */
     bounds: [[number, number], [number, number]];
     imageUrl: string | null;
+    /** Graden tegen de klok in om de minimap noord-boven te leggen. */
+    imageRotation: number;
     lines: [number, number][][];
     onImageError?: () => void;
   };
@@ -183,13 +182,11 @@ export function BlocksMap({ club, own, maxRiders, zwift }: Props) {
       {zwift ? (
         <>
           {zwift.imageUrl ? (
-            // In de tegelpane, zodat de blokkenlaag er altijd boven ligt.
-            <ImageOverlay
+            <ZwiftMinimap
               url={zwift.imageUrl}
               bounds={zwift.bounds}
-              pane="tilePane"
-              attribution="Kaart &copy; Zwift"
-              eventHandlers={{ error: () => zwift.onImageError?.() }}
+              rotation={zwift.imageRotation}
+              onError={zwift.onImageError}
             />
           ) : null}
           {zwift.lines.length > 0 ? (

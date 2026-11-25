@@ -16,6 +16,8 @@ export type ZwiftWorldMeta = {
   bounds: [[number, number], [number, number]];
   /** Zwifts minimap; null = alleen routelijnen. */
   imageUrl: string | null;
+  /** Graden tegen de klok in om de minimap noord-boven te leggen. */
+  imageRotation: 0 | 90;
   /** Bekende wegblokken: routevormen plus alles wat de club reed. */
   known: number;
   /** Blokken van de club samen. */
@@ -163,6 +165,7 @@ export function ZwiftView({
           blockZoom,
           bounds: world.bounds,
           imageUrl: showImage ? world.imageUrl : null,
+          imageRotation: world.imageRotation,
           lines: showImage ? NO_LINES : (lines[world.slug] ?? NO_LINES),
           onImageError: () => setImageFailed((prev) => ({ ...prev, [world.slug]: true })),
         }}

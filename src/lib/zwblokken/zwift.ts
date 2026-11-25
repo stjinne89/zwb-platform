@@ -24,15 +24,26 @@ export const ZWIFT_BLOCK_ZOOM = 16;
 /** Marge rond de wereldgrenzen uit zwift-data, in graden (~2 km). */
 const BOUNDS_MARGIN = 0.02;
 
-
 /**
- * Langer dan dit tussen twee punten is geen fietsen maar een sprong: een event
- * dat naar een andere wereld springt. Zonder deze grens vulde de supercover-DDA alle blokken op de lijn
- * ertussen. Normale punten liggen vrijwel altijd onder de kilometer; in
- * productie waren er 9 sprongen boven de 10 km, en die waren allemaal van dit
- * soort.
+ * Langer dan dit tussen twee punten is altijd een sprong: een event dat naar
+ * een andere wereld springt. In productie waren er 9 sprongen boven de 10 km, en
+ * die waren allemaal van dit soort.
  */
 const MAX_SEGMENT_KM = 10;
+
+/**
+ * Binnen een wereld springt Zwift ook: naar een startvak, een portal of het
+ * begin van een event. Zulke stappen van 2 tot 9 km trokken een rechte lijn over
+ * de kaart, en de supercover-DDA kleurde elk blok eronder alsof je die weg had
+ * gereden (gemeten 2026-11-25: in Watopia ~30 blokken bij één lid). Een stap
+ * telt daarom als sprong zodra hij langer is dan JUMP_FACTOR keer de gewone
+ * puntafstand van die rit, met JUMP_MIN_KM als ondergrens. De gewone afstand is
+ * de mediaan: die verschuift niet door de sprongen zelf. Strava dunt de lijn
+ * van een lange rit uit (de Rapha 500: één punt per ~2 km), en daar blijft de
+ * grens zo vanzelf ruim.
+ */
+const JUMP_MIN_KM = 1.5;
+const JUMP_FACTOR = 4;
 
 export type ZwiftWorld = {
   slug: string;
@@ -40,14 +51,33 @@ export type ZwiftWorld = {
   /** [zuid, west, noord, oost], zonder marge. */
   bbox: [number, number, number, number];
   /**
-   * Zwifts eigen minimap, precies op `bbox`. Het beeld is van Zwift en wordt
+   * Zwifts eigen minimap, precies op `bbox` (soms gedraaid, zie
+   * `imageRotation`). Het beeld is van Zwift en wordt
    * rechtstreeks van hun CDN geladen, niet gekopieerd (besluit eigenaar,
    * 2026-09-15). Alleen een https-adres van cdn.zwift.com wordt doorgegeven.
    */
   imageUrl: string | null;
+  /**
+   * Hoeveel graden de minimap tegen de klok in moet draaien om noord boven te
+   * krijgen. Zie IMAGE_ROTATION.
+   */
+  imageRotation: 0 | 90;
 };
 
 const ZWIFT_CDN = /^https:\/\/cdn\.zwift\.com\//;
+
+/**
+ * Werelden waarvan Zwift de minimap een kwartslag gedraaid tekent: noord ligt
+ * rechts. De grenzen uit zwift-data kloppen wel; alleen het beeld ligt gedraaid.
+ * Vastgesteld op 2026-11-25 door de routevormen uit zwift_routes over de minimap
+ * te leggen: gedraaid vallen ze op de getekende wegen, ongedraaid lagen routes
+ * en blokken in Makuri in zee. De andere acht werelden passen ongedraaid.
+ */
+const IMAGE_ROTATION: Record<string, 90> = {
+  "makuri-islands": 90,
+  france: 90,
+  scotland: 90,
+};
 
 export const ZWIFT_WORLDS: ZwiftWorld[] = worlds.map((world) => {
   const [[lat1, lon1], [lat2, lon2]] = world.bounds as [[number, number], [number, number]];
@@ -56,6 +86,7 @@ export const ZWIFT_WORLDS: ZwiftWorld[] = worlds.map((world) => {
     slug: world.slug,
     name: world.name,
     imageUrl: imageUrl && ZWIFT_CDN.test(imageUrl) ? imageUrl : null,
+    imageRotation: IMAGE_ROTATION[world.slug] ?? 0,
     bbox: [
       Math.min(lat1, lat2),
       Math.min(lon1, lon2),
@@ -137,9 +168,23 @@ export function worldBlockRange(world: ZwiftWorld): { minX: number; maxX: number
 }
 
 /**
- * Knipt de route bij elke sprong groter dan `MAX_SEGMENT_KM`. Puur, voor de test.
+ * Vanaf welke stap (km) deze routelijn springt: JUMP_FACTOR keer de mediane
+ * puntafstand, minstens JUMP_MIN_KM en hooguit MAX_SEGMENT_KM. Puur, voor de test.
  */
-export function splitOnJumps(points: GpxPoint[], maxKm = MAX_SEGMENT_KM): GpxPoint[][] {
+export function jumpThresholdKm(points: GpxPoint[]): number {
+  const steps: number[] = [];
+  for (let i = 1; i < points.length; i++) steps.push(haversineKm(points[i - 1], points[i]));
+  if (steps.length === 0) return MAX_SEGMENT_KM;
+  steps.sort((a, b) => a - b);
+  const mid = Math.floor(steps.length / 2);
+  const median = steps.length % 2 ? steps[mid] : (steps[mid - 1] + steps[mid]) / 2;
+  return Math.min(MAX_SEGMENT_KM, Math.max(JUMP_MIN_KM, JUMP_FACTOR * median));
+}
+
+/**
+ * Knipt de route bij elke sprong (zie jumpThresholdKm). Puur, voor de test.
+ */
+export function splitOnJumps(points: GpxPoint[], maxKm = jumpThresholdKm(points)): GpxPoint[][] {
   const runs: GpxPoint[][] = [];
   let run: GpxPoint[] = [];
   for (const point of points) {
@@ -159,9 +204,9 @@ export function splitOnJumps(points: GpxPoint[], maxKm = MAX_SEGMENT_KM): GpxPoi
  * De wereld volgt het startpunt: een rit wisselt in Zwift nooit van wereld.
  *
  * Twee vangnetten, want een routelijn blijft niet altijd binnen de wereld:
- * - een enkel event springt halverwege naar een andere wereld. De lijn ertussen
- *   trok anders een spoor van duizenden blokken over de oceaan, en overschreef
- *   onderweg het wereldlabel van bestaande blokken. Vandaar `splitOnJumps`;
+ * - Zwift springt: binnen de wereld naar een startvak of portal, een enkel event
+ *   zelfs naar een andere wereld. De lijn ertussen kleurde anders blokken die je
+ *   nooit reed, tot duizenden over de oceaan. Vandaar `splitOnJumps`;
  * - een Climb Portal tekent Zwift direct naast de wereld. Die blokken, en al het
  *   andere buiten de kaart, vallen af via `blockInWorld`.
  */

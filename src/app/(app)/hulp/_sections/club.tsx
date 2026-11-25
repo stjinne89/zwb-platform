@@ -105,8 +105,11 @@ export function ClubHelp() {
               omdat meerdere leden een wereld helemaal gereden hebben, dan wint
               wie daar de meeste kilometers reed. Het percentage gaat over de
               wegen die we van die wereld kennen: rijdt iemand een nieuwe weg,
-              dan kan het iets zakken. Een Climb Portal levert geen blokken op:
-              die klim ligt buiten de kaart van de wereld. Andere
+              dan kan het iets zakken. Een Climb Portal-klim buiten de kaart van
+              de wereld levert geen blokken op; ligt de klim binnen de kaart,
+              dan telt hij wel mee. Zet Zwift je tijdens een rit in één keer
+              verder, bijvoorbeeld naar een startvak, dan telt dat stuk niet als
+              gereden. Andere
               indoorplatforms, zoals MyWhoosh, Rouvy en FulGaz, tellen niet mee.
             </span>
           </li>

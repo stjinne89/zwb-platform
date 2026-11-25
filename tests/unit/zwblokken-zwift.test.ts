@@ -6,12 +6,14 @@ import {
   ZWIFT_WORLDS,
   blockInWorld,
   isZwiftRide,
+  jumpThresholdKm,
   splitOnJumps,
   worldBlockRange,
   zwiftBlocksForRide,
   zwiftRegionCode,
   zwiftWorldAt,
 } from "@/lib/zwblokken/zwift";
+import { minimapTransform } from "@/lib/zwblokken/minimap";
 import { knownRoadCounts, roadBlocksFromShapes } from "@/lib/zwblokken/zwift-query";
 import { groupByWorld } from "@/lib/zwblokken/zwift-sync";
 
@@ -137,6 +139,50 @@ describe("splitOnJumps", () => {
     expect(runs).toHaveLength(2);
     expect(runs[0]).toHaveLength(4);
     expect(runs[1]).toHaveLength(4);
+  });
+
+  it("knipt ook een sprong binnen de wereld, zoals naar een startvak", () => {
+    // Zoals "Zwift - Cooldown in Watopia" (09-12-2023): punten om de ~80 m, en
+    // halverwege 8,9 km in één rechte lijn over het eiland.
+    const voor = line([-11.64, 166.93], [-11.64, 166.94], 15);
+    const na = line([-11.70, 166.98], [-11.70, 166.99], 15);
+    const runs = splitOnJumps([...voor, ...na]);
+    expect(runs).toHaveLength(2);
+
+    const ride = zwiftBlocksForRide({ points: [...voor, ...na], deviceName: "Zwift" });
+    const losse = [
+      ...zwiftBlocksForRide({ points: voor, deviceName: "Zwift" })!.blocks,
+      ...zwiftBlocksForRide({ points: na, deviceName: "Zwift" })!.blocks,
+    ];
+    expect(new Set(ride!.blocks)).toEqual(new Set(losse));
+  });
+
+  it("laat de uitgedunde lijn van een lange rit heel", () => {
+    // De Rapha 500: Strava geeft ~220 punten voor 500 km, om de ~2 km.
+    const dun = line([-11.64, 166.88], [-11.64, 167.0], 7); // ~2,2 km per stap
+    expect(splitOnJumps(dun)).toHaveLength(1);
+  });
+
+  it("ijkt de sprong op de gewone puntafstand van de rit", () => {
+    expect(jumpThresholdKm(line([-11.64, 166.93], [-11.64, 166.94], 15))).toBe(1.5);
+    const dun = jumpThresholdKm(line([-11.64, 166.88], [-11.64, 167.0], 7));
+    expect(dun).toBeGreaterThan(8);
+    expect(dun).toBeLessThanOrEqual(10);
+    expect(jumpThresholdKm([])).toBe(10);
+  });
+});
+
+describe("minimap", () => {
+  it("draait de minimap van Makuri, France en Scotland een kwartslag, de rest niet", () => {
+    const rotation = Object.fromEntries(ZWIFT_WORLDS.map((w) => [w.slug, w.imageRotation]));
+    expect(rotation).toMatchObject({ "makuri-islands": 90, france: 90, scotland: 90 });
+    const gedraaid = ZWIFT_WORLDS.filter((w) => w.imageRotation !== 0).map((w) => w.slug);
+    expect(gedraaid.sort()).toEqual(["france", "makuri-islands", "scotland"]);
+  });
+
+  it("draait tegen de klok in, zodat wat rechts lag boven komt", () => {
+    expect(minimapTransform(0)).toBeNull();
+    expect(minimapTransform(90)).toBe("rotate(-90 0.5 0.5)");
   });
 });
 

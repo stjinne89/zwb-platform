@@ -15,6 +15,14 @@ gaat stabiliteit voor nieuwe features.
    wachtten er 177 briefingrenners en 36 verouderde vELO1's. Open: na de deploy
    kijken of de wachtrij leegloopt. Zie de ronde met dezelfde naam.
 
+0. **Gebouwd — ZWBlokken Zwift: sprongen geknipt, gedraaide minimaps recht
+   (2026-11-25): niet gepusht, migratie `0364_zwift_blocks_jumps` nog niet
+   toegepast.** Een sprong binnen een wereld (startvak, portal) telt niet meer als
+   gereden weg. De minimaps van Makuri, France en Scotland liggen een kwartslag
+   gedraaid recht. Open: pushen, dan `0364` toepassen, dan de Zwift-backfill
+   herhalen tot hij klaar is (in die volgorde). Daarna de kaarten ingelogd
+   bekijken. Zie de ronde met dezelfde naam.
+
 0. **Gebouwd — Teams en resultaten ophalen haalt ook vELO1 (2026-11-25): commit
    `0d9bd42a`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"), geen
    migratie.** Na de teamuitslagen draait de knop
@@ -13002,6 +13010,101 @@ vorm van "niet gevonden" telt als onbekend. De eventpagina's
 
 **Niet geverifieerd.** Niet op productie gedraaid; of de wachtrij na de deploy
 leegloopt, blijkt uit `zwift_rider_metrics.velo_fetched_at`.
+
+### Gebouwd — ZWBlokken Zwift: sprongen geknipt, gedraaide minimaps recht
+
+**2026-11-25.** Commit: de commit die dit blok toevoegt, niet gepusht. Migratie
+`0364_zwift_blocks_jumps.sql`, nog niet toegepast (volgorde hieronder).
+
+**Aanleiding.** Stijn vroeg waarom Karen van de Rakt bijna alle Zwift-werelden
+bezit, terwijl hij zelf alle wegen in Watopia gereden meent te hebben. Daarna zag
+hij dat de kaarten niet op de blokken passen. Op het voorstel: "Ja, bouw het".
+
+**Onderzoek op productie (alleen gelezen).**
+- Karen heeft in de grote werelden echt meer blokken: Watopia 250 tegen 226,
+  London 117 tegen 103, France 126 tegen 99, Makuri 85 tegen 78. In Bologna,
+  Scotland, Yorkshire en Crit City staan ze gelijk. Daar beslissen de kilometers
+  (Watopia 23.692 tegen 8.046), zoals bedoeld in migratie 0166.
+- **Sprongen binnen een wereld.** Zwift zet je tijdens een rit soms kilometers
+  verder: naar een startvak, een portal of het begin van een event. `splitOnJumps`
+  knipte alleen boven de 10 km. Bij kortere sprongen trok de sync een rechte lijn
+  en kleurde elk blok eronder. Voorbeelden: "Zwift - Cooldown in Watopia" met een
+  stap van 8,9 km, de Club Ladder op Going Coastal met 9,4 km. Bij Stijn kwamen 29
+  van zijn 226 Watopia-blokken alleen uit zulke lijnen.
+- **Climb Portal-klimmen binnen de kaart tellen mee.** Migratie 0220 ruimde
+  alleen portalblokken buiten de wereldgrens op. Pla d'Adet, Col du Platzerwasel
+  en Col des Aravis in Watopia, en Hautacam, Isola 2000, Col de la Croix
+  Saint-Robert en Old La Honda in France, tekent Zwift binnen de kaart. Dat
+  verklaart het grootste deel van Karens voorsprong in France.
+- **Minimaps.** Door de routevormen uit `zwift_routes` over elke minimap te leggen:
+  in Makuri Islands, France en Scotland ligt noord rechts. Ongedraaid lagen routes
+  en blokken in Makuri in zee. De grenzen uit zwift-data kloppen wel; alleen het
+  beeld is een kwartslag gedraaid. De andere acht werelden passen. Ook zwift-data
+  2.1.2 (de nieuwste, 2026-10-29) heeft dezelfde grenzen.
+
+**Wat er veranderde.**
+- `jumpThresholdKm` (in `src/lib/zwblokken/zwift.ts`): een stap is een sprong
+  zodra hij langer is dan vier keer de mediane puntafstand van die rit, met
+  1,5 km als ondergrens en 10 km als bovengrens. De mediaan, omdat de sprongen
+  zelf dan niet meetellen. Strava dunt de lijn van een lange rit uit (de Rapha
+  500: één punt per ~2 km), en daar blijft de grens zo ruim.
+- Gemeten met de echte code op alle VirtualRides van de twee leden. Oude regel
+  → nieuwe; de oude aantallen zijn precies wat er in de tabel staat:
+
+  | Wereld | Karen | Stijn |
+  |---|---|---|
+  | Watopia | 250 → 217 | 226 → 197 |
+  | London | 117 → 108 | 103 → 103 |
+  | Makuri Islands | 85 → 73 | 78 → 70 |
+  | France | 126 → 123 | 99 → 97 |
+  | New York | 89 → 88 | 87 → 87 |
+  | Richmond | 28 → 27 | 27 → 27 |
+  | overige zes | gelijk | gelijk |
+
+  Karen blijft dus in Watopia, London, Makuri en France voor.
+- `0364` gooit alle Zwift-blokken weg en zet de cursor van elke VirtualRide terug.
+  Welk blok van een sprong komt, is achteraf niet uit de tabel te halen. De sync
+  rekent van oud naar nieuw, dus `first_seen_at` en `first_activity_id` komen
+  weer goed.
+- Minimap: `imageRotation` per wereld in `src/lib/zwblokken/zwift.ts` (90 voor
+  Makuri, France en Scotland). De kaart gebruikt nu `zwift-minimap.tsx`: een
+  Leaflet-SVG-overlay met het CDN-beeld als `<image>`, dat daarbinnen kan draaien.
+  `ImageOverlay` kan dat niet. Het beeld komt nog steeds rechtstreeks van Zwift.
+- `/hulp` (Club, ZWBlokken): de zin "Een Climb Portal levert geen blokken op"
+  klopte niet meer. Er staat nu dat een klim binnen de kaart meetelt en een sprong
+  niet.
+
+**Bewust niet gebouwd.**
+- De kilometers blijven bij een gelijke stand beslissen. Dat is een eerder besluit
+  (0166), en daar is niet om gevraagd.
+- Climb Portal-klimmen binnen de kaart blijven meetellen. Ze zijn echt gereden, en
+  iedereen kan ze rijden als de portal in de rotatie zit. Een portalrit is ook niet
+  betrouwbaar herkenbaar: een workout op Hautacam heet niet "Climb Portal".
+- Geen eigen gedraaide kopie van de minimaps: het beeld komt van Zwifts CDN
+  (besluit eigenaar, 2026-09-15).
+- Geen fijnere routelijn: van de 10.657 Zwift-ritten met een wereld hebben er
+  1.144 de volledige lijn, de rest alleen Strava's uitgedunde `summary_polyline`.
+- Het effect voor de hele club is niet vooraf gemeten: de controlevraag over alle
+  ritten liep in SQL tegen de time-out aan. Na de backfill staat het in de tabel.
+
+**Niet lokaal te verifiëren.**
+- De migratie (geen Docker of Supabase-config hier).
+- De gedraaide minimap in de app zelf: deze worktree heeft geen `.env.local`. Wel
+  gecontroleerd in een losse Leaflet-pagina met dezelfde SVG-overlay en draaiing,
+  noord boven: de routes van Makuri, France en Scotland vallen op de getekende
+  wegen.
+
+**Volgorde bij livegang.** Eerst de code live, dan `0364` toepassen, dan
+`/api/zwblokken/backfill?zwift=1` herhalen tot `remaining` false is. Andersom
+rekent de sync met de oude regel. Tot de backfill klaar is, zijn de Zwift-kaarten
+en -titels leeg of onvolledig.
+
+**Tests.** `tests/unit/zwblokken-zwift.test.ts`: een sprong binnen de wereld wordt
+geknipt, de uitgedunde lijn van een lange rit niet, de grens volgt de puntafstand,
+en alleen Makuri, France en Scotland draaien, tegen de klok in. Volledige suite: 5013
+groen. Eén fout bestond al: `club-texts-render` "beheer noemt ZWB niet" faalt ook
+zonder deze wijziging. Daarnaast time-outs onder volle belasting (los gedraaid
+groen) en `omnium-live`, dat `.env.local` nodig heeft.
 
 ### Gebouwd — Teams en resultaten ophalen haalt ook vELO1
 
@@ -40904,7 +41007,11 @@ Kevin Plasmans met veel minder Zwift-kilometers dan hij gereden heeft.
 **Wat er veranderde.**
 - `blockInWorld` (in `src/lib/zwblokken/zwift.ts`) heeft geen marge meer: een blok
   telt als zijn middelpunt binnen de grenzen uit zwift-data ligt. Die grenzen zijn
-  die van de minimap, waar de kaart in ZWBlokken ook op ligt.
+  die van de minimap, waar de kaart in ZWBlokken ook op ligt. *Bijgewerkt
+  2026-11-25:* in Makuri, France en Scotland ligt het beeld binnen die grenzen
+  een kwartslag gedraaid. Portalklimmen die Zwift binnen de kaart tekent (Pla
+  d'Adet, Hautacam …), tellen wel mee. Zie de ronde "ZWBlokken Zwift: sprongen
+  geknipt, gedraaide minimaps recht".
 - `0220` wist de bestaande blokken buiten die grenzen, per wereld. De bereiken
   komen uit de nieuwe `worldBlockRange`; een test bewaakt dat die hetzelfde
   antwoord geeft als `blockInWorld`. Ritten hoeven niet opnieuw door de sync.
