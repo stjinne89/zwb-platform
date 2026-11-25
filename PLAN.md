@@ -7,13 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Ladderpuzzel: concept voor seizoen 8 (2026-11-25): commit: de
-   commit die dit blok toevoegt, nog niet gepusht. Migratie
-   `0371_ladder_draft_placements` nog niet toegepast.** In de stand Seizoen 8
-   sleep je alleen nog in een concept; de echte teams in Nu blijven staan.
-   Open: 0371 toepassen (zonder 0371 faalt slepen in Seizoen 8 met een
-   foutmelding, de rest werkt), dan na de deploy in Seizoen 8 slepen en Nu
-   nakijken. Zie de ronde met dezelfde naam.
+0. **Gebouwd — Ladderpuzzel: concept voor seizoen 8 (2026-11-25): commit
+   `c6c92f6b`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, toepassen en
+   push"). Migratie `0371_ladder_draft_placements` vóór de push op productie
+   toegepast.** In de stand Seizoen 8 sleep je alleen nog in een concept; de
+   echte teams in Nu blijven staan. Open: na de deploy in Seizoen 8 slepen en
+   Nu nakijken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — Live ladderstand (2026-11-25): commit `8e2e29c5`, op
    2026-11-25 gepusht naar `main` (eigenaar: "Ja, push"). Geen migratie.** Tijdens een ladderrace op
@@ -13078,8 +13077,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Ladderpuzzel: concept voor seizoen 8
 
 > **2026-11-25 — gebouwd, lokaal getest (unit en migraties op PGlite), niet in
-> de browser bekeken.** Commit: de commit die dit blok toevoegt. Migratie
-> `0371_ladder_draft_placements.sql`, nog niet toegepast.
+> de browser bekeken.** Commit `c6c92f6b`, op 2026-11-25 gepusht naar `main`.
+> Migratie `0371_ladder_draft_placements.sql` op 2026-11-25 via de
+> Supabase-connector op productie toegepast; controle: RLS aan, 0 policies.
 >
 > **Waarom.** De eigenaar wil alvast voorpuzzelen voor seizoen 8 ("Kun je de
 > ladderpuzzel van seizoen 8 loskoppelen van werkende puzzel van nu?"). Tot nu
@@ -13120,9 +13120,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 > `baseline.test.ts` speelt alle migraties met 0371 af op PGlite. Volle
 > suite: alleen `club-texts-render` ("beheer noemt ZWB niet", door de tekst
 > over het ZWB TTT-plan in Sauce, niet door deze ronde) faalt, en
-> `omnium-live` slaat over zonder live-omgeving. **Niet** getest: 0371 op
-> Supabase (geen Docker hier), en slepen in de browser (de lokale server
-> vraagt om in te loggen en de tabel bestaat nog niet op productie).
+> `omnium-live` slaat over zonder live-omgeving. **Niet** getest: slepen in
+> de browser (de lokale server vraagt om in te loggen).
 
 ### Gebouwd — Live ladderstand in de stream-overlay
 
