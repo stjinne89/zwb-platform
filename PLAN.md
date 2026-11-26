@@ -7,8 +7,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Hersteld — Club Ladder: DQ-renners als finishplek (2026-11-26): lokaal
-   gecommit, niet gepusht. Geen migratie; productiedata op 2026-11-26 met de
+0. **Hersteld — Club Ladder: DQ-renners als finishplek (2026-11-26): commit
+   `47d3a1b5`, lokaal, niet gepusht. Geen migratie; productiedata op 2026-11-26 met de
    hand gecorrigeerd (eigenaar: "Yes, both").** De uitslagparser telde een
    gediskwalificeerde renner mee; in de Bandits-race van 19 november stond Jan
    (geen hartslag) daardoor op plek 1 in plaats van Stijn. 42 rijen in 33
@@ -13096,7 +13096,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Hersteld — Club Ladder: DQ-renners als finishplek
 
 > **2026-11-26 — gebouwd, lokaal getest (unit, en de parser over 149 echte
-> uitslagpagina's), niet in de browser bekeken.** Lokaal gecommit, niet
+> uitslagpagina's), niet in de browser bekeken.** Commit `47d3a1b5`, lokaal, niet
 > gepusht. Geen migratie. Productiedata via de Supabase-connector
 > gecorrigeerd na akkoord van de eigenaar ("Yes, both").
 >
