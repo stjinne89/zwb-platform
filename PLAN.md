@@ -25,8 +25,8 @@ gaat stabiliteit voor nieuwe features.
    2026-11-26 gepusht naar `main` (eigenaar: "Ja, beide").** Migratie
    `0373_stream_overlay_webcam` (schakelaar `event_streams.overlay_webcam`)
    vóór de push op productie toegepast. Daarna het gat bij het kader 3:2 met
-   een stand van 10 rijen en een compactere kolom: lokaal, nog niet gepusht,
-   geen migratie. Open: in
+   een stand van 10 rijen en een compactere kolom: op 2026-11-26 gepusht naar
+   `main` (eigenaar: "Push naar main"), geen migratie. Open: in
    OBS met een echte webcam, en de stand met echte ploegen. Zie de ronde met
    dezelfde naam.
 
@@ -1907,8 +1907,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0374`
-(`0373_stream_overlay_webcam` is van de webcam in de overlay, toegepast op 2026-11-26;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0375`
+(`0374_tv_devices` is van TV koppelen met een code, toegepast op 2026-11-26;
+`0373_stream_overlay_webcam` is van de webcam in de overlay, toegepast op 2026-11-26;
 `0369` tot en met `0372` staan bij de rondes van 2026-11-25 (ZWBlokken, extra streams, Ladderpuzzel en de zMAP van de ladder);
 `0368_member_zwift_socks` is van de Aero Lightning Socks in de Zwift-garage, 2026-11-25, toegepast op 2026-11-25;
 `0364` tot en met `0367` staan bij de ZWBlokken-rondes van 2026-11-25;
@@ -13306,12 +13307,13 @@ er als boolean, not null, standaard false).**
   dubbel, rechtgezet. Niet in OBS met een echte webcam; de stand niet met
   echte ploegen. `0373` niet lokaal uit te voeren (geen Docker); het
   is één `add column if not exists`.
-- **Bijgesteld (2026-11-26, lokaal, nog niet gepusht; geen migratie).** De
+- **Bijgesteld (2026-11-26, commits `ae8b003e` en `06f6d259`, op 2026-11-26
+  gepusht naar `main` (eigenaar: "Push naar main"); geen migratie).** De
   eigenaar vroeg hoeveel hoger het gat kon zonder de stand te raken.
   - **Eerste meting fout.** De nagebootste stand liet de regel
     km · hm · rondes weg die de compacte kolom boven de stand zet. Daarop is
-    eerst 4:3 (384×288 op 0, 792) met 9 rijen gebouwd (commit `0e7cffe5`,
-    lokaal) en "minstens 41 pixels lucht" genoteerd: niet waar. Met die regel
+    eerst 4:3 (384×288 op 0, 792) met 9 rijen gebouwd (commit `ae8b003e`,
+    samen met de 3:2 gepusht) en "minstens 41 pixels lucht" genoteerd: niet waar. Met die regel
     viel strip bij 9 rijen 15 tot 59 pixels in het gat, en rugnummer en
     zeefdruk met een routenaam over twee regels ook net. Ook de eerste ronde
     (16:9 met 10 rijen, gepusht) is zo gemeten: daar valt strip bij de ladder
