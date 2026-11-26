@@ -7,7 +7,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — TV koppelen met een code (2026-11-26): op 2026-11-26 gepusht
+0. **Gebouwd — TV koppelen met een code (2026-11-26): commit `2e4b9dff`, op 2026-11-26 gepusht
    naar `main` (eigenaar: "Toepassen en push"). Migratie `0374_tv_devices`
    vóór de push op productie toegepast.** De browser van een tv toont op `/tv` een code en een
    QR-code; een lid keurt hem goed op `/tv/koppel`; daarna toont de tv steeds
@@ -13130,7 +13130,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — TV koppelen met een code
 
-**2026-11-26. Commit: de commit die dit blok toevoegt, op 2026-11-26 gepusht
+**2026-11-26. Commit `2e4b9dff`, op 2026-11-26 gepusht
 naar `main` (eigenaar: "Toepassen en push"). Migratie `0374_tv_devices`
 (tabellen `tv_pair_codes` en `tv_devices`) vóór de push op productie
 toegepast. Daarna gecontroleerd: `authenticated` leest van `tv_devices` alleen
