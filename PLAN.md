@@ -13114,7 +13114,7 @@ migratie.**
   - **Raster** of **Groot**, naast TV, alleen bij twee of meer streams in
     beeld. Het icoon van Groot is `PanelBottom` (groot vlak boven, strook
     eronder); eerst stond er `PanelTop`, dat precies andersom is (eigenaar,
-    2026-11-26, de commit die deze zin toevoegt, lokaal, niet gepusht). Groot: de grote over de hele breedte (buiten TV hooguit 70% van de
+    2026-11-26, commit `338336f5`, op 2026-11-26 gepusht naar `main`). Groot: de grote over de hele breedte (buiten TV hooguit 70% van de
     schermhoogte), de kleine eronder: 3 naast elkaar op een telefoon, 4 op de
     computer, 6 in TV, waar de grote ongeveer driekwart van de hoogte heeft.
     Het pijltje bij een kleine stream zet hem groot en geeft hem het geluid.
