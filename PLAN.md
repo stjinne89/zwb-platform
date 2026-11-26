@@ -8,7 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — ZWBriljant: portret als medaillon op het bordje in de galerij
-   (2026-11-26): op 2026-11-26 gepusht naar `main` (eigenaar: "Ja, push").**
+   (2026-11-26): commit `b63e82d2`, op 2026-11-26 gepusht naar `main`
+   (eigenaar: "Ja, push").**
    Geen migratie. Open: op een staande telefoon bekijken. Zie de ronde met
    dezelfde naam.
 
@@ -13107,8 +13108,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — ZWBriljant: portret als medaillon op het bordje in de galerij
 
 > **2026-11-26 — gebouwd, lokaal getest (typecheck, lint, unit), op 2026-11-26
-> gepusht naar `main` (eigenaar: "Ja, push").** Commit: de commit die dit blok
-> toevoegt. Geen migratie.
+> gepusht naar `main` (eigenaar: "Ja, push").** Commit `b63e82d2`. Geen
+> migratie.
 
 De eigenaar wilde in de galerij van ZWBriljant ieders avatar bij zijn edelsteen,
 verweven met het naambordje. Uit drie schetsen (medaillon op de hoek, zegel
