@@ -8,7 +8,8 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 0. **Gebouwd — Streamcenter: kiezen wat in beeld is, en Groot
-   (2026-11-26): de commit die dit blok toevoegt, lokaal, niet gepusht.** Geen
+   (2026-11-26): commit `15f95ab2`, op 2026-11-26 gepusht naar `main`
+   (eigenaar: "Ja, push").** Geen
    migratie. Open: ingelogd op een echte avond kiezen en Groot zetten, ook op
    een telefoon. Zie de ronde met dezelfde naam.
 
@@ -13100,8 +13101,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Streamcenter: kiezen wat in beeld is, en Groot
 
-**2026-11-26, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
-Geen migratie.**
+**2026-11-26, commit `15f95ab2`, op 2026-11-26 gepusht naar `main`. Geen
+migratie.**
 
 - **Waarom.** Vraag van de eigenaar: in het streamcenter kiezen welke streams
   je in beeld hebt (eerder stonden ze er altijd allemaal), en een weergave met
