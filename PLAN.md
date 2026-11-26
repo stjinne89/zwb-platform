@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Streamcenter: kiezen wat in beeld is, en Groot
+   (2026-11-26): de commit die dit blok toevoegt, lokaal, niet gepusht.** Geen
+   migratie. Open: ingelogd op een echte avond kiezen en Groot zetten, ook op
+   een telefoon. Zie de ronde met dezelfde naam.
+
 0. **Hersteld — Club Ladder: DQ-renners als finishplek (2026-11-26): commit
    `47d3a1b5`, op 2026-11-26 gepusht naar `main` (eigenaar: "Yes, push"). Geen migratie; productiedata op 2026-11-26 met de
    hand gecorrigeerd (eigenaar: "Yes, both").** De uitslagparser telde een
@@ -13092,6 +13097,45 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Streamcenter: kiezen wat in beeld is, en Groot
+
+**2026-11-26, commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
+Geen migratie.**
+
+- **Waarom.** Vraag van de eigenaar: in het streamcenter kiezen welke streams
+  je in beeld hebt (eerder stonden ze er altijd allemaal), en een weergave met
+  één groot beeld en de rest klein eronder. Voorstel akkoord ("Ja").
+- **Wat.**
+  - Boven het raster een knop per stream (aan of uit); de laatste in beeld
+    kan niet uit. Een stream uit beeld heeft geen iframe, dus geen data. Wie
+    het geluid had en uit beeld gaat, verliest het.
+  - **Raster** of **Groot**, naast TV, alleen bij twee of meer streams in
+    beeld. Groot: de grote over de hele breedte (buiten TV hooguit 70% van de
+    schermhoogte), de kleine eronder: 3 naast elkaar op een telefoon, 4 op de
+    computer, 6 in TV, waar de grote ongeveer driekwart van de hoogte heeft.
+    Het pijltje bij een kleine stream zet hem groot en geeft hem het geluid.
+  - Groot zetten en verbergen laden de andere streams niet opnieuw: de grote
+    staat vooraan via CSS `order`, niet door de DOM te verschuiven (in Chromium
+    geteld: geen enkele extra `load`).
+  - De keuze (verborgen streams, weergave, welke groot staat) staat per avond
+    in `localStorage` (`zwb-streamcenter:/streams/<datum>`), met een
+    terugval in het geheugen. Bewaard worden de verborgen streams, zodat een
+    stream die later bijkomt gewoon in beeld komt.
+  - De logica staat in `src/lib/youtube-live/stream-center-view.ts`, los van
+    `stream-center.ts`: dat bestand haalt via de racelinks `node:net` binnen,
+    en de client mag dat niet importeren (de dev-build brak daarop).
+  - Op `/hulp` bij livestreamen: kiezen, Groot en bewaren.
+- **Bewust niet.**
+  - Geen beeld-in-beeld, geen eigen grootte of verdeling, geen volgorde door
+    te slepen.
+  - De keuzerij staat niet in TV: je kiest vooraf.
+  - Geen bewaren per account: het hoort bij het scherm waarop je kijkt.
+- **Niet geverifieerd.** Unittests voor de keuze, Groot en het inlezen.
+  Typecheck en lint schoon. In Chromium met een tijdelijke proefpagina (daarna
+  weer weg) bekeken op 800×600 en 375×812: kiezen, Groot, TV in Groot, en de
+  keuze na herladen. Niet gezien: de echte `/streams/<datum>` ingelogd met
+  echte streams, en een echte telefoon.
 
 ### Hersteld — Club Ladder: DQ-renners als finishplek
 

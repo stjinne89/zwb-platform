@@ -1,9 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { Tv, Volume2, VolumeX, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { LayoutGrid, Maximize2, PanelTop, Tv, Volume2, VolumeX, X } from "lucide-react";
 import type { StreamCenterTile } from "@/lib/youtube-live/stream-center";
+import {
+  parseStreamCenterPrefs,
+  streamCenterView,
+  toggleStreamCenterTile,
+  type StreamCenterLayout,
+  type StreamCenterPrefs,
+} from "@/lib/youtube-live/stream-center-view";
 import { AddExtraStreamForm, type ExtraStreamRace } from "./add-extra-stream";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +26,11 @@ import { cn } from "@/lib/utils";
 // zonder scrollen, voor casten of HDMI; het scherm blijft dan aan. Dezelfde
 // elementen blijven staan, alleen de klassen wisselen: een iframe dat React
 // opnieuw neerzet, laadt de stream opnieuw.
+
+// Kiezen (2026-11-26): welke streams in beeld zijn, en Raster of Groot (één
+// stream breed, de rest klein eronder). Een verborgen stream heeft geen speler,
+// dus geen data. Groot zetten verplaatst niets in de pagina, alleen op het
+// scherm (CSS order): een iframe dat verhuist, laadt opnieuw.
 
 const YT_ORIGIN = "https://www.youtube-nocookie.com";
 const WIDE = "(min-width: 768px)";
@@ -63,6 +76,54 @@ function tvColumns(count: number) {
 }
 
 const LINK = "inline-flex min-h-7 items-center rounded-md border bg-card px-2 text-xs hover:bg-muted";
+const CHIP = "inline-flex min-h-8 max-w-full items-center rounded-full border px-3 text-xs disabled:cursor-not-allowed";
+
+// De keuze per avond op dit apparaat. Lukt localStorage niet (privévenster),
+// dan blijft hij in het geheugen tot de pagina sluit.
+const PREFS_EVENT = "zwb-streamcenter-prefs";
+const memory = new Map<string, string>();
+
+function subscribePrefs(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(PREFS_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(PREFS_EVENT, onChange);
+  };
+}
+
+function readPrefs(key: string): string | null {
+  const kept = memory.get(key);
+  if (kept !== undefined) return kept;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function usePrefs(key: string): [StreamCenterPrefs, (next: StreamCenterPrefs) => void] {
+  const raw = useSyncExternalStore(
+    subscribePrefs,
+    () => readPrefs(key),
+    () => null,
+  );
+  const prefs = useMemo(() => parseStreamCenterPrefs(raw), [raw]);
+  const save = useCallback(
+    (next: StreamCenterPrefs) => {
+      const value = JSON.stringify(next);
+      memory.set(key, value);
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        // Alleen in het geheugen.
+      }
+      window.dispatchEvent(new Event(PREFS_EVENT));
+    },
+    [key],
+  );
+  return [prefs, save];
+}
 
 type PlayerInfo = { muted?: boolean; playing?: boolean };
 type WakeLock = { release: () => Promise<void> };
@@ -96,30 +157,11 @@ export function StreamCenter({
   const soundRef = useRef<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const [tv, setTv] = useState(false);
-
-  function openTv() {
-    setTv(true);
-    // TV start alle streams, ook op de telefoon (spiegelen naar de TV); wie
-    // geluid had, houdt het. Terugkijken start niet vanzelf.
-    for (const tile of tiles) {
-      if (tile.ended) continue;
-      if (tile.id !== soundRef.current) command(tile.id, "mute");
-      command(tile.id, "playVideo");
-    }
-    // Lukt schermvullend niet (iPhone), dan blijft het raster over de pagina.
-    // Lukt het wel, dan ligt een telefoon (Android) meteen dwars; dat mag
-    // alleen schermvullend, en een computer weigert het gewoon.
-    container.current
-      ?.requestFullscreen?.()
-      .then(() => orientation()?.lock?.("landscape"))
-      .catch(() => {});
-  }
-
-  function closeTv() {
-    setTv(false);
-    unlockOrientation();
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  }
+  const [prefs, savePrefs] = usePrefs(`zwb-streamcenter:${usePathname()}`);
+  const ids = tiles.map((tile) => tile.id);
+  const view = streamCenterView(ids, prefs);
+  const shown = tiles.filter((tile) => view.visible.includes(tile.id));
+  const big = view.big;
 
   // Esc of de knop van de browser sluit schermvullend: dan ook TV uit.
   useEffect(() => {
@@ -188,6 +230,49 @@ export function StreamCenter({
     [tiles, command],
   );
 
+  function toggleTile(id: string) {
+    const next = toggleStreamCenterTile(ids, prefs, id);
+    if (next.hidden.includes(id) && soundRef.current === id) {
+      soundRef.current = null;
+      setSoundId(null);
+    }
+    savePrefs(next);
+  }
+
+  function setLayout(layout: StreamCenterLayout) {
+    savePrefs({ ...prefs, layout });
+  }
+
+  /** Groot zetten geeft ook het geluid. */
+  function makeBig(id: string) {
+    savePrefs({ ...prefs, big: id });
+    giveSound(id);
+  }
+
+  function openTv() {
+    setTv(true);
+    // TV start alle streams, ook op de telefoon (spiegelen naar de TV); wie
+    // geluid had, houdt het. Terugkijken start niet vanzelf.
+    for (const tile of shown) {
+      if (tile.ended) continue;
+      if (tile.id !== soundRef.current) command(tile.id, "mute");
+      command(tile.id, "playVideo");
+    }
+    // Lukt schermvullend niet (iPhone), dan blijft het raster over de pagina.
+    // Lukt het wel, dan ligt een telefoon (Android) meteen dwars; dat mag
+    // alleen schermvullend, en een computer weigert het gewoon.
+    container.current
+      ?.requestFullscreen?.()
+      .then(() => orientation()?.lock?.("landscape"))
+      .catch(() => {});
+  }
+
+  function closeTv() {
+    setTv(false);
+    unlockOrientation();
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }
+
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.origin !== YT_ORIGIN || typeof event.data !== "string") return;
@@ -227,7 +312,37 @@ export function StreamCenter({
     }, 1000);
   }
 
-  const columns = tvColumns(tiles.length);
+  // Raster: zoals altijd, met de streams in beeld. Groot: de grote over de hele
+  // breedte, de kleine eronder (telefoon 3, computer 4, TV 6 naast elkaar).
+  const small = shown.length - 1;
+  const columns = big
+    ? Math.max(1, Math.min(small, tv ? 6 : wide ? 4 : 3))
+    : tvColumns(shown.length);
+  const gridStyle = big
+    ? {
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        ...(tv && { gridTemplateRows: `minmax(0, 3fr) repeat(${Math.ceil(small / columns)}, minmax(0, 1fr))` }),
+      }
+    : tv
+      ? {
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${Math.ceil(shown.length / columns)}, minmax(0, 1fr))`,
+        }
+      : undefined;
+  const layoutButton = (layout: StreamCenterLayout, label: string, Icon: typeof LayoutGrid) => (
+    <button
+      type="button"
+      aria-pressed={prefs.layout === layout}
+      onClick={() => setLayout(layout)}
+      className={cn(
+        "inline-flex min-h-9 items-center gap-1.5 px-3 text-xs font-medium",
+        prefs.layout === layout ? "bg-muted" : "bg-card text-muted-foreground hover:bg-muted",
+      )}
+    >
+      <Icon className="size-3.5" aria-hidden />
+      {label}
+    </button>
+  );
   return (
     <div
       ref={container}
@@ -238,29 +353,70 @@ export function StreamCenter({
             "space-y-2 md:relative md:left-1/2 md:w-[min(100vw-2rem,100rem)] md:-translate-x-1/2",
       )}
     >
-      <div className={cn("flex justify-end", tv && "hidden")}>
-        <button
-          type="button"
-          onClick={openTv}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-md border bg-card px-3 text-xs font-medium hover:bg-muted"
-        >
-          <Tv className="size-3.5" aria-hidden />
-          TV
-        </button>
+      <div className={cn("flex flex-wrap items-start gap-2", tv && "hidden")}>
+        {tiles.length > 1 && (
+          // Op de telefoon in een eigen rij onder de knoppen.
+          <div className="order-last flex w-full flex-wrap gap-1.5 md:order-none md:w-auto md:min-w-0 md:flex-1">
+            {tiles.map((tile) => {
+              const inView = view.visible.includes(tile.id);
+              return (
+                <button
+                  key={tile.id}
+                  type="button"
+                  aria-pressed={inView}
+                  disabled={inView && shown.length === 1}
+                  onClick={() => toggleTile(tile.id)}
+                  className={cn(
+                    CHIP,
+                    inView
+                      ? "border-primary/40 bg-primary/10 text-foreground"
+                      : "bg-card text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  <span className="truncate">{tile.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <div className="ml-auto flex gap-2">
+          {shown.length > 1 && (
+            <div className="flex overflow-hidden rounded-md border">
+              {layoutButton("raster", "Raster", LayoutGrid)}
+              {layoutButton("groot", "Groot", PanelTop)}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={openTv}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-md border bg-card px-3 text-xs font-medium hover:bg-muted"
+          >
+            <Tv className="size-3.5" aria-hidden />
+            TV
+          </button>
+        </div>
       </div>
       <ul
-        className={cn("grid", tv ? "h-full gap-1" : cn("grid-cols-1 gap-3", gridClass(tiles.length)))}
-        style={
-          tv
-            ? {
-                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                gridTemplateRows: `repeat(${Math.ceil(tiles.length / columns)}, minmax(0, 1fr))`,
-              }
-            : undefined
-        }
+        className={cn(
+          "grid",
+          tv ? "h-full gap-1" : big ? "gap-3" : cn("grid-cols-1 gap-3", gridClass(shown.length)),
+        )}
+        style={gridStyle}
       >
-        {tiles.map((tile) => {
+        {shown.map((tile) => {
           const hasSound = soundId === tile.id;
+          const isBig = big === tile.id;
+          const bigButton = (className: string) =>
+            big && !isBig ? (
+              <button
+                type="button"
+                aria-label={`Groot: ${tile.label}`}
+                onClick={() => makeBig(tile.id)}
+                className={cn("inline-flex size-9 shrink-0 items-center justify-center rounded-md", className)}
+              >
+                <Maximize2 className="size-4" />
+              </button>
+            ) : null;
           const soundButton = (className: string) => (
             <button
               type="button"
@@ -273,7 +429,16 @@ export function StreamCenter({
             </button>
           );
           return (
-            <li key={tile.id} className={cn("min-w-0", tv ? "min-h-0" : "space-y-1.5")}>
+            <li
+              key={tile.id}
+              className={cn(
+                "min-w-0",
+                tv ? "min-h-0" : "space-y-1.5",
+                // Niet hoger dan 70% van het scherm.
+                isBig && !tv && "mx-auto w-full max-w-[calc(70vh*16/9)]",
+              )}
+              style={isBig ? { order: -1, gridColumn: "1 / -1" } : undefined}
+            >
               <div
                 className={cn(
                   "relative w-full overflow-hidden",
@@ -306,15 +471,19 @@ export function StreamCenter({
                     {tile.live && <span className="size-2 shrink-0 rounded-full bg-red-600" aria-hidden />}
                     <span className="truncate">{tile.label}</span>
                   </span>
-                  {soundButton(
-                    cn("pointer-events-auto bg-black/70 hover:bg-black/90", hasSound ? "text-white" : "text-white/60"),
-                  )}
+                  <span className="flex shrink-0 gap-1">
+                    {bigButton("pointer-events-auto bg-black/70 text-white/60 hover:bg-black/90 hover:text-white")}
+                    {soundButton(
+                      cn("pointer-events-auto bg-black/70 hover:bg-black/90", hasSound ? "text-white" : "text-white/60"),
+                    )}
+                  </span>
                 </div>
               </div>
               <div className={cn("space-y-1", tv && "hidden")}>
                 <div className="flex items-center gap-1 text-sm">
                   {tile.live && <span className="size-2 shrink-0 rounded-full bg-red-600" aria-label="live" />}
                   <span className="min-w-0 flex-1 truncate">{tile.label}</span>
+                  {bigButton("text-muted-foreground hover:bg-muted")}
                   {soundButton(cn("hover:bg-muted", hasSound ? "text-primary" : "text-muted-foreground"))}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
