@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Maximize2, PanelTop, Tv, Volume2, VolumeX, X } from "lucide-react";
+import { LayoutGrid, Maximize2, PanelBottom, Tv, Volume2, VolumeX, X } from "lucide-react";
 import type { StreamCenterTile } from "@/lib/youtube-live/stream-center";
 import {
   parseStreamCenterPrefs,
@@ -383,7 +383,7 @@ export function StreamCenter({
           {shown.length > 1 && (
             <div className="flex overflow-hidden rounded-md border">
               {layoutButton("raster", "Raster", LayoutGrid)}
-              {layoutButton("groot", "Groot", PanelTop)}
+              {layoutButton("groot", "Groot", PanelBottom)}
             </div>
           )}
           <button
