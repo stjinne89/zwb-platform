@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — ZWBriljant: portret als medaillon op het bordje in de galerij
+   (2026-11-26): op 2026-11-26 gepusht naar `main` (eigenaar: "Ja, push").**
+   Geen migratie. Open: op een staande telefoon bekijken. Zie de ronde met
+   dezelfde naam.
+
 0. **Gebouwd — Streamcenter: kiezen wat in beeld is, en Groot
    (2026-11-26): commit `15f95ab2`, op 2026-11-26 gepusht naar `main`
    (eigenaar: "Ja, push").** Geen
@@ -13098,6 +13103,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBriljant: portret als medaillon op het bordje in de galerij
+
+> **2026-11-26 — gebouwd, lokaal getest (typecheck, lint, unit), op 2026-11-26
+> gepusht naar `main` (eigenaar: "Ja, push").** Commit: de commit die dit blok
+> toevoegt. Geen migratie.
+
+De eigenaar wilde in de galerij van ZWBriljant ieders avatar bij zijn edelsteen,
+verweven met het naambordje. Uit drie schetsen (medaillon op de hoek, zegel
+bovenop, portret in het bordje) koos hij het medaillon (A).
+
+- **Medaillon.** Een rond portret van 46px half over de linkerbovenhoek van het
+  petrol museumbordje, zoals een zegel. Eerst 2px petrol en dan een gouden rand
+  van 1,5px: dezelfde opbouw als het logoplaatje bij donker, en het goud van de
+  sokkelrand. De tekst blijft links staan en schuift 44px in. Het bordje werd
+  daarvoor 12.5em breed (was 11.5em). Het schaalt met de sokkel mee zoals
+  voorheen (`placeLabels` in `hall-scene.tsx`), het medaillon dus ook.
+- **Welke avatar.** Die van overal (`memberAvatar`): de foto, anders de kopman.
+  `loadHallStones` haalt `avatar_url` erbij, en bij "Jij" staat je eigen avatar.
+  Leden in de galerij hebben al een zichtbaar profiel, en hun avatar staat ook op
+  `/leden`. Er komt dus niets nieuws in beeld.
+- **Zonder portret.** Records en de drie gemiddelden krijgen in hetzelfde
+  medaillon het ruitje in hun klassekleur. Dat ruitje ligt ook onder elk
+  portret: laadt een plaatje niet, dan valt het weg en blijft het ruitje staan.
+
+**Bewust niet gebouwd.**
+- Het portret als textuur in de 3D-sokkel. Het HTML-bordje is scherper en klikt
+  al.
+- Het zegel bovenop (B), omdat de tekst dan naar het midden moest. Het portret
+  in het bordje (C) ook niet: dat bordje werd breder en schaalde op een smalle
+  sokkel eerder kleiner.
+
+**Gecontroleerd.** In Chrome op productie met de nieuwe CSS tijdelijk in de
+pagina gezet, op desktop: een groot bordje met een foto en een kleiner geschaald
+bordje met het ruitje. Niet bekeken: de echte build lokaal (die vraagt een login),
+een staande telefoon, en kopman-avatars van andere leden in de galerij.
 
 ### Gebouwd — Streamcenter: kiezen wat in beeld is, en Groot
 

@@ -19,6 +19,7 @@ import {
 } from "@/lib/intervals/client";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
 import { isCyclingSportType } from "@/lib/strava/sports";
+import { memberAvatar } from "@/lib/avatar";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { loadTestProfileIds, onlyVisibleProfiles, withoutTestProfiles } from "@/lib/profiles/test-accounts";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
@@ -687,7 +688,7 @@ type UserClient = Awaited<ReturnType<typeof import("@/lib/supabase/server").crea
 export async function loadHallStones(
   supabase: UserClient,
   viewerId: string,
-): Promise<Array<{ id: string; name: string; region: string | null; snapshot: StoredSnapshot }>> {
+): Promise<Array<{ id: string; name: string; region: string | null; avatarUrl: string | null; snapshot: StoredSnapshot }>> {
   const { data, error } = await supabase
     .from("zwbriljant_snapshots")
     .select("profile_id, week, score, facets, consistency")
@@ -702,9 +703,15 @@ export async function loadHallStones(
   if (latest.size === 0) return [];
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, display_name, region, profile_visibility")
+    .select("id, display_name, region, avatar_url, profile_visibility")
     .in("id", [...latest.keys()]);
-  type Row = { id: string; display_name: string | null; region: string | null; profile_visibility: Record<string, boolean> | null };
+  type Row = {
+    id: string;
+    display_name: string | null;
+    region: string | null;
+    avatar_url: string | null;
+    profile_visibility: Record<string, boolean> | null;
+  };
   const byId = new Map(((profiles ?? []) as Row[]).map((row) => [row.id, row]));
   return [...latest.entries()]
     // Geen profiel zichtbaar (testaccount, 0333): geen steen in de galerij.
@@ -713,7 +720,8 @@ export async function loadHallStones(
       const profile = byId.get(id);
       // De regio alleen als het lid die op zijn profiel laat zien (zoals op /leden).
       const region = profile?.profile_visibility?.region === false ? null : profile?.region?.trim() || null;
-      return { id, name: profile?.display_name?.trim() || "Lid", region, snapshot: toStored(row) };
+      // De avatar zoals overal: de foto, anders de kopman (0349).
+      return { id, name: profile?.display_name?.trim() || "Lid", region, avatarUrl: memberAvatar(id, profile?.avatar_url), snapshot: toStored(row) };
     })
     .sort((a, b) => a.name.localeCompare(b.name, "nl"));
 }

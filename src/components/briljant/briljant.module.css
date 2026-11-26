@@ -1086,13 +1086,15 @@
 }
 
 /* In de galerij: een museumbordje op de witte sokkel, petrol met lichte letters:
-   renner, woonplaats of regio, score en klasse, datum. */
+   renner, woonplaats of regio, score en klasse, datum. Linksboven het medaillon
+   met het portret, half over de hoek, zoals een zegel (eigenaar, 2026-11-26). */
 .anchor .plaque {
+  position: relative;
   display: grid;
   justify-items: start;
   gap: 2px;
-  width: 11.5em;
-  padding: 8px 11px 9px;
+  width: 12.5em;
+  padding: 8px 11px 9px 44px;
   transform: translate(-50%, -50%);
   border: 0;
   border-radius: 1px;
@@ -1119,7 +1121,40 @@
   color: #c4d2cd;
 }
 
-.anchor .plaque span {
+/* Het portret in een gouden rand, met eerst een reepje petrol: dezelfde opbouw als
+   het logoplaatje, en het goud van de sokkelrand. Zonder portret het ruitje. */
+.medallion {
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--night);
+  box-shadow:
+    0 0 0 2px #004653,
+    0 0 0 3.5px #c9a45a,
+    0 6px 12px -4px rgb(10 43 52 / 0.7);
+}
+
+.medallion img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+
+.medallionStone {
+  width: 13px;
+  height: 19px;
+}
+
+.anchor .plaque .plaqueScore {
   margin-top: 4px;
   font-size: 12px;
   font-weight: 500;

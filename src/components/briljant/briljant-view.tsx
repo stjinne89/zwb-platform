@@ -55,7 +55,15 @@ export type BriljantCompare = {
   date?: string | null;
 };
 
-export type BriljantHallStone = { id: string; name: string; view: View; region?: string | null; date?: string | null };
+export type BriljantHallStone = {
+  id: string;
+  name: string;
+  view: View;
+  region?: string | null;
+  date?: string | null;
+  /** Het portret op het bordje; zonder (gemiddelden, records) het ruitje van de klasse. */
+  avatarUrl?: string | null;
+};
 
 type Props = {
   tab: BriljantTab;
@@ -784,9 +792,25 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
                   className={styles.plaque}
                   onClick={() => go(stone.id === "ik" ? { tab: "ik" } : { lid: stone.id })}
                 >
+                  {/* Het medaillon op de hoek (eigenaar, 2026-11-26): het ruitje ligt eronder
+                      en blijft staan als er geen portret is of het niet laadt. */}
+                  <span className={styles.medallion} aria-hidden>
+                    <Lozenge level={stone.view.level} className={styles.medallionStone} />
+                    {stone.avatarUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element -- een avatar: foto of kopman
+                      <img
+                        src={stone.avatarUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        draggable={false}
+                        onError={(event) => event.currentTarget.remove()}
+                      />
+                    )}
+                  </span>
                   <b>{stone.name}</b>
                   {stone.region && <i>{stone.region}</i>}
-                  <span>
+                  <span className={styles.plaqueScore}>
                     {nl(stone.view.points)} · {stone.view.level.name}
                   </span>
                   {stone.date && <small>{stone.date}</small>}

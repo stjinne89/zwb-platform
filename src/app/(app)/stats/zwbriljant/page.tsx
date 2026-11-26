@@ -33,6 +33,7 @@ import { moduleName } from "@/lib/club";
 import { getClub } from "@/lib/club";
 import { fillClubText } from "@/lib/club-texts";
 import { clubLogoUrl } from "@/lib/club-icons";
+import { memberAvatar } from "@/lib/avatar";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -246,14 +247,24 @@ export default async function BriljantPage({
       .not("logo_url", "is", null)
       .order("display_order");
     sponsors = (sponsorRows ?? []) as Array<{ id: string; name: string }>;
-    const { data: ownProfile } = await supabase.from("profiles").select("region").eq("id", user.id).maybeSingle();
-    const ownRegion = (ownProfile as { region: string | null } | null)?.region?.trim() || null;
+    const { data: ownProfile } = await supabase.from("profiles").select("region, avatar_url").eq("id", user.id).maybeSingle();
+    const own = ownProfile as { region: string | null; avatar_url: string | null } | null;
+    const ownRegion = own?.region?.trim() || null;
+    // Het portret op het bordje: de avatar van het lid; gemiddelden en records hebben er geen.
+    const avatarOf = new Map(hallStones.map((stone) => [stone.id, stone.avatarUrl]));
     const others = [...averageStones.map((stone) => stone.id), ...hallStones.map((stone) => stone.id)]
       .map(stoneFor)
       .filter((stone): stone is BriljantCompare => stone != null);
     hall = [
-      { id: "ik", name: "Jij", region: ownRegion, date: weekLabel(mondayKey(today)), view: live },
-      ...others.map((stone) => ({ id: stone.id, name: stone.label, region: stone.region ?? null, date: stone.date ?? null, view: stone.view })),
+      { id: "ik", name: "Jij", region: ownRegion, date: weekLabel(mondayKey(today)), view: live, avatarUrl: memberAvatar(user.id, own?.avatar_url) },
+      ...others.map((stone) => ({
+        id: stone.id,
+        name: stone.label,
+        region: stone.region ?? null,
+        date: stone.date ?? null,
+        view: stone.view,
+        avatarUrl: avatarOf.get(stone.id) ?? null,
+      })),
       { id: "records", name: "Records", region: null, date: null, view: records.view },
     ];
   }
