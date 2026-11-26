@@ -26,6 +26,9 @@ const PUBLIC_PATHS = [
   "/verhaal",
   "/profielen",
   "/live",
+  // De tv (0374) logt niet in; zijn sleutel staat in een eigen cookie. /tv/koppel
+  // valt hier ook onder, maar de layout van de app stuurt daar naar het inloggen.
+  "/tv",
   "/omnium",
   // Kopman op het beginscherm: de browser haalt het manifest op zonder cookies.
   "/kopman.webmanifest",

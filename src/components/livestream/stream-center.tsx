@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Maximize2, PanelBottom, Tv, Volume2, VolumeX, X } from "lucide-react";
+import { LayoutGrid, Maximize2, MonitorUp, PanelBottom, Tv, Volume2, VolumeX, X } from "lucide-react";
 import type { StreamCenterTile } from "@/lib/youtube-live/stream-center";
 import {
   parseStreamCenterPrefs,
@@ -26,6 +26,9 @@ import { cn } from "@/lib/utils";
 // zonder scrollen, voor casten of HDMI; het scherm blijft dan aan. Dezelfde
 // elementen blijven staan, alleen de klassen wisselen: een iframe dat React
 // opnieuw neerzet, laadt de stream opnieuw.
+// Een gekoppelde tv (0374, app/tv) staat altijd in TV: alles start gedempt,
+// zonder knop en zonder kruisje. Met de pijltjes van de afstandsbediening gaat
+// het geluid naar de volgende of vorige tegel, ook in TV op een computer.
 
 // Kiezen (2026-11-26): welke streams in beeld zijn, en Raster of Groot (één
 // stream breed, de rest klein eronder). Een verborgen stream heeft geen speler,
@@ -145,10 +148,13 @@ function unlockOrientation() {
 export function StreamCenter({
   tiles,
   addRaces = [],
+  fixedTv = false,
 }: {
   tiles: StreamCenterTile[];
   /** Races waar nog een extra stream bij kan (0370). */
   addRaces?: ExtraStreamRace[];
+  /** Een gekoppelde tv (0374): altijd TV, alles start vanzelf. */
+  fixedTv?: boolean;
 }) {
   const wide = useWide();
   const frames = useRef(new Map<string, HTMLIFrameElement>());
@@ -156,7 +162,8 @@ export function StreamCenter({
   const [soundId, setSoundId] = useState<string | null>(null);
   const soundRef = useRef<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
-  const [tv, setTv] = useState(false);
+  const [tvOpen, setTv] = useState(false);
+  const tv = fixedTv || tvOpen;
   const [prefs, savePrefs] = usePrefs(`zwb-streamcenter:${usePathname()}`);
   const ids = tiles.map((tile) => tile.id);
   const view = streamCenterView(ids, prefs);
@@ -165,7 +172,7 @@ export function StreamCenter({
 
   // Esc of de knop van de browser sluit schermvullend: dan ook TV uit.
   useEffect(() => {
-    if (!tv) return;
+    if (!tvOpen) return;
     function onFullscreen() {
       if (document.fullscreenElement) return;
       setTv(false);
@@ -180,7 +187,7 @@ export function StreamCenter({
       document.removeEventListener("fullscreenchange", onFullscreen);
       window.removeEventListener("keydown", onKey);
     };
-  }, [tv]);
+  }, [tvOpen]);
 
   // Het scherm blijft aan zolang TV open is.
   useEffect(() => {
@@ -272,6 +279,23 @@ export function StreamCenter({
     unlockOrientation();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   }
+
+  // De pijltjes geven het geluid aan de volgende of vorige tegel die speelt.
+  useEffect(() => {
+    if (!tv) return;
+    const playable = shown.filter((tile) => !tile.ended);
+    if (playable.length === 0) return;
+    function onKey(event: KeyboardEvent) {
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      const at = playable.findIndex((tile) => tile.id === soundRef.current);
+      const next = at < 0 ? (step > 0 ? 0 : playable.length - 1) : (at + step + playable.length) % playable.length;
+      giveSound(playable[next].id);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tv, shown, giveSound]);
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
@@ -379,13 +403,20 @@ export function StreamCenter({
             })}
           </div>
         )}
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap justify-end gap-2">
           {shown.length > 1 && (
             <div className="flex overflow-hidden rounded-md border">
               {layoutButton("raster", "Raster", LayoutGrid)}
               {layoutButton("groot", "Groot", PanelBottom)}
             </div>
           )}
+          <Link
+            href="/tv/koppel"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-md border bg-card px-3 text-xs font-medium hover:bg-muted"
+          >
+            <MonitorUp className="size-3.5" aria-hidden />
+            Tv koppelen
+          </Link>
           <button
             type="button"
             onClick={openTv}
@@ -451,7 +482,7 @@ export function StreamCenter({
                       if (frame) frames.current.set(tile.id, frame);
                       else frames.current.delete(tile.id);
                     }}
-                    src={embedSrc(tile, wide && !tile.ended, window.location.origin)}
+                    src={embedSrc(tile, (fixedTv || wide) && !tile.ended, window.location.origin)}
                     onLoad={() => listen(tile.id)}
                     title={`Stream van ${tile.label}`}
                     className="size-full"
@@ -516,7 +547,7 @@ export function StreamCenter({
         onClick={closeTv}
         className={cn(
           "absolute right-2 bottom-2 z-10 inline-flex size-9 items-center justify-center rounded-md bg-black/60 text-white/70 hover:text-white",
-          !tv && "hidden",
+          (!tv || fixedTv) && "hidden",
         )}
       >
         <X className="size-4" />

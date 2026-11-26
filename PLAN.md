@@ -7,6 +7,20 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — TV koppelen met een code (2026-11-26): op 2026-11-26 gepusht
+   naar `main` (eigenaar: "Toepassen en push"). Migratie `0374_tv_devices`
+   vóór de push op productie toegepast.** De browser van een tv toont op `/tv` een code en een
+   QR-code; een lid keurt hem goed op `/tv/koppel`; daarna toont de tv steeds
+   het streamcenter van die avond. Open: na de deploy een echte tv koppelen
+   en kijken of hij vier streams tegelijk afspeelt. Zie
+   de ronde met dezelfde naam.
+
+0. **Onderzocht — Streamcenter op de tv (2026-11-26), geen code.** Alle
+   routes naast elkaar. De eigenaar koos daarna meteen voor TV koppelen
+   ("Voorstel koppelen", "Ja, bouwen"), zonder eerst de tv-browser te
+   proberen. Zie de ronde met dezelfde naam en
+   [docs/streamcenter-tv-onderzoek.md](docs/streamcenter-tv-onderzoek.md).
+
 0. **Gebouwd — Webcam in de overlay (2026-11-26): commit `327b79fe`, op
    2026-11-26 gepusht naar `main` (eigenaar: "Ja, beide").** Migratie
    `0373_stream_overlay_webcam` (schakelaar `event_streams.overlay_webcam`)
@@ -13114,6 +13128,129 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — TV koppelen met een code
+
+**2026-11-26. Commit: de commit die dit blok toevoegt, op 2026-11-26 gepusht
+naar `main` (eigenaar: "Toepassen en push"). Migratie `0374_tv_devices`
+(tabellen `tv_pair_codes` en `tv_devices`) vóór de push op productie
+toegepast. Daarna gecontroleerd: `authenticated` leest van `tv_devices` alleen
+`id`, `profile_id`, `created_at` en `last_seen_at`, en niets van
+`tv_pair_codes`. Eerst als `0373` geschreven; die had een parallelle sessie al
+(webcam), dus hernummerd.**
+
+- **Waarom.** Uit het onderzoek hieronder: alles wat op de tv zelf draait, is
+  niet ingelogd. De eigenaar koos het voorstel "TV koppelen met een code"
+  ("Ja, bouwen"), zonder eerst te proberen of een tv-browser vier streams
+  afspeelt.
+- **Wat.**
+  - `/tv` (`app/tv`, openbaar: `/tv` in `PUBLIC_PATHS`).
+    - Zonder geldige sleutel: een code van zes tekens (zonder 0/O, 1/I/L),
+      een QR-code naar `/tv/koppel?code=…` (pakket `uqr`, nieuw) en het
+      adres. De tv vraagt elke 3 seconden of de code is goedgekeurd. Na 10
+      minuten komt er vanzelf een nieuwe; na een fout over 30 seconden.
+    - Met een sleutel: het streamcenter van die avond (tot 04:00 de dag
+      ervoor, `tvNight`), altijd in TV (`StreamCenter fixedTv`): alles start
+      gedempt, geen knop en geen kruisje. Elke 30 seconden `router.refresh`;
+      de tegels houden hun sleutel, dus wat speelt laadt niet opnieuw. Zonder
+      streams: "Geen streams" en de datum.
+    - Races en streams via de service-rol. Dat is hetzelfde wat een
+      goedgekeurd lid ziet: `events` is leesbaar voor elke ingelogde, en
+      `event_streams` voor goedgekeurde leden.
+  - Het laden van een avond is losgemaakt in `lib/youtube-live/day-streams.ts`
+    (`loadDayStreams`, `isDayKey`), voor `/streams/[datum]` en `/tv`.
+  - De pijltjes geven het geluid aan de volgende of vorige tegel die speelt,
+    in elke TV-stand (ook op een computer).
+  - `/tv/koppel` (onder `(app)`, dus inloggen verplicht): het veld met de
+    code uit de QR, en Koppelen (`approveTvCode`: goedgekeurd lid, 10
+    pogingen per kwartier).
+  - De tv krijgt zijn sleutel bij de volgende vraag (`checkTvPairing`):
+    - de code gaat eerst weg, zodat er maar één sleutel komt;
+    - de sleutel staat in een httpOnly-cookie `zwb_tv` met pad `/tv`, voor
+      400 dagen;
+    - alleen de sha256 staat in `tv_devices`.
+
+    Het geheim van de wachtende tv (`zwb_tv_wacht`) zorgt dat alleen de tv
+    die de code toont de sleutel krijgt. Nieuwe codes: 30 per uur per
+    IP-adres.
+  - Een tv die 90 dagen niet kijkt, vervalt; laatst gekeken wordt hooguit elk
+    uur bijgewerkt. Een lid dat niet (meer) goedgekeurd is, ziet op zijn tv
+    weer een code.
+  - Knop Tv koppelen naast TV in het streamcenter, en een blok Tv's op het
+    profiel (gekoppeld, laatst gekeken, Ontkoppelen; `#tv`).
+  - Privacyverklaring (bij Livestreamen): één zin over de sleutel, de data
+    en het vervallen. Alleen de tekst aangepast, geen nieuwe versie: de tv
+    hangt aan een lid, dus de belofte "ingelogde leden zien de stream"
+    verruimt niet.
+  - `/hulp`, bij livestreamen: een alinea over Tv koppelen.
+- **Bewust niet.**
+  - Na het inloggen terug naar `/tv/koppel`: het inloggen kent geen
+    terugadres. Wie de app vanaf het beginscherm gebruikt, opent met de
+    camera de browser en is daar misschien niet ingelogd; daarom staat de
+    knop ook in het streamcenter en zegt `/hulp` dat je de code dan in de app
+    intikt.
+  - Geen naam per tv, de castknop in de app, en de YouTube-link per tegel.
+    Die staan in het onderzoek als losse vervolgstappen.
+- **Niet geverifieerd.**
+  - Typecheck, lint en de unit-tests (`tv-pairing`, `stream-center`,
+    `calendar-streams`, `middleware-public-paths`) zijn schoon. De hele
+    suite: 5101 van 5102 groen. De ene fout bestond al:
+    `club-texts-render` vindt "venster ZWB TTT-plan" in de hulp bij beheer
+    (sinds `d475feda`, 2026-11-17). Daarnaast mist `omnium-live` lokaal
+    `.env.local`, en `admin-areas` liep onder belasting op een timeout; los
+    gedraaid is hij groen.
+  - Gezien op een tijdelijke pagina onder `/dev/` (daarna weggehaald), lokaal
+    zonder YouTube-instellingen:
+    - het koppelscherm op 800×600 en 1920×1080;
+    - TV met 4 tegels in 2×2 op 1920×1080, alle vier gedempt aan het spelen;
+    - de pijltjes geven het geluid rond;
+    - na een verversing laadden de spelers niet opnieuw;
+    - "Geen streams";
+    - de knop Tv koppelen in het streamcenter en het formulier op 375×812;
+    - de foutmelding bij Koppelen.
+  - Ook gezien: `/tv` geeft lokaal 404 (geen YouTube-instellingen) en stuurt
+    niet naar het inloggen; `/tv/koppel` zonder sessie wel.
+  - Na het samenvoegen met "Streamcenter: kiezen wat in beeld is, en Groot"
+    opnieuw bekeken: de knoppen op 375 breed (TV schuift naar een tweede
+    regel), en TV met de pijltjes op 1920×1080. De pijltjes lopen over de
+    streams die in beeld zijn.
+  - Niet gezien: een echte code aanmaken, goedkeuren en de sleutel krijgen
+    (kan pas na de deploy), het profielblok, en een echte tv-browser.
+
+### Onderzocht — Streamcenter op de tv: alle routes (geen code)
+
+**2026-11-26. Geen code, geen migratie.** Details en bronnen in
+[docs/streamcenter-tv-onderzoek.md](docs/streamcenter-tv-onderzoek.md).
+
+- **Waarom.** De eigenaar vroeg om alle mogelijkheden om het streamcenter
+  makkelijk op de tv te krijgen, na de TV-knop en het spiegelen van
+  2026-11-25.
+- **Conclusie.**
+  - Vandaag zonder bouwen: laptop met HDMI (beste beeld), Chrome Tabblad
+    casten (hele raster hooguit 720p), de pc spiegelen (`Win+K`, AirPlay) of de
+    telefoon spiegelen.
+  - Het struikelblok voor alles wat op de tv zelf draait (tv-browser,
+    Chromecast-ontvanger, een tabblad dat Chrome zelf cast) is inloggen: dat
+    is niet ingelogd, of alleen met e-mail en wachtwoord via de
+    afstandsbediening. De inloglink per mail opent op de telefoon.
+  - Grootste onbekende: of een tv-browser of stick vier YouTube-spelers
+    tegelijk afspeelt. Voorstel: dat eerst echt proberen (op de tv inloggen
+    en het streamcenter openen).
+  - Speelt het: **TV koppelen met een code** bouwen (tv toont code en QR, een
+    lid keurt goed op de telefoon, de tv krijgt een sleutel die alleen de
+    tv-pagina opent). Dat vraagt een migratie en een zin in de
+    privacyverklaring; de tv hangt aan een lid, dus de belofte "alleen
+    ingelogde leden" blijft.
+  - Een castknop in de app (`PresentationRequest`) kan pas daarna: Chrome cast
+    dan een incognito tabblad, dus zonder koppeling niet ingelogd.
+- **Bewust niet.** Eigen Chromecast-ontvanger (registratie bij Google, geen
+  iPhone als zender, vier spelers op een Chromecast onbekend; Google maakt sinds
+  2024 geen Chromecast meer), eigen tv-apps per merk, YouTube Multiview (niet
+  voor eigen streams), en een deelbare tv-link zonder koppeling (verruimt de
+  privacybelofte).
+- **Niet geverifieerd.** Niets op een echte tv, Chromecast of Fire TV
+  geprobeerd; de 720p-grens komt uit de hulp van Google, het
+  `PresentationRequest`-gedrag uit bronnen van 2016–2017.
+
 ### Gebouwd — Webcam in de overlay
 
 **2026-11-26, commit `327b79fe`, op 2026-11-26 gepusht naar `main`. Migratie
@@ -13567,7 +13704,8 @@ migratie.**
     ingelogd is. Of een Chromecast vier YouTube-spelers tegelijk aankan, is
     onbekend.
   - Ook geen TV-link met een sleutel voor de browser van een smart-tv: dat is
-    werk aan het datamodel, en spiegelen dekt de vraag.
+    werk aan het datamodel, en spiegelen dekt de vraag. (Niet meer waar sinds
+    2026-11-26: zie "Gebouwd — TV koppelen met een code".)
 - **Niet geverifieerd.** In Chromium op 375×812 bekeken met een tijdelijke
   proefpagina, die daarna weer weg is:
   - zonder TV startte niets;
@@ -13837,7 +13975,9 @@ migratie.**
   - Geen eigen Chromecast-app (Google Cast-ontvanger): die moet bij Google
     geregistreerd worden, en een tabblad casten doet hetzelfde.
   - Geen tv-link zonder inloggen: wie streamt is alleen voor leden, en een
-    openbare link vraagt een eigen toegangssleutel.
+    openbare link vraagt een eigen toegangssleutel. (Sinds 2026-11-26 is er
+    wel een tv zonder inloggen, aan een lid gekoppeld met een code; een
+    deelbare link nog steeds niet. Zie "Gebouwd — TV koppelen met een code".)
   - Geen streams van meer dagen op één pagina.
 - **Niet meer waar.** De ronde "Gebouwd — Streamcenter: alle streams van een
   race tegelijk": de pagina `/events/[id]/streams` en de knop naar het

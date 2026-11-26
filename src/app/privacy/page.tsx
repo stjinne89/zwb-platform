@@ -282,8 +282,12 @@ export default function PrivacyPage() {
             die app opdrachten te sturen, en de stand van OBS (streamt, klaar of
             niet bereikbaar) met wanneer de app zich laatst meldde. De app stuurt
             alleen die stand; geen beeld en geen bestanden. De opdrachten lopen
-            via Supabase, de databasedienst van de app. Streams die al bij races
-            staan, blijven staan tot je ze weghaalt.
+            via Supabase, de databasedienst van de app. Koppel je een tv, dan
+            bewaren we bij jou een sleutel voor die tv (alleen als hash), wanneer
+            je hem koppelde en wanneer hij laatst keek; de tv toont alleen de
+            streams van die avond. Ontkoppel je hem, of kijkt hij 90 dagen niet,
+            dan verdwijnt hij. Streams die al bij races staan, blijven staan tot
+            je ze weghaalt.
             Bij het opheffen van je account verdwijnt alles, behalve de video&apos;s
             op je eigen kanaal.
           </li>

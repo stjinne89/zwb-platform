@@ -15,6 +15,7 @@ import { ProfileForm } from "./_components/profile-form";
 import { ProfileHeader } from "./_components/profile-header";
 import { PushToggle } from "./_components/push-toggle";
 import { CalendarFeed, type CalendarFeedStatus } from "./_components/calendar-feed";
+import { TvDevices, type TvDevice } from "./_components/tv-devices";
 import { MyQuotes, type MyQuote } from "./_components/my-quotes";
 import { StravaSection } from "./_components/strava-section";
 import { getClub } from "@/lib/club";
@@ -145,6 +146,14 @@ export default async function ProfielPage({
         .select("channel_title, needs_reconnect")
         .eq("profile_id", user.id)
         .maybeSingle()
+    : { data: null };
+  // Gekoppelde tv's (0374); zonder die tabel een lege lijst.
+  const { data: tvRows } = showYouTube
+    ? await supabase
+        .from("tv_devices")
+        .select("id, created_at, last_seen_at")
+        .eq("profile_id", user.id)
+        .order("created_at")
     : { data: null };
   // Liverace (0339) los opgehaald: zonder die kolom blijven de andere meldingen werken.
   const { data: raceStreamPref } = showYouTube
@@ -421,6 +430,12 @@ export default async function ProfielPage({
             notice={youtubeNotice}
             helper={helperState}
           />
+        </div>
+      )}
+
+      {showYouTube && (
+        <div id="tv" className="scroll-mt-20">
+          <TvDevices initial={(tvRows ?? []) as TvDevice[]} />
         </div>
       )}
 
