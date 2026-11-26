@@ -72,17 +72,17 @@ describe("overlaySize", () => {
     }
   });
 
-  it("laat bij het kader linksonder een webcamgat van 16:9 vrij, zo breed als de kolom en naast Zwift", () => {
-    expect(webcamWindowFor("1920x1080")).toEqual({ x: 0, y: 864, width: 384, height: 216 });
-    expect(webcamWindowFor("2400x1350")).toEqual({ x: 0, y: 1080, width: 480, height: 270 });
-    expect(webcamWindowFor("1600x900")).toEqual({ x: 0, y: 720, width: 320, height: 180 });
+  it("laat bij het kader linksonder een webcamgat van 4:3 vrij, zo breed als de kolom en naast Zwift", () => {
+    expect(webcamWindowFor("1920x1080")).toEqual({ x: 0, y: 792, width: 384, height: 288 });
+    expect(webcamWindowFor("2400x1350")).toEqual({ x: 0, y: 990, width: 480, height: 360 });
+    expect(webcamWindowFor("1600x900")).toEqual({ x: 0, y: 660, width: 320, height: 240 });
     for (const s of OVERLAY_SIZES.filter((o) => o.layout === "frame")) {
       const cam = webcamWindowFor(s.key);
       const zwift = zwiftWindowFor(s.key);
       expect(cam.width).toBe(zwift.x);
       expect(cam.y + cam.height).toBe(s.height);
-      expect(cam.width * 9).toBe(cam.height * 16);
-      expect(overlayCam(s.key)).toEqual({ width: 384, height: 216 });
+      expect(cam.width * 3).toBe(cam.height * 4);
+      expect(overlayCam(s.key)).toEqual({ width: 384, height: 288 });
     }
   });
 

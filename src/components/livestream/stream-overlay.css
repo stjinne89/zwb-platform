@@ -234,8 +234,8 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
 }
 .stream-overlay[data-layout="wide"] .stream-overlay-wait { flex: 1; padding: 10px 12px; font-size: 20px; }
 
-/* Webcam (0373): een doorzichtig gat van 16:9 linksonder voor het beeld van de
-   webcam. Bij het kader houdt de kolom erboven op (de stand is dan korter, zie
+/* Webcam (0373): een doorzichtig gat linksonder voor het beeld van de webcam,
+   4:3 bij het kader en 16:9 bij ultrawide. Bij het kader houdt de kolom erboven op (de stand is dan korter, zie
    de overlaypagina); bij ultrawide begint de balk onder rechts ervan.
    --ov-cam-w en --ov-cam-h komen per maat uit overlay-size.ts. Dit geldt in
    elke stijl; de lijn om het gat staat per stijl. */
