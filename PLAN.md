@@ -1,11 +1,19 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-25)
+## Actieve volgorde (bijgewerkt 2026-11-26)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
+
+0. **Hersteld — Club Ladder: DQ-renners als finishplek (2026-11-26): lokaal
+   gecommit, niet gepusht. Geen migratie; productiedata op 2026-11-26 met de
+   hand gecorrigeerd (eigenaar: "Yes, both").** De uitslagparser telde een
+   gediskwalificeerde renner mee; in de Bandits-race van 19 november stond Jan
+   (geen hartslag) daardoor op plek 1 in plaats van Stijn. 42 rijen in 33
+   wedstrijden verwijderd en de plekken hernummerd. Open: na een deploy de
+   eventpagina van 19 november bekijken. Zie de ronde met dezelfde naam.
 
 0. **Gebouwd — zMAP van de Club Ladder in de Ladderpuzzel (2026-11-25): commit
    `27702cf7`, op 2026-11-25 gepusht naar `main` (eigenaar: "Ja, toepassen en
@@ -13084,6 +13092,62 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Club Ladder: DQ-renners als finishplek
+
+> **2026-11-26 — gebouwd, lokaal getest (unit, en de parser over 149 echte
+> uitslagpagina's), niet in de browser bekeken.** Lokaal gecommit, niet
+> gepusht. Geen migratie. Productiedata via de Supabase-connector
+> gecorrigeerd na akkoord van de eigenaar ("Yes, both").
+>
+> **Waarom.** Voor een ZWBulletin stond Jan van der Woude als winnaar van
+> ZWBandits – Valhalla Garmr (19-11, uitslag 18283), want hij stond op plek 1
+> in `club_ladder_match_riders`. Stijn won; Jan had geen hartslag ("No HRM").
+> De aanname was dat de ladder zo'n renner eerst bovenaan zet en later
+> weghaalt. Dat klopt niet: hij staat vanaf het begin in de HTML van
+> `/public/result/<id>`, op zijn finishplek, met 0 punten, `class="analyse DQ "`
+> en een `<div class="DQreason">` in de naamcel. De ladder-JS (`moveOutDQs`)
+> schuift die rijen in de browser naar een ingeklapt "DQs"-blok; het podium
+> (server-side) laat ze weg. Onze parser las de kale HTML, telde ze als
+> finishplek en plakte de reden aan de naam ("j woude zwb 62 years No HRM").
+>
+> **Onderzocht.** Alle 149 wedstrijden met renners naast de live pagina
+> gelegd. 33 wedstrijden met samen 42 zulke rijen (alle 0 punten); in 16
+> daarvan stond de DQ-renner boven echte finishers, waaronder de ZWB-races
+> 12617 (Unusual Style), 12826 en 13220 (Private Data) en 18283. De rest had
+> alleen een DNF-rij onderaan. Twee valkuilen:
+> - `DQ` staat ook in het tweede klasse-slot (`class="analyse  DQ"`), op een
+>   heel team per wedstrijd. Die renners staan op het podium en hun punten
+>   tellen in de score: geen DQ. `hasClass("DQ")` ziet het verschil niet; de
+>   reden (of de klasse-string) wel.
+> - Uitslag 18160: een renner met 0 punten bovenaan zonder markering, die het
+>   podium overslaat.
+> Bij 17360, 17467 en 17652 telt de pagina zelf niet op tot de ladderscore
+> (bijv. 28-17 tegen 28-27); onze opslag volgt de pagina, geen fout van ons.
+>
+> **Nu.**
+> - `parseLadderResultPage` slaat een rij over met een DQreason of DQ in het
+>   eerste slot (`isDisqualified`), en een renner zonder punten die boven een
+>   scorende renner staat. De plek is de volgorde van wie overblijft; de
+>   reden gaat niet meer in de naam. Over alle 149 pagina's geeft de parser
+>   nu dezelfde top drie als het podium van de ladder.
+> - `ensureMatchRiders` ruimt na het opslaan plekken boven het nieuwe aantal
+>   op; de upsert op (result_id, position) liet die anders staan.
+> - Productie: de 42 rijen verwijderd en de plekken per wedstrijd hernummerd
+>   (twee stappen via negatieve plekken, want de sleutel is niet deferrable).
+>   Controle achteraf: 18283 begint met Stijn (10), geen gaten, geen rijen
+>   met 0 punten meer.
+>
+> **Bewust niet.**
+> - Geen kolom `dq_reason` om DQ's te bewaren en op de eventpagina te tonen:
+>   vraagt een migratie en aanpassingen bij elke lezer van de renners, voor
+>   iets wat de ladder zelf al ingeklapt toont.
+> - Geen herhaald ophalen in de dagen na de race: de ladder verandert de
+>   uitslag niet; hij markeert de DQ vanaf het begin. Een gecorrigeerde score of
+>   "Finished" dat "Final" wordt, haalt de renners al opnieuw op (sinds
+>   2026-11-20, `store.ts`).
+> - De vermogensdata van een DQ-renner gaat mee weg uit het advies. Bij
+>   "Unusual Style" of "Sticky Watts" is die toch verdacht.
 
 ### Gebouwd — zMAP van de Club Ladder in de Ladderpuzzel
 
@@ -28833,6 +28897,9 @@ eigen pagina.
   uitslagpagina (`/public/result/<id>`) toont wél per wedstrijd de renners, welke
   kant won, rijtijd en het Zwift-event. `result-page.ts` leest die; het team
   volgt uit de winnende kant (bij gelijke stand verliest de uitdager).
+  Gediskwalificeerden (DNF, "No HRM" ...) slaat hij sinds 2026-11-26 over; daarvoor
+  telden ze als finishplek, zie de ronde "Hersteld — Club Ladder: DQ-renners
+  als finishplek".
   `matches.ts` haalt daarna de Zwift-uitslag van het event op
   (`fetchSubgroupResults`, met de bestaande wachtrij van 2 verzoeken per
   seconde) en koppelt renners op rijtijd (sinds 2026-11-19 het kleinste

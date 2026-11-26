@@ -116,17 +116,25 @@ export function resultPage(opts: {
   routeId: number;
   route: string;
   laps: number;
-  riders: Array<{ name: string; points: number; win: boolean; time: number; wkg: number }>;
+  /**
+   * dq: gediskwalificeerd zoals de ladder het opmaakt (`analyse DQ `, met reden).
+   * teamFlag: DQ in het tweede klasse-slot (`analyse  DQ`), dat op een heel team
+   * staat dat gewoon meetelt.
+   */
+  riders: Array<{ name: string; points: number; win: boolean; time: number; wkg: number; dq?: string; teamFlag?: boolean }>;
 }) {
   const rows = opts.riders
     .map(
-      (rider, index) => `<tr data-finish-group="${index}" data-riderId="${300000 + index}" data-eventId="${opts.eventId}" class="analyse  ">
+      (rider, index) => `<tr data-finish-group="${index}" data-riderId="${300000 + index}" data-eventId="${opts.eventId}" class="analyse ${rider.dq ? "DQ" : ""} ${rider.teamFlag ? "DQ" : ""}">
 <td class="riderPos text-muted" > ${index + 1} </td>
 <td class="riderScore ${rider.win ? "riderWinScore" : "riderLoseScore"}">
 ${rider.points}
 </td>
 <td class="riderName">
 ${rider.name}
+${rider.dq ? `<div class="DQreason text-muted">
+${rider.dq}
+</div>` : ""}
 </td>
 <td class="riderRank" data-rider-score="1500">undefined undefined</td>
 <td class="timeFormat text-end"    >${rider.time}</td>

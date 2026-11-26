@@ -5,7 +5,7 @@ import { getClub } from "@/lib/club";
 
 export type LadderResultRider = {
   name: string;
-  /** Finishplek in de wedstrijd, 1 = eerste. */
+  /** Finishplek in de wedstrijd, 1 = eerste; gediskwalificeerden tellen niet mee. */
   position: number;
   points: number;
   /** Rijtijd in seconden, zoals de ladder hem toont. */
@@ -51,22 +51,41 @@ export function parseLadderResultPage(html: string, teams: { challenger: string;
 
   const winner = teams.challengerScore > teams.opponentScore ? teams.challenger : teams.opponent;
   const loser = winner === teams.challenger ? teams.opponent : teams.challenger;
-  const riders: LadderResultRider[] = [];
-  $("table.resultTable tr[data-riderId]").each((index, tr) => {
+  const rows: Array<Omit<LadderResultRider, "position">> = [];
+  $("table.resultTable tr[data-riderId]").each((_, tr) => {
     const row = $(tr);
+    if (isDisqualified(row.attr("class"), clean(row.find(".DQreason").text()))) return;
     const score = row.find("td.riderScore");
-    const name = clean(row.find("td.riderName").text());
+    const cell = row.find("td.riderName").clone();
+    cell.find(".DQreason").remove();
+    const name = clean(cell.text());
     if (!name) return;
-    riders.push({
+    rows.push({
       name,
-      position: index + 1,
       points: Number(clean(score.text())) || 0,
       timeS: positive(clean(row.find("td.timeFormat").text())),
       avgWkg: positive(clean(row.find("td.powerFormat").text())),
       team: score.hasClass("riderWinScore") ? winner : loser,
     });
   });
+  // Zonder punten boven iemand die wel scoorde: geen echte finish (het podium
+  // van de ladder slaat hem over, ook zonder DQ-markering; 18160).
+  const lastScorer = rows.findLastIndex((rider) => rider.points > 0);
+  const riders = rows
+    .filter((rider, index) => rider.points > 0 || index > lastScorer)
+    .map((rider, index) => ({ ...rider, position: index + 1 }));
   return { zwiftEventId: zwiftEventId && Number.isSafeInteger(zwiftEventId) ? zwiftEventId : null, zwiftRouteId, routeName, laps, riders };
+}
+
+/**
+ * Een gediskwalificeerde renner (DNF, "No HRM", "Unusual Style" ...) staat
+ * gewoon in de HTML, op zijn finishplek, met 0 punten; de ladder-JS schuift hem
+ * in de browser naar een ingeklapt DQ-blok. Kenmerk: een DQreason, of DQ in het
+ * eerste klasse-slot (`analyse DQ `). DQ in het tweede slot (`analyse  DQ`) staat
+ * op een heel team dat gewoon meetelt (op het podium, punten in de score).
+ */
+export function isDisqualified(className: string | undefined, reason: string) {
+  return reason !== "" || /^analyse DQ\b/.test(className ?? "");
 }
 
 export async function fetchLadderResultPage(resultId: number) {

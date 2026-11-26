@@ -101,6 +101,8 @@ export async function ensureMatchRiders(admin: Admin, matches: MatchRow[], budge
         })),
         { onConflict: "result_id,position" },
       );
+      // Een herhaalde ophaalronde met minder renners laat anders oude plekken achter.
+      await admin.from("club_ladder_match_riders").delete().eq("result_id", match.result_id).gt("position", riders.length);
       const routeSlug = findLadderRouteSlug(page.routeName ?? match.route_name, page.zwiftRouteId) ?? match.route_slug;
       // Zonder Zwift-uitslag (nog niet binnen of geen account) later opnieuw proberen.
       const complete = zwift.length > 0 || !zwiftClubConfigured() || !page.zwiftEventId;

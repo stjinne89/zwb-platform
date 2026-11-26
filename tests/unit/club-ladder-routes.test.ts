@@ -156,6 +156,45 @@ describe("openbare uitslagpagina", () => {
     const page = parseLadderResultPage(html, { challenger: "EVO Borealis", opponent: "Galaxy Velorum", challengerScore: 10, opponentScore: 10 });
     expect(page.riders[0].team).toBe("Galaxy Velorum");
   });
+
+  // Uitslag 18283 (2026-11-19): de ladder liet Jan (geen hartslag) bovenaan
+  // in de HTML staan; wij zetten hem op plek 1, met "No HRM" aan zijn naam.
+  const teams = { challenger: "ZWBandits", opponent: "Valhalla Garmr", challengerScore: 30, opponentScore: 24 };
+  const withDq = (riders: Parameters<typeof resultPage>[0]["riders"]) =>
+    parseLadderResultPage(resultPage({ eventId: 5795757, routeId: 1, route: "Montmartre Mixer", laps: 1, riders }), teams).riders;
+
+  it("slaat een gediskwalificeerde renner over en schuift de plekken op", () => {
+    const riders = withDq([
+      { name: "j woude zwb 62 years", points: 0, win: true, time: 2595.02, wkg: 3.83, dq: "No HRM" },
+      { name: "Stijn Martens (ZWB)", points: 10, win: true, time: 2585.23, wkg: 2.98 },
+      { name: "Ian.T [TV]", points: 9, win: false, time: 2620.53, wkg: 3.01 },
+      { name: "2 Harmen (ZWB)", points: 0, win: true, time: 0, wkg: 0, dq: "DNF" },
+    ]);
+    expect(riders.map((r) => [r.position, r.name, r.points])).toEqual([
+      [1, "Stijn Martens (ZWB)", 10],
+      [2, "Ian.T [TV]", 9],
+    ]);
+  });
+
+  it("houdt een team met DQ in het tweede klasse-slot, dat telt mee", () => {
+    const riders = withDq([
+      { name: "Stijn Martens (ZWB)", points: 10, win: true, time: 2585, wkg: 3 },
+      { name: "Anders Lifjeld [V]", points: 9, win: false, time: 2586, wkg: 3.7, teamFlag: true },
+    ]);
+    expect(riders.map((r) => r.name)).toEqual(["Stijn Martens (ZWB)", "Anders Lifjeld [V]"]);
+  });
+
+  it("slaat een renner zonder punten boven een scorende renner over, ook zonder markering", () => {
+    const riders = withDq([
+      { name: "Anton (TeamNL)", points: 0, win: false, time: 2220.92, wkg: 4.8 },
+      { name: "Bjorn", points: 10, win: true, time: 2221, wkg: 4.5 },
+      { name: "Laatste", points: 0, win: false, time: 2400, wkg: 3 },
+    ]);
+    expect(riders.map((r) => [r.position, r.name])).toEqual([
+      [1, "Bjorn"],
+      [2, "Laatste"],
+    ]);
+  });
 });
 
 describe("koppeling met de Zwift-uitslag", () => {
