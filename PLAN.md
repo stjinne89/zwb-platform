@@ -13145,7 +13145,13 @@ nog niet op productie.**
   het gat niet meer en wordt OBS instellen weer passen en meten. Een webcam
   over het Zwift-beeld: daar staat de HUD van Zwift. Ronde of afgeronde
   maskers: OBS knipt het beeld niet bij, het gat zou dan om een recht beeld
-  heen liggen. De maten in het streampaneel zelf (zoals voorgesteld): de
+  heen liggen. Een grotere webcam bij ultrawide: vergeleken met een echte
+  stream van een lid (webcam ongeveer 350×249 op 1920×1080, over Zwift heen)
+  is het gat bij het kader even groot (384×216, ongeveer 95% van het
+  oppervlak), maar bij ultrawide maar een derde (de balk onder is niet
+  hoger). Voorgesteld: zo groot als bij het kader, 90 pixels het Zwift-beeld
+  in. Eigenaar 2026-11-26: "Laat zo", het gaat nu om de gewone overlay.
+  De maten in het streampaneel zelf (zoals voorgesteld): de
   afspraak is dat uitleg op /hulp staat, dus daar staan ze, net als die van
   Zwift.
 - **Getest.** Unittests voor de maten (`stream-overlay-size.test.ts`). In de
