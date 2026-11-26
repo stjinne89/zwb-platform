@@ -126,3 +126,10 @@
 /* Bij ultrawide valt de lijn boven samen met die onder het grote plaatje. */
 .stream-overlay[data-style="strip"][data-layout="wide"] .stream-overlay-cam::before { top: 0; }
 .stream-overlay[data-cam][data-layout="wide"] .ovs-side { left: calc(var(--ov-cam-w) + 26px); }
+/* Bij het kader met webcam: kleinere goten en lagere kaartjes, zodat er 10
+   rijen stand boven het gat passen. */
+.stream-overlay[data-cam]:not([data-layout="wide"]) .ovs-side[data-compact] { gap: 12px; }
+.stream-overlay[data-cam]:not([data-layout="wide"]) .ovs-side[data-compact] .ovs-route { padding: 14px 20px; }
+.stream-overlay[data-cam]:not([data-layout="wide"]) .ovs-side[data-compact] .ovs-route-name { margin-bottom: 4px !important; }
+.stream-overlay[data-style="strip"][data-cam]:not([data-layout="wide"]) .stream-overlay-stand { gap: 5px; }
+.stream-overlay[data-style="strip"][data-cam]:not([data-layout="wide"]) .stream-overlay-stand li { padding: 3px 10px; }

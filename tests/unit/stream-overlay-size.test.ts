@@ -72,17 +72,19 @@ describe("overlaySize", () => {
     }
   });
 
-  it("laat bij het kader linksonder een webcamgat van 4:3 vrij, zo breed als de kolom en naast Zwift", () => {
-    expect(webcamWindowFor("1920x1080")).toEqual({ x: 0, y: 792, width: 384, height: 288 });
-    expect(webcamWindowFor("2400x1350")).toEqual({ x: 0, y: 990, width: 480, height: 360 });
-    expect(webcamWindowFor("1600x900")).toEqual({ x: 0, y: 660, width: 320, height: 240 });
+  it("laat bij het kader linksonder een webcamgat van 3:2 vrij, zo breed als de kolom en naast Zwift", () => {
+    expect(webcamWindowFor("1920x1080")).toEqual({ x: 0, y: 824, width: 384, height: 256 });
+    expect(webcamWindowFor("2400x1350")).toEqual({ x: 0, y: 1030, width: 480, height: 320 });
+    expect(webcamWindowFor("1600x900")).toEqual({ x: 0, y: 687, width: 320, height: 213 });
     for (const s of OVERLAY_SIZES.filter((o) => o.layout === "frame")) {
       const cam = webcamWindowFor(s.key);
       const zwift = zwiftWindowFor(s.key);
       expect(cam.width).toBe(zwift.x);
       expect(cam.y + cam.height).toBe(s.height);
-      expect(cam.width * 3).toBe(cam.height * 4);
-      expect(overlayCam(s.key)).toEqual({ width: 384, height: 288 });
+      // Op een halve pixel na 3:2.
+      expect(Math.abs((cam.width * 2) / 3 - cam.height)).toBeLessThanOrEqual(0.5);
+      expect(overlayCam(s.key).width).toBe(384);
+      expect(overlayCam(s.key).height).toBeCloseTo(256, 0);
     }
   });
 

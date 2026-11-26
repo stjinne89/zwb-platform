@@ -10,9 +10,9 @@
 //   een balk boven en een balk onder. Zo zien kijkers geen zwarte randen en
 //   valt er niets van het beeld weg.
 // - Webcam (0373): een gat voor het beeld van de webcam. Bij het kader
-//   linksonder, zo breed als de kolom en naast Zwift, in 4:3 (keuze eigenaar
-//   2026-11-26, met een stand van 9 rijen); bij ultrawide links in de balk
-//   onder, zo hoog als die balk, in 16:9.
+//   linksonder, zo breed als de kolom en naast Zwift, in 3:2: zo hoog als kan
+//   met een stand van 10 rijen erboven (keuze eigenaar 2026-11-26); bij
+//   ultrawide links in de balk onder, zo hoog als die balk, in 16:9.
 //
 // Puur, voor de tests en /hulp.
 
@@ -49,8 +49,8 @@ const frame = (zw: number, zh: number): Size => {
     width,
     height,
     zwift: { x: width - zw, y: height - zh, width: zw, height: zh },
-    // Zo breed als de kolom (een vijfde van het canvas), in 4:3.
-    cam: { x: 0, y: height - ((width - zw) * 3) / 4, width: width - zw, height: ((width - zw) * 3) / 4 },
+    // Zo breed als de kolom (een vijfde van het canvas), in 3:2 (afgerond).
+    cam: { x: 0, y: height - Math.round(((width - zw) * 2) / 3), width: width - zw, height: Math.round(((width - zw) * 2) / 3) },
     label: `Zwift ${zw}×${zh} · canvas ${width}×${height}`,
   };
 };

@@ -155,3 +155,5 @@
 .stream-overlay[data-cam][data-layout="wide"] .ovz-side-pass { left: var(--ov-cam-w); }
 .stream-overlay[data-cam][data-layout="wide"] .ovz-side { left: calc(var(--ov-cam-w) + 40px); }
 .stream-overlay[data-cam][data-layout="wide"] .ovz-reg-left { left: calc(var(--ov-cam-w) + 12px); }
+.stream-overlay[data-cam]:not([data-layout="wide"]) .ovz-side { top: 236px; }
+.stream-overlay[data-cam]:not([data-layout="wide"]) .ovz-side[data-compact] .ovz-facts { margin: 4px 0; }

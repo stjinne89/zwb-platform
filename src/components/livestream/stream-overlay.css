@@ -235,7 +235,7 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
 .stream-overlay[data-layout="wide"] .stream-overlay-wait { flex: 1; padding: 10px 12px; font-size: 20px; }
 
 /* Webcam (0373): een doorzichtig gat linksonder voor het beeld van de webcam,
-   4:3 bij het kader en 16:9 bij ultrawide. Bij het kader houdt de kolom erboven op (de stand is dan korter, zie
+   3:2 bij het kader en 16:9 bij ultrawide. Bij het kader houdt de kolom erboven op (de stand is dan korter, zie
    de overlaypagina); bij ultrawide begint de balk onder rechts ervan.
    --ov-cam-w en --ov-cam-h komen per maat uit overlay-size.ts. Dit geldt in
    elke stijl; de lijn om het gat staat per stijl. */
@@ -259,3 +259,14 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
 /* Tegels: dezelfde gouden haarlijn als om Zwift, aan de kant van het kader. */
 .stream-overlay[data-style="tegels"] .stream-overlay-cam { box-shadow: 0 -2px 0 var(--ov-gold); }
 .stream-overlay[data-style="tegels"][data-layout="wide"] .stream-overlay-cam { box-shadow: 2px 0 0 var(--ov-gold); }
+/* Bij het kader met webcam: de kolom dichter onder de balk en de routenaam op
+   één regel, zodat er 10 rijen stand boven het gat passen (in elke stijl). */
+.stream-overlay[data-cam]:not([data-layout="wide"]) .stream-overlay-side { top: calc(var(--ov-top) + 16px); }
+.stream-overlay[data-cam]:not([data-layout="wide"]) .stream-overlay-info span:first-child,
+.stream-overlay[data-cam]:not([data-layout="wide"]) [data-compact] .ovr-route,
+.stream-overlay[data-cam]:not([data-layout="wide"]) [data-compact] .ovz-route,
+.stream-overlay[data-cam]:not([data-layout="wide"]) [data-compact] .ovs-route-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

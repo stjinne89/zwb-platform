@@ -896,8 +896,10 @@ is het gat de volle breedte, met een balk boven (titel, logo, sponsors) en een
 balk onder (route en stand, de stand in twee rijen) in plaats van de kolom
 links; elke stijl houdt daarin zijn eigen materiaal. Met de webcamschakelaar
 (0373) komt er een tweede doorzichtig gat bij: linksonder, zo breed als de
-kolom en naast Zwift, in 4:3 (384×288), of bij ultrawide links in de balk
-onder, zo hoog als die balk, in 16:9. Het krijgt dezelfde lijn als het Zwift-gat in die
+kolom en naast Zwift, in 3:2 (384×256), of bij ultrawide links in de balk
+onder, zo hoog als die balk, in 16:9. Bij het kader staat de kolom dan dichter
+onder de balk, de routenaam op één regel en strip met kleinere goten, zodat
+er 10 rijen stand boven het gat passen. Het krijgt dezelfde lijn als het Zwift-gat in die
 stijl (haarlijn, bies met stiknaad, drukinkt, inktlijn van een plaatje); de
 kolom houdt erboven op en de stand wordt korter. De bron is
 `src/components/livestream/` (`stream-overlay-styles.tsx` en een CSS-bestand

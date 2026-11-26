@@ -98,8 +98,8 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
   // De webcam (0373): het gat linksonder, de stand korter zodat hij erboven past.
   const webcam = query.cam !== undefined ? query.cam !== "0" : stream.overlay_webcam === true;
   const cam = webcam ? overlayCam(size) : null;
-  // Bij het kader 9 rijen boven het 4:3-gat (keuze eigenaar 2026-11-26).
-  const maxRows = wide ? (webcam ? 8 : 10) : webcam ? 9 : 15;
+  // Bij het kader 10 rijen boven het 3:2-gat (keuze eigenaar 2026-11-26).
+  const maxRows = wide ? (webcam ? 8 : 10) : webcam ? 10 : 15;
   const rows = Math.min(wantedTeams(query.teams), maxRows);
   // De eigen kopman van het lid (0347), alleen bij strip.
   const kopman = look === "strip" ? await loadKopman(admin, stream.profile_id) : null;

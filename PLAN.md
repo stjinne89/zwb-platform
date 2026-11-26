@@ -24,8 +24,9 @@ gaat stabiliteit voor nieuwe features.
 0. **Gebouwd — Webcam in de overlay (2026-11-26): commit `327b79fe`, op
    2026-11-26 gepusht naar `main` (eigenaar: "Ja, beide").** Migratie
    `0373_stream_overlay_webcam` (schakelaar `event_streams.overlay_webcam`)
-   vóór de push op productie toegepast. Daarna het gat bij het kader 4:3 met
-   een stand van 9 rijen: lokaal, nog niet gepusht, geen migratie. Open: in
+   vóór de push op productie toegepast. Daarna het gat bij het kader 3:2 met
+   een stand van 10 rijen en een compactere kolom: lokaal, nog niet gepusht,
+   geen migratie. Open: in
    OBS met een echte webcam, en de stand met echte ploegen. Zie de ronde met
    dezelfde naam.
 
@@ -13264,12 +13265,12 @@ er als boolean, not null, standaard false).**
   standaard uit; een nieuwe stream neemt hem over van de vorige stream van
   het lid, net als stijl en maat). Staat hij aan, dan laat de overlay een
   doorzichtig gat vrij:
-  - **Kader:** linksonder, zo breed als de kolom en naast Zwift, in 4:3: bij
-    canvas 1920×1080 384×288 op 0, 792; bij 2400×1350 480×360 op 0, 990; bij de
-    andere maten naar verhouding. De kolom houdt erboven op; de stand toont
-    hooguit 9 rijen in plaats van 15 (bij de ladder: de score en zeven
-    renners). Eerst gepusht als 16:9 (384×216 op 0, 864) met 10 rijen; zie
-    "Bijgesteld" hieronder.
+  - **Kader:** linksonder, zo breed als de kolom en naast Zwift, in 3:2: bij
+    canvas 1920×1080 384×256 op 0, 824; bij 2400×1350 480×320 op 0, 1030; bij
+    de andere maten naar verhouding, afgerond op hele pixels. De kolom houdt
+    erboven op; de stand toont hooguit 10 rijen in plaats van 15 (bij de
+    ladder: de score en acht renners). Eerst gepusht als 16:9 (384×216 op 0,
+    864) met 10 rijen; zie "Bijgesteld" hieronder.
   - **Ultrawide:** links in de balk onder, zo hoog als die balk: 400×225 op
     0, 1710 bij 3440, 284×160 op 0, 1280 bij 2560 (op een halve pixel na
     16:9). Route en stand schuiven naar rechts; de stand hooguit 8.
@@ -13292,8 +13293,8 @@ er als boolean, not null, standaard false).**
   oppervlak), maar bij ultrawide maar een derde (de balk onder is niet
   hoger). Voorgesteld: zo groot als bij het kader, 90 pixels het Zwift-beeld
   in. Eigenaar 2026-11-26: "Laat zo", het gaat nu om de gewone overlay.
-  Dat 16:9-gat bij het kader (384×216) is daarna wel hoger gemaakt, zie
-  "Bijgesteld". De maten in het streampaneel zelf (zoals voorgesteld): de
+  Het 16:9-gat bij het kader (384×216) is daarna wel hoger gemaakt (3:2),
+  zie "Bijgesteld". De maten in het streampaneel zelf (zoals voorgesteld): de
   afspraak is dat uitleg op /hulp staat, dus daar staan ze, net als die van
   Zwift.
 - **Getest.** Unittests voor de maten (`stream-overlay-size.test.ts`). In de
@@ -13306,21 +13307,34 @@ er als boolean, not null, standaard false).**
   echte ploegen. `0373` niet lokaal uit te voeren (geen Docker); het
   is één `add column if not exists`.
 - **Bijgesteld (2026-11-26, lokaal, nog niet gepusht; geen migratie).** De
-  eigenaar vroeg hoeveel hoger het gat kon zonder de stand te raken. Met 10
-  rijen eindigde de kolom bij het kader op hoogstens 785 (strip; tegels 781,
-  rugnummer 758, zeefdruk 713, de ladder naar schatting 14 lager): ongeveer
-  60 pixels ruimte. Voorgelegd: 384×276 met 10 rijen, of 4:3 (384×288, zoals
-  een gewone webcam en dichter bij de stream van het voorbeeld) met 9 rijen.
-  Eigenaar: "4:3, 9 rijen". Ultrawide blijft 16:9. De opmerking "16:9" in
-  `0373_stream_overlay_webcam.sql` is daarmee niet meer waar voor het kader;
-  de migratie is al toegepast en blijft ongewijzigd (de maat staat in de
-  code, niet in de database). Op /hulp staat erbij dat een webcam met een
-  andere verhouding bijgesneden moet worden in plaats van uitgerekt.
-  In de preview met 9 nagebootste rijen (compact, zoals bij een stand):
-  het gat begint op 792 en de kolom eindigt op hoogstens 737 (strip; tegels
-  735, rugnummer 711, zeefdruk 670); met de tussenruimte van de ladder
-  hoogstens 751, dus minstens 41 pixels lucht. Niets in het gat; bies en
-  stiknaad van rugnummer lopen om het hogere gat heen.
+  eigenaar vroeg hoeveel hoger het gat kon zonder de stand te raken.
+  - **Eerste meting fout.** De nagebootste stand liet de regel
+    km · hm · rondes weg die de compacte kolom boven de stand zet. Daarop is
+    eerst 4:3 (384×288 op 0, 792) met 9 rijen gebouwd (commit `0e7cffe5`,
+    lokaal) en "minstens 41 pixels lucht" genoteerd: niet waar. Met die regel
+    viel strip bij 9 rijen 15 tot 59 pixels in het gat, en rugnummer en
+    zeefdruk met een routenaam over twee regels ook net. Ook de eerste ronde
+    (16:9 met 10 rijen, gepusht) is zo gemeten: daar valt strip bij de ladder
+    5 pixels in het gat, met een lange routenaam 35; de andere drie passen.
+  - **Nu.** Eigenaar: "Anders mag je de webcamruimte maximaliseren voor 10
+    rijen". Met webcam bij het kader staat de kolom dichter onder de balk
+    (tegels 232 in plaats van 244, rugnummer 232 in plaats van 252, zeefdruk
+    236 in plaats van 250), met kleinere tussenruimtes in de compacte kolom;
+    de routenaam staat op één regel en wordt afgekapt; strip krijgt kleinere
+    goten en lagere kaartjes. Daarmee past 3:2 (384×256 op 0, 824) met 10
+    rijen in elke stijl. Ultrawide blijft 16:9.
+  - De opmerking "16:9" in `0373_stream_overlay_webcam.sql` is niet meer waar
+    voor het kader; de migratie is al toegepast en blijft ongewijzigd (de maat
+    staat in de code, niet in de database). Op /hulp staat erbij dat een
+    webcam met een andere verhouding bijgesneden moet worden in plaats van
+    uitgerekt.
+  - **Getest** in de preview, met de echte CSS, op 1920×1080 en 1600×900:
+    10 nagebootste rijen met de regel km · hm · rondes en een lange
+    routenaam. Ruimte tot het gat (op 824) bij ZRL en ladder: tegels 55 en
+    41, rugnummer 48 en 34, zeefdruk 76 en 62, strip 32 en 18. Niets
+    geschilderd in het gat; de routenaam op één regel. Zonder stand eindigt
+    de kolom ruim boven het gat (minstens 159). Niet met een echte stand of
+    in OBS.
 
 ### Gebouwd — ZWBriljant: portret als medaillon op het bordje in de galerij
 

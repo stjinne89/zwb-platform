@@ -150,3 +150,5 @@
   border-top: 2px dashed color-mix(in srgb, var(--tn-paper) 35%, transparent);
 }
 .stream-overlay[data-cam][data-layout="wide"] .ovr-side { left: calc(var(--ov-cam-w) + 44px); }
+.stream-overlay[data-cam]:not([data-layout="wide"]) .ovr-side { top: 232px; }
+.stream-overlay[data-cam]:not([data-layout="wide"]) .ovr-side[data-compact] { gap: 10px; }
