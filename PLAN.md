@@ -7,10 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Webcam in de overlay (2026-11-26): lokaal, nog niet gepusht.**
-   Migratie `0373_stream_overlay_webcam` (schakelaar `event_streams.overlay_webcam`)
-   nog níét op productie: toepassen vóór de push. Zonder de kolom blijft de
-   overlay zonder gat en geeft de schakelaar Opslaan lukte niet. Open: in
+0. **Gebouwd — Webcam in de overlay (2026-11-26): commit `327b79fe`, op
+   2026-11-26 gepusht naar `main` (eigenaar: "Ja, beide").** Migratie
+   `0373_stream_overlay_webcam` (schakelaar `event_streams.overlay_webcam`)
+   vóór de push op productie toegepast. Open: in
    OBS met een echte webcam, en de stand met echte ploegen. Zie de ronde met
    dezelfde naam.
 
@@ -1892,7 +1892,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0374`
-(`0373_stream_overlay_webcam` is van de webcam in de overlay, 2026-11-26, nog niet toegepast;
+(`0373_stream_overlay_webcam` is van de webcam in de overlay, toegepast op 2026-11-26;
 `0369` tot en met `0372` staan bij de rondes van 2026-11-25 (ZWBlokken, extra streams, Ladderpuzzel en de zMAP van de ladder);
 `0368_member_zwift_socks` is van de Aero Lightning Socks in de Zwift-garage, 2026-11-25, toegepast op 2026-11-25;
 `0364` tot en met `0367` staan bij de ZWBlokken-rondes van 2026-11-25;
@@ -13116,8 +13116,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Webcam in de overlay
 
-**2026-11-26, lokaal, nog niet gepusht. Migratie `0373_stream_overlay_webcam`,
-nog niet op productie.**
+**2026-11-26, commit `327b79fe`, op 2026-11-26 gepusht naar `main`. Migratie
+`0373_stream_overlay_webcam` vóór de push op productie toegepast (de kolom staat
+er als boolean, not null, standaard false).**
 
 - **Wat.** Wens eigenaar: wie met een webcam streamt, wil dat beeld linksonder
   kwijt zonder dat de live stand of de route eroverheen valt. Per stream een
