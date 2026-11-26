@@ -137,3 +137,21 @@
 .stream-overlay[data-layout="wide"] .ovz-hm { font-size: 46px; }
 .stream-overlay[data-layout="wide"] .ovz-profile-box { flex: none; width: 300px; height: 76px; margin-top: 0; }
 .stream-overlay[data-style="zeefdruk"][data-layout="wide"] .stream-overlay-stand { column-gap: 22px; }
+
+/* Webcam (0373): de vezel en de petrolpas laten het webcamgat vrij, met een
+   lijn drukinkt erom. */
+.stream-overlay[data-style="zeefdruk"][data-cam]:not([data-layout="wide"]) .ovz-fiber {
+  mask:
+    linear-gradient(#000, #000) 0 0 / 1920px 216px no-repeat,
+    linear-gradient(#000, #000) 0 216px / 384px calc(864px - var(--ov-cam-h)) no-repeat;
+}
+.stream-overlay[data-style="zeefdruk"] .stream-overlay-cam { box-shadow: 0 -1.5px 0 var(--ovz-ink), inset -1.5px 0 0 var(--ovz-ink); }
+.stream-overlay[data-style="zeefdruk"][data-cam][data-layout="wide"] .ovz-fiber {
+  mask:
+    linear-gradient(#000, #000) 0 0 / 1920px var(--ov-top) no-repeat,
+    linear-gradient(#000, #000) var(--ov-cam-w) var(--ov-foot) / calc(1920px - var(--ov-cam-w)) calc(1080px - var(--ov-foot)) no-repeat;
+}
+.stream-overlay[data-style="zeefdruk"][data-layout="wide"] .stream-overlay-cam { box-shadow: inset 0 1.5px 0 var(--ovz-ink), 1.5px 0 0 var(--ovz-ink); }
+.stream-overlay[data-cam][data-layout="wide"] .ovz-side-pass { left: var(--ov-cam-w); }
+.stream-overlay[data-cam][data-layout="wide"] .ovz-side { left: calc(var(--ov-cam-w) + 40px); }
+.stream-overlay[data-cam][data-layout="wide"] .ovz-reg-left { left: calc(var(--ov-cam-w) + 12px); }

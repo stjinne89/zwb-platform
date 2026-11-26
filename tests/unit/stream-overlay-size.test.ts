@@ -2,14 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   canvasFor,
   OVERLAY_SIZES,
+  overlayCam,
   overlayHole,
   overlayLayout,
   overlayScale,
   overlaySize,
+  webcamWindowFor,
   zwiftWindowFor,
 } from "@/lib/youtube-live/overlay-size";
 
-// De maat van de OBS-overlay per stream (0348, 0350, 0359): het canvas volgt de
+// De maat van de OBS-overlay per stream (0348, 0350, 0359, 0373): het canvas volgt de
 // grootte van het Zwift-beeld.
 
 describe("overlaySize", () => {
@@ -67,6 +69,33 @@ describe("overlaySize", () => {
       // Allebei de balken hebben ruimte: boven rond 150, onder minstens 120 in de maat van het ontwerp.
       expect(hole.top).toBeGreaterThanOrEqual(150);
       expect(1080 - hole.top - hole.height).toBeGreaterThanOrEqual(120);
+    }
+  });
+
+  it("laat bij het kader linksonder een webcamgat van 16:9 vrij, zo breed als de kolom en naast Zwift", () => {
+    expect(webcamWindowFor("1920x1080")).toEqual({ x: 0, y: 864, width: 384, height: 216 });
+    expect(webcamWindowFor("2400x1350")).toEqual({ x: 0, y: 1080, width: 480, height: 270 });
+    expect(webcamWindowFor("1600x900")).toEqual({ x: 0, y: 720, width: 320, height: 180 });
+    for (const s of OVERLAY_SIZES.filter((o) => o.layout === "frame")) {
+      const cam = webcamWindowFor(s.key);
+      const zwift = zwiftWindowFor(s.key);
+      expect(cam.width).toBe(zwift.x);
+      expect(cam.y + cam.height).toBe(s.height);
+      expect(cam.width * 9).toBe(cam.height * 16);
+      expect(overlayCam(s.key)).toEqual({ width: 384, height: 216 });
+    }
+  });
+
+  it("zet de webcam bij ultrawide links in de balk onder, zo hoog als die balk", () => {
+    expect(webcamWindowFor("3440x1935")).toEqual({ x: 0, y: 1710, width: 400, height: 225 });
+    expect(webcamWindowFor("2560x1440")).toEqual({ x: 0, y: 1280, width: 284, height: 160 });
+    for (const s of OVERLAY_SIZES.filter((o) => o.layout === "wide")) {
+      const cam = webcamWindowFor(s.key);
+      const zwift = zwiftWindowFor(s.key);
+      expect(cam.y).toBe(zwift.y + zwift.height);
+      expect(cam.y + cam.height).toBe(s.height);
+      // Op een halve pixel na 16:9.
+      expect(Math.abs((cam.width * 9) / 16 - cam.height)).toBeLessThan(0.5);
     }
   });
 });

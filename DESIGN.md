@@ -894,7 +894,12 @@ vrije kleur per lid is er bewust niet. Het Zwift-gat (384, 216; 1536×864)
 blijft in elke stijl leeg en doorzichtig. Bij een ultrawide Zwift-beeld (0359)
 is het gat de volle breedte, met een balk boven (titel, logo, sponsors) en een
 balk onder (route en stand, de stand in twee rijen) in plaats van de kolom
-links; elke stijl houdt daarin zijn eigen materiaal. De bron is
+links; elke stijl houdt daarin zijn eigen materiaal. Met de webcamschakelaar
+(0373) komt er een tweede doorzichtig gat van 16:9 bij: linksonder, zo breed
+als de kolom en naast Zwift (384×216), of bij ultrawide links in de balk
+onder, zo hoog als die balk. Het krijgt dezelfde lijn als het Zwift-gat in die
+stijl (haarlijn, bies met stiknaad, drukinkt, inktlijn van een plaatje); de
+kolom houdt erboven op en de stand wordt korter. De bron is
 `src/components/livestream/` (`stream-overlay-styles.tsx` en een CSS-bestand
 per stijl) en `src/lib/youtube-live/` (`overlay-styles.ts`, `thumbnail.tsx`).
 

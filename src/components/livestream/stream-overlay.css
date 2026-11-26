@@ -233,3 +233,29 @@ html:has(.stream-overlay), body:has(.stream-overlay) { background: transparent !
   font-size: 19px;
 }
 .stream-overlay[data-layout="wide"] .stream-overlay-wait { flex: 1; padding: 10px 12px; font-size: 20px; }
+
+/* Webcam (0373): een doorzichtig gat van 16:9 linksonder voor het beeld van de
+   webcam. Bij het kader houdt de kolom erboven op (de stand is dan korter, zie
+   de overlaypagina); bij ultrawide begint de balk onder rechts ervan.
+   --ov-cam-w en --ov-cam-h komen per maat uit overlay-size.ts. Dit geldt in
+   elke stijl; de lijn om het gat staat per stijl. */
+.stream-overlay-cam {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--ov-cam-w);
+  height: var(--ov-cam-h);
+  pointer-events: none;
+}
+.stream-overlay[data-cam]:not([data-layout="wide"]) .stream-overlay-frame-side {
+  height: calc(1080px - var(--ov-top) - var(--ov-cam-h));
+}
+.stream-overlay[data-cam][data-layout="wide"] .stream-overlay-frame-side {
+  left: var(--ov-cam-w);
+  width: calc(1920px - var(--ov-cam-w));
+  background-position: calc(-1 * var(--ov-cam-w)) calc(-1 * var(--ov-foot));
+}
+.stream-overlay[data-cam][data-layout="wide"] .stream-overlay-side { left: calc(var(--ov-cam-w) + 40px); }
+/* Tegels: dezelfde gouden haarlijn als om Zwift, aan de kant van het kader. */
+.stream-overlay[data-style="tegels"] .stream-overlay-cam { box-shadow: 0 -2px 0 var(--ov-gold); }
+.stream-overlay[data-style="tegels"][data-layout="wide"] .stream-overlay-cam { box-shadow: 2px 0 0 var(--ov-gold); }

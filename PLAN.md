@@ -7,6 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Webcam in de overlay (2026-11-26): lokaal, nog niet gepusht.**
+   Migratie `0373_stream_overlay_webcam` (schakelaar `event_streams.overlay_webcam`)
+   nog níét op productie: toepassen vóór de push. Zonder de kolom blijft de
+   overlay zonder gat en geeft de schakelaar Opslaan lukte niet. Open: in
+   OBS met een echte webcam, en de stand met echte ploegen. Zie de ronde met
+   dezelfde naam.
+
 0. **Gebouwd — ZWBriljant: portret als medaillon op het bordje in de galerij
    (2026-11-26): commit `b63e82d2`, op 2026-11-26 gepusht naar `main`
    (eigenaar: "Ja, push").**
@@ -1884,8 +1891,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0369`
-(`0368_member_zwift_socks` is van de Aero Lightning Socks in de Zwift-garage, 2026-11-25, toegepast op 2026-11-25;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0374`
+(`0373_stream_overlay_webcam` is van de webcam in de overlay, 2026-11-26, nog niet toegepast;
+`0369` tot en met `0372` staan bij de rondes van 2026-11-25 (ZWBlokken, extra streams, Ladderpuzzel en de zMAP van de ladder);
+`0368_member_zwift_socks` is van de Aero Lightning Socks in de Zwift-garage, 2026-11-25, toegepast op 2026-11-25;
 `0364` tot en met `0367` staan bij de ZWBlokken-rondes van 2026-11-25;
 `0363_zrl_wtrl_results` is van de ZRL-uitslagen op de teampagina, toegepast op 2026-11-25;
 `0362_zrl_wtrl_standings` is van de ZRL-competitiestand, toegepast op 2026-11-25;
@@ -13104,6 +13113,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Webcam in de overlay
+
+**2026-11-26, lokaal, nog niet gepusht. Migratie `0373_stream_overlay_webcam`,
+nog niet op productie.**
+
+- **Wat.** Wens eigenaar: wie met een webcam streamt, wil dat beeld linksonder
+  kwijt zonder dat de live stand of de route eroverheen valt. Per stream een
+  schakelaar Webcam, naast Live stand in de overlay (`event_streams.overlay_webcam`,
+  standaard uit; een nieuwe stream neemt hem over van de vorige stream van
+  het lid, net als stijl en maat). Staat hij aan, dan laat de overlay een
+  doorzichtig gat van 16:9 vrij:
+  - **Kader:** linksonder, zo breed als de kolom en naast Zwift: bij canvas
+    1920×1080 384×216 op 0, 864; bij de andere maten naar verhouding. De kolom
+    houdt erboven op; de stand toont hooguit 10 rijen in plaats van 15 (bij de
+    ladder: de score en acht renners).
+  - **Ultrawide:** links in de balk onder, zo hoog als die balk: 400×225 op
+    0, 1710 bij 3440, 284×160 op 0, 1280 bij 2560 (op een halve pixel na
+    16:9). Route en stand schuiven naar rechts; de stand hooguit 8.
+  - Elke stijl trekt zijn eigen lijn om het gat: de gouden haarlijn (tegels),
+    de bies met de stiknaad eromheen (rugnummer), drukinkt en een vezel die
+    het gat vrijlaat (zeefdruk), de inktlijn van een plaatje (strip).
+  - `?cam=1` of `?cam=0` achter de overlay-link toont het voorbeeld zonder de
+    schakelaar.
+- **Waar.** `overlay-size.ts` (`webcamWindowFor`, `overlayCam`), de
+  overlaypagina, `stream-overlay.tsx`, de vier CSS-bestanden,
+  `setOverlayWebcam` in `_actions/livestream.ts`, `OverlayWebcamToggle`, en de
+  maten per Zwift-grootte op /hulp (Livestreams). DESIGN.md, Streamstijlen.
+- **Bewust niet.** Een vrije plek of maat voor de webcam: dan klopt de lijn om
+  het gat niet meer en wordt OBS instellen weer passen en meten. Een webcam
+  over het Zwift-beeld: daar staat de HUD van Zwift. Ronde of afgeronde
+  maskers: OBS knipt het beeld niet bij, het gat zou dan om een recht beeld
+  heen liggen. De maten in het streampaneel zelf (zoals voorgesteld): de
+  afspraak is dat uitleg op /hulp staat, dus daar staan ze, net als die van
+  Zwift.
+- **Getest.** Unittests voor de maten (`stream-overlay-size.test.ts`). In de
+  preview (`?preview&cam=1`) alle vier stijlen op 1920×1080, 3440×1935 en
+  2560×1440, met een nagebootste stand van tien (kader) of acht (ultrawide)
+  ploegen: niets valt in het webcamgat en het gat is doorzichtig; de kolom
+  eindigt bij het kader op hoogstens 785 (gat vanaf 864). De lijnen om het gat
+  op het oog nagekeken; bij strip ultrawide lag de lijn boven het gat eerst
+  dubbel, rechtgezet. Niet in OBS met een echte webcam; de stand niet met
+  echte ploegen. `0373` niet lokaal uit te voeren (geen Docker); het
+  is één `add column if not exists`.
 
 ### Gebouwd — ZWBriljant: portret als medaillon op het bordje in de galerij
 

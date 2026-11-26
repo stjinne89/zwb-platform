@@ -20,6 +20,7 @@ import {
   OverlayLinkButton,
   OverlaySizeSelect,
   OverlayStandToggle,
+  OverlayWebcamToggle,
   LinkOwnStreamForm,
   OverlayLookPicker,
   PrepareStreamButton,
@@ -167,8 +168,11 @@ export async function RaceStreams({
           initialTheme={ownStream.overlayTheme}
         />
       )}
-      {ownStream && hasLiveStand && (
-        <OverlayStandToggle streamId={ownStream.id} initial={ownStream.overlayStand} />
+      {ownStream && overlayPath && (
+        <div className="flex flex-wrap items-center gap-x-6">
+          <OverlayWebcamToggle streamId={ownStream.id} initial={ownStream.overlayWebcam} />
+          {hasLiveStand && <OverlayStandToggle streamId={ownStream.id} initial={ownStream.overlayStand} />}
+        </div>
       )}
       {showPrepare &&
         (connected ? (

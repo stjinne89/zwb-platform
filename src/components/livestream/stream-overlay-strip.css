@@ -116,3 +116,13 @@
 .stream-overlay[data-layout="wide"] .ovs-hm { font-size: 40px; }
 .stream-overlay[data-layout="wide"] .ovs-profile-panel { flex: none; width: 320px; height: auto; }
 .stream-overlay[data-layout="wide"] .ovs-side .stream-overlay-stand { align-self: center; }
+
+/* Webcam (0373): een tweede plaatje linksonder, met dezelfde inktlijn als het
+   grote plaatje; de lijn rechts valt samen met die van Zwift. */
+.stream-overlay[data-style="strip"] .stream-overlay-cam::before {
+  content: ""; position: absolute; left: -17px; top: -7px; right: 0; bottom: -17px;
+  border: 7px solid var(--tn-ink); border-radius: 0 12px 0 0;
+}
+/* Bij ultrawide valt de lijn boven samen met die onder het grote plaatje. */
+.stream-overlay[data-style="strip"][data-layout="wide"] .stream-overlay-cam::before { top: 0; }
+.stream-overlay[data-cam][data-layout="wide"] .ovs-side { left: calc(var(--ov-cam-w) + 26px); }

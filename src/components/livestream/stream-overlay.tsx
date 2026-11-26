@@ -34,6 +34,8 @@ import "./stream-overlay-strip.css";
 // zeefdruk. Sinds 0348 op de resolutie van het OBS-canvas van het lid. Sinds
 // 0359 ook ultrawide: Zwift over de volle breedte, met een balk boven (titel en
 // sponsors) en een balk onder (route en stand) in plaats van de kolom links.
+// Sinds 0373 met een webcamgat: linksonder in de kolom, of links in de balk
+// onder bij ultrawide. Het gat is doorzichtig, met de lijn van de stijl erom.
 
 /** Waar het Zwift-beeld in het kader staat, bij 1920×1080 (andere maten: overlay-size.ts). */
 export const ZWIFT_WINDOW = { x: 384, y: 216, width: 1536, height: 864 } as const;
@@ -62,6 +64,7 @@ export async function StreamOverlay({
   kopman = null,
   scale = 1,
   hole = null,
+  cam = null,
   refreshSeconds,
 }: {
   title: string;
@@ -81,6 +84,8 @@ export async function StreamOverlay({
   scale?: number;
   /** Ultrawide (0359): het gat over de volle breedte, in de maat van het ontwerp. */
   hole?: { top: number; height: number } | null;
+  /** De webcam (0373): het gat linksonder, in de maat van het ontwerp. */
+  cam?: { width: number; height: number } | null;
   /** null: niet meer verversen (de uitslag staat vast). */
   refreshSeconds: number | null;
 }) {
@@ -103,6 +108,7 @@ export async function StreamOverlay({
     // precies het gekozen formaat (OBS draait op Chromium).
     ...(scale !== 1 ? { zoom: scale } : {}),
     ...(hole ? { "--ov-top": `${hole.top}px`, "--ov-hole-h": `${hole.height}px` } : {}),
+    ...(cam ? { "--ov-cam-w": `${cam.width}px`, "--ov-cam-h": `${cam.height}px` } : {}),
   } as CSSProperties;
   const layout = hole ? "wide" : undefined;
   const rotator = sponsors.map(({ name, logoUrl, overlayFixed }) => ({ name, logoUrl, overlayFixed }));
@@ -122,10 +128,11 @@ export async function StreamOverlay({
     };
     const fonts = `${tegelsFontVariables} ${overlayStencil.variable} ${overlayText.variable} ${overlayHand.variable}`;
     return (
-      <main className={`stream-overlay ${fonts}`} style={style} lang="nl" data-style={look} data-theme={mode} data-layout={layout}>
+      <main className={`stream-overlay ${fonts}`} style={style} lang="nl" data-style={look} data-theme={mode} data-layout={layout} data-cam={cam ? "" : undefined}>
         {refreshSeconds !== null && <AutoRefresh seconds={refreshSeconds} />}
         <div className="stream-overlay-frame stream-overlay-frame-top" aria-hidden />
         <div className="stream-overlay-frame stream-overlay-frame-side" aria-hidden />
+        {cam && <div className="stream-overlay-cam" aria-hidden />}
         {look === "rugnummer" && <RugnummerOverlay parts={parts} />}
         {look === "zeefdruk" && <ZeefdrukOverlay parts={parts} />}
         {look === "strip" && <StripOverlay parts={parts} />}
@@ -134,11 +141,12 @@ export async function StreamOverlay({
   }
 
   return (
-    <main className={`stream-overlay ${tegelsFontVariables}`} style={style} lang="nl" data-style="tegels" data-theme={theme} data-layout={layout}>
+    <main className={`stream-overlay ${tegelsFontVariables}`} style={style} lang="nl" data-style="tegels" data-theme={theme} data-layout={layout} data-cam={cam ? "" : undefined}>
       {refreshSeconds !== null && <AutoRefresh seconds={refreshSeconds} />}
       <div className="stream-overlay-frame stream-overlay-frame-top" aria-hidden />
       <div className="stream-overlay-frame stream-overlay-frame-side" aria-hidden />
       <div className="stream-overlay-window" aria-hidden />
+      {cam && <div className="stream-overlay-cam" aria-hidden />}
 
       <header className="stream-overlay-head">
         <span className="stream-overlay-logo">

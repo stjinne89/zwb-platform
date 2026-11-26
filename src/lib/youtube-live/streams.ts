@@ -28,6 +28,8 @@ export type EventStream = {
   overlayStyle: OverlayStyle;
   /** De resolutie van de overlay (0348). */
   overlaySize: OverlaySize;
+  /** Ruimte voor de webcam in de overlay (0373); zonder die kolom uit. */
+  overlayWebcam: boolean;
   /**
    * Gekoppeld met een link (0360): geen thumbnail van ZWB. Extra (0370): door
    * een lid toegevoegd, maar niet van hem; de naam is dan de kanaalnaam.
@@ -48,6 +50,7 @@ type StreamRow = {
   overlay_theme?: string | null;
   overlay_style?: string | null;
   overlay_size?: string | null;
+  overlay_webcam?: boolean | null;
   source?: string | null;
   profiles: { display_name: string | null } | { display_name: string | null }[] | null;
 };
@@ -85,6 +88,7 @@ export async function loadEventStreams(
         overlayTheme: overlayMode(row.overlay_theme),
         overlayStyle: overlayStyle(row.overlay_style),
         overlaySize: overlaySize(row.overlay_size),
+        overlayWebcam: row.overlay_webcam === true,
         source: row.source === "eigen" || row.source === "extra" ? row.source : "zwb",
       };
     });

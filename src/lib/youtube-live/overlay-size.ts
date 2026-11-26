@@ -9,6 +9,9 @@
 // - Ultrawide (21:9-Zwift, 0359): het Zwift-beeld vult de volle breedte, met
 //   een balk boven en een balk onder. Zo zien kijkers geen zwarte randen en
 //   valt er niets van het beeld weg.
+// - Webcam (0373): een gat van 16:9 voor het beeld van de webcam. Bij het kader
+//   linksonder, zo breed als de kolom en naast Zwift; bij ultrawide links in de
+//   balk onder, zo hoog als die balk.
 //
 // Puur, voor de tests en /hulp.
 
@@ -28,9 +31,13 @@ type Size = {
   layout: OverlayLayout;
   width: number;
   height: number;
-  zwift: { x: number; y: number; width: number; height: number };
+  zwift: Rect;
+  /** Het webcamgat (0373), als de schakelaar aan staat. */
+  cam: Rect;
   label: string;
 };
+
+type Rect = { x: number; y: number; width: number; height: number };
 
 const frame = (zw: number, zh: number): Size => {
   const width = (zw * 5) / 4;
@@ -41,6 +48,8 @@ const frame = (zw: number, zh: number): Size => {
     width,
     height,
     zwift: { x: width - zw, y: height - zh, width: zw, height: zh },
+    // Zo breed als de kolom, dus 16:9 van een vijfde van het canvas.
+    cam: { x: 0, y: height - ((width - zw) * 9) / 16, width: width - zw, height: ((width - zw) * 9) / 16 },
     label: `Zwift ${zw}×${zh} · canvas ${width}×${height}`,
   };
 };
@@ -48,12 +57,15 @@ const frame = (zw: number, zh: number): Size => {
 /** Ultrawide: een 16:9-canvas zo breed als Zwift; `top` is de hoogte van de balk boven. */
 const wide = (zw: number, zh: number, top: number): Size => {
   const height = (zw * 9) / 16;
+  const foot = top + zh;
   return {
     key: `${zw}x${height}` as OverlaySize,
     layout: "wide",
     width: zw,
     height,
     zwift: { x: 0, y: top, width: zw, height: zh },
+    // Zo hoog als de balk onder; de breedte afgerond op hele pixels.
+    cam: { x: 0, y: foot, width: Math.round(((height - foot) * 16) / 9), height: height - foot },
     label: `Zwift ${zw}×${zh} ultrawide · canvas ${zw}×${height}`,
   };
 };
@@ -91,8 +103,20 @@ export function canvasFor(key: OverlaySize): { width: number; height: number } {
 }
 
 /** Waar het Zwift-beeld in OBS staat, op 100%, in pixels van het canvas. */
-export function zwiftWindowFor(key: OverlaySize): { x: number; y: number; width: number; height: number } {
+export function zwiftWindowFor(key: OverlaySize): Rect {
   return { ...find(key).zwift };
+}
+
+/** Waar het beeld van de webcam staat (0373), op 100%, in pixels van het canvas. */
+export function webcamWindowFor(key: OverlaySize): Rect {
+  return { ...find(key).cam };
+}
+
+/** Het webcamgat in de maat van het ontwerp (1920 breed), voor de CSS. */
+export function overlayCam(key: OverlaySize): { width: number; height: number } {
+  const s = find(key);
+  const scale = s.width / 1920;
+  return { width: s.cam.width / scale, height: s.cam.height / scale };
 }
 
 export function overlayLayout(key: OverlaySize): OverlayLayout {

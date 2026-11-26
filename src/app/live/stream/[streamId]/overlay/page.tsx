@@ -5,7 +5,7 @@ import { overlayInfo, overlayStatus, overlayTitle } from "@/lib/youtube-live/bro
 import { streamRoute } from "@/lib/youtube-live/event-route";
 import { loadKopman } from "@/lib/youtube-live/kopman-store";
 import { overlayStyle } from "@/lib/youtube-live/overlay-styles";
-import { overlayHole, overlayLayout, overlayScale, overlaySize } from "@/lib/youtube-live/overlay-size";
+import { overlayCam, overlayHole, overlayLayout, overlayScale, overlaySize } from "@/lib/youtube-live/overlay-size";
 import { overlayMode } from "@/lib/youtube-live/overlay-theme";
 import { loadZrlLive } from "@/lib/zrl-live/snapshot";
 import { loadLadderLive } from "@/lib/club-ladder/live-load";
@@ -20,7 +20,9 @@ import { ladderOverlayRows, ladderOverlayStatus } from "@/lib/club-ladder/live";
 // ?preview: het voorbeeld in de stijlkeuze op de racepagina, zonder verversen
 // en altijd op 1920×1080. Anders op de resolutie van de stream (0348). Bij een
 // ultrawide Zwift-beeld (0359) de indeling met een balk boven en onder, ook in
-// het voorbeeld; ?size= toont een andere maat.
+// het voorbeeld; ?size= toont een andere maat. Met de webcamschakelaar (0373)
+// een gat linksonder voor de webcam en een kortere stand; ?cam=1 of ?cam=0
+// voor een voorbeeld.
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -55,6 +57,7 @@ type StreamRow = {
   overlay_theme?: string | null;
   overlay_style?: string | null;
   overlay_size?: string | null;
+  overlay_webcam?: boolean | null;
   events: StreamEvent | null;
 };
 
@@ -92,11 +95,16 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
   // Ultrawide (0359): het gat over de volle breedte, de stand in de balk onder.
   const wide = overlayLayout(size) === "wide";
   const hole = wide ? overlayHole(size) : null;
+  // De webcam (0373): het gat linksonder, de stand korter zodat hij erboven past.
+  const webcam = query.cam !== undefined ? query.cam !== "0" : stream.overlay_webcam === true;
+  const cam = webcam ? overlayCam(size) : null;
+  const maxRows = wide ? (webcam ? 8 : 10) : webcam ? 10 : 15;
+  const rows = Math.min(wantedTeams(query.teams), maxRows);
   // De eigen kopman van het lid (0347), alleen bij strip.
   const kopman = look === "strip" ? await loadKopman(admin, stream.profile_id) : null;
   const title = overlayTitle(event.title);
   const status = overlayStatus({ type: event.type, startAt: event.start_at, endAt: event.end_at, distanceKm, now: new Date() });
-  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} look={look} route={route} stand={null} kopman={kopman} scale={scale} hole={hole} refreshSeconds={refreshSeconds} />;
+  const plain = <StreamOverlay title={title} status={status} info={info} theme={theme} look={look} route={route} stand={null} kopman={kopman} scale={scale} hole={hole} cam={cam} refreshSeconds={refreshSeconds} />;
 
   const hasStand = (event.type === "zrl" || event.type === "ladder") && Boolean(event.team_id && event.zwift_event_id);
   if (!hasStand) return plain;
@@ -116,10 +124,11 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
         theme={theme}
         look={look}
         route={route}
-        stand={{ kind: "ladder", rows: ladderOverlayRows(view, wide ? 10 : wantedTeams(query.teams)) }}
+        stand={{ kind: "ladder", rows: ladderOverlayRows(view, rows) }}
         kopman={kopman}
         scale={scale}
         hole={hole}
+        cam={cam}
         refreshSeconds={refreshSeconds}
       />
     );
@@ -136,10 +145,11 @@ export default async function StreamOverlayPage({ params, searchParams }: PagePr
       theme={theme}
       look={look}
       route={route}
-      stand={stream.overlay_stand !== false ? { view, teams: wide ? Math.min(wantedTeams(query.teams), 10) : wantedTeams(query.teams) } : null}
+      stand={stream.overlay_stand !== false ? { view, teams: rows } : null}
       kopman={kopman}
       scale={scale}
       hole={hole}
+      cam={cam}
       refreshSeconds={refreshSeconds}
     />
   );

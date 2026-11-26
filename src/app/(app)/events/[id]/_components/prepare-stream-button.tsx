@@ -12,6 +12,7 @@ import {
   setOverlayStand,
   setOverlayStyle,
   setOverlayTheme,
+  setOverlayWebcam,
 } from "@/app/(app)/_actions/livestream";
 import { Button } from "@/components/ui/button";
 import { OVERLAY_STYLES } from "@/lib/youtube-live/overlay-styles";
@@ -141,6 +142,23 @@ export function OverlaySizeSelect({ streamId, initial }: { streamId: string; ini
 
 /** De live stand in de OBS-overlay aan of uit (0341); de overlay volgt bij zijn volgende verversing. */
 export function OverlayStandToggle({ streamId, initial }: { streamId: string; initial: boolean }) {
+  return <OverlaySwitch label="Live stand in de overlay" initial={initial} save={(on) => setOverlayStand(streamId, on)} />;
+}
+
+/** Ruimte voor de webcam linksonder in de OBS-overlay (0373). */
+export function OverlayWebcamToggle({ streamId, initial }: { streamId: string; initial: boolean }) {
+  return <OverlaySwitch label="Webcam" initial={initial} save={(on) => setOverlayWebcam(streamId, on)} />;
+}
+
+function OverlaySwitch({
+  label,
+  initial,
+  save,
+}: {
+  label: string;
+  initial: boolean;
+  save: (on: boolean) => Promise<{ ok: true } | { ok: false; error: string }>;
+}) {
   const [on, setOn] = useState(initial);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -157,7 +175,7 @@ export function OverlayStandToggle({ streamId, initial }: { streamId: string; in
             setOn(next);
             setError(null);
             startTransition(async () => {
-              const res = await setOverlayStand(streamId, next);
+              const res = await save(next);
               if (!res.ok) {
                 setOn(!next);
                 setError(res.error);
@@ -166,7 +184,7 @@ export function OverlayStandToggle({ streamId, initial }: { streamId: string; in
           }}
           className="size-4 accent-primary"
         />
-        <span className="text-sm">Live stand in de overlay</span>
+        <span className="text-sm">{label}</span>
       </label>
       {error && <span className="text-sm text-destructive">{error}</span>}
     </div>

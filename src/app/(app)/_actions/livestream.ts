@@ -474,7 +474,7 @@ async function pushStreamThumbnail(
 async function lastLook(
   admin: ReturnType<typeof createAdminClient>,
   userId: string,
-): Promise<{ theme: OverlayMode; look: OverlayStyle; columns: Record<string, string> }> {
+): Promise<{ theme: OverlayMode; look: OverlayStyle; columns: Record<string, string | boolean> }> {
   const { data } = await admin
     .from("event_streams")
     .select("*")
@@ -483,13 +483,21 @@ async function lastLook(
     .order("scheduled_start_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const row = (data as { overlay_theme?: string | null; overlay_style?: string | null; overlay_size?: string | null } | null) ?? {};
+  const row =
+    (data as {
+      overlay_theme?: string | null;
+      overlay_style?: string | null;
+      overlay_size?: string | null;
+      overlay_webcam?: boolean | null;
+    } | null) ?? {};
   const theme = overlayMode(row.overlay_theme);
   const look = overlayStyle(row.overlay_style);
-  const columns: Record<string, string> = {};
+  const columns: Record<string, string | boolean> = {};
   if ("overlay_theme" in row) columns.overlay_theme = theme;
   if ("overlay_style" in row) columns.overlay_style = look;
   if ("overlay_size" in row) columns.overlay_size = overlaySize(row.overlay_size);
+  // De webcam (0373) gaat mee: wie met een webcam streamt, doet dat de volgende keer weer.
+  if ("overlay_webcam" in row) columns.overlay_webcam = row.overlay_webcam === true;
   return { theme, look, columns };
 }
 
@@ -670,6 +678,18 @@ export async function removeStream(streamId: string): Promise<Result> {
 
 /** De live stand in de overlay van deze stream aan of uit (0341). */
 export async function setOverlayStand(streamId: string, on: boolean): Promise<Result> {
+  return setOverlaySwitch(streamId, { overlay_stand: Boolean(on) });
+}
+
+/** Ruimte voor de webcam in de overlay van deze stream aan of uit (0373). */
+export async function setOverlayWebcam(streamId: string, on: boolean): Promise<Result> {
+  return setOverlaySwitch(streamId, { overlay_webcam: Boolean(on) });
+}
+
+async function setOverlaySwitch(
+  streamId: string,
+  change: { overlay_stand: boolean } | { overlay_webcam: boolean },
+): Promise<Result> {
   const session = await approvedUser();
   if (!session) return { ok: false, error: "Niet ingelogd." };
   const { access, userId } = session;
@@ -686,7 +706,7 @@ export async function setOverlayStand(streamId: string, on: boolean): Promise<Re
   }
   const { error } = await admin
     .from("event_streams")
-    .update({ overlay_stand: Boolean(on) })
+    .update(change)
     .eq("id", stream.id);
   if (error) return { ok: false, error: "Opslaan lukte niet." };
   revalidatePath(`/events/${stream.event_id}`);
