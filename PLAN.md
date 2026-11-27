@@ -13134,17 +13134,22 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Materiaalrekenaar: eigen materiaal van leden
 
 > **2026-11-27 — gebouwd, lokaal getest (typecheck, lint, unittests),
-> migratie 0375 nog niet toegepast.** Commit: de commit die dit blok
-> toevoegt. Migratie `0375_materiaal_eigen.sql` (0375 was vrij op
-> `origin/main`, gecontroleerd vlak voor de commit). Niet lokaal te testen:
-> er is geen Docker of Supabase-config hier. Ingelogd op localhost tegen
-> productiedata bekeken: zonder de tabel laadt de rekenaar gewoon (lege
-> lijst) en geeft Bewaren "Opslaan lukte niet."; met vier tijdelijke
-> proefproducten in `page.tsx` (daarna weer weggehaald) de tabelrijen met
-> bereik, de tekening (helm met staart, aerofiets met eigen wielen), het
-> fietsgewicht in "Fiets en uitrusting", wijzigen, en "Uit Mijn garage"
-> (naam en 8,5 kg ingevuld), ook op telefoonbreedte. Opslaan en verwijderen
-> zelf zijn pas te zien na het toepassen van 0375.
+> migratie 0375 toegepast op productie (eigenaar: "Yes, apply 0375").**
+> Commits: `163724dc`, plus de commit die deze regel bijwerkt. Migratie
+> `0375_materiaal_eigen.sql` (0375 was vrij op `origin/main` en op
+> productie, gecontroleerd vlak voor het toepassen). Niet lokaal te testen:
+> er is geen Docker of Supabase-config hier. Na het toepassen gecontroleerd:
+> RLS aan, één policy `materiaal_eigen_own_all` (ALL), alleen
+> `authenticated` heeft rechten, geen `anon`. Ingelogd op localhost tegen
+> productie: Testwielen (45/55 mm) bewaard, de rij stond in de tabel en na
+> herladen weer in de rekenaar, wijzigen toonde de waarden, verwijderen
+> haalde de rij weg en zette de opzet terug op ondiepe velgen; de tabel is
+> daarna weer leeg. Eerder, zonder de tabel: de rekenaar laadt gewoon en
+> Bewaren geeft "Opslaan lukte niet.". Met vier tijdelijke proefproducten
+> in `page.tsx` (daarna weer weggehaald) bekeken: de tabelrijen met bereik,
+> de tekening (helm met staart, aerofiets met eigen wielen), het
+> fietsgewicht in "Fiets en uitrusting" en "Uit Mijn garage" (naam en
+> 8,5 kg ingevuld), ook op telefoonbreedte.
 >
 > **Aanleiding.** De eigenaar wilde dat leden hun eigen materiaal kunnen
 > toevoegen om de winst in te schatten. Voorstel (helm "lijkt op" of type,
@@ -13187,7 +13192,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 > - De privacyregel staat er zonder nieuwe versie in `PRIVACY_VERSIONS`,
 >   net als de regel "Wielen en banden" van Mijn garage: eigen gegevens die
 >   alleen het lid ziet. Nog niet goedgekeurd; vóór de push beslissen.
-> - Migratie 0375 toepassen, op verzoek.
+> - De code staat nog niet op `main`: tot de push heeft productie de tabel
+>   wel, maar gebruikt de app hem nog niet.
 >
 > **Bewust niet gebouwd.**
 > - Kleding en sokken als eigen invoer: niet gevraagd, en zonder test valt
