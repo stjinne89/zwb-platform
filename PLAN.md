@@ -1,15 +1,16 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-26)
+## Actieve volgorde (bijgewerkt 2026-11-27)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Gebouwd — Groepstraining: workout uit het Zwift-event (2026-11-27): lokaal
-   gecommit, niet gepusht. Migratie `0376_event_zwift_workout` nog niet toegepast;
-   eerst op productie, dan pushen.** Een Zwift-groepstraining komt in het schema
+0. **Gebouwd — Groepstraining: workout uit het Zwift-event (2026-11-27): commit
+   `3ec8f6f5`, op 2026-11-27 gepusht naar `main` (eigenaar: "Toepassen en
+   push"). Migratie `0376_event_zwift_workout` vóór de push op productie
+   toegepast.** Een Zwift-groepstraining komt in het schema
    met de duur en zwaarte van zijn eigen workout, ververst elk uur, en een
    clubevent vlak voor een race geldt als warming-up. Aanleiding: de gezamenlijke
    warming-up vóór ZRL R2 W3 (1 december). Open: na de deploy de warming-up op
@@ -13145,11 +13146,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Groepstraining: workout uit het Zwift-event
 
 > **2026-11-27 — gebouwd, lokaal getest (unit en migraties op PGlite), niet in
-> de browser bekeken.** Commit: de commit die dit blok toevoegt, lokaal, niet
-> gepusht. Migratie `0376_event_zwift_workout.sql` (kolom `events.zwift_workout`,
-> jsonb) is **niet** op productie toegepast. Eerst toepassen, dan pushen: de
-> selects van eventblokken, voeding, briefing en de agenda-feed vragen de kolom
-> op.
+> de browser bekeken.** Commit `3ec8f6f5`, op 2026-11-27 gepusht naar `main`.
+> Migratie `0376_event_zwift_workout.sql` (kolom `events.zwift_workout`, jsonb)
+> vóór de push via de Supabase-connector op productie toegepast; controle: de
+> kolom bestaat, jsonb, nullable. Eerst geschreven als `0375`, hernummerd omdat
+> `0375_materiaal_eigen` intussen op main stond. Volgorde was nodig: de selects
+> van eventblokken, voeding, briefing en de agenda-feed vragen de kolom op.
 >
 > **Waarom.** De eigenaar wil een gezamenlijke warming-up vóór de ZRL als
 > Zwift-groepstraining, en vroeg of de app de workout uit het event kan lezen.
@@ -13227,8 +13229,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 > Volle suite: `club-texts-render` ("beheer noemt ZWB niet", al eerder) en
 > `omnium-live` (mist `.env.local` in de worktree) faalden; acht andere
 > bestanden, vooral PGlite-tests, liepen onder de load vast en waren los alle
-> acht groen. **Niet** getest: de migratie op productie, het ophalen vanaf de
-> server, de cron en het schema in de browser.
+> acht groen. **Niet** getest: het ophalen vanaf de server, de cron en het
+> schema in de browser.
 
 ### Gebouwd — Materiaalrekenaar: eigen materiaal van leden
 
