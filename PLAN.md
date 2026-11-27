@@ -13135,12 +13135,17 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 > **2026-11-27 — gebouwd, lokaal getest (typecheck, lint, alle unittests op
 > twee na die al faalden of los wel slagen: `club-texts-render` "beheer noemt
-> ZWB niet" faalt ook op `b100bd62`, `admin-areas` slaagt los), niet in de
-> ingelogde app bekeken.** Commit: de commit die dit blok toevoegt.
-> Geen migratie. Bekeken als statische render van de echte component (alle
-> houdingen, fietsen, golvende en gekrulde wielen, helmen met loep, licht en
-> donker); de overgang tussen houdingen en de knoppen op de tekening zijn niet
-> in de browser nagelopen.
+> ZWB niet" faalt ook op `b100bd62`, `admin-areas` slaagt los), daarna
+> lokaal ingelogd bekeken.** Commits: `602fbf1b`, plus de herstelcommit die
+> deze regel bijwerkt. Geen migratie. Eerst bekeken als statische render van
+> de echte component (alle houdingen, fietsen, golvende en gekrulde wielen,
+> helmen met loep, licht en donker). Daarna ingelogd op localhost tegen
+> productiedata nagelopen: wisselen tussen de drie houdingen animeert en de
+> stippellijn van "Nu" klopt, de knoppen op de tekening schuiven mee, de
+> Madone met gat en vervaagde renner, de Kalas-tabel met lange mouwen bij
+> SONIC, licht en donker, desktop en telefoonbreedte, geen consolefouten.
+> Hersteld na die ronde: op telefoonbreedte schoof de helmloep onder de
+> knop Winter/Zomer; de loep staat nu lager (`LOEP.c` van y 22 naar 38).
 >
 > **Aanleiding.** De eigenaar vond dat de getekende renner en het materiaal
 > "totaal nog niet" op het echte materiaal leken en vroeg om realistische

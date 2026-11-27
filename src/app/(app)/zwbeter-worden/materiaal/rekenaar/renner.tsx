@@ -872,7 +872,7 @@ function Schim({ pose }: { pose: Pose }) {
 }
 
 /** Waar de loep met het hoofd staat (in de viewBox), en hoeveel groter. */
-const LOEP = { c: [62, 22] as P, r: 44, schaal: 1.75 };
+const LOEP = { c: [62, 38] as P, r: 44, schaal: 1.75 };
 
 export function RennerFiguur({
   beeld,
