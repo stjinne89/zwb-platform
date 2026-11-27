@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stijlproeven renner materiaalrekenaar</title>
+<style>
+  :root { --ink:#0a2b34; --paper:#fbfbf7; --cream:#f3f1e8; --night:#061c22; --muted:#4d6a70; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--cream); color:var(--ink); font-family:"Barlow Semi Condensed","Barlow",system-ui,sans-serif; }
+  main { max-width:1400px; margin:0 auto; padding:32px 24px 64px; }
+  h1 { font-weight:300; font-size:2.4rem; margin:0 0 28px; letter-spacing:-0.01em; }
+  section { margin:0 0 44px; }
+  h2 { font-weight:300; font-size:1.7rem; margin:0 0 4px; }
+  section > p { margin:0 0 14px; color:var(--muted); font-size:1.05rem; max-width:70ch; }
+  .rij { display:grid; grid-template-columns: 1fr 1fr 340px; gap:12px; align-items:end; }
+  .vak { padding:10px 8px 4px; }
+  .vak.licht { background:var(--paper); }
+  .vak.donker { background:var(--night); }
+  .vak svg { display:block; width:100%; height:auto; }
+  .vak small { display:block; font-size:.8rem; color:var(--muted); padding:2px 4px 4px; }
+  .vak.donker small { color:#8fa9ad; }
+  @media (max-width: 1000px) { .rij { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Renner en fiets: drie stijlproeven</h1>
+  <section>
+    <h2>1. Technische lijntekening</h2>
+    <p>Eén lijndikte om elk onderdeel, vlakken in papier, alleen het tenue in kleur.</p>
+    <div class="rij" data-stijl="line"></div>
+  </section>
+  <section>
+    <h2>2. Gevulde vlakken met schaduw</h2>
+    <p>Effen kleuren, geen lijnen, één harde schaduwkant rechtsonder.</p>
+    <div class="rij" data-stijl="flat"></div>
+  </section>
+  <section>
+    <h2>3. Semi-realistisch</h2>
+    <p>Zachte schaduw en strijklicht, glans op carbon, helm en metaal, slagschaduw op de weg.</p>
+    <div class="rij" data-stijl="real"></div>
+  </section>
+</main>
+<script>
+// Alle maten in mm, van opzij, achteras in de oorsprong, y naar beneden.
+// Geometrie: Specialized S-Works Tarmac SL8, maat 56 (stack 571, reach 395,
+// kettingstag 410, trapasverlaging 72, balhoek en zitbuishoek 73,5°).
+const D=Math.PI/180;
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1]], sub=(a,b)=>[a[0]-b[0],a[1]-b[1]], mul=(a,k)=>[a[0]*k,a[1]*k];
+const len=a=>Math.hypot(a[0],a[1]), nrm=a=>mul(a,1/len(a)), perp=a=>[-a[1],a[0]];
+const lerp=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];
+const pol=(c,r,deg)=>[c[0]+r*Math.cos(deg*D),c[1]+r*Math.sin(deg*D)];
+const f=n=>Math.round(n*10)/10, p=a=>`${f(a[0])} ${f(a[1])}`;
+
+function tube(a,b,wa,wb=wa){
+  const d=nrm(sub(b,a)), n=perp(d), ra=wa/2, rb=wb/2;
+  return `M${p(add(a,mul(n,ra)))}L${p(add(b,mul(n,rb)))}A${f(rb)} ${f(rb)} 0 0 0 ${p(sub(b,mul(n,rb)))}L${p(sub(a,mul(n,ra)))}A${f(ra)} ${f(ra)} 0 0 0 ${p(add(a,mul(n,ra)))}Z`;
+}
+// Ledemaat: taps, met een buik op elke kant (extraPos op +n, extraNeg op -n).
+function limb(a,b,wa,wb,t,midW,extraPos=0,extraNeg=0){
+  const d=nrm(sub(b,a)), n=perp(d), m=lerp(a,b,t), ra=wa/2, rb=wb/2;
+  const a1=add(a,mul(n,ra)), b1=add(b,mul(n,rb)), m1=add(m,mul(n,midW/2+extraPos));
+  const a2=sub(a,mul(n,ra)), b2=sub(b,mul(n,rb)), m2=sub(m,mul(n,midW/2+extraNeg));
+  const c1=sub(mul(m1,2),lerp(a1,b1,.5)), c2=sub(mul(m2,2),lerp(a2,b2,.5));
+  return `M${p(a1)}Q${p(c1)} ${p(b1)}A${f(rb)} ${f(rb)} 0 0 0 ${p(b2)}Q${p(c2)} ${p(a2)}A${f(ra)} ${f(ra)} 0 0 0 ${p(a1)}Z`;
+}
+function cubic(p0,p1,p2,p3,n=24){const o=[];for(let i=0;i<=n;i++){const t=i/n,u=1-t;o.push([u*u*u*p0[0]+3*u*u*t*p1[0]+3*u*t*t*p2[0]+t*t*t*p3[0],u*u*u*p0[1]+3*u*u*t*p1[1]+3*u*t*t*p2[1]+t*t*t*p3[1]]);}return o;}
+// Een gebogen buis als vlak: de lijn naar twee kanten verschoven, ronde uiteinden.
+function strokePoly(pts,w){
+  const r=w/2, L=[], R=[];
+  pts.forEach((q,i)=>{const a=pts[Math.max(0,i-1)], b=pts[Math.min(pts.length-1,i+1)]; const n=perp(nrm(sub(b,a))); L.push(add(q,mul(n,r))); R.push(sub(q,mul(n,r)));});
+  let d=`M${p(L[0])}`; L.slice(1).forEach(q=>d+=`L${p(q)}`);
+  d+=`A${f(r)} ${f(r)} 0 0 0 ${p(R[R.length-1])}`; R.slice(0,-1).reverse().forEach(q=>d+=`L${p(q)}`);
+  d+=`A${f(r)} ${f(r)} 0 0 0 ${p(L[0])}Z`; return d;
+}
+function band(a,b,wa,wb=wa){const n=perp(nrm(sub(b,a)));return `M${p(add(a,mul(n,wa/2)))}L${p(add(b,mul(n,wb/2)))}L${p(sub(b,mul(n,wb/2)))}L${p(sub(a,mul(n,wa/2)))}Z`;}
+const circle=(c,r)=>`M${f(c[0]+r)} ${f(c[1])}A${r} ${r} 0 1 0 ${f(c[0]-r)} ${f(c[1])}A${r} ${r} 0 1 0 ${f(c[0]+r)} ${f(c[1])}Z`;
+const ring=(c,r1,r2)=>circle(c,r1)+circle(c,r2);
+function joint(a,b,l1,l2,side){const dx=b[0]-a[0],dy=b[1]-a[1];const d=Math.min(Math.hypot(dx,dy),l1+l2-.01);const x=(l1*l1-l2*l2+d*d)/(2*d);const h=Math.sqrt(Math.max(0,l1*l1-x*x));const ux=dx/d,uy=dy/d;return [a[0]+ux*x-uy*h*side,a[1]+uy*x+ux*h*side];}
+// Een lokale vorm (oorsprong, hoek) naar wereldpunten.
+function place(o,deg,pts){const c=Math.cos(deg*D),s=Math.sin(deg*D);return pts.map(([x,y])=>[o[0]+x*c-y*s,o[1]+x*s+y*c]);}
+function localPath(o,deg,d){ // vervangt "x,y"-paren in een pad door wereldcoördinaten
+  return d.replace(/(-?\d+(?:\.\d+)?)[ ,](-?\d+(?:\.\d+)?)/g,(_,x,y)=>p(place(o,deg,[[+x,+y]])[0]));
+}
+
+// ---- Fiets ----
+const R=[0,0], F=[993,0], BB=[403.6,72];
+const up=nrm([-0.284,-0.9588]);
+const ST=t=>add(BB,mul(up,t));
+const C=ST(505), SJ=ST(445);
+const H1=[798.6,-499], H2=add(H1,mul(up,-140));
+const TTf=add(H1,mul(up,-20)), DTf=add(H2,mul(up,16)), crown=add(H2,mul(up,-30));
+const POST=ST(705);
+const K=[893,-524];
+const BAR=[...cubic(K,[915,-528],[940,-532],[962,-532],8), ...cubic([962,-532],[1014,-534],[1024,-452],[988,-420],18).slice(1), ...cubic([988,-420],[968,-404],[948,-400],[924,-401],8).slice(1)];
+const CRANK=40, Pn=pol(BB,172.5,CRANK), Pf=pol(BB,172.5,CRANK+180);
+const Pu=[24,64], Pl=[-6,148];
+
+// ---- Renner ----
+const HIP=[222,-712];
+const ROMP=-21, Sh=place(HIP,ROMP,[[520,0]])[0];
+const ballN=add(Pn,[6,-14]), AnN=add(ballN,[-128,-66]);
+const ballF=add(Pf,[6,-14]), AnF=add(ballF,[-126,-74]);
+const KnN=joint(HIP,AnN,430,440,-1), KnF=joint(add(HIP,[6,-4]),AnF,430,440,-1);
+const Hc=add(Sh,[104,-124]);
+const GRIP=[960,-414], WR=[904,-444];
+const ElN=joint(Sh,WR,310,272,1);
+const ShF=add(Sh,[10,-8]), WRf=add(WR,[8,-6]), ElF=joint(ShF,WRf,310,272,1);
+
+function shank(kn,an){ // kuit aan de achterkant
+  const d=nrm(sub(an,kn)), n=perp(d); const back=n[0]<0;
+  return limb(kn,an,104,58,.34,108,back?26:4,back?4:26);
+}
+function thigh(h,kn){const d=nrm(sub(kn,h)), n=perp(d); const front=n[0]>0; return limb(h,kn,150,104,.42,146,front?18:6,front?6:18);}
+function shoeFrame(ball,an){const heel=add(an,[-38,62]); const d=sub(ball,heel); return {o:heel,deg:Math.atan2(d[1],d[0])/D,L:len(d)};}
+function shoe(ball,an){const {o,deg,L}=shoeFrame(ball,an);
+  return localPath(o,deg,`M -8 -10 C -16 -58 -12 -94 4 -104 L 74 -98 C 112 -82 150 -60 ${f(L+20)} -40 C ${f(L+52)} -30 ${f(L+72)} -16 ${f(L+68)} 2 L 2 6 C -6 4 -9 -2 -8 -10 Z`);}
+function soleLine(ball,an){const {o,deg,L}=shoeFrame(ball,an); return localPath(o,deg,`M -6 2 L ${f(L+64)} 4`);}
+function shoeDial(ball,an){const {o,deg}=shoeFrame(ball,an); return place(o,deg,[[96,-62]])[0];}
+function shoeStrap(ball,an){const {o,deg,L}=shoeFrame(ball,an); return localPath(o,deg,`M 120 -72 L ${f(L-6)} -4`);}
+const TORSO="M -78 10 C -92 -40 -50 -86 30 -96 C 150 -112 330 -122 470 -104 C 540 -96 584 -60 580 -14 C 576 30 556 64 520 84 C 450 120 330 138 220 132 C 130 126 64 112 20 96 C -30 82 -70 56 -78 10 Z";
+const HEAD="M -72 42 C -104 -20 -82 -104 0 -108 C 70 -110 106 -62 103 -10 L 105 0 C 112 10 127 22 122 31 C 117 37 105 37 101 41 C 103 53 99 61 97 67 C 101 75 97 89 81 93 C 56 99 31 97 11 91 C -29 81 -61 66 -72 42 Z";
+const HELM="M -116 34 C -134 -34 -100 -134 4 -138 C 84 -140 128 -92 122 -34 C 121 -20 114 -14 104 -14 C 62 -26 22 -38 -20 -28 C -62 -16 -94 8 -116 34 Z";
+const HEADROT=-4;
+
+// ---- Kleuren per stijl en thema ----
+const BASE={
+  licht:{frame:'#1f2d33',frameDet:'#4a5a61',tire:'#1b1f21',tireHi:'#454c50',rim:'#232a2e',rimHi:'#6a767c',spoke:'#20282c',metal:'#aab2b4',metalD:'#6e777b',skin:'#d3a583',bib:'#1a2a31',jersey:'#f6f7f6',blue:'#1c6f87',blueL:'#3d93ad',blueLL:'#7cbccf',blueD:'#145368',gold:'#c3a06a',helmet:'#f3f4f2',shoe:'#f1f1ec',sole:'#1d2427',sock:'#f4f5f4',lens:'#10303a',glove:'#1d2a30',saddle:'#1b2226',bar:'#1f2a2f',ground:'#0a2b34',rotor:'#9aa3a6',det:'#0a2b34',shade:'#06161b',shadeOp:.24,hi:'#ffffff',hiOp:.3,far:.0,farOp:.28},
+  donker:{frame:'#c3ccce',frameDet:'#8b979a',tire:'#030607',tireHi:'#3a4448',rim:'#1a2125',rimHi:'#7c8a90',spoke:'#8a979b',metal:'#b8c0c2',metalD:'#7f888c',skin:'#c99a78',bib:'#0b1418',jersey:'#eef0ee',blue:'#2a7d96',blueL:'#3d93ad',blueLL:'#7cbccf',blueD:'#145368',gold:'#c4923f',helmet:'#e9ebe8',shoe:'#e6e6e0',sole:'#0a0f11',sock:'#e8eae8',lens:'#02090b',glove:'#0d171b',saddle:'#0c1215',bar:'#b7c1c3',ground:'#000000',rotor:'#a8b1b4',det:'#061c22',shade:'#000000',shadeOp:.34,hi:'#ffffff',hiOp:.22,farOp:.4},
+};
+function palette(style,theme){
+  const b={...BASE[theme]};
+  if(style==='line'){
+    const L=theme==='licht';
+    Object.assign(b,{line:L?'#0a2b34':'#dfe8e3',lw:7,thin:L?'#0a2b34':'#dfe8e3',
+      frame:L?'#fbfbf7':'#0d2a32',frameDet:L?'#0a2b34':'#dfe8e3',tire:L?'#e4e8e5':'#12343d',rim:L?'#fbfbf7':'#0d2a32',spoke:L?'#0a2b34':'#dfe8e3',
+      metal:L?'#fbfbf7':'#0d2a32',metalD:L?'#0a2b34':'#dfe8e3',skin:L?'#f2e3d5':'#d9b89c',bib:L?'#0a2b34':'#0a2b34',helmet:L?'#fbfbf7':'#e9ebe8',
+      shoe:L?'#fbfbf7':'#e6e6e0',sole:L?'#0a2b34':'#061c22',sock:L?'#fbfbf7':'#e8eae8',lens:L?'#0a2b34':'#02090b',glove:L?'#0a2b34':'#0a2b34',
+      saddle:L?'#0a2b34':'#dfe8e3',bar:L?'#fbfbf7':'#0d2a32',rotor:L?'#fbfbf7':'#0d2a32',farLine:L?'#6d8a8f':'#7c9aa0'});
+  }
+  return b;
+}
+
+function build(style,theme,uid){
+  const P=palette(style,theme), defs=[], body=[];
+  const id=s=>`${uid}-${s}`;
+  const BOX='x="-700" y="-1500" width="2400" height="2100"';
+  defs.push(`<filter id="${id('blur')}" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${style==='real'?11:0}"/></filter>`);
+  defs.push(`<filter id="${id('soft')}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter>`);
+
+  // Een onderdeel: silhouet (voor omtrek en schaduw), inhoud en details.
+  function part(name,sil,content,detail='',o={}){
+    defs.push(`<g id="${id('s-'+name)}">${sil.map(d=>`<path d="${d}"/>`).join('')}</g>`);
+    const use=a=>`<use href="#${id('s-'+name)}" ${a}/>`;
+    let out='<g>';
+    if(style==='line') out+=use(`fill="${o.far?P.farLine:P.line}" stroke="${o.far?P.farLine:P.line}" stroke-width="${P.lw}" stroke-linejoin="round"`);
+    out+=content;
+    if(style!=='line'){
+      defs.push(`<clipPath id="${id('c-'+name)}">${sil.map(d=>`<path d="${d}"/>`).join('')}</clipPath>`);
+      const dx=style==='real'?-18:-8, dy=style==='real'?-26:-12;
+      defs.push(`<mask id="${id('m-'+name)}" maskUnits="userSpaceOnUse" ${BOX}>${use('fill="#fff"')}<g filter="url(#${id('blur')})">${use(`fill="#000" transform="translate(${dx} ${dy})"`)}</g></mask>`);
+      out+=`<g clip-path="url(#${id('c-'+name)})"><rect ${BOX} fill="${P.shade}" opacity="${o.shadeOp??P.shadeOp}" mask="url(#${id('m-'+name)})"/>`;
+      if(style==='real'){
+        defs.push(`<mask id="${id('h-'+name)}" maskUnits="userSpaceOnUse" ${BOX}>${use('fill="#fff"')}<g filter="url(#${id('blur')})">${use('fill="#000" transform="translate(5 8)"')}</g></mask>`);
+        out+=`<rect ${BOX} fill="${P.hi}" opacity="${o.hiOp??P.hiOp}" mask="url(#${id('h-'+name)})"/>`;
+      }
+      if(o.far) out+=`<rect ${BOX} fill="${P.shade}" opacity="${P.farOp}"/>`;
+      out+='</g>';
+    }
+    out+=detail+'</g>';
+    body.push(out);
+  }
+  const fill=(d,c,extra='')=>`<path d="${d}" fill="${c}" ${extra}/>`;
+  const line=(d,c,w,extra='')=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
+  const thin=style==='line'?P.thin:P.det;
+  const dw=style==='line'?3:2.5;
+
+  // ---- grond en slagschaduw ----
+  if(style==='line') body.push(line(`M -380 339 L 1380 339`,P.line,3));
+  else if(style==='flat') body.push(`<ellipse cx="500" cy="341" rx="830" ry="16" fill="${P.ground}" opacity="${theme==='licht'?.12:.5}"/>`);
+  else body.push(`<ellipse cx="520" cy="342" rx="800" ry="22" fill="${P.ground}" opacity="${theme==='licht'?.28:.7}" filter="url(#${id('soft')})"/><ellipse cx="0" cy="340" rx="120" ry="7" fill="${P.ground}" opacity=".35"/><ellipse cx="993" cy="340" rx="120" ry="7" fill="${P.ground}" opacity=".35"/>`);
+
+  // ---- verre kant: arm, been, crank ----
+  part('armF',[limb(ShF,ElF,100,80,.45,104,0,6),limb(ElF,WRf,80,58,.35,82,4,4),tube(WRf,add(GRIP,[8,-6]),60,52)],
+    fill(limb(ShF,ElF,100,80,.45,104,0,6),P.jersey)+fill(tube(lerp(ShF,ElF,.62),ElF,100,82),P.skin)+fill(limb(ElF,WRf,80,58,.35,82,4,4),P.skin)+fill(tube(WRf,add(GRIP,[8,-6]),60,52),P.glove)+fill(band(lerp(ShF,ElF,.5),lerp(ShF,ElF,.6),104,100),P.blue),'',{far:true});
+  part('beenF',[thigh(add(HIP,[6,-4]),KnF),shank(KnF,AnF),shoe(ballF,AnF)],
+    fill(thigh(add(HIP,[6,-4]),KnF),P.skin)+fill(limb(add(HIP,[6,-4]),lerp(add(HIP,[6,-4]),KnF,.8),150,122,.45,146,10,10),P.bib)+fill(shank(KnF,AnF),P.skin)+fill(band(AnF,lerp(AnF,KnF,.28),68,78),P.sock)+fill(shoe(ballF,AnF),P.shoe)+line(soleLine(ballF,AnF),P.sole,10),'',{far:true});
+  part('crankF',[tube(BB,Pf,36,26),tube(add(Pf,[-40,-2]),add(Pf,[40,-2]),14)],fill(tube(BB,Pf,36,26),P.metalD)+fill(tube(add(Pf,[-40,-2]),add(Pf,[40,-2]),14),P.sole),'',{far:true});
+
+  // ---- wielen ----
+  function wheel(c,depth,n,isRear){
+    const rIn=311-depth, g=[];
+    // schijf en remklauw zitten links, achter de spaken
+    const rotor=ring(c,80,64)+[0,60,120,180,240,300].map(a=>tube(pol(c,22,a+15),pol(c,66,a),9,7)).join('');
+    const op=style==='line'?1:.55;
+    g.push(`<g opacity="${op}">${fill(rotor,P.rotor,`fill-rule="evenodd" ${style==='line'?`stroke="${P.farLine}" stroke-width="2.5"`:''}`)}</g>`);
+    const calA=isRear?24:150; const cal=tube(pol(c,58,calA-14),pol(c,86,calA+12),36,34);
+    g.push(fill(cal,style==='line'?P.frame:P.metalD,`opacity="${style==='line'?1:.6}" ${style==='line'?`stroke="${P.farLine}" stroke-width="2.5"`:''}`));
+    // band
+    if(style==='real'){
+      defs.push(`<radialGradient id="${id('tire'+isRear)}" cx="${c[0]}" cy="${c[1]}" r="339" gradientUnits="userSpaceOnUse"><stop offset="${(309/339).toFixed(3)}" stop-color="${P.tire}"/><stop offset="0.955" stop-color="${P.tireHi}"/><stop offset="1" stop-color="${P.tire}"/></radialGradient>`);
+      g.push(fill(ring(c,339,309),`url(#${id('tire'+isRear)})`,'fill-rule="evenodd"'));
+    } else g.push(fill(ring(c,339,309),P.tire,`fill-rule="evenodd" ${style==='line'?`stroke="${P.line}" stroke-width="${P.lw/1.4}"`:''}`));
+    if(style==='line') g.push(line(circle(c,324),P.line,1.6,'opacity=".55" stroke-dasharray="3 9"'));
+    // spaken
+    const hubR=isRear?32:24, sp=[];
+    for(let i=0;i<n;i++){const a=i*360/n+7; const cross=(i%2?1:-1)*(isRear?26:18); sp.push(`M${p(pol(c,hubR,a+cross))}L${p(pol(c,rIn+4,a))}`);}
+    g.push(line(sp.join(''),P.spoke,style==='line'?2.4:3.2));
+    // velg
+    if(style==='real'){
+      defs.push(`<radialGradient id="${id('rim'+isRear)}" cx="${c[0]}" cy="${c[1]}" r="314" gradientUnits="userSpaceOnUse"><stop offset="${(rIn/314).toFixed(3)}" stop-color="#0c1012"/><stop offset="${((rIn+depth*.35)/314).toFixed(3)}" stop-color="${P.rim}"/><stop offset="0.975" stop-color="${P.rimHi}"/><stop offset="1" stop-color="${P.rim}"/></radialGradient>`);
+      g.push(fill(ring(c,314,rIn),`url(#${id('rim'+isRear)})`,'fill-rule="evenodd"'));
+      const arc=(r,a1,a2)=>{const s=pol(c,r,a1),e=pol(c,r,a2);return `M${p(s)}A${r} ${r} 0 0 1 ${p(e)}`;};
+      g.push(line(arc(rIn+depth*.55,200,262),'#ffffff',depth*.22,'opacity=".22"'));
+      g.push(line(arc(rIn+depth*.55,20,60),'#ffffff',depth*.12,'opacity=".12"'));
+      g.push(line(arc(326,205,250),'#ffffff',4,'opacity=".18"'));
+    } else {
+      g.push(fill(ring(c,314,rIn),P.rim,`fill-rule="evenodd" ${style==='line'?`stroke="${P.line}" stroke-width="${P.lw/1.4}"`:''}`));
+      if(style==='flat'){const s=pol(c,rIn+depth*.5,198),e=pol(c,rIn+depth*.5,256); g.push(line(`M${p(s)}A${rIn+depth*.5} ${rIn+depth*.5} 0 0 1 ${p(e)}`,P.rimHi,depth*.3,'opacity=".7" stroke-linecap="butt"'));}
+      if(style==='line') g.push(line(circle(c,rIn+depth*.62),P.line,1.6,'opacity=".5"'));
+    }
+    // ventiel
+    g.push(fill(tube(pol(c,rIn-2,-58),pol(c,rIn-24,-58),9),style==='line'?P.frame:P.metal,style==='line'?`stroke="${P.line}" stroke-width="2"`:''));
+    // naaf
+    g.push(fill(circle(c,hubR+4),style==='line'?P.frame:P.metalD,style==='line'?`stroke="${P.line}" stroke-width="3"`:''));
+    g.push(fill(circle(c,13),style==='line'?P.frame:P.frame,style==='line'?`stroke="${P.line}" stroke-width="3"`:''));
+    body.push(`<g>${g.join('')}</g>`);
+  }
+  wheel(R,60,24,true);
+  wheel(F,51,21,false);
+
+  // ---- cassette ----
+  {
+    const g=[]; const cogs=[60,54,48,42,36,31,26,22];
+    cogs.forEach((r,i)=>g.push(fill(circle(R,r),i%2?P.metal:P.metalD,style==='line'?`stroke="${P.line}" stroke-width="2"`:'')));
+    if(style==='real') g.push(line(`M${p(pol(R,50,205))}A50 50 0 0 1 ${p(pol(R,50,260))}`,'#fff',6,'opacity=".35"'));
+    body.push(`<g>${g.join('')}</g>`);
+  }
+
+  // ---- frame ----
+  const FR=[
+    tube(BB,R,40,22), tube(SJ,R,22,15), tube(BB,C,54,38), tube(C,TTf,34,40),
+    tube(BB,DTf,64,54), tube(add(H1,mul(up,6)),add(H2,mul(up,-12)),46,58), tube(crown,F,46,24),
+    circle(BB,36), circle(R,20), circle(F,18), tube(C,POST,31,31),
+    tube(add(H1,mul(up,4)),add(H1,mul(up,22)),44,42), tube(add(H1,mul(up,16)),K,42,34), circle(K,17),
+  ];
+  const frameDetail =
+    line(`M${p(add(lerp(BB,DTf,.12),[-14,-30]))}L${p(add(lerp(BB,DTf,.9),[-12,-26]))}`,P.frameDet,dw,'opacity=".6"')+ // kammtail-rand onderbuis
+    line(`M${p(add(lerp(add(H1,mul(up,6)),H2,0),[18,6]))}L${p(add(H2,[20,-10]))}`,P.frameDet,dw,'opacity=".6"')+ // voorkant balhoofd
+    line(`M${p(add(C,[-6,-4]))}L${p(add(C,[22,-2]))}`,P.frameDet,dw,'opacity=".7"')+ // zadelpenklem
+    line(`M${p(add(R,[0,0]))}m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0`,P.frameDet,dw)+
+    line(`M${p(F)}m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0`,P.frameDet,dw);
+  part('frame',FR,`<g fill="${P.frame}">${FR.map(d=>`<path d="${d}"/>`).join('')}</g>`,frameDetail);
+  // glans op de buizen (alleen semi-realistisch)
+  if(style==='real'){
+    const gl=(a,b,o)=>line(`M${p(a)}L${p(b)}`,'#ffffff',5,`opacity="${o}"`);
+    body.push(gl(add(lerp(BB,DTf,.2),[-16,-22]),add(lerp(BB,DTf,.85),[-14,-20]),theme==='licht'?.22:.5)+gl(add(lerp(C,TTf,.1),[0,-12]),add(lerp(C,TTf,.9),[0,-14]),theme==='licht'?.2:.45)+gl(add(lerp(H1,H2,.05),[-14,0]),add(lerp(H1,H2,.9),[-16,0]),theme==='licht'?.18:.4)+gl(add(lerp(BB,C,.15),[-18,6]),add(lerp(BB,C,.9),[-12,6]),theme==='licht'?.14:.35));
+  }
+
+  // ---- zadel ----
+  const SAD="M 96 -652 C 120 -670 190 -666 250 -656 L 354 -642 C 366 -640 366 -628 354 -627 L 250 -628 C 190 -630 130 -628 104 -634 C 90 -637 88 -646 96 -652 Z";
+  part('zadel',[SAD,tube([150,-630],[300,-628],9),tube([200,-630],POST,14,24)],fill(tube([150,-630],[300,-628],9),P.metalD)+fill(tube([200,-630],POST,14,24),P.frame)+fill(SAD,P.saddle),
+    line("M 106 -646 C 160 -652 230 -646 352 -634",style==='line'?P.line:P.frameDet,dw,'opacity=".5"'));
+
+  // ---- stuur, hoods en remgreep ----
+  const HOOD="M 946 -527 C 958 -552 984 -568 1004 -564 C 1018 -561 1018 -548 1008 -540 C 1000 -531 1001 -517 1004 -506 L 980 -498 C 970 -510 957 -518 946 -527 Z";
+  const LEVER=strokePoly(cubic([1000,-508],[1014,-472],[1010,-430],[990,-398],16),15);
+  part('stuur',[strokePoly(BAR,26),HOOD,LEVER],fill(strokePoly(BAR,26),P.bar)+fill(LEVER,style==='line'?P.frame:P.metalD)+fill(HOOD,style==='line'?P.frame:P.sole),
+    line("M 968 -548 C 980 -556 994 -560 1004 -556",style==='line'?P.line:'#5d6a70',dw,'opacity=".7"'));
+
+  // ---- aandrijving ----
+  {
+    const g=[];
+    // ketting
+    const chainTop=`M${p([403.6,72-104])}L${p([0,-42])}`;
+    const chainBot=`M${p([403.6,72+104])}L${p(add(Pl,[0,17]))}A17 17 0 0 1 ${p(add(Pl,[-12,-12]))}L${p(add(Pu,[16,4]))}A16 16 0 0 0 ${p(add(Pu,[-6,-15]))}L${p([-4,42])}`;
+    g.push(line(chainTop+chainBot,style==='line'?P.line:'#3e474b',11));
+    g.push(line(chainTop+chainBot,style==='line'?P.frame:P.metal,4,'stroke-dasharray="7 6"'));
+    // derailleur
+    const cage=tube(Pu,Pl,46,42), body2=tube([14,24],[34,58],34,28);
+    part('derailleur',[cage,body2],fill(body2,P.sole)+fill(cage,style==='line'?P.frame:P.metalD)+fill(circle(Pu,9),P.sole)+fill(circle(Pl,9),P.sole),'');
+    body.push(`<g>${g.join('')}</g>`);
+    // voorderailleur
+    const fd=tube(add(ST(150),[12,-6]),add(ST(150),[74,6]),24,18);
+    part('fd',[fd,tube(ST(170),add(ST(150),[20,-4]),26,22)],fill(tube(ST(170),add(ST(150),[20,-4]),26,22),P.sole)+fill(fd,style==='line'?P.frame:P.metalD),'');
+    // kettingbladen, spin en crank
+    const blade=ring(BB,104,94)+ring(BB,80,72);
+    const spider=[45,135,225,315].map(a=>tube(pol(BB,20,a),pol(BB,98,a),26,16)).join('');
+    part('blad',[circle(BB,104)],fill(ring(BB,104,72),style==='line'?P.frame:P.metalD,'fill-rule="evenodd"')+fill(ring(BB,96,84),style==='line'?P.frame:P.sole,'fill-rule="evenodd"')+fill(spider,style==='line'?P.frame:P.frame)+fill(circle(BB,30),P.frame),
+      line(circle(BB,101),style==='line'?P.line:'#c9d0d2',2,'stroke-dasharray="2.5 5.4" opacity=".8"'),{shadeOp:.15});
+    part('crankN',[tube(BB,Pn,42,28),circle(BB,26),tube(add(Pn,[-42,-2]),add(Pn,[42,-2]),15)],fill(tube(BB,Pn,42,28),style==='line'?P.frame:P.frame)+fill(circle(BB,26),P.metalD)+fill(tube(add(Pn,[-42,-2]),add(Pn,[42,-2]),15),P.sole),'');
+  }
+
+  // ---- dichtbije been ----
+  const thN=thigh(HIP,KnN), shN=shank(KnN,AnN), shoeN=shoe(ballN,AnN);
+  const dial=shoeDial(ballN,AnN);
+  part('beenN',[thN,shN,shoeN],
+    fill(thN,P.skin)+fill(shN,P.skin)+fill(band(AnN,lerp(AnN,KnN,.3),70,80),P.sock)+fill(band(lerp(AnN,KnN,.26),lerp(AnN,KnN,.3),78,82),P.blue)+
+    fill(limb(HIP,lerp(HIP,KnN,.8),150,124,.45,148,12,12),P.bib)+fill(band(lerp(HIP,KnN,.76),lerp(HIP,KnN,.8),134,128),P.blue)+
+    fill(shoeN,P.shoe)+line(soleLine(ballN,AnN),P.sole,11),
+    `<circle cx="${f(dial[0])}" cy="${f(dial[1])}" r="15" fill="${P.sole}"/>`+line(shoeStrap(ballN,AnN),style==='line'?P.line:'#c6cbc8',dw,'opacity=".8"')+
+    line(`M${p(lerp(HIP,KnN,.4))}Q${p(add(lerp(HIP,KnN,.6),[22,-6]))} ${p(lerp(HIP,KnN,.9))}`,style==='line'?P.line:P.skin,dw,`opacity="${style==='line'?.0:.0}"`));
+
+  // ---- romp ----
+  const torsoW=localPath(HIP,ROMP,TORSO);
+  defs.push(`<clipPath id="${id('torso')}"><path d="${torsoW}"/></clipPath>`);
+  const T=d=>localPath(HIP,ROMP,d);
+  const jerseyArt =
+    fill(T("M -120 160 L 174 160 L 260 -200 L -120 -200 Z"),P.blue)+
+    fill(T("M -120 -200 L 128 -200 L 20 -20 Z"),P.blueL)+
+    fill(T("M 20 -20 L 174 160 L -120 160 Z"),P.blueLL,'opacity=".7"')+
+    fill(T("M 104 -200 L 260 -200 L 210 -20 Z"),P.blueD,'opacity=".6"')+
+    fill(T("M 336 160 L 372 160 L 372 -200 L 336 -200 Z"),P.gold)+
+    fill(T("M -140 -40 L 40 -140 L 60 140 L -140 140 Z"),P.bib);  // broek onder de zoom
+  part('romp',[torsoW],`<path d="${torsoW}" fill="${P.jersey}"/><g clip-path="url(#${id('torso')})">${jerseyArt}</g>`,
+    line(T("M 40 -94 C 30 -20 50 60 60 120"),style==='line'?P.line:P.det,dw,'opacity=".35"')+line(T("M 440 -100 C 460 -30 470 40 470 110"),style==='line'?P.line:P.det,dw,'opacity=".25"'));
+
+  // ---- nek en hoofd ----
+  const neck=limb(add(Sh,[-6,-40]),add(Hc,[-22,44]),104,86,.5,96);
+  part('nek',[neck],fill(neck,P.skin),'');
+  const H=d=>localPath(Hc,HEADROT,d);
+  const ear=H("M -18 -6 C -2 -14 12 0 10 20 C 8 40 -12 44 -22 30 C -30 18 -28 0 -18 -6 Z");
+  const helm=H(HELM);
+  const vents=["M 70 -110 C 86 -100 98 -86 104 -70","M 30 -128 C 52 -124 70 -114 82 -100","M 104 -44 C 108 -36 110 -28 110 -22"].map(H);
+  const lens=H("M 70 -6 C 92 -14 114 -8 124 2 C 122 18 106 28 88 26 C 76 24 70 12 70 -6 Z");
+  part('hoofd',[H(HEAD),helm],
+    fill(H(HEAD),P.skin)+fill(ear,P.skin)+
+    line(H("M -16 -2 C -4 -10 10 2 8 20 C 6 38 -10 42 -20 30"),style==='line'?P.line:P.det,dw,'opacity=".45"')+line(H("M 22 -30 L -2 56 M -50 -16 L -2 56 C 14 74 30 88 44 96"),P.sole,5)+
+    fill(helm,P.helmet)+
+    line(H("M -116 34 C -94 8 -62 -16 -20 -28 C 22 -38 62 -26 104 -14"),style==='line'?P.line:'#c8cdca',dw+1)+
+    vents.map(v=>line(v,P.det,style==='line'?9:10)).join('')+
+    fill(lens,P.lens)+line(H("M 72 -2 L -4 2"),P.sole,6),
+    style==='real'?line(H("M -60 -96 C -20 -122 40 -126 80 -108"),'#ffffff',10,'opacity=".55"')+line(H("M 84 -4 C 96 -8 108 -4 116 2"),'#ffffff',4,'opacity=".5"'):'',
+    {hiOp:style==='real'?.4:undefined});
+
+  // ---- dichtbije arm ----
+  const ua=limb(Sh,ElN,104,82,.45,108,0,8), fa=limb(ElN,WR,82,60,.35,86,6,4), hand=tube(WR,GRIP,64,54);
+  part('armN',[ua,fa,hand],
+    fill(fa,P.skin)+fill(tube(lerp(Sh,ElN,.6),ElN,104,82),P.skin)+fill(limb(Sh,lerp(Sh,ElN,.62),112,100,.4,114,0,4),P.jersey)+fill(band(lerp(Sh,ElN,.5),lerp(Sh,ElN,.6),110,104),P.blue)+fill(hand,P.glove),
+    line(`M${p(add(WR,[-8,-4]))}L${p(add(WR,[10,22]))}`,P.det,dw,'opacity=".4"'));
+
+  // het stuur ligt deels voor de hand: herhaal het stuk van de drop vóór de vingers
+  body.push(fill(strokePoly(BAR.slice(-12),26),P.bar,style==='line'?`stroke="${P.line}" stroke-width="${P.lw/1.6}"`:''));
+  if(style!=='line') body.push(line(`M ${p(BAR[BAR.length-11])} ${BAR.slice(-10).map(q=>'L'+p(q)).join('')}`,'#ffffff',4,`opacity="${style==='real'?.18:.08}" transform="translate(-4 -8)"`));
+
+  return `<svg viewBox="-380 -1240 1760 1610" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wielrenner op een racefiets, ${style}"><defs>${defs.join('')}</defs>${body.join('')}</svg>`;
+}
+
+let n=0;
+document.querySelectorAll('.rij').forEach(row=>{
+  const s=row.dataset.stijl;
+  row.innerHTML=
+    `<div class="vak licht">${build(s,'licht','a'+(n++))}<small>Licht</small></div>`+
+    `<div class="vak donker">${build(s,'donker','a'+(n++))}<small>Donker</small></div>`+
+    `<div class="vak licht">${build(s,'licht','a'+(n++))}<small>Telefoonmaat</small></div>`;
+});
+</script>
+</body>
+</html>

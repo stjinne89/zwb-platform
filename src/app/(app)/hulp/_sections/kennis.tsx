@@ -728,7 +728,7 @@ export function KennisHelp() {
               daar van sneller naar trager omslaat.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Helmen, fietsen, wielen, banden en sokken komen uit onafhankelijke
+              Helmen, fietsen, wielen, banden, kleding en sokken komen uit onafhankelijke
               tests: windtunneltests van Cyclingnews Labs en de testrol van
               BicycleRollingResistance. Geen cijfers van fabrikanten. Zo&apos;n test
               meet op een pop, een fiets zonder renner of een testrol. De rekenaar
@@ -741,8 +741,13 @@ export function KennisHelp() {
             <p className="mt-2 text-sm text-muted-foreground">
               De fietsen zijn getest met hun eigen hoge velgen. Kies je een geteste
               fiets, dan tellen andere wielen niet mee en staat er bij Wielen
-              &ldquo;Bij de fiets&rdquo;. Voor shirts en broeken is geen
-              onafhankelijke test gevonden; daar vul je zelf een percentage in. De
+              &ldquo;Bij de fiets&rdquo;. Bij Kleding staat het Kalas-tenue uit
+              onze clubshop. De windtunneltest had andere namen: het Motion-shirt
+              met broek staat voor shirt en broek uit ELITE of PRO, het Passion
+              Brios-pak voor het PRO-snelpak in Brios en het Sonic-pak voor het
+              SONIC-snelpak met lange mouwen. Het Sonic-pak zat binnen de marge
+              van de test. Wat niet in de lijsten staat, vul je bij Overig zelf
+              als percentage in. De
               tekening toont per product de vorm, zonder logo&apos;s of merkkleuren.
             </p>
             <Link

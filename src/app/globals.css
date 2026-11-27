@@ -2002,7 +2002,9 @@ html[data-viewport-fout] .tg-tabs-bottom {
   --view-slider-w: 4.5rem;
 }
 
-/* De renner van de materiaalrekenaar (renner.tsx): het ZWB-tenue van opzij. */
+/* De renner van de materiaalrekenaar (renner.tsx): het ZWB-tenue van opzij,
+   semi-realistisch. Kleuren per onderdeel; schaduw en strijklicht als
+   sterktes, zodat donker het eigen contrast krijgt. */
 .renner {
   /* Tenuekleuren naar de foto van het winter- en zomershirt (2026-10-18). */
   --tenue-blauw: #1c6f87;
@@ -2011,37 +2013,89 @@ html[data-viewport-fout] .tg-tabs-bottom {
   --tenue-blauw-donker: #145368;
   --tenue-goud: #c3a06a;
   --tenue-wit: #f6f7f6;
-  --renner-rand: oklch(0.78 0.015 210);
-  --renner-helm: #f6f7f6;
-  --renner-gat: oklch(0.25 0.02 220);
-  --renner-huid: oklch(0.78 0.055 62);
-  --renner-broek: oklch(0.2 0.025 220);
-  --renner-schoen: oklch(0.97 0.006 103);
-  --renner-sok: oklch(0.97 0.004 210);
-  --renner-frame: oklch(0.3 0.045 212);
-  --renner-band: oklch(0.2 0.012 220);
-  --renner-velg: oklch(0.62 0.02 200);
-  --renner-velg-vlak: oklch(0.3 0.03 212);
+  --renner-huid: #d3a583;
+  --renner-broek: #1a2a31;
+  --renner-naad: #0a2b34;
+  --renner-helm: #f3f4f2;
+  --renner-helm-rand: #c8cdca;
+  --renner-gat: #0a2b34;
+  --renner-lens: #10303a;
+  --renner-handschoen: #1d2a30;
+  --renner-schoen: #f1f1ec;
+  --renner-schoen-detail: #c6cbc8;
+  --renner-zool: #1d2427;
+  --renner-sok: #f4f5f4;
+  --renner-frame: #1f2d33;
+  --renner-frame-detail: #4a5a61;
+  --renner-stuur: #1f2a2f;
+  --renner-zadel: #1b2226;
+  --renner-band: #1b1f21;
+  --renner-band-licht: #454c50;
+  --renner-velg: #232a2e;
+  --renner-velg-licht: #6a767c;
+  --renner-velg-diep: #0c1012;
+  --renner-spaak: #20282c;
+  --renner-metaal: #aab2b4;
+  --renner-metaal-donker: #6e777b;
+  --renner-schijf: #9aa3a6;
+  --renner-ketting: #3e474b;
   --renner-weg: var(--border);
+  --renner-grond: #0a2b34;
+  --renner-grond-sterkte: 0.28;
+  --renner-schaduw: #06161b;
+  --renner-schaduw-sterkte: 0.24;
+  --renner-glans-sterkte: 0.3;
+  --renner-glans-frame: 0.22;
+  --renner-glans-velg: 0.22;
+  --renner-glans-helm: 0.55;
+  --renner-ver-sterkte: 0.28;
   --renner-rand-loep: var(--border);
 }
 .dark .renner {
   --tenue-blauw: #2a7d96;
-  --renner-rand: oklch(1 0 0 / 0);
-  --renner-gat: oklch(0.3 0.02 220);
-  --renner-broek: oklch(0.1 0.012 220);
-  --renner-schoen: oklch(0.92 0.006 103);
-  --renner-sok: oklch(0.92 0.004 210);
-  --renner-frame: oklch(0.86 0.012 210);
-  --renner-band: oklch(0.09 0.01 220);
-  --renner-velg: oklch(0.55 0.02 210);
-  --renner-velg-vlak: oklch(0.42 0.03 212);
+  --tenue-goud: #c4923f;
+  --tenue-wit: #eef0ee;
+  --renner-huid: #c99a78;
+  --renner-broek: #0b1418;
+  --renner-naad: #061c22;
+  --renner-helm: #e9ebe8;
+  --renner-helm-rand: #b6bcb9;
+  --renner-gat: #061c22;
+  --renner-lens: #02090b;
+  --renner-handschoen: #0d171b;
+  --renner-schoen: #e6e6e0;
+  --renner-schoen-detail: #b3b9b6;
+  --renner-zool: #0a0f11;
+  --renner-sok: #e8eae8;
+  --renner-frame: #c3ccce;
+  --renner-frame-detail: #8b979a;
+  --renner-stuur: #b7c1c3;
+  --renner-zadel: #0c1215;
+  --renner-band: #030607;
+  --renner-band-licht: #3a4448;
+  --renner-velg: #1a2125;
+  --renner-velg-licht: #7c8a90;
+  --renner-velg-diep: #05080a;
+  --renner-spaak: #8a979b;
+  --renner-metaal: #b8c0c2;
+  --renner-metaal-donker: #7f888c;
+  --renner-schijf: #a8b1b4;
+  --renner-ketting: #2c3438;
+  --renner-grond: #000000;
+  --renner-grond-sterkte: 0.7;
+  --renner-schaduw: #000000;
+  --renner-schaduw-sterkte: 0.34;
+  --renner-glans-sterkte: 0.22;
+  --renner-glans-frame: 0.5;
+  --renner-glans-velg: 0.3;
+  --renner-glans-helm: 0.45;
+  --renner-ver-sterkte: 0.4;
 }
 .renner-schim {
   fill: none;
   stroke: var(--muted-foreground);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 4;
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
   opacity: 0.7;
 }
 .renner-schim-lijn {

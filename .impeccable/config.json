@@ -44,6 +44,15 @@
         ],
         "createdAt": "2026-11-20T10:20:04.747Z",
         "reason": "Gouden bies in L-vorm om het Zwift-gat (boven en links), geen kaart met zijrand"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/renner-stijlproeven.html"
+        ],
+        "createdAt": "2026-11-27T08:27:33.631Z",
+        "reason": "DESIGN.md Basis: de ondergrond van de app is het tenuecrème; de stijlproef toont de renner op de echte app-ondergrond"
       }
     ]
   }

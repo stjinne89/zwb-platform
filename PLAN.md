@@ -13131,6 +13131,85 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Materiaalrekenaar: semi-realistische renner en fiets, Kalas-kleding
+
+> **2026-11-27 — gebouwd, lokaal getest (typecheck, lint, alle unittests op
+> twee na die al faalden of los wel slagen: `club-texts-render` "beheer noemt
+> ZWB niet" faalt ook op `b100bd62`, `admin-areas` slaagt los), niet in de
+> ingelogde app bekeken.** Commit: de commit die dit blok toevoegt.
+> Geen migratie. Bekeken als statische render van de echte component (alle
+> houdingen, fietsen, golvende en gekrulde wielen, helmen met loep, licht en
+> donker); de overgang tussen houdingen en de knoppen op de tekening zijn niet
+> in de browser nagelopen.
+>
+> **Aanleiding.** De eigenaar vond dat de getekende renner en het materiaal
+> "totaal nog niet" op het echte materiaal leken en vroeg om realistische
+> tekeningen. Met /impeccable zijn drie stijlproeven gemaakt (technische
+> lijntekening, vlakken met schaduw, semi-realistisch; in
+> `.impeccable/mocks/renner-stijlproeven.html`). De eigenaar koos
+> semi-realistisch.
+>
+> **Wat er veranderde.**
+> - `renner.tsx` is opnieuw getekend in millimeters op de geometrie van een
+>   racefiets in maat 56 (stack 571, reach 395, kettingstag 410,
+>   trapasverlaging 72, hoeken 73,5°). Eén transform zet het in de bestaande
+>   viewBox, dus `VIEWBOX`, `ankers` en de knoppen op de tekening bleven
+>   gelijk.
+> - Nieuw op de fiets: hoods met remgreep, schijfremmen achter de spaken,
+>   cassette, achter- en voorderailleur, twee kettingbladen met spin, ketting,
+>   pedalen, zadel met rails, en de bovenkant van het stuur op zijn kop (rond
+>   bij een los stuur, een vleugel bij een integraal stuur). De basisfiets (de
+>   Emonda ALR uit 2015 van de fietstest) heeft velgremmen met kabels:
+>   `FietsUiterlijk.rem = "velg"`.
+> - De kenmerken per fiets (`aflopend`, `staysLaag`, `buis`, `stuur`,
+>   `zitbuisBocht`, `gat`, `golvendeVork`, `hoogBalhoofd`) sturen nu echte
+>   maten: buisdiktes in mm per soort, de zitknoop langs de zitbuis, een
+>   langere balhoofdbuis, de golvende vork als kromme, het gat van de Madone
+>   als uitsparing.
+> - De renner heeft lichaamsverhoudingen (dij 430, scheen 440, bovenarm 310,
+>   onderarm 272, romp 520 mm), kuit en dij met een buik, racefietsschoenen met
+>   draaiknop, handschoenen, bril, oor en kinriem. De houding is nu heup,
+>   romphoek, pols en greep: op de remgrepen de handen op de hoods, in de
+>   beugel onderin, bij onderarmen plat schuift de renner naar voren en liggen
+>   de onderarmen over het stuur.
+> - Schaduw en strijklicht komen uit het silhouet van elk onderdeel (`Deel`),
+>   verschoven en vervaagd, dus ze kloppen bij elke vorm en houding. Glans op
+>   velg, band, frame en helm; slagschaduw op de weg.
+> - Kleuren en sterktes staan in `.renner` in `globals.css`, voor licht en
+>   donker; de oude variabelen `--renner-rand`, `--renner-velg-vlak` en
+>   `--renner-velg` als spaakkleur zijn vervangen.
+>
+> - **Kalas-kleding in de berekening.** Kalas is de kledingleverancier van de
+>   club. Een onafhankelijke windtunneltest met Kalas zelf als basis
+>   (Cyclingnews Labs, april 2025, Silverstone, met renner, 40 km/h, marge
+>   ±0,0032 m²) staat nu als `KLEDING_PRODUCTEN` en `TEST_KLEDING` in
+>   `producttests.ts` en als veld `kleding` in de opzet. In de rekenaar staat
+>   het als lijst boven de sokken bij Kleding. De clubshop
+>   (`myshop.kalas.cc`) heeft andere lijnen dan de test. De eigenaar
+>   bevestigde de koppeling: shirt en broek uit ELITE of PRO zijn de basis
+>   (getest als Motion; het Passion Z3-shirt scheelde 0,0004 m², dus niets),
+>   het PRO-snelpak in Brios is het Passion Brios-pak (−0,0124 m²) en het
+>   SONIC-snelpak met lange mouwen het Sonic-tijdritpak (−0,0021 m², binnen
+>   de marge). Het SONIC-pak tekent met lange mouwen
+>   (`RennerBeeld.mouw`). Het percentageveld heet nu "Overig (%)", voor wat
+>   niet in de lijsten staat; `/hulp` (Kennis, rekenaar) legt de koppeling
+>   uit.
+>
+> **Bewust niet gebouwd.**
+> - Het Kalas Project RR-pak (−0,0164 m²): niet in de clubshop. De
+>   Velotoze-overschoenen uit dezelfde sessie (−6,3 W bij 40 km/h): ze
+>   vervangen het effect van de sokken, en de sokkenlijst komt uit een andere
+>   test met een andere basis; samen tellen zou dubbel tellen. De
+>   PRO-snelpakken in Verano-stof en de Kalas-sokken: geen onafhankelijke
+>   test, of binnen de marge (Passion Z4-sok, juni 2025).
+> - Een eigen tekening per fiets of helm: de kenmerken blijven data, zoals in
+>   de ronde "Uiterlijk per product". Een nieuw product is nog steeds één
+>   regel.
+> - Fotomateriaal of AI-afbeeldingen: de houding animeert en elke combinatie
+>   van helm, fiets en wielen zou een eigen beeld vragen. De testfoto's mogen
+>   we ook niet gebruiken.
+> - Eigen materiaal van leden: de volgende stap.
+
 ### Gebouwd — TV koppelen met een code
 
 **2026-11-26. Commit `2e4b9dff`, op 2026-11-26 gepusht
@@ -38222,7 +38301,8 @@ bron afgeleid, en bandenspanning en wegdek zijn twee aparte keuzes.
 
 **Wat er veranderde.**
 - **De renner** (`src/app/(app)/zwbeter-worden/materiaal/rekenaar/renner.tsx`):
-  een eigen SVG van opzij, in de tenuekleuren (petrol shirt met de schuine
+  een eigen SVG van opzij (*sinds 2026-11-27 semi-realistisch in mm, zie de
+  ronde "Materiaalrekenaar: semi-realistische renner en fiets"*), in de tenuekleuren (petrol shirt met de schuine
   banen in teal, sage en goud; *niet meer waar sinds de ronde "Producttests en
   het echte tenue": het shirt is nu het winter- of zomertenue naar een foto*).
   Hij tekent per keuze:
@@ -38238,7 +38318,7 @@ bron afgeleid, en bandenspanning en wegdek zijn twee aparte keuzes.
   profielknop, nu met `--view-slider-w` voor een bredere stand). Je tikt op een
   stip op de renner of op een van de vier onderdelen eronder (*nu zes*). Elk onderdeel
   toont wat het apart oplevert; de uitkomst staat direct onder de renner.
-  Kleding (%), uitrusting (kg) en aandrijving staan onder de renner, voor de
+  Kleding (%) (*sinds 2026-11-27 "Overig (%)", naast de Kalas-kleding*), uitrusting (kg) en aandrijving staan onder de renner, voor de
   gekozen stand (*nu in de onderdelen Kleding en Fiets*). Het wegdek staat bij Route en rijder, omdat het voor nu en
   straks gelijk is.
 - **Het model** (`src/lib/materiaal/rekenaar.ts`):

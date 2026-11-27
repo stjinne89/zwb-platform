@@ -8,6 +8,7 @@ import {
   FIETS_PRODUCTEN,
   GROEP_CDA_FACTOR,
   HELM_PRODUCTEN,
+  KLEDING_PRODUCTEN,
   SOK_PRODUCTEN,
   WIEL_PRODUCTEN,
   RUW_CRR,
@@ -139,6 +140,18 @@ describe("rekenaar", () => {
     expect(gp.verschil).toBeCloseTo((9.7 - 12.1) / ((28.8 / 3.6) * 42.5 * 9.81), 6);
     expect(rolweerstand("hard", "glad", gp.id)).toBeCloseTo(0.005 + gp.verschil, 6);
     expect(rolweerstand("hard", "glad")).toBe(0.005);
+  });
+
+  it("telt het Kalas-snelpak als verschil met shirt en broek uit dezelfde test", () => {
+    const brios = KLEDING_PRODUCTEN.find((k) => k.id === "pro-snelpak-brios")!;
+    expect(brios.verschil).toBeCloseTo(0.3893 - 0.4017, 6);
+    expect(KLEDING_PRODUCTEN.find((k) => k.id === "basis")!.verschil).toBe(0);
+    expect(opzetCda({ ...STANDAARD_OPZET, kleding: "pro-snelpak-brios" }, false)).toBeCloseTo(opzetCda(STANDAARD_OPZET, false) + brios.verschil, 6);
+    const winst = vergelijkOpzet({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks: { ...STANDAARD_OPZET, kleding: "pro-snelpak-brios" } });
+    expect(winst.winstSeconden).toBeGreaterThan(0);
+    const los = winstPerOnderdeel({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks: { ...STANDAARD_OPZET, kleding: "sonic-snelpak" } });
+    expect(los.kleding).toBeGreaterThan(0);
+    expect(los.helm).toBe(0);
   });
 
   it("maakt katoenen sokken trager en aerosokken sneller dan gewone fietssokken", () => {

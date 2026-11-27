@@ -9,6 +9,7 @@ import {
   TEST_BANDEN,
   TEST_FIETSEN,
   TEST_HELMEN,
+  TEST_KLEDING,
   TEST_SOKKEN,
   TEST_WIELEN,
   type ProductTest,
@@ -18,6 +19,7 @@ import {
   FIETS_PRODUCTEN,
   HELM_PRODUCTEN,
   HOUDINGEN,
+  KLEDING_PRODUCTEN,
   RENDEMENTEN,
   SOK_PRODUCTEN,
   SPANNINGEN,
@@ -73,7 +75,7 @@ function teken(value: number, decimalen: number): string {
 }
 
 type Stand = "nu" | "straks";
-type ProductVeld = "helm" | "fiets" | "wielen" | "banden" | "sokken";
+type ProductVeld = "helm" | "fiets" | "wielen" | "banden" | "kleding" | "sokken";
 type ProductRij = { id: string; naam: string; verschil: number; gemeten: string };
 
 const ONDERDELEN: { id: Onderdeel; label: string; artikel: string }[] = [
@@ -90,6 +92,7 @@ const PRODUCTEN: Record<ProductVeld, { rijen: readonly ProductRij[]; test: Produ
   fiets: { rijen: FIETS_PRODUCTEN, test: TEST_FIETSEN, eenheid: "CdA", decimalen: 4 },
   wielen: { rijen: WIEL_PRODUCTEN, test: TEST_WIELEN, eenheid: "CdA", decimalen: 4 },
   banden: { rijen: BAND_PRODUCTEN, test: TEST_BANDEN, eenheid: "Crr", decimalen: 4 },
+  kleding: { rijen: KLEDING_PRODUCTEN, test: TEST_KLEDING, eenheid: "CdA", decimalen: 4 },
   sokken: { rijen: SOK_PRODUCTEN, test: TEST_SOKKEN, eenheid: "CdA", decimalen: 4 },
 };
 
@@ -105,6 +108,7 @@ function beeldVan(opzet: Opzet): RennerBeeld {
     // Een geteste fiets rijdt op zijn eigen wielen, zoals in de test.
     wielen: wielenBijFiets(opzet) ? fiets.wielen : wielen,
     spanning: opzet.spanning,
+    mouw: KLEDING_PRODUCTEN.find((k) => k.id === opzet.kleding)?.mouw ?? "kort",
   };
 }
 
@@ -202,7 +206,7 @@ export function Rekenaar({
     fiets: naamVan("fiets", huidig.fiets),
     wielen: wielenVast ? "Bij de fiets" : naamVan("wielen", huidig.wielen),
     banden: naamVan("banden", huidig.banden),
-    kleding: naamVan("sokken", huidig.sokken),
+    kleding: huidig.kleding === "basis" ? naamVan("sokken", huidig.sokken) : naamVan("kleding", huidig.kleding),
   };
 
   const productTabel = (veld: ProductVeld, uit?: boolean) => (
@@ -362,9 +366,10 @@ export function Rekenaar({
             )}
             {onderdeel === "kleding" && (
               <>
+                {productTabel("kleding")}
                 {productTabel("sokken")}
                 <label className="block max-w-48 space-y-1 text-sm">
-                  <span className="block truncate text-muted-foreground">Shirt en broek (%)</span>
+                  <span className="block truncate text-muted-foreground">Overig (%)</span>
                   <input
                     className={veld}
                     inputMode="decimal"

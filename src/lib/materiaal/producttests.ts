@@ -54,6 +54,8 @@ export type FietsUiterlijk = {
   gat?: boolean;
   golvendeVork?: boolean;
   hoogBalhoofd?: boolean;
+  /** Velgremmen in plaats van schijfremmen: alleen de oude basisfiets. */
+  rem?: "velg";
   wielen: WielUiterlijk;
 };
 
@@ -146,6 +148,7 @@ export const FIETS_PRODUCTEN = [
       staysLaag: false,
       buis: "rond",
       stuur: "los",
+      rem: "velg",
       wielen: { velg: [22, 22], spaken: [20, 24], spaak: "staal" },
     } as FietsUiterlijk,
   },
@@ -286,8 +289,40 @@ export const SOK_PRODUCTEN = [
   sok("katoen", "Gewone katoenen sokken", 105.09),
 ] as const;
 
+export const TEST_KLEDING: ProductTest = {
+  bron: "Cyclingnews Labs",
+  datum: "april 2025",
+  methode: "windtunnel, met renner, 40 km/h",
+  marge: "±0,0032 m²",
+  url: "https://www.cyclingnews.com/features/wind-tunnel-clothing-test-budget-vs-aero-jersey-skinsuit-vs-super-suit-socks-vs-no-socks-and-more",
+};
+
+// CdA met renner, gewogen over vijf windhoeken (Silverstone, 40 km/h, 90 rpm).
+// Basis: het Kalas Motion-shirt met broek. De test zag geen verschil met het
+// duurdere Passion Z3-shirt (0,4013 m²). De clubshop van ZWB bij Kalas heeft
+// andere lijnen dan de test; de eigenaar bevestigde de koppeling (2026-11-27):
+// shirt en broek uit ELITE of PRO zijn de basis, het PRO-snelpak in Brios is
+// het geteste Passion Brios-pak en het SONIC-snelpak met lange mouwen het
+// geteste Sonic-tijdritpak. Het Kalas Project RR-pak (0,3853 m²) zit niet in de
+// clubshop en staat er daarom niet in.
+const KLEDING_BASIS_CDA = 0.4017;
+const pak = (id: string, naam: string, getest: string, cda: number, mouw: "kort" | "lang") => ({
+  id,
+  naam,
+  mouw,
+  verschil: cda - KLEDING_BASIS_CDA,
+  gemeten: `${getest}, ${cda.toLocaleString("nl-NL", { minimumFractionDigits: 4 })} m²`,
+});
+
+export const KLEDING_PRODUCTEN = [
+  { ...pak("basis", "Kalas-shirt en broek (ELITE of PRO)", "Kalas Motion", KLEDING_BASIS_CDA, "kort"), verschil: 0 },
+  pak("pro-snelpak-brios", "Kalas PRO-snelpak Brios", "Kalas Passion Brios", 0.3893, "kort"),
+  pak("sonic-snelpak", "Kalas SONIC-snelpak, lange mouwen", "Kalas Sonic", 0.3996, "lang"),
+] as const;
+
 export type HelmId = (typeof HELM_PRODUCTEN)[number]["id"];
 export type FietsId = (typeof FIETS_PRODUCTEN)[number]["id"];
 export type WielId = (typeof WIEL_PRODUCTEN)[number]["id"];
 export type BandId = (typeof BAND_PRODUCTEN)[number]["id"];
 export type SokId = (typeof SOK_PRODUCTEN)[number]["id"];
+export type KledingId = (typeof KLEDING_PRODUCTEN)[number]["id"];

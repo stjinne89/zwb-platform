@@ -20,16 +20,18 @@ import {
   BAND_PRODUCTEN,
   FIETS_PRODUCTEN,
   HELM_PRODUCTEN,
+  KLEDING_PRODUCTEN,
   SOK_PRODUCTEN,
   WIEL_PRODUCTEN,
   type BandId,
   type FietsId,
   type HelmId,
+  type KledingId,
   type SokId,
   type WielId,
 } from "@/lib/materiaal/producttests";
 
-export type { BandId, FietsId, HelmId, SokId, WielId };
+export type { BandId, FietsId, HelmId, KledingId, SokId, WielId };
 
 export type RekenSegment = { distanceM: number; gradient: number };
 export type RekenRoute = { id: string; label: string; segments: RekenSegment[] };
@@ -69,12 +71,13 @@ export const HOUDINGEN = [
 ] as const;
 export type HoudingId = (typeof HOUDINGEN)[number]["id"];
 
-// Helm, fiets, wielen, banden en sokken komen uit onafhankelijke tests; zie
+// Helm, fiets, wielen, banden, kleding en sokken komen uit onafhankelijke tests; zie
 // producttests.ts. Elk product is een verschil met de basis uit dezelfde test.
 export {
   BAND_PRODUCTEN,
   FIETS_PRODUCTEN,
   HELM_PRODUCTEN,
+  KLEDING_PRODUCTEN,
   SOK_PRODUCTEN,
   WIEL_PRODUCTEN,
 } from "@/lib/materiaal/producttests";
@@ -114,8 +117,10 @@ export type Opzet = {
   wielen: WielId;
   banden: BandId;
   spanning: SpanningId;
+  /** Shirt en broek, of een snelpak, uit de Kalas-clubshop. */
+  kleding: KledingId;
   sokken: SokId;
-  /** Extra luchtweerstand in procent, bijvoorbeeld van kleding: negatief is minder. */
+  /** Extra luchtweerstand in procent, voor wat niet in de lijsten staat: negatief is minder. */
   aeroPct: number;
   /** Fiets en uitrusting in kg. */
   uitrustingKg: number;
@@ -129,6 +134,7 @@ export const STANDAARD_OPZET: Opzet = {
   wielen: "basis",
   banden: "basis",
   spanning: "hard",
+  kleding: "basis",
   sokken: "basis",
   aeroPct: 0,
   uitrustingKg: DEFAULT_EQUIPMENT_KG,
@@ -153,13 +159,14 @@ export function wielenBijFiets(opzet: Pick<Opzet, "fiets">): boolean {
   return FIETS_PRODUCTEN.find((f) => f.id === opzet.fiets)?.aero ?? false;
 }
 
-/** Verschil in luchtweerstand (m²) van helm, fiets, wielen en sokken met de basis. */
+/** Verschil in luchtweerstand (m²) van helm, fiets, wielen, kleding en sokken met de basis. */
 export function materiaalCda(opzet: Opzet): number {
   const helm = HELM_PRODUCTEN.find((h) => h.id === opzet.helm)?.verschil ?? 0;
   const fiets = FIETS_PRODUCTEN.find((f) => f.id === opzet.fiets)?.verschil ?? 0;
   const wielen = wielenBijFiets(opzet) ? 0 : (WIEL_PRODUCTEN.find((w) => w.id === opzet.wielen)?.verschil ?? 0);
+  const kleding = KLEDING_PRODUCTEN.find((k) => k.id === opzet.kleding)?.verschil ?? 0;
   const sokken = SOK_PRODUCTEN.find((s) => s.id === opzet.sokken)?.verschil ?? 0;
-  return helm + fiets + wielen + sokken;
+  return helm + fiets + wielen + kleding + sokken;
 }
 
 /** Tijd in seconden voor deze route, met een vast vermogen over de hele rit. */
@@ -215,7 +222,7 @@ export const ONDERDEEL_VELDEN: Record<Onderdeel, (keyof Opzet)[]> = {
   fiets: ["fiets", "uitrustingKg", "rendement"],
   wielen: ["wielen"],
   banden: ["banden", "spanning"],
-  kleding: ["sokken", "aeroPct"],
+  kleding: ["kleding", "sokken", "aeroPct"],
 };
 
 function metVelden(opzet: Opzet, van: Opzet, velden: (keyof Opzet)[]): Opzet {
@@ -248,7 +255,7 @@ export function winstPerOnderdeel(input: {
  * Wat elk product oplevert tegen de basis uit zijn test, op deze route en met de
  * rest van deze opzet. Voor de tabellen met producten.
  */
-export function winstPerProduct<K extends "helm" | "fiets" | "wielen" | "banden" | "sokken">(input: {
+export function winstPerProduct<K extends "helm" | "fiets" | "wielen" | "banden" | "kleding" | "sokken">(input: {
   route: RekenSegment[];
   rijder: Rijder;
   opzet: Opzet;
