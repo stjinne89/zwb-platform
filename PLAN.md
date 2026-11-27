@@ -1907,8 +1907,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0375`
-(`0374_tv_devices` is van TV koppelen met een code, toegepast op 2026-11-26;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0376`
+(`0375_materiaal_eigen` is van eigen materiaal in de materiaalrekenaar, toegepast op 2026-11-27;
+`0374_tv_devices` is van TV koppelen met een code, toegepast op 2026-11-26;
 `0373_stream_overlay_webcam` is van de webcam in de overlay, toegepast op 2026-11-26;
 `0369` tot en met `0372` staan bij de rondes van 2026-11-25 (ZWBlokken, extra streams, Ladderpuzzel en de zMAP van de ladder);
 `0368_member_zwift_socks` is van de Aero Lightning Socks in de Zwift-garage, 2026-11-25, toegepast op 2026-11-25;
@@ -13135,7 +13136,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 > **2026-11-27 — gebouwd, lokaal getest (typecheck, lint, unittests),
 > migratie 0375 toegepast op productie (eigenaar: "Yes, apply 0375").**
-> Commits: `163724dc`, plus de commit die deze regel bijwerkt. Migratie
+> Commits: `88534980`, plus de commit die deze regel bijwerkt. Migratie
 > `0375_materiaal_eigen.sql` (0375 was vrij op `origin/main` en op
 > productie, gecontroleerd vlak voor het toepassen). Niet lokaal te testen:
 > er is geen Docker of Supabase-config hier. Na het toepassen gecontroleerd:
@@ -13207,8 +13208,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 > **2026-11-27 — gebouwd, lokaal getest (typecheck, lint, alle unittests op
 > twee na die al faalden of los wel slagen: `club-texts-render` "beheer noemt
-> ZWB niet" faalt ook op `b100bd62`, `admin-areas` slaagt los), daarna
-> lokaal ingelogd bekeken.** Commits: `602fbf1b`, plus de herstelcommit die
+> ZWB niet" faalt ook zonder deze ronde, `admin-areas` slaagt los), daarna
+> lokaal ingelogd bekeken.** Commits: `774ddefd`, plus de herstelcommit die
 > deze regel bijwerkt. Geen migratie. Eerst bekeken als statische render van
 > de echte component (alle houdingen, fietsen, golvende en gekrulde wielen,
 > helmen met loep, licht en donker). Daarna ingelogd op localhost tegen
