@@ -13,7 +13,7 @@ import { loadEventRidePlan, requireViewer, todayKeyAmsterdam } from "./_data";
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 const EVENT_COLUMNS =
-  "id, title, type, start_at, end_at, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes, zwift_event_type, zwift_tags, parent_event_id";
+  "id, title, type, start_at, end_at, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes, zwift_event_type, zwift_tags, zwift_workout, parent_event_id";
 
 export async function saveEventFuel(eventId: string, raw: unknown): Promise<ActionResult> {
   if (typeof eventId !== "string" || !eventId) return { ok: false, error: "Geen event." };

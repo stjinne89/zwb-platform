@@ -28,7 +28,7 @@ const PAST_DAYS = 60;
 const FUTURE_DAYS = 400;
 
 const EVENT_COLUMNS =
-  "id, title, type, kind, start_at, end_at, location, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes, zwift_event_type, zwift_tags, parent_event_id";
+  "id, title, type, kind, start_at, end_at, location, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes, zwift_event_type, zwift_tags, zwift_workout, parent_event_id";
 
 export type FeedEvent = ClubEventRow & { kind?: string | null; location?: string | null };
 

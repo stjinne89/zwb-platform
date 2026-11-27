@@ -7,6 +7,7 @@ import {
   parseZwiftEventUrl,
   pickOwnSubgroup,
   routeFromZwiftId,
+  sameZwiftWorkout,
   zrlCategoryFromTeamName,
   zwiftStartFor,
 } from "@/lib/events/zwift-route";
@@ -127,6 +128,38 @@ describe("mapZwiftEvent", () => {
 
   it("geeft null zonder bruikbaar id", () => {
     expect(mapZwiftEvent({ name: "Naamloos" })).toBeNull();
+  });
+
+  it("neemt het workoutbestand van de eerste subgroep die er een heeft", () => {
+    const url = "https://cdn.zwift.com/events/upload/workouts/TwentyTorch.xml";
+    const event = mapZwiftEvent({
+      id: 5821744,
+      name: "ZWB ZRL Aqua Warm up sessie",
+      eventType: "GROUP_WORKOUT",
+      customUrl: "",
+      eventSubgroups: [
+        { id: 1, subgroupLabel: "A", customUrl: "" },
+        { id: 2, subgroupLabel: "B", customUrl: url },
+      ],
+    })!;
+    expect(event.workoutUrl).toBe(url);
+    // Een link buiten cdn.zwift.com halen we niet op.
+    expect(
+      mapZwiftEvent({ id: 1, name: "x", eventSubgroups: [{ id: 1, customUrl: "https://example.com/w.zwo" }] })!
+        .workoutUrl,
+    ).toBeNull();
+  });
+});
+
+describe("sameZwiftWorkout", () => {
+  const workout = { name: "Twenty Torch", seconds: 1200, pct: 79, url: "https://cdn.zwift.com/x.xml" };
+
+  it("vergelijkt per veld, los van de sleutelvolgorde van jsonb", () => {
+    expect(sameZwiftWorkout(workout, { pct: 79, url: workout.url, name: "Twenty Torch", seconds: 1200 })).toBe(true);
+    expect(sameZwiftWorkout(workout, { ...workout, seconds: 1500 })).toBe(false);
+    expect(sameZwiftWorkout(workout, null)).toBe(false);
+    expect(sameZwiftWorkout(null, null)).toBe(true);
+    expect(sameZwiftWorkout(null, workout)).toBe(false);
   });
 });
 

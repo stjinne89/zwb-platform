@@ -118,6 +118,12 @@ describe("guessEventType", () => {
     expect(guessEventType("zwift", "ZWB Social Ride", null)).toBe("zwift");
   });
 
+  it("maakt van een groepstraining met ZRL in de naam geen ZRL-race", () => {
+    expect(guessEventType("zwift", "ZWB ZRL Aqua Warm up sessie", null, "GROUP_WORKOUT")).toBe("zwift");
+    expect(guessEventType("zwift", "ZWB ZRL Aqua Cooldown sessie", null, "GROUP_RIDE")).toBe("zwift");
+    expect(guessEventType("zwift", "ZRL Round 2", null, "RACE")).toBe("zrl");
+  });
+
   it("zet de Sunday Race Club apart van MyWhoosh", () => {
     expect(guessEventType("mywhoosh", "Sunday Race Club - Men Qualifier Race 3", null)).toBe("src");
     expect(guessEventType("mywhoosh", "UAE Tour Stage 1", null)).toBe("mywhoosh");

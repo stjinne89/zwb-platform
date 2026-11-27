@@ -143,9 +143,13 @@ export function guessEventType(
   source: EventPrefill["source"],
   title: string | null,
   description: string | null,
+  zwiftEventType: string | null = null,
 ): string | null {
   const name = title ?? "";
   if (source === "zwift") {
+    // Een groepsrit of groepstraining is nooit een race, ook niet met "ZRL" in
+    // de naam: "ZWB ZRL Aqua Warm up sessie" werd anders een ZRL-race.
+    if (/^GROUP_(RIDE|WORKOUT)$/i.test(zwiftEventType ?? "")) return "zwift";
     if (/zwift racing league|\bzrl\b|\bwtrl\b/i.test(name)) return "zrl";
     if (/flamme rouge|\bfrr\b/i.test(name)) return "flamme_rouge";
     if (/\bladder\b/i.test(name)) return "ladder";
@@ -197,7 +201,7 @@ export function prefillFromZwift(event: ZwiftEventInfo, start: string | null): E
     start_at: startAt,
     end_at: endAt,
     location: zwiftLocation(event),
-    type: guessEventType("zwift", title, description),
+    type: guessEventType("zwift", title, description, event.eventType),
     kind: guessEventKind("zwift", event.eventType),
     image_url: absoluteHttpUrl(event.imageUrl, event.externalUrl),
     external_url: event.externalUrl,

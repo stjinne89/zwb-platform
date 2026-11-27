@@ -67,24 +67,61 @@ export function warmupStart(raceScheduledAt: string, warmupMinutes: number): str
 
 export type WarmupOption = { id: string; title: string; durationMinutes: number };
 
+type WarmupCandidate = {
+  id: string;
+  title: string;
+  duration_minutes: number;
+  status: string;
+  intervals_external_id?: string | null;
+  origin?: string | null;
+  intensity?: string | null;
+  scheduled_at?: string | null;
+  superseded_at?: string | null;
+};
+
+/**
+ * Een clubevent dat zo kort voor de race eindigt, is de warming-up: de
+ * gezamenlijke ZWB-warming-up vóór de ZRL (een Zwift-groepstraining) eindigde
+ * op 1 december 2026 elf minuten voor de start.
+ */
+export const CLUB_WARMUP_WINDOW_MINUTES = 30;
+
+/**
+ * Het clubevent in het schema dat als warming-up van deze race geldt: gepland,
+ * geen race, en afgelopen binnen CLUB_WARMUP_WINDOW_MINUTES vóór de start. Puur.
+ */
+export function clubWarmupFor<T extends WarmupCandidate>(race: T, workouts: T[]): T | null {
+  const raceStart = Date.parse(race.scheduled_at ?? "");
+  if (!Number.isFinite(raceStart)) return null;
+  const window = CLUB_WARMUP_WINDOW_MINUTES * 60_000;
+  return (
+    workouts.find((workout) => {
+      if (workout.id === race.id || workout.origin !== "event" || workout.status !== "planned") return false;
+      if (workout.superseded_at || workout.intensity === "race") return false;
+      const start = Date.parse(workout.scheduled_at ?? "");
+      if (!Number.isFinite(start) || start >= raceStart) return false;
+      const end = start + Number(workout.duration_minutes) * 60_000;
+      return end <= raceStart && raceStart - end <= window;
+    }) ?? null
+  );
+}
+
 /** Wat de keuze bij een race laat zien: de opties, de voorkeuze en wat er al staat. */
-export function raceWarmupView<
-  T extends {
-    id: string;
-    title: string;
-    duration_minutes: number;
-    status: string;
-    intervals_external_id?: string | null;
-  },
->(race: T, workouts: T[], options: WarmupOption[]) {
+export function raceWarmupView<T extends WarmupCandidate>(race: T, workouts: T[], options: WarmupOption[]) {
   const suggested = suggestedWarmupTitle(race);
   const current = workouts.find(
     (workout) => warmupRaceId(workout) === race.id && workout.status === "planned",
   );
+  // Een eigen warming-up gaat voor: die kan het lid hier ook weer weghalen.
+  const club = current ? null : clubWarmupFor(race, workouts);
   return {
     options,
     suggestedId: options.find((option) => option.title === suggested)?.id ?? null,
-    current: current ? { id: current.id, title: current.title } : null,
+    current: current
+      ? { id: current.id, title: current.title, clubEvent: false }
+      : club
+        ? { id: club.id, title: club.title, clubEvent: true }
+        : null,
   };
 }
 

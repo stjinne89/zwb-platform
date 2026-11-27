@@ -7,6 +7,15 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Gebouwd — Groepstraining: workout uit het Zwift-event (2026-11-27): lokaal
+   gecommit, niet gepusht. Migratie `0376_event_zwift_workout` nog niet toegepast;
+   eerst op productie, dan pushen.** Een Zwift-groepstraining komt in het schema
+   met de duur en zwaarte van zijn eigen workout, ververst elk uur, en een
+   clubevent vlak voor een race geldt als warming-up. Aanleiding: de gezamenlijke
+   warming-up vóór ZRL R2 W3 (1 december). Open: na de deploy de warming-up op
+   de kalender zetten (link plakken) en het eventblok bij een lid nakijken. Zie
+   de ronde met dezelfde naam.
+
 0. **Gebouwd — TV koppelen met een code (2026-11-26): commit `2e4b9dff`, op 2026-11-26 gepusht
    naar `main` (eigenaar: "Toepassen en push"). Migratie `0374_tv_devices`
    vóór de push op productie toegepast.** De browser van een tv toont op `/tv` een code en een
@@ -1907,8 +1916,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0376`
-(`0375_materiaal_eigen` is van eigen materiaal in de materiaalrekenaar, toegepast op 2026-11-27;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0377`
+(`0376_event_zwift_workout` is van de workout van een Zwift-groepstraining, 2026-11-27, eerst als `0375` geschreven en hernummerd omdat `0375` intussen op main stond, toegepast op 2026-11-27;
+`0375_materiaal_eigen` is van eigen materiaal in de materiaalrekenaar, toegepast op 2026-11-27;
 `0374_tv_devices` is van TV koppelen met een code, toegepast op 2026-11-26;
 `0373_stream_overlay_webcam` is van de webcam in de overlay, toegepast op 2026-11-26;
 `0369` tot en met `0372` staan bij de rondes van 2026-11-25 (ZWBlokken, extra streams, Ladderpuzzel en de zMAP van de ladder);
@@ -13131,6 +13141,94 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Groepstraining: workout uit het Zwift-event
+
+> **2026-11-27 — gebouwd, lokaal getest (unit en migraties op PGlite), niet in
+> de browser bekeken.** Commit: de commit die dit blok toevoegt, lokaal, niet
+> gepusht. Migratie `0376_event_zwift_workout.sql` (kolom `events.zwift_workout`,
+> jsonb) is **niet** op productie toegepast. Eerst toepassen, dan pushen: de
+> selects van eventblokken, voeding, briefing en de agenda-feed vragen de kolom
+> op.
+>
+> **Waarom.** De eigenaar wil een gezamenlijke warming-up vóór de ZRL als
+> Zwift-groepstraining, en vroeg of de app de workout uit het event kan lezen.
+> Gemeten op 2026-11-27: in de publieke upcoming-lijst verwees elke subgroep van
+> alle 17 `GROUP_WORKOUT`-events met `customUrl` naar een ZWO-bestand op
+> cdn.zwift.com, zonder login te lezen. Bij een Pools clubevent had elke subgroep
+> een andere workout. De twee ZWB-clubevents (via de clubfeed van het
+> serviceaccount): "ZWB ZRL Aqua Warm up sessie" (5821744, `GROUP_WORKOUT`,
+> zichtbaarheid Shareable, 1 december 19:35) met `TwentyTorch.xml`, en "ZWB ZRL
+> Aqua Cooldown sessie" (5821752, een `GROUP_RIDE` zonder workout). Het
+> endpoint per event geeft voor de warming-up dezelfde `customUrl`. Volgens de
+> eigenaar wordt Twenty Torch nog vervangen door een andere workout.
+>
+> **Keuze: één blok, geen stappen.** Een ZWB-blok duurt hele minuten. Seconden
+> kunnen binnen een blok alleen als burst vooraan (≤30 s, altijd 150-200%) of
+> als vaste aan/uit-herhaling. De ladders van Twenty Torch (60/45/30/15 s met
+> 20 s rust, oplopend) passen daar niet in. Drie opties voorgelegd: één blok met
+> de echte duur en zwaarte, afgerond op minuten, of stappen in seconden binnen
+> een blok (de eerste schatting "71 bestanden" was te hoog; het gaat om de
+> ongeveer acht plekken die aan/uit al kennen). De eigenaar koos één blok: "dit
+> is geen workout die we gaan gebruiken hiervoor". In Zwift rijdt het lid toch
+> de workout van het event.
+>
+> **Nu.**
+> - `summarizeZwo` (`lib/zwift/zwo.ts`, puur) leest Warmup, Cooldown, Ramp,
+>   SteadyState, IntervalsT, FreeRide en MaxEffort, en geeft de duur en het
+>   belastingsgelijke vermogen: het kwadratisch gemiddelde van de fractie FTP
+>   (een oplopende stap als (a²+ab+b²)/3). Eén blok op dat vermogen telt even
+>   zwaar als de stappen samen. Vrij rijden telt als het midden van de duurband
+>   (67,5%), MaxEffort als 150%. Hardloopbestanden geven null. Twenty Torch
+>   komt uit op 20 minuten op 79% (ongeveer 21 TSS).
+> - `mapZwiftEvent` geeft `workoutUrl`: de eerste subgroep met een link, anders
+>   die van het event, en alleen op cdn.zwift.com. `storeZwiftEventRules`, dat
+>   bij het opslaan van een event met Zwift-link al draait, slaat bij een
+>   `GROUP_WORKOUT` ook `zwift_workout` op (`{name, seconds, pct, url}`). Is het
+>   bestand even niet te lezen, dan blijft de vorige staan; zonder link gaat hij
+>   eraf.
+> - `refreshZwiftWorkouts` in de trainingscron (`/api/training/adaptations/daily`,
+>   elk uur), vóór `refreshEventWorkouts`: hooguit 6 gekoppelde groepstrainingen
+>   in de komende 14 dagen, 2,5 s per verzoek, alleen als er nog twee verzoeken
+>   in het budget passen. Een gewijzigde workout zet `refreshEventWorkouts` in
+>   dezelfde ronde door naar het blok en naar intervals.icu. Vergeleken wordt per
+>   veld (`sameZwiftWorkout`), want jsonb geeft de sleutels in een eigen volgorde
+>   terug.
+> - `eventWorkoutDefaults`: met een bruikbare workout (`zwiftWorkoutOf`) gaan de
+>   duur van het bestand en het doel `pct±5%` voor op eindtijd en standaard,
+>   met de intensiteit van de zone, en zonder de ondergrens van 20 minuten.
+> - Fout gevonden en hersteld: "ZWB ZRL Aqua Warm up sessie" kreeg bij het
+>   plakken door "ZRL" in de naam de categorie `zrl`, en `zwiftRaceKind` zag elk
+>   `zrl`-event als race. De warming-up was zo een ZRL-race in het schema
+>   geworden. Nu geeft `guessEventType` bij `GROUP_RIDE`/`GROUP_WORKOUT` altijd
+>   `zwift`, en `zwiftRaceKind` geeft null als Zwift groepsrit of
+>   groepstraining zegt, ook in een racecategorie.
+> - Warming-up bij een race (`clubWarmupFor` in `race-warmup.ts`): een gepland
+>   clubevent dat geen race is en binnen 30 minuten vóór de start eindigt, geldt
+>   als warming-up. De keuze uit de bibliotheek verdwijnt dan; er staat "<titel>
+>   staat klaar", zonder knop om te verwijderen (dat gaat via de RSVP). Een eigen
+>   warming-up uit de bibliotheek gaat voor.
+> - `/hulp` (Schema → Clubevents in je schema): de zwaarte van een
+>   groepstraining, het verversen binnen een uur en de warming-up.
+>
+> **Bewust niet.** Geen stappen in seconden in het schema (zie de keuze
+> hierboven). Geen workout per subgroep: het eventblok is voor iedereen gelijk,
+> en welke subgroep een lid rijdt weet ZWB pas na de inschrijving in Zwift. Geen
+> tekstberichten uit het bestand. Geen eigen cron: het past in de bestaande run
+> van elk uur. Geen controle in `planRaceWarmup` zelf: de keuze staat alleen
+> niet meer op het scherm.
+>
+> **Geverifieerd:** `tsc --noEmit` (alleen `uqr` in `app/tv/_actions.ts`
+> ontbreekt, een dependency van de TV-ronde die in deze worktree niet is
+> geïnstalleerd), eslint op de gewijzigde bestanden, nieuw `zwift-zwo.test.ts`,
+> en uitbreidingen in `training-events`, `race-warmup`, `link-prefill` en
+> `zwift-route`. `baseline.test.ts` speelt alle migraties met `0376` af op
+> PGlite. `summarizeZwo` gedraaid op het echte bestand van de ZWB-warming-up.
+> Volle suite: `club-texts-render` ("beheer noemt ZWB niet", al eerder) en
+> `omnium-live` (mist `.env.local` in de worktree) faalden; acht andere
+> bestanden, vooral PGlite-tests, liepen onder de load vast en waren los alle
+> acht groen. **Niet** getest: de migratie op productie, het ophalen vanaf de
+> server, de cron en het schema in de browser.
 
 ### Gebouwd — Materiaalrekenaar: eigen materiaal van leden
 
@@ -34629,7 +34727,10 @@ noemt (`zwift_event_type`, gevuld bij het plakken van de Zwift-link):
    75%). Duur: eindtijd, anders afstand en hoogtemeters (of route plus ronden) met het
    eigen groepsrittempo, anders de standaard van 60 minuten.
 2. **`GROUP_WORKOUT`:** tempo met doel `80-90%`. Duur: eindtijd, anders 60 minuten; de
-   afstand van een workout zegt niets over de duur.
+   afstand van een workout zegt niets over de duur. **Niet meer helemaal waar sinds
+   2026-11-27:** is de workout van het event gelezen (`zwift_workout`, `0376`), dan
+   gelden de duur van het bestand en het belastingsgelijke vermogen ±5%. De 80-90% is
+   alleen nog de terugval. Zie "Groepstraining: workout uit het Zwift-event".
 3. **Geen bekend Zwift-type:** blijft race, zoals voorheen. De twee `zwift`-events
    zonder type op productie zijn Level Up Racing-etappes, dus echte races.
 

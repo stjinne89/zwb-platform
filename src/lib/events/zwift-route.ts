@@ -11,6 +11,7 @@
 
 import { routes, segments } from "zwift-data";
 import { safeFetch } from "@/lib/net/safe-fetch";
+import { isZwiftWorkoutUrl, summarizeZwo, type ZwoSummary } from "@/lib/zwift/zwo";
 import {
   parseZwiftDate,
   zwiftEventUrl,
@@ -69,6 +70,12 @@ export type ZwiftEventInfo = {
   bikeHash: number | null;
   /** Subgroepen met een eigen start; bij de ZRL liggen die een minuut uit elkaar. */
   subgroups: ZwiftSubgroupStart[];
+  /**
+   * Het workoutbestand van een groepstraining: dat van de eerste subgroep die
+   * er een heeft, anders dat van het event. Subgroepen kunnen elk een eigen
+   * workout hebben; het eventblok is voor iedereen hetzelfde.
+   */
+  workoutUrl?: string | null;
 };
 
 export type ZwiftSubgroupStart = {
@@ -218,6 +225,10 @@ export function mapZwiftEvent(row: ZwiftEventApiRow): ZwiftEventInfo | null {
         },
       ];
     }),
+    workoutUrl:
+      [...(row.eventSubgroups ?? []).map((group) => group.customUrl), row.customUrl]
+        .map((url) => (url ?? "").trim())
+        .find(isZwiftWorkoutUrl) ?? null,
   };
 }
 
@@ -362,16 +373,106 @@ export async function storeZwiftEventRules(
 ): Promise<boolean> {
   const result = await fetchZwiftPublicEvent(zwiftEventId);
   if (!result.ok) return false;
-  const { error } = await admin
-    .from("events")
-    .update({
-      zwift_event_type: result.event.eventType,
-      zwift_rules: result.event.rules,
-      zwift_tags: result.event.tags,
-      zwift_bike_hash: result.event.bikeHash,
-    })
-    .eq("id", eventId);
+  const update: Record<string, unknown> = {
+    zwift_event_type: result.event.eventType,
+    zwift_rules: result.event.rules,
+    zwift_tags: result.event.tags,
+    zwift_bike_hash: result.event.bikeHash,
+  };
+  // De workout van een groepstraining (migratie 0376). Is het bestand even niet
+  // te lezen, dan blijft de vorige staan; zonder workout-link gaat hij eraf.
+  const workout = await zwiftWorkoutFor(result.event);
+  if (workout !== undefined) update.zwift_workout = workout;
+  const { error } = await admin.from("events").update(update).eq("id", eventId);
   return !error;
+}
+
+export type ZwiftWorkout = ZwoSummary & { url: string };
+
+/**
+ * De samengevatte workout van een event: null als het geen groepstraining met
+ * workoutbestand is, undefined als het bestand niet te lezen was.
+ */
+async function zwiftWorkoutFor(
+  event: ZwiftEventInfo,
+  timeoutMs?: number,
+): Promise<ZwiftWorkout | null | undefined> {
+  if ((event.eventType ?? "").toUpperCase() !== "GROUP_WORKOUT" || !event.workoutUrl) return null;
+  const summary = await fetchZwiftWorkout(event.workoutUrl, timeoutMs);
+  return summary ? { ...summary, url: event.workoutUrl } : undefined;
+}
+
+/** Haalt een workoutbestand van cdn.zwift.com op en vat het samen; null bij een fout. */
+export async function fetchZwiftWorkout(url: string, timeoutMs = 5000): Promise<ZwoSummary | null> {
+  if (!isZwiftWorkoutUrl(url)) return null;
+  try {
+    const response = await safeFetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!response.ok) return null;
+    return summarizeZwo(await response.text());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Dezelfde workout? Per veld: jsonb geeft de sleutels in een eigen volgorde
+ * terug, dus een vergelijking van de JSON-tekst zag elk uur een wijziging. Puur.
+ */
+export function sameZwiftWorkout(next: ZwiftWorkout | null, stored: unknown): boolean {
+  if (next === null || stored == null || typeof stored !== "object") return next === null && stored == null;
+  const old = stored as Record<string, unknown>;
+  return (
+    old.name === next.name &&
+    Number(old.seconds) === next.seconds &&
+    Number(old.pct) === next.pct &&
+    old.url === next.url
+  );
+}
+
+/** Hoe ver vooruit de workout van een groepstraining elk uur wordt nagekeken. */
+const WORKOUT_REFRESH_DAYS = 14;
+/** Meer per ronde niet: elk event kost twee verzoeken aan Zwift. */
+const WORKOUT_REFRESH_MAX_EVENTS = 6;
+/** Per verzoek in de cron, die zelf maar een paar seconden heeft. */
+const WORKOUT_REFRESH_TIMEOUT_MS = 2500;
+
+/**
+ * Leest de workout van de komende gekoppelde groepstrainingen opnieuw in, zodat
+ * een aangepaste workout vanzelf in het schema komt. De trainingscron roept dit
+ * elk uur aan, vóór refreshEventWorkouts. Geeft de events waarvan de workout
+ * veranderde.
+ */
+export async function refreshZwiftWorkouts(
+  admin: EventsClient,
+  options: { deadline?: number; now?: Date } = {},
+): Promise<string[]> {
+  const now = options.now ?? new Date();
+  const until = new Date(now.getTime() + WORKOUT_REFRESH_DAYS * 86_400_000);
+  const { data } = await admin
+    .from("events")
+    .select("id, zwift_event_id, zwift_workout")
+    .eq("zwift_event_type", "GROUP_WORKOUT")
+    .not("zwift_event_id", "is", null)
+    .gt("start_at", now.toISOString())
+    .lt("start_at", until.toISOString())
+    .order("start_at", { ascending: true })
+    .limit(WORKOUT_REFRESH_MAX_EVENTS);
+
+  const changed: string[] = [];
+  for (const row of (data ?? []) as Array<{ id: string; zwift_event_id: number; zwift_workout: unknown }>) {
+    // Twee verzoeken moeten nog passen; wat overblijft, volgt de ronde erna.
+    if (options.deadline != null && Date.now() + 2 * WORKOUT_REFRESH_TIMEOUT_MS > options.deadline) break;
+    const result = await fetchZwiftPublicEvent(Number(row.zwift_event_id), WORKOUT_REFRESH_TIMEOUT_MS);
+    if (!result.ok) continue;
+    const workout = await zwiftWorkoutFor(result.event, WORKOUT_REFRESH_TIMEOUT_MS);
+    if (workout === undefined || sameZwiftWorkout(workout, row.zwift_workout)) continue;
+    const { error } = await admin.from("events").update({ zwift_workout: workout }).eq("id", row.id);
+    if (!error) changed.push(row.id);
+  }
+  return changed;
 }
 
 export type ZwiftEventResult =
@@ -385,12 +486,13 @@ export type ZwiftEventResult =
  */
 export async function fetchZwiftPublicEvent(
   eventId: number,
+  timeoutMs = 10000,
 ): Promise<ZwiftEventResult> {
   try {
     const response = await safeFetch(`${ZWIFT_PUBLIC_EVENT_BASE}/${eventId}`, {
       cache: "no-store",
       headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (response.status === 404) {
       return { ok: false, error: "Zwift kent dit event niet (meer)." };

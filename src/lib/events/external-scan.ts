@@ -63,7 +63,10 @@ export type ZwiftEventApiRow = {
   tags?: string[] | null;
   /** Frame dat het event oplegt, als id uit zwift-data. */
   bikeHash?: number | string | null;
+  /** Bij een groepstraining: het workoutbestand (ZWO) op cdn.zwift.com. Staat meestal per subgroep. */
+  customUrl?: string | null;
   eventSubgroups?: Array<{
+    customUrl?: string | null;
     rulesSet?: string[] | null;
     tags?: string[] | null;
     bikeHash?: number | string | null;

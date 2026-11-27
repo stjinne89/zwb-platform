@@ -260,6 +260,45 @@ describe("Zwift-groepsritten", () => {
     expect(result.durationMinutes).toBe(60);
   });
 
+  it("neemt duur en zwaarte over uit de workout van de groepstraining", () => {
+    const warmup = event({
+      title: "ZWB ZRL Aqua Warm up sessie",
+      type: "zwift",
+      start_at: "2026-12-01T19:35:00+01:00",
+      end_at: "2026-12-01T20:35:00+01:00",
+      zwift_event_type: "GROUP_WORKOUT",
+      zwift_workout: { name: "Twenty Torch", seconds: 1200, pct: 79, url: "https://cdn.zwift.com/x.xml" },
+    });
+    // De workout gaat voor op de eindtijd, en de ondergrens van 20 minuten geldt niet.
+    expect(eventWorkoutDefaults(warmup)).toEqual({
+      durationMinutes: 20,
+      durationSource: "vast",
+      intensity: "tempo",
+      target: "74-84%",
+    });
+    expect(eventWorkoutDefaults({ ...warmup, zwift_workout: { seconds: 900, pct: 65 } }).durationMinutes).toBe(15);
+    // 20 minuten op IF 0,79: 21 TSS.
+    expect(estimateTrainingLoad(eventWorkoutBlocks(warmup))).toBeCloseTo(20.8, 0);
+  });
+
+  it("valt terug op de schatting zonder bruikbare workout", () => {
+    const base = { type: "zwift", zwift_event_type: "GROUP_WORKOUT" };
+    expect(eventWorkoutDefaults(event({ ...base, zwift_workout: null })).target).toBe("80-90%");
+    expect(eventWorkoutDefaults(event({ ...base, zwift_workout: { seconds: 0, pct: 80 } })).target).toBe("80-90%");
+    // Alleen bij een groepstraining: een race met een workout erbij blijft een race.
+    expect(
+      eventWorkoutDefaults(event({ type: "zwift", zwift_event_type: "RACE", zwift_workout: { seconds: 1200, pct: 79 } }))
+        .intensity,
+    ).toBe("race");
+  });
+
+  it("ziet een groepstraining in de ZRL-categorie niet als race", () => {
+    const warmup = event({ type: "zrl", zwift_event_type: "GROUP_WORKOUT" });
+    expect(zwiftRaceKind(warmup)).toBeNull();
+    expect(zwiftGroupKind(warmup)).toBe("workout");
+    expect(zwiftRaceKind(event({ type: "zrl", zwift_event_type: "RACE" }))).toBe("race");
+  });
+
   it("laat een Zwift-event zonder bekend type een race", () => {
     const result = eventWorkoutDefaults(event({ type: "zwift" }));
     expect(result.intensity).toBe("race");

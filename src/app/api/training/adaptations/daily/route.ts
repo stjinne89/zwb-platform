@@ -30,6 +30,7 @@ import { checkCronSecret } from "@/lib/cron/auth";
 import { amsterdamHour } from "@/lib/greeting";
 import { onePlanPerProfile } from "@/lib/training/active-plan";
 import { refreshEventWorkouts } from "@/lib/training/events";
+import { refreshZwiftWorkouts } from "@/lib/events/zwift-route";
 import { reconcileZrlReservations } from "@/lib/training/zrl-reservation";
 import { getClub } from "@/lib/club";
 import { profileIdsBlockedFrom } from "@/lib/auth/permissions";
@@ -950,6 +951,9 @@ export async function POST(request: Request) {
     // Eventblokken bijwerken waarvan de route of Zwift-link sinds de toezegging
     // is veranderd, en doorzetten wat na het opslaan van een event is blijven
     // liggen. Met wat er van het budget over is; de rest volgt de run erna.
+    // Eerst de workout van komende Zwift-groepstrainingen opnieuw inlezen, zodat
+    // een aangepaste workout in dezelfde ronde in het schema komt.
+    const zwiftWorkouts = await refreshZwiftWorkouts(admin, { deadline }).catch(() => null);
     const eventWorkouts = await refreshEventWorkouts(admin, { deadline }).catch(() => null);
 
     // ZRL-beschikbaarheid als gereserveerde race (zrl-reservation.ts): neerzetten
@@ -969,6 +973,7 @@ export async function POST(request: Request) {
       archived,
       finishedGenerations,
       generationsStarted,
+      zwiftWorkouts,
       eventWorkouts,
       zrlReservations,
       budgetSpent: Date.now() > deadline,

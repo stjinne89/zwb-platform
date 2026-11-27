@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clubWarmupFor,
   isUpcomingRace,
   raceWarmupExternalId,
   raceWarmupView,
@@ -69,6 +70,43 @@ describe("warming-up bij een race", () => {
     expect(raceWarmupView(race, [race, warmup], options).current).toEqual({
       id: "w-1",
       title: "Warming-up wedstrijd kort",
+      clubEvent: false,
     });
+  });
+
+  it("telt een clubevent vlak voor de race als warming-up", () => {
+    const options = [{ id: "t-kort", title: "Warming-up wedstrijd", durationMinutes: 20 }];
+    // Race om 18:15 UTC; de groepstraining van 20 minuten eindigt om 18:05.
+    const raceRow = { ...race, origin: "event" };
+    const club = {
+      ...raceRow,
+      id: "club-1",
+      title: "ZWB ZRL Aqua Warm up sessie",
+      duration_minutes: 20,
+      intensity: "tempo",
+      scheduled_at: "2026-10-13T17:45:00+00:00",
+    };
+    expect(clubWarmupFor(raceRow, [raceRow, club])?.id).toBe("club-1");
+    expect(raceWarmupView(raceRow, [raceRow, club], options).current).toEqual({
+      id: "club-1",
+      title: "ZWB ZRL Aqua Warm up sessie",
+      clubEvent: true,
+    });
+
+    // Te vroeg, over de start heen, geen event of zelf een race: niet.
+    expect(clubWarmupFor(raceRow, [{ ...club, scheduled_at: "2026-10-13T17:00:00+00:00" }])).toBeNull();
+    expect(clubWarmupFor(raceRow, [{ ...club, scheduled_at: "2026-10-13T18:00:00+00:00" }])).toBeNull();
+    expect(clubWarmupFor(raceRow, [{ ...club, origin: "plan" }])).toBeNull();
+    expect(clubWarmupFor(raceRow, [{ ...club, intensity: "race" }])).toBeNull();
+
+    // Een eigen warming-up gaat voor.
+    const own = {
+      ...raceRow,
+      id: "w-1",
+      title: "Warming-up wedstrijd",
+      origin: "plan",
+      intervals_external_id: raceWarmupExternalId(race.id),
+    };
+    expect(raceWarmupView(raceRow, [raceRow, club, own], options).current?.id).toBe("w-1");
   });
 });

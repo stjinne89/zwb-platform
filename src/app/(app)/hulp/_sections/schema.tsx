@@ -693,7 +693,10 @@ export function SchemaHelp() {
               geen zware sessie vlak ervoor of erna. De zwaarte hangt af van het
               soort event: een race rekent met wat je bij die duur gemiddeld
               rijdt, een groepsrit in Zwift met 70-80% van je FTP en een
-              groepstraining met 80-90%. Kies je{" "}
+              groepstraining met de duur en zwaarte van de workout van het
+              event, of met 80-90% als die niet te lezen is. Past de organisator
+              de workout aan, dan volgt je schema binnen een uur. Eindigt een
+              clubevent vlak voor een race, dan geldt het als je warming-up. Kies je{" "}
               <strong className="text-foreground">Nee</strong>, dan verdwijnt het
               uit de lijst en blijft je schema ongemoeid. &apos;Misschien&apos;
               telt als nog niet beslist, dus dat blijft gewoon staan. Bij de

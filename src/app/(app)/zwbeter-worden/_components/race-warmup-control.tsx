@@ -13,8 +13,8 @@ export type RaceWarmupView = {
   options: WarmupOption[];
   /** De voorkeuze die bij deze race past. */
   suggestedId: string | null;
-  /** De warming-up die er al staat. */
-  current: { id: string; title: string } | null;
+  /** De warming-up die er al staat; `clubEvent` bij een clubevent vlak voor de race. */
+  current: { id: string; title: string; clubEvent?: boolean } | null;
 };
 
 export function RaceWarmupControl({
@@ -32,7 +32,9 @@ export function RaceWarmupControl({
     return (
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="text-muted-foreground">{warmup.current.title} staat klaar</span>
-        <RemoveWorkoutButton workoutId={warmup.current.id} title={warmup.current.title} />
+        {warmup.current.clubEvent ? null : (
+          <RemoveWorkoutButton workoutId={warmup.current.id} title={warmup.current.title} />
+        )}
         <Link href="/zwbeter-worden/kennis/warming-up" className="text-muted-foreground underline">
           Waarom
         </Link>

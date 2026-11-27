@@ -18,6 +18,7 @@ import { clearHardSessionsForEvent, pushWorkoutToIntervals } from "@/lib/trainin
 import { removeRaceWarmup } from "@/lib/training/race-warmup";
 import { zwiftRaceModelMinutes, type ZwiftRaceKind } from "@/lib/training/race-model";
 import {
+  intensityFromPct,
   normalizeWorkoutBlocks,
   type WorkoutBlock,
   type WorkoutIntensity,
@@ -46,11 +47,13 @@ export type ClubEventRow = {
   duration_minutes?: number | string | null;
   zwift_event_type?: string | null;
   zwift_tags?: string[] | null;
+  /** Samengevatte workout van een Zwift-groepstraining (migr. 0376); zie zwiftWorkoutOf. */
+  zwift_workout?: unknown;
   parent_event_id?: string | null;
 };
 
 const EVENT_COLUMNS =
-  "id, title, type, start_at, end_at, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes, zwift_event_type, zwift_tags, parent_event_id";
+  "id, title, type, start_at, end_at, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes, zwift_event_type, zwift_tags, zwift_workout, parent_event_id";
 
 /**
  * Wat een event in het schema wordt als het lid meedoet. De duur komt bij
@@ -188,6 +191,9 @@ const ZWIFT_RACE_EVENT_TYPES = new Set(["RACE", "TIME_TRIAL", "TEAM_TIME_TRIAL"]
  */
 export function zwiftRaceKind(event: ClubEventRow): ZwiftRaceKind | null {
   const zwiftType = (event.zwift_event_type ?? "").trim().toUpperCase();
+  // Zegt Zwift groepsrit of groepstraining, dan is het geen race, ook niet in
+  // een racecategorie: een warming-up vóór de ZRL kan als `zrl` zijn opgeslagen.
+  if (ZWIFT_GROUP_EVENT_TYPES[zwiftType]) return null;
   const isRace =
     ZWIFT_RACE_TYPES.has(event.type) ||
     (event.type === "zwift" && ZWIFT_RACE_EVENT_TYPES.has(zwiftType));
@@ -213,6 +219,11 @@ export function zwiftRaceKind(event: ClubEventRow): ZwiftRaceKind | null {
  * Een groepstraining is een workout in de groep: mediaan IF 0,88, maar uit maar
  * 44 ritten van 8 renners. De afstand zegt daar niets over de duur; zonder
  * eindtijd geldt de standaard van het type (mediaan gereden: 60 minuten).
+ *
+ * Sinds 2026-11-27 gaat de workout van het event zelf voor, als die is gelezen
+ * (`zwift_workout`, migratie 0376): de duur van het bestand en het
+ * belastingsgelijke vermogen (zwiftWorkoutOf). Eén blok, geen stappen: zie
+ * lib/zwift/zwo.ts.
  */
 export type ZwiftGroupKind = "ride" | "workout";
 
@@ -233,6 +244,24 @@ export function zwiftGroupKind(event: ClubEventRow): ZwiftGroupKind | null {
   if (zwiftRaceKind(event)) return null;
   const zwiftType = (event.zwift_event_type ?? "").trim().toUpperCase();
   return ZWIFT_GROUP_EVENT_TYPES[zwiftType] ?? null;
+}
+
+/** Zoveel %FTP ligt het doel van een groepstraining met workout onder en boven het gemiddelde. */
+const ZWIFT_WORKOUT_TARGET_SPREAD = 5;
+
+/**
+ * De gelezen workout van een groepstraining: duur in seconden en het
+ * belastingsgelijke vermogen in %FTP, of null als er geen bruikbare is. Puur.
+ */
+export function zwiftWorkoutOf(event: ClubEventRow): { seconds: number; pct: number } | null {
+  if (zwiftGroupKind(event) !== "workout") return null;
+  const value = event.zwift_workout;
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const seconds = Number(record.seconds);
+  const pct = Number(record.pct);
+  if (!Number.isFinite(seconds) || seconds < 60 || !Number.isFinite(pct) || pct <= 0 || pct > 300) return null;
+  return { seconds, pct: Math.round(pct) };
 }
 
 /** Geschatte duur van een groepsrit in minuten, of null zonder afstand of route. */
@@ -336,6 +365,20 @@ export function eventWorkoutDefaults(
   const fallback = EVENT_DEFAULTS[event.type] ?? EVENT_DEFAULTS.outdoor;
   const raceKind = zwiftRaceKind(event);
   const groupKind = zwiftGroupKind(event);
+
+  // De workout van het event zelf gaat voor op eindtijd en standaard: dat is wat
+  // er in Zwift gereden wordt. Ook geen ondergrens van 20 minuten; een
+  // warming-up van een kwartier blijft een kwartier.
+  const workout = zwiftWorkoutOf(event);
+  if (workout) {
+    const spread = ZWIFT_WORKOUT_TARGET_SPREAD;
+    return {
+      durationMinutes: Math.min(MAX_EVENT_MINUTES, Math.max(1, Math.round(workout.seconds / 60))),
+      durationSource: "vast",
+      intensity: intensityFromPct(workout.pct),
+      target: `${Math.max(1, workout.pct - spread)}-${workout.pct + spread}%`,
+    };
+  }
 
   const start = new Date(event.start_at).getTime();
   const end = event.end_at ? new Date(event.end_at).getTime() : null;
