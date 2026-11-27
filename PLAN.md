@@ -13188,12 +13188,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 > - `/hulp` (Kennis, rekenaar) legt de schattingen uit; `/privacy` kreeg een
 >   regel "Eigen materiaal in de rekenaar".
 >
-> **Open voor de eigenaar.**
-> - De privacyregel staat er zonder nieuwe versie in `PRIVACY_VERSIONS`,
->   net als de regel "Wielen en banden" van Mijn garage: eigen gegevens die
->   alleen het lid ziet. Nog niet goedgekeurd; vóór de push beslissen.
-> - De code staat nog niet op `main`: tot de push heeft productie de tabel
->   wel, maar gebruikt de app hem nog niet.
+> **Privacy.** De regel "Eigen materiaal in de rekenaar" op `/privacy` staat
+> er zonder nieuwe versie in `PRIVACY_VERSIONS`, net als de regel "Wielen en
+> banden" van Mijn garage: eigen gegevens die alleen het lid ziet. De
+> eigenaar keurde dat goed op 2026-11-27 ("Yes, push to main", op de vraag
+> of de regel zonder nieuwe versie kon). Gepusht naar `main` op dezelfde dag.
 >
 > **Bewust niet gebouwd.**
 > - Kleding en sokken als eigen invoer: niet gevraagd, en zonder test valt
