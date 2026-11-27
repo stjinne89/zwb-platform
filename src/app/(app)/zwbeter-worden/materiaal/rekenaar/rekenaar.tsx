@@ -2,9 +2,25 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { EvidenceBadge } from "@/components/evidence-badge";
 import type { ArticleEvidence } from "@/lib/knowledge/evidence";
+import {
+  BAND_SOORTEN,
+  BAND_SOORT_LABEL,
+  FIETS_TYPES,
+  FIETS_TYPE_LABEL,
+  HELM_TYPES,
+  HELM_TYPE_LABEL,
+  UITRUSTING_ZONDER_FIETS_KG,
+  isEigenRef,
+  schat,
+  type BandSoort,
+  type EigenOnderdeel,
+  type EigenRij,
+  type FietsType,
+} from "@/lib/materiaal/eigen-materiaal";
+import type { HelmProfiel } from "@/lib/materiaal/producttests";
 import {
   TEST_BANDEN,
   TEST_FIETSEN,
@@ -31,6 +47,7 @@ import {
   wielenBijFiets,
   winstPerOnderdeel,
   winstPerProduct,
+  type EigenLijst,
   type Onderdeel,
   type Opzet,
   type RekenRoute,
@@ -39,9 +56,13 @@ import {
   type WegdekId,
 } from "@/lib/materiaal/rekenaar";
 import { cn } from "@/lib/utils";
+import { bewaarEigenMateriaal, verwijderEigenMateriaal } from "./_actions";
 import { RennerFiguur, VIEWBOX, ankers, type RennerBeeld, type Tenue } from "./renner";
 
 export type ArtikelLink = { href: string; title: string; evidence: ArticleEvidence };
+
+/** Een fiets uit Mijn garage, om een eigen fiets of band mee in te vullen. */
+export type GarageFiets = { id: string; naam: string; kg: number | null; breedte: number | null; tubeless: boolean | null };
 
 const veld =
   "w-full rounded-md border border-input bg-background px-2 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -96,14 +117,23 @@ const PRODUCTEN: Record<ProductVeld, { rijen: readonly ProductRij[]; test: Produ
   sokken: { rijen: SOK_PRODUCTEN, test: TEST_SOKKEN, eenheid: "CdA", decimalen: 4 },
 };
 
-const naamVan = (veld: ProductVeld, id: string) => PRODUCTEN[veld].rijen.find((r) => r.id === id)?.naam ?? "";
+const naamVan = (veld: ProductVeld, id: string, eigen: EigenLijst) =>
+  PRODUCTEN[veld].rijen.find((r) => r.id === id)?.naam ?? eigen.find((p) => p.id === id)?.naam ?? "";
 
-function beeldVan(opzet: Opzet): RennerBeeld {
-  const fiets = (FIETS_PRODUCTEN.find((f) => f.id === opzet.fiets) ?? FIETS_PRODUCTEN[0]).uiterlijk;
-  const wielen = (WIEL_PRODUCTEN.find((w) => w.id === opzet.wielen) ?? WIEL_PRODUCTEN[0]).uiterlijk;
+const EIGEN_LABEL: Record<EigenOnderdeel, string> = {
+  helm: "Eigen helm",
+  fiets: "Eigen fiets",
+  wielen: "Eigen wielen",
+  banden: "Eigen banden",
+};
+
+function beeldVan(opzet: Opzet, eigen: EigenLijst): RennerBeeld {
+  const eigenVan = (id: string) => eigen.find((p) => p.id === id);
+  const fiets = eigenVan(opzet.fiets)?.fiets ?? (FIETS_PRODUCTEN.find((f) => f.id === opzet.fiets) ?? FIETS_PRODUCTEN[0]).uiterlijk;
+  const wielen = eigenVan(opzet.wielen)?.wielen ?? (WIEL_PRODUCTEN.find((w) => w.id === opzet.wielen) ?? WIEL_PRODUCTEN[0]).uiterlijk;
   return {
     houding: opzet.houding,
-    helm: (HELM_PRODUCTEN.find((h) => h.id === opzet.helm) ?? HELM_PRODUCTEN[0]).uiterlijk,
+    helm: eigenVan(opzet.helm)?.helm ?? (HELM_PRODUCTEN.find((h) => h.id === opzet.helm) ?? HELM_PRODUCTEN[0]).uiterlijk,
     fiets,
     // Een geteste fiets rijdt op zijn eigen wielen, zoals in de test.
     wielen: wielenBijFiets(opzet) ? fiets.wielen : wielen,
@@ -125,6 +155,8 @@ export function Rekenaar({
   standaardWatts,
   standaardGewicht,
   artikelen,
+  eigen: eigenStart,
+  garage,
 }: {
   events: { id: string; label: string }[];
   eventId: string | null;
@@ -133,6 +165,8 @@ export function Rekenaar({
   standaardWatts: number;
   standaardGewicht: number;
   artikelen: Record<string, ArtikelLink>;
+  eigen: EigenRij[];
+  garage: GarageFiets[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -145,6 +179,9 @@ export function Rekenaar({
   const [stand, setStand] = useState<Stand>("straks");
   const [onderdeel, setOnderdeel] = useState<Onderdeel>("helm");
   const [opzet, setOpzet] = useState<Record<Stand, Opzet>>({ nu: STANDAARD_OPZET, straks: STANDAARD_OPZET });
+  const [eigenRijen, setEigenRijen] = useState<EigenRij[]>(eigenStart);
+  const eigen = useMemo(() => eigenRijen.map(schat), [eigenRijen]);
+  const [formulier, setFormulier] = useState<{ onderdeel: EigenOnderdeel; rij?: EigenRij } | null>(null);
   // Getalvelden houden hun tekst zelf bij, zodat je kunt wissen en een komma typen.
   const [tekst, setTekst] = useState<Record<Stand, { aero: string; kg: string }>>({
     nu: { aero: "0", kg: String(STANDAARD_OPZET.uitrustingKg) },
@@ -175,9 +212,9 @@ export function Rekenaar({
   }, [opzet, tekst]);
 
   const { uitkomst, perOnderdeel } = useMemo(() => {
-    const input = { route: route.segments, rijder, nu: volledig.nu, straks: volledig.straks };
+    const input = { route: route.segments, rijder, nu: volledig.nu, straks: volledig.straks, eigen };
     return { uitkomst: vergelijkOpzet(input), perOnderdeel: winstPerOnderdeel(input) };
-  }, [route, rijder, volledig]);
+  }, [route, rijder, volledig, eigen]);
 
   function kiesRoute(value: string) {
     if (value.startsWith("event:")) {
@@ -192,34 +229,100 @@ export function Rekenaar({
     setOpzet((oud) => ({ ...oud, [stand]: { ...oud[stand], [sleutel]: waarde } }));
   }
 
+  /** Kies een product; bij een eigen fiets telt zijn gewicht in "Fiets en uitrusting". */
+  function kies(veld: ProductVeld, id: string, lijst: EigenLijst = eigen) {
+    zet(veld, id as never);
+    const kg = veld === "fiets" ? lijst.find((p) => p.id === id)?.kg : undefined;
+    if (kg != null) {
+      const totaal = String(Math.round((kg + UITRUSTING_ZONDER_FIETS_KG) * 10) / 10).replace(".", ",");
+      setTekst((oud) => ({ ...oud, [stand]: { ...oud[stand], kg: totaal } }));
+    }
+  }
+
+  function eigenBewaard(rij: EigenRij) {
+    const nieuw = eigenRijen.some((r) => r.id === rij.id) ? eigenRijen.map((r) => (r.id === rij.id ? rij : r)) : [...eigenRijen, rij];
+    setEigenRijen(nieuw);
+    setFormulier(null);
+    kies(rij.invoer.onderdeel, `eigen:${rij.id}`, nieuw.map(schat));
+  }
+
+  function eigenWeg(id: string) {
+    setEigenRijen((oud) => oud.filter((r) => r.id !== id));
+    setFormulier(null);
+    // Een opzet die het product gebruikte, valt terug op de basis.
+    setOpzet((oud) => {
+      const schoon = (o: Opzet): Opzet => {
+        const uit = { ...o } as Record<string, unknown>;
+        for (const veld of ["helm", "fiets", "wielen", "banden"] as const) if (o[veld] === `eigen:${id}`) uit[veld] = "basis";
+        return uit as Opzet;
+      };
+      return { nu: schoon(oud.nu), straks: schoon(oud.straks) };
+    });
+  }
+
   const huidig = volledig[stand];
   const ander = volledig[stand === "nu" ? "straks" : "nu"];
-  const beeld = beeldVan(huidig);
+  const beeld = beeldVan(huidig, eigen);
   const zelfde = Math.round(uitkomst.winstSeconden) === 0;
   const sneller = uitkomst.winstSeconden > 0;
   const plekken = ankers(beeld);
   const wielenVast = wielenBijFiets(huidig);
 
   const keuzeTekst: Record<Onderdeel, string> = {
-    helm: naamVan("helm", huidig.helm),
+    helm: naamVan("helm", huidig.helm, eigen),
     houding: HOUDINGEN.find((h) => h.id === huidig.houding)?.label ?? "",
-    fiets: naamVan("fiets", huidig.fiets),
-    wielen: wielenVast ? "Bij de fiets" : naamVan("wielen", huidig.wielen),
-    banden: naamVan("banden", huidig.banden),
-    kleding: huidig.kleding === "basis" ? naamVan("sokken", huidig.sokken) : naamVan("kleding", huidig.kleding),
+    fiets: naamVan("fiets", huidig.fiets, eigen),
+    wielen: wielenVast ? "Bij de fiets" : naamVan("wielen", huidig.wielen, eigen),
+    banden: naamVan("banden", huidig.banden, eigen),
+    kleding: huidig.kleding === "basis" ? naamVan("sokken", huidig.sokken, eigen) : naamVan("kleding", huidig.kleding, eigen),
   };
 
-  const productTabel = (veld: ProductVeld, uit?: boolean) => (
-    <ProductTabel
-      veld={veld}
-      route={route.segments}
-      rijder={rijder}
-      opzet={huidig}
-      gekozen={huidig[veld]}
-      uit={uit}
-      onKies={(id) => zet(veld, id as never)}
-    />
-  );
+  const productTabel = (veld: ProductVeld, uit?: boolean) => {
+    const eigenVeld = veld === "helm" || veld === "fiets" || veld === "wielen" || veld === "banden" ? veld : null;
+    const gekozen = huidig[veld];
+    const gekozenRij = eigenVeld && isEigenRef(gekozen) ? eigenRijen.find((r) => `eigen:${r.id}` === gekozen) : undefined;
+    return (
+      <>
+        <ProductTabel
+          veld={veld}
+          route={route.segments}
+          rijder={rijder}
+          opzet={huidig}
+          gekozen={gekozen}
+          uit={uit}
+          eigen={eigen}
+          onKies={(id) => kies(veld, id)}
+        />
+        {eigenVeld && !uit && formulier?.onderdeel !== eigenVeld && (
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setFormulier({ onderdeel: eigenVeld })} className="min-h-11 rounded-md border px-3 text-sm font-medium hover:bg-muted">
+              {EIGEN_LABEL[eigenVeld]}
+            </button>
+            {gekozenRij && (
+              <button
+                type="button"
+                onClick={() => setFormulier({ onderdeel: eigenVeld, rij: gekozenRij })}
+                className="min-h-11 min-w-0 truncate rounded-md border px-3 text-sm font-medium hover:bg-muted"
+              >
+                {gekozenRij.naam} wijzigen
+              </button>
+            )}
+          </div>
+        )}
+        {eigenVeld && formulier?.onderdeel === eigenVeld && (
+          <EigenFormulier
+            key={formulier.rij?.id ?? "nieuw"}
+            onderdeel={eigenVeld}
+            rij={formulier.rij}
+            garage={garage}
+            onBewaard={eigenBewaard}
+            onWeg={eigenWeg}
+            onSluit={() => setFormulier(null)}
+          />
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
@@ -448,6 +551,7 @@ function ProductTabel({
   opzet,
   gekozen,
   uit,
+  eigen,
   onKies,
 }: {
   veld: ProductVeld;
@@ -456,18 +560,34 @@ function ProductTabel({
   opzet: Opzet;
   gekozen: string;
   uit?: boolean;
+  eigen: EigenLijst;
   onKies: (id: string) => void;
 }) {
   const [alles, setAlles] = useState(false);
   const { rijen, test, eenheid, decimalen } = PRODUCTEN[veld];
+  const eigenRijen = useMemo(() => eigen.filter((p) => p.onderdeel === veld), [eigen, veld]);
   const gesorteerd = useMemo(() => [...rijen].sort((a, b) => a.verschil - b.verschil), [rijen]);
-  const winst = useMemo(
-    () => winstPerProduct({ route, rijder, opzet, veld, ids: rijen.map((r) => r.id) as never }) as Map<string, { winstSeconden: number; wattWaarde: number }>,
-    [route, rijder, opzet, veld, rijen],
-  );
-  const zichtbaar = alles
-    ? gesorteerd
-    : gesorteerd.filter((r, i) => i < ZICHTBAAR || r.id === gekozen || r.id === "basis");
+  const winst = useMemo(() => {
+    type W = Map<string, { winstSeconden: number; wattWaarde: number }>;
+    const ids = [...rijen.map((r) => r.id), ...eigenRijen.map((p) => p.id)] as never;
+    const midden = winstPerProduct({ route, rijder, opzet, veld, ids, eigen }) as W;
+    // Het bereik van een schatting: dezelfde som met de lage en de hoge waarde.
+    const rand = (i: 0 | 1) =>
+      winstPerProduct({
+        route,
+        rijder,
+        opzet,
+        veld,
+        ids: eigenRijen.map((p) => p.id) as never,
+        eigen: eigen.map((p) => (p.onderdeel === veld ? { ...p, verschil: p.bereik[i] } : p)),
+      }) as W;
+    const [laag, hoog] = eigenRijen.length ? [rand(0), rand(1)] : [new Map() as W, new Map() as W];
+    return { midden, laag, hoog };
+  }, [route, rijder, opzet, veld, rijen, eigen, eigenRijen]);
+  const zichtbaar = [
+    ...eigenRijen,
+    ...(alles ? gesorteerd : gesorteerd.filter((r, i) => i < ZICHTBAAR || r.id === gekozen || r.id === "basis")),
+  ];
 
   return (
     <div className={cn(uit && "pointer-events-none opacity-50")}>
@@ -479,8 +599,13 @@ function ProductTabel({
       </div>
       <div role="radiogroup" aria-label={veld} aria-disabled={uit || undefined} className="divide-y">
         {zichtbaar.map((rij) => {
-          const w = winst.get(rij.id);
+          const w = winst.midden.get(rij.id);
           const watt = w ? Math.round(w.wattWaarde) : 0;
+          const laag = winst.laag.get(rij.id);
+          const hoog = winst.hoog.get(rij.id);
+          const bereik = laag && hoog && Math.round(laag.winstSeconden) !== Math.round(hoog.winstSeconden)
+            ? [laag.winstSeconden, hoog.winstSeconden].sort((a, b) => b - a)
+            : null;
           return (
             <button
               key={rij.id}
@@ -499,9 +624,16 @@ function ProductTabel({
                 <span className="block truncate text-xs font-normal text-muted-foreground">{rij.gemeten}</span>
               </span>
               <span className="text-right text-xs tabular-nums">{teken(rij.verschil, decimalen)}</span>
-              <span className={cn("text-right text-xs tabular-nums", w && Math.round(w.winstSeconden) < 0 && "text-destructive")}>
-                {w ? verschil(w.winstSeconden) : ""}
-              </span>
+              {bereik ? (
+                <span className="text-right text-xs leading-tight tabular-nums">
+                  <span className="block">{verschil(bereik[0])}</span>
+                  <span className="block text-[10px] font-normal text-muted-foreground">tot {verschil(bereik[1])}</span>
+                </span>
+              ) : (
+                <span className={cn("text-right text-xs tabular-nums", w && Math.round(w.winstSeconden) < 0 && "text-destructive")}>
+                  {w ? verschil(w.winstSeconden) : ""}
+                </span>
+              )}
               <span className={cn("text-right text-xs tabular-nums", watt < 0 && "text-destructive")}>
                 {watt === 0 ? "0" : `${watt > 0 ? "+" : "−"}${Math.abs(watt)}`}
               </span>
@@ -509,7 +641,7 @@ function ProductTabel({
           );
         })}
       </div>
-      {gesorteerd.length > zichtbaar.length && !alles && (
+      {gesorteerd.length + eigenRijen.length > zichtbaar.length && !alles && (
         <button type="button" onClick={() => setAlles(true)} className="mt-1 min-h-11 text-sm font-medium text-primary hover:underline">
           Alle {gesorteerd.length} tonen
         </button>
@@ -568,5 +700,211 @@ function ArtikelRegel({ artikelen }: { artikelen: (ArtikelLink | undefined)[] })
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Getal uit een veld, of null als het leeg is. */
+function getalOfNull(value: string): number | null {
+  if (value.trim() === "") return null;
+  const n = Number(value.replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+const alsTekst = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
+
+function EigenFormulier({
+  onderdeel,
+  rij,
+  garage,
+  onBewaard,
+  onWeg,
+  onSluit,
+}: {
+  onderdeel: EigenOnderdeel;
+  rij?: EigenRij;
+  garage: GarageFiets[];
+  onBewaard: (rij: EigenRij) => void;
+  onWeg: (id: string) => void;
+  onSluit: () => void;
+}) {
+  const oud = rij?.invoer;
+  const [bezig, startBezig] = useTransition();
+  const [fout, setFout] = useState<string | null>(null);
+  const [naam, setNaam] = useState(rij?.naam ?? "");
+  const [lijktOp, setLijktOp] = useState<string>(oud && (oud.onderdeel === "helm" || oud.onderdeel === "fiets") ? (oud.lijktOp ?? "") : "");
+  const [helmType, setHelmType] = useState<HelmProfiel>(oud?.onderdeel === "helm" ? oud.type : "gaten");
+  const [fietsType, setFietsType] = useState<FietsType>(oud?.onderdeel === "fiets" ? oud.type : "gewoon");
+  const [kg, setKg] = useState(oud?.onderdeel === "fiets" ? alsTekst(oud.kg) : "");
+  const [velgVoor, setVelgVoor] = useState(oud?.onderdeel === "wielen" ? alsTekst(oud.velgVoor) : "");
+  const [velgAchter, setVelgAchter] = useState(oud?.onderdeel === "wielen" ? alsTekst(oud.velgAchter) : "");
+  const [breedte, setBreedte] = useState(oud?.onderdeel === "banden" ? alsTekst(oud.breedte) : "28");
+  const [tubeless, setTubeless] = useState(oud?.onderdeel === "banden" ? oud.tubeless : true);
+  const [soort, setSoort] = useState<BandSoort>(oud?.onderdeel === "banden" ? oud.soort : "race");
+  const [watt, setWatt] = useState(oud?.onderdeel === "banden" ? alsTekst(oud.watt) : "");
+
+  const uitGarage = garage.filter((f) => (onderdeel === "fiets" ? f.kg != null : f.breedte != null));
+
+  function vulUitGarage(id: string) {
+    const fiets = garage.find((f) => f.id === id);
+    if (!fiets) return;
+    if (onderdeel === "fiets") {
+      setNaam(fiets.naam);
+      setKg(alsTekst(fiets.kg));
+    } else {
+      setBreedte(alsTekst(fiets.breedte));
+      if (fiets.tubeless != null) setTubeless(fiets.tubeless);
+    }
+  }
+
+  function invoer(): Record<string, unknown> {
+    switch (onderdeel) {
+      case "helm":
+        return { lijktOp: lijktOp || null, type: helmType };
+      case "fiets":
+        return { kg: getalOfNull(kg), lijktOp: lijktOp || null, type: fietsType };
+      case "wielen":
+        return { velgVoor: getalOfNull(velgVoor), velgAchter: getalOfNull(velgAchter) ?? getalOfNull(velgVoor) };
+      case "banden":
+        return { breedte: getalOfNull(breedte), tubeless, soort, watt: getalOfNull(watt) };
+    }
+  }
+
+  function bewaar(e: React.FormEvent) {
+    e.preventDefault();
+    setFout(null);
+    startBezig(async () => {
+      const uit = await bewaarEigenMateriaal({ id: rij?.id, onderdeel, naam, invoer: invoer() });
+      if (uit.ok) onBewaard(uit.waarde);
+      else setFout(uit.fout);
+    });
+  }
+
+  function verwijder() {
+    if (!rij) return;
+    setFout(null);
+    startBezig(async () => {
+      const uit = await verwijderEigenMateriaal(rij.id);
+      if (uit.ok) onWeg(rij.id);
+      else setFout(uit.fout);
+    });
+  }
+
+  const tekstVeld = (label: string, waarde: string, zet: (v: string) => void, opties: { decimaal?: boolean; plaats?: string } = {}) => (
+    <label className="block min-w-0 space-y-1 text-sm">
+      <span className="block truncate text-muted-foreground">{label}</span>
+      <input
+        className={veld}
+        inputMode={opties.decimaal === false ? "text" : "decimal"}
+        value={waarde}
+        placeholder={opties.plaats}
+        onChange={(e) => zet(e.target.value)}
+      />
+    </label>
+  );
+
+  return (
+    <form onSubmit={bewaar} className="space-y-3 rounded-md border p-3" aria-label={EIGEN_LABEL[onderdeel]}>
+      <h3 className="text-sm font-semibold">{EIGEN_LABEL[onderdeel]}</h3>
+
+      {(onderdeel === "fiets" || onderdeel === "banden") && uitGarage.length > 0 && (
+        <label className="block space-y-1 text-sm">
+          <span className="block truncate text-muted-foreground">Uit Mijn garage</span>
+          <select className={veld} defaultValue="" onChange={(e) => vulUitGarage(e.target.value)}>
+            <option value="">Kies een fiets</option>
+            {uitGarage.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.naam}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      <label className="block space-y-1 text-sm">
+        <span className="block truncate text-muted-foreground">Naam</span>
+        <input className={veld} value={naam} maxLength={60} onChange={(e) => setNaam(e.target.value)} />
+      </label>
+
+      {onderdeel === "helm" && (
+        <>
+          <label className="block space-y-1 text-sm">
+            <span className="block truncate text-muted-foreground">Lijkt op</span>
+            <select className={veld} value={lijktOp} onChange={(e) => setLijktOp(e.target.value)}>
+              <option value="">Geen van deze</option>
+              {HELM_PRODUCTEN.filter((h) => h.id !== "basis").map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.naam}
+                </option>
+              ))}
+            </select>
+          </label>
+          {!lijktOp && <Keuze label="Type helm" waarde={helmType} opties={HELM_TYPES.map((t) => ({ id: t, label: HELM_TYPE_LABEL[t] }))} onKies={setHelmType} />}
+        </>
+      )}
+
+      {onderdeel === "fiets" && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            {tekstVeld("Gewicht (kg)", kg, setKg)}
+            <label className="block min-w-0 space-y-1 text-sm">
+              <span className="block truncate text-muted-foreground">Lijkt op</span>
+              <select className={veld} value={lijktOp} onChange={(e) => setLijktOp(e.target.value)}>
+                <option value="">Geen van deze</option>
+                {FIETS_PRODUCTEN.filter((f) => f.aero).map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.naam}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {!lijktOp && <Keuze label="Type fiets" waarde={fietsType} opties={FIETS_TYPES.map((t) => ({ id: t, label: FIETS_TYPE_LABEL[t] }))} onKies={setFietsType} />}
+        </>
+      )}
+
+      {onderdeel === "wielen" && (
+        <div className="grid grid-cols-2 gap-3">
+          {tekstVeld("Velg voor (mm)", velgVoor, setVelgVoor)}
+          {tekstVeld("Velg achter (mm)", velgAchter, setVelgAchter, { plaats: velgVoor })}
+        </div>
+      )}
+
+      {onderdeel === "banden" && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            {tekstVeld("Breedte (mm)", breedte, setBreedte)}
+            {tekstVeld("BRR-waarde (W)", watt, setWatt)}
+          </div>
+          <Keuze
+            label="Binnenband of tubeless"
+            waarde={tubeless ? "tubeless" : "binnenband"}
+            opties={[
+              { id: "tubeless", label: "Tubeless" },
+              { id: "binnenband", label: "Binnenband" },
+            ]}
+            onKies={(id) => setTubeless(id === "tubeless")}
+          />
+          {getalOfNull(watt) == null && (
+            <Keuze label="Soort band" waarde={soort} opties={BAND_SOORTEN.map((t) => ({ id: t, label: BAND_SOORT_LABEL[t] }))} onKies={setSoort} />
+          )}
+        </>
+      )}
+
+      {fout && <p className="text-sm text-destructive">{fout}</p>}
+
+      <div className="flex flex-wrap gap-2">
+        <button type="submit" disabled={bezig} className="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60">
+          Bewaren
+        </button>
+        <button type="button" onClick={onSluit} disabled={bezig} className="min-h-11 rounded-md border px-4 text-sm font-medium hover:bg-muted">
+          Annuleren
+        </button>
+        {rij && (
+          <button type="button" onClick={verwijder} disabled={bezig} className="ml-auto min-h-11 rounded-md px-3 text-sm font-medium text-destructive hover:bg-destructive/10">
+            Verwijderen
+          </button>
+        )}
+      </div>
+    </form>
   );
 }

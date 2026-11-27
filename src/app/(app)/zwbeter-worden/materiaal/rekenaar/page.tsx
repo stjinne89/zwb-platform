@@ -1,8 +1,10 @@
+import { TIRE_SETUP_COLUMNS, setupFromRow, type TireSetupRow } from "@/lib/materiaal/bandendruk";
+import { leesInvoer, type EigenRij } from "@/lib/materiaal/eigen-materiaal";
 import { MATERIAAL_ARTICLES } from "@/lib/materiaal/library";
 import { loadPacingRoute, type PacingEventRow } from "@/lib/pacing/route-loader";
 import type { RekenRoute } from "@/lib/materiaal/rekenaar";
 import { requireViewer } from "../../_data";
-import { Rekenaar, type ArtikelLink } from "./rekenaar";
+import { Rekenaar, type ArtikelLink, type GarageFiets } from "./rekenaar";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +37,7 @@ export default async function RekenaarPage({ searchParams }: { searchParams: Pro
   const viewer = await requireViewer();
   const venster = eventVenster();
 
-  const [{ data: profile }, { data: eventRows }] = await Promise.all([
+  const [{ data: profile }, { data: eventRows }, { data: eigenRows }, { data: bikeRows }, { data: setupRows }] = await Promise.all([
     viewer.supabase.from("profiles").select("weight_kg, ftp_watts").eq("id", viewer.user.id).maybeSingle(),
     viewer.supabase
       .from("events")
@@ -46,7 +48,39 @@ export default async function RekenaarPage({ searchParams }: { searchParams: Pro
       .lte("start_at", venster.tot)
       .order("start_at")
       .limit(30),
+    // Zonder de tabel (migratie 0375 nog niet toegepast) is dit een fout en dus leeg.
+    viewer.supabase
+      .from("materiaal_eigen")
+      .select("id, onderdeel, naam, invoer")
+      .eq("profile_id", viewer.user.id)
+      .order("created_at"),
+    viewer.supabase
+      .from("strava_bikes")
+      .select("id, name, brand_model, discipline")
+      .eq("profile_id", viewer.user.id)
+      .eq("retired", false)
+      .order("is_primary", { ascending: false }),
+    viewer.supabase.from("bike_tire_setups").select(TIRE_SETUP_COLUMNS).eq("profile_id", viewer.user.id),
   ]);
+
+  const eigen: EigenRij[] = ((eigenRows ?? []) as { id: string; onderdeel: string; naam: string; invoer: unknown }[]).flatMap((row) => {
+    const invoer = leesInvoer(row.onderdeel, row.invoer);
+    return invoer ? [{ id: row.id, naam: row.naam, invoer }] : [];
+  });
+
+  const setups = new Map(((setupRows ?? []) as TireSetupRow[]).map((row) => [row.bike_id, setupFromRow(row)]));
+  const garage: GarageFiets[] = ((bikeRows ?? []) as { id: string; name: string | null; brand_model: string | null; discipline: string | null }[])
+    .filter((b) => b.discipline !== "indoor")
+    .map((b) => {
+      const setup = setups.get(b.id);
+      return {
+        id: b.id,
+        naam: (b.brand_model || b.name || "Fiets").slice(0, 60),
+        kg: setup?.fietsKg ?? null,
+        breedte: setup?.achterBreedteMm ?? null,
+        tubeless: setup ? setup.bandType === "tubeless" : null,
+      };
+    });
 
   const events = ((eventRows ?? []) as { id: string; title: string; start_at: string }[]).map((row) => ({
     id: row.id,
@@ -99,6 +133,8 @@ export default async function RekenaarPage({ searchParams }: { searchParams: Pro
       standaardWatts={ftp ? Math.round(ftp * 0.75) : 200}
       standaardGewicht={Math.round(gewicht)}
       artikelen={artikelen}
+      eigen={eigen}
+      garage={garage}
     />
   );
 }

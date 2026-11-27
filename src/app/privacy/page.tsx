@@ -348,6 +348,13 @@ export default function PrivacyPage() {
             aan op dezelfde plek, en ze verdwijnen als de fiets verdwijnt.
           </li>
           <li>
+            <strong>Eigen materiaal in de rekenaar:</strong> voeg je in de
+            materiaalrekenaar een eigen helm, fiets, wielen of banden toe, dan
+            bewaren we de naam en wat je invult (zoals velghoogte, bandbreedte en
+            fietsgewicht) om de winst te schatten. Alleen jij ziet dit; je wijzigt
+            of verwijdert het in de rekenaar.
+          </li>
+          <li>
             <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
             gebruiken we die om de porties in het receptenboek op jou af te
             stemmen en om in je pacingplan voor een Zwift-event je luchtweerstand

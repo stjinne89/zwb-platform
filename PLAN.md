@@ -13131,6 +13131,73 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Materiaalrekenaar: eigen materiaal van leden
+
+> **2026-11-27 — gebouwd, lokaal getest (typecheck, lint, unittests),
+> migratie 0375 nog niet toegepast.** Commit: de commit die dit blok
+> toevoegt. Migratie `0375_materiaal_eigen.sql` (0375 was vrij op
+> `origin/main`, gecontroleerd vlak voor de commit). Niet lokaal te testen:
+> er is geen Docker of Supabase-config hier. Ingelogd op localhost tegen
+> productiedata bekeken: zonder de tabel laadt de rekenaar gewoon (lege
+> lijst) en geeft Bewaren "Opslaan lukte niet."; met vier tijdelijke
+> proefproducten in `page.tsx` (daarna weer weggehaald) de tabelrijen met
+> bereik, de tekening (helm met staart, aerofiets met eigen wielen), het
+> fietsgewicht in "Fiets en uitrusting", wijzigen, en "Uit Mijn garage"
+> (naam en 8,5 kg ingevuld), ook op telefoonbreedte. Opslaan en verwijderen
+> zelf zijn pas te zien na het toepassen van 0375.
+>
+> **Aanleiding.** De eigenaar wilde dat leden hun eigen materiaal kunnen
+> toevoegen om de winst in te schatten. Voorstel (helm "lijkt op" of type,
+> fiets met gewicht, type en "lijkt op", wielen op velghoogte, banden met
+> soort, tubeless en BRR-waarde, label "schatting", tabel met RLS, plus
+> invullen uit Mijn garage) goedgekeurd: "Yes, build it".
+>
+> **Wat er veranderde.**
+> - `src/lib/materiaal/eigen-materiaal.ts`: de schattingen en de controle van
+>   de invoer. Elk eigen product krijgt een midden en een bereik in dezelfde
+>   eenheid als de geteste producten (CdA of Crr); de rekenaar telt het
+>   midden, de tabel toont het bereik in de kolom Tijd.
+>   - Wielen: midden en spreiding van de geteste wielen met een velghoogte
+>     binnen 6 mm (minstens drie). Onder 48 mm een rechte lijn naar 0 bij
+>     27 mm (er is daar geen meting), dieper dan 65 mm telt als 65 mm.
+>   - Helm: "lijkt op" neemt de geteste helm over met de testmarge
+>     (±0,74 W); een type neemt midden en spreiding van de helmen met dat
+>     silhouet.
+>   - Fiets: alleen het frame. Per geteste fiets gaat de geschatte winst van
+>     zijn eigen hoge velgen eraf, zodat eigen wielen niet dubbel tellen.
+>     "Lijkt op" neemt dat frame met de testmarge (±0,0047 m²); "aero" het
+>     midden van alle frames; "gewoon" is de basis. Het fietsgewicht plus
+>     1,5 kg gaat in "Fiets en uitrusting".
+>   - Banden: het soort band (race, allround, training, anti-lek) met de
+>     spreiding van de geteste banden van dat soort; binnenband tegen
+>     tubeless 2,5 W waar niet gemeten. Een ingevulde BRR-waarde geldt exact.
+> - `rekenaar.ts`: `Opzet` neemt naast een test-id ook `eigen:<id>`; de
+>   rekenfuncties krijgen de lijst eigen producten mee (`EigenLijst`).
+> - De rekenaar: per tabel (helm, fiets, wielen, banden) een knop "Eigen …"
+>   met een kort formulier zonder uitleg, "… wijzigen" bij een gekozen eigen
+>   product, en bij fiets en banden "Uit Mijn garage" (fietsgewicht,
+>   bandbreedte en bandtype uit `bike_tire_setups`; een tube telt als
+>   binnenband).
+> - `_actions.ts`: bewaren en verwijderen, met dezelfde controle als de
+>   pagina; maximaal 40 eigen producten per lid.
+> - `/hulp` (Kennis, rekenaar) legt de schattingen uit; `/privacy` kreeg een
+>   regel "Eigen materiaal in de rekenaar".
+>
+> **Open voor de eigenaar.**
+> - De privacyregel staat er zonder nieuwe versie in `PRIVACY_VERSIONS`,
+>   net als de regel "Wielen en banden" van Mijn garage: eigen gegevens die
+>   alleen het lid ziet. Nog niet goedgekeurd; vóór de push beslissen.
+> - Migratie 0375 toepassen, op verzoek.
+>
+> **Bewust niet gebouwd.**
+> - Kleding en sokken als eigen invoer: niet gevraagd, en zonder test valt
+>   een pak niet te schatten.
+> - De bandbreedte in de berekening: op de testrol maakte breedte vrijwel
+>   niets uit (GP 5000 S TR in 28 en 30 mm: 9,7 en 10,0 W).
+> - Een schatting uit alleen het merk: binnen één merk liep het in de test
+>   van 8,3 tot 22,0 W.
+> - De opzet (nu en straks) bewaren: alleen het eigen materiaal blijft staan.
+
 ### Gebouwd — Materiaalrekenaar: semi-realistische renner en fiets, Kalas-kleding
 
 > **2026-11-27 — gebouwd, lokaal getest (typecheck, lint, alle unittests op
@@ -13213,7 +13280,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 > - Fotomateriaal of AI-afbeeldingen: de houding animeert en elke combinatie
 >   van helm, fiets en wielen zou een eigen beeld vragen. De testfoto's mogen
 >   we ook niet gebruiken.
-> - Eigen materiaal van leden: de volgende stap.
+> - Eigen materiaal van leden: in deze ronde nog niet; gebouwd in de ronde
+>   "Materiaalrekenaar: eigen materiaal van leden" hierboven.
 
 ### Gebouwd — TV koppelen met een code
 

@@ -30,6 +30,7 @@ import {
   type SokId,
   type WielId,
 } from "@/lib/materiaal/producttests";
+import type { EigenProduct, EigenRef } from "@/lib/materiaal/eigen-materiaal";
 
 export type { BandId, FietsId, HelmId, KledingId, SokId, WielId };
 
@@ -102,9 +103,18 @@ export type WegdekId = (typeof WEGDEKKEN)[number]["id"];
 
 export const RUW_CRR = 0.007;
 
-export function rolweerstand(spanning: SpanningId, wegdek: WegdekId, band: BandId = "basis"): number {
+/** Eigen materiaal van het lid, met de geschatte verschillen (eigen-materiaal.ts). */
+export type EigenLijst = readonly EigenProduct[];
+const GEEN_EIGEN: EigenLijst = [];
+
+/** Het verschil van een product: uit de test, of de schatting van een eigen product. */
+function productVerschil(lijst: readonly { id: string; verschil: number }[], id: string, eigen: EigenLijst): number {
+  return lijst.find((p) => p.id === id)?.verschil ?? eigen.find((p) => p.id === id)?.verschil ?? 0;
+}
+
+export function rolweerstand(spanning: SpanningId, wegdek: WegdekId, band: Opzet["banden"] = "basis", eigen: EigenLijst = GEEN_EIGEN): number {
   const basis = wegdek === "ruw" ? RUW_CRR : (SPANNINGEN.find((s) => s.id === spanning)?.crr ?? DEFAULT_CRR);
-  return basis + (BAND_PRODUCTEN.find((b) => b.id === band)?.verschil ?? 0);
+  return basis + productVerschil(BAND_PRODUCTEN, band, eigen);
 }
 
 /** Rendement van de aandrijving. 97 % is de aanname van het ZWB-model. */
@@ -112,10 +122,11 @@ export const RENDEMENTEN = [0.96, DRIVETRAIN_EFF, 0.98] as const;
 
 export type Opzet = {
   houding: HoudingId;
-  helm: HelmId;
-  fiets: FietsId;
-  wielen: WielId;
-  banden: BandId;
+  /** Een geteste helm, of `eigen:` met het id van een eigen helm. Zo ook fiets, wielen en banden. */
+  helm: HelmId | EigenRef;
+  fiets: FietsId | EigenRef;
+  wielen: WielId | EigenRef;
+  banden: BandId | EigenRef;
   spanning: SpanningId;
   /** Shirt en broek, of een snelpak, uit de Kalas-clubshop. */
   kleding: KledingId;
@@ -149,44 +160,47 @@ export type Rijder = {
   wegdek: WegdekId;
 };
 
-export function opzetCda(opzet: Opzet, groep: boolean): number {
+export function opzetCda(opzet: Opzet, groep: boolean, eigen: EigenLijst = GEEN_EIGEN): number {
   const houding = HOUDINGEN.find((h) => h.id === opzet.houding)?.factor ?? 1;
-  return (DEFAULT_CDA * houding + materiaalCda(opzet)) * (1 + opzet.aeroPct / 100) * (groep ? GROEP_CDA_FACTOR : 1);
+  return (DEFAULT_CDA * houding + materiaalCda(opzet, eigen)) * (1 + opzet.aeroPct / 100) * (groep ? GROEP_CDA_FACTOR : 1);
 }
 
-/** Wielen van een geteste fiets? De fietstest mat ze al mee met hun eigen hoge velgen. */
+/**
+ * Wielen van een geteste fiets? De fietstest mat ze al mee met hun eigen hoge
+ * velgen. Een eigen fiets is alleen het frame: die krijgt zijn wielen apart.
+ */
 export function wielenBijFiets(opzet: Pick<Opzet, "fiets">): boolean {
   return FIETS_PRODUCTEN.find((f) => f.id === opzet.fiets)?.aero ?? false;
 }
 
 /** Verschil in luchtweerstand (m²) van helm, fiets, wielen, kleding en sokken met de basis. */
-export function materiaalCda(opzet: Opzet): number {
-  const helm = HELM_PRODUCTEN.find((h) => h.id === opzet.helm)?.verschil ?? 0;
-  const fiets = FIETS_PRODUCTEN.find((f) => f.id === opzet.fiets)?.verschil ?? 0;
-  const wielen = wielenBijFiets(opzet) ? 0 : (WIEL_PRODUCTEN.find((w) => w.id === opzet.wielen)?.verschil ?? 0);
+export function materiaalCda(opzet: Opzet, eigen: EigenLijst = GEEN_EIGEN): number {
+  const helm = productVerschil(HELM_PRODUCTEN, opzet.helm, eigen);
+  const fiets = productVerschil(FIETS_PRODUCTEN, opzet.fiets, eigen);
+  const wielen = wielenBijFiets(opzet) ? 0 : productVerschil(WIEL_PRODUCTEN, opzet.wielen, eigen);
   const kleding = KLEDING_PRODUCTEN.find((k) => k.id === opzet.kleding)?.verschil ?? 0;
   const sokken = SOK_PRODUCTEN.find((s) => s.id === opzet.sokken)?.verschil ?? 0;
   return helm + fiets + wielen + kleding + sokken;
 }
 
 /** Tijd in seconden voor deze route, met een vast vermogen over de hele rit. */
-export function ritSeconden(route: RekenSegment[], rijder: Rijder, opzet: Opzet): number {
+export function ritSeconden(route: RekenSegment[], rijder: Rijder, opzet: Opzet, eigen: EigenLijst = GEEN_EIGEN): number {
   return estimateRide({
     segments: route.map((s) => ({ ...s, watts: rijder.watts })),
     totalMassKg: rijder.gewichtKg + opzet.uitrustingKg,
-    cda: opzetCda(opzet, rijder.groep),
-    crr: rolweerstand(opzet.spanning, rijder.wegdek, opzet.banden),
+    cda: opzetCda(opzet, rijder.groep, eigen),
+    crr: rolweerstand(opzet.spanning, rijder.wegdek, opzet.banden, eigen),
     drivetrainEff: opzet.rendement,
   }).totalSeconds;
 }
 
 /** Het vermogen waarmee je met deze opzet de route in `seconden` rijdt. */
-export function wattsVoorTijd(route: RekenSegment[], seconden: number, rijder: Rijder, opzet: Opzet): number {
+export function wattsVoorTijd(route: RekenSegment[], seconden: number, rijder: Rijder, opzet: Opzet, eigen: EigenLijst = GEEN_EIGEN): number {
   let lo = 20;
   let hi = 2000;
   for (let i = 0; i < 50; i++) {
     const mid = (lo + hi) / 2;
-    if (ritSeconden(route, { ...rijder, watts: mid }, opzet) > seconden) lo = mid;
+    if (ritSeconden(route, { ...rijder, watts: mid }, opzet, eigen) > seconden) lo = mid;
     else hi = mid;
   }
   return (lo + hi) / 2;
@@ -206,10 +220,12 @@ export function vergelijkOpzet(input: {
   rijder: Rijder;
   nu: Opzet;
   straks: Opzet;
+  eigen?: EigenLijst;
 }): Vergelijking {
-  const nuSeconden = ritSeconden(input.route, input.rijder, input.nu);
-  const straksSeconden = ritSeconden(input.route, input.rijder, input.straks);
-  const wattWaarde = wattsVoorTijd(input.route, straksSeconden, input.rijder, input.nu) - input.rijder.watts;
+  const eigen = input.eigen ?? GEEN_EIGEN;
+  const nuSeconden = ritSeconden(input.route, input.rijder, input.nu, eigen);
+  const straksSeconden = ritSeconden(input.route, input.rijder, input.straks, eigen);
+  const wattWaarde = wattsVoorTijd(input.route, straksSeconden, input.rijder, input.nu, eigen) - input.rijder.watts;
   return { nuSeconden, straksSeconden, winstSeconden: nuSeconden - straksSeconden, wattWaarde };
 }
 
@@ -240,13 +256,15 @@ export function winstPerOnderdeel(input: {
   rijder: Rijder;
   nu: Opzet;
   straks: Opzet;
+  eigen?: EigenLijst;
 }): Record<Onderdeel, number> {
-  const nuSeconden = ritSeconden(input.route, input.rijder, input.nu);
+  const eigen = input.eigen ?? GEEN_EIGEN;
+  const nuSeconden = ritSeconden(input.route, input.rijder, input.nu, eigen);
   const uit = {} as Record<Onderdeel, number>;
   for (const onderdeel of Object.keys(ONDERDEEL_VELDEN) as Onderdeel[]) {
     const velden = ONDERDEEL_VELDEN[onderdeel];
     const gelijk = velden.every((veld) => input.nu[veld] === input.straks[veld]);
-    uit[onderdeel] = gelijk ? 0 : nuSeconden - ritSeconden(input.route, input.rijder, metVelden(input.nu, input.straks, velden));
+    uit[onderdeel] = gelijk ? 0 : nuSeconden - ritSeconden(input.route, input.rijder, metVelden(input.nu, input.straks, velden), eigen);
   }
   return uit;
 }
@@ -261,11 +279,12 @@ export function winstPerProduct<K extends "helm" | "fiets" | "wielen" | "banden"
   opzet: Opzet;
   veld: K;
   ids: readonly Opzet[K][];
+  eigen?: EigenLijst;
 }): Map<Opzet[K], Vergelijking> {
   const basis = { ...input.opzet, [input.veld]: "basis" } as Opzet;
   const uit = new Map<Opzet[K], Vergelijking>();
   for (const id of input.ids) {
-    uit.set(id, vergelijkOpzet({ route: input.route, rijder: input.rijder, nu: basis, straks: { ...input.opzet, [input.veld]: id } }));
+    uit.set(id, vergelijkOpzet({ route: input.route, rijder: input.rijder, nu: basis, straks: { ...input.opzet, [input.veld]: id }, eigen: input.eigen }));
   }
   return uit;
 }

@@ -750,6 +750,26 @@ export function KennisHelp() {
               als percentage in. De
               tekening toont per product de vorm, zonder logo&apos;s of merkkleuren.
             </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Staat je eigen helm, fiets, wielen of band er niet bij, voeg hem dan
+              toe met de knop onder de tabel. De rekenaar schat hem uit de geteste
+              producten en zet er &ldquo;schatting&rdquo; bij; in de kolom Tijd zie
+              je het bereik, en de rekenaar telt het midden. Bij een helm kies je
+              een geteste helm die erop lijkt, of het type: dan geldt het midden
+              van de geteste helmen met dat silhouet. Wielen schat hij uit de
+              velghoogte; alle geteste wielen zitten tussen 49,5 en 65 mm, dus
+              daaronder rekent hij in een rechte lijn naar een ondiepe velg van
+              27 mm, en dieper dan 65 mm telt als 65 mm. Een eigen fiets telt
+              alleen het frame: de winst van de hoge velgen van de geteste
+              fietsen haalt hij eraf, en je wielen kies je apart. Het gewicht van
+              je fiets komt met 1,5 kg voor kleding, schoenen en bidons in
+              &ldquo;Fiets en uitrusting&rdquo;. Bij banden zegt het merk weinig,
+              dus kies je het soort band; de breedte maakte op de testrol vrijwel
+              niets uit en telt niet mee. Ken je de waarde van je band op
+              BicycleRollingResistance, vul die dan in: dan rekent hij exact. Een
+              tube (tubular) uit Mijn garage telt als binnenband. Alleen jij ziet
+              je eigen materiaal.
+            </p>
             <Link
               href="/zwbeter-worden/materiaal/rekenaar"
               className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-primary hover:underline"

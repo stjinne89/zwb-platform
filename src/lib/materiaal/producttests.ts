@@ -9,7 +9,7 @@
 // niveau van de weg kloppen en tellen alleen de verschillen tussen producten.
 
 /** Watt bij een testsnelheid omrekenen naar luchtweerstand: P = ½·ρ·CdA·v³. */
-function cdaUitWatt(watt: number, kmh: number, rho = 1.2): number {
+export function cdaUitWatt(watt: number, kmh: number, rho = 1.2): number {
   const v = kmh / 3.6;
   return watt / (0.5 * rho * v ** 3);
 }
@@ -222,11 +222,15 @@ export const TEST_BANDEN: ProductTest = {
 // de Continental Grand Prix 5000 met binnenband, een veelgebruikte clubband.
 const ROL_V = 28.8 / 3.6;
 const ROL_N = 42.5 * 9.81;
-const BAND_BASIS_W = 12.1;
+export const BAND_BASIS_W = 12.1;
+/** Watt per band op de testrol omrekenen naar een verschil in Crr met de basisband. */
+export function bandVerschil(watt: number): number {
+  return (watt - BAND_BASIS_W) / (ROL_V * ROL_N);
+}
 const band = (id: string, naam: string, watt: number) => ({
   id,
   naam,
-  verschil: (watt - BAND_BASIS_W) / (ROL_V * ROL_N),
+  verschil: bandVerschil(watt),
   gemeten: `${watt.toLocaleString("nl-NL", { minimumFractionDigits: 1 })} W`,
 });
 
